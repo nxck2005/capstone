@@ -1,0 +1,3 @@
+# Tooling dependencies only. Project dependencies (torch, etc.) land here when
+# the implementation starts, per spec/SPEC.md SR-1.
+PyYAML>=6.0
