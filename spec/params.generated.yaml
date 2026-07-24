@@ -14,55 +14,70 @@ datasets:
     - 3
     n: 76800
     classes: 10
-    train_images: 9469
+    train_images: 8469
+    val_images: 1000
     test_images: 3925
-    clean_acc_floor: 0.9
+    clean_acc_floor: 0.88
   stl10:
-    role: demotion_tier3
+    role: fallback_headline
     image_size:
     - 96
     - 96
     - 3
     n: 27648
     classes: 10
-    train_images: 5000
+    train_images: 4500
+    val_images: 500
     test_images: 8000
-    clean_acc_floor: 0.85
+    clean_acc_floor: 0.75
   cifar10:
-    role: fallback_and_smoke
+    role: smoke_only
     image_size:
     - 32
     - 32
     - 3
     n: 3072
     classes: 10
-    train_images: 50000
+    train_images: 45000
+    val_images: 5000
     test_images: 10000
     clean_acc_floor: 0.93
 bandwidth:
   symbol_type: complex_baseband
   power_constraint: unit_average_power
   ratios:
+    r_1_2: 1/2
+    r_1_3: 1/3
     r_1_6: 1/6
     r_1_12: 1/12
     r_1_24: 1/24
-  core_ratio: r_1_12
+  core_ratio: r_1_3
+  core_ratio_status: provisional_until_G-8
+  low_ratio_operating_point: r_1_12
   k_symbols:
     imagenette160:
+      r_1_2: 38400
+      r_1_3: 25600
       r_1_6: 12800
       r_1_12: 6400
       r_1_24: 3200
     stl10:
+      r_1_2: 13824
+      r_1_3: 9216
       r_1_6: 4608
       r_1_12: 2304
       r_1_24: 1152
     cifar10:
+      r_1_2: 1536
+      r_1_3: 1024
       r_1_6: 512
       r_1_12: 256
       r_1_24: 128
 channel:
   snr_definition: Es/N0 in dB per complex channel use, measured after unit-average-power
     normalisation
+  snr_conversion: Es/N0_dB = Eb/N0_dB + 10*log10(bits_per_symbol * code_rate); every
+    published reference curve MUST be converted with this identity before comparison
   models_supported:
   - awgn
   models_planned:
@@ -76,22 +91,28 @@ channel:
   - 13
   - 19
   test_snr_grid_db:
-  - -5
-  - -3
+  - -8
+  - -6
+  - -4
+  - -2
   - -1
+  - 0
   - 1
+  - 2
   - 3
+  - 4
   - 5
+  - 6
   - 7
   - 9
   - 11
   - 13
   - 15
-  - 17
-  - 19
-  - 21
-  - 23
-  - 25
+  - 18
+  grid_rationale: the LDPC waterfall for QPSK spans roughly -1 dB (rate 1/3) to 5
+    dB (rate 5/6), so density is spent there; the grid then extends to 18 dB because
+    16-QAM at rate 5/6 does not decode until roughly 11-12 dB, and truncating earlier
+    would engineer a crossover under DEC-16 and then fail to measure it
 learned_system:
   framework: pytorch
   encoder: conv_downsample_to_k_symbols
@@ -100,22 +121,33 @@ learned_system:
   - classification
   loss: CE + lambda * MSE
   lambda_core: 1.0
+  lambda_status: provisional_until_G-4
   lambda_calibration_gate: G-4
+  lambda_acc_tolerance_pp: 1.0
+  lambda_psnr_floor_db: 20
+  lambda_psnr_floor_relaxed_db: 16
+  train_snr_protocol: one_model_per_ratio_at_fixed_snr
   optimizer: adam
   lr: 0.001
   lr_schedule: cosine
   amp: true
+  grad_accumulation_allowed: true
   max_params_millions: 10
   batch_size:
     imagenette160: 32
     stl10: 64
     cifar10: 128
+  batch_size_policy: target_not_binding
   epochs:
     imagenette160: 100
     stl10: 200
     cifar10: 150
+  papr_report_required: true
+  peak_power_constraint_available: true
 baseline:
-  source_codec: jpeg
+  source_codec: jpeg2000
+  source_codec_secondary: jpeg
+  j2k_rate_control: exact_target_bytes
   jpeg_quality_grid:
   - 5
   - 10
@@ -136,36 +168,79 @@ baseline:
   - 85
   - 90
   - 95
+  container_policy: all emitted container bytes count against payload_bits; shared-table
+    or stripped-header variants MAY be reported as a labelled sensitivity, never as
+    the headline
   channel_code: 5g_nr_ldpc
+  ldpc_standard: 3gpp_ts_38_212
+  ldpc_impl: sionna
+  ldpc_impl_version: 2.0.1
+  ldpc_impl_provides:
+  - base_graph_selection
+  - lifting_size_selection
+  - encoding
+  - rate_matching
+  - decoding
+  ldpc_impl_local:
+  - tb_crc
+  - code_block_segmentation
+  - per_block_budget_distribution
+  - concatenation
+  - crc_failure_detection
+  ldpc_impl_fallback: self_implemented_offset_min_sum
+  ldpc_golden_vector_file: tests/fixtures/ldpc_ts38212_golden.npz
+  ldpc_golden_vector_source_gate: G-9
+  ldpc_base_graph: auto_per_ts_38212
   ldpc_rates:
   - 1/3
   - 1/2
   - 2/3
   - 5/6
-  ldpc_decoder: normalized_min_sum
+  ldpc_decoder: offset_min_sum
   ldpc_max_iters: 50
+  tb_crc_bits: 24
+  cb_crc_bits: 24
+  code_block_max_bits: 8448
+  rate_matching: ts_38212_with_filler
   modulations:
   - bpsk
   - qpsk
+  - qam16
+  modulation_tuning: adaptive_per_snr
   core_modulation: qpsk
-  budget_rule: payload_bits = floor(k * bits_per_symbol * rate); the JPEG file MUST
-    fit within payload_bits
-  outage_policy: chance_level
-  tuning: best_feasible_config_per_test_snr
+  budget_rule: usable_source_bytes = floor((floor(k * bits_per_symbol * rate) - tb_crc_bits
+    - segmentation_and_filler_overhead) / 8); the complete compressed file, container
+    bytes included, MUST fit within usable_source_bytes
+  outage_policy: uniform_random_label
+  tuning: best_feasible_config_per_snr_on_validation_split
 reference_classifier:
   arch: resnet18
   trained_on: clean_images
+  pretrained_weights_permitted: false
+  artifact_finetuned_variant_required: true
   frozen: true
   shared_by:
   - classical_baseline
+  - digital_semantic_control
   - semantic_recon_ablation
 evaluation:
-  seeds:
+  train_seeds:
   - 0
   - 1
   - 2
-  repeats: 3
-  ci: student_t_95
+  channel_seeds:
+  - 0
+  - 1
+  - 2
+  split_seed: 1337
+  split_rule: val carved deterministically from the published train split by evaluation.split_seed;
+    the test split is never used for any selection
+  ci: paired_bootstrap_95
+  bootstrap_resamples: 10000
+  paired_test: mcnemar_exact
+  hypothesis_rule: three_consecutive_snr_points
+  cliff_drop_pp: 30
+  graceful_drop_pp: 15
   test_subset_size: 2000
   full_test_split_required_for:
   - ER-1
@@ -174,42 +249,69 @@ evaluation:
   - psnr_db
   - ssim
   - bytes_sent
+  - header_bytes
+  - payload_bytes
   - decode_failure_rate
+  - infeasible_rate
+  - papr_db
 compute:
   primary_device: rtx_4060_mobile_8gb
   overflow:
   - colab_free
   - kaggle_free
   vram_budget_gb: 7.0
-  max_wall_clock_hours_per_run: 2
+  profiling_gate: G-7
+  max_wall_clock_hours_per_run: 4
   checkpoint_every_epochs: 1
 artifacts:
   results_dir: results/
+  per_image_dir: results/per_image/
   checkpoint_dir: checkpoints/
   figures_dir: figures/
   csv_schema:
   - run_id
   - timestamp
   - git_commit
+  - git_dirty
+  - config_hash
+  - checkpoint_id
   - system
   - dataset
+  - split
   - n
   - k
   - bw_ratio
   - channel
   - train_snr_db
   - test_snr_db
-  - seed
+  - train_seed
+  - channel_seed
+  - lambda
+  - source_codec
   - jpeg_quality
+  - j2k_target_bytes
   - ldpc_rate
   - modulation
   - top1_acc
+  - n_correct
+  - n_test
   - psnr_db
   - ssim
   - bytes_sent
+  - header_bytes
+  - payload_bytes
+  - papr_db
   - decode_failure_rate
-  - n_test
+  - infeasible_rate
   - test_subset
+  - wall_clock_s
+  - peak_vram_gb
+  per_image_schema:
+  - image_index
+  - true_label
+  - pred_label
+  - correct
+  - outage
 demo:
   framework: streamlit
   figure_style_module: src/viz/style.py
@@ -218,6 +320,8 @@ demo:
   offline: true
   cpu_only_capable: true
 hardware_tier23:
+  status: stretch_goal
+  expected_demonstration: pre_recorded
   needs:
   - iq_playback
   - iq_capture
@@ -230,6 +334,33 @@ hardware_tier23:
   budget_inr_range:
   - 25000
   - 40000
+  budget_note: two Plutos sit at or above the top of this range once import duty lands;
+    the HackRF + RTL-SDR pairing is what the range actually buys
   edge_node: raspberry_pi_4_or_5
   live_demo_latency_budget_ms: 500
   purchase_gate: G-5
+  framing:
+  - preamble_correlation
+  - rrc_pulse_shaping
+  - timing_sync
+  - cfo_estimation
+  - pilot_aided_snr_measurement
+deliverables:
+  review_weeks:
+    first: 4
+    second: 10
+    third: 16
+  literature_review_min_refs: 25
+  time_plan_artifact: gantt_chart
+  poster_format: a0
+  plagiarism_report_required: true
+  report_format_source: vault/capstone/CAPSTONE_THESIS_Format.docx
+  standards:
+  - 3gpp_ts_38_212
+  - itu_t_t_800_jpeg2000
+  - itu_t_t_81_jpeg
+  - ieee_754
+  - ietf_rfc_2119
+  novelty_claims:
+  - er9_attribution_decomposition
+  - br11_format_overhead_controlled_baseline

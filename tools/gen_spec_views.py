@@ -38,15 +38,18 @@ CONCERNS = {
     "ER": ("experiments", "Experiments"),
     "DR": ("demo", "Demo"),
     "HR": ("hardware", "Hardware (Tier 2/3)"),
+    "PR": ("programme", "Programme deliverables"),
     "OPT": ("roadmap", "Roadmap"),
     "FW": ("roadmap", "Roadmap"),
     "DEC": ("roadmap", "Roadmap"),
     "G": ("roadmap", "Roadmap"),
 }
 # Prefixes whose requirements must state how they are verified.
-VERIFIABLE = {"SR", "BR", "ER", "DR", "HR"}
+VERIFIABLE = {"SR", "BR", "ER", "DR", "HR", "PR"}
 
 REQ_RE = re.compile(r"^- \*\*([A-Z]+)-(\d+)\*\* — (.+)$")
+# A retired ID keeps its number reserved so live IDs are never renumbered (SPEC.md §0).
+TOMBSTONE_RE = re.compile(r"^- ~~\*\*([A-Z]+)-(\d+)\*\*~~ — (.+)$")
 CITE_RE = re.compile(r"`(params\.[A-Za-z0-9_.]+)`")
 VERIFY_RE = re.compile(r"\*\(verify: .+\)\*$")
 
@@ -93,6 +96,20 @@ def parse_requirements(text: str) -> list[dict]:
     return reqs
 
 
+def parse_tombstones(text: str) -> list[dict]:
+    """Retired requirement IDs. They reserve their number but carry no obligation."""
+    stones = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        m = TOMBSTONE_RE.match(line)
+        if not m:
+            continue
+        prefix, num, body = m.group(1), int(m.group(2)), m.group(3)
+        if prefix not in CONCERNS:
+            raise SpecError(f"line {lineno}: unknown requirement prefix {prefix!r}")
+        stones.append({"id": f"{prefix}-{num}", "prefix": prefix, "num": num, "body": body})
+    return stones
+
+
 # ---------------------------------------------------------------------- validation
 
 
@@ -114,20 +131,28 @@ def resolve(params: dict, path: str) -> object:
     return node
 
 
-def validate(params: dict, reqs: list[dict]) -> list[str]:
+def validate(params: dict, reqs: list[dict], stones: list[dict]) -> list[str]:
     errors = []
 
-    # 1. IDs unique and contiguous from 1 within each prefix.
+    # 1. IDs unique; live plus retired IDs contiguous from 1 within each prefix.
+    #    Retirement reserves a number so a live ID is never reused or renumbered.
     seen: dict[str, list[int]] = {}
     for req in reqs:
         seen.setdefault(req["prefix"], []).append(req["num"])
-    for prefix, nums in sorted(seen.items()):
+    retired: dict[str, list[int]] = {}
+    for stone in stones:
+        retired.setdefault(stone["prefix"], []).append(stone["num"])
+    for prefix in sorted(set(seen) | set(retired)):
+        live, dead = seen.get(prefix, []), retired.get(prefix, [])
+        nums = live + dead
         dupes = {n for n in nums if nums.count(n) > 1}
         if dupes:
-            errors.append(f"{prefix}: duplicate IDs {sorted(dupes)}")
+            errors.append(f"{prefix}: duplicate IDs {sorted(dupes)} (live and/or retired)")
         expected = list(range(1, len(nums) + 1))
         if sorted(nums) != expected:
-            errors.append(f"{prefix}: numbering must run 1..{len(nums)}, got {sorted(nums)}")
+            errors.append(
+                f"{prefix}: live + retired numbering must run 1..{len(nums)}, got {sorted(nums)}"
+            )
 
     # 2. Verifiable requirements state a verification method.
     for req in reqs:
@@ -164,6 +189,8 @@ def validate_arithmetic(params: dict) -> list[str]:
     ratios = bandwidth.get("ratios", {})
 
     for name, spec in datasets.items():
+        if not isinstance(spec, dict):  # a scalar policy key, not a dataset entry
+            continue
         h, w, c = spec["image_size"]
         if spec["n"] != h * w * c:
             errors.append(f"datasets.{name}.n = {spec['n']} but image_size gives {h * w * c}")
@@ -253,8 +280,9 @@ def sort_id(rid: str) -> tuple[str, int]:
     return prefix, int(num)
 
 
-def render_concern(stem: str, title: str, params: dict, reqs: list[dict]) -> str:
+def render_concern(stem: str, title: str, params: dict, reqs: list[dict], stones: list[dict]) -> str:
     mine = [r for r in reqs if CONCERNS[r["prefix"]][0] == stem]
+    mine_dead = [s for s in stones if CONCERNS[s["prefix"]][0] == stem]
     out = [
         BANNER,
         "",
@@ -270,6 +298,14 @@ def render_concern(stem: str, title: str, params: dict, reqs: list[dict]) -> str
         out += [f"- **{r['id']}** — {r['body']}" for r in group]
         out.append("")
 
+    if mine_dead:
+        out += ["## Retired", ""]
+        out += [
+            f"- ~~**{s['id']}**~~ — {s['body']}"
+            for s in sorted(mine_dead, key=lambda s: (s["prefix"], s["num"]))
+        ]
+        out.append("")
+
     cited = sorted({c for r in mine for c in r["cites"] if not c.endswith(".yaml")})
     if cited:
         out += ["## Parameters referenced here", "", "| Parameter | Value |", "| --- | --- |"]
@@ -281,13 +317,15 @@ def render_concern(stem: str, title: str, params: dict, reqs: list[dict]) -> str
     return "\n".join(out)
 
 
-def build(params: dict, reqs: list[dict]) -> dict[Path, str]:
+def build(params: dict, reqs: list[dict], stones: list[dict]) -> dict[Path, str]:
     files = {
         REPO / "spec" / "params.generated.yaml": render_params_yaml(params),
         REPO / "spec" / "DATASHEET.md": render_datasheet(params, reqs),
     }
     for stem, title in sorted(set(CONCERNS.values())):
-        files[REPO / "spec" / "concerns" / f"{stem}.md"] = render_concern(stem, title, params, reqs)
+        files[REPO / "spec" / "concerns" / f"{stem}.md"] = render_concern(
+            stem, title, params, reqs, stones
+        )
     return files
 
 
@@ -303,18 +341,19 @@ def main() -> int:
     try:
         params = parse_params(text)
         reqs = parse_requirements(text)
+        stones = parse_tombstones(text)
     except SpecError as exc:
         print(f"SPEC.md: {exc}", file=sys.stderr)
         return 1
 
-    errors = validate(params, reqs)
+    errors = validate(params, reqs, stones)
     if errors:
         print(f"{len(errors)} spec validation error(s):", file=sys.stderr)
         for err in errors:
             print(f"  - {err}", file=sys.stderr)
         return 1
 
-    files = build(params, reqs)
+    files = build(params, reqs, stones)
 
     if args.check:
         drifted = [
@@ -327,14 +366,17 @@ def main() -> int:
             for path in drifted:
                 print(f"  - {path.relative_to(REPO)}", file=sys.stderr)
             return 1
-        print(f"ok: {len(reqs)} requirements, {len(files)} generated files up to date")
+        print(
+            f"ok: {len(reqs)} requirements ({len(stones)} retired), "
+            f"{len(files)} generated files up to date"
+        )
         return 0
 
     for path, content in files.items():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
         print(f"wrote {path.relative_to(REPO)}")
-    print(f"ok: {len(reqs)} requirements validated")
+    print(f"ok: {len(reqs)} requirements validated ({len(stones)} retired)")
     return 0
 
 
