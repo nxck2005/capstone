@@ -335,10 +335,23 @@ been run properly, regardless of result. Four hypotheses are then reported eithe
 
 | | Claim | Test |
 | --- | --- | --- |
-| **H1** | Low-SNR separation (primary) | Paired 95% interval on the accuracy *difference* above zero at ≥3 consecutive low-SNR points |
-| **H2** | Cliff versus graceful | Classical loses ≥30 pp over the steepest 4 dB window; learned loses ≤15 pp |
-| **H3** | Convergence | The paired gap contracts monotonically with SNR. **A crossover is reported if observed but is not required** |
-| **H4** | Attribution | Learned must also beat the task-aware digital control (ER-9), or the gain is credited to task-awareness rather than joint coding |
+| **H1** | Low-SNR separation (primary) | Paired 95% interval on the accuracy *difference* above zero at ≥3 consecutive low-SNR points, plus a preregistered mean paired difference across the whole low-SNR region as the effect size |
+| **H2** | Cliff versus graceful | The 4 dB window is chosen **on validation**, where the *classical* curve drops most, then frozen; over those same endpoints on test, classical loses ≥30 pp and learned ≤15 pp |
+| **H3** | Convergence | The paired gap trends to zero: negative weighted-least-squares slope against SNR, bootstrap interval excluding zero. **A crossover is reported if observed but is not required** |
+| **H4** | Attribution | Learned must also beat the task-aware digital control (ER-9) — which shares the learned system's front end and differs only in the channel interface — or the gain is credited to task-awareness rather than joint coding |
+
+Three of those four rows were tightened on 2026-07-25 (`SPEC.md` §17, AM-1 through AM-5) after an
+external review found H2's window and H3's pass condition were not defined tightly enough to be
+decided without a judgement call. The changes make each hypothesis *harder* to support, not easier —
+which is the direction a preregistration should move in when it moves at all.
+
+One objection worth knowing about, because it will recur: H1's "three consecutive points" rule is
+sometimes read as a multiple-comparisons problem — many candidate runs, therefore inflated false
+positives. The arithmetic runs the other way. Under the null, the chance that any run of three clears
+a one-sided 0.025 interval is at most 11 × 0.025³ ≈ 0.00017 if the points were independent, and 0.025
+if they were perfectly correlated. Both are stricter than the 0.05 a single point carries. Requiring
+a run *is* the multiplicity control; the cost is statistical power, not validity. §2 now records this
+in writing so it does not have to be argued from scratch.
 
 The statistical test also changed, and this matters independently of the crossover question. The
 original criterion asked for two independent confidence intervals not to overlap, computed over three

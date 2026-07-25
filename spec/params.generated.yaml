@@ -123,6 +123,12 @@ learned_system:
   lambda_core: 1.0
   lambda_status: provisional_until_G-4
   lambda_calibration_gate: G-4
+  lambda_grid:
+  - 0.0
+  - 0.1
+  - 0.3
+  - 1.0
+  - 3.0
   lambda_acc_tolerance_pp: 1.0
   lambda_psnr_floor_db: 20
   lambda_psnr_floor_relaxed_db: 16
@@ -147,7 +153,10 @@ learned_system:
 baseline:
   source_codec: jpeg2000
   source_codec_secondary: jpeg
-  j2k_rate_control: exact_target_bytes
+  j2k_rate_control: largest_codestream_within_budget
+  j2k_rate_control_method: cached_search_over_compression_ratio
+  j2k_emitted_size_authoritative: true
+  j2k_container: raw_codestream
   jpeg_quality_grid:
   - 5
   - 10
@@ -173,6 +182,8 @@ baseline:
     the headline
   channel_code: 5g_nr_ldpc
   ldpc_standard: 3gpp_ts_38_212
+  ldpc_standard_release: rel_17
+  ldpc_standard_version_pin_gate: G-9
   ldpc_impl: sionna
   ldpc_impl_version: 2.0.1
   ldpc_impl_provides:
@@ -218,11 +229,37 @@ reference_classifier:
   trained_on: clean_images
   pretrained_weights_permitted: false
   artifact_finetuned_variant_required: true
+  artifact_finetune_gate: G-8
+  artifact_finetune_corpus: union_of_br4_selected_qualities_at_or_below_train_snr
   frozen: true
   shared_by:
   - classical_baseline
-  - digital_semantic_control
   - semantic_recon_ablation
+digital_semantic_control:
+  role: attribution_control_for_h4
+  shared_with_learned:
+  - encoder_trunk
+  - transmit_feature_dim
+  - task_head_arch
+  - train_split
+  - augmentation
+  - optimizer
+  - epochs
+  differs_only_in: channel_interface
+  transmit_layer: encoder_output
+  quantiser: uniform_scalar
+  quantiser_bits_grid:
+  - 2
+  - 4
+  - 6
+  - 8
+  quantiser_training: straight_through_estimator
+  entropy_coder: static_range_coder
+  entropy_model: fitted_offline_on_train_split
+  entropy_model_learned_permitted: false
+  entropy_table_bytes_counted: true
+  transport_tuning: best_feasible_config_per_snr_on_validation_split
+  scored_by: own_task_head
 evaluation:
   train_seeds:
   - 0
@@ -232,6 +269,7 @@ evaluation:
   - 0
   - 1
   - 2
+  seed_pairing: zipped_not_cross_product
   split_seed: 1337
   split_rule: val carved deterministically from the published train split by evaluation.split_seed;
     the test split is never used for any selection
@@ -239,6 +277,10 @@ evaluation:
   bootstrap_resamples: 10000
   paired_test: mcnemar_exact
   hypothesis_rule: three_consecutive_snr_points
+  h1_effect_size: mean_paired_difference_at_or_below_train_snr
+  gap_trend_test: wls_slope_of_paired_gap_vs_snr
+  cliff_window_db: 4
+  cliff_window_selection: largest_classical_drop_on_validation_split
   cliff_drop_pp: 30
   graceful_drop_pp: 15
   test_subset_size: 2000

@@ -43,6 +43,7 @@ CONCERNS = {
     "FW": ("roadmap", "Roadmap"),
     "DEC": ("roadmap", "Roadmap"),
     "G": ("roadmap", "Roadmap"),
+    "AM": ("amendments", "Amendment record"),
 }
 # Prefixes whose requirements must state how they are verified.
 VERIFIABLE = {"SR", "BR", "ER", "DR", "HR", "PR"}
