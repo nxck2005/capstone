@@ -53,6 +53,13 @@ bandwidth:
     r_1_24: 1/24
   core_ratio: r_1_3
   core_ratio_status: provisional_until_G-8
+  crossover_ratio: r_1_3
+  crossover_ratio_status: provisional_until_G-8
+  efficiency_ratio: r_1_6
+  efficiency_ratio_status: provisional_until_G-8
+  efficiency_ratio_threshold_pp: 5
+  crossover_ratio_threshold_pp: 2
+  headline_ratio: crossover_ratio
   low_ratio_operating_point: r_1_12
   k_symbols:
     imagenette160:

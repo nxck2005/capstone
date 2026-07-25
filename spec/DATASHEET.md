@@ -53,8 +53,15 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `bandwidth.ratios.r_1_6` | 1/6 | DEC-1, DEC-11, ER-3, G-8 |
 | `bandwidth.ratios.r_1_12` | 1/12 | DEC-1, DEC-11, ER-3, G-8 |
 | `bandwidth.ratios.r_1_24` | 1/24 | DEC-1, DEC-11, ER-3, G-8 |
-| `bandwidth.core_ratio` | r_1_3 | AM-12, BR-1, DEC-11, ER-1, ER-3 |
+| `bandwidth.core_ratio` | r_1_3 | AM-12, BR-1 |
 | `bandwidth.core_ratio_status` | provisional_until_G-8 | - |
+| `bandwidth.crossover_ratio` | r_1_3 | DEC-11, ER-1, ER-3 |
+| `bandwidth.crossover_ratio_status` | provisional_until_G-8 | - |
+| `bandwidth.efficiency_ratio` | r_1_6 | DEC-11, ER-3 |
+| `bandwidth.efficiency_ratio_status` | provisional_until_G-8 | - |
+| `bandwidth.efficiency_ratio_threshold_pp` | 5 | ER-3 |
+| `bandwidth.crossover_ratio_threshold_pp` | 2 | ER-3 |
+| `bandwidth.headline_ratio` | crossover_ratio | ER-1, ER-3, G-8 |
 | `bandwidth.low_ratio_operating_point` | r_1_12 | AM-12, DEC-11, ER-3 |
 | `bandwidth.k_symbols.imagenette160.r_1_2` | 38400 | SR-3 |
 | `bandwidth.k_symbols.imagenette160.r_1_3` | 25600 | SR-3 |
