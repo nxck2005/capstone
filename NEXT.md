@@ -13,27 +13,36 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Do next
 
-0. **Two emails. Send both today — they are the only things here with external lead time,
-   and both gate G-9.** Neither takes a minute to write; both can sit unanswered for days.
+0. ~~**§2 sign-off.**~~ **Done, fully — 2026-07-25 (AM-19, AM-21).** The completion criterion is
+   approved directly: finishing means running the protocol properly, whichever way the result falls,
+   with the instruction to *try hard for a crossover* and an explicit "if things go south, you'll be
+   good". The four hypotheses, paired inference, the no-weakening rule and the learned-blind
+   operating-point rule were **delegated** — "up to you". That closes G-9's §2 clause.
 
-   **(a) §2 scope, to the supervisor.** The crossover criterion is ratified (2026-07-25): try hard
-   for a crossover, fall back to the always-better graph if it genuinely does not appear. That is
-   DEC-16 as already written, now externally agreed (AM-19), so the proposal's "curves must cross"
-   wording is superseded rather than quietly redefined. **What is still open is narrower:** did the
-   sign-off cover §2 *as a whole* — completion-not-outcome, all four hypotheses, paired inference —
-   or the crossover clause alone? G-9 needs the former. Ask it plainly, do not reopen the crossover
-   question, and say explicitly that you want it on record before any data exists, because the
-   timing is the whole defence. **And do not let "try your best" drift:** it licenses strengthening
-   the baseline, nothing on the learned system's side. See DEC-16's guardrail before any G-8 decision.
+   **Two things that follow from the delegation, and matter more than they look:**
+   - **This repo is now the only preregistration record for H1–H4.** Nobody outside checked them, so
+     the git history *is* the evidence that they were fixed before any data existed. Never edit a
+     hypothesis in place — new `AM` citing the old one, always, per §17. A post-hoc change made
+     honestly and recorded still reads as rigour; the same change made silently reads as fraud, and
+     the diff cannot tell them apart on your behalf.
+   - **"Try your best for a crossover" does not license anything on the learned system's side.**
+     Strengthen the baseline, preregister the lever, or do neither. See DEC-16's guardrail before any
+     G-8 decision.
 
-   **(b) MATLAB licence, to whoever administers it.** Determines whether OPT-1 and OPT-3 are live
-   and — the part that actually matters — where BR-2's golden vectors come from. A "no" is fine but
-   needs lead time, because then the golden vectors have to be sourced from some other implementation
-   independent of Sionna, and BR-2 gates G-2 which gates every reported comparison. Ask early enough
-   that a no is survivable.
+1. ~~**MATLAB licence.**~~ **Answered 2026-07-25: he will try, and asked for a contingency.** So the
+   licence is attempted but not assured, and OPT-1/OPT-3 stay provisional. The contingency is now a
+   four-rung ladder in `params.baseline.ldpc_golden_vector_source_ladder` (AM-22), and the useful
+   find is **rung 2**: srsRAN ships committed binary test vectors covering all base graphs and
+   lifting sizes, generated from MATLAB's 5G Toolbox as their own trusted reference. That gives
+   MATLAB-provenance vectors *without* a MATLAB licence, which is all BR-2 needs — it only demands
+   independence from Sionna. Rung 4, hand-checking one small codeword against the TS 38.212 tables,
+   can never be blocked and is the floor. **Two things the spike must confirm, not assume:** whether
+   srsRAN's vectors cover the rate-matched output as well as the encoder output, and whether their
+   licence permits committing the fixture into this repo.
 
-1. **The LDPC spike.** Half a day, no dependencies, and the last substantive G-9 item — W1 cannot
-   start without it. Do it while the two emails are in flight. Throwaway venv in the scratchpad —
+2. **The LDPC spike.** Half a day, no dependencies, and now **the last substantive thing between you
+   and W1** — §2 is closed, so this and the MATLAB reply are all that remain in G-9. Do it while the
+   MATLAB email is in flight. Throwaway venv in the scratchpad —
    nothing installs into the repo until W1, per `requirements.txt`. Establish these, in order of how
    much they would hurt if wrong:
    - `LDPC5GEncoder(k, n)` hits an **exact** `n`. BR-3's equal-channel-uses claim rests entirely on
@@ -45,6 +54,10 @@ this file is wrong. Anything here that turns out to be a durable decision belong
    - Batched decode throughput at 50 iterations, and the smallest workable payload size.
    - Pin the exact TS 38.212 document version within Release 17 (AM-9) — it is a G-9 item now, and
      it costs one line while you are already reading the standard.
+   - **Golden vectors (AM-22).** Clone srsRAN, find the LDPC test-vector files, and check two
+     things: do they cover the **rate-matched** output as well as the encoder output, and does the
+     licence allow committing them here? If both hold, BR-2's fixture is solved without MATLAB and
+     the licence stops mattering. If not, descend the ladder.
 
    Findings go into DEC-10 and the G-9 record. Record the throughput number — BR-4's compute plan
    needs it, and G-9 now also requires you to turn it into a **projected ER-1 evaluation wall clock —
@@ -54,7 +67,7 @@ this file is wrong. Anything here that turns out to be a durable decision belong
    two-ratio number is what G-8 uses to decide whether the efficiency point gets full-strength
    intervals or sweep-strength ones. Cheap to compute now, expensive to discover then.
 
-2. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
+3. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
    goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines how much
    airtime the headline comparison needs. **Dependency:** scoring needs a classifier, and the
    reference classifier is not trained until W1/G-1. Either slot this immediately after G-1, or get a
@@ -62,16 +75,14 @@ this file is wrong. Anything here that turns out to be a durable decision belong
    the curve, but *spike only*, never reported, since DEC-15 bans pretrained weights for the
    reference classifier and Imagenette is an ImageNet subset.
 
-3. **Re-check that W3 still fits.** DEC-16 added 2–3 days of 16-QAM soft-demapping to a week that
+4. **Re-check that W3 still fits.** DEC-16 added 2–3 days of 16-QAM soft-demapping to a week that
    already holds LDPC integration, BER validation and bit accounting. May need resequencing.
 
 ## Open questions for the user
 
-- **MATLAB licence** — asked, awaiting reply (item 0b). If the answer is no, OPT-1 and OPT-3 drop
-  without prejudice and BR-2's golden vectors need another source independent of Sionna — name it
-  before G-9 closes rather than after.
-- **§2 sign-off scope** — asked, awaiting reply (item 0a). Crossover clause is ratified; whether the
-  rest of §2 is covered is the open part.
+- *(none blocking)* — §2 is dispositioned and the MATLAB question is answered. The MATLAB licence
+  itself is still pending an outcome, but AM-22 removed it from the critical path, so no gate now
+  waits on it.
 
 ## Recently settled — don't reopen
 
@@ -98,6 +109,16 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Session log
 
+- **2026-07-25 (latest+3)** — MATLAB licence answered: will be attempted, contingency requested.
+  Added a four-rung golden-vector source ladder (AM-22) so BR-2 no longer sits behind a licence the
+  project does not control, and narrowed DEC-10's AFF3CT rejection to runtime use only, since a
+  one-shot fixture generator never touches CI. Rung 2 (srsRAN's committed MATLAB-derived vectors) is
+  the one to confirm at W0. G-9 is now down to the LDPC spike alone.
+- **2026-07-25 (latest+2)** — §2 fully dispositioned (AM-21). Completion criterion approved outright
+  with "try your best for a crossover" and an explicit "if things go south, you'll be good"; the four
+  hypotheses and the statistical method delegated to the author. G-9's §2 clause closed. Consequence
+  worth remembering: nobody outside is checking H1–H4, so the commit history is the preregistration.
+  Only the MATLAB licence and the LDPC spike remain in G-9.
 - **2026-07-25 (latest+1)** — Split ER-3's operating-point selection into two thresholds (AM-20)
   after the audit found the 5 pp rule could select a ratio where no crossover exists — while ER-1,
   the only full-strength experiment, runs at exactly one ratio. Now 5 pp → efficiency point, 2 pp →

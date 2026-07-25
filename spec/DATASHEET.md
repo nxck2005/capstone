@@ -147,6 +147,8 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.ldpc_impl_fallback` | self_implemented_offset_min_sum | BR-14, DEC-10, G-2 |
 | `baseline.ldpc_golden_vector_file` | tests/fixtures/ldpc_ts38212_golden.npz | BR-2 |
 | `baseline.ldpc_golden_vector_source_gate` | G-9 | BR-2, G-9 |
+| `baseline.ldpc_golden_vector_source_ladder` | matlab_5g_toolbox, srsran_project_committed_testvectors, aff3ct_or_oai_one_shot_build, hand_verified_small_case | BR-2, DEC-10 |
+| `baseline.ldpc_golden_vector_licence_check_required` | true | BR-2 |
 | `baseline.ldpc_base_graph` | auto_per_ts_38212 | BR-10 |
 | `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | BR-4, BR-9, BR-15 |
 | `baseline.ldpc_decoder` | offset_min_sum | DEC-10, G-9 |

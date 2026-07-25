@@ -208,6 +208,12 @@ baseline:
   ldpc_impl_fallback: self_implemented_offset_min_sum
   ldpc_golden_vector_file: tests/fixtures/ldpc_ts38212_golden.npz
   ldpc_golden_vector_source_gate: G-9
+  ldpc_golden_vector_source_ladder:
+  - matlab_5g_toolbox
+  - srsran_project_committed_testvectors
+  - aff3ct_or_oai_one_shot_build
+  - hand_verified_small_case
+  ldpc_golden_vector_licence_check_required: true
   ldpc_base_graph: auto_per_ts_38212
   ldpc_rates:
   - 1/3
