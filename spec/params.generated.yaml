@@ -190,6 +190,8 @@ baseline:
   channel_code: 5g_nr_ldpc
   ldpc_standard: 3gpp_ts_38_212
   ldpc_standard_release: rel_17
+  ldpc_standard_version: 17.13.0
+  ldpc_standard_version_date: 2026-02
   ldpc_standard_version_pin_gate: G-9
   ldpc_impl: sionna
   ldpc_impl_version: 2.0.1

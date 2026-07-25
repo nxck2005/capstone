@@ -139,6 +139,8 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.channel_code` | 5g_nr_ldpc | BR-1, ER-9 |
 | `baseline.ldpc_standard` | 3gpp_ts_38_212 | BR-2, G-9 |
 | `baseline.ldpc_standard_release` | rel_17 | G-9 |
+| `baseline.ldpc_standard_version` | 17.13.0 | - |
+| `baseline.ldpc_standard_version_date` | 2026-02 | - |
 | `baseline.ldpc_standard_version_pin_gate` | G-9 | G-9 |
 | `baseline.ldpc_impl` | sionna | BR-2, BR-10, BR-14 |
 | `baseline.ldpc_impl_version` | 2.0.1 | G-9 |
@@ -150,14 +152,14 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.ldpc_golden_vector_source_ladder` | matlab_5g_toolbox, srsran_project_committed_testvectors, aff3ct_or_oai_one_shot_build, hand_verified_small_case | BR-2, DEC-10 |
 | `baseline.ldpc_golden_vector_licence_check_required` | true | BR-2 |
 | `baseline.ldpc_base_graph` | auto_per_ts_38212 | BR-10 |
-| `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | BR-4, BR-9, BR-15 |
+| `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | BR-4, BR-9, BR-10, BR-15 |
 | `baseline.ldpc_decoder` | offset_min_sum | DEC-10, G-9 |
 | `baseline.ldpc_max_iters` | 50 | - |
 | `baseline.tb_crc_bits` | 24 | BR-10 |
 | `baseline.cb_crc_bits` | 24 | BR-10 |
 | `baseline.code_block_max_bits` | 8448 | BR-10 |
 | `baseline.rate_matching` | ts_38212_with_filler | BR-10 |
-| `baseline.modulations` | bpsk, qpsk, qam16 | BR-2, BR-4, BR-9, BR-15, DEC-16 |
+| `baseline.modulations` | bpsk, qpsk, qam16 | BR-2, BR-4, BR-9, BR-10, BR-15, DEC-16 |
 | `baseline.modulation_tuning` | adaptive_per_snr | BR-4, DEC-16 |
 | `baseline.core_modulation` | qpsk | AM-15, BR-9 |
 | `baseline.budget_rule` | usable_source_bytes = floor((floor(k * bits_per_symbol * rate) - tb_crc_bits - segmentation_and_filler_overhead) / 8); the complete compressed file, container bytes included, MUST fit within usable_source_bytes | BR-3, BR-10, ER-9 |

@@ -11,6 +11,45 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ---
 
+## In flight — resume here
+
+**The W0 LDPC spike is mid-run. Everything needed to resume lives in `~/capstone-w0-spike/`,
+deliberately outside `/tmp`.** To pick up:
+
+```bash
+cd ~/capstone-w0-spike && ./run_spike.sh
+```
+
+Idempotent and safe to re-run. It creates the venv if missing, installs only what is absent, then
+runs the spike. `./run_spike.sh install` stops after the install; `./run_spike.sh run` skips it.
+
+**What was in flight when the session ended:** `pip install --index-url .../cu130 torch` — the CUDA
+13 stack, several GB, slow on this connection. It was partway through `nvidia-cublas` (423 MB).
+
+**Why an interruption is cheap:** completed wheels are cached in `~/.cache/pip`, which is
+**persistent and survives a reboot**. Only a wheel cut off mid-download is re-fetched. The original
+venv sat in the session scratchpad under `/tmp` and may be gone — that does not matter, because
+`run_spike.sh` rebuilds at the durable path and pulls from the cache without touching the network for
+anything already downloaded.
+
+**The trap, if you install by hand instead:** a bare `pip install torch` resolves to the **CPU
+build** on Python 3.14. The `--index-url .../cu130` is not optional, and the check is
+`torch.version.cuda is not None`, not a successful import (AM-23). Fallback ladder is in the script:
+`torch==2.9.1+cu128` → install 3.13 via `uv` and rebuild.
+
+**Already done, no need to redo** — recorded as AM-23, so the spec is current: TS 38.212 pinned to
+V17.13.0; srsRAN rate-matcher and segmenter generators confirmed; §16's Python 3.14 risk corrected;
+BR-10's segmentation and rate-matching arithmetic verified at zero slack across all 72 live configs.
+
+**Still to measure** — this is what `run_spike.sh` produces, and it becomes AM-24: CUDA actually
+available on the device; whether Sionna's encoder emits exactly `E_r` (BR-3's load-bearing check);
+the accepted `cn_update` spelling; batched decode throughput; the ER-1 wall-clock projection for one
+ratio and two; smallest workable payload.
+
+Nothing else in G-9 is outstanding. When this passes, W1 opens.
+
+---
+
 ## Do next
 
 0. ~~**§2 sign-off.**~~ **Done, fully — 2026-07-25 (AM-19, AM-21).** The completion criterion is
@@ -40,9 +79,14 @@ this file is wrong. Anything here that turns out to be a durable decision belong
    srsRAN's vectors cover the rate-matched output as well as the encoder output, and whether their
    licence permits committing the fixture into this repo.
 
-2. **The LDPC spike.** Half a day, no dependencies, and now **the last substantive thing between you
-   and W1** — §2 is closed, so this and the MATLAB reply are all that remain in G-9. Do it while the
-   MATLAB email is in flight. Throwaway venv in the scratchpad —
+2. **The LDPC spike — in progress.** The last substantive thing between you and W1. **Documentary
+   half done** (AM-23): TS 38.212 pinned to V17.13.0 (2026-02); srsRAN's rate-matcher *and*
+   segmenter vector generators confirmed to exist; §16's Python 3.14 risk corrected — the worry was
+   about declared minimums, when the real trap is that a bare `pip install torch` gives you the
+   **CPU build** and you must pass `--index-url .../cu130`; and BR-10's segmentation and
+   rate-matching arithmetic verified at **zero slack across all 72 live configurations** before any
+   code exists. **Measured half pending:** CUDA on the device, whether Sionna emits exactly `E_r`,
+   the accepted `cn_update` spelling, decode throughput, the ER-1 projection, smallest payload. Throwaway venv in the scratchpad —
    nothing installs into the repo until W1, per `requirements.txt`. Establish these, in order of how
    much they would hurt if wrong:
    - `LDPC5GEncoder(k, n)` hits an **exact** `n`. BR-3's equal-channel-uses claim rests entirely on
@@ -80,9 +124,14 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Open questions for the user
 
-- *(none blocking)* — §2 is dispositioned and the MATLAB question is answered. The MATLAB licence
-  itself is still pending an outcome, but AM-22 removed it from the critical path, so no gate now
-  waits on it.
+- **srsRAN golden-vector licensing — needs your decision before the BR-2 fixture is built.** The
+  generators are BSD-2-Clause but need MATLAB; the pre-generated vector data is AGPLv3, and
+  committing it here and submitting it academically is *distribution*. Three ways out (AM-23, §16):
+  a fetch-and-convert script with the `.npz` kept out of git, losing offline reproducibility; vendor
+  with attribution into a scoped subdirectory and accept AGPL there; or drop to rung 4 and
+  hand-verify one small codeword. Not urgent — it blocks the fixture, not the spike.
+- **MATLAB licence** — still pending an outcome, but AM-22 removed it from the critical path, so no
+  gate waits on it.
 
 ## Recently settled — don't reopen
 
@@ -109,6 +158,14 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Session log
 
+- **2026-07-25 (latest+4)** — W0 spike started; documentary half recorded as AM-23 while the torch
+  install ran. TS 38.212 pinned (V17.13.0, closing AM-9); srsRAN rate-matcher and segmenter vector
+  generators confirmed; §16's Python 3.14 risk rewritten after finding it was aimed at declared
+  minimums rather than at CUDA wheel availability, where the actual trap is a bare `pip install
+  torch` silently yielding a CPU build. BR-10's segmentation and rate-matching arithmetic verified
+  at zero slack across all 72 live configurations — BR-3's equal-channel-uses claim now holds as
+  arithmetic, independent of any library. New open question: srsRAN's vector data is AGPLv3, so
+  vendoring it is a licensing decision.
 - **2026-07-25 (latest+3)** — MATLAB licence answered: will be attempted, contingency requested.
   Added a four-rung golden-vector source ladder (AM-22) so BR-2 no longer sits behind a licence the
   project does not control, and narrowed DEC-10's AFF3CT rejection to runtime use only, since a
