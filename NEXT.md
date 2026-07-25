@@ -13,18 +13,29 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Do next
 
-0. **Message the supervisor about §2 — it is now ready to send.** Five minutes, do it before anything
-   else because it is async and has the longest lead time. §2 was deliberately fixed *before* this
-   message (AM-1 through AM-4) so they ratify one version rather than a version plus a delta: H2's
-   comparison window is now selected on validation and frozen, H3 has an executable slope test
-   instead of an unfalsifiable monotonicity clause, and H1 gained a preregistered effect size while
-   its run rule was kept and defended. Hand them `docs/crossover-explained.md`; Part 4 is written as
-   the argument to make, and its H1–H4 table has been refreshed to match the amended §2. See
-   `SPEC.md` §16 for why the timing matters.
+0. **Two emails. Send both today — they are the only things here with external lead time,
+   and both gate G-9.** Neither takes a minute to write; both can sit unanswered for days.
 
-1. **The LDPC spike.** Half a day, no dependencies, and it is a G-9 requirement so W1 cannot start
-   without it. Throwaway venv in the scratchpad — nothing installs into the repo until W1, per
-   `requirements.txt`. Five things to establish, in order of how much they would hurt if wrong:
+   **(a) §2 scope, to the supervisor.** The crossover criterion is ratified (2026-07-25): try hard
+   for a crossover, fall back to the always-better graph if it genuinely does not appear. That is
+   DEC-16 as already written, now externally agreed (AM-19), so the proposal's "curves must cross"
+   wording is superseded rather than quietly redefined. **What is still open is narrower:** did the
+   sign-off cover §2 *as a whole* — completion-not-outcome, all four hypotheses, paired inference —
+   or the crossover clause alone? G-9 needs the former. Ask it plainly, do not reopen the crossover
+   question, and say explicitly that you want it on record before any data exists, because the
+   timing is the whole defence. **And do not let "try your best" drift:** it licenses strengthening
+   the baseline, nothing on the learned system's side. See DEC-16's guardrail before any G-8 decision.
+
+   **(b) MATLAB licence, to whoever administers it.** Determines whether OPT-1 and OPT-3 are live
+   and — the part that actually matters — where BR-2's golden vectors come from. A "no" is fine but
+   needs lead time, because then the golden vectors have to be sourced from some other implementation
+   independent of Sionna, and BR-2 gates G-2 which gates every reported comparison. Ask early enough
+   that a no is survivable.
+
+1. **The LDPC spike.** Half a day, no dependencies, and the last substantive G-9 item — W1 cannot
+   start without it. Do it while the two emails are in flight. Throwaway venv in the scratchpad —
+   nothing installs into the repo until W1, per `requirements.txt`. Establish these, in order of how
+   much they would hurt if wrong:
    - `LDPC5GEncoder(k, n)` hits an **exact** `n`. BR-3's equal-channel-uses claim rests entirely on
      this. If it cannot, the whole bandwidth-matching design needs rework — find out now, not at W3.
    - `sionna==2.0.1` installs and runs on Python 3.14 + torch 2.13 (it resolves on paper; nobody
@@ -36,10 +47,12 @@ this file is wrong. Anything here that turns out to be a durable decision belong
      it costs one line while you are already reading the standard.
 
    Findings go into DEC-10 and the G-9 record. Record the throughput number — BR-4's compute plan
-   needs it, and G-9 now also requires you to turn it into a **projected ER-1 evaluation wall clock**
-   (AM-18). That projection is the point: three systems × 18 SNR points × the full test split ×
-   three seed cells is the one cost in the project with no slack in it, ER-6 forbids subsetting it,
-   and it lands at W11 with a single week behind it. Cheap to compute now, expensive to discover then.
+   needs it, and G-9 now also requires you to turn it into a **projected ER-1 evaluation wall clock —
+   for one operating ratio and for two** (AM-18, AM-20). That projection is the point: three systems
+   × 18 SNR points × the full test split × three seed cells is the one cost in the project with no
+   slack in it, ER-6 forbids subsetting it, and it lands at W11 with a single week behind it. The
+   two-ratio number is what G-8 uses to decide whether the efficiency point gets full-strength
+   intervals or sweep-strength ones. Cheap to compute now, expensive to discover then.
 
 2. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
    goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines how much
@@ -54,8 +67,11 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Open questions for the user
 
-- **MATLAB licence** — unresolved. Determines whether OPT-1/OPT-3 are live and where BR-2's golden
-  vectors come from. Needs an answer by G-9.
+- **MATLAB licence** — asked, awaiting reply (item 0b). If the answer is no, OPT-1 and OPT-3 drop
+  without prejudice and BR-2's golden vectors need another source independent of Sionna — name it
+  before G-9 closes rather than after.
+- **§2 sign-off scope** — asked, awaiting reply (item 0a). Crossover clause is ratified; whether the
+  rest of §2 is covered is the open part.
 
 ## Recently settled — don't reopen
 
@@ -63,7 +79,14 @@ this file is wrong. Anything here that turns out to be a durable decision belong
   Segmentation is ours, behind the BR-14 seam.
 - **Crossover strategy = adaptive modulation** (DEC-16), with dominance-everywhere as an explicitly
   last-resort fallback. Never cap modulation back to QPSK to "simplify".
-- **§2 is not pass/fail on a crossover.** Completion is running the protocol properly.
+- **§2 is not pass/fail on a crossover.** Completion is running the protocol properly — and the
+  supervisor has now ratified exactly that (AM-19), so this is settled externally, not just
+  internally. Pursue the crossover hard; report dominance if it doesn't appear.
+- **Two operating points, not one** (AM-20). ER-3's rule runs at 5 pp → `efficiency_ratio` and at
+  2 pp → `crossover_ratio`; ER-1's headline sits at the crossover point. Both are lookups on the same
+  classical sweep table, so the second costs nothing to select. They may coincide — that's a clean
+  outcome, not a failure. Don't collapse this back to one threshold: 5 pp alone can select a ratio
+  where no crossover exists, which is the whole reason the second threshold is there.
 - **H1's run rule stays** (AM-4). The "three consecutive points is a multiple-comparisons problem"
   objection is backwards — the run requirement is the multiplicity control, and the bound is now
   written into §2. Expect this one to come back; the arithmetic is there so you don't re-derive it.
@@ -75,6 +98,17 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Session log
 
+- **2026-07-25 (latest+1)** — Split ER-3's operating-point selection into two thresholds (AM-20)
+  after the audit found the 5 pp rule could select a ratio where no crossover exists — while ER-1,
+  the only full-strength experiment, runs at exactly one ratio. Now 5 pp → efficiency point, 2 pp →
+  crossover point, headline at the crossover point. Selection costs nothing extra (same sweep table);
+  training costs at most three more runs; whether ER-1 doubles is deferred to G-8, because the decode
+  throughput that decides it doesn't exist until the W0 spike.
+- **2026-07-25 (latest)** — Supervisor ratified §2's success criterion: pursue a crossover, fall back
+  to dominance-everywhere if it does not appear (AM-19). Closes the longest-lead-time G-9 item. Also
+  recorded what the instruction does *not* authorise, because "try your best for a crossover" is the
+  sentence most likely to be misread later as permission to weaken the learned system. Residual: was
+  the sign-off on §2 whole, or the crossover clause only? The LDPC spike is now the front of the queue.
 - **2026-07-25 (later)** — Adjudicated a fifth external review (ChatGPT) and applied 18 amendments
   (97 → 115 requirements). Added the §17 amendment record and the `AM` prefix, so spec changes now
   carry what-changed-and-why rather than landing silently. Adopted: §2's H2 window rule, H3 slope
