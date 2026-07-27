@@ -6,6 +6,13 @@ project:
   primary_metric: top1_accuracy_vs_snr
   tier1_channel: simulated
 datasets:
+  manifest_dir: data/manifests/
+  manifest_format: csv_stable_id_label_split
+  stable_sample_id_rule: sha256_of_canonical_source_bytes_truncated_16_hex
+  split_carve_stratified: true
+  split_rng: numpy_default_rng_pcg64
+  split_pre_shuffle_order: sorted_by_stable_sample_id
+  class_index_source: sorted_class_directory_names
   imagenette160:
     role: headline
     image_size:
@@ -18,6 +25,12 @@ datasets:
     val_images: 1000
     test_images: 3925
     clean_acc_floor: 0.88
+    loader: torchvision_datasets_imagenette
+    loader_size_arg: 160px
+    source_url: https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz
+    archive_sha256: pending_first_fetch_at_W1
+    licence: apache_2_0
+    published_val_becomes: test
   stl10:
     role: fallback_headline
     image_size:
@@ -30,6 +43,12 @@ datasets:
     val_images: 500
     test_images: 8000
     clean_acc_floor: 0.75
+    loader: torchvision_datasets_stl10
+    loader_size_arg: null
+    source_url: https://cs.stanford.edu/~acoates/stl10/stl10_binary.tar.gz
+    archive_sha256: pending_first_fetch_at_W1
+    licence: research_use_see_source
+    published_val_becomes: test
   cifar10:
     role: smoke_only
     image_size:
@@ -42,18 +61,43 @@ datasets:
     val_images: 5000
     test_images: 10000
     clean_acc_floor: 0.93
+    loader: torchvision_datasets_cifar10
+    loader_size_arg: null
+    source_url: https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
+    archive_sha256: pending_first_fetch_at_W1
+    licence: mit
+    published_val_becomes: test
 preprocessing:
   canonical_image: resize_shorter_side_then_crop_to_dataset_image_size
+  canonical_and_augmentation_are_separate_stages: true
   resize_interpolation: bilinear
   antialias: true
   train_crop: random_resized_crop
+  train_crop_scale:
+  - 0.35
+  - 1.0
+  train_crop_ratio:
+  - 0.75
+  - 1.3333333333333333
+  train_hflip_p: 0.5
   eval_crop: center_crop
   eval_augmentation_permitted: false
   colour_space: rgb
   bit_depth: 8
   tensor_range: unit_interval
   channel_normalisation: inside_model_never_in_the_pipeline
+  channel_mean:
+  - 0.485
+  - 0.456
+  - 0.406
+  channel_std:
+  - 0.229
+  - 0.224
+  - 0.225
   codec_input: canonical_8bit_pixels
+  codec_downsample_interpolation: bilinear
+  codec_upsample_interpolation: bicubic
+  codec_resize_preserves_aspect: true
   reconstruction_clipped_before_metrics: true
   psnr_data_range: 1.0
   ssim_impl: skimage_structural_similarity
@@ -79,7 +123,11 @@ bandwidth:
   headline_ratio: crossover_ratio
   low_ratio_operating_point: r_1_12
   low_ratio_operating_point_status: provisional_until_G-8
-  low_ratio_rule: smallest_ratio_at_least_two_rungs_below_headline
+  low_ratio_rule: exactly_two_ordered_ladder_rungs_below_headline
+  low_ratio_boundary_rule: nearest_available_rung_below_headline_if_two_steps_unavailable
+  ceiling_definition: error_free_codec_validation_accuracy_per_br4
+  ceiling_rule: lcb95_of_codec_ceiling_minus_clean_accuracy_at_least_negative_t
+  upper_grid_saturation_check: extend_upper_grid_if_adaptive_validation_baseline_still_rising_at_18db
   k_symbols:
     imagenette160:
       r_1_2: 38400
@@ -240,15 +288,36 @@ baseline:
   j2k_search_tolerance_bytes: 16
   j2k_search_max_iters: 24
   j2k_cache_key:
-  - image_hash
+  - canonical_pixels_sha256
   - budget_bytes
+  - encode_axis_px
+  - codec_config_hash
+  - j2k_impl_version
   j2k_nonmonotone_policy: keep_largest_codestream_at_or_below_budget
   downsample_axis_px:
-  - 160
-  - 128
-  - 96
-  - 64
+    imagenette160:
+    - 160
+    - 128
+    - 96
+    - 64
+    stl10:
+    - 96
+    - 80
+    - 64
+    - 48
+    cifar10:
+    - 32
+    - 24
+    - 16
+  downsample_axis_never_upscales: true
   downsample_selection: best_feasible_per_snr_on_validation_split
+  packet_count_grid:
+  - 1
+  - 2
+  - 4
+  packet_count_role: progressive_layered_sensitivity_at_headline_ratio
+  packet_count_gate: G-2
+  fixed_mcs_packet_count: 1
   jpeg_impl: pillow
   jpeg_chroma_subsampling: '4:2:0'
   jpeg_optimise_huffman: true
@@ -326,8 +395,22 @@ baseline:
   - 5/6
   ldpc_decoder: offset_min_sum
   ldpc_decoder_impl_spelling: offset-minsum
+  ldpc_decoder_offset: 0.5
+  ldpc_decoder_llr_clip: 20.0
+  ldpc_decoder_schedule: flooding
+  ldpc_decoder_vn_update: sum
   ldpc_llr_convention: log_p1_over_p0
   ldpc_max_iters: 50
+  ldpc_bler_reference_source: pending_named_and_checksummed_before_G-2
+  ldpc_bler_reference_must_match:
+  - k_and_n
+  - base_graph
+  - lifting_size
+  - modulation
+  - decoder_algorithm
+  - decoder_offset
+  - iterations
+  - snr_convention
   tb_crc:
     threshold_payload_bits: 3824
     small_bits: 16
@@ -335,20 +418,55 @@ baseline:
     large_bits: 24
     large_polynomial: crc24a
   cb_crc_bits: 24
+  cb_crc_polynomial: crc24b
+  crc_spec:
+    crc16:
+      poly_hex: '0x1021'
+      width: 16
+      init: 0
+      final_xor: 0
+      bit_order: msb_first
+    crc24a:
+      poly_hex: '0x1864CFB'
+      width: 24
+      init: 0
+      final_xor: 0
+      bit_order: msb_first
+    crc24b:
+      poly_hex: '0x1800063'
+      width: 24
+      init: 0
+      final_xor: 0
+      bit_order: msb_first
   code_block_max_bits:
     bg1: 8448
     bg2: 3840
+  systematic_length_rule:
+    bg1: 22Z
+    bg2: 10Z
   base_graph_selection_rule: ts_38212_7_2_2_from_transport_block_A_and_R
   base_graph_pinned_at_seam: true
   bg2_min_coderate: 0.2
+  min_coderate_predicate: worst_block_K_prime_over_max_E_r_equality_accepted
+  segmentation_requires_exact_division: true
   payload_solver: largest_byte_aligned_A_whose_full_packetisation_fits_G
+  payload_solver_clamp: smallest_larger_byte_aligned_A_meeting_every_per_block_floor
   rate_matching: ts_38212_with_filler
+  modulation_bit_interleaver: ts_38212_5_4_2_2
+  modulation_bit_interleaver_arg: num_bits_per_symbol
+  modulation_bit_interleaver_required: true
   modulations:
   - bpsk
   - qpsk
   - qam16
   modulation_tuning: adaptive_per_snr
   core_modulation: qpsk
+  constellation_mapping: ts_38211_gray
+  constellation_normalisation: fixed_unit_average_energy_under_uniform_labels
+  per_packet_power_rescaling_permitted: false
+  realised_symbol_energy_logged: true
+  demapper: max_log_app
+  demapper_noise_variance_convention: two_sided_n0_over_2_per_real_dimension
   budget_rule: "solved, not evaluated in closed form: choose the largest byte-aligned\
     \ transport-block payload A whose complete TS 38.212 packetisation \u2014 conditional\
     \ TB CRC per baseline.tb_crc, base-graph selection from (A, R), segmentation at\
@@ -357,7 +475,25 @@ baseline:
     \ every library constraint. The complete compressed file, container bytes included,\
     \ MUST fit within A/8 bytes"
   control_plane_policy: out_of_band_excluded_for_all_systems
-  outage_policy: uniform_random_label
+  outage_policy: frozen_constant_class_selected_on_validation
+  outage_class_selection: highest_validation_accuracy_constant_prediction
+  outage_class_tie_break: lowest_class_index
+  outage_class_frozen_before: test
+  outage_policy_sensitivity: keyed_uniform_random_label
+  outage_rng_key:
+  - split_manifest_hash
+  - stable_sample_id
+  - channel_seed
+  - purpose=outage_label
+  standards_claim: a TS 38.212-derived 5G NR LDPC coding and rate-matching core, with
+    custom byte-framed payloads and generic BPSK/QPSK/16-QAM over abstract AWGN
+  standards_claim_excludes:
+  - ts_38214_tbs_and_mcs
+  - resource_allocation
+  - ofdm_resource_mapping
+  - harq
+  - pi_over_2_bpsk
+  - full_nr_link_conformance
   tuning: best_feasible_config_per_snr_on_validation_split
 reference_classifier:
   arch: resnet18
@@ -378,9 +514,28 @@ reference_classifier:
   artifact_finetuned_variant_required: true
   artifact_finetune_gate: G-8
   artifact_finetune_corpus: union_of_br4_selected_qualities_at_or_below_train_snr
+  artifact_finetune_corpus_split: train_only
+  artifact_finetune_corpus_breadth: preregistered_feasible_quality_band_not_pass_one_winners_alone
+  artifact_finetune_recipe:
+    optimizer: sgd_momentum
+    lr: 0.01
+    momentum: 0.9
+    weight_decay: 0.0005
+    lr_schedule: cosine
+    epochs: 20
+    batch_size: 128
+    label_smoothing: 0.1
   br4_selection_passes: 2
   br4_selection_terminates_after_pass: 2
   headline_scorer: artifact_finetuned
+  fallback_ladder:
+  - extend_training_to_150_epochs
+  - resnet34
+  - resnet50
+  fallback_ladder_selection_split: validation
+  fallback_ladder_max_epochs: 150
+  fallback_ladder_stop_rule: first_rung_meeting_clean_acc_floor
+  fallback_ladder_param_cap_applies: true
   frozen: true
   shared_by:
   - classical_baseline
@@ -430,6 +585,10 @@ digital_semantic_control:
   entropy_model: fitted_offline_on_train_split
   entropy_model_learned_permitted: false
   entropy_table_bytes_counted: false
+  framing_selector_bits: 1
+  raw_escape_required: true
+  raw_escape_rule: transmit_min_of_range_coded_and_fixed_width_raw_selected_by_the_counted_selector_bit
+  budget_sized_against: raw_escape_length_not_expected_compressed_length
   transport_tuning: best_feasible_config_per_snr_on_validation_split
   scored_by: own_task_head
 evaluation:
@@ -449,24 +608,70 @@ evaluation:
   ci: paired_bootstrap_95
   bootstrap_resamples: 10000
   paired_test: mcnemar_exact
+  paired_test_role: descriptive_per_cell_per_snr_only
+  estimand: seed_conditional_mean_paired_difference
+  estimand_conditioning: conditional on the three preregistered trained models and
+    the finite preregistered channel-realization schedule; not a population interval
+    over arbitrary training or channel seeds
+  seed_aggregation: mean_over_cells_within_image_before_bootstrap
+  bootstrap_unit: stable_sample_id_full_trajectory
+  bootstrap_resample_scope: once_across_all_systems_snrs_and_cells
+  per_cell_resampling_prohibited: true
   hypothesis_rule: three_consecutive_snr_points
   h1_effect_size: mean_paired_difference_at_or_below_train_snr
-  h1_run_calibration: sign_flip_permutation_over_image_trajectories
+  h1_point_qualifier: studentized_paired_mean_exceeds_1_96
+  h1_run_calibration: centered_multiplier_bootstrap_over_image_trajectories
+  h1_run_calibration_multiplier: rademacher
   h1_run_permutation_resamples: 10000
+  h1_run_calibration_binds_decision: true
+  h1_run_calibration_alpha: 0.05
+  h4_uses_h1_rule: true
+  h4_comparator: er9_digital
+  h4_mde_gate: G-11
+  h4_mde_simulation: prospective_paired_precision_on_validation_discordance
   gap_trend_test: wls_slope_of_paired_gap_vs_snr
   gap_trend_bootstrap_unit: per_image_seed_trajectory
   h3_requires_positive_low_snr_gap: true
+  h3_low_snr_point_db: -8
+  h3_high_snr_point_db: 18
+  h3_requires_magnitude_contraction: true
   cliff_window_db: 4
   cliff_window_selection: largest_fixed_mcs_drop_on_validation_split
   cliff_drop_pp: 30
   graceful_drop_pp: 15
   cliff_reference_system: classical_fixed_mcs
-  h2_test: paired_difference_in_differences
-  h2_thresholds_apply_to: point_estimates
+  h2_test: intersection_union_of_two_one_sided_margins
+  h2_thresholds_apply_to: one_sided_95_interval_bounds
+  h2_did_reported_as: additional_effect_size_not_a_support_criterion
   h2_threshold_check_gate: G-8
+  h2_thresholds_frozen: true
+  confirmatory_primary: H1
+  secondary_inferential:
+  - H2
+  - H3
+  - H4
   ber_match_statistic: waterfall_displacement_at_bler_1e-2
   ber_match_tolerance_db: 0.5
+  ber_match_reference_status: named_and_checksummed_before_G-2
   test_subset_size: 2000
+  test_access_gate: G-12
+  test_access_requires_freeze_manifest: true
+  test_campaign_is_single: true
+  test_campaign_covers:
+  - ER-1
+  - ER-2
+  - ER-4
+  - ER-11
+  - ER-12
+  freeze_manifest_covers:
+  - code_commit
+  - resolved_config
+  - split_manifest
+  - checkpoints
+  - classifier_variant
+  - operating_points
+  - h2_window
+  - analysis_version
   full_test_split_required_for:
   - ER-1
   metrics:
@@ -498,11 +703,27 @@ compute:
   ldpc_decode_measured_at_iters: 50
   ldpc_decode_early_termination: false
   ldpc_decode_measured_gate: G-9
-  er1_projected_ldpc_decode_hours_one_ratio: 2.07
-  er1_projected_ldpc_decode_hours_two_ratios: 4.14
+  er1_projected_ldpc_decode_hours_one_ratio: 2.42
+  er1_projected_ldpc_decode_hours_two_ratios: 4.83
+  er1_projected_ldpc_decode_basis:
+    snr_points: 21
+    seed_cells: 3
+    test_images: 3925
+    ldpc_arms: 2
+    codeblocks_per_image: 11
+    codeblocks_basis: worst_case_qam16_rate_5_6_at_headline_ratio
+  er1_projected_ldpc_decode_hours_floor_one_ratio: 0.44
+  er1_projected_ldpc_decode_hours_floor_basis: best_case_bpsk_rate_1_3_two_codeblocks
+  er1_image_transmissions_per_ldpc_arm: 247275
+  er1_j2k_test_decodes: 247275
+  er1_classifier_forwards_two_variants: 494550
   er1_projected_ldpc_decode_scope: LDPC decode only; excludes JPEG 2000 encode and
     decode, classifier forward passes, and soft demapping
   er1_projected_total_hours_status: pending_measurement_at_W3_W4
+  schedule_cost_gate: G-8
+  schedule_cost_compared_as:
+  - per_run_against_max_wall_clock_hours_per_run
+  - aggregate_calendar_time
 artifacts:
   results_dir: results/
   per_image_dir: results/per_image/
@@ -511,10 +732,51 @@ artifacts:
   run_id_key:
   - system
   - dataset
+  - dataset_version
+  - split
+  - split_manifest_hash
   - bw_ratio
   - test_snr_db
   - train_seed
   - channel_seed
+  - config_hash
+  - checkpoint_id
+  - classifier_variant
+  - ldpc_rate
+  - modulation
+  - quantiser_bits
+  - transmit_dim
+  - lambda
+  - analysis_version
+  run_id_form: content_addressed_sha256_over_sorted_key_value_pairs
+  analysis_cell_id_key:
+  - train_seed
+  - channel_seed
+  noise_id_key:
+  - dataset_version
+  - split_manifest_hash
+  - stable_sample_id
+  - test_snr_db
+  - channel_seed
+  - channel
+  - k
+  - block_index
+  - rng_purpose
+  pair_id_key:
+  - analysis_cell_id
+  - stable_sample_id
+  - bw_ratio
+  - test_snr_db
+  - noise_id
+  pair_id_excludes:
+  - system
+  - comparison
+  rng_stream: counter_based_keyed_not_sequential
+  rng_purposes:
+  - channel_noise
+  - outage_label
+  - augmentation
+  - init
   system_values:
   - learned
   - learned_papr_constrained
@@ -581,13 +843,44 @@ artifacts:
   - effective_code_rate
   - model_param_count
   per_image_schema:
-  - image_index
+  - run_id
+  - pair_id
+  - noise_id
+  - analysis_cell_id
+  - dataset
+  - dataset_version
+  - split
+  - stable_sample_id
+  - bw_ratio
+  - test_snr_db
   - true_label
   - pred_label
   - correct
   - outage
   - outage_reason
   - source_bytes
+  per_image_storage: content_addressed_release_artifact_with_committed_manifest
+  per_image_manifest: results/per_image_manifest.csv
+  inference_summary_file: results/inference_summary.csv
+  inference_summary_schema:
+  - estimand
+  - hypothesis
+  - systems
+  - bw_ratio
+  - snr_region
+  - window
+  - seed_aggregation
+  - estimate
+  - ci_low
+  - ci_high
+  - p_value
+  - calibration_statistic
+  - support_decision
+  - source_run_ids
+  - per_image_artifact_sha256
+  - analysis_commit
+  - analysis_config_hash
+  freeze_manifest_file: results/freeze_manifest.json
 demo:
   framework: streamlit
   figure_style_module: src/viz/style.py
@@ -622,11 +915,26 @@ hardware_tier23:
   - cfo_estimation
   - pilot_aided_snr_measurement
 deliverables:
+  w1_start_date: 2026-07-27
   review_weeks:
     first: 4
     second: 10
-    third: 16
-  review_dates_status: pending_confirmation_from_2026_circular
+    third: 17
+  review_dates:
+    first: 2026-08-18/2026-08-22
+    second: 2026-09-29/2026-10-03
+    third: 2026-11-17/2026-11-21
+    report_due: 2026-11-20
+  review_marks:
+    first: 10
+    second: 30
+    third: 40
+    report: 20
+  review_dates_status: confirmed_from_2026_27_circular_marked_tentative
+  review_dates_source: vault/capstone/Circular Capstone FALL 2026-27 Semester.pdf
+  internal_report_freeze_week: 15
+  contingency_week: 16
+  contingency_week_allocation: report_and_results_audit
   objectives_stated_as: completion_terms_not_outcomes
   objectives_modification_point: second_review
   literature_review_min_refs: 25
@@ -644,3 +952,46 @@ deliverables:
   novelty_claims:
   - er9_attribution_decomposition
   - br11_format_overhead_controlled_baseline
+  hardware_alternative_clause: circular_clause_5_significant_design_aspects_real_world_application
+  hardware_alternative_artifact: deployment_system_design_dossier
+  hardware_alternative_dossier_contents:
+  - deployment_architecture
+  - link_budget
+  - packet_and_frame_design
+  - latency_compute_energy_estimates
+  - simulation_to_radio_mapping
+  hardware_alternative_decision_due_week: 4
+  hardware_alternative_acceptance: guide_acknowledgement_recorded
+  proposal_registration_status: unverified_repo_copy_is_blank_template
+  proposal_registration_owner: author
+environment:
+  python_version: 3.14.6
+  lock_format: pip_requirements_with_hashes
+  lock_file: requirements.lock
+  torch: 2.13.0+cu130
+  torchvision: 0.28.0+cu130
+  torch_index_url: https://download.pytorch.org/whl/cu130
+  sionna: sionna-no-rt==2.0.1
+  numpy: 2.5.1
+  pillow: 12.3.0
+  scikit_image: 0.26.0
+  glymur: 0.14.3
+  openjpeg: 2.5.4
+  pytest: 9.1.1
+  cuda_assertion: torch.version.cuda is not None
+  record_in_run_metadata:
+  - python_version
+  - torch_version
+  - cuda_version
+  - driver_version
+  - device_name
+  - lock_file_sha256
+  cpu_install_path_required_for:
+  - analysis
+  - demo
+  deterministic_backend:
+    cudnn_deterministic: true
+    cudnn_benchmark: false
+  reproduction_tolerance:
+    cpu_fixture: exact_hash
+    gpu_same_seed_retrain_top1_pp: 0.1

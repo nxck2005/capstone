@@ -7,15 +7,71 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, two
-external reviews adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the docs sweep in
-`7b7c70a`). **No project code exists yet:** no `src/`, no `tests/`, and `requirements.txt` is still
-tooling-only (PyYAML). The tree is clean and `gen_spec_views.py --check` passes at 159 requirements —
-if either is untrue when you read this, something landed after this line was written.
+**Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, three
+rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the docs
+sweep in `7b7c70a`, **AM-57..AM-60 this session**). **No project code exists yet:** no `src/`, no
+`tests/`, and `requirements.txt` is still tooling-only by design (SR-21 puts the runtime stack in a
+hashed `requirements.lock` built at W1). `gen_spec_views.py --check` passes at **168 requirements**
+and `check_packetisation.py` passes with **zero failures** — if either is untrue when you read this,
+something landed after this line was written.
 
 ---
 
-## Just landed — two external reviews adjudicated, 30 amendments applied, committed as `8e65329`
+## Just landed — the Codex gate audit adjudicated, AM-57..AM-59 applied
+
+**`audit/JUDGE_codex` (`EXT-6`)** returned **project GO, W1 NOGO — temporary hold**: 11 P0 findings,
+10 P1s, 3 P2s. It is the most accurate review this project has received. **Every checkable numeric
+claim reproduced exactly** when re-derived — the packetisation defect counts, the corrected canonical
+case, the grid arithmetic, the runtime figures, and an H4 power calculation no earlier review
+attempted. Verified independently rather than adopted: the packetisation against a separately written
+solver, the base-graph rate floor and the modulation interleaver against the **pinned Sionna source**
+rather than its docs, the review dates by rendering a scanned PDF that has no extractable text, and
+the torchvision loader against current upstream docs.
+
+**Exactly one claim was rejected, and one sharpened:**
+- **Rejected — "`run_id` cannot pair systems".** It is a structured tuple key; pairing on every field
+  except `system` is well defined. The *real* defect is the opposite: the key omitted `split`, the
+  config and checkpoint hashes, the classifier variant and every system-specific setting, so distinct
+  runs **collided** — validation with test, and the two BR-12 classifier variants with each other.
+- **Sharpened — the ER-1 projection.** The audit was right that a 21/18 rescaling is not arithmetic,
+  but the direction is the reverse of the obvious guess: the added points are at the **noisy** end
+  where BR-4 picks BPSK, whose channel-bit budget is a quarter of 16-QAM's and which needs 2 code
+  blocks rather than 11. The worst-case figure **overstates** there. Both ends are now recorded.
+
+**Three decisions you made this session, don't reopen:** H3 keeps the **full-grid** slope and gains a
+magnitude-contraction clause (the audit's high-SNR refit was rejected — it abandons the half of the
+grid where the effect is largest); W10's rehearsal and the Second Review figure move to
+**validation**, test stays sealed behind a freeze manifest until G-10 closes; H4's power floor is
+**declared and simulated before W8** rather than fixed by more training runs.
+
+**The packetisation script reported zero failures while breaking four of its own rules** — that is
+the finding worth carrying forward. 92/215 rows had a non-byte-aligned `A` under a solver whose own
+parameter promises byte alignment; 21 had a non-integral `B'/C` silently rescued with `ceil`; 47/103
+BG2 rows computed filler from the selection `K_b` instead of the encoded `K = 10Z`; and the rate
+floor was tested *strictly* against the **smallest** `E_r` — the block least likely to fail — when the
+library raises only on `r < floor` and BG1's mother code is exactly 1/3. Fixing all four keeps 215
+configs feasible and **every** headline-dataset config feasible, moves capacity in 18 rows by −8 to
++1 byte, and cuts the clamps from **six to three**. Canonical case is now **A = 42,624 b (5,328 B),
+B' = 42,792, K' = 7,132, Z = 352, filler 612/block and 3,672 total**. A repair, not a collapse.
+
+**The proof obligation is now all 144 headline-dataset configs, not the 72 that today's three
+provisional ratios name** — ER-3 can select any rung, so the old scope proved nothing about the
+configuration actually used. That change immediately found something: **ER-9's admissible (dim, bits)
+pairs fall to 1 at STL-10's `r_1_48`**, so at the ladder bottom its "two-stage validation search" has
+one candidate. Recorded as a carried risk; G-11 must report the count.
+
+**The circular was readable all along.** It is scanned images with no extractable text — which is not
+the same as unreadable. Rendering its two pages resolves all four dates: First Review **18–22 Aug
+(W4)**, Second **29 Sep–3 Oct (W10)**, Final **17–21 Nov (W17, not the W16 the spec carried)**, report
+due **20 Nov — inside Final Review week**. W16 is now deliberately allocated contingency and W15
+carries an internal freeze. Clause 5 also expects hardware or "significant design aspects with an
+application to real world problems", so PR-9 is a full deployment dossier and the guide must be asked
+before W4. ⚠️ **The repo's proposal DOCX is a blank template — PR-10 exists because registration
+status is unverified and that is the one failure nothing recovers from.**
+
+---
+
+## Previously — two external reviews adjudicated, 30 amendments applied, committed as `8e65329`
 
 **Two independent full-spec reviews** (`EXT-4`, Claude; `EXT-5`, a second model) were adjudicated
 against the spec and the W0 evidence, not deferred to. **Neither verdict was adopted as given.**
@@ -24,8 +80,9 @@ worst defects; EXT-5 said "NO-GO/HOLD on the whole spec" but only *one* of its f
 Result: 122 → **158 requirements**, `AM-26`..`AM-55`, split into two rounds in §17. A third round
 followed on 2026-07-28 — `AM-56`, from a **self-audit of those two rounds**, which found that AM-53
 had left H2 able to select its comparison window on a different curve from the one it evaluates.
-159 requirements now. Worth noting as a pattern rather than an embarrassment: every audit round so
-far, including the audit of the audit, has found something real.
+That round closed at 159 requirements; the count is **166** after AM-57..AM-59 above. Worth noting as
+a pattern rather than an embarrassment: every audit round so far — including the audit of the audit,
+and including the round that audited a *passing* evidence script — has found something real.
 
 **The three that mattered, all confirmed by recomputation, none of which either review found alone:**
 
@@ -45,7 +102,8 @@ far, including the audit of the audit, has found something real.
    seeds alias training luck and channel luck. Now compound replicates.
 
 Plus **G-8 was required to decide a crossover it cannot observe** (AM-33) — W6's sweep is
-classical-only and no learned model exists until W7. New **G-10** at W10 decides it.
+classical-only and no learned model exists until W7. New **G-10** decides it — placed at W10 then,
+moved to the **start of W9** by AM-59.
 
 **Three decisions you made this session, don't reopen:** ER-9 gets the *same encoder with its own
 output width* (not a bolted-on layer, not fixed pooling); seeds are *compound replicates* (don't pay
@@ -119,6 +177,34 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
+**The short version, in order.** Everything in the W1 release checklist is now satisfied except the
+two items only you can do, so the hold is cleared on the specification side.
+
+| # | Do | Why now | Blocks |
+|---|---|---|---|
+| 0 | **Commit this round** — 20 files, `AM-57`..`AM-60` | The tree is dirty; the preregistration record *is* the git history, so an uncommitted hypothesis change is an unrecorded one | everything |
+| 1 | ⚠️ **Verify proposal registration** (PR-10) | The circular makes proposal submission part of *registration*, and the repo's copy is a blank template | nothing technical — but nothing recovers from it |
+| 2 | ⚠️ **Ask the guide about the hardware alternative** (PR-9) | Circular clause 5. Due before W4, and the answer shapes the dossier's scope | First Review package |
+| 3 | **Fetch and archive the srsRAN vectors** | One minute, and the upstream repo is archived — the window is not guaranteed | G-2 at W3 |
+| 4 | **Start W1(a)–(f) below** | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
+| 5 | **Begin PR-1 (literature review) in parallel** | Due W4, ~25 refs, and it is the only W1-safe work that needs no code | First Review, and DEC-13's novelty claim |
+
+**Two things to carry into W1 that are new this round and easy to get wrong:**
+
+- **The identity/pairing keys (SR-18) and the test guard (SR-22) are W1 work, not W10 work.** Both are
+  cheap now and near-impossible to retrofit once results exist. `run_id` alone used to *collide*
+  between validation and test.
+- **G-1 is validation-only and must prove zero test reads.** Build the guard before the loaders, not
+  after.
+
+**And one habit worth keeping.** This round found a passing evidence script that violated four rules
+it claimed to enforce, and then a follow-up audit found that the round's *own* schedule edits had
+reopened the leak they closed (AM-60). Both were caught by re-deriving rather than re-reading. When
+you change a rule and the schedule that obeys it in the same sitting, read one against the other
+afterwards — AM-47 exists for exactly this and still did not catch it.
+
+---
+
 0. ~~**§2 sign-off · MATLAB licence · the LDPC spike.**~~ **All closed 2026-07-25/27** (AM-19,
    AM-21..AM-25). Two consequences worth keeping in view rather than re-deriving: the hypotheses were
    **delegated**, so this repo's git history is the *sole* preregistration record for H1–H4 — never
@@ -140,12 +226,18 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
    depending on someone else's hosting decision.
 
 2. **W1 — repo scaffold through G-1.** Build strictly in this order; each step is the input to the
-   next, and two of them contaminate everything downstream if retrofitted.
+   next, and three of them contaminate everything downstream if retrofitted. **G-1 is now much wider
+   than an accuracy number** (AM-58): it also accepts the dataset checksums, the split manifests, the
+   registry, the config round-trip, the canonical-pixel identity test, the clean-install smoke run
+   and the classifier's provenance — and it is **validation-only**, with SR-22's guard in place to
+   prove zero test reads. Everything below is a G-1 acceptance item, not just step (f).
 
-   **(a) Dependencies and the CUDA assertion.** `requirements.txt` is still `PyYAML>=6.0` only.
-   Split it: project deps from PyPI, torch from the cu130 index, because a bare `pip install torch`
-   silently resolves to the **CPU build** and the check that catches it is
-   `torch.version.cuda is not None`, not a successful import (AM-23).
+   **(a) Environment lock (SR-21) — `requirements.lock`, hashed.** `requirements.txt` stays
+   tooling-only by design; the runtime stack is a separate hashed lockfile installed from
+   `params.environment.torch_index_url`, because a bare `pip install torch` silently resolves to the
+   **CPU build** and the check that catches it is `torch.version.cuda is not None`, not a successful
+   import (AM-23). Also owed here: `params.environment.deterministic_backend` set, driver/device
+   captured into run metadata, and a **CPU-only install path** for analysis and demo.
 
    **All pins resolved 2026-07-28 — every one has a `cp314` wheel, nothing is guesswork:**
    `torch==2.13.0+cu130` · `torchvision==0.28.0+cu130` (from the cu130 index; the wheel is
@@ -179,12 +271,35 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
    reach the test loader — the audit is the harder half and is easiest as a structural rule (test
    access lives in one module nothing else imports) rather than a convention.
 
-   **(e) Dataset registry (SR-2)** — all three selectable by name through one code path, no
-   dataset-specific branching. Imagenette is **not** in torchvision and needs its own fetch:
-   `https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz`, verified live 2026-07-28,
-   99 MB, and it unpacks to an `ImageFolder` layout. STL-10 and CIFAR-10 come from torchvision.
-   CIFAR-10 is a plumbing path only (DEC-1) but must still instantiate, because SR-2's verify
-   clause instantiates every dataset. Headroom is not a concern: 891 GB free, 8 GB VRAM idle.
+   **(d2) Identity and pairing keys (SR-18) — get this right in W1 or pay for it in W11.**
+   Four keys, not one: `run_id` (content-addressed over the full `params.artifacts.run_id_key`,
+   including `split`, config and checkpoint hashes and the classifier variant — the old key omitted
+   all of them and **collided** between validation and test), `noise_id`, `analysis_cell_id`, and a
+   system-independent `pair_id` that ER-10 joins on. RNG must be **counter-based and keyed** over
+   `params.artifacts.rng_purposes`, never a sequential stream consumed on demand — systems outage on
+   different images, so a shared seed desynchronises exactly when it matters. Per-image rows carry
+   every join column and a **stable sample ID**, not a positional index.
+
+   **(e) Dataset registry (SR-2, SR-20) — and the note that used to sit here was wrong.**
+   ⚠️ **Imagenette IS in torchvision**: `torchvision.datasets.Imagenette(root, split=..., size="160px",
+   download=True)`, checked against current upstream docs. This file previously asserted the
+   opposite and sent you to build a bespoke fetcher. Use the library loader (`params.datasets.
+   imagenette160.loader`), and *also* record `archive_sha256` yourself — torchvision's docs do not
+   state that it verifies integrity, and SR-20 fails G-1 while any checksum is still `pending`.
+   STL-10 and CIFAR-10 likewise come from torchvision. All three go through one code path with no
+   dataset-specific branching; CIFAR-10 is a plumbing path only (DEC-1) but must still instantiate,
+   because SR-2's verify clause instantiates every dataset. Headroom is not a concern: 891 GB free.
+
+   **(e2) Split manifests (SR-17) — a seed is not a split.** Loader ordering and library behaviour
+   change between versions, so materialise the carve as a **committed manifest** of stable sample IDs
+   under `params.datasets.manifest_dir`, hashed into run metadata. Stratified, ordered by stable ID
+   before shuffling, drawn with the named RNG. Class indices from sorted directory names.
+
+   **(e3) Test-access guard (SR-22) — build it in W1, not when you need it.** Loading a test sample
+   must **fail** without a committed freeze manifest. The release point is **G-12 at W11** — not
+   G-10, which now sits at the start of W9 (AM-60 caught that: the guard would have opened three
+   weeks before anything was frozen). G-1 and the W10 rehearsal must demonstrate **zero** test-loader
+   reads, which is far easier as a structural rule now than as a retrofit later.
 
    **(f) Reference classifier (BR-8, DEC-15) → G-1.** ResNet-18 **from scratch**, and the recipe is
    now fully specified in `params.reference_classifier` — SGD+momentum, lr 0.1, momentum 0.9, weight
@@ -195,14 +310,21 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
    training log showing no pretrained initialisation, and a test that every element of the recipe is
    config-derived.
 
-   **G-1 is `clean_acc_floor` = 0.88 on Imagenette, clean variant only.** STL-10's and CIFAR-10's
-   floors are reported but advisory (AM-13). If 0.88 does not come, the preregistered fallback is
-   **switch backbone or extend training** — it is not "lower the floor", and §16 says to move a
-   floor *at G-1* as a recorded spec change if it turns out wrong, not to quietly miss it later.
+   **G-1 is `clean_acc_floor` = 0.88 on Imagenette, clean variant only, measured on validation.**
+   STL-10's and CIFAR-10's floors are reported but advisory (AM-13). If 0.88 does not come, the
+   fallback is now an **ordered ladder** rather than a licence (AM-58):
+   `params.reference_classifier.fallback_ladder` — extend to 150 epochs, then ResNet-34, then
+   ResNet-50 — selected on validation, stopping at the first rung that clears the floor, and still
+   bound by SR-14's cap that the learned arm may not exceed the network scoring the classical arm.
+   It is not "lower the floor"; §16 says to move a floor *at G-1* as a recorded spec change if it
+   turns out wrong, not to quietly miss it later.
 
    Also needed at some point in W1, cheaply: `.gitignore` entries for `data/`, `checkpoints/` and
    `results/per_image/` — none exist yet. Aggregate `results/*.csv` stays **tracked**, because ER-7
-   requires every thesis number to resolve to a committed CSV.
+   requires every thesis number to resolve to a committed CSV, and so do
+   `params.artifacts.inference_summary_file` and `params.artifacts.per_image_manifest` — the
+   inference summary is new (AM-57) and exists because the aggregate schema cannot hold an interval
+   bound, a p-value or a verdict, i.e. exactly the numbers §2 turns on.
 
    **Ordering constraint waiting on this:** the transparency-bitrate probe (item 4) needs a trained
    classifier, so it slots in immediately after G-1. Don't re-derive that dependency.
@@ -245,15 +367,25 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
   floor*. If challenged, the argument is: checksums are facts about a file, not copies of one.
 - **MATLAB licence** — still pending an outcome, and now fully off the critical path: rung 2 is not
   merely available, it is demonstrated working (AM-25). OPT-1/OPT-3 remain provisional upside.
-- **The actual 2026-27 review dates.** ⚠️ New, and it needs you rather than me — the dates on
-  `Capstone Project Rubrics.xlsx` are a **2023 template** (its own submission deadline reads "10th
-  Dec. 2023") and MUST NOT be used. `params.deliverables.review_dates_status` records this as
-  pending against the 2026-27 circular, which is scanned images with no extractable text. The review
-  *weeks* are fixed (4 / 10 / 16); W1 opening 2026-07-27 puts them at the weeks of 17 Aug, 28 Sep
-  and 9 Nov. **Why it is worth ten minutes:** if the real third review is late November, W16 lands
-  early and there is genuine unallocated slack — which §16 says to assign deliberately to **W9 and
-  W11**, the two weeks carrying the most work and the least protection. Slack discovered late gets
-  absorbed; slack known now gets used. Settle it before PR-2's Gantt is committed (AM-46).
+- ~~**The actual 2026-27 review dates.**~~ **Closed 2026-07-28 (AM-59)** — and it did not need you.
+  The circular is scanned images with *no extractable text*, which this file had recorded as if it
+  meant unreadable; rendering the two pages to PNG and reading them resolves all four dates directly.
+  Lesson worth keeping: "no extractable text" is a statement about `pdftotext`, not about the
+  document. The guess was half wrong — Final Review is **W17**, not W16.
+- ⚠️ **Proposal registration status — this one really does need you.** The circular makes submitting
+  the proposal to your guide part of **registration**, and the only copy in this repo is a blank
+  template. That does not prove nothing was submitted, which is exactly why it must be checked. PR-10
+  exists for it. Nothing in the specification recovers from an unregistered project.
+- ⚠️ **The hardware-alternative decision, due before W4 (PR-9).** Circular clause 5: projects are
+  *expected* to have a hardware implementation, "if not, at least they should have significant design
+  aspects with an application to real world problems". Tier 1 can satisfy that, but only if the design
+  work is written down as design work — hence the deployment dossier. Ask the guide early enough that
+  the schedule can absorb the answer, and record the acknowledgement. This must **not** be allowed to
+  turn into a promise of Tier 2/3 scope (DEC-14, HR-5).
+- **Name a real BLER reference before G-2.** `params.baseline.ldpc_bler_reference_source` is pending.
+  TS 38.212 is a specification and contains no curve to match, so the old wording named nothing
+  obtainable. Needs a downloadable, checksummed dataset agreeing on (K,N), base graph, lifting size,
+  modulation, decoder algorithm, offset, iterations and SNR convention.
 
 ## Recently settled — don't reopen
 
@@ -282,6 +414,39 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
   §17 is append-only and superseded entries stay wrong in place, on purpose.
 
 ## Session log
+
+- **2026-07-28 (later still)** — **Cross-document consistency audit (`INT-5`); AM-60, 166 → 168.**
+  Ran every hand-written file against the amended spec after round 5, which was large and touched the
+  schedule. Found one substantive defect **of round 5's own making**: AM-58 moved W10's rehearsal onto
+  validation and AM-59 moved G-10 to the start of W9, but `test_access_gate` still pointed at G-10 —
+  so SR-22's guard would have released the test split at W9, three weeks before anything was frozen,
+  and ER-11/ER-12 were still scheduled at W10 reading test at sweep strength. New **G-12** (test
+  release, W11) closes it, and opening the test split now has a gate for the first time — it had been
+  the only irreversible act in the project without one. Also swept: `docs/crossover-explained.md`'s
+  hypothesis table, multiplicity arithmetic, operating-point rule and G-10 week were all stale;
+  `README.md` and `AGENTS.md` counted external reviews differently, now resolved by stating in §17
+  that `EXT-n` are labels rather than an ordinal count. The lesson, recorded in AM-60: a rule and the
+  schedule that obeys it were edited in the same round without being read against each other, which
+  is precisely what AM-47's process rule exists to prevent and precisely what it failed to catch.
+
+- **2026-07-28 (later)** — **Codex gate audit (`EXT-6`) adjudicated; AM-57..AM-59 applied, 159 → 166
+  requirements.** Verdict was project GO / W1 NOGO and it was not disputed: the defects are contract
+  and evidence defects, cheap now and expensive once config and results encode them. Unlike every
+  earlier round, **every checkable numeric claim reproduced exactly** — packetisation defect counts,
+  the corrected canonical case, the grid arithmetic, the runtime figures, and an H4 power calculation
+  (MDE ≈ 1.4 pp at 10% discordance, 3.2 pp at 50%) that no previous review attempted. One framing
+  claim rejected (`run_id` "cannot pair" — it is a tuple key; the real defect is that it *collided*),
+  one sharpened (the added grid points are BPSK at the noisy end, needing **fewer** code blocks, so
+  the worst-case projection overstates rather than understates there). Verified against primary
+  sources rather than adopted: the Sionna encoder source, for both the exact-1/3 BG1 floor and the
+  fact that TS 38.212 §5.4.2.2's interleaver is applied **only** when `num_bits_per_symbol` is passed
+  — which the W0 probe never did; the circular, by rendering a text-free scanned PDF; torchvision's
+  current docs, which do ship an Imagenette loader this file wrongly said was absent.
+  `check_packetisation.py` rewritten: four defects, zero of which its own "0 failures" surfaced.
+  Estimand, H1 calibration binding, H2 intersection-union, H3 magnitude clause, `run_id`/`pair_id`/
+  `noise_id` split, dataset provenance, environment lock, test-access guard, deterministic outage
+  fallback, PHY seam pins, narrowed standards claim, W17 schedule, G-10 moved to W9. **Nothing now
+  blocks W1.**
 
 - **2026-07-28** — **Docs swept for staleness; AM-56 from a self-audit.** Three hand-written files
   were stale and none had been touched by the amendment rounds: `docs/crossover-explained.md` still

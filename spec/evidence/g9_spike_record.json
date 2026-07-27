@@ -1,4 +1,10 @@
 {
+  "status": "historical",
+  "historical_note": "Archived W0 measurement (AM-24, AM-25), recorded 2026-07-27. It measures the configuration grid AS IT STOOD THEN: 18 SNR points and 180 configurations, before AM-52 added -7/-5/-3 dB (21 points) and before AM-58 corrected the packetisation solver. The measured quantities -- throughput, exact E_r, smallest workable payload, the LLR sign, the BG1 rate floor and the decoder spelling -- are unaffected by those changes and remain the evidence for AM-24. The derived ER-1 projection in check 6 is superseded: see params.compute.er1_projected_* and AM-59. Do not read this file as current-grid evidence; spec/evidence/packetisation_record.json is the current packetisation record (AM-58).",
+  "superseded_fields": [
+    "checks.6_er1_projection"
+  ],
+  "current_packetisation_record": "spec/evidence/packetisation_record.json",
   "checks": {
     "1_install_cuda": {
       "pass": true,

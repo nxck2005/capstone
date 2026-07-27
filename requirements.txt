@@ -1,3 +1,24 @@
-# Tooling dependencies only. Project dependencies (torch, etc.) land here when
-# the implementation starts, per spec/SPEC.md SR-1.
+# Spec-tooling dependencies only.
+#
+# Project runtime dependencies are NOT here. SR-21 requires the runtime environment
+# to be frozen as a hashed lockfile (`params.environment.lock_file`), generated at W1
+# and installed with `--index-url params.environment.torch_index_url` for the CUDA
+# wheels. A bare `pip install torch` resolves to the CPU build (AM-23), so the check
+# that matters after installing is `params.environment.cuda_assertion` —
+# `torch.version.cuda is not None` — not a successful import.
+#
+#   python -m venv .venv
+#   .venv/bin/pip install -r requirements.txt     # spec tooling: this file
+#   .venv/bin/pip install -r requirements.lock    # project runtime, from W1
+#
+# Pinned versions live in `spec/params.generated.yaml` under `environment:` and that
+# is the single source of truth. This file exists only so `tools/gen_spec_views.py`
+# and `spec/evidence/check_packetisation.py` run on a machine with nothing else
+# installed — both are deliberately dependency-light for exactly that reason.
+
 PyYAML>=6.0
+
+# Optional, only for reading the planning PDFs and .docx files under vault/ and
+# ideas/. Not needed by the generator or by any evidence script.
+#   pypdf>=6.0
+#   pillow>=12.0

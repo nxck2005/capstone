@@ -131,9 +131,19 @@ Dominance everywhere can only *assert* the trade-off. It shows one regime, not t
 
 This is why the operating point is now chosen at gate **G-8**, before the headline experiment, using a
 rule that inspects **only the classical system** — the smallest bandwidth ratio at which the classical
-baseline's best-case accuracy comes within 5 percentage points of its clean-image accuracy. Because
-the rule never looks at the learned system, it cannot be accused of being chosen to flatter the
-hypothesis. It simply places the comparison where the baseline is healthy.
+baseline's ceiling comes within `t` percentage points of its clean-image accuracy. Because the rule
+never looks at the learned system, it cannot be accused of being chosen to flatter the hypothesis. It
+simply places the comparison where the baseline is healthy.
+
+Two details that were left loose and are now pinned. **The rule runs at two thresholds, not one**
+(AM-20): `t` = 5 pp locates the *efficiency* point — the tightest budget at which the baseline is
+still healthy — and `t` = 2 pp locates the *crossover* point, which is where the headline sits. Five
+points alone can select a ratio at which the classical ceiling still cannot overtake the learned one,
+which is the whole reason the second threshold exists. And **"ceiling" and "within `t`" now name
+computable things** (AM-59): the ceiling is BR-4's error-free codec validation accuracy — not "the
+18 dB point" or "a fitted plateau", which are three different numbers — and the comparison is a
+one-sided lower bound on (ceiling − clean) at or above `−t`, so a codec that scores *above* clean
+satisfies the rule rather than falling outside an unsigned "within".
 
 Beating a healthy baseline is the result worth having. Beating a strangled one is a result spent
 defending.
@@ -209,9 +219,15 @@ Numerically, at r = 1/3 on Imagenette (k = 25,600 channel uses):
 
 | Configuration | bits/symbol | Payload | bits per pixel |
 | --- | --- | --- | --- |
-| QPSK, rate 1/3 (noisy end) | 2 | 17,066 b ≈ 2.1 kB | 0.67 |
-| QPSK, rate 5/6 (the old cap) | 2 | 42,666 b ≈ 5.3 kB | 1.67 |
-| **16-QAM, rate 5/6 (clean end)** | 4 | 85,333 b ≈ 10.7 kB | **3.33** |
+| QPSK, rate 1/3 (noisy end) | 2 | 17,048 b = 2,131 B | 0.67 |
+| QPSK, rate 5/6 (the old cap) | 2 | 42,624 b = 5,328 B | 1.67 |
+| **16-QAM, rate 5/6 (clean end)** | 4 | 85,248 b = 10,656 B | **3.33** |
+
+These are the *solved* payloads from `spec/evidence/packetisation_record.json`, not
+`k × bits/symbol × rate`. They are byte-aligned and satisfy TS 38.212's exact `K' = B'/C`
+division, which the closed-form figures this table used to carry (42,666 b and the rest) did not —
+a transport-block payload that is not a whole number of bytes is not something a source codec can
+fill (AM-58). The differences are single bytes and change nothing in the argument below.
 
 At 3.3 bpp, JPEG 2000 is effectively transparent to the classifier, so the classical ceiling
 approaches clean accuracy (~0.88) while a learned system trained at a fixed 7 dB plausibly stalls
@@ -276,7 +292,9 @@ the adaptive baseline was genuinely attempted first.
 to be G-8, at W6 — but W6's sweep is **classical-only** by construction, and the first learned model
 does not exist until W7's pilot. A gate with one of the two curves cannot observe a crossing between
 them. G-8 keeps what it can actually do, which is select the operating ratios by a learned-blind
-rule; the new **G-10** at W10 decides the crossover, once W8's training exists.
+rule; the new **G-10** decides the crossover, once W8's training exists. It sat at W10 until AM-59
+moved it to the **start of W9** — W10 is when the Second Review package is written, and a gate that
+can restate the project's objectives should not fire in the week whose package it would rewrite.
 
 The one response that is never permitted: weakening the learned system to manufacture a crossover.
 
@@ -355,37 +373,64 @@ where joint source-channel coding wins."
 Completion and outcome are now separated. Tier 1 is **complete** when the preregistered protocol has
 been run properly, regardless of result. Four hypotheses are then reported either way:
 
+All four are read against **one** estimand, defined in §2 before the hypotheses: for each image, the
+three seed cells are averaged *first*, then the mean is taken over images, and the interval comes
+from resampling stable image IDs **once**, each carrying its whole system × SNR × cell trajectory.
+The interval is explicitly *conditional* on the three trained models and the preregistered channel
+schedule — it is not a population statement about arbitrary seeds.
+
 | | Claim | Test |
 | --- | --- | --- |
-| **H1** | Low-SNR separation (primary) | Paired 95% interval on the accuracy *difference* above zero at ≥3 consecutive low-SNR points, plus a preregistered mean paired difference across the whole low-SNR region as the effect size |
-| **H2** | Cliff versus graceful | The 4 dB window is chosen **on validation**, where the *classical* curve drops most, then frozen; over those same endpoints on test, classical loses ≥30 pp and learned ≤15 pp, decided by a paired difference-in-differences. The classical curve here is BR-16's **fixed** one, not BR-4's adaptive envelope |
-| **H3** | Convergence | The paired gap trends to zero: negative weighted-least-squares slope against SNR, bootstrap interval excluding zero, **and** the low-SNR gap positive — without that second clause a gap running −5 pp → −30 pp also has a negative slope. **A crossover is reported if observed but is not required** |
-| **H4** | Attribution | Learned must also beat the task-aware digital control (ER-9) — which shares the learned system's front end and differs only in the channel interface — or the gain is credited to task-awareness rather than joint coding. Stated as *consistent with* an advantage from the analog interface, not as proof of one: beating one control does not exclude quantiser weakness |
+| **H1** | Low-SNR separation (primary) | `learned` vs `classical_adaptive`. A point qualifies when the studentized paired mean exceeds 1.96. Supported only if the longest run of qualified points at or below 7 dB is **≥ 3 *and* the calibrated run p-value ≤ 0.05** — the calibration binds the decision rather than merely accompanying it. Effect size of record: the mean paired difference across the whole low-SNR region |
+| **H2** | Cliff versus graceful | The 4 dB window is chosen **on validation**, where BR-16's *fixed* classical curve drops most, then frozen; over those same endpoints on test, supported iff the one-sided 95% **lower** bound on the classical drop is ≥ 30 pp **and** the one-sided 95% **upper** bound on the learned drop is ≤ 15 pp. That is an intersection-union test, so it needs no Bonferroni. The difference-in-differences is reported as an extra effect size, not as the support rule |
+| **H3** | Convergence | `learned` vs `classical_adaptive`. Three clauses: negative weighted-least-squares slope with a bootstrap interval excluding zero; the gap at −8 dB positive; **and** the gap at 18 dB smaller *in magnitude* than at −8 dB. **A crossover is reported if observed but is not required** |
+| **H4** | Attribution | Learned must also beat the task-aware digital control (ER-9) — sharing the learned front end, differing only in the channel interface — under the **same** estimand, qualifier and calibration as H1. Stated as *consistent with* an advantage from the analog interface, not as proof of one: beating one control does not exclude quantiser weakness |
 
 Three of those four rows were tightened on 2026-07-25 (`SPEC.md` §17, AM-1 through AM-5) after an
 external review found H2's window and H3's pass condition were not defined tightly enough to be
 decided without a judgement call. All four were tightened again on 2026-07-27 (AM-31, AM-32, AM-39,
-AM-53, AM-55) after two more reviews: H1's run rule kept its decision procedure but had its
-error-rate argument replaced with a permutation **calibration**, because the claimed bound was not
-one; H2 moved to a fixed classical curve and gained an actual test; H3 gained the sign clause above;
-and H4's control was rebuilt after it turned out to be arithmetically infeasible at every operating
-point but one. The changes make each hypothesis *harder* to support, not easier —
-which is the direction a preregistration should move in when it moves at all.
+AM-53, AM-55) after two more reviews. **And all four were tightened a third time on 2026-07-28
+(AM-57), after a gate audit found that none of them was *uniquely executable*** — different
+reasonable implementations could return different verdicts on identical data. H1's permutation
+calibration was archived but explicitly did not affect the decision, so a measured null above 0.05
+would have been recorded and ignored; H2 conjoined two point thresholds with a difference-in-
+differences test and never said which decided, and a large difference-in-differences does not
+establish either margin (drops of 20 pp and 0 pp give 20 pp while the classical arm misses the cliff
+entirely); H3 caught a gap starting negative but not one running **+5 pp → −30 pp**, which starts
+positive, slopes down, and describes the learned system being overtaken and left behind; and H4
+invoked "the H1 rule" without saying that repairing H1 repairs it too. The changes make each
+hypothesis *harder* to support, not easier — which is the direction a preregistration should move in
+when it moves at all.
 
 One objection worth knowing about, because it will recur: H1's "three consecutive points" rule is
 sometimes read as a multiple-comparisons problem — many candidate runs, therefore inflated false
-positives. The arithmetic runs the other way. Under the null, the chance that any run of three clears
-a one-sided 0.025 interval is at most 11 × 0.025³ ≈ 0.00017 if the points were independent, and 0.025
+positives. The arithmetic runs the other way. The grid holds 16 points at or below the 7 dB training
+SNR, so there are 14 candidate runs of three; under the null, the chance that any of them clears a
+one-sided 0.025 interval is at most 14 × 0.025³ ≈ 0.00022 if the points were independent, and 0.025
 if they were perfectly correlated. Both are stricter than the 0.05 a single point carries. Requiring
 a run *is* the multiplicity control; the cost is statistical power, not validity. §2 now records this
-in writing so it does not have to be argued from scratch.
+in writing so it does not have to be argued from scratch. (Those counts read 13, 11 and 0.00017 until
+AM-57 — AM-52 had added three grid points without updating anything that counts them, which is the
+recurring failure mode this document and §2 both now guard against.)
 
 The statistical test also changed, and this matters independently of the crossover question. The
 original criterion asked for two independent confidence intervals not to overlap, computed over three
 seeds — a Student-t interval with two degrees of freedom, where t₀.₉₇₅,₂ = 4.303 means a ~5 percentage
 point gap would be needed to register. Because both systems see identical images and identical noise
 draws, a **paired** analysis over per-image outcomes is both the natural and the far more powerful
-choice, detecting differences of 1–2 pp.
+choice.
+
+**How much more powerful is a question with a number, and it was worth asking (AM-57).** With 3,925
+test images at one-sided 2.5% and 80% power, the smallest detectable paired difference is about
+**1.4 pp** when the two systems disagree on ~10% of images and about **3.2 pp** when they disagree on
+half — power depends on *discordance*, not on the sample size alone. For H1 that is comfortable: the
+learned-versus-classical gap at low SNR is expected to be large. For **H4** it is not, because the
+residual advantage of joint coding over a *good* digital control is plausibly 1–2 pp, which sits at
+or under that floor. More channel draws do not help — images and noise are already averaged over —
+only independent training runs do, and three seed cells on one laptop GPU is what the budget allows.
+So H4's floor is written into §2 and a precision simulation runs on validation before W8's training
+is spent, which means an unsupported H4 will be *interpretable* rather than ambiguous. That is the
+point: a negative result is a finding, a negative result nobody can read is not.
 
 ---
 

@@ -55,14 +55,24 @@ drift guard to run after any spec change.
 
 Specification and tooling only — no implementation code yet, but **W0 is complete and W1 is open**.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
-vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through six
-independent adversarial review passes and revised accordingly — every change is recorded as an `AM`
-entry in [`spec/SPEC.md`](spec/SPEC.md) §17, which is the file to read before re-litigating any
-decision. §16 records what is still provisional and which risks are being carried.
+vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
+repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
+records **six amendment rounds** across 60 `AM` entries, and is the file to read before
+re-litigating any decision. §16 records what is still provisional and which risks are being carried.
+The most recent rounds (2026-07-28, `AM-57`..`AM-60`) answered the pre-implementation gate audit in
+[`audit/`](audit/): it tightened all four preregistered hypotheses into uniquely executable form,
+rewrote the packetisation evidence after finding it reported zero failures while breaking four rules
+it claimed to enforce, and resolved the academic calendar.
 
 Measured claims are backed by [`spec/evidence/`](spec/evidence/) rather than asserted: the W0 spike
 record, the golden-vector cross-check, and a TS 38.212 packetisation conformance check that runs in
-under a second with no GPU and no network.
+under a second with no GPU and no network. Both of the repository's checks are meant to be run, not
+trusted:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check       # 168 requirements, 10 generated files
+.venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
+```
 
 [`NEXT.md`](NEXT.md) is the short-lived working file for what happens next — read it first.
 See [`AGENTS.md`](AGENTS.md) for how the repo is organized.
