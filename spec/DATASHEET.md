@@ -299,7 +299,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `digital_semantic_control.transmit_layer` | encoder_output | ER-9 |
 | `digital_semantic_control.transmit_dim_grid` | 64, 128, 256, 512, 1024, 2048, 4096, 8192 | ER-9 |
 | `digital_semantic_control.transmit_dim_units` | real_values | ER-9 |
-| `digital_semantic_control.transmit_dim_realised_by` | output_channel_count_and_adaptive_pooling | ER-9 |
+| `digital_semantic_control.transmit_dim_realised_by` | output_channel_count_and_adaptive_pooling | AM-56, ER-9 |
 | `digital_semantic_control.width_selection` | joint_with_quantiser_bits_on_validation_split | ER-9 |
 | `digital_semantic_control.selection_search` | two_stage_coarse_width_then_bits | ER-9 |
 | `digital_semantic_control.selection_search_is_cross_product` | false | ER-9 |
@@ -334,10 +334,10 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `evaluation.gap_trend_bootstrap_unit` | per_image_seed_trajectory | ER-10 |
 | `evaluation.h3_requires_positive_low_snr_gap` | true | AM-39 |
 | `evaluation.cliff_window_db` | 4 | AM-1 |
-| `evaluation.cliff_window_selection` | largest_classical_drop_on_validation_split | - |
+| `evaluation.cliff_window_selection` | largest_fixed_mcs_drop_on_validation_split | AM-56 |
 | `evaluation.cliff_drop_pp` | 30 | AM-53, BR-16 |
 | `evaluation.graceful_drop_pp` | 15 | - |
-| `evaluation.cliff_reference_system` | classical_fixed_mcs | AM-53, BR-16 |
+| `evaluation.cliff_reference_system` | classical_fixed_mcs | AM-53, AM-56, BR-16 |
 | `evaluation.h2_test` | paired_difference_in_differences | - |
 | `evaluation.h2_thresholds_apply_to` | point_estimates | - |
 | `evaluation.h2_threshold_check_gate` | G-8 | - |

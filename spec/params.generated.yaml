@@ -457,7 +457,7 @@ evaluation:
   gap_trend_bootstrap_unit: per_image_seed_trajectory
   h3_requires_positive_low_snr_gap: true
   cliff_window_db: 4
-  cliff_window_selection: largest_classical_drop_on_validation_split
+  cliff_window_selection: largest_fixed_mcs_drop_on_validation_split
   cliff_drop_pp: 30
   graceful_drop_pp: 15
   cliff_reference_system: classical_fixed_mcs

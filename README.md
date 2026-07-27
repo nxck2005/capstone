@@ -53,10 +53,16 @@ drift guard to run after any spec change.
 
 ## Status
 
-Specification and tooling only — no implementation yet. The spec has been through an adversarial
-review pass and revised accordingly; [`spec/SPEC.md`](spec/SPEC.md) §16 records what is still
-provisional, what needs sign-off, and which risks are being carried. Work starts at W0, whose gate
-G-9 unblocks everything else.
+Specification and tooling only — no implementation code yet, but **W0 is complete and W1 is open**.
+Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
+vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through six
+independent adversarial review passes and revised accordingly — every change is recorded as an `AM`
+entry in [`spec/SPEC.md`](spec/SPEC.md) §17, which is the file to read before re-litigating any
+decision. §16 records what is still provisional and which risks are being carried.
+
+Measured claims are backed by [`spec/evidence/`](spec/evidence/) rather than asserted: the W0 spike
+record, the golden-vector cross-check, and a TS 38.212 packetisation conformance check that runs in
+under a second with no GPU and no network.
 
 [`NEXT.md`](NEXT.md) is the short-lived working file for what happens next — read it first.
 See [`AGENTS.md`](AGENTS.md) for how the repo is organized.

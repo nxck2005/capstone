@@ -7,18 +7,23 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-27 · **Phase:** **G-9 passed — W1 is open** · spike executed, two external
-reviews adjudicated and applied (AM-26..AM-55), nothing installed into the repo yet
+**Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, two
+external reviews adjudicated and applied (AM-26..AM-55, committed as `8e65329`). **No project code
+exists yet:** no `src/`, no `tests/`, and `requirements.txt` is still tooling-only (PyYAML).
 
 ---
 
-## Just landed — two external reviews adjudicated, 30 amendments applied
+## Just landed — two external reviews adjudicated, 30 amendments applied, committed as `8e65329`
 
 **Two independent full-spec reviews** (`EXT-4`, Claude; `EXT-5`, a second model) were adjudicated
 against the spec and the W0 evidence, not deferred to. **Neither verdict was adopted as given.**
 EXT-4 said "commit after seven edits" but its one external claim was false and it missed the three
 worst defects; EXT-5 said "NO-GO/HOLD on the whole spec" but only *one* of its findings touched W1.
-Result: 122 → **158 requirements**, `AM-26`..`AM-55`, split into two rounds in §17.
+Result: 122 → **158 requirements**, `AM-26`..`AM-55`, split into two rounds in §17. A third round
+followed on 2026-07-28 — `AM-56`, from a **self-audit of those two rounds**, which found that AM-53
+had left H2 able to select its comparison window on a different curve from the one it evaluates.
+159 requirements now. Worth noting as a pattern rather than an embarrassment: every audit round so
+far, including the audit of the audit, has found something real.
 
 **The three that mattered, all confirmed by recomputation, none of which either review found alone:**
 
@@ -112,60 +117,95 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
-0. ~~**§2 sign-off.**~~ **Done, fully — 2026-07-25 (AM-19, AM-21).** The completion criterion is
-   approved directly: finishing means running the protocol properly, whichever way the result falls,
-   with the instruction to *try hard for a crossover* and an explicit "if things go south, you'll be
-   good". The four hypotheses, paired inference, the no-weakening rule and the learned-blind
-   operating-point rule were **delegated** — "up to you". That closes G-9's §2 clause.
+0. ~~**§2 sign-off · MATLAB licence · the LDPC spike.**~~ **All closed 2026-07-25/27** (AM-19,
+   AM-21..AM-25). Two consequences worth keeping in view rather than re-deriving: the hypotheses were
+   **delegated**, so this repo's git history is the *sole* preregistration record for H1–H4 — never
+   edit a hypothesis in place, always a new `AM` citing the old one; and "try your best for a
+   crossover" authorises strengthening the baseline, never weakening the learned system.
 
-   **Two things that follow from the delegation, and matter more than they look:**
-   - **This repo is now the only preregistration record for H1–H4.** Nobody outside checked them, so
-     the git history *is* the evidence that they were fixed before any data existed. Never edit a
-     hypothesis in place — new `AM` citing the old one, always, per §17. A post-hoc change made
-     honestly and recorded still reads as rigour; the same change made silently reads as fraud, and
-     the diff cannot tell them apart on your behalf.
-   - **"Try your best for a crossover" does not license anything on the learned system's side.**
-     Strengthen the baseline, preregister the lever, or do neither. See DEC-16's guardrail before any
-     G-8 decision.
+1. ⚠️ **Fetch the srsRAN vectors — do this first, it takes a minute and the window is not
+   guaranteed.**
 
-1. ~~**MATLAB licence.**~~ **Answered 2026-07-25: he will try, and asked for a contingency.** So the
-   licence is attempted but not assured, and OPT-1/OPT-3 stay provisional. The contingency is now a
-   four-rung ladder in `params.baseline.ldpc_golden_vector_source_ladder` (AM-22), and the useful
-   find is **rung 2**: srsRAN's vectors are generated from MATLAB's 5G Toolbox as their own trusted
-   reference, which gives MATLAB-provenance vectors *without* a MATLAB licence — all BR-2 needs, since
-   it only demands independence from Sionna. **Both open questions are now answered (AM-25):** the
-   vectors do cover the rate-matched output, and the licence question dissolved because the data is
-   *not* committed upstream at all — it ships as a release asset, so we fetch and verify rather than
-   vendor. ⚠️ Earlier wording here and in AM-22/AM-23 said srsRAN "ships committed" vectors; that was
-   wrong, and AM-25 supersedes it. Rung 4 is now an always-run floor, not a fallback.
+   ```bash
+   spec/evidence/fetch_srsran_vectors.sh
+   ```
 
-2. ~~**The LDPC spike.**~~ **Done, all seven checks — 2026-07-27 (AM-24, AM-25).** See above.
+   The script is committed and pins an immutable release; the asset returned HTTP 200 on 2026-07-27.
+   The upstream repo is **archived** and AM-30 established that **OCUDU publishes no replacement** —
+   its vectors moved to a MATLAB-companion plugin that needs a licensed 5G Toolbox. So if this asset
+   is withdrawn, rung 2 is gone permanently and G-2 degrades to the single hand-derived floor case.
+   Pull it now, keep it outside git (`spec/evidence/.gitignore` already handles that), and W3 stops
+   depending on someone else's hosting decision.
 
-3. **Start W1 — this is the front of the queue, and it is now unblocked in both senses.** G-9 passed
-   2026-07-27 and the amendment rounds are applied, so nothing is outstanding. W1: repo scaffold,
-   config plumbing (SR-1), data loaders and validation splits (SR-2, SR-17), reference classifier
-   trained from scratch on clean images (BR-8). Its gate is **G-1** — the classifier clears its
-   `clean_acc_floor`.
+2. **W1 — repo scaffold through G-1.** Build strictly in this order; each step is the input to the
+   next, and two of them contaminate everything downstream if retrofitted.
 
-   **Two things the amendments added that land in W1 specifically.** BR-8's classifier now has a
-   full recipe in `params.reference_classifier` — optimizer, lr, schedule, warmup, epochs, batch
-   size, label smoothing, augmentation — because it had none at all, which was a straight SR-1
-   violation on the artifact that gates G-1 *and* defines the denominator of ER-3's selection rule.
-   Use it; don't improvise one. And **SR-19 is new**: one canonical image defined in
-   `params.preprocessing` before either pipeline sees data, with the codec compressing the *same*
-   pixels the encoder receives. Build that first — it is cheap now and contaminates everything if
-   retrofitted.
+   **(a) Dependencies and the CUDA assertion.** `requirements.txt` is still `PyYAML>=6.0` only.
+   Split it: project deps from PyPI, torch from the cu130 index, because a bare `pip install torch`
+   silently resolves to the **CPU build** and the check that catches it is
+   `torch.version.cuda is not None`, not a successful import (AM-23).
 
-   **Concrete first action:** `requirements.txt` with the pins W0 verified — Python 3.14.6,
-   `torch 2.13.0+cu130`, `sionna-no-rt 2.0.1`. The `--index-url https://download.pytorch.org/whl/cu130`
-   is **mandatory**: a bare `pip install torch` silently gives the CPU build, and the assertion that
-   catches it is `torch.version.cuda is not None`, not a successful import (AM-23).
+   **All pins resolved 2026-07-28 — every one has a `cp314` wheel, nothing is guesswork:**
+   `torch==2.13.0+cu130` · `torchvision==0.28.0+cu130` (from the cu130 index; the wheel is
+   `torchvision-0.28.0+cu130-cp314-cp314-manylinux_2_28_x86_64.whl`) · `sionna-no-rt==2.0.1`
+   (W3, not W1) · `numpy 2.5.1` · `pillow 12.3.0` · `scikit-image 0.26.0` · `pytest 9.1.1`.
+   The first four are already proven working together in `~/capstone-w0-spike/venv`, where
+   `torch.cuda.is_available()` is True on the RTX 4060. `scikit-image` is only needed from W2 for
+   `params.preprocessing.ssim_impl`, but it resolves cleanly, so there is no reason to defer it.
 
-   **Ordering constraint that has been waiting on this:** the transparency-bitrate probe (item 5)
-   needs a trained classifier, so it slots in immediately after G-1. That dependency is why it got
-   pushed behind the spike in the first place — don't re-derive it.
+   **(b) Config plumbing (SR-1)** — `src/config/`. Code reads `spec/params.generated.yaml`, never
+   markdown and never literals. Needs a run-config that *derives* from params and carries the
+   `config_hash` SR-13 wants. Two verify clauses: a round-trip test, and **a lint rule flagging
+   numeric SNR/k literals outside `src/config/` and tests**. The workable form of that lint is to
+   pull the experiment-affecting values *out of* params (SNR grid, `k_symbols`, thresholds, lr,
+   epochs) and flag source literals matching them, excluding trivia like 0/1/2 — a blanket
+   "no magic numbers" scan is unusably noisy.
 
-4. **Build BR-2's fixture when W3 approaches — the design is settled, the work is not done.** The
+   **(c) Preprocessing contract (SR-19)** — `src/data/preprocessing.py`. **Build this before
+   anything touches a pixel.** Define the canonical image as **uint8 RGB HWC**, with the `[0,1]`
+   float tensor a pure function of it; then "the codec compresses the same pixels the encoder
+   receives" is true by construction and SR-19's bit-identical test is trivial rather than a
+   promise. `params.preprocessing.channel_normalisation` is `inside_model_never_in_the_pipeline`, so
+   the classifier owns its own normalisation layer.
+
+   **(d) Splits (SR-17)** — deterministic val carve from the *published train* split using
+   `params.evaluation.split_seed` (1337). The arithmetic lines up with the real datasets, which is
+   worth knowing before you debug a count: Imagenette v2-160 ships 9469 train / 3925 val, so
+   9469 − 1000 = 8469 train, 1000 val, and the published val becomes the 3925-image **test** split;
+   STL-10 is 5000 labelled + 8000 test → 4500 + 500 + 8000; CIFAR-10 is 50000 + 10000 →
+   45000 + 5000 + 10000. Owed: a disjointness test **and** an audit that no selection code path can
+   reach the test loader — the audit is the harder half and is easiest as a structural rule (test
+   access lives in one module nothing else imports) rather than a convention.
+
+   **(e) Dataset registry (SR-2)** — all three selectable by name through one code path, no
+   dataset-specific branching. Imagenette is **not** in torchvision and needs its own fetch:
+   `https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz`, verified live 2026-07-28,
+   99 MB, and it unpacks to an `ImageFolder` layout. STL-10 and CIFAR-10 come from torchvision.
+   CIFAR-10 is a plumbing path only (DEC-1) but must still instantiate, because SR-2's verify
+   clause instantiates every dataset. Headroom is not a concern: 891 GB free, 8 GB VRAM idle.
+
+   **(f) Reference classifier (BR-8, DEC-15) → G-1.** ResNet-18 **from scratch**, and the recipe is
+   now fully specified in `params.reference_classifier` — SGD+momentum, lr 0.1, momentum 0.9, weight
+   decay 5e-4, cosine with 5 warmup epochs, 100 epochs, batch 128, label smoothing 0.1, and
+   `[random_resized_crop, horizontal_flip]`. **Read it from config; do not improvise one** — the
+   absence of that recipe was a straight SR-1 violation on the artifact that gates G-1 *and* defines
+   the denominator of ER-3's whole selection rule (AM-27). Owed: measured clean accuracy archived, a
+   training log showing no pretrained initialisation, and a test that every element of the recipe is
+   config-derived.
+
+   **G-1 is `clean_acc_floor` = 0.88 on Imagenette, clean variant only.** STL-10's and CIFAR-10's
+   floors are reported but advisory (AM-13). If 0.88 does not come, the preregistered fallback is
+   **switch backbone or extend training** — it is not "lower the floor", and §16 says to move a
+   floor *at G-1* as a recorded spec change if it turns out wrong, not to quietly miss it later.
+
+   Also needed at some point in W1, cheaply: `.gitignore` entries for `data/`, `checkpoints/` and
+   `results/per_image/` — none exist yet. Aggregate `results/*.csv` stays **tracked**, because ER-7
+   requires every thesis number to resolve to a committed CSV.
+
+   **Ordering constraint waiting on this:** the transparency-bitrate probe (item 4) needs a trained
+   classifier, so it slots in immediately after G-1. Don't re-derive that dependency.
+
+3. **Build BR-2's fixture when W3 approaches — the design is settled, the work is not done.** The
    spec now specifies a committed fetch-and-convert script that pins release `release_25_10`, verifies
    `params.baseline.ldpc_golden_vector_sha256`, and leaves the `.npz` untracked, plus a committed
    hand-derived floor case that always runs. Two things to carry over from the W0 probe:
@@ -175,15 +215,19 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
    - **The comparison can only cover rates above each base graph's minimum**, since Sionna refuses to
      encode below them. Say so in the fixture rather than quietly truncating.
 
-5. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
+4. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
    goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines how much
    airtime the headline comparison needs. **Dependency:** scoring needs a classifier, and the
    reference classifier is not trained until W1/G-1. Either slot this immediately after G-1, or get a
-   rough early read tomorrow with an ImageNet-pretrained proxy — legitimate for locating the knee in
+   rough early read with an ImageNet-pretrained proxy — legitimate for locating the knee in
    the curve, but *spike only*, never reported, since DEC-15 bans pretrained weights for the
-   reference classifier and Imagenette is an ImageNet subset.
+   reference classifier and Imagenette is an ImageNet subset. ⚠️ **AM-30 sharpened why this matters:**
+   §16 now records the 1.5–2.0 bpp figure as the weakest number in the spec — it is a *visual*
+   transparency threshold applied to an *accuracy* criterion, and classification tolerates several
+   times more compression, so ER-3's rule may bite much further down the ladder than the provisional
+   ratios suggest. `r_1_48` and `params.bandwidth.ladder_bottom_saturation_rule` exist to catch that.
 
-6. **Re-check that W3 still fits.** DEC-16 added 2–3 days of 16-QAM soft-demapping to a week that
+5. **Re-check that W3 still fits.** DEC-16 added 2–3 days of 16-QAM soft-demapping to a week that
    already holds LDPC integration, BER validation and bit accounting. May need resequencing. The
    16-QAM demapper is now the *only* place the AM-24 LLR-sign trap can bite again — it is the same
    convention, one level harder.
@@ -199,6 +243,15 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
   floor*. If challenged, the argument is: checksums are facts about a file, not copies of one.
 - **MATLAB licence** — still pending an outcome, and now fully off the critical path: rung 2 is not
   merely available, it is demonstrated working (AM-25). OPT-1/OPT-3 remain provisional upside.
+- **The actual 2026-27 review dates.** ⚠️ New, and it needs you rather than me — the dates on
+  `Capstone Project Rubrics.xlsx` are a **2023 template** (its own submission deadline reads "10th
+  Dec. 2023") and MUST NOT be used. `params.deliverables.review_dates_status` records this as
+  pending against the 2026-27 circular, which is scanned images with no extractable text. The review
+  *weeks* are fixed (4 / 10 / 16); W1 opening 2026-07-27 puts them at the weeks of 17 Aug, 28 Sep
+  and 9 Nov. **Why it is worth ten minutes:** if the real third review is late November, W16 lands
+  early and there is genuine unallocated slack — which §16 says to assign deliberately to **W9 and
+  W11**, the two weeks carrying the most work and the least protection. Slack discovered late gets
+  absorbed; slack known now gets used. Settle it before PR-2's Gantt is committed (AM-46).
 
 ## Recently settled — don't reopen
 
@@ -227,6 +280,19 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
   §17 is append-only and superseded entries stay wrong in place, on purpose.
 
 ## Session log
+
+- **2026-07-28** — **Docs swept for staleness; AM-56 from a self-audit.** Three hand-written files
+  were stale and none had been touched by the amendment rounds: `docs/crossover-explained.md` still
+  claimed the cliff H2 depends on was untouched by adaptive modulation (superseded by AM-53), still
+  routed the crossover fallback through G-8 rather than G-10, and still pointed at the retired
+  OPT-4; `README.md` said work starts at W0; `AGENTS.md` listed the removed `core_ratio` as a
+  provisional value and described supervisor sign-off as outstanding. All corrected in place with
+  the supersession shown. The self-audit then found a real defect in AM-53's own work — H2's window
+  selection clause still said "the classical system" when three classical curves now exist — fixed
+  as AM-56, with ER-9's unspecified `transmit_dim_realised_by` factorisation recorded in §16 as a
+  carried gap due before W9. All dependency pins resolved with cp314 wheels (torch 2.13.0+cu130,
+  torchvision 0.28.0+cu130, scikit-image 0.26.0, pytest 9.1.1); Imagenette source verified live.
+  **Nothing blocks W1.**
 
 - **2026-07-27 (later)** — **Two external reviews adjudicated; 30 amendments applied (AM-26..AM-55),
   122 → 158 requirements.** Neither review's verdict was adopted: EXT-4's "commit after seven edits"

@@ -192,8 +192,18 @@ The governing rule, recorded in DEC-16:
 
 Adding 16-QAM helps the *opponent*. Because BR-4 always reports the best feasible configuration at
 each SNR, the classical curve is the upper envelope over all (modulation, code rate) pairs — so this
-raises it on the clean side and cannot lower it on the noisy side. The cliff that H2 depends on is
-untouched.
+raises it on the clean side and cannot lower it on the noisy side.
+
+**Amended 2026-07-27 (AM-53).** This section used to conclude "the cliff that H2 depends on is
+untouched". The first half of that still holds — the adaptive curve is not lowered at the noisy end —
+but the conclusion did not follow, and a second review caught why. An *upper envelope* over many
+configurations does not cliff the way one configuration does: it degrades in **steps**, falling back
+to more robust settings, and only cliffs once it runs out of them. H2's 30-point threshold was
+preregistered against a sharper curve than BR-4 actually produces. So H2 is no longer measured
+against the adaptive curve at all. BR-16 adds a **fully fixed** separated curve — source rate, code
+rate and modulation all frozen at the 7 dB design point — and that is what H2 tests, which is also
+the comparison the DJSCC literature actually makes. BR-4's adaptive curve remains the fairness
+baseline for H1 and the headline comparison.
 
 Numerically, at r = 1/3 on Imagenette (k = 25,600 channel uses):
 
@@ -227,7 +237,13 @@ That is realistic, since a deployed sensor cannot retrain itself mid-flight, but
 advantage handed to the opponent, and it is part of why a crossover appears. BR-15 therefore requires
 it to be stated in the methods section and in every headline figure caption, with a fixed-modulation
 classical curve reported alongside the adaptive one so the contribution of adaptivity is visible
-rather than implicit. OPT-4's SNR-randomised learned variant is the natural counterpart.
+rather than implicit. The SNR-randomised learned variant is the natural counterpart, and as of
+AM-45 it is **required** rather than optional: it was OPT-4, non-blocking and therefore unlikely to
+ever be run, and ER-2 now mandates it at one seed. The asymmetry cuts both ways, which is why that
+matters — at the noisy end the baseline may fall back to BPSK rate 1/3 for roughly 3 dB of extra
+reach, *inside* H1's region, while the learned model sits frozen at a 7 dB training point and is
+evaluated down to −8 dB. That is the mechanism by which the primary hypothesis could fail for a
+design reason rather than a physical one, and it deserves a curve rather than a paragraph.
 
 Disclosed in advance, this reads as rigour. Discovered by an examiner, it reads as a thumb on the
 scale. Same fact, opposite reception.
@@ -246,15 +262,21 @@ scale. Same fact, opposite reception.
 
 ### The last-resort fallback
 
-If the adaptive baseline still does not cross by G-8, the recorded fallback is to report learned
+If the adaptive baseline still does not cross by **G-10**, the recorded fallback is to report learned
 dominance across the whole grid, promote the reconstruction-quality (PSNR) crossover to the secondary
 figure, and rely on §2 — which already makes that a complete Tier 1.
 
 This exists to keep the demo and the thesis intact, **not** as a preferred outcome. Both systems are
 racing toward the same wall: the classifier's accuracy on a perfect image. Nobody beats perfect. If
 the learned system reaches that wall too, the curves meet instead of crossing, and that is simply what
-the experiment found. Taking the fallback must be recorded in DEC-16 alongside the G-8 evidence that
+the experiment found. Taking the fallback must be recorded in DEC-16 alongside the G-10 evidence that
 the adaptive baseline was genuinely attempted first.
+
+**Which gate decides this changed on 2026-07-27 (AM-33), and the reason is worth knowing.** It used
+to be G-8, at W6 — but W6's sweep is **classical-only** by construction, and the first learned model
+does not exist until W7's pilot. A gate with one of the two curves cannot observe a crossing between
+them. G-8 keeps what it can actually do, which is select the operating ratios by a learned-blind
+rule; the new **G-10** at W10 decides the crossover, once W8's training exists.
 
 The one response that is never permitted: weakening the learned system to manufacture a crossover.
 
@@ -336,13 +358,18 @@ been run properly, regardless of result. Four hypotheses are then reported eithe
 | | Claim | Test |
 | --- | --- | --- |
 | **H1** | Low-SNR separation (primary) | Paired 95% interval on the accuracy *difference* above zero at ≥3 consecutive low-SNR points, plus a preregistered mean paired difference across the whole low-SNR region as the effect size |
-| **H2** | Cliff versus graceful | The 4 dB window is chosen **on validation**, where the *classical* curve drops most, then frozen; over those same endpoints on test, classical loses ≥30 pp and learned ≤15 pp |
-| **H3** | Convergence | The paired gap trends to zero: negative weighted-least-squares slope against SNR, bootstrap interval excluding zero. **A crossover is reported if observed but is not required** |
-| **H4** | Attribution | Learned must also beat the task-aware digital control (ER-9) — which shares the learned system's front end and differs only in the channel interface — or the gain is credited to task-awareness rather than joint coding |
+| **H2** | Cliff versus graceful | The 4 dB window is chosen **on validation**, where the *classical* curve drops most, then frozen; over those same endpoints on test, classical loses ≥30 pp and learned ≤15 pp, decided by a paired difference-in-differences. The classical curve here is BR-16's **fixed** one, not BR-4's adaptive envelope |
+| **H3** | Convergence | The paired gap trends to zero: negative weighted-least-squares slope against SNR, bootstrap interval excluding zero, **and** the low-SNR gap positive — without that second clause a gap running −5 pp → −30 pp also has a negative slope. **A crossover is reported if observed but is not required** |
+| **H4** | Attribution | Learned must also beat the task-aware digital control (ER-9) — which shares the learned system's front end and differs only in the channel interface — or the gain is credited to task-awareness rather than joint coding. Stated as *consistent with* an advantage from the analog interface, not as proof of one: beating one control does not exclude quantiser weakness |
 
 Three of those four rows were tightened on 2026-07-25 (`SPEC.md` §17, AM-1 through AM-5) after an
 external review found H2's window and H3's pass condition were not defined tightly enough to be
-decided without a judgement call. The changes make each hypothesis *harder* to support, not easier —
+decided without a judgement call. All four were tightened again on 2026-07-27 (AM-31, AM-32, AM-39,
+AM-53, AM-55) after two more reviews: H1's run rule kept its decision procedure but had its
+error-rate argument replaced with a permutation **calibration**, because the claimed bound was not
+one; H2 moved to a fixed classical curve and gained an actual test; H3 gained the sign clause above;
+and H4's control was rebuilt after it turned out to be arithmetically infeasible at every operating
+point but one. The changes make each hypothesis *harder* to support, not easier —
 which is the direction a preregistration should move in when it moves at all.
 
 One objection worth knowing about, because it will recur: H1's "three consecutive points" rule is
