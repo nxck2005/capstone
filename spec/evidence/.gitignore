@@ -1,0 +1,12 @@
+# Fetched third-party artifacts. Deliberately not committed (AM-25): these are
+# AGPLv3-licensed files from srsRAN, published as a release asset. This directory
+# carries their checksums and the script that fetches them, not copies of them.
+# Run ./fetch_srsran_vectors.sh to obtain them.
+ldpc_encoder_test_data.h
+srsran_vectors/
+
+# Local venv, if run_spike.sh is invoked from here without $SPIKE_VENV set.
+venv/
+
+# The root .gitignore excludes *.log, but this one IS the evidence for AM-25.
+!golden_vectors_check.log

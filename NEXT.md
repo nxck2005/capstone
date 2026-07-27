@@ -41,7 +41,14 @@ smallest workable payload 16 bits.
 MATLAB-generated srsRAN vectors, zero mismatches**, across lifting sizes 2–288 on both base graphs.
 BR-2 is no longer a plan, it is a demonstrated result. The alignment recipe is in BR-2 and is not
 obvious — three wrong attempts agreed at 0.50, which is chance and looks exactly like a library bug.
-Probes and the extracted vectors are preserved at `~/capstone-w0-spike/golden/`.
+
+**Evidence is now in the repo: [`spec/evidence/`](spec/evidence/).** The spike record, the scripts
+that produced it, the golden-vector check and its log, and the fetch script plus checksums. Read its
+`README.md` first. Two things it deliberately does *not* contain: the third-party `.dat` vectors and
+srsRAN's `ldpc_encoder_test_data.h`, both AGPLv3 and both `.gitignore`d — run
+`spec/evidence/fetch_srsran_vectors.sh` to obtain them. Note the README's variance caveat: re-running
+the spike gives 634–663 cb/s, and the spec deliberately records the **slow** end because it feeds a
+compute budget. The old scratch copies at `~/capstone-w0-spike/` are now redundant.
 
 ---
 
@@ -66,20 +73,29 @@ Probes and the extracted vectors are preserved at `~/capstone-w0-spike/golden/`.
 1. ~~**MATLAB licence.**~~ **Answered 2026-07-25: he will try, and asked for a contingency.** So the
    licence is attempted but not assured, and OPT-1/OPT-3 stay provisional. The contingency is now a
    four-rung ladder in `params.baseline.ldpc_golden_vector_source_ladder` (AM-22), and the useful
-   find is **rung 2**: srsRAN ships committed binary test vectors covering all base graphs and
-   lifting sizes, generated from MATLAB's 5G Toolbox as their own trusted reference. That gives
-   MATLAB-provenance vectors *without* a MATLAB licence, which is all BR-2 needs — it only demands
-   independence from Sionna. Rung 4, hand-checking one small codeword against the TS 38.212 tables,
-   can never be blocked and is the floor. **Two things the spike must confirm, not assume:** whether
-   srsRAN's vectors cover the rate-matched output as well as the encoder output, and whether their
-   licence permits committing the fixture into this repo.
+   find is **rung 2**: srsRAN's vectors are generated from MATLAB's 5G Toolbox as their own trusted
+   reference, which gives MATLAB-provenance vectors *without* a MATLAB licence — all BR-2 needs, since
+   it only demands independence from Sionna. **Both open questions are now answered (AM-25):** the
+   vectors do cover the rate-matched output, and the licence question dissolved because the data is
+   *not* committed upstream at all — it ships as a release asset, so we fetch and verify rather than
+   vendor. ⚠️ Earlier wording here and in AM-22/AM-23 said srsRAN "ships committed" vectors; that was
+   wrong, and AM-25 supersedes it. Rung 4 is now an always-run floor, not a fallback.
 
 2. ~~**The LDPC spike.**~~ **Done, all seven checks — 2026-07-27 (AM-24, AM-25).** See above.
 
-3. **Start W1.** G-9 is the gate that was holding it and it has passed. Nothing installs into the
-   repo yet — `requirements.txt` and the reference classifier (G-1) are the first real code, and the
-   pins are now known-good: Python 3.14.6, `torch 2.13.0+cu130` (the `--index-url` is mandatory),
-   `sionna-no-rt 2.0.1`.
+3. **Start W1 — this is the front of the queue.** G-9 passed 2026-07-27, so nothing is blocking
+   implementation any more. W1: repo scaffold, config plumbing (SR-1), data loaders and validation
+   splits (SR-2, SR-17), reference classifier trained from scratch on clean images (BR-8). Its gate
+   is **G-1** — the classifier clears its `clean_acc_floor`.
+
+   **Concrete first action:** `requirements.txt` with the pins W0 verified — Python 3.14.6,
+   `torch 2.13.0+cu130`, `sionna-no-rt 2.0.1`. The `--index-url https://download.pytorch.org/whl/cu130`
+   is **mandatory**: a bare `pip install torch` silently gives the CPU build, and the assertion that
+   catches it is `torch.version.cuda is not None`, not a successful import (AM-23).
+
+   **Ordering constraint that has been waiting on this:** the transparency-bitrate probe (item 5)
+   needs a trained classifier, so it slots in immediately after G-1. That dependency is why it got
+   pushed behind the spike in the first place — don't re-derive it.
 
 4. **Build BR-2's fixture when W3 approaches — the design is settled, the work is not done.** The
    spec now specifies a committed fetch-and-convert script that pins release `release_25_10`, verifies
@@ -154,7 +170,11 @@ Probes and the extracted vectors are preserved at `~/capstone-w0-spike/golden/`.
   mismatches**, lifting sizes 2–288, both base graphs. The licensing question dissolved rather than
   being decided: the data was never committed upstream, it is a release asset, so the fixture fetches
   and verifies instead of vendoring. New carried risk: the upstream repo is archived — srsRAN became
-  OCUDU in Dec 2025 — mitigated by the always-run rung-4 floor.
+  OCUDU in Dec 2025 — mitigated by the always-run rung-4 floor. Spec self-consistency swept
+  afterwards: DEC-10 still said the fixture was a *committed* `.npz`, the ladder's rung 2 was still
+  named `..._committed_testvectors`, §16's pending block was still pending, and AGENTS.md still said
+  "W0 has not started" — all corrected, the rename recorded in AM-25 rather than made silently.
+  Evidence folder `spec/evidence/` created so the measured claims can be checked, not trusted.
 - **2026-07-25 (latest+4)** — W0 spike started; documentary half recorded as AM-23 while the torch
   install ran. TS 38.212 pinned (V17.13.0, closing AM-9); srsRAN rate-matcher and segmenter vector
   generators confirmed; §16's Python 3.14 risk rewritten after finding it was aimed at declared

@@ -1,0 +1,28 @@
+upstream encoder cases: 102
+
+  case0   BG1 Z=2   k=39    n=116   match agreement=1.0000
+  case1   BG1 Z=3   k=59    n=176   match agreement=1.0000
+  case2   BG1 Z=4   k=79    n=236   match agreement=1.0000
+  case3   BG1 Z=5   k=99    n=296   match agreement=1.0000
+  case4   BG1 Z=6   k=118   n=353   match agreement=1.0000
+  case5   BG1 Z=7   k=138   n=413   match agreement=1.0000
+  case6   BG1 Z=8   k=158   n=473   match agreement=1.0000
+  case7   BG1 Z=9   k=178   n=533   match agreement=1.0000
+  case15  BG1 Z=18  k=356   n=1067  match agreement=1.0000
+  case23  BG1 Z=36  k=712   n=2135  match agreement=1.0000
+  case31  BG1 Z=72  k=1425  n=4274  match agreement=1.0000
+  case39  BG1 Z=144 k=2851  n=8552  match agreement=1.0000
+  case47  BG1 Z=288 k=5702  n=17105 match agreement=1.0000
+  case81  BG2 Z=64  k=576   n=2879  match agreement=1.0000
+  case82  BG2 Z=72  k=648   n=3239  match agreement=1.0000
+  case90  BG2 Z=144 k=1296  n=6479  match agreement=1.0000
+  case98  BG2 Z=288 k=2592  n=12959 match agreement=1.0000
+
+exact match : 17
+MISMATCH    : 0
+skipped     : 85
+base graphs validated  : [1, 2]
+lifting sizes validated: [2, 3, 4, 5, 6, 7, 8, 9, 18, 36, 64, 72, 144, 288]
+
+skip reasons (all are probe limitations, not disagreements):
+    85  lifting size inferred rather than pinned
