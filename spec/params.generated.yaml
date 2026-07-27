@@ -212,17 +212,31 @@ baseline:
   ldpc_golden_vector_source_gate: G-9
   ldpc_golden_vector_source_ladder:
   - matlab_5g_toolbox
-  - srsran_project_committed_testvectors
+  - srsran_project_release_testvectors
   - aff3ct_or_oai_one_shot_build
   - hand_verified_small_case
   ldpc_golden_vector_licence_check_required: true
+  ldpc_golden_vector_source_rung: 2
+  ldpc_golden_vector_vendored: false
+  ldpc_golden_vector_upstream_release: release_25_10
+  ldpc_golden_vector_upstream_asset: phy_testvectors.tar
+  ldpc_golden_vector_upstream_url: https://github.com/srsran/srsRAN_Project/releases/download/release_25_10/phy_testvectors.tar
+  ldpc_golden_vector_upstream_successor: https://gitlab.com/ocudu/ocudu
+  ldpc_golden_vector_sha256:
+    ldpc_encoder_test_data.tar.gz: cb92fe900682632a50959cbc5b164e873f733a4c911108f374e37dda3606143d
+    ldpc_rate_matcher_test_data.tar.gz: fc5e333bd94a836c4304dcdda82eac583554685aed37f0bed3758f9e573719a4
+    ldpc_segmenter_test_data.tar.gz: f53c6ab5baac521def745e8ca591197a8dbf8b06d2d60cc3b4335a36752d6fe1
+  ldpc_golden_vector_offline_floor: hand_verified_small_case
   ldpc_base_graph: auto_per_ts_38212
+  ldpc_bg1_min_coderate: 0.3333333333333333
   ldpc_rates:
   - 1/3
   - 1/2
   - 2/3
   - 5/6
   ldpc_decoder: offset_min_sum
+  ldpc_decoder_impl_spelling: offset-minsum
+  ldpc_llr_convention: log_p1_over_p0
   ldpc_max_iters: 50
   tb_crc_bits: 24
   cb_crc_bits: 24
@@ -320,6 +334,12 @@ compute:
   profiling_gate: G-7
   max_wall_clock_hours_per_run: 4
   checkpoint_every_epochs: 1
+  ldpc_decode_cb_per_s_measured: 634
+  ldpc_decode_batch_measured: 32
+  ldpc_decode_measured_at_iters: 50
+  ldpc_decode_measured_gate: G-9
+  er1_projected_hours_one_ratio: 2.04
+  er1_projected_hours_two_ratios: 4.09
 artifacts:
   results_dir: results/
   per_image_dir: results/per_image/

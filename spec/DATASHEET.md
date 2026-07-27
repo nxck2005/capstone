@@ -62,7 +62,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `bandwidth.efficiency_ratio_threshold_pp` | 5 | ER-3 |
 | `bandwidth.crossover_ratio_threshold_pp` | 2 | ER-3 |
 | `bandwidth.headline_ratio` | crossover_ratio | ER-1, ER-3, G-8 |
-| `bandwidth.low_ratio_operating_point` | r_1_12 | AM-12, DEC-11, ER-3 |
+| `bandwidth.low_ratio_operating_point` | r_1_12 | AM-12, AM-24, BR-10, DEC-11, ER-3 |
 | `bandwidth.k_symbols.imagenette160.r_1_2` | 38400 | SR-3 |
 | `bandwidth.k_symbols.imagenette160.r_1_3` | 25600 | SR-3 |
 | `bandwidth.k_symbols.imagenette160.r_1_6` | 12800 | SR-3 |
@@ -147,19 +147,32 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.ldpc_impl_provides` | base_graph_selection, lifting_size_selection, encoding, rate_matching, decoding | BR-14 |
 | `baseline.ldpc_impl_local` | tb_crc, code_block_segmentation, per_block_budget_distribution, concatenation, crc_failure_detection | BR-10, BR-14, DEC-10 |
 | `baseline.ldpc_impl_fallback` | self_implemented_offset_min_sum | BR-14, DEC-10, G-2 |
-| `baseline.ldpc_golden_vector_file` | tests/fixtures/ldpc_ts38212_golden.npz | BR-2 |
+| `baseline.ldpc_golden_vector_file` | tests/fixtures/ldpc_ts38212_golden.npz | BR-2, DEC-10 |
 | `baseline.ldpc_golden_vector_source_gate` | G-9 | BR-2, G-9 |
-| `baseline.ldpc_golden_vector_source_ladder` | matlab_5g_toolbox, srsran_project_committed_testvectors, aff3ct_or_oai_one_shot_build, hand_verified_small_case | BR-2, DEC-10 |
+| `baseline.ldpc_golden_vector_source_ladder` | matlab_5g_toolbox, srsran_project_release_testvectors, aff3ct_or_oai_one_shot_build, hand_verified_small_case | BR-2, DEC-10 |
 | `baseline.ldpc_golden_vector_licence_check_required` | true | BR-2 |
+| `baseline.ldpc_golden_vector_source_rung` | 2 | BR-2, G-9 |
+| `baseline.ldpc_golden_vector_vendored` | false | BR-2, DEC-10 |
+| `baseline.ldpc_golden_vector_upstream_release` | release_25_10 | BR-2 |
+| `baseline.ldpc_golden_vector_upstream_asset` | phy_testvectors.tar | BR-2 |
+| `baseline.ldpc_golden_vector_upstream_url` | https://github.com/srsran/srsRAN_Project/releases/download/release_25_10/phy_testvectors.tar | BR-2 |
+| `baseline.ldpc_golden_vector_upstream_successor` | https://gitlab.com/ocudu/ocudu | - |
+| `baseline.ldpc_golden_vector_sha256.ldpc_encoder_test_data.tar.gz` | cb92fe900682632a50959cbc5b164e873f733a4c911108f374e37dda3606143d | BR-2 |
+| `baseline.ldpc_golden_vector_sha256.ldpc_rate_matcher_test_data.tar.gz` | fc5e333bd94a836c4304dcdda82eac583554685aed37f0bed3758f9e573719a4 | BR-2 |
+| `baseline.ldpc_golden_vector_sha256.ldpc_segmenter_test_data.tar.gz` | f53c6ab5baac521def745e8ca591197a8dbf8b06d2d60cc3b4335a36752d6fe1 | BR-2 |
+| `baseline.ldpc_golden_vector_offline_floor` | hand_verified_small_case | BR-2 |
 | `baseline.ldpc_base_graph` | auto_per_ts_38212 | BR-10 |
-| `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | BR-4, BR-9, BR-10, BR-15 |
-| `baseline.ldpc_decoder` | offset_min_sum | DEC-10, G-9 |
-| `baseline.ldpc_max_iters` | 50 | - |
+| `baseline.ldpc_bg1_min_coderate` | 0.3333333333333333 | BR-10 |
+| `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | AM-24, BR-4, BR-9, BR-10, BR-15 |
+| `baseline.ldpc_decoder` | offset_min_sum | BR-14, DEC-10, G-9 |
+| `baseline.ldpc_decoder_impl_spelling` | offset-minsum | BR-14 |
+| `baseline.ldpc_llr_convention` | log_p1_over_p0 | BR-14 |
+| `baseline.ldpc_max_iters` | 50 | AM-24 |
 | `baseline.tb_crc_bits` | 24 | BR-10 |
 | `baseline.cb_crc_bits` | 24 | BR-10 |
 | `baseline.code_block_max_bits` | 8448 | BR-10 |
 | `baseline.rate_matching` | ts_38212_with_filler | BR-10 |
-| `baseline.modulations` | bpsk, qpsk, qam16 | BR-2, BR-4, BR-9, BR-10, BR-15, DEC-16 |
+| `baseline.modulations` | bpsk, qpsk, qam16 | AM-24, BR-2, BR-4, BR-9, BR-10, BR-15, DEC-16 |
 | `baseline.modulation_tuning` | adaptive_per_snr | BR-4, DEC-16 |
 | `baseline.core_modulation` | qpsk | AM-15, BR-9 |
 | `baseline.budget_rule` | usable_source_bytes = floor((floor(k * bits_per_symbol * rate) - tb_crc_bits - segmentation_and_filler_overhead) / 8); the complete compressed file, container bytes included, MUST fit within usable_source_bytes | BR-3, BR-10, ER-9 |
@@ -224,12 +237,18 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 
 | Parameter | Value | Cited by |
 | --- | --- | --- |
-| `compute.primary_device` | rtx_4060_mobile_8gb | SR-11 |
-| `compute.overflow` | colab_free, kaggle_free | - |
-| `compute.vram_budget_gb` | 7.0 | SR-11 |
-| `compute.profiling_gate` | G-7 | SR-11 |
-| `compute.max_wall_clock_hours_per_run` | 4 | SR-11 |
-| `compute.checkpoint_every_epochs` | 1 | SR-10 |
+| `compute.primary_device` | rtx_4060_mobile_8gb | AM-24, SR-11 |
+| `compute.overflow` | colab_free, kaggle_free | AM-24 |
+| `compute.vram_budget_gb` | 7.0 | AM-24, SR-11 |
+| `compute.profiling_gate` | G-7 | AM-24, SR-11 |
+| `compute.max_wall_clock_hours_per_run` | 4 | AM-24, SR-11 |
+| `compute.checkpoint_every_epochs` | 1 | AM-24, SR-10 |
+| `compute.ldpc_decode_cb_per_s_measured` | 634 | AM-24 |
+| `compute.ldpc_decode_batch_measured` | 32 | AM-24 |
+| `compute.ldpc_decode_measured_at_iters` | 50 | AM-24 |
+| `compute.ldpc_decode_measured_gate` | G-9 | AM-24, G-9 |
+| `compute.er1_projected_hours_one_ratio` | 2.04 | AM-24 |
+| `compute.er1_projected_hours_two_ratios` | 4.09 | AM-24 |
 
 ## artifacts
 

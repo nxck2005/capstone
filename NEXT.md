@@ -7,46 +7,41 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-25 · **Phase:** spec revision, pre-W0 · nothing executed, nothing committed
+**Last updated:** 2026-07-27 · **Phase:** **G-9 passed — W1 is open** · spike executed, spec updated,
+nothing installed into the repo yet
 
 ---
 
-## In flight — resume here
+## In flight — nothing
 
-**The W0 LDPC spike is mid-run. Everything needed to resume lives in `~/capstone-w0-spike/`,
-deliberately outside `/tmp`.** To pick up:
+**G-9 is closed. The LDPC spike passed all seven checks** (AM-24, AM-25). The environment lives in
+`~/capstone-w0-spike/` and is reusable: `./run_spike.sh run` re-runs in seconds and regenerates
+`g9_spike_record.json`. Python 3.14.6 · torch 2.13.0+cu130 · sionna-no-rt 2.0.1 · RTX 4060 Laptop 8 GB.
 
-```bash
-cd ~/capstone-w0-spike && ./run_spike.sh
-```
+**Measured, now in the spec:** exact `E_r` across **all 180 configurations** (72 live), so BR-3 holds
+against the library and not just on paper · 634 code-block decodes/s at 50 iterations, batch 32 ·
+ER-1 projects to **~2.0 h at one ratio, ~4.1 h at two**, worst-case modulation — so **G-8's
+one-ratio-or-two decision is not compute-constrained**, which was the open question AM-20 deferred ·
+smallest workable payload 16 bits.
 
-Idempotent and safe to re-run. It creates the venv if missing, installs only what is absent, then
-runs the spike. `./run_spike.sh install` stops after the install; `./run_spike.sh run` skips it.
+**Three defects the spike caught, which is what it was for:**
 
-**What was in flight when the session ended:** `pip install --index-url .../cu130 torch` — the CUDA
-13 stack, several GB, slow on this connection. It was partway through `nvidia-cublas` (423 MB).
+1. **LLR sign.** The library reads LLRs as log(p(x=1)/p(x=0)) — the *opposite* sign to `x = 1−2c`.
+   Getting it backwards is **totally silent**: decoder runs, returns exactly k bits, raises nothing,
+   BER 0.77 where the correct sign gives 0.00. At W3 this would have looked like "the classical
+   baseline is weak" — i.e. it would have manufactured the result ER-8 forbids. Fixed at the BR-14
+   seam as `params.baseline.ldpc_llr_convention`.
+2. **Rate 1/3 did not exist at three live operating points.** `floor(G × rate)` lands at 0.333281
+   against BG1's floor of 0.333333, and BG1 cannot go lower without repetition coding. One-bit clamp,
+   applied *after* segmentation. In BR-10 as `params.baseline.ldpc_bg1_min_coderate`.
+3. **Spelling.** Spec says `offset_min_sum`; the library only accepts `offset-minsum`. Mapped at the
+   seam.
 
-**Why an interruption is cheap:** completed wheels are cached in `~/.cache/pip`, which is
-**persistent and survives a reboot**. Only a wheel cut off mid-download is re-fetched. The original
-venv sat in the session scratchpad under `/tmp` and may be gone — that does not matter, because
-`run_spike.sh` rebuilds at the durable path and pulls from the cache without touching the network for
-anything already downloaded.
-
-**The trap, if you install by hand instead:** a bare `pip install torch` resolves to the **CPU
-build** on Python 3.14. The `--index-url .../cu130` is not optional, and the check is
-`torch.version.cuda is not None`, not a successful import (AM-23). Fallback ladder is in the script:
-`torch==2.9.1+cu128` → install 3.13 via `uv` and rebuild.
-
-**Already done, no need to redo** — recorded as AM-23, so the spec is current: TS 38.212 pinned to
-V17.13.0; srsRAN rate-matcher and segmenter generators confirmed; §16's Python 3.14 risk corrected;
-BR-10's segmentation and rate-matching arithmetic verified at zero slack across all 72 live configs.
-
-**Still to measure** — this is what `run_spike.sh` produces, and it becomes AM-24: CUDA actually
-available on the device; whether Sionna's encoder emits exactly `E_r` (BR-3's load-bearing check);
-the accepted `cn_update` spelling; batched decode throughput; the ER-1 wall-clock projection for one
-ratio and two; smallest workable payload.
-
-Nothing else in G-9 is outstanding. When this passes, W1 opens.
+**Golden vectors — solved, and better than expected.** Sionna now agrees **bit-exactly with the
+MATLAB-generated srsRAN vectors, zero mismatches**, across lifting sizes 2–288 on both base graphs.
+BR-2 is no longer a plan, it is a demonstrated result. The alignment recipe is in BR-2 and is not
+obvious — three wrong attempts agreed at 0.50, which is chance and looks exactly like a library bug.
+Probes and the extracted vectors are preserved at `~/capstone-w0-spike/golden/`.
 
 ---
 
@@ -79,39 +74,24 @@ Nothing else in G-9 is outstanding. When this passes, W1 opens.
    srsRAN's vectors cover the rate-matched output as well as the encoder output, and whether their
    licence permits committing the fixture into this repo.
 
-2. **The LDPC spike — in progress.** The last substantive thing between you and W1. **Documentary
-   half done** (AM-23): TS 38.212 pinned to V17.13.0 (2026-02); srsRAN's rate-matcher *and*
-   segmenter vector generators confirmed to exist; §16's Python 3.14 risk corrected — the worry was
-   about declared minimums, when the real trap is that a bare `pip install torch` gives you the
-   **CPU build** and you must pass `--index-url .../cu130`; and BR-10's segmentation and
-   rate-matching arithmetic verified at **zero slack across all 72 live configurations** before any
-   code exists. **Measured half pending:** CUDA on the device, whether Sionna emits exactly `E_r`,
-   the accepted `cn_update` spelling, decode throughput, the ER-1 projection, smallest payload. Throwaway venv in the scratchpad —
-   nothing installs into the repo until W1, per `requirements.txt`. Establish these, in order of how
-   much they would hurt if wrong:
-   - `LDPC5GEncoder(k, n)` hits an **exact** `n`. BR-3's equal-channel-uses claim rests entirely on
-     this. If it cannot, the whole bandwidth-matching design needs rework — find out now, not at W3.
-   - `sionna==2.0.1` installs and runs on Python 3.14 + torch 2.13 (it resolves on paper; nobody
-     tests that combination). Fallback is pinning a 3.12/3.13 interpreter.
-   - `cn_update="offset-minsum"` is accepted.
-   - Encode → QPSK → AWGN → decode at each of the four LDPC rates: clean at high SNR, failing at low.
-   - Batched decode throughput at 50 iterations, and the smallest workable payload size.
-   - Pin the exact TS 38.212 document version within Release 17 (AM-9) — it is a G-9 item now, and
-     it costs one line while you are already reading the standard.
-   - **Golden vectors (AM-22).** Clone srsRAN, find the LDPC test-vector files, and check two
-     things: do they cover the **rate-matched** output as well as the encoder output, and does the
-     licence allow committing them here? If both hold, BR-2's fixture is solved without MATLAB and
-     the licence stops mattering. If not, descend the ladder.
+2. ~~**The LDPC spike.**~~ **Done, all seven checks — 2026-07-27 (AM-24, AM-25).** See above.
 
-   Findings go into DEC-10 and the G-9 record. Record the throughput number — BR-4's compute plan
-   needs it, and G-9 now also requires you to turn it into a **projected ER-1 evaluation wall clock —
-   for one operating ratio and for two** (AM-18, AM-20). That projection is the point: three systems
-   × 18 SNR points × the full test split × three seed cells is the one cost in the project with no
-   slack in it, ER-6 forbids subsetting it, and it lands at W11 with a single week behind it. The
-   two-ratio number is what G-8 uses to decide whether the efficiency point gets full-strength
-   intervals or sweep-strength ones. Cheap to compute now, expensive to discover then.
+3. **Start W1.** G-9 is the gate that was holding it and it has passed. Nothing installs into the
+   repo yet — `requirements.txt` and the reference classifier (G-1) are the first real code, and the
+   pins are now known-good: Python 3.14.6, `torch 2.13.0+cu130` (the `--index-url` is mandatory),
+   `sionna-no-rt 2.0.1`.
 
-3. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
+4. **Build BR-2's fixture when W3 approaches — the design is settled, the work is not done.** The
+   spec now specifies a committed fetch-and-convert script that pins release `release_25_10`, verifies
+   `params.baseline.ldpc_golden_vector_sha256`, and leaves the `.npz` untracked, plus a committed
+   hand-derived floor case that always runs. Two things to carry over from the W0 probe:
+   - **Pin the lifting size.** 85 of the 102 upstream cases were skipped in the probe only because
+     Sionna infers Z from (k, n) and picked a different one. That is a probe limitation, not a
+     disagreement — every structurally valid comparison matched exactly. Pinning Z unlocks the rest.
+   - **The comparison can only cover rates above each base graph's minimum**, since Sionna refuses to
+     encode below them. Say so in the fixture rather than quietly truncating.
+
+5. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
    goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines how much
    airtime the headline comparison needs. **Dependency:** scoring needs a classifier, and the
    reference classifier is not trained until W1/G-1. Either slot this immediately after G-1, or get a
@@ -119,19 +99,22 @@ Nothing else in G-9 is outstanding. When this passes, W1 opens.
    the curve, but *spike only*, never reported, since DEC-15 bans pretrained weights for the
    reference classifier and Imagenette is an ImageNet subset.
 
-4. **Re-check that W3 still fits.** DEC-16 added 2–3 days of 16-QAM soft-demapping to a week that
-   already holds LDPC integration, BER validation and bit accounting. May need resequencing.
+6. **Re-check that W3 still fits.** DEC-16 added 2–3 days of 16-QAM soft-demapping to a week that
+   already holds LDPC integration, BER validation and bit accounting. May need resequencing. The
+   16-QAM demapper is now the *only* place the AM-24 LLR-sign trap can bite again — it is the same
+   convention, one level harder.
 
 ## Open questions for the user
 
-- **srsRAN golden-vector licensing — needs your decision before the BR-2 fixture is built.** The
-  generators are BSD-2-Clause but need MATLAB; the pre-generated vector data is AGPLv3, and
-  committing it here and submitting it academically is *distribution*. Three ways out (AM-23, §16):
-  a fetch-and-convert script with the `.npz` kept out of git, losing offline reproducibility; vendor
-  with attribution into a scoped subdirectory and accept AGPL there; or drop to rung 4 and
-  hand-verify one small codeword. Not urgent — it blocks the fixture, not the spike.
-- **MATLAB licence** — still pending an outcome, but AM-22 removed it from the critical path, so no
-  gate waits on it.
+- ~~**srsRAN golden-vector licensing.**~~ **Delegated and decided 2026-07-27 (AM-25):** "do what's
+  best, I don't have a preference". Chosen: **don't vendor.** The premise turned out to be wrong —
+  srsRAN never committed the vector data, it ships as a per-release asset — so the fixture fetches
+  from a pinned immutable release, verifies SHA-256, and keeps the `.npz` out of git. No AGPL data in
+  the submitted artifact, byte-exactness still provable. The offline-reproducibility cost that made
+  this look like the lossy option is paid off by promoting rung 4 from *fallback* to *always-run
+  floor*. If challenged, the argument is: checksums are facts about a file, not copies of one.
+- **MATLAB licence** — still pending an outcome, and now fully off the critical path: rung 2 is not
+  merely available, it is demonstrated working (AM-25). OPT-1/OPT-3 remain provisional upside.
 
 ## Recently settled — don't reopen
 
@@ -153,11 +136,25 @@ Nothing else in G-9 is outstanding. When this passes, W1 opens.
 - **ER-9 keeps entropy coding** (AM-5), bounded to a static offline-fitted coder. Dropping it would
   weaken the control that exists to *deny* joint-coding credit, which makes H4 easier to pass — the
   wrong direction to be wrong in.
-- **Read `SPEC.md` §17 before acting on any future review.** Eighteen amendments now record what
+- **Read `SPEC.md` §17 before acting on any future review.** Twenty-five amendments now record what
   changed and why, including four things an external review recommended that were already settled.
+  AM-24 and AM-25 are the W0 spike; note that AM-25 corrects a *factual premise* of AM-22 and AM-23
+  (srsRAN's vectors were never committed to git), which is why it is a new entry and not an edit —
+  §17 is append-only and superseded entries stay wrong in place, on purpose.
 
 ## Session log
 
+- **2026-07-27** — **G-9 passed; W1 open.** Spike run to completion: all 180 configurations hit an
+  exact `E_r`, 634 cb/s at 50 iterations, ER-1 projected at ~2.0 h / ~4.1 h for one and two ratios,
+  smallest payload 16 bits (AM-24). Three defects found by running it rather than reading it: the
+  library's LLR sign is inverted relative to `x = 1−2c` and fails *silently* at BER 0.77; nominal
+  rate 1/3 was unrealizable at three live operating points against BG1's coderate floor; and the
+  decoder spelling in the spec is not the one the library accepts. Golden vectors resolved beyond
+  what was asked (AM-25) — Sionna matches the MATLAB-generated srsRAN vectors **bit-exactly, zero
+  mismatches**, lifting sizes 2–288, both base graphs. The licensing question dissolved rather than
+  being decided: the data was never committed upstream, it is a release asset, so the fixture fetches
+  and verifies instead of vendoring. New carried risk: the upstream repo is archived — srsRAN became
+  OCUDU in Dec 2025 — mitigated by the always-run rung-4 floor.
 - **2026-07-25 (latest+4)** — W0 spike started; documentary half recorded as AM-23 while the torch
   install ran. TS 38.212 pinned (V17.13.0, closing AM-9); srsRAN rate-matcher and segmenter vector
   generators confirmed; §16's Python 3.14 risk rewritten after finding it was aimed at declared
