@@ -42,6 +42,22 @@ datasets:
     val_images: 5000
     test_images: 10000
     clean_acc_floor: 0.93
+preprocessing:
+  canonical_image: resize_shorter_side_then_crop_to_dataset_image_size
+  resize_interpolation: bilinear
+  antialias: true
+  train_crop: random_resized_crop
+  eval_crop: center_crop
+  eval_augmentation_permitted: false
+  colour_space: rgb
+  bit_depth: 8
+  tensor_range: unit_interval
+  channel_normalisation: inside_model_never_in_the_pipeline
+  codec_input: canonical_8bit_pixels
+  reconstruction_clipped_before_metrics: true
+  psnr_data_range: 1.0
+  ssim_impl: skimage_structural_similarity
+  ssim_gaussian_weights: true
 bandwidth:
   symbol_type: complex_baseband
   power_constraint: unit_average_power
@@ -51,16 +67,19 @@ bandwidth:
     r_1_6: 1/6
     r_1_12: 1/12
     r_1_24: 1/24
-  core_ratio: r_1_3
-  core_ratio_status: provisional_until_G-8
+    r_1_48: 1/48
   crossover_ratio: r_1_3
   crossover_ratio_status: provisional_until_G-8
   efficiency_ratio: r_1_6
   efficiency_ratio_status: provisional_until_G-8
   efficiency_ratio_threshold_pp: 5
   crossover_ratio_threshold_pp: 2
+  crossover_ratio_unsatisfiable_fallback: efficiency_ratio
+  ladder_bottom_saturation_rule: extend_downward_and_resweep
   headline_ratio: crossover_ratio
   low_ratio_operating_point: r_1_12
+  low_ratio_operating_point_status: provisional_until_G-8
+  low_ratio_rule: smallest_ratio_at_least_two_rungs_below_headline
   k_symbols:
     imagenette160:
       r_1_2: 38400
@@ -68,18 +87,21 @@ bandwidth:
       r_1_6: 12800
       r_1_12: 6400
       r_1_24: 3200
+      r_1_48: 1600
     stl10:
       r_1_2: 13824
       r_1_3: 9216
       r_1_6: 4608
       r_1_12: 2304
       r_1_24: 1152
+      r_1_48: 576
     cifar10:
       r_1_2: 1536
       r_1_3: 1024
       r_1_6: 512
       r_1_12: 256
       r_1_24: 128
+      r_1_48: 64
 channel:
   snr_definition: Es/N0 in dB per complex channel use, measured after unit-average-power
     normalisation
@@ -99,8 +121,11 @@ channel:
   - 19
   test_snr_grid_db:
   - -8
+  - -7
   - -6
+  - -5
   - -4
+  - -3
   - -2
   - -1
   - 0
@@ -116,13 +141,38 @@ channel:
   - 13
   - 15
   - 18
-  grid_rationale: the LDPC waterfall for QPSK spans roughly -1 dB (rate 1/3) to 5
-    dB (rate 5/6), so density is spent there; the grid then extends to 18 dB because
-    16-QAM at rate 5/6 does not decode until roughly 11-12 dB, and truncating earlier
-    would engineer a crossover under DEC-16 and then fail to measure it
+  grid_rationale: 'three waterfalls have to be resolved, not one. BPSK at rate 1/3
+    -- which BR-4 selects at the noisy end and which AM-15 relies on for roughly 3
+    dB of extra reach -- decodes around Es/N0 = -4 to -5 dB, measured at W0 as BER
+    0.0 at -4 dB and 0.31 at -8 dB, so the region from -8 to -2 carries 1 dB spacing:
+    it is where the classical cliff H2 measures actually falls, and 2 dB spacing there
+    could smear or miss it entirely. The QPSK waterfall spans roughly -1 dB (rate
+    1/3) to 5 dB (rate 5/6), so density is spent there too. The grid then extends
+    to 18 dB because 16-QAM at rate 5/6 does not decode until roughly 11-12 dB, and
+    truncating earlier would engineer a crossover under DEC-16 and then fail to measure
+    it'
 learned_system:
   framework: pytorch
   encoder: conv_downsample_to_k_symbols
+  encoder_arch: djscc_residual_v1
+  encoder_downsample_factor: 4
+  encoder_stem_channels: 64
+  encoder_body_channels: 128
+  encoder_residual_blocks: 2
+  encoder_activation: prelu
+  encoder_norm: groupnorm
+  encoder_complex_packing: channel_pairs_to_real_imag
+  encoder_output_complex_channels:
+    r_1_2: 24
+    r_1_3: 16
+    r_1_6: 8
+    r_1_12: 4
+    r_1_24: 2
+    r_1_48: 1
+  decoder_arch: mirror_of_encoder_with_two_heads
+  decoder_upsample: transposed_conv
+  arch_fallback: width_halved_djscc_residual_v1
+  arch_freeze_gate: G-7
   decoder_heads:
   - reconstruction
   - classification
@@ -139,13 +189,20 @@ learned_system:
   lambda_acc_tolerance_pp: 1.0
   lambda_psnr_floor_db: 20
   lambda_psnr_floor_relaxed_db: 16
+  lambda_calibration_snr_db: 7
+  lambda_psnr_eval_snr_db: 15
+  lambda_calibration_ratio: headline_ratio
   train_snr_protocol: one_model_per_ratio_at_fixed_snr
   optimizer: adam
   lr: 0.001
   lr_schedule: cosine
+  augmentation:
+  - random_resized_crop
+  - horizontal_flip
   amp: true
   grad_accumulation_allowed: true
   max_params_millions: 10
+  max_params_policy: not_to_exceed_reference_classifier
   batch_size:
     imagenette160: 32
     stl10: 64
@@ -157,6 +214,8 @@ learned_system:
     cifar10: 150
   papr_report_required: true
   peak_power_constraint_available: true
+  papr_constrained_variant_required: true
+  papr_constrained_variant_seeds: 1
 baseline:
   source_codec: jpeg2000
   source_codec_secondary: jpeg
@@ -164,6 +223,35 @@ baseline:
   j2k_rate_control_method: cached_search_over_compression_ratio
   j2k_emitted_size_authoritative: true
   j2k_container: raw_codestream
+  j2k_impl: openjpeg
+  j2k_impl_version: 2.5.4
+  j2k_binding: glymur
+  j2k_wavelet: irreversible_9_7
+  j2k_progression_order: RPCL
+  j2k_resolutions: 6
+  j2k_code_block_size:
+  - 64
+  - 64
+  j2k_tile_size: whole_image
+  j2k_search_method: bisection_on_compression_ratio
+  j2k_search_bounds:
+  - 1.0
+  - 4000.0
+  j2k_search_tolerance_bytes: 16
+  j2k_search_max_iters: 24
+  j2k_cache_key:
+  - image_hash
+  - budget_bytes
+  j2k_nonmonotone_policy: keep_largest_codestream_at_or_below_budget
+  downsample_axis_px:
+  - 160
+  - 128
+  - 96
+  - 64
+  downsample_selection: best_feasible_per_snr_on_validation_split
+  jpeg_impl: pillow
+  jpeg_chroma_subsampling: '4:2:0'
+  jpeg_optimise_huffman: true
   jpeg_quality_grid:
   - 5
   - 10
@@ -184,6 +272,8 @@ baseline:
   - 85
   - 90
   - 95
+  bler_characterisation_trials: 5000
+  fixed_mcs_design_snr_db: 7
   container_policy: all emitted container bytes count against payload_bits; shared-table
     or stripped-header variants MAY be reported as a labelled sensitivity, never as
     the headline
@@ -238,9 +328,20 @@ baseline:
   ldpc_decoder_impl_spelling: offset-minsum
   ldpc_llr_convention: log_p1_over_p0
   ldpc_max_iters: 50
-  tb_crc_bits: 24
+  tb_crc:
+    threshold_payload_bits: 3824
+    small_bits: 16
+    small_polynomial: crc16
+    large_bits: 24
+    large_polynomial: crc24a
   cb_crc_bits: 24
-  code_block_max_bits: 8448
+  code_block_max_bits:
+    bg1: 8448
+    bg2: 3840
+  base_graph_selection_rule: ts_38212_7_2_2_from_transport_block_A_and_R
+  base_graph_pinned_at_seam: true
+  bg2_min_coderate: 0.2
+  payload_solver: largest_byte_aligned_A_whose_full_packetisation_fits_G
   rate_matching: ts_38212_with_filler
   modulations:
   - bpsk
@@ -248,18 +349,38 @@ baseline:
   - qam16
   modulation_tuning: adaptive_per_snr
   core_modulation: qpsk
-  budget_rule: usable_source_bytes = floor((floor(k * bits_per_symbol * rate) - tb_crc_bits
-    - segmentation_and_filler_overhead) / 8); the complete compressed file, container
-    bytes included, MUST fit within usable_source_bytes
+  budget_rule: "solved, not evaluated in closed form: choose the largest byte-aligned\
+    \ transport-block payload A whose complete TS 38.212 packetisation \u2014 conditional\
+    \ TB CRC per baseline.tb_crc, base-graph selection from (A, R), segmentation at\
+    \ the selected graph's code_block_max_bits, per-block CRCs, filler and rate matching\
+    \ \u2014 fits exactly within G = k * bits_per_symbol coded bits and satisfies\
+    \ every library constraint. The complete compressed file, container bytes included,\
+    \ MUST fit within A/8 bytes"
+  control_plane_policy: out_of_band_excluded_for_all_systems
   outage_policy: uniform_random_label
   tuning: best_feasible_config_per_snr_on_validation_split
 reference_classifier:
   arch: resnet18
   trained_on: clean_images
   pretrained_weights_permitted: false
+  optimizer: sgd_momentum
+  lr: 0.1
+  momentum: 0.9
+  weight_decay: 0.0005
+  lr_schedule: cosine
+  lr_warmup_epochs: 5
+  epochs: 100
+  batch_size: 128
+  label_smoothing: 0.1
+  augmentation:
+  - random_resized_crop
+  - horizontal_flip
   artifact_finetuned_variant_required: true
   artifact_finetune_gate: G-8
   artifact_finetune_corpus: union_of_br4_selected_qualities_at_or_below_train_snr
+  br4_selection_passes: 2
+  br4_selection_terminates_after_pass: 2
+  headline_scorer: artifact_finetuned
   frozen: true
   shared_by:
   - classical_baseline
@@ -267,15 +388,37 @@ reference_classifier:
 digital_semantic_control:
   role: attribution_control_for_h4
   shared_with_learned:
+  - encoder_arch
   - encoder_trunk
-  - transmit_feature_dim
   - task_head_arch
   - train_split
   - augmentation
   - optimizer
   - epochs
+  shared_with_learned_conceptual:
+  - encoder_trunk
+  - task_head_arch
+  - train_split
   differs_only_in: channel_interface
+  channel_interface_comprises:
+  - transmit_dim
+  - quantiser
+  - entropy_coder
   transmit_layer: encoder_output
+  transmit_dim_grid:
+  - 64
+  - 128
+  - 256
+  - 512
+  - 1024
+  - 2048
+  - 4096
+  - 8192
+  transmit_dim_units: real_values
+  transmit_dim_realised_by: output_channel_count_and_adaptive_pooling
+  width_selection: joint_with_quantiser_bits_on_validation_split
+  selection_search: two_stage_coarse_width_then_bits
+  selection_search_is_cross_product: false
   quantiser: uniform_scalar
   quantiser_bits_grid:
   - 2
@@ -286,7 +429,7 @@ digital_semantic_control:
   entropy_coder: static_range_coder
   entropy_model: fitted_offline_on_train_split
   entropy_model_learned_permitted: false
-  entropy_table_bytes_counted: true
+  entropy_table_bytes_counted: false
   transport_tuning: best_feasible_config_per_snr_on_validation_split
   scored_by: own_task_head
 evaluation:
@@ -299,6 +442,7 @@ evaluation:
   - 1
   - 2
   seed_pairing: zipped_not_cross_product
+  seed_cell_interpretation: compound_replicate
   split_seed: 1337
   split_rule: val carved deterministically from the published train split by evaluation.split_seed;
     the test split is never used for any selection
@@ -307,11 +451,21 @@ evaluation:
   paired_test: mcnemar_exact
   hypothesis_rule: three_consecutive_snr_points
   h1_effect_size: mean_paired_difference_at_or_below_train_snr
+  h1_run_calibration: sign_flip_permutation_over_image_trajectories
+  h1_run_permutation_resamples: 10000
   gap_trend_test: wls_slope_of_paired_gap_vs_snr
+  gap_trend_bootstrap_unit: per_image_seed_trajectory
+  h3_requires_positive_low_snr_gap: true
   cliff_window_db: 4
   cliff_window_selection: largest_classical_drop_on_validation_split
   cliff_drop_pp: 30
   graceful_drop_pp: 15
+  cliff_reference_system: classical_fixed_mcs
+  h2_test: paired_difference_in_differences
+  h2_thresholds_apply_to: point_estimates
+  h2_threshold_check_gate: G-8
+  ber_match_statistic: waterfall_displacement_at_bler_1e-2
+  ber_match_tolerance_db: 0.5
   test_subset_size: 2000
   full_test_split_required_for:
   - ER-1
@@ -324,6 +478,8 @@ evaluation:
   - payload_bytes
   - decode_failure_rate
   - infeasible_rate
+  - coverage_rate
+  - acc_given_delivery
   - papr_db
 compute:
   primary_device: rtx_4060_mobile_8gb
@@ -334,17 +490,43 @@ compute:
   profiling_gate: G-7
   max_wall_clock_hours_per_run: 4
   checkpoint_every_epochs: 1
-  ldpc_decode_cb_per_s_measured: 634
+  ldpc_decode_cb_per_s_measured: 625.2
+  ldpc_decode_cb_per_s_observed_range:
+  - 625.2
+  - 663
   ldpc_decode_batch_measured: 32
   ldpc_decode_measured_at_iters: 50
+  ldpc_decode_early_termination: false
   ldpc_decode_measured_gate: G-9
-  er1_projected_hours_one_ratio: 2.04
-  er1_projected_hours_two_ratios: 4.09
+  er1_projected_ldpc_decode_hours_one_ratio: 2.07
+  er1_projected_ldpc_decode_hours_two_ratios: 4.14
+  er1_projected_ldpc_decode_scope: LDPC decode only; excludes JPEG 2000 encode and
+    decode, classifier forward passes, and soft demapping
+  er1_projected_total_hours_status: pending_measurement_at_W3_W4
 artifacts:
   results_dir: results/
   per_image_dir: results/per_image/
   checkpoint_dir: checkpoints/
   figures_dir: figures/
+  run_id_key:
+  - system
+  - dataset
+  - bw_ratio
+  - test_snr_db
+  - train_seed
+  - channel_seed
+  system_values:
+  - learned
+  - learned_papr_constrained
+  - learned_snr_randomised
+  - classical_adaptive
+  - classical_fixed_mcs
+  - classical_fixed_mod
+  - classical_jpeg_secondary
+  - classical_finetune_scored
+  - er9_digital
+  - label_transmission_bound
+  - semantic_recon_ablation
   csv_schema:
   - run_id
   - timestamp
@@ -380,15 +562,32 @@ artifacts:
   - papr_db
   - decode_failure_rate
   - infeasible_rate
+  - coverage_rate
+  - acc_given_delivery
   - test_subset
   - wall_clock_s
   - peak_vram_gb
+  - classifier_variant
+  - quantiser_bits
+  - transmit_dim
+  - entropy_stream_bytes
+  - entropy_table_bytes
+  - side_information_bytes
+  - tb_crc_type
+  - base_graph
+  - lifting_size
+  - num_codeblocks
+  - filler_bits
+  - effective_code_rate
+  - model_param_count
   per_image_schema:
   - image_index
   - true_label
   - pred_label
   - correct
   - outage
+  - outage_reason
+  - source_bytes
 demo:
   framework: streamlit
   figure_style_module: src/viz/style.py
@@ -427,6 +626,9 @@ deliverables:
     first: 4
     second: 10
     third: 16
+  review_dates_status: pending_confirmation_from_2026_circular
+  objectives_stated_as: completion_terms_not_outcomes
+  objectives_modification_point: second_review
   literature_review_min_refs: 25
   time_plan_artifact: gantt_chart
   poster_format: a0
@@ -434,6 +636,7 @@ deliverables:
   report_format_source: vault/capstone/CAPSTONE_THESIS_Format.docx
   standards:
   - 3gpp_ts_38_212
+  - 3gpp_ts_38_211
   - itu_t_t_800_jpeg2000
   - itu_t_t_81_jpeg
   - ieee_754

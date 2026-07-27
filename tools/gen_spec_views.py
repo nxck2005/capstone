@@ -179,6 +179,35 @@ def validate(params: dict, reqs: list[dict], stones: list[dict]) -> list[str]:
             errors.append(f"params.{section}: defined but cited by no requirement")
 
     errors.extend(validate_arithmetic(params))
+    errors.extend(validate_shared_vocabulary(params))
+    return errors
+
+
+def validate_shared_vocabulary(params: dict) -> list[str]:
+    """Every token ER-9 claims to share must name something real.
+
+    `shared_with_learned` listed `augmentation` for an entire amendment round while no such
+    parameter existed anywhere — list *items* are not citations, so rule 3 never looked at it,
+    and ER-9's "differs only in the channel interface" claim could not be checked against a
+    parameter that did not exist. A token is legal only if it is a key of `learned_system` or
+    is declared conceptual, which forces a new token to be classified deliberately.
+    """
+    control = params.get("digital_semantic_control", {})
+    shared = control.get("shared_with_learned", [])
+    conceptual = set(control.get("shared_with_learned_conceptual", []))
+    learned = params.get("learned_system", {})
+    errors = []
+    for token in shared:
+        if token not in learned and token not in conceptual:
+            errors.append(
+                f"digital_semantic_control.shared_with_learned: {token!r} is neither a key of "
+                f"learned_system nor declared in shared_with_learned_conceptual"
+            )
+    for token in sorted(conceptual - set(shared)):
+        errors.append(
+            f"digital_semantic_control.shared_with_learned_conceptual: {token!r} is declared "
+            f"but not shared"
+        )
     return errors
 
 
@@ -196,8 +225,22 @@ def validate_arithmetic(params: dict) -> list[str]:
         if spec["n"] != h * w * c:
             errors.append(f"datasets.{name}.n = {spec['n']} but image_size gives {h * w * c}")
 
-    if bandwidth.get("core_ratio") not in ratios:
-        errors.append(f"bandwidth.core_ratio {bandwidth.get('core_ratio')!r} is not a key of ratios")
+    # Operating-point selectors must name a rung of the ladder. `core_ratio` used to be
+    # checked here; AM-20 replaced it with two selections and AM-26 removed the key, so the
+    # check is against the selectors that a gate actually resolves.
+    for selector in ("crossover_ratio", "efficiency_ratio", "low_ratio_operating_point"):
+        value = bandwidth.get(selector)
+        if value not in ratios:
+            errors.append(f"bandwidth.{selector} {value!r} is not a key of ratios")
+
+    # `headline_ratio` is a pointer at another selector, not a rung. Checking it against
+    # `ratios` would pass only by accident and would not catch it pointing at nothing.
+    selectors = {"crossover_ratio", "efficiency_ratio"}
+    if bandwidth.get("headline_ratio") not in selectors:
+        errors.append(
+            f"bandwidth.headline_ratio {bandwidth.get('headline_ratio')!r} must name one of "
+            f"{sorted(selectors)}, not a ratio key"
+        )
 
     for name, budgets in bandwidth.get("k_symbols", {}).items():
         if name not in datasets:

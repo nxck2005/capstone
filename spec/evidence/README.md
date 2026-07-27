@@ -20,6 +20,8 @@ Measured 2026-07-27 on the primary device: Python 3.14.6 · `torch 2.13.0+cu130`
 | `golden_vectors_check.log` | Its output: **17 exact matches, 0 mismatches**, both base graphs, lifting sizes 2–288. |
 | `fetch_srsran_vectors.sh` | Fetches and verifies those vectors. |
 | `srsran_vectors.sha256` | Their checksums — what makes the fetch verifiable. |
+| `check_packetisation.py` | AM-49, AM-55. TS 38.212 conformance across the whole configuration grid, and ER-9's feasibility at every live operating point. |
+| `packetisation_record.json` | Its output: the per-configuration record BR-10's verify clause requires. |
 
 ## Reproducing
 
@@ -42,25 +44,62 @@ distribution. `params.baseline.ldpc_golden_vector_vendored` is therefore false: 
 carries the *checksums* and the *fetcher*, which preserve byte-exact reproducibility without
 redistributing anything. Checksums are facts about a file, not copies of one.
 
-**The upstream source is archived.** srsRAN became [OCUDU](https://gitlab.com/ocudu/ocudu) in
-December 2025; the GitHub repository is archived and its default branch now carries only a notice.
-Release tags and assets remain, and the fetcher pins an immutable one — but this can disappear
-without warning. That is why BR-2 also requires
-`params.baseline.ldpc_golden_vector_offline_floor`: a committed, hand-derived case that always runs
-and needs no network, so G-2 degrades to narrower coverage rather than failing outright.
+**The upstream source is archived, and the successor does not replace it.** srsRAN became
+[OCUDU](https://gitlab.com/ocudu/ocudu) in December 2025; the GitHub repository is archived and its
+default branch now carries only a notice. Release tags and assets remain, and the fetcher pins an
+immutable one — verified reachable on 2026-07-27 — but this can disappear without warning.
 
-## Throughput varies between runs; the spec records the slow end
+An external review proposed repointing at OCUDU, on the grounds that the successor ships the same
+MATLAB-generated vectors under BSD-3 rather than AGPLv3, which would close the risk and permit
+vendoring. **Checked, and it does not work (AM-30).** The licence half is right: OCUDU is a Linux
+Foundation project under the BSD-3-Clause Open MPI variant. But vector tests moved out of the main
+repository into a separate `ocudu-matlab` companion plugin, and OCUDU's own MATLAB tutorial states
+that running the suite requires a working and licensed copy of MATLAB and its 5G Toolbox. There are
+**no pre-generated vectors to download**, so BSD-3 covers generators rather than data, and adopting
+the suggestion would trade a working rung for the licence dependency rung 2 exists to avoid.
 
-`SPEC.md` cites **634 code blocks/s**, and re-running the spike on the same machine has produced up
-to **663**. That is thermal and clock variance on a laptop GPU, not a discrepancy: the specification
-deliberately carries the **slower** observed figure, because it feeds a compute *budget* and the
-conservative direction is the safe one. `g9_spike_record.json` is whichever run last executed, so it
-may not read exactly 634.
+The consequence runs opposite to the recommendation: the risk is **larger** than previously
+recorded, because the successor publishes no replacement rung at all. Hence two things. Fetch and
+archive the pinned asset locally, outside git, before the W3 fixture needs it rather than when it
+does. And `params.baseline.ldpc_golden_vector_offline_floor` — a committed, hand-derived case that
+always runs and needs no network — now carries more weight than AM-25 assumed, because it is the
+only rung nobody can revoke.
+
+## Throughput varies between runs; the spec records the committed run
+
+`SPEC.md` cites **625.2 code blocks/s**, which is what `g9_spike_record.json` measures at batch 32,
+and re-running on the same machine has produced up to **663**. That spread is thermal and clock
+variance on a laptop GPU. The specification carries the figure from the *committed* run rather than
+the best or the remembered one, because ER-7 requires every reported number to resolve to an
+artifact in this repository — it previously read 634, which was **faster** than the evidence beside
+it and traceable to nothing (AM-29). `params.compute.ldpc_decode_cb_per_s_observed_range` records
+the spread so the variance is visible rather than implied.
 
 The projection is insensitive to the difference at this magnitude — ER-1 at two operating ratios
-lands at 3.9 h versus 4.1 h across that range, and G-8's decision would be the same anywhere in it.
-If a re-run ever produces a figure that changes that decision, that is a finding and belongs in a new
-`AM`, not a quiet edit.
+lands at about 3.9 h to 4.1 h across that range, and G-8's decision would be the same anywhere in
+it. If a re-run ever produces a figure that changes that decision, that is a finding and belongs in
+a new `AM`, not a quiet edit.
+
+Note also what the projection does **not** cover: it is LDPC decode alone, excluding JPEG 2000
+encode and decode, the classifier forward passes and the 16-QAM demapper. Its parameter name now
+says so, and `params.compute.er1_projected_total_hours_status` records that the end-to-end figure is
+owed at W3/W4. One thing that does not threaten it: the decoder documents no early stopping, so the
+fixed 50 iterations make this a worst case with respect to SNR.
+
+## The packetisation check is separate from the spike, on purpose
+
+`check_packetisation.py` needs no GPU, no Sionna and no network, and runs in under a second. It
+exists because the packetisation *contract* changed after the spike ran (AM-49): the transport-block
+CRC is conditional on payload size, the maximum code-block size depends on the base graph, and the
+base graph is selected once per transport block from (A, R) **before** segmentation rather than
+afterwards from a per-code-block rate. `spike_ldpc.py` stays as the archived W0 measurement and is
+not retrofitted — what changed is the contract, not what was measured.
+
+Two results worth knowing before reading the record. BR-10's canonical case reproduces exactly under
+the corrected rules — C = 6, K_r = 7135, E summing to 51 200 — so the correction moved no headline
+number. And AM-24's one-bit BG1 minimum-rate clamp **survives**: all six clamped configurations have
+a payload above the CRC threshold and a rate above 0.25, so BG1 is genuinely correct for them and
+the clamp was not an artifact of the old ordering.
 
 ## Two things a reader should not misread
 

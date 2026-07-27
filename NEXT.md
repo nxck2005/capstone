@@ -7,10 +7,66 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-27 · **Phase:** **G-9 passed — W1 is open** · spike executed, spec updated,
-nothing installed into the repo yet
+**Last updated:** 2026-07-27 · **Phase:** **G-9 passed — W1 is open** · spike executed, two external
+reviews adjudicated and applied (AM-26..AM-55), nothing installed into the repo yet
 
 ---
+
+## Just landed — two external reviews adjudicated, 30 amendments applied
+
+**Two independent full-spec reviews** (`EXT-4`, Claude; `EXT-5`, a second model) were adjudicated
+against the spec and the W0 evidence, not deferred to. **Neither verdict was adopted as given.**
+EXT-4 said "commit after seven edits" but its one external claim was false and it missed the three
+worst defects; EXT-5 said "NO-GO/HOLD on the whole spec" but only *one* of its findings touched W1.
+Result: 122 → **158 requirements**, `AM-26`..`AM-55`, split into two rounds in §17.
+
+**The three that mattered, all confirmed by recomputation, none of which either review found alone:**
+
+1. **ER-9 was arithmetically impossible** (AM-55). Sharing `transmit_feature_dim` pinned it at 2k
+   real values while the digital budget gives `Qm·R/2` bits per value — **0.167 at BPSK 1/3**
+   against a 2-bit floor. Every config except 16-QAM 5/6 was infeasible, and that one only decodes
+   above ~11 dB, *outside H1's region entirely*. So the H4 control would have sat at chance across
+   exactly the range it is tested in — unfalsifiable, and flattering. Same class as AM-15.
+   **Fixed:** ER-9 keeps the identical encoder and chooses its own `transmit_dim` on validation.
+2. **TS 38.212 packetisation was non-conformant three ways** (AM-49): CRC24A applied
+   unconditionally where 17 of 72 live configs are entitled to CRC16; `code_block_max_bits` 8448
+   applied where 14 select BG2 (3840); and the base graph derived *after* segmentation from the
+   per-CB rate, where the standard selects it once per TB from (A,R) *before*. **Blast radius is
+   small** — segmentation changes in zero configs, so BR-3 and BR-10's zero-slack result survive and
+   the cost is one byte in 17 cells. It is a defect in DEC-13's *claim*, not in any number.
+3. **ER-10 promised a variance decomposition AM-17 had already made impossible** (AM-31) — zipped
+   seeds alias training luck and channel luck. Now compound replicates.
+
+Plus **G-8 was required to decide a crossover it cannot observe** (AM-33) — W6's sweep is
+classical-only and no learned model exists until W7. New **G-10** at W10 decides it.
+
+**Three decisions you made this session, don't reopen:** ER-9 gets the *same encoder with its own
+output width* (not a bolted-on layer, not fixed pooling); seeds are *compound replicates* (don't pay
+3× ER-1 to restore the decomposition); BR-4 selection is *two passes then stop*.
+
+**What was rejected, with reasons, so it doesn't come back:**
+- **EXT-4's OCUDU claim is false** (AM-30). It said the successor ships the same vectors under
+  BSD-3, so the archived-upstream risk could be closed. OCUDU publishes **no pre-generated vectors** —
+  they moved to a MATLAB-companion plugin whose docs require a licensed MATLAB + 5G Toolbox. The
+  risk is *worse* than recorded, and §16's old mitigation line ("take them from OCUDU") was also
+  wrong and is deleted. ⚠️ **Action: the pinned srsRAN asset is still live (verified HTTP 200) —
+  fetch and archive it locally, outside git, before W3.**
+- **H1's run rule stays** (AM-32) — but AM-4's *bound* was wrong, and that is now recorded. Positive
+  dependence does **not** sandwich the answer: four independent blocks of three, each all-or-nothing
+  Bernoulli(0.025), gives ≈0.096, four times the "perfect dependence" figure. The conclusion holds
+  under AR-1/exchangeable dependence, so ER-10 now *measures* it by sign-flip permutation instead of
+  arguing it. EXT-5's proposed replacement already exists as `h1_effect_size` (AM-3).
+- **BR-13's random outage draw stays** — it is reproducible from `channel_seed` and therefore
+  identical across systems, which is what ER-10's pairing needs. Only its *reporting* changed.
+- **EXT-4's rubric denominator was wrong**: Third Review is **60** sub-marks, not 55. Its
+  conclusions still hold — `Objectives Met` really is 10, and PR-8 now forbids stating objectives as
+  outcomes (AM-46).
+
+**New evidence artifact:** [`spec/evidence/check_packetisation.py`](spec/evidence/check_packetisation.py)
+— pure arithmetic, no GPU/network, runs in under a second, emits the per-config record BR-10 now
+requires. Confirms zero slack across 215 feasible configs, **the same six BG1 clamps** (so AM-24
+stands), BR-10's canonical case exact, and **ER-9 feasible at all 72 live configs** (7 options even
+at the tightest, 94 bytes).
 
 ## In flight — nothing
 
@@ -19,7 +75,8 @@ nothing installed into the repo yet
 `g9_spike_record.json`. Python 3.14.6 · torch 2.13.0+cu130 · sionna-no-rt 2.0.1 · RTX 4060 Laptop 8 GB.
 
 **Measured, now in the spec:** exact `E_r` across **all 180 configurations** (72 live), so BR-3 holds
-against the library and not just on paper · 634 code-block decodes/s at 50 iterations, batch 32 ·
+against the library and not just on paper · 625.2 code-block decodes/s at 50 iterations, batch 32
+(corrected from 634 by AM-29 — the old figure was faster than the committed evidence) ·
 ER-1 projects to **~2.0 h at one ratio, ~4.1 h at two**, worst-case modulation — so **G-8's
 one-ratio-or-two decision is not compute-constrained**, which was the open question AM-20 deferred ·
 smallest workable payload 16 bits.
@@ -47,8 +104,9 @@ that produced it, the golden-vector check and its log, and the fetch script plus
 `README.md` first. Two things it deliberately does *not* contain: the third-party `.dat` vectors and
 srsRAN's `ldpc_encoder_test_data.h`, both AGPLv3 and both `.gitignore`d — run
 `spec/evidence/fetch_srsran_vectors.sh` to obtain them. Note the README's variance caveat: re-running
-the spike gives 634–663 cb/s, and the spec deliberately records the **slow** end because it feeds a
-compute budget. The old scratch copies at `~/capstone-w0-spike/` are now redundant.
+the spike gives 625–663 cb/s, and the spec records the figure from the **committed run** (625.2)
+because ER-7 requires every number to resolve to an artifact in the repo — it previously read 634,
+which was faster than the evidence beside it (AM-29). The old scratch copies at `~/capstone-w0-spike/` are now redundant.
 
 ---
 
@@ -83,10 +141,20 @@ compute budget. The old scratch copies at `~/capstone-w0-spike/` are now redunda
 
 2. ~~**The LDPC spike.**~~ **Done, all seven checks — 2026-07-27 (AM-24, AM-25).** See above.
 
-3. **Start W1 — this is the front of the queue.** G-9 passed 2026-07-27, so nothing is blocking
-   implementation any more. W1: repo scaffold, config plumbing (SR-1), data loaders and validation
-   splits (SR-2, SR-17), reference classifier trained from scratch on clean images (BR-8). Its gate
-   is **G-1** — the classifier clears its `clean_acc_floor`.
+3. **Start W1 — this is the front of the queue, and it is now unblocked in both senses.** G-9 passed
+   2026-07-27 and the amendment rounds are applied, so nothing is outstanding. W1: repo scaffold,
+   config plumbing (SR-1), data loaders and validation splits (SR-2, SR-17), reference classifier
+   trained from scratch on clean images (BR-8). Its gate is **G-1** — the classifier clears its
+   `clean_acc_floor`.
+
+   **Two things the amendments added that land in W1 specifically.** BR-8's classifier now has a
+   full recipe in `params.reference_classifier` — optimizer, lr, schedule, warmup, epochs, batch
+   size, label smoothing, augmentation — because it had none at all, which was a straight SR-1
+   violation on the artifact that gates G-1 *and* defines the denominator of ER-3's selection rule.
+   Use it; don't improvise one. And **SR-19 is new**: one canonical image defined in
+   `params.preprocessing` before either pipeline sees data, with the codec compressing the *same*
+   pixels the encoder receives. Build that first — it is cheap now and contaminates everything if
+   retrofitted.
 
    **Concrete first action:** `requirements.txt` with the pins W0 verified — Python 3.14.6,
    `torch 2.13.0+cu130`, `sionna-no-rt 2.0.1`. The `--index-url https://download.pytorch.org/whl/cu130`
@@ -160,8 +228,26 @@ compute budget. The old scratch copies at `~/capstone-w0-spike/` are now redunda
 
 ## Session log
 
+- **2026-07-27 (later)** — **Two external reviews adjudicated; 30 amendments applied (AM-26..AM-55),
+  122 → 158 requirements.** Neither review's verdict was adopted: EXT-4's "commit after seven edits"
+  understated the problem and EXT-5's blanket HOLD overstated it, since only one finding touched W1.
+  Three serious defects, all found by recomputation rather than by reading: ER-9 was arithmetically
+  infeasible at every operating point but one and would have sat at chance across all of H1's region
+  (AM-55); TS 38.212 packetisation was non-conformant in the CRC, the code-block cap and the
+  base-graph selection *order*, though segmentation changes in zero configurations so no measured
+  number moves (AM-49); and ER-10 promised a variance decomposition that AM-17's zipped seeds had
+  already made impossible (AM-31). Also caught: G-8 was required to decide a crossover at W6 when no
+  learned model exists until W7 (AM-33, new G-10 at W10), and W9 built an entire third system with
+  no gate on it (new G-11). Refuted two claims against primary sources — EXT-4's OCUDU vector
+  recommendation is false and made §16's existing mitigation line false too (AM-30), and its Third
+  Review rubric denominator is 60 rather than 55 (AM-46). Corrected a throughput figure that was
+  faster than the evidence committed to support it (AM-29). New evidence artifact
+  `spec/evidence/check_packetisation.py`; validator hardened so the dangling-vocabulary bug that
+  hid `augmentation` for a whole round now fails `--check`.
+
 - **2026-07-27** — **G-9 passed; W1 open.** Spike run to completion: all 180 configurations hit an
-  exact `E_r`, 634 cb/s at 50 iterations, ER-1 projected at ~2.0 h / ~4.1 h for one and two ratios,
+  exact `E_r`, 634 cb/s at 50 iterations (later corrected to the committed 625.2 by AM-29), ER-1
+  projected at ~2.1 h / ~4.1 h for one and two ratios,
   smallest payload 16 bits (AM-24). Three defects found by running it rather than reading it: the
   library's LLR sign is inverted relative to `x = 1−2c` and fails *silently* at BER 0.77; nominal
   rate 1/3 was unrealizable at three live operating points against BG1's coderate floor; and the
