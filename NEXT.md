@@ -8,8 +8,10 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
 **Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, two
-external reviews adjudicated and applied (AM-26..AM-55, committed as `8e65329`). **No project code
-exists yet:** no `src/`, no `tests/`, and `requirements.txt` is still tooling-only (PyYAML).
+external reviews adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the docs sweep in
+`7b7c70a`). **No project code exists yet:** no `src/`, no `tests/`, and `requirements.txt` is still
+tooling-only (PyYAML). The tree is clean and `gen_spec_views.py --check` passes at 159 requirements —
+if either is untrue when you read this, something landed after this line was written.
 
 ---
 
