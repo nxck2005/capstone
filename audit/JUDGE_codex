@@ -1,0 +1,903 @@
+# Final pre-implementation gate audit
+
+**Audit date:** 2026-07-28
+
+**Repository:** `/home/nick/projects/capstone`
+
+**Audited commit:** `95206d9`
+
+**Requested decision:** GO/NOGO for W1
+
+**Decision status:** final for the audited tree
+
+## Final verdict
+
+| Question | Verdict |
+|---|---|
+| Is the capstone idea scientifically and practically viable? | **GO** |
+| Is the current specification safe to implement? | **NO** |
+| May W1 begin from the current tree? | **NOGO — temporary hold** |
+| Is abandonment or a thesis redesign required? | **NO** |
+| Can the hold be cleared by a bounded amendment tranche before experimental code exists? | **YES** |
+
+The project is worth building. Its central thesis is testable, its simulation-first scope is appropriate, its strongest design decisions are unusually careful, and no finding in this audit shows that the learned system, the classical baseline, or the task-aware digital control is intrinsically infeasible.
+
+The current W1 status is nevertheless **NOGO**. This is not because failure of H1–H4 would be unacceptable; the specification is right that a properly run negative experiment is a valid finding. The hold exists because several present defects can manufacture a positive or negative result for bookkeeping reasons:
+
+1. the primary inferential estimand and three hypothesis tests are not yet uniquely executable;
+2. the “test touched once” rule is contradicted by the schedule;
+3. the identifier declared to pair systems cannot pair systems;
+4. the artifact offered as proof of TS 38.212 packetisation has multiple arithmetic errors despite reporting zero failures;
+5. W1 does not yet freeze enough dataset, split, preprocessing, dependency, and gate detail to make its classifier result reproducible;
+6. the enlarged SNR grid was not propagated into the statistical prose, evidence record, or runtime decision;
+7. several baseline choices still weaken the digital systems in avoidable ways.
+
+These are pre-implementation defects. Fixing them now is cheap. Encoding them into config, schemas, cached artifacts, and result files would make them expensive and could invalidate the eventual comparison.
+
+My release recommendation is therefore:
+
+> Apply the P0 amendment bundle and satisfy the W1 release checklist in this report. Then change the decision to **GO for W1**. The project does not need another open-ended external review if every exit test below passes and the resulting diff is audited against §13 and every affected `verify` clause.
+
+No normative spec change is made by this audit. Under the repository’s amendment convention, every accepted recommendation that changes a requirement, decision, parameter, or gate needs a new `AM` entry and a back-reference on the amended item.
+
+## What I examined
+
+The audit covered:
+
+- [`NEXT.md`](../NEXT.md), then the whole normative [`spec/SPEC.md`](../spec/SPEC.md), including every decision, requirement, risk, gate, and all 56 amendment records;
+- all generated views and [`spec/params.generated.yaml`](../spec/params.generated.yaml);
+- the spec generator/validator and its semantic limits;
+- every committed W0 evidence script, record, checksum, and explanatory note under [`spec/evidence/`](../spec/evidence/);
+- [`docs/crossover-explained.md`](../docs/crossover-explained.md);
+- the selected proposal in [`ideas/Proposals.pdf`](../ideas/Proposals.pdf);
+- the rubric, proposal template, report template, and current academic circular under [`vault/capstone/`](../vault/capstone/);
+- repository state, ignored paths, declared dependencies, and the absence of implementation code;
+- current primary documentation for TS 38.212, Sionna 2.0.1, torchvision’s Imagenette loader, and OpenJPEG.
+
+Three independent adversarial reviews were run in parallel: scientific/statistical validity, PHY/baseline correctness, and execution/course readiness. Their claims were then checked against the repository rather than adopted by vote.
+
+Read-only checks included:
+
+```text
+.venv/bin/python tools/gen_spec_views.py --check
+ok: 159 requirements (2 retired), 10 generated files up to date
+
+.venv/bin/python spec/evidence/check_packetisation.py
+configurations: 216
+feasible:       215
+reported failures: 0
+```
+
+The worktree was clean at the start of the audit. Structural validation passing is real and valuable, but it does not establish scientific validity or standards conformance. Several of the most serious findings below are assertions the current validator does not test.
+
+## Severity and release policy
+
+- **P0 — W1 release blocker:** amend before implementation begins. These defects affect the experiment’s meaning, W1’s durable contracts, or evidence already presented as settled.
+- **P1 — mandatory before the named gate/module:** not necessarily a reason to delay a corrected W1, but it must be assigned an explicit gate now so it cannot survive until results exist.
+- **P2 — hardening/course protection:** unlikely to change the central result directly, but material to reproducibility, schedule, or assessment.
+
+---
+
+# P0 findings — clear these before W1
+
+## P0-1 — There is no singular, executable seed-level estimand
+
+### Evidence
+
+ER-1 defines three zipped `(train_seed, channel_seed)` cells and calls them compound replicates. ER-10 then:
+
+- requires a singular hypothesis verdict without defining the cross-cell aggregation that produces it;
+- says images are bootstrapped “nested inside” seed cells;
+- prohibits pooling across seeds;
+- keeps McNemar tests within a seed.
+
+The same test images occur in all three cells, so images and cells are **crossed**, not nested. An implementer could reasonably:
+
+- average the three cells;
+- require support in all three;
+- pool the repeated image outcomes as if independent;
+- bootstrap three seed clusters;
+- bootstrap images independently inside each cell.
+
+Those procedures can return different H1–H4 verdicts. With only three compound cells, a population-level bootstrap over training randomness is also too fragile to support the precision implied by the prose.
+
+### Required correction
+
+Define the primary estimand as conditional on the three preregistered trained models. For comparator \(q\), image \(i\), compound cell \(j\), and SNR \(s\):
+
+\[
+d_{ijs}^{(q)} = Y^{L}_{ijs}-Y^{q}_{ijs}
+\]
+
+\[
+\bar d_{is}^{(q)} = \frac{1}{3}\sum_{j=1}^{3}d_{ijs}^{(q)}
+\]
+
+\[
+\Delta_s^{(q)} = \frac{1}{N}\sum_{i=1}^{N}\bar d_{is}^{(q)}
+\]
+
+Bootstrap stable image IDs once. A resampled image must carry its complete system × SNR × compound-cell trajectory with it. Do not independently resample the same images inside each seed cell. Report the three cell-specific curves and their range alongside the conditional aggregate. State explicitly that the main interval is conditional on these three trained models **and the finite preregistered channel-realization schedule**; it is not a population interval over arbitrary training or channel seeds.
+
+McNemar can remain a descriptive per-cell, per-SNR paired check. It cannot govern H2 or H3.
+
+### Exit test
+
+A synthetic fixture with deliberately different cell effects must produce one predetermined aggregate estimate, one predetermined bootstrap interval, and unchanged pair membership after row order is shuffled. The analysis code must reject independent per-cell image resampling and duplicate/missing trajectories.
+
+## P0-2 — H1’s permutation “calibration” does not affect the H1 decision
+
+### Evidence
+
+The spec correctly records a positive-dependence counterexample in which the three-point-run false-positive rate is about 0.096. It then requires ER-10 to archive a sign-flip permutation null distribution, but §2 says the decision rule remains unchanged. If the measured null says the rule exceeds 0.05, H1 still passes. That is measurement, not calibration.
+
+AM-52 also changed the grid without updating this section:
+
+- current grid points: **21**, not 18;
+- points at or below the 7 dB training SNR: **16**, not 13;
+- candidate length-three runs: **14**, not 11;
+- the independence union calculation is \(14(0.025)^3=2.1875\times10^{-4}\), not approximately \(1.7\times10^{-4}\).
+
+The numerical change is not itself dangerous. The absent decision hook is.
+
+### Required correction
+
+Bind the calibration to support and choose one null. A raw whole-trajectory sign flip is exact only under a sharp joint-null/system-label-exchangeability assumption; zero mean difference at each SNR is a weaker null and does not itself guarantee exchangeability of the multivariate trajectory.
+
+Recommended weak-mean-null procedure:
+
+1. Average the three compound cells within each image as in P0-1.
+2. At every SNR compute the studentized paired mean \(Z_s=\sqrt{N}\hat\Delta_s/\hat\sigma_s\).
+3. Qualify a point when \(Z_s>1.96\), matching a two-sided 95% interval whose lower bound is above zero.
+4. Let \(R_{\text{obs}}\) be the longest qualified run over −8 through 7 dB.
+5. Generate 10,000 synchronized Rademacher multiplier replicates on the **centered whole per-image trajectory**, preserving its across-SNR dependence, and recompute the studentized run statistic.
+6. Use
+
+   \[
+   p=\frac{1+\#\{R_b\ge R_{\text{obs}}\}}{B+1}.
+   \]
+
+7. Support H1 only if \(R_{\text{obs}}\ge3\) **and** \(p\le0.05\).
+
+Retain the mean low-region paired difference and interval as the effect size of record.
+
+If the spec instead keeps literal sign-flip randomization, it must state and defend the sharper exchangeability null. It must not switch between sharp-null sign flips, an interval-inside-every-permutation implementation, and the weak-null multiplier procedure after seeing results.
+
+H4 invokes the H1 rule, so the amended text must explicitly apply the same fixed-seed estimand and calibrated trajectory procedure with `er9_digital` as comparator. Otherwise H1 is repaired while H4 silently retains the old ambiguity.
+
+### Exit test
+
+Run the analysis on:
+
+- an all-zero paired fixture;
+- independent null trajectories;
+- the block-dependent counterexample already described in §2;
+- a planted three-point effect;
+- a planted isolated-point effect.
+
+The empirical false-positive rate under the preregistered null simulations must be at most 0.05 within Monte Carlo error, and the planted isolated point must not support H1.
+
+## P0-3 — H2 and H3 still do not test the claims their names make
+
+### H2
+
+A significant paired difference-in-differences does not establish both numeric margins. Classical and learned drops of 20 pp and 0 pp have a 20 pp difference-in-differences, yet the classical arm misses the declared 30 pp cliff.
+
+`h2_thresholds_apply_to: point_estimates` makes the uncertainty rule even less clear. §2 currently mixes three potential criteria—two point thresholds and one inferential contrast—without saying which conjunction decides support.
+
+After the validation window is frozen, define:
+
+\[
+D_C=A_C(s_{\text{high}})-A_C(s_{\text{low}}),\qquad
+D_L=A_L(s_{\text{high}})-A_L(s_{\text{low}}).
+\]
+
+The defensible support rule is an intersection-union test:
+
+- the one-sided 95% lower bound for \(D_C\) is at least 0.30; and
+- the one-sided 95% upper bound for \(D_L\) is at most 0.15.
+
+Report the paired interval for \(D_C-D_L\) as an additional effect, not a substitute for either margin.
+
+Because support requires both component nulls to be rejected, this is an intersection-union test and does not need a Bonferroni split across the two margins.
+
+The permission to change H2’s threshold at G-8 after observing the classical drop must also go. Observing the classical drop observes one half of H2; it is not “genuinely blind” to H2. Keep 30/15 and report failure, or define a deterministic validation-calibration rule now and label the hypothesis validation-calibrated rather than fixed-threshold preregistered.
+
+### H3
+
+AM-39 catches a gap starting negative, but not a gap moving from +5 pp to −30 pp. The latter begins positive and has a negative slope, yet the systems diverge after crossing. It still satisfies the current “convergence” rule.
+
+The full −8…18 dB slope is also poorly targeted. At the very noisy end both systems may sit near chance, so the gap may grow before it contracts. H1 does not guarantee positivity at −8 dB; it could pass at 5, 6, and 7 dB.
+
+Recommended executable rule:
+
+- comparator: `learned` versus `classical_adaptive`;
+- ratio: `headline_ratio`;
+- fit region: the preregistered high-SNR region \(s\ge7\) dB;
+- regression: unweighted OLS unless every WLS weight is specified before data;
+- support only if:
+  - the one-sided 95% lower bound for \(\Delta_7\) is above zero;
+  - the one-sided 95% upper bound for the slope is below zero;
+  - the one-sided 95% lower bound for \(\Delta_7-\Delta_{18}\) is above zero; and
+  - the one-sided 95% lower bound for \(\Delta_7+\Delta_{18}\) is above zero.
+
+The last two smooth linear conditions are equivalent to \(\Delta_7>|\Delta_{18}|\) and distinguish net contraction from crossing followed by divergence. This endpoint-plus-slope rule supports **net high-SNR catch-up/contraction by 18 dB**, not uniform convergence at every intermediate point. Narrow H3’s name and prose accordingly. If full-path convergence is retained as the claim, add a preregistered maximum-deviation/band condition rather than implying the endpoint rule proves it. Any “catch-up trend” alternative must retain the positive \(\Delta_7\) condition; a negative slope alone still allows −5→−30.
+
+### Exit test
+
+Synthetic curves `+5→0`, `+5→−30`, `−5→−30`, flat `+5`, and chance→growth→contraction must receive the preregistered expected verdicts. H2 fixtures must separately fail each margin even when their difference-in-differences is large.
+
+## P0-4 — The schedule violates the one-shot test rule
+
+### Evidence
+
+DEC-12 says the test split is touched once for the frozen configuration. Two later clauses contradict it:
+
+- G-1 does not state which split decides `clean_acc_floor`, even though failure changes the backbone or epoch count.
+- W10 schedules a 2,000-image test subset, exposes its headline curve at the Second Review, and then calls W11 the full test.
+
+The W10 run creates a human selection/debugging channel even if G-10 formally reads validation curves. Labels such as “provisional” do not undo that information.
+
+### Required correction
+
+- Make G-1 explicitly validation-only.
+- Use validation data for W10’s pipeline rehearsal and Second Review figure.
+- Keep the test loader inaccessible until G-10 and every checkpoint, scorer, ratio, MCS, hypothesis rule, and analysis version is frozen.
+- Run one immutable final test campaign.
+- If a genuine code defect is discovered after opening test, record an invalidation and rerun the complete affected campaign. Never selectively replace favorable/unfavorable cells.
+
+### Exit test
+
+An automated access guard must make loading a test sample fail unless a committed freeze manifest exists. The manifest must hash code, resolved config, split manifest, checkpoints, classifier, operating points, H2 window, and analysis version. CI should demonstrate that G-1 and W10 execute with zero test-loader reads.
+
+## P0-5 — `run_id` cannot perform the pairing SR-18 assigns to it
+
+### Evidence
+
+`params.artifacts.run_id_key` contains `system`. Therefore learned and classical runs at the same dataset/SNR/seed necessarily have different IDs. SR-18 nevertheless says ER-10 pairs systems “entirely through `run_id`”.
+
+The key also omits `split`, checkpoint/config identity, classifier variant, λ, control dimension/quantiser choice, and other result-changing fields. The per-image schema carries none of the missing pairing coordinates.
+
+The current collision test only rejects one ID mapping to different tuples. It does not prove that:
+
+- each full tuple gets a unique ID;
+- validation and test cannot collide;
+- two systems share the same image/noise draw;
+- reruns with different checkpoints cannot overwrite or silently join.
+
+### Required correction
+
+Separate identity from pairing:
+
+- `run_id`: a unique content-addressed ID for one system run, including system, dataset/version, split manifest, code/config hash, checkpoint hash, classifier variant, all seeds, ratio, SNR, and system-specific settings.
+- `noise_id`: a deterministic ID keyed by dataset manifest, split, stable sample ID, SNR, channel seed, channel model, channel-use budget, block index, and RNG purpose.
+- `analysis_cell_id`: the preregistered compound replicate, including the learned/control training seed and its paired channel seed.
+- `pair_id`: a system- and comparison-independent key built from analysis cell, stable sample ID, ratio, SNR, and `noise_id`. Analysis metadata names the two systems being compared, so one learned per-image row can participate in both learned-versus-classical and learned-versus-ER9 analyses.
+
+The per-image schema should carry at least `run_id`, `pair_id`, `noise_id`, dataset version, split, stable sample ID, ratio, SNR, analysis cell, true/predicted label, delivery/outage fields, and source/payload accounting.
+
+Use counter-based or keyed RNG streams. A common integer seed with conditionally consumed random numbers does not guarantee common noise or fallback labels across implementations with different control flow.
+
+### Exit test
+
+Tests must prove:
+
+- row reordering and batching do not change any `noise_id` or draw;
+- systems share the required `pair_id` and noise but have distinct `run_id`s;
+- split/checkpoint/config changes always change `run_id`;
+- system changes never change `pair_id` when the comparison cell is otherwise identical;
+- joins are one-to-one and reject missing/duplicate trajectories.
+
+## P0-6 — AM-49’s packetisation evidence is materially wrong
+
+### Evidence
+
+[`spec/evidence/check_packetisation.py`](../spec/evidence/check_packetisation.py) returns zero failures, but direct checks of its 215 feasible rows find:
+
+| Defect | Affected rows | Currently “live” rows |
+|---|---:|---:|
+| `A` is not byte-aligned despite `payload_solver: largest_byte_aligned_A...` | 92/215 | 29/72 |
+| \(B'/C\) is nonintegral but `segment()` silently applies `ceil` | 21/215 | 16/72 |
+| Union of the preceding two | 97/215 | 30/72 |
+| BG2 filler uses selection \(K_b\) instead of encoded \(K=10Z\) | 47/103 BG2 rows | 0/14 current-live BG2 rows |
+
+TS 38.212 §5.2.2 defines \(K'=B'/C\). The project supplies arbitrary source sizes rather than a TS 38.214 transport-block-size table, so the local solver must choose legal byte-framed values for which the division is integral, or explicitly disclose and account for a non-NR outer padding rule. It currently does neither.
+
+For BG2, \(K_b=6,8,9,10\) is used to select a lifting size for short blocks, but the encoded systematic length is still \(K=10Z\). The script computes filler as \(K_bZ-K'\), undercounting 47 rows. It also emits one scalar that is a per-code-block filler count while the schema and prose read like a transport-block total. In 62 segmented configurations the total must include every code block.
+
+The canonical worked case changes:
+
+| Field | Current AM-49 claim | Correct byte/divisibility-constrained result |
+|---|---:|---:|
+| Payload \(A\) | 42,642 bits | 42,624 bits |
+| Source bytes | 5,330 | 5,328 |
+| \(B\) after TB CRC | 42,666 | 42,648 |
+| Code blocks \(C\) | 6 | 6 |
+| \(B'\) | 42,810 | 42,792 |
+| \(K'\) per block | 7,135 | 7,132 |
+| Lifting size \(Z\) | 352 | 352 |
+| Filler | “609 bits” | 612 per block; 3,672 total |
+| \(E_r\) | sums to 51,200 | `[8532, 8532, 8534, 8534, 8534, 8534]`, sum 51,200 |
+
+The good news is important: a corrected solver still leaves **215 feasible configurations and all 72 currently designated live configurations feasible**. It changes source-byte capacity in only 18 rows (13 current-live), by −8 to +1 byte. This is a repair, not a scientific collapse.
+
+Additional evidence defects:
+
+- `live_ratios` is built from three provisional parameter values. ER-3 may select any ladder ratio; proof obligations must cover all headline-dataset candidates, not only today’s provisional three.
+- ER-9 feasibility checks only `dimension × bits <= A` and claims range coding can only shrink. Finite arithmetic/range streams and framing can expand.
+- the strict rate-floor comparison creates three apparent STL clamps at equality that the library accepts; with the corrected predicate the reported six clamps reduce to the three Imagenette cases, so AM-24’s “same six clamps” conclusion must be amended. The floor must be checked for every block using \(K'/E_r\), not only against `E[0]`.
+- the checked-in packet record lacks a source config/params hash.
+
+The controlling primary source is the pinned [3GPP TS 38.212 V17.13.0 archive](https://www.3gpp.org/ftp/specs/archive/38_series/38.212/38212-hd0.zip), especially §§5.2.2, 5.4.2, and 7.2. Archive its checksum with the standards register rather than depending only on a mutable Release-17 directory.
+
+### Required correction
+
+The solver must:
+
+- enumerate byte-aligned \(A\);
+- require \(B'\bmod C=0\), unless a separately named and counted outer pad is deliberately adopted;
+- make the optimizer unique: first choose the largest legal \(A\) satisfying \(A+L_{\text{TB}}(A)\le\lfloor G R_{\text{nominal}}\rfloor\); only if that candidate violates the library’s base-graph rate floor, apply a narrowly named clamp that chooses the **smallest** larger legal \(A\) satisfying every per-block floor, and record nominal versus realized rate;
+- record \(B'\), \(K'\), \(K\), \(Z\), every \(E_r\), source padding, segmentation padding, filler per block, and total filler;
+- use \(K=22Z\) for BG1 and \(K=10Z\) for BG2;
+- calculate and test the exact library minimum-rate convention for every block—equivalently use the largest \(E_r\) when checking the minimum \(K'/E_r\)—with equality accepted;
+- validate every candidate ratio for Imagenette and STL-10;
+- give ER-9 a counted selector bit and `min(range-coded, fixed-width raw)` escape, or reserve a proven worst-case framing expansion;
+- hash the exact generated params and evidence script into the record.
+
+### Exit test
+
+Assert over the whole grid:
+
+```text
+A % 8 == 0
+B_prime % C == 0
+C * K_prime == B_prime
+K == 22*Z for BG1
+K == 10*Z for BG2
+filler_total == sum(K - K_prime for each block)
+sum(E_r) == G
+every E_r % Q_m == 0
+complete source/framing/padding accounting == A
+K_prime/E_r >= configured_floor(base_graph) for every block
+A is maximal under the nominal-rate predicate, or minimal under the named floor override
+```
+
+Add independent boundary vectors around A=292, A=3824, both `K_cb` values, base-graph switches, lifting-size switches, segmentation-count changes, and \(E_r\) distribution changes. Regenerate the JSON and revise AM-49’s canonical numbers, evidence README, crossover explanation, and every dependent runtime/payload statement.
+
+## P0-7 — The PHY seam remains underspecified in ways that can silently weaken the baseline
+
+### Omitted modulation bit interleaver
+
+TS 38.212 §5.4.2.2’s modulation bit interleaver must be explicit for QPSK/16-QAM. Sionna applies the output interleaver when `num_bits_per_symbol=Q_m` is given to the encoder; the W0 encoder probes instantiate without it. Omitting it changes how unequal 16-QAM bit channels receive coded bits and can silently reduce the baseline.
+
+Add a named parameter, pass \(Q_m\) at the seam, invert consistently at the decoder, and validate QPSK/16-QAM rate-matched vectors.
+
+### CRC and decoder details
+
+`cb_crc_bits: 24` must name CRC24B. Pin CRC16, CRC24A, and CRC24B polynomials, bit order, initialization, final XOR, and known-answer vectors. G-2 says the offset-min-sum offset is pinned, but no parameter currently pins it; Sionna’s documented default is 0.5. Pin and assert it rather than inheriting a library default. Also pin clipping, iteration schedule, and any LLR saturation.
+
+TS 38.212 does not provide the published BER/BLER curve G-2 asks to match. Name a real, downloadable reference dataset/config/checksum now. The reference must match \((K,N)\), base graph, lifting size, modulation, decoder algorithm, offset, iterations, and SNR convention.
+
+### Mapping, demapping, and energy
+
+Pin TS 38.211 Gray mapping/scaling for QPSK and 16-QAM, the demapper formula (APP or max-log), noise-variance convention, and the already discovered `log(p1/p0)` sign at one tested seam.
+
+The current “equal average symbol power equals equal transmitted energy” wording is exact for the learned per-image normalization and constant-modulus BPSK/QPSK. A normalized 16-QAM constellation has average energy 1 **under uniform labels**, but the project has not specified a post-rate-matching scrambler that guarantees uniform magnitude-bit labels, and finite packets fluctuate in either case. Per-packet rescaling would create a data-dependent gain and require the receiver to know/count it.
+
+Preferred policy: use one fixed normalized constellation, do not secretly rescale each codeword, and log realized packet/dataset energy. Either add a deterministic receiver-known whitening/scrambling rule before mapping or report any deviation from uniform-label constellation energy. State fairness as equal channel uses and measured aggregate/expected symbol energy for the digital arm. If exact per-packet equality is retained, specify how the gain reaches the receiver and count or symmetrically exclude it.
+
+### Standards claim scope
+
+The design uses the NR LDPC/CRC/segmentation/rate-matching core over an abstract AWGN channel. It does not implement TS 38.214 TBS/MCS/resource allocation, OFDM/resource mapping, HARQ, or a full NR link; plain BPSK is not NR uplink π/2-BPSK. Label it accurately:
+
+> “A TS 38.212-derived 5G NR LDPC coding and rate-matching core, with custom byte-framed payloads and generic BPSK/QPSK/16-QAM over abstract AWGN.”
+
+Do not call it complete NR packetisation/link conformance unless the missing standards layers are implemented.
+
+The relevant library behavior is documented in [Sionna’s LDPC encoder source](https://nvlabs.github.io/sionna/_modules/sionna/phy/fec/ldpc/encoding.html), including `num_bits_per_symbol`. Because that documentation URL can track the current release, archive the exact Sionna 2.0.1 wheel/source hash and the relevant source excerpt in the evidence record rather than inferring behavior from the W0 probe or a mutable webpage.
+
+### Exit test
+
+G-2 must cover mapper/demapper/bit-interleaver known answers for \(Q_m=1,2,4\), all three CRCs, both base graphs, segmentation and rate matching, the LLR sign, decoder offset, and the named BLER reference. A sign-flipped or bit-interleaver-disabled 16-QAM fixture must fail loudly.
+
+## P0-8 — W1’s data/config/environment contract is not frozen enough
+
+### Dataset and split provenance
+
+The params give counts and a seed but not:
+
+- exact source/version URL and archive SHA-256;
+- licence and class-to-index mapping;
+- stable sample-ID rule;
+- whether the validation carve is stratified;
+- pre-shuffle ordering and exact RNG algorithm;
+- committed split-manifest path/hash.
+
+A seed is not a portable split specification when loader ordering and library behavior can change. Commit a manifest of stable IDs and labels, hash it, and test train/validation/test disjointness and counts.
+
+Current torchvision documentation includes an official [`torchvision.datasets.Imagenette`](https://docs.pytorch.org/vision/master/generated/torchvision.datasets.Imagenette.html) loader. The implementation should either pin and use that exact loader/version/integrity behavior or pin a direct archive/checksum; it should not rely on the stale nonnormative assumption that Imagenette is absent from torchvision.
+
+### Preprocessing
+
+SR-19 exists and correctly requires common canonical pixels, but its parameters do not fix:
+
+- random-resized-crop scale/ratio;
+- horizontal-flip probability;
+- model channel mean/std;
+- whether canonical resize/crop and training augmentation are one transform or two;
+- codec downsample/receiver-upsample interpolation and crop behavior.
+
+Freeze one canonical evaluation image and one training augmentation pipeline. Test that the codec and learned encoder receive byte-identical canonical pixels before their system-specific operations.
+
+Add SR-19 explicitly to the W1 schedule row and to G-1’s acceptance criteria. Its existence elsewhere in the spec does not currently stop W1 data from flowing before the canonical-pixel contract is accepted.
+
+### G-1
+
+G-1 must be validation-only and should gate the durable W1 outputs, not only an accuracy scalar:
+
+- dataset download/integrity and all manifests;
+- registry coverage for all three datasets;
+- config round-trip and no experiment constants hidden in source;
+- canonical-pixel identity;
+- dependency/accelerator smoke;
+- classifier log/checkpoint/config provenance;
+- exact approved fallback ladder.
+
+“Switch backbone or extend training” is too open. It permits architecture and compute changes after inspecting a gate metric. Name the order, maximum epochs, candidate backbones, selection split, parameter-count consequence, and stopping rule now.
+
+### Environment
+
+[`requirements.txt`](../requirements.txt) currently contains only `PyYAML>=6.0`. W0’s useful scratch environment is outside the repository and its install procedure is not a W1 lock.
+
+Freeze:
+
+- Python version;
+- lock format and hashes;
+- Torch/torchvision/Sionna/Glymur/OpenJPEG/scikit-image/analysis/demo versions;
+- the CUDA wheel index and a `torch.version.cuda is not None` assertion;
+- driver/device information captured in run metadata;
+- torchvision op smoke tests;
+- OpenJPEG runtime/version checks;
+- a CPU installation path for analysis/demo where appropriate.
+
+### Exit test
+
+From a clean checkout, one documented command must create the environment, verify hashes, materialize manifests, run a data integrity/split/preprocessing test, train or resume the W1 classifier, and reproduce its validation metric and metadata schema without reading test samples. Pin deterministic backend settings and a numerical reproduction tolerance; a reasonable starting requirement is exact hashes/predictions for deterministic CPU fixtures and validation top-1 within 0.1 percentage point for a same-seed GPU retrain, while never falling below the G-1 floor.
+
+## P0-9 — AM-52 and W0 evidence are out of sync with the live spec
+
+### Evidence
+
+AM-52 added three SNR points. Live text and evidence still say:
+
+- 13 low-region points / 11 runs (§2);
+- 18 aggregate points (H3/ER-10);
+- 18 SNR points and 180 configurations (`g9_spike_record.json`);
+- approximately 424k classifier forwards and 212k JPEG 2000 decodes (§16);
+- 2.07/4.14 h LDPC-only projections.
+
+Current values are:
+
+| Quantity | Current live value |
+|---|---:|
+| Total SNR points | 21 |
+| Points \(\le7\) dB | 16 |
+| Candidate length-three H1 runs | 14 |
+| Full packet grid | 216 configurations |
+| One-ratio LDPC-only projection, simple 21/18 scaling | about 2.42 h |
+| Two-ratio LDPC-only projection, simple 21/18 scaling | about 4.83 h |
+| Two-classifier classical forwards | 494,550 |
+| JPEG 2000 test decodes | 247,275 |
+
+The throughput measurement itself remains useful. The projection and the claim that two ratios are “comfortably affordable” do not. Packetisation corrections and real codec/demapper/classifier timings should feed the regenerated figure.
+
+The W0 record also lacks the audited commit and params hash, and the archived spike script still describes the five-ratio/180-configuration state. Evidence meant to support a moving spec needs a clear “historical measurement” label plus the exact config it measured.
+
+### Required correction
+
+- Propagate 21/16/14 through §2, ER-10, §16, generated views, docs, and evidence.
+- Rerun the current 216-configuration arithmetic after P0-6.
+- Recompute the 21-point projection from code-block counts rather than only multiplying by 21/18.
+- Keep LDPC-only and total-pipeline projections separately named.
+- Add commit, params hash, script hash, versions, and timestamp to evidence records.
+- Make G-8 compare decomposable per-run cost and total schedule cost; the four-hour cap is per run, while two ratios still consume aggregate calendar time.
+
+### Exit test
+
+A repository search for stale live uses of “18 points”, “13 points”, “11 runs”, “180 configurations”, 2.07, 4.14, 424k, and 212k must return only clearly labeled historical amendment/evidence context. A recomputation test must derive all live projection fields from the current SNR grid.
+
+## P0-10 — The outage fallback adds avoidable variance on a false pairing rationale
+
+### Evidence
+
+BR-13/AM-38 reject a deterministic fixed-class fallback on the ground that it breaks pairing. That is mathematically false. A fixed categorical prediction is reproducible and perfectly pairable, and its per-image correctness outcome remains binary.
+
+Uniform random labeling gives expected target accuracy \(1/C\) and adds Monte Carlo variance. A training-split modal class is not guaranteed to beat \(1/C\) under split drift, but the project already permits validation tuning: selecting the best constant class on validation and freezing it before test is a deterministic, comparator-favorable no-information policy. The current rationale for rejecting every deterministic fallback is therefore false and preserves avoidable variance for no pairing benefit.
+
+Reproducibility from a shared sequential `channel_seed` also does not ensure identical fallback draws if systems encounter outages in different orders.
+
+### Required correction
+
+Select the constant fallback class on validation with a fixed class-ID tie-break, freeze it before test, and use it for every digital outage. In BR-4’s analytic composition, use its measured validation accuracy rather than assuming exactly \(1/C\). Keep coverage and accuracy-given-delivery reporting.
+
+If random fallback is retained for a sensitivity, key it by `(split_manifest, stable_sample_id, channel_seed, purpose="outage_label")`, not by conditional RNG consumption.
+
+When the codec is infeasible, define whether the baseline still transmits a dummy \(k\)-symbol packet. Otherwise describe the budget as equal scheduled channel uses rather than equal actual transmitted energy.
+
+### Exit test
+
+Fallback predictions must be invariant to row order, system, batching, and outage frequency. The analytic and simulated outage accuracies must reconcile with the frozen validation class prior.
+
+## P0-11 — The current academic calendar is known and the live schedule is wrong
+
+The current [Fall 2026–27 circular](../vault/capstone/Circular%20Capstone%20FALL%202026-27%20Semester.pdf) resolves the dates:
+
+| Deliverable | Circular date | Week from W1 = 2026-07-27 |
+|---|---|---|
+| First Review | 18–22 August 2026 | W4 |
+| Second Review | 29 September–3 October 2026 | W10 |
+| Final Review | 17–21 November 2026 | W17 |
+| Report/supporting material due | by 20 November 2026 | W17 |
+
+`review_weeks.third: 16` and `review_dates_status: pending...` are stale. W16 is real slack and should be deliberately assigned to final report/audit contingency. The report deadline falls during the final-review week, so an earlier internal freeze is necessary.
+
+G-10 is also scheduled in the same week as the Second Review package whose objectives it may change. Run the crossover decision on frozen validation curves at the start of W9, after W8 models exist, so the package is not rewritten during review week.
+
+The circular expects hardware implementation or, failing that, significant design aspects applied to a real-world problem. Tier 1 can plausibly satisfy the alternative, but a one-page deployment note is thin protection. Produce a hardware-free system-design dossier: deployment architecture, link budget, packet/frame design, latency/compute/energy estimates, and simulation-to-radio mapping. Obtain guide acknowledgement that this satisfies the alternative clause without converting Tier 2/3 into required scope. W1 release need not wait for the completed dossier, but the guide decision must be assigned and requested with a due date before the First Review.
+
+The repository’s proposal DOCX is a blank template. That does not prove no proposal was submitted externally, but the submission/registration status must be verified now because the circular makes guide submission part of registration.
+
+### Exit test
+
+The amended schedule/Gantt must use the four exact dates, move Final Review to W17, reserve W16 explicitly, put G-10 before the Second package, and contain an owner/status for proposal registration. It must also schedule the hardware-alternative guide decision before W4 and make the eventual acknowledgement an acceptance criterion for the deployment dossier.
+
+---
+
+# P1 findings — mandatory before their named gate
+
+## P1-1 — Preregister the exact system map and family of claims
+
+The artifact schema contains eleven systems while §2 says generic “learned” and “classical”. G-8 may also authorize full-strength evaluation at a second ratio.
+
+Freeze:
+
+- H1/H3: `learned` versus `classical_adaptive`, at `headline_ratio`;
+- H2: `learned` versus `classical_fixed_mcs`, using one named classifier variant and the post-fine-tune frozen window;
+- H4: `learned` versus `er9_digital`, at `headline_ratio`;
+- PAPR-constrained, SNR-randomized, fixed-modulation, JPEG secondary, efficiency-ratio, and reconstruction-ablation curves: secondary unless explicitly promoted before test.
+
+Declare H1 the sole confirmatory primary. Treat H2/H3 as preregistered secondary marginal inferences. Gate H4 behind H1 if the desired claim is the conjunction of a total and residual gap; otherwise specify a family-wise procedure. The current multiplicity discussion covers SNR points inside H1, not four hypotheses and possibly two ratios.
+
+**Due:** before the corrected spec is frozen; no later than G-1.
+
+## P1-2 — ER-3’s selector and low-ratio rule are not executable
+
+“High-SNR ceiling” could mean the 18 dB point, the maximum grid point, a fitted plateau, or the error-free codec score. “Within \(t\)” does not say absolute difference or “no more than \(t\) below”.
+
+Use BR-4’s already required error-free codec validation accuracy:
+
+\[
+\operatorname{LCB}_{95}(A_{\text{codec ceiling}}-A_{\text{clean}})\ge -t.
+\]
+
+This is learned-blind, avoids channel-seed noise, treats a codec score above clean as satisfying the rule, and conservatively strengthens the baseline. Pin numeric ratio ordering and tie-breaking.
+
+`smallest_ratio_at_least_two_rungs_below_headline` literally chooses the bottom of all eligible rungs, not the provisional exactly-two-steps value. Replace it with “exactly two ordered ladder steps below; if unavailable, apply the named boundary rule.”
+
+The automatic downward extension is not architecturally free below `r_1_48`: the current 4× encoder already emits one complex channel there. Prefer an honest left-censored result (“selected at or below r=1/48”) over an unbounded G-8 architecture redesign. If extension remains mandatory, design the arbitrary-\(k\) projection before W2.
+
+Define an upper-grid saturation check too. If the validation adaptive baseline is still rising or 16-QAM BLER is not near its plateau at 18 dB, extend the upper SNR grid before test and without consulting learned test outcomes.
+
+**Due:** before G-8, with the boundary behavior frozen before W2 if it affects architecture.
+
+## P1-3 — Close the artifact-classifier/H2 sequencing loop
+
+The artifact-finetuned scorer’s source split and recipe are unspecified. Training it on validation images and then selecting pass-two configurations on those same images would leak training into selection.
+
+Required sequence:
+
+1. pass-one configuration/quality choices from validation under the clean scorer;
+2. build the artifact corpus from **training-split images only** at validation-selected qualities/configurations;
+3. fine-tune with a fully config-derived recipe;
+4. rescore validation artifacts;
+5. freeze pass-two BR-4 configurations;
+6. freeze BR-16’s fixed configuration, H2 scorer, and H2 window under that same final scorer;
+7. close G-8.
+
+Consider training over a preregistered broad set of feasible artifacts rather than only pass-one winners, so pass two cannot move to an artifact family the classifier never saw.
+
+**Due:** before G-8.
+
+## P1-4 — Add a progressive/layered JPEG 2000 baseline sensitivity
+
+The headline reconstruction baseline puts the whole JPEG 2000 stream behind one transport-block success condition. The spec itself concedes that progressive packetisation or unequal protection can degrade gracefully. Narrowing H2 to a fixed single packet handles wording, but it does not eliminate the fairness objection for H1.
+
+At minimum, add a one-seed headline-ratio sensitivity over a small preregistered packet-count set such as `{1, 2, 4}`, independently protecting progressive prefixes/layers under the same total \(k\), with all CRC and packet overhead counted and packetization tuned on validation.
+
+The stronger version is preferable: make packet count/layer allocation a BR-4 tuning axis and let the adaptive reconstruction headline be the validation-selected best digital reconstruction arm. Keep the single fixed packet as H2’s deliberately narrow waterfall reference.
+
+If scope prevents promotion, show the sensitivity immediately beside the headline and explicitly bound the claim. A material gain or a changed H1 verdict cannot be hidden in an appendix.
+
+**Due:** design frozen before G-2; result before G-8/ER-1.
+
+## P1-5 — Fix JPEG 2000 downsampling and cache identity
+
+`downsample_axis_px: [160,128,96,64]` upscales STL-10 and offers no native 32 px option to CIFAR-10. Make candidates dataset-specific and never label an upscale as downsampling.
+
+`j2k_cache_key: [image_hash,budget_bytes]` is insufficient. Emitted bytes also depend on input resolution, codec flags, library version, search settings, and potentially color/bit depth. Use a content-addressed key over canonical pixels plus the complete codec config/version.
+
+Pin receiver resampling/cropping. Benchmark the rate-control/cache path early; a naive sweep can require millions of encodes even though the final cache is manageable.
+
+**Due:** before W4/BR-4.
+
+## P1-6 — Finish the learned-system recipe and add early learnability gates
+
+The architecture block is much better after AM-48, but implementation-changing details remain:
+
+- exact convolution kernels/strides/padding and residual topology;
+- group count, initialization, reconstruction activation, head topology;
+- Adam betas, weight decay, warmup/minimum LR;
+- gradient clipping and AMP scaler behavior;
+- checkpoint selection metric/tie-break;
+- exact fixed-SNR and randomized-SNR sampling unit/distribution;
+- full PAPR-constrained algorithm and cap.
+
+`peak_power_constraint_available` and a required variant do not define a cap, projection/clipping method, penalty, or selection rule. A defensible reference is the normalized 16-QAM maximum symbol energy/PAPR, or another physically justified cap fixed before training.
+
+Add validation-only early gates:
+
+- overfit a tiny batch;
+- noiseless/high-SNR identity/task sanity;
+- non-chance one-seed pilot;
+- gradient and power-normalization checks.
+
+These catch failure while it is still an implementation finding rather than a W7 schedule crisis.
+
+**Due:** architecture details before W2/G-7; training details before W5.
+
+## P1-7 — ER-9 is feasible in principle but not yet a reproducible matched control
+
+Before G-7, freeze:
+
+- exact shared pre-interface tap and post-interface architecture;
+- decoder trunk/reconstruction-head/loss/λ policy;
+- paired seeds and checkpoint selection;
+- transmitted-dimension factorization and order of pooling/channel changes;
+- exact two-stage width/bit search and tie-break;
+- whether width/bits are global, per ratio, or per SNR;
+- quantizer range, scale, clipping, and counted side information;
+- raw/coded escape framing that cannot expand beyond budget.
+
+The control should choose one dimension/bit policy on validation under a named objective, then allow only the same preregistered transport adaptation as specified. If the G-11 fallback drops entropy coding or otherwise materially weakens the control, H4 should become “not adjudicated/exploratory under a weakened control”, not remain supportable under the same label.
+
+Run a validation-based precision simulation before final W8 training. With 3,925 images, an approximate paired MDE ranges from about 1.4 pp at 10% discordance to 3.2 pp at 50% discordance for one cell at one-sided 2.5% and 80% power. A 1–2 pp H4 residual may therefore be underpowered, especially when training variability is acknowledged. More channel draws do not replace independent training runs.
+
+**Due:** contract before G-7; final feasibility before G-11.
+
+## P1-8 — Redesign BR-2/G-2 fixture coverage rather than assuming arbitrary \(Z\) can be pinned
+
+The W0 log is legitimate evidence: 17 exact encoder cases match across both base graphs and many lifting sizes. It is not yet the promised W3 fixture:
+
+- 85/102 upstream cases are skipped because Sionna infers a different \(Z\);
+- Sionna 2.0.1 exposes no ordinary public constructor argument to force arbitrary \(Z\);
+- the current probe checks the encoder path, not the complete CRC/segmentation/rate-match/demapper path.
+
+Do not claim that simply “pinning \(Z\)” will unlock 85 cases. Build coverage around exact configurations Sionna can instantiate, add an independent local-standard oracle for the other boundary logic, require both base graphs and a minimum nonzero case count, and fail if coverage unexpectedly collapses to zero.
+
+Archive the already verified srsRAN release asset outside git now, as §16 requires.
+
+**Due:** fixture design before W3; G-2 before any comparison.
+
+## P1-9 — Commit reproducible inference summaries, not only aggregate performance rows
+
+The current aggregate schema cannot store interval bounds, p-values, H1 run length/permutation result, H2 margins, H3 slope, or verdicts. Per-image files are likely too large for ordinary git, but ER-7 requires every thesis number to resolve to committed evidence.
+
+Add a committed inference-summary table with:
+
+- estimand/hypothesis;
+- systems and ratio;
+- SNR/region/window;
+- seed aggregation rule;
+- estimate and interval;
+- p-value/calibration statistic;
+- support decision;
+- source run IDs;
+- per-image artifact checksum/location;
+- analysis commit/config hash.
+
+Store per-image outcomes either compressed in a manageable committed form or as a content-addressed release artifact with a committed manifest and checksum. Merely ignoring `results/per_image/` leaves the inferential record unreproducible.
+
+**Due:** schema before W5; populated before ER-10.
+
+## P1-10 — Rebalance the execution schedule around the actual risk
+
+- W3 already contains LDPC integration, standards tests, bit accounting, and 16-QAM demapping. Pull mapper/demapper/CRC fixtures earlier or allow spill into W4 before classical tuning.
+- W9 combines the entire ER-9 system and SNR-randomized training. Move G-10’s cheap validation crossover decision to early W9, then reserve explicit contingency for ER-9.
+- W10 should use validation, not test.
+- Benchmark total ER-1 cost at W3/W4, including cached JPEG 2000 decode, demapping, and both classifier variants.
+- Benchmark CPU demo latency early. If 50-iteration LDPC cannot meet 500 ms, permit a content-addressed precomputed gallery while keeping the SNR/control interaction honest and clearly labeled.
+- Use newly discovered W16 as report/result-audit contingency, not as unallocated “buffer”.
+
+**Due:** PR-2 Gantt before the First Review.
+
+---
+
+# P2 findings — hardening and course protection
+
+## P2-1 — Course artifacts are already on the critical path
+
+PR-1’s literature review and PR-2’s Gantt are due for W4 and are not present. Begin them during the amendment hold; this is useful work that does not contaminate the experiment.
+
+The proposal template in the repository is blank. Verify whether a completed copy exists externally and record registration status.
+
+The thesis template appears older than the current circular. Keep it only after confirming the school has not issued an updated format.
+
+The deployment dossier should explicitly map the simulated finite-blocklength link, payload sizes, latency, and compute to the circular’s “significant design aspects applied to a real-world problem” alternative. This protects Tier 1 without quietly promoting hardware.
+
+## P2-2 — Evidence needs immutable provenance
+
+Every regenerated evidence record should include:
+
+- audited commit and dirty flag;
+- params/config hash;
+- script hash;
+- dependency/library versions;
+- device/driver details where relevant;
+- source artifact checksums;
+- timestamp;
+- explicit historical/current status.
+
+The W0 throughput record can remain historical evidence. It should not masquerade as current-grid evidence after the ratio/SNR/packet contracts change.
+
+## P2-3 — Clean up stale live explanations after amendments
+
+Known stale or misleading statements include:
+
+- DEC-16’s claim that adaptive modulation leaves “the cliff H2 depends on” untouched, after H2 moved to BR-16’s fixed-MCS curve;
+- §16’s old 18-point cost prose;
+- the 13/11 H1 arithmetic;
+- old non-byte payload examples in `docs/crossover-explained.md`;
+- the evidence README’s 3.9–4.1 h statement;
+- the claim that the packet script proves every “live” operating point when “live” only means three provisional ratios;
+- nonnormative claims that Imagenette is unavailable in torchvision and that arbitrary \(Z\) can simply be pinned.
+
+Historical AM text should remain append-only. Correct live text with new amendments and label historical records rather than rewriting history.
+
+---
+
+# What is already strong and should not be dismantled
+
+This audit does **not** recommend reopening these choices:
+
+- simulation-first Tier 1, with radio/Raspberry Pi work as stretch;
+- supervised DJSCC rather than an RL framing;
+- Imagenette headline, STL-10 fallback, CIFAR-10 smoke-only;
+- JPEG 2000 as codec of record and JPEG only as a secondary curve;
+- adaptive modulation for the fair classical headline;
+- a separate fixed-MCS curve for the deliberately narrow H2 waterfall claim;
+- validation-only tuning and one final test campaign;
+- exact channel-use matching and full overhead accounting as the goal;
+- Sionna 2.0.1 behind an adapter seam rather than a local LDPC rewrite;
+- ER-9 as a required task-aware digital attribution control;
+- honest completion independent of hypothesis outcome;
+- no manufactured crossover and no weakening of the learned system;
+- explicit amendment history and negative-result reporting;
+- three zipped seed cells as a bounded compute choice, provided inference is stated as conditional rather than a population variance decomposition.
+
+The learned-blind operating-point idea is particularly good. It only needs an executable ceiling definition and boundary rule. The H4 causal caveat is also appropriately restrained. The audit’s recommended changes strengthen the baseline/control and tighten inference; none are designed to make the learned system win.
+
+---
+
+# Failure-avoidance strategy that remains scientifically clean
+
+The user’s preference—failure is a valid finding but should be avoided where legitimate—can be honored without moving goalposts.
+
+## Do before results exist
+
+1. **Freeze executable statistics.** This prevents a real effect from being lost to an ambiguous aggregation rule and prevents noise from being called a discovery.
+2. **Run prospective precision simulations on validation-derived discordance.** If H4 cannot resolve a plausible residual, narrow the claim or increase genuinely independent training replication before test.
+3. **Strengthen every digital comparator.** Use the validation-optimal frozen no-information fallback, modulation interleaving, validated demapping, progressive JPEG 2000 sensitivity, and a non-expanding ER-9 bitstream.
+4. **Add early learnability and pipeline gates.** Tiny-set overfit, high-SNR sanity, exact-power tests, CRC/mapper vectors, and end-to-end validation rehearsal turn avoidable implementation failure into an early fix.
+5. **Protect the high-SNR region.** Extend the validation grid upward if the adaptive baseline has not saturated by 18 dB. Do not truncate before 16-QAM can work.
+6. **Protect compute.** Reprofile the 21-point total pipeline and use W16 deliberately.
+7. **Keep objectives procedural.** “Build, validate, match, account, evaluate, report” remains passable even if every scientific hypothesis is unsupported.
+
+## Do not do
+
+- do not cap the baseline at QPSK;
+- do not use test results to choose a model, threshold, ratio, scorer, or bug-fix subset;
+- do not change H2 thresholds after seeing its classical component and still call them preregistered;
+- do not weaken ER-9 until H4 becomes easy;
+- do not stop the SNR grid before the baseline saturates;
+- do not rescale 16-QAM packets with receiver-hidden gains;
+- do not hide a stronger progressive reconstruction result as “secondary” if it changes the conclusion;
+- do not selectively rerun unfavorable test cells.
+
+This is the clean way to maximize the chance of an informative, defensible positive result.
+
+---
+
+# Suggested amendment tranche
+
+Use the next available AM IDs; the grouping below is thematic, not a demand for one ID per bullet.
+
+## Tranche A — preregistration
+
+- define the fixed-seed conditional estimand and image-trajectory bootstrap;
+- bind H1 permutation calibration to the decision;
+- replace H2 with the two-margin intersection-union rule;
+- finish or rename H3;
+- pin the system/ratio/scorer map and claim family;
+- remove W10 test access and make G-1 validation-only.
+
+## Tranche B — artifact/data contracts
+
+- separate `run_id`, `pair_id`, `noise_id`, and `analysis_cell_id`;
+- add stable IDs and explicit pairing fields to per-image outcomes;
+- freeze dataset provenance, manifests, preprocessing, and W1 environment;
+- broaden G-1 to accept the durable W1 contracts;
+- add a committed inference-summary artifact.
+
+## Tranche C — standards/baseline
+
+- replace AM-49’s solver/evidence with byte/divisibility-correct arithmetic;
+- correct BG2 and aggregate filler accounting;
+- add the modulation bit interleaver, CRC24B, decoder offset, mapping/demapping, and energy policy;
+- narrow the NR standards claim;
+- replace random outage with the validation-selected frozen constant class;
+- define the progressive JPEG 2000 sensitivity and ER-9 raw escape.
+
+## Tranche D — propagation/schedule
+
+- propagate 21/16/14 and regenerate runtime/evidence;
+- update exact review/report dates and move Final Review to W17;
+- move G-10 before the Second Review package;
+- allocate W16 and add proposal/hardware-alternative actions;
+- repair stale live prose/docs while preserving amendment history.
+
+The repository’s AM-47 propagation rule is essential here: reread §13 and every affected `verify` clause for every semantic change.
+
+---
+
+# W1 release checklist
+
+W1 becomes **GO** only when every item below is true:
+
+- [ ] A new append-only amendment tranche records all accepted P0 corrections and back-references every changed live item.
+- [ ] The seed-conditional estimand and single image-trajectory bootstrap are fully specified.
+- [ ] H1’s permutation result is part of its support rule.
+- [ ] H2’s two margins and H3’s convergence/catch-up rule have executable interval criteria.
+- [ ] H1/H2/H3/H4 each name exact systems, ratio, scorer, and claim status.
+- [ ] G-1 is validation-only; W10 uses validation; one final test-open procedure is specified.
+- [ ] `run_id`, `pair_id`, `noise_id`, and analysis-cell semantics are noncontradictory and tested.
+- [ ] Dataset source/checksum/licence/class mapping and committed deterministic split manifests are frozen.
+- [ ] The complete preprocessing and classifier fallback contracts are config-derived.
+- [ ] SR-19 is named in the W1 schedule row and accepted explicitly by G-1 before pixels flow.
+- [ ] The Python/CUDA/library lock and clean-install smoke procedure exist.
+- [ ] Packetisation evidence passes byte alignment, \(B'/C\), BG2 \(K=10Z\), per-block/total filler, \(E_r\), source-accounting, and all-ratio coverage invariants.
+- [ ] Modulation interleaving, CRC24B, decoder offset, mapper/demapper, LLR, and digital energy policies are pinned.
+- [ ] The standards claim is narrowed to what is implemented.
+- [ ] The digital outage fallback no longer weakens the comparators.
+- [ ] All 21-point statistical prose and runtime figures are regenerated from current params.
+- [ ] Evidence records carry commit/config/script hashes.
+- [ ] Exact review/report dates and W17 are in the schedule; G-10 precedes the Second package.
+- [ ] Proposal-registration has an owner/status, and the hardware-alternative guide decision is scheduled before W4 with acknowledgement as the dossier’s acceptance criterion.
+- [ ] `.venv/bin/python tools/gen_spec_views.py --check` passes.
+- [ ] Every revised evidence script/check passes from a clean checkout.
+- [ ] A final diff audit finds no stale generated file, silent spec change, or new test-access path.
+
+Safe work during the hold: the amendment tranche, literature review, Gantt/calendar correction, dataset provenance/manifests, dependency locking, and archiving the pinned upstream vector asset. Do not begin experiment-producing implementation from the current config.
+
+---
+
+# Final decision
+
+**W1: NOGO.**
+
+**Project: GO after the bounded P0 correction tranche.**
+
+There is no fatal flaw in the thesis. The most dangerous findings are implementation-contract and evidence defects, and the corrected packet arithmetic preserves every currently feasible operating configuration. That is exactly the kind of NOGO a final gate should issue: short, specific, recoverable, and much cheaper now than after the first result.
+
+Once the W1 release checklist is satisfied, my verdict changes to:
+
+> **GO for W1, with P1 items enforced at their named gates and no weakening of the baseline or control.**
