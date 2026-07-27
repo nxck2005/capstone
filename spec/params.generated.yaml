@@ -968,6 +968,9 @@ environment:
   python_version: 3.14.6
   lock_format: pip_requirements_with_hashes
   lock_file: requirements.lock
+  lock_source: requirements.in
+  lock_tool: uv
+  lock_tool_version_min: '0.11'
   torch: 2.13.0+cu130
   torchvision: 0.28.0+cu130
   torch_index_url: https://download.pytorch.org/whl/cu130

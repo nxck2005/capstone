@@ -611,11 +611,14 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | Parameter | Value | Cited by |
 | --- | --- | --- |
 | `environment.python_version` | 3.14.6 | AM-58, SR-21 |
-| `environment.lock_format` | pip_requirements_with_hashes | AM-58, SR-21 |
-| `environment.lock_file` | requirements.lock | AM-58, SR-21 |
+| `environment.lock_format` | pip_requirements_with_hashes | AM-58, AM-61, SR-21 |
+| `environment.lock_file` | requirements.lock | AM-58, AM-61, SR-21 |
+| `environment.lock_source` | requirements.in | AM-58, SR-21 |
+| `environment.lock_tool` | uv | AM-58, AM-61, SR-21 |
+| `environment.lock_tool_version_min` | 0.11 | AM-58, SR-21 |
 | `environment.torch` | 2.13.0+cu130 | AM-58, SR-21 |
 | `environment.torchvision` | 0.28.0+cu130 | AM-58, SR-21 |
-| `environment.torch_index_url` | https://download.pytorch.org/whl/cu130 | AM-58, SR-21 |
+| `environment.torch_index_url` | https://download.pytorch.org/whl/cu130 | AM-58, AM-61, SR-21 |
 | `environment.sionna` | sionna-no-rt==2.0.1 | AM-58, SR-21 |
 | `environment.numpy` | 2.5.1 | AM-58, SR-21 |
 | `environment.pillow` | 12.3.0 | AM-58, SR-21 |

@@ -9,15 +9,16 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 **Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, three
 rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the docs
-sweep in `7b7c70a`, **AM-57..AM-60 this session**). **No project code exists yet:** no `src/`, no
+sweep in `7b7c70a`, **AM-57..AM-62 this session**). **No project code exists yet:** no `src/`, no
 `tests/`, and `requirements.txt` is still tooling-only by design (SR-21 puts the runtime stack in a
-hashed `requirements.lock` built at W1). `gen_spec_views.py --check` passes at **168 requirements**
-and `check_packetisation.py` passes with **zero failures** — if either is untrue when you read this,
-something landed after this line was written.
+hashed `requirements.lock` built at W1). All three checks pass: `gen_spec_views.py --check` at **170
+requirements**, `check_doc_consistency.py` (new, AM-62) across 8 hand-written docs, and
+`check_packetisation.py` with **zero failures** — if any is untrue when you read this, something
+landed after this line was written.
 
 ---
 
-## Just landed — the Codex gate audit adjudicated, AM-57..AM-59 applied
+## Just landed — the Codex gate audit adjudicated, AM-57..AM-62 applied
 
 **`audit/JUDGE_codex` (`EXT-6`)** returned **project GO, W1 NOGO — temporary hold**: 11 P0 findings,
 10 P1s, 3 P2s. It is the most accurate review this project has received. **Every checkable numeric
@@ -41,8 +42,10 @@ the torchvision loader against current upstream docs.
 **Three decisions you made this session, don't reopen:** H3 keeps the **full-grid** slope and gains a
 magnitude-contraction clause (the audit's high-SNR refit was rejected — it abandons the half of the
 grid where the effect is largest); W10's rehearsal and the Second Review figure move to
-**validation**, test stays sealed behind a freeze manifest until G-10 closes; H4's power floor is
-**declared and simulated before W8** rather than fixed by more training runs.
+**validation**, test stays sealed behind a freeze manifest until **G-12 at W11** (AM-60 — it briefly
+read G-10, which after AM-59 sits at the *start of W9* and would have released the split three weeks
+early); H4's power floor is **declared and simulated before W8** rather than fixed by more training
+runs.
 
 **The packetisation script reported zero failures while breaking four of its own rules** — that is
 the finding worth carrying forward. 92/215 rows had a non-byte-aligned `A` under a solver whose own
@@ -80,7 +83,7 @@ worst defects; EXT-5 said "NO-GO/HOLD on the whole spec" but only *one* of its f
 Result: 122 → **158 requirements**, `AM-26`..`AM-55`, split into two rounds in §17. A third round
 followed on 2026-07-28 — `AM-56`, from a **self-audit of those two rounds**, which found that AM-53
 had left H2 able to select its comparison window on a different curve from the one it evaluates.
-That round closed at 159 requirements; the count is **166** after AM-57..AM-59 above. Worth noting as
+That round closed at 159 requirements; the count is **170** after AM-57..AM-62 above. Worth noting as
 a pattern rather than an embarrassment: every audit round so far — including the audit of the audit,
 and including the round that audited a *passing* evidence script — has found something real.
 
@@ -177,17 +180,69 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
-**The short version, in order.** Everything in the W1 release checklist is now satisfied except the
-two items only you can do, so the hold is cleared on the specification side.
+### Cold-start: the first thing to do in a fresh session
 
-| # | Do | Why now | Blocks |
-|---|---|---|---|
-| 0 | **Commit this round** — 20 files, `AM-57`..`AM-60` | The tree is dirty; the preregistration record *is* the git history, so an uncommitted hypothesis change is an unrecorded one | everything |
-| 1 | ⚠️ **Verify proposal registration** (PR-10) | The circular makes proposal submission part of *registration*, and the repo's copy is a blank template | nothing technical — but nothing recovers from it |
-| 2 | ⚠️ **Ask the guide about the hardware alternative** (PR-9) | Circular clause 5. Due before W4, and the answer shapes the dossier's scope | First Review package |
-| 3 | **Fetch and archive the srsRAN vectors** | One minute, and the upstream repo is archived — the window is not guaranteed | G-2 at W3 |
-| 4 | **Start W1(a)–(f) below** | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
-| 5 | **Begin PR-1 (literature review) in parallel** | Due W4, ~25 refs, and it is the only W1-safe work that needs no code | First Review, and DEC-13's novelty claim |
+**State on 2026-07-28, verified:** no `src/`, no `tests/`, no `data/`. `.venv` has PyYAML only.
+Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · 890 GB free.
+srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files, gitignored).
+
+Confirm nothing drifted, then start W1(a):
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 170 requirements (2 retired)
+.venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
+.venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
+git status --short                                          # expect: clean
+```
+
+`check_doc_consistency.py` is new (AM-62) and exists because the same propagation failure happened
+three rounds running. It enforces the convention this repo already had — **a superseded value may
+appear only in a block that cites the amendment which superseded it** — across the hand-written files
+that `--check` never looked at. When an amendment supersedes a value that appears in prose, add a
+rule to its `stale` table; that table is the tool's memory and is meant to grow.
+
+**W1(a) is the first build step and the long pole** — start it before anything else, because the
+CUDA wheels are ~3 GB and everything from (c) onward needs them. The resolver is **`uv`**, decided
+2026-07-28 (AM-61) — do not substitute `pip-tools`, and do not re-litigate it. The shape:
+
+```bash
+# requirements.in  <- hand-written, pins from params.environment
+# requirements.lock <- generated, hashed, committed
+uv pip compile requirements.in --generate-hashes -o requirements.lock
+uv pip sync requirements.lock
+.venv/bin/python -c "import torch; assert torch.version.cuda is not None, 'CPU BUILD'"
+```
+
+Two traps in that block, both already paid for once:
+- **`torch` must come from `params.environment.torch_index_url`**, not PyPI. A bare resolve silently
+  yields the **CPU build** and the only check that catches it is `torch.version.cuda is not None`,
+  not a successful import (AM-23). With `uv` this means an explicit extra index plus an index
+  strategy that will actually reach it — verify the assertion passes, do not assume.
+- **The lockfile must stay installable by plain `pip install --require-hashes`** (SR-21/AM-61).
+  `uv` is pinned so *resolution* reproduces; the project must not acquire a runtime dependency on it.
+
+Install into the **existing `.venv`** alongside the spec tooling rather than a second venv — that is
+what SR-21's "one documented command from a clean checkout" means here, and it is reversible.
+
+While the install downloads, build the three pure-Python pieces in (b), (d2) and (e3) below. They
+need no torch, everything else imports them, and they are the ones that cannot be retrofitted once
+results exist. Also set up `pytest` + `tests/` and record the commands in `AGENTS.md`, as it says to.
+
+---
+
+### The short version, in order
+
+Everything in the W1 release checklist is now satisfied except the two items only the author can do,
+so the hold is cleared on the specification side.
+
+| # | Do | Owner | Why now | Blocks |
+|---|---|---|---|---|
+| ~~0~~ | ~~**Commit `AM-57`..`AM-60`**~~ **DONE** — `37a02dd` | — | — | — |
+| ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
+| 1 | ⚠️ **Verify proposal registration** (PR-10) | **author** | The circular makes proposal submission part of *registration*, and the repo's copy is a blank template | nothing technical — but nothing recovers from it |
+| 2 | ⚠️ **Ask the guide about the hardware alternative** (PR-9) | **author** | Circular clause 5. Due before W4, and the answer shapes the dossier's scope | First Review package |
+| 4 | **W1(a)–(f) below**, starting with the install | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
+| 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, and it is the only W1-safe work needing no code | First Review, and DEC-13's novelty claim (AM-10 makes the claim *conditional* on it) |
 
 **Two things to carry into W1 that are new this round and easy to get wrong:**
 
@@ -211,14 +266,16 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    edit a hypothesis in place, always a new `AM` citing the old one; and "try your best for a
    crossover" authorises strengthening the baseline, never weakening the learned system.
 
-1. ⚠️ **Fetch the srsRAN vectors — do this first, it takes a minute and the window is not
-   guaranteed.**
+1. ~~⚠️ **Fetch the srsRAN vectors.**~~ **DONE 2026-07-28.** `spec/evidence/srsran_vectors/` holds
+   **276 `.dat` files (7.2 MB)** plus `ldpc_encoder_test_data.h`, all three
+   `params.baseline.ldpc_golden_vector_sha256` checksums verified OK, and `.gitignore` keeps them
+   out of git as designed. **The §16 risk is now materially smaller**: if upstream disappears, the
+   fixture still builds here — but the data lives only on this machine, so it is not in a backup and
+   a clean checkout elsewhere still needs the network or rung 4. Re-run
+   `spec/evidence/fetch_srsran_vectors.sh` to reproduce; original text below for the reasoning.
 
-   ```bash
-   spec/evidence/fetch_srsran_vectors.sh
-   ```
-
-   The script is committed and pins an immutable release; the asset returned HTTP 200 on 2026-07-27.
+   The script is committed and pins an immutable release; the asset returned HTTP 200 on 2026-07-27
+   and again on 2026-07-28.
    The upstream repo is **archived** and AM-30 established that **OCUDU publishes no replacement** —
    its vectors moved to a MATLAB-companion plugin that needs a licensed 5G Toolbox. So if this asset
    is withdrawn, rung 2 is gone permanently and G-2 degrades to the single hand-derived floor case.
@@ -232,12 +289,13 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    and the classifier's provenance — and it is **validation-only**, with SR-22's guard in place to
    prove zero test reads. Everything below is a G-1 acceptance item, not just step (f).
 
-   **(a) Environment lock (SR-21) — `requirements.lock`, hashed.** `requirements.txt` stays
-   tooling-only by design; the runtime stack is a separate hashed lockfile installed from
-   `params.environment.torch_index_url`, because a bare `pip install torch` silently resolves to the
-   **CPU build** and the check that catches it is `torch.version.cuda is not None`, not a successful
-   import (AM-23). Also owed here: `params.environment.deterministic_backend` set, driver/device
-   captured into run metadata, and a **CPU-only install path** for analysis and demo.
+   **(a) Environment lock (SR-21, AM-61) — see the cold-start block above for the commands.**
+   `requirements.txt` stays tooling-only by design; the runtime stack is `requirements.in` →
+   `requirements.lock` (hashed, committed), resolved by **`uv`** and installed from
+   `params.environment.torch_index_url`. Also owed here, and easy to forget because the install
+   succeeding feels like done: `params.environment.deterministic_backend` set; driver/device captured
+   into run metadata per `params.environment.record_in_run_metadata`; a **CPU-only install path** for
+   analysis and demo; and the `pip --require-hashes` portability check.
 
    **All pins resolved 2026-07-28 — every one has a `cp314` wheel, nothing is guesswork:**
    `torch==2.13.0+cu130` · `torchvision==0.28.0+cu130` (from the cu130 index; the wheel is
@@ -414,6 +472,27 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
   §17 is append-only and superseded entries stay wrong in place, on purpose.
 
 ## Session log
+
+- **2026-07-28 (end of session)** — **`check_doc_consistency.py` committed (AM-62); vectors archived;
+  `uv` chosen; hand-off written for a cold start.** The tool exists because the same propagation
+  failure happened three rounds running and `gen_spec_views.py --check` could never have seen any of
+  them — it validates `SPEC.md` against itself, while all three failures were in the hand-written
+  files. Its rule is this repo's own convention mechanised: a superseded value may appear only in a
+  block that cites the amendment that superseded it. **It was tested by injecting drift, not by
+  trusting that it passed** — which immediately found two bugs in it: line-by-line checking flagged
+  correctly-labelled history (back-references sit a line or two below the value, so it works on
+  blocks now), and an amendment number that does not exist was still granting exemptions, so the
+  back-reference rule could be defeated by citing anything at all (cited AM numbers are now
+  intersected with the real set). That is the AM-58 lesson applied to the checker itself — and the
+  tool then caught the invented number this very log entry originally used to describe the test. `fetch_srsran_vectors.sh` run: 276 files, 7.2 MB, all three checksums OK, gitignored — so
+  §16's "the upstream repo is archived and could vanish" risk is now materially smaller, with the
+  residual being that the data lives on this machine only. `params.environment.lock_tool` = **`uv`**
+  (AM-61), the author's choice over `pip-tools`; both emit the required format, `uv` handles the
+  separate CUDA wheel index more cleanly, and that index is the exact mechanism AM-23 showed can
+  silently produce a CPU build. **No implementation was started** — deliberately, so the next session
+  begins clean rather than inheriting half a scaffold. The cold-start block at the top of "Do next"
+  is written to be executable without reading this log: it carries the verified machine state, the
+  three drift checks to run first, the install commands, and the two traps in them.
 
 - **2026-07-28 (later still)** — **Cross-document consistency audit (`INT-5`); AM-60, 166 → 168.**
   Ran every hand-written file against the amended spec after round 5, which was large and touched the
