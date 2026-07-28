@@ -572,7 +572,7 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
-- **2026-07-28 (W1 batch 3, staged)** — **Identity keys, keyed RNG and the test-access guard;
+- **2026-07-28 (W1 batch 3, `72be2af`)** — **Identity keys, keyed RNG and the test-access guard;
   SR-18 and SR-22 implemented, no amendment needed, 54 tests passing.** The cleanest batch of the
   three, and the one that mattered most: these are the pieces that cannot be retrofitted once results
   exist. Every claim was re-derived rather than read — the RNG's control-flow invariance, all 18
@@ -586,7 +586,10 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
   (Codex, same WSL2 machine) runs sandboxed: `torch.cuda.is_available()` is **False** with
   *"Failed to initialize NVML: GPU access blocked by the operating system"*, and `curl` to the
   Imagenette URL returns nothing — **both device and network are blocked**, while an unsandboxed
-  shell on the same box sees the RTX 4060 and reaches S3 fine. Consequence: preprocessing and split
+  shell on the same box sees the RTX 4060 (driver 592.82) and gets **HTTP 200** from
+  `params.datasets.imagenette160.source_url` — both measured, not assumed; an earlier draft of this
+  line asserted the S3 reachability from a `download.pytorch.org` fetch, which is a different host
+  and proved nothing. Consequence: preprocessing and split
   logic can be done sandboxed, but **the SR-20 dataset fetch and the BR-8 classifier training
   cannot**, and those are the two hard dependencies for G-1. The two GPU-bound tests
   (`test_cuda_is_available`, `test_environment_record_is_fully_populated`) will keep failing in that
