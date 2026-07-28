@@ -1,0 +1,43 @@
+# Runtime environment source pins (SR-21). Hand-written; `requirements.lock` is
+# generated from this file and is what actually gets installed.
+#
+#   uv pip compile requirements.in --generate-hashes -o requirements.lock \
+#       --index-strategy unsafe-best-match
+#   uv pip sync requirements.lock
+#   .venv/bin/python -c "import torch; assert torch.version.cuda is not None, 'CPU BUILD'"
+#
+# Every version here is read off `spec/params.generated.yaml` under `environment:`,
+# which is the single source of truth (SR-1). Do not edit a pin here without
+# amending the spec first.
+#
+# THE TRAP (AM-23): torch MUST come from the cu130 index below. A bare resolve
+# against PyPI silently yields the CPU build, and the only check that catches it
+# is `torch.version.cuda is not None` -- not a successful import. That check is
+# `tests/test_env.py::test_cuda_build`, which hard-asserts with no escape hatch.
+#
+# `--index-strategy unsafe-best-match` is needed on the compile command because
+# uv's default `first-index` stops at the first index carrying the package NAME,
+# and PyPI carries `torch` but not the `+cu130` local version.
+
+--extra-index-url https://download.pytorch.org/whl/cu130
+
+# --- runtime stack (params.environment) -------------------------------------
+torch==2.13.0+cu130
+torchvision==0.28.0+cu130
+numpy==2.5.1
+pillow==12.3.0
+scikit-image==0.26.0
+glymur==0.14.3
+pytest==9.1.1
+
+# --- spec tooling, deliberately inside the lock (AM-65) ----------------------
+# `uv pip sync` makes the environment EXACTLY the lockfile: anything absent is
+# uninstalled. The spec tooling (`tools/gen_spec_views.py`,
+# `tools/check_doc_consistency.py`) needs PyYAML and lives in the same venv, so
+# omitting it here would have the first command of W1 uninstall it and break the
+# three checks that guard the spec. `requirements.txt` stays as the
+# dependency-light bootstrap for a machine with nothing else installed.
+PyYAML==6.0.3
+
+# NOT here on purpose:
+#   sionna-no-rt==2.0.1  -- W3, when the LDPC chain is integrated (DEC-10).

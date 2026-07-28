@@ -1,0 +1,19 @@
+# pytest configuration only.
+#
+# There is deliberately no [project] table: this repository is not a package,
+# there is no install step, and nothing imports it from site-packages. `pythonpath`
+# below is what makes `src/` importable from the tests, which is the whole reason
+# this file exists.
+#
+# Dependencies are NOT declared here. SR-21 fixes them in `requirements.in` ->
+# `requirements.lock` (hashed, committed), resolved by `uv` and installed from
+# `params.environment.torch_index_url`. Adding a [project.dependencies] table
+# would create a second, unhashed source of truth.
+
+[tool.pytest.ini_options]
+# `src` so `import env` and `import config.params` work without an install step.
+# `tools` so tests/test_doc_consistency.py can import the checker directly rather
+# than reaching for importlib -- the spec tooling is deliberately not a package.
+pythonpath = ["src", "tools"]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"

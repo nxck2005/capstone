@@ -621,8 +621,14 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `environment.lock_format` | pip_requirements_with_hashes | AM-58, AM-61, SR-21 |
 | `environment.lock_file` | requirements.lock | AM-58, AM-61, SR-21 |
 | `environment.lock_source` | requirements.in | AM-58, SR-21 |
-| `environment.lock_tool` | uv | AM-58, AM-61, SR-21 |
+| `environment.lock_tool` | uv | AM-58, AM-61, AM-65, SR-21 |
 | `environment.lock_tool_version_min` | 0.11 | AM-58, SR-21 |
+| `environment.lock_index_strategy` | unsafe-best-match | AM-58, AM-66, SR-21 |
+| `environment.lock_emit_index_url` | true | AM-58, AM-66, SR-21 |
+| `environment.lock_covers_spec_tooling` | true | AM-58, AM-65, SR-21 |
+| `environment.pyyaml` | 6.0.3 | AM-58, AM-65, SR-21 |
+| `environment.cpu_lock_file` | requirements-cpu.lock | AM-58, AM-67, SR-21 |
+| `environment.cpu_lock_source` | requirements-cpu.in | AM-58, AM-67, SR-21 |
 | `environment.torch` | 2.13.0+cu130 | AM-58, SR-21 |
 | `environment.torchvision` | 0.28.0+cu130 | AM-58, SR-21 |
 | `environment.torch_index_url` | https://download.pytorch.org/whl/cu130 | AM-58, AM-61, SR-21 |
@@ -635,7 +641,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `environment.pytest` | 9.1.1 | AM-58, SR-21 |
 | `environment.cuda_assertion` | torch.version.cuda is not None | AM-58, SR-21 |
 | `environment.record_in_run_metadata` | python_version, torch_version, cuda_version, driver_version, device_name, lock_file_sha256 | AM-58, SR-21 |
-| `environment.cpu_install_path_required_for` | analysis, demo | AM-58, SR-21 |
+| `environment.cpu_install_path_required_for` | analysis, demo | AM-58, AM-67, SR-21 |
 | `environment.deterministic_backend.cudnn_deterministic` | true | AM-58, SR-21 |
 | `environment.deterministic_backend.cudnn_benchmark` | false | AM-58, SR-21 |
 | `environment.reproduction_tolerance.cpu_fixture` | exact_hash | AM-58, SR-21 |

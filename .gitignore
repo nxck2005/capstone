@@ -216,3 +216,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- project artifacts (W1) --------------------------------------------------
+# Datasets are fetched and checksum-verified, never committed (SR-2, SR-20).
+data/
+# Model weights. Provenance lives in the run metadata and the training log (BR-8).
+checkpoints/
+
+# Per-image outcome files (SR-18). These are large and are published as a
+# content-addressed release artifact with a committed manifest
+# (`params.artifacts.per_image_storage`), not as tracked files.
+results/per_image/
+
+# NOT ignored, on purpose:
+#   results/*.csv  -- ER-7 requires every thesis number to resolve to a committed
+#                     CSV, so the aggregate tables, results/per_image_manifest.csv
+#                     and results/inference_summary.csv are all tracked.
+#   figures/       -- regenerable, but they go in the report and the reviews.
+#   requirements*.lock -- the whole point of SR-21 is that they are committed.
+#
+# `.pytest_cache/` is already covered by the Python section above.
+

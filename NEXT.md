@@ -7,14 +7,14 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, three
-rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the docs
-sweep in `7b7c70a`, **AM-57..AM-64 this session**). **No project code exists yet:** no `src/`, no
-`tests/`, and `requirements.txt` is still tooling-only by design (SR-21 puts the runtime stack in a
-hashed `requirements.lock` built at W1). All three checks pass: `gen_spec_views.py --check` at **172
-requirements**, `check_doc_consistency.py` (new, AM-62) across 8 hand-written docs, and
-`check_packetisation.py` with **zero failures** — if any is untrue when you read this, something
-landed after this line was written.
+**Last updated:** 2026-07-28 · **Phase:** **W1 — batch 1 landed, batch 2 next** · spike executed,
+three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
+docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
+session (AM-65..AM-67)**. `requirements.txt` is still tooling-only by design; the runtime stack now
+lives in the hashed `requirements.lock` that SR-21 asked for, and it is installed. All checks pass:
+`gen_spec_views.py --check` at **175 requirements**, `check_doc_consistency.py` across 8 hand-written
+docs, `check_packetisation.py` with **zero failures**, and `pytest` — if any is untrue when you read
+this, something landed after this line was written.
 
 ---
 
@@ -225,18 +225,20 @@ and rounds 6 and 8 found only damage the fixing itself caused. The two worst def
 had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three operating points — were found
 by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
 
-**State on 2026-07-28, verified:** no `src/`, no `tests/`, no `data/`. `.venv` has PyYAML only.
-Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · 890 GB free.
+**State on 2026-07-28, verified:** `src/`, `tests/` and both lockfiles exist (batch 1); no `data/`.
+`.venv` now holds the full runtime stack, installed from `requirements.lock`.
+Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · driver 592.82.
 srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files, gitignored).
 Only IRL item still open: PR-9's hardware-alternative acknowledgement, which is not blocking — its
 acceptance criterion fires when the dossier is delivered, and the conversation sits before W4.
 
-Confirm nothing drifted, then start W1(a):
+Confirm nothing drifted, then start batch 2:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 172 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 175 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
+.venv/bin/python -m pytest                                  # expect: all pass, incl. the CUDA assertion
 git status --short                                          # expect: clean
 ```
 
@@ -246,55 +248,40 @@ appear only in a block that cites the amendment which superseded it** — across
 that `--check` never looked at. When an amendment supersedes a value that appears in prose, add a
 rule to its `stale` table; that table is the tool's memory and is meant to grow.
 
-**W1(a) is the first build step and the long pole** — start it before anything else, because the
-CUDA wheels are ~3 GB and everything from (c) onward needs them. The resolver is **`uv`**, decided
-2026-07-28 (AM-61) — do not substitute `pip-tools`, and do not re-litigate it. The shape:
+#### ~~Batch 1 — scaffold + environment (W1a)~~ **DONE 2026-07-28.** What it cost, and what it taught
 
-```bash
-# requirements.in  <- hand-written, pins from params.environment
-# requirements.lock <- generated, hashed, committed
-uv pip compile requirements.in --generate-hashes -o requirements.lock
-uv pip sync requirements.lock
-.venv/bin/python -c "import torch; assert torch.version.cuda is not None, 'CPU BUILD'"
-```
+Landed: `requirements.in`/`requirements.lock`, `requirements-cpu.in`/`requirements-cpu.lock`,
+`pyproject.toml`, `.gitignore` entries, `src/config/params.py`, `src/env.py`, `tests/test_env.py`,
+`tests/test_doc_consistency.py`, and AM-65..AM-67. The assertion passes on the RTX 4060:
+torch 2.13.0+cu130, CUDA 13.0, `torch.cuda.is_available()` True.
 
-Two traps in that block, both already paid for once:
-- **`torch` must come from `params.environment.torch_index_url`**, not PyPI. A bare resolve silently
-  yields the **CPU build** and the only check that catches it is `torch.version.cuda is not None`,
-  not a successful import (AM-23). With `uv` this means an explicit extra index plus an index
-  strategy that will actually reach it — verify the assertion passes, do not assume.
-- **The lockfile must stay installable by plain `pip install --require-hashes`** (SR-21/AM-61).
-  `uv` is pinned so *resolution* reproduces; the project must not acquire a runtime dependency on it.
+**Three findings, all from running the commands rather than reading about them (AM-65..AM-67).**
+The hand-off called the cu130 *extra index* "the one real unknown"; it was the smaller half of the
+problem, and the resolve was fine once `--index-strategy unsafe-best-match` was passed.
 
-Install into the **existing `.venv`** alongside the spec tooling rather than a second venv — that is
-what SR-21's "one documented command from a clean checkout" means here, and it is reversible.
+1. **`uv pip sync` would have uninstalled PyYAML and broken all three spec checks.** `sync` makes the
+   environment *exactly* the lockfile — anything absent is removed, not left alone — and the batch as
+   originally scoped had a runtime-only `requirements.in`. Fixed by making the lock a **superset**
+   that pins PyYAML (AM-65). Caught by reading what `sync` does; it would have fired on the first
+   command of W1 and stayed silent until the next spec edit.
+2. **`--emit-index-url` is not optional, and this one did fire.** A lockfile compiled without it
+   records **no index at all**, so nothing can install it — not `uv`, and not the plain
+   `pip install --require-hashes` that SR-21's portability clause requires, which means that clause
+   was untestable as written. The error names only the version (`no version of torch==2.13.0+cu130`)
+   and never mentions the missing index, so it reads exactly like a bad pin (AM-66).
+3. **The CPU-only lock is built** rather than promised (AM-67).
 
-While the install downloads, build the three pure-Python pieces in (b), (d2) and (e3) below. They
-need no torch, everything else imports them, and they are the ones that cannot be retrofitted once
-results exist.
+**Two operational notes for anyone re-running the install.** `pypi.nvidia.com` timed out twice under
+uv's default concurrency on wheels in the 200–350 MB range; `UV_HTTP_TIMEOUT=900
+UV_CONCURRENT_DOWNLOADS=2` got it through, and the cache persists so retries resume rather than
+restart. And **do not pipe the install through `tail`** — `$?` then reports the pipe's status and a
+failed sync looks like a success.
 
-#### Batch 1 — the exact file list (scaffold + environment, W1a)
-
-This is the first commit of project code. Nothing here exists yet; the whole batch is new.
-
-| | Path | What, and which requirement |
-|---|---|---|
-| NEW | `requirements.in` | Source pins read off `params.environment`: torch 2.13.0+cu130, torchvision 0.28.0+cu130, numpy 2.5.1, pillow 12.3.0, scikit-image 0.26.0, glymur 0.14.3, pytest 9.1.1. **Sionna is W3, not now.** (SR-21) |
-| NEW | `requirements.lock` | `uv pip compile --generate-hashes` output. Committed. (SR-21, AM-61) |
-| NEW | `pyproject.toml` | pytest config only — `pythonpath = ["src"]`, so there is no install step and no packaging. |
-| EDIT | `.gitignore` | add `data/`, `checkpoints/`, `results/per_image/`, `.pytest_cache/`. **Not `results/`** — ER-7 needs the aggregate CSVs tracked. |
-| NEW | `src/env.py` | asserts `params.environment.cuda_assertion`; sets `deterministic_backend`; emits `record_in_run_metadata`. (SR-21, SR-12) |
-| NEW | `tests/test_env.py` | the CUDA assertion **as a test**. This is the AM-23 trap; a comment does not catch it. |
-| NEW | `tests/test_doc_consistency.py` | the inject-and-assert case for `check_doc_consistency.py`, which was run by hand at AM-62 and should not stay that way. Assert both directions: stale value with no back-reference fails; the same value with a correct one passes. |
-| EDIT | `AGENTS.md` | record the `pytest` command — that file says to, and there is no test runner recorded yet. |
-
-**The one real unknown:** whether `uv` resolves torch from the cu130 *extra* index cleanly under
-`--generate-hashes`. If it fights, the fallback is pinning the wheel URLs directly in
-`requirements.in`. Either way the assertion is what proves it, never a successful install.
-
-Then **batch 2** is `src/config/` + `tools/check_literals.py` (SR-1) — everything later imports it —
-and **batch 3** is `src/artifacts/ids.py`, `src/artifacts/rng.py` and `src/data/test_access.py`
-(SR-18, SR-22), which are the two that cannot be retrofitted. Details in (b), (d2) and (e3) below.
+Then **batch 2** is `src/config/` proper + `tools/check_literals.py` (SR-1) — `src/config/params.py`
+already exists as the loader, so batch 2 grows it into the run-config layer that derives
+`config_hash` (SR-13) rather than starting from nothing — and **batch 3** is `src/artifacts/ids.py`,
+`src/artifacts/rng.py` and `src/data/test_access.py` (SR-18, SR-22), which are the two that cannot be
+retrofitted. Details in (b), (d2) and (e3) below.
 
 ---
 
@@ -309,7 +296,7 @@ so the hold is cleared on the specification side.
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | First Review package |
-| 4 | **W1(a)–(f) below**, starting with the install | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
+| 4 | **W1(b)–(f) below** — (a) is done, batch 2 is `src/config/` + `check_literals.py` | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
 | 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 6 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
@@ -542,6 +529,29 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-28 (W1 batch 1)** — **First commit of project code; AM-65..AM-67, 172 → 175
+  requirements.** The environment is locked, installed and asserted: torch 2.13.0+cu130 on CUDA 13.0,
+  torchvision 0.28.0+cu130, driver 592.82, `torch.cuda.is_available()` True, 18 tests passing. All
+  three spec checks still pass. **The hand-off named the wrong unknown.** It flagged the cu130 extra
+  index under `--generate-hashes` as "the one real unknown"; that resolved cleanly once
+  `--index-strategy unsafe-best-match` was passed. The actual defects were both in what the lockfile
+  *contains*, and neither was visible from reading: a runtime-only lock would have had `uv pip sync`
+  **uninstall PyYAML** and break every check that guards the spec (AM-65 — caught before it fired),
+  and a lock compiled without `--emit-index-url` records **no index at all**, so nothing can install
+  it — including the plain `pip install --require-hashes` that SR-21's portability clause requires,
+  which means that clause had never been testable (AM-66 — caught by the install failing, with an
+  error naming only the version and never the index). Both flags are now parameters rather than shell
+  history, because the lockfile is regenerated whenever a pin moves. Also corrected two claims this
+  file carried: `.pytest_cache/` was already in `.gitignore`, and the pins were **not** "proven
+  working together" in the W0 spike venv — that venv has no torchvision, no scikit-image, no glymur
+  and no pytest, so the torch/torchvision co-resolution was untested until this session. Both tests
+  were checked for *bite* rather than assumed: `assert_cuda` was run against a simulated CPU build,
+  and `test_doc_consistency.py` was run against a mutant checker with the AM-62 exemption bug
+  reintroduced — only the exemption case failed, which is the point, since the other two cases cannot
+  tell the buggy checker from the correct one. Operational notes for re-running the install:
+  `pypi.nvidia.com` timed out twice under default concurrency, `UV_HTTP_TIMEOUT=900
+  UV_CONCURRENT_DOWNLOADS=2` got it through, and **never pipe the install through `tail`** — `$?`
+  then reports the pipe and a failed sync reads as a success, which happened once here.
 - **2026-07-28 (end of session)** — **PR-10 closed (AM-63); First Review package specified (AM-64);
   batch 1 written up for a cold start.** Registration confirmed complete, which closes the last item
   no audit could resolve and the only one with no graceful degradation. Reading the rubric

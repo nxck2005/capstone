@@ -987,6 +987,12 @@ environment:
   lock_source: requirements.in
   lock_tool: uv
   lock_tool_version_min: '0.11'
+  lock_index_strategy: unsafe-best-match
+  lock_emit_index_url: true
+  lock_covers_spec_tooling: true
+  pyyaml: 6.0.3
+  cpu_lock_file: requirements-cpu.lock
+  cpu_lock_source: requirements-cpu.in
   torch: 2.13.0+cu130
   torchvision: 0.28.0+cu130
   torch_index_url: https://download.pytorch.org/whl/cu130

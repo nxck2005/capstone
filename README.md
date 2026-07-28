@@ -70,7 +70,7 @@ under a second with no GPU and no network. Both of the repository's checks are m
 trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 172 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 175 requirements, 10 generated files
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
 ```
 
