@@ -57,7 +57,7 @@ Implementation is underway: W1 batch 1 established the locked environment and re
 batch 2 added the resolved run-configuration layer and SR-1 literal checker, batch 3 added the
 content-addressed identity keys, the counter-based keyed RNG and the guarded test-split boundary,
 and batch 4 (checkpoint `eba5bd2`) implements the canonical preprocessing contract. The
-AM-72–76 W1 sweep remediation is implemented and staged separately: complete versioned run
+AM-72–76 W1 sweep remediation is committed as `8e59535`: complete versioned run
 fingerprints, a genuinely CPU-only lock, source-bound preprocessing plus exact RNG/SSIM contracts,
 honest OpenJPEG provisioning, and current-document consistency coverage. **W0 is complete and W1
 is open**.

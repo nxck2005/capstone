@@ -7,10 +7,10 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–4 committed, AM-72–76 remediation staged; dataset registry and split manifests next** · spike executed,
+**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–4 and AM-72–76 remediation committed; dataset registry and split manifests next** · spike executed,
 three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
 docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
-session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70, batch 4's AM-71, and the staged W1 sweep remediation AM-72..AM-76. `requirements.txt` is still tooling-only by design; the runtime stack now
+session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70, batch 4's AM-71, and the committed W1 sweep remediation AM-72..AM-76. `requirements.txt` is still tooling-only by design; the runtime stack now
 lives in the hashed `requirements.lock` that SR-21 asked for, and it is installed. All checks pass:
 `gen_spec_views.py --check` at **184 requirements**, `check_doc_consistency.py` across **11 current
 hand-written documentation files with one valid historical plan excluded**, and
@@ -228,7 +228,8 @@ had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three opera
 by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
 
 **State on 2026-07-29, verified:** `src/`, `tests/` and both lockfiles exist, carrying committed
-batches 1–4 (`e90a1e0`, `2b23c1e`, `72be2af`, `eba5bd2`) with AM-72..AM-76 staged for author commit; no `data/`,
+batches 1–4 (`e90a1e0`, `2b23c1e`, `72be2af`, `eba5bd2`) plus AM-72..AM-76 remediation
+(`8e59535`); no `data/`,
 no `results/`, no `checkpoints/` yet.
 `.venv` now holds the full runtime stack, installed from `requirements.lock`.
 Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · driver 592.82.
@@ -245,7 +246,7 @@ Confirm nothing drifted, then continue with the dataset registry and split manif
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
 .venv/bin/python -m pytest                                  # expect: 97 passed
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
-git status --short                                          # expect: staged AM-72..AM-76 remediation only
+git status --short                                          # expect: no output (clean worktree)
 ```
 
 #### GPU access — probe it, do not assume it either way
@@ -410,7 +411,7 @@ the file it swallowed is needed.
 five project checks, and the CUDA probe returned `True`. It was committed without overrides as
 `eba5bd21b2d051bb5c0741dd6aa1971eec134392`.
 
-#### AM-72..AM-76 W1 sweep remediation — **DONE 2026-07-29, staged and not committed**
+#### AM-72..AM-76 W1 sweep remediation — **DONE 2026-07-29, committed as `8e59535`**
 
 Five implemented-contract defects were repaired before loaders, manifests or results exist:
 
@@ -680,8 +681,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
-- **2026-07-29 (W1 sweep remediation, staged)** — **SR-19 checkpoint committed as `eba5bd2`;
-  AM-72..AM-76 implemented and left staged for author commit.** The checkpoint was accepted only
+- **2026-07-29 (W1 sweep remediation, committed)** — **SR-19 checkpoint committed as `eba5bd2`;
+  AM-72..AM-76 remediation committed as `8e59535`.** The checkpoint was accepted only
   after exact ten-path scope, no unstaged/untracked files, no remediation markers and
   `git diff --cached --check` all passed; its evidence remains 63 tests, five project checks and
   CUDA `True`. The new batch closes thin config fingerprints, the CUDA-bearing CPU lock, public
