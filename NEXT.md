@@ -226,7 +226,8 @@ and rounds 6 and 8 found only damage the fixing itself caused. The two worst def
 had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three operating points — were found
 by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
 
-**State on 2026-07-28, verified:** `src/`, `tests/` and both lockfiles exist (batch 1); no `data/`.
+**State on 2026-07-28, verified:** `src/`, `tests/` and both lockfiles exist, carrying batches 1–3
+(`e90a1e0`, `2b23c1e`, `72be2af`); no `data/`, no `results/`, no `checkpoints/` yet.
 `.venv` now holds the full runtime stack, installed from `requirements.lock`.
 Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · driver 592.82.
 srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files, gitignored).
@@ -240,9 +241,46 @@ Confirm nothing drifted, then start the preprocessing contract (SR-19):
 .venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
-.venv/bin/python -m pytest                                  # expect: all pass, incl. the CUDA assertion
+.venv/bin/python -m pytest                                  # expect: 54 passed
 git status --short                                          # expect: clean
 ```
+
+#### GPU access — probe it, do not assume it either way
+
+This is **WSL2**, so the GPU arrives through `/dev/dxg` and a Microsoft-supplied driver shim, not
+through `/dev/nvidia*`. An agent that checks for the wrong device concludes there is no GPU on a
+machine that has one. Run all three and report them verbatim:
+
+```bash
+ls -l /dev/dxg                                      # the WSL GPU device
+/usr/lib/wsl/lib/nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
+.venv/bin/python -c "import torch; print(torch.version.cuda, torch.cuda.is_available(), \
+    torch.cuda.get_device_properties(0).name if torch.cuda.is_available() else 'NONE')"
+```
+
+**Measured 2026-07-28:** `/dev/dxg` present as `crw-rw-rw- root 10,125`; the WSL `nvidia-smi` reports
+`NVIDIA GeForce RTX 4060 Laptop GPU, 592.82`; torch reports `13.0 True`, and a real device matmul
+succeeds. **The first two also succeed inside the Codex sandbox**, which earlier failed NVML — so
+that restriction has lifted, at least for the device node.
+
+**The third command is the only one that settles it.** A visible `/dev/dxg` and a working
+`nvidia-smi` do **not** guarantee torch can initialise CUDA; that additionally needs `libcuda`
+resolvable through the WSL shim. Report `torch.cuda.is_available()` explicitly rather than inferring
+it from the other two. Two notes: the plain `nvidia-smi` on `PATH` and the one at
+`/usr/lib/wsl/lib/` are **not always the same binary**, so prefer the explicit path; and
+`nvidia-smi` says `CUDA Version: 13.1` while torch is built for `13.0` — **normal minor-version
+compatibility, not a mismatch, and not a reason to move the pin.**
+
+⚠️ **If `torch.cuda.is_available()` is `False`, `pytest` reads `52 passed, 2 failed`.** The two are
+`test_cuda_is_available` and `test_environment_record_is_fully_populated`, they need real device
+access, and they **must not be skipped, weakened, or given a skip marker** — that is the AM-23 alarm
+working, and an escape hatch would disarm the only check that catches a CPU build on the machine
+that trains. Report `52 passed, 2 failed`, say which two, and continue; it is not a regression.
+
+Network is a **separate** permission from device access, and it matters later: an unsandboxed shell
+here gets **HTTP 200** from `params.datasets.imagenette160.source_url`. If yours does not, the
+**SR-20 dataset fetch and the BR-8 classifier training must run unsandboxed** — everything up to and
+including the preprocessing contract does not.
 
 `check_doc_consistency.py` is new (AM-62) and exists because the same propagation failure happened
 three rounds running. It enforces the convention this repo already had — **a superseded value may
@@ -583,13 +621,17 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
   G-12 obligation at W11.
 
   **Two environment facts worth carrying, because they shape who can do what.** The parallel agent
-  (Codex, same WSL2 machine) runs sandboxed: `torch.cuda.is_available()` is **False** with
-  *"Failed to initialize NVML: GPU access blocked by the operating system"*, and `curl` to the
-  Imagenette URL returns nothing — **both device and network are blocked**, while an unsandboxed
-  shell on the same box sees the RTX 4060 (driver 592.82) and gets **HTTP 200** from
-  `params.datasets.imagenette160.source_url` — both measured, not assumed; an earlier draft of this
-  line asserted the S3 reachability from a `download.pytorch.org` fetch, which is a different host
-  and proved nothing. Consequence: preprocessing and split
+  (Codex, same WSL2 machine) reported `torch.cuda.is_available()` **False** with *"Failed to
+  initialize NVML: GPU access blocked by the operating system"*, and `curl` to the Imagenette URL
+  returning nothing — **both device and network blocked at the time** — while an unsandboxed shell on
+  the same box sees the RTX 4060 (driver 592.82) and gets **HTTP 200** from
+  `params.datasets.imagenette160.source_url`; both measured, not assumed, and an earlier draft of this
+  line inferred the S3 reachability from a `download.pytorch.org` fetch, which is a different host and
+  proved nothing. **This is a sandbox policy, not hardware, and it can change between sessions — so
+  probe it with the three commands in the cold-start block rather than trusting this paragraph.**
+  Because the box is WSL2, the GPU appears as `/dev/dxg` with the driver shim at
+  `/usr/lib/wsl/lib/nvidia-smi`; an agent looking for `/dev/nvidia*` will wrongly conclude the machine
+  has no GPU. Consequence, while it holds: preprocessing and split
   logic can be done sandboxed, but **the SR-20 dataset fetch and the BR-8 classifier training
   cannot**, and those are the two hard dependencies for G-1. The two GPU-bound tests
   (`test_cuda_is_available`, `test_environment_record_is_fully_populated`) will keep failing in that

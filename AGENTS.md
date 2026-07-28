@@ -31,6 +31,20 @@ python spec/evidence/check_packetisation.py --json spec/evidence/packetisation_r
 .venv/bin/python -m pytest              # project test suite; config is in pyproject.toml
 ```
 
+**GPU check on this machine — it is WSL2, so look for `/dev/dxg`, not `/dev/nvidia*`:**
+
+```bash
+ls -l /dev/dxg                                      # WSL GPU device; expect crw-rw-rw- 10,125
+/usr/lib/wsl/lib/nvidia-smi --query-gpu=name,driver_version --format=csv,noheader
+.venv/bin/python -c "import torch; print(torch.version.cuda, torch.cuda.is_available())"
+```
+
+Measured 2026-07-28: `/dev/dxg` present as `crw-rw-rw- root 10,125`, `NVIDIA GeForce RTX 4060 Laptop GPU`, driver `592.82`, and torch `13.0 True` with a real device matmul succeeding. **`nvidia-smi` reports `CUDA Version: 13.1` while torch is built for `13.0` — that is normal minor-version compatibility, not a mismatch; do not "fix" it by moving the pin.** An agent that probes `/dev/nvidia*` will wrongly conclude there is no GPU, and the `nvidia-smi` on `PATH` is not always the same binary as the one under `/usr/lib/wsl/lib/`.
+
+Device access and network access are **separate** permissions, and only the **third** command settles the one that matters: a visible `/dev/dxg` and a working `nvidia-smi` do not guarantee torch can initialise CUDA, since that additionally needs `libcuda` resolvable through the WSL shim. Check both before assuming which W1 steps you can complete.
+
+Note: `uv run <script>` warns *"No `requires-python` value found in the workspace"*. That is expected and must not be "fixed" — `pyproject.toml` deliberately carries pytest configuration only, with no `[project]` table, so there is no packaging and no install step (SR-21 owns dependencies via the lockfiles). Run project code with `.venv/bin/python`, not `uv run`.
+
 `pytest` needs the **runtime** environment (below), not just the spec tooling. Its config lives in `pyproject.toml`, which sets `pythonpath = ["src", "tools"]` — that is why there is no install step and no packaging. The suite is **not expected to pass on the CPU-only install path**: `tests/test_env.py::test_cuda_build` hard-asserts a CUDA build with no skip marker and no environment-variable escape hatch, deliberately (AM-67), because a variable exported once in a shell profile would silently disarm the only check that catches a CPU build on the machine that trains.
 
 `check_doc_consistency.py` guards what `gen_spec_views.py --check` cannot: the **hand-written** files (`README.md`, `AGENTS.md`, `NEXT.md`, `docs/`, `spec/evidence/README.md`), which is where all three recorded propagation failures happened (AM-59, AM-60, AM-62). Its rule is this repository's own convention mechanised — **a superseded value may appear only in a block that cites the amendment which superseded it** — so append-only history passes and unlabelled staleness fails. Run it after any spec change, alongside `--check`. When an amendment supersedes a value that appears in prose, add a rule for it to the `stale` table in that file; the table is the tool's memory and is meant to grow.
