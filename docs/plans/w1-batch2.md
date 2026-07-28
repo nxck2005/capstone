@@ -1,7 +1,13 @@
 # W1 Batch 2 — config plumbing and the SR-1 literal lint
 
-**Status:** implemented 2026-07-28, staged for the author's signed commit · **Written:** 2026-07-28, immediately after batch 1 landed as
-`e90a1e0` · **Owner:** agent, with two author-only items noted at the end.
+**Status: DONE** — committed 2026-07-28 as `2b23c1e` · **Written:** 2026-07-28, immediately after
+batch 1 landed as `e90a1e0` · **Owner:** agent, with two author-only items noted at the end.
+
+**Outcome against this plan.** Delivered as specified, at 178 requirements rather than the 177 written
+below: adjudication of the executing agent's orientation added a third amendment, `AM-70`, correcting
+§16's H4 detection-floor deadline. One defect survived to review — `_resolve_choice` silently accepted
+unresolvable symbolic names — found by running a typo rather than reading the diff, and fixed before
+the commit. See `NEXT.md`'s session log for both.
 
 **This is a point-in-time plan, not a maintained document.** It records what was intended and why,
 against the repository as it stood on 2026-07-28 at 175 requirements. It is deliberately **not** in

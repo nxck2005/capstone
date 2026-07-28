@@ -259,17 +259,23 @@ def load_experiment(path: str | Path, **overrides: Any) -> RunConfig:
     )
 
 
-def config_hash(cfg: RunConfig) -> str:
-    """Stable SHA-256 over canonical JSON of the resolved configuration."""
+def canonical_sha256(value: Any) -> str:
+    """Stable SHA-256 over canonical JSON for configuration and artifact IDs."""
 
-    hash_form = get("config.run_config_hash_form")
-    if hash_form != "sha256_over_canonical_json_sorted_keys_compact_separators":
-        raise NotImplementedError(f"unsupported params.config.run_config_hash_form: {hash_form}")
     payload = json.dumps(
-        cfg.resolved.to_dict(),
+        value,
         sort_keys=True,
         separators=(",", ":"),
         ensure_ascii=False,
         allow_nan=False,
     ).encode()
     return hashlib.sha256(payload).hexdigest()
+
+
+def config_hash(cfg: RunConfig) -> str:
+    """Stable SHA-256 over canonical JSON of the resolved configuration."""
+
+    hash_form = get("config.run_config_hash_form")
+    if hash_form != "sha256_over_canonical_json_sorted_keys_compact_separators":
+        raise NotImplementedError(f"unsupported params.config.run_config_hash_form: {hash_form}")
+    return canonical_sha256(cfg.resolved.to_dict())

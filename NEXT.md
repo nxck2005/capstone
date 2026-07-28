@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-28 · **Phase:** **W1 — batch 2 implemented, signed commit pending** · spike executed,
+**Last updated:** 2026-07-28 · **Phase:** **W1 — batches 1–3 done, preprocessing (SR-19) next** · spike executed,
 three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
 docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
 session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70. `requirements.txt` is still tooling-only by design; the runtime stack now
@@ -233,7 +233,7 @@ srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files
 Only IRL item still open: PR-9's hardware-alternative acknowledgement, which is not blocking — its
 acceptance criterion fires when the dossier is delivered, and the conversation sits before W4.
 
-Confirm nothing drifted, then start batch 3:
+Confirm nothing drifted, then start the preprocessing contract (SR-19):
 
 ```bash
 .venv/bin/python tools/gen_spec_views.py --check           # expect: 178 requirements (2 retired)
@@ -279,7 +279,7 @@ UV_CONCURRENT_DOWNLOADS=2` got it through, and the cache persists so retries res
 restart. And **do not pipe the install through `tail`** — `$?` then reports the pipe's status and a
 failed sync looks like a success.
 
-#### ~~Batch 2 — config plumbing + literal lint~~ **IMPLEMENTED 2026-07-28; signed commit pending**
+#### ~~Batch 2 — config plumbing + literal lint~~ **DONE 2026-07-28, committed as `2b23c1e`**
 
 The point-in-time plan is [`docs/plans/w1-batch2.md`](docs/plans/w1-batch2.md). Batch 2 added the
 resolved frozen `RunConfig`, canonical SHA-256 config hashing, two committed experiment-choice YAML
@@ -296,9 +296,35 @@ reason and are counted in the summary; and the plan lives in the repo rather tha
 `analysis_version`, previously undefined, now resolve through `params.config`; `config_hash` and
 `checkpoint_id` remain runtime-computed by design and were never gaps.
 
-**Batch 3 is next but has not started:** `src/artifacts/ids.py`, `src/artifacts/rng.py` and
-`src/data/test_access.py`
-(SR-18, SR-22), which are the two that cannot be retrofitted. Details in (b), (d2) and (e3) below.
+#### ~~Batch 3 — identity, keyed RNG, test guard~~ **DONE 2026-07-28** (SR-18, SR-22)
+
+`src/artifacts/ids.py`, `src/artifacts/rng.py` and `src/data/test_access.py` — the two things that
+could not be retrofitted. **No amendment was needed**, which is itself the signal that AM-69 had
+already closed the gap this batch would otherwise have hit. 54 tests pass.
+
+Verified by re-derivation rather than by reading the diff. The RNG is genuinely keyed: a fresh
+Philox generator per `(purpose, identity)` with no shared state, so drawing for image 500 **cold**
+gives the same values as drawing for it after 499 prior draws, reversed iteration order changes
+nothing, and — the case SR-18 actually exists for — **a system that outages and skips images still
+sees identical draws for the images it does process.** All 18 `run_id_key` fields are covered, and a
+missing field raises rather than hashing a partial key; both arms of a comparison share `pair_id`
+while holding distinct `run_id`s; the guard fails closed with no manifest *and* with one field
+short; and nothing outside `tests/` imports the guarded module, enforced by an AST-walking test.
+`config_hash` is byte-identical after the hash helper was generalised, so batch 2's committed
+configs did not silently move.
+
+⚠️ **One SR-22 clause is deferred and must not be forgotten at the freeze.** Its verify clause wants
+*an archived freeze manifest whose hashes resolve to the committed code, config, manifests and
+checkpoints*. The guard currently checks that every field in
+`params.evaluation.freeze_manifest_covers` is **present and non-empty** — not that the hashes
+resolve to anything real. That is correct today, because no checkpoints or split manifests exist to
+resolve against. It becomes a **G-12 obligation at W11** and is the kind of thing that looks done
+because the guard is green.
+
+**Also fixed here, and it was a defect in batch 1:** `.gitignore` carried `data/`, which matches at
+any depth and would therefore have silently untracked `src/data/`. It is now `/data/`, anchored to
+the repository root. Worth remembering as a class — an unanchored ignore pattern is invisible until
+the file it swallowed is needed.
 
 ---
 
@@ -313,7 +339,7 @@ so the hold is cleared on the specification side.
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
-| 4 | **Continue W1(b)–(f) below** — (a) and batch 2 are done; batch 3 is identity/RNG/test guard | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
+| 4 | **Continue W1(c)–(f) below** — batches 1–3 done; next is the preprocessing contract (SR-19), then registry, splits, classifier | agent, **except the two sandboxed steps below** | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
 | 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 6 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
@@ -546,7 +572,26 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
-- **2026-07-28 (W1 batch 2, staged)** — **Config plumbing and SR-1 literal lint implemented;
+- **2026-07-28 (W1 batch 3, staged)** — **Identity keys, keyed RNG and the test-access guard;
+  SR-18 and SR-22 implemented, no amendment needed, 54 tests passing.** The cleanest batch of the
+  three, and the one that mattered most: these are the pieces that cannot be retrofitted once results
+  exist. Every claim was re-derived rather than read — the RNG's control-flow invariance, all 18
+  `run_id_key` fields, the pairing join's rejection of duplicate and missing trajectories, the
+  guard's three failure modes, the import-graph isolation, and a `config_hash` regression check
+  confirming batch 2's committed configs did not move when the hash helper was generalised. Details
+  in the batch 3 block above, including the **deferred SR-22 hash-resolution clause** that becomes a
+  G-12 obligation at W11.
+
+  **Two environment facts worth carrying, because they shape who can do what.** The parallel agent
+  (Codex, same WSL2 machine) runs sandboxed: `torch.cuda.is_available()` is **False** with
+  *"Failed to initialize NVML: GPU access blocked by the operating system"*, and `curl` to the
+  Imagenette URL returns nothing — **both device and network are blocked**, while an unsandboxed
+  shell on the same box sees the RTX 4060 and reaches S3 fine. Consequence: preprocessing and split
+  logic can be done sandboxed, but **the SR-20 dataset fetch and the BR-8 classifier training
+  cannot**, and those are the two hard dependencies for G-1. The two GPU-bound tests
+  (`test_cuda_is_available`, `test_environment_record_is_fully_populated`) will keep failing in that
+  environment and must keep not being skipped — they are a correct signal, not noise.
+- **2026-07-28 (W1 batch 2, `2b23c1e`)** — **Config plumbing and SR-1 literal lint;
   AM-68..AM-70, 175 → 178 requirements.** Added a deeply frozen resolved `RunConfig`, canonical
   SHA-256 hashing, learned/classical experiment-choice YAMLs, and a parameter-driven AST lint that
   catches negative SNRs as `UnaryOp(USub, Constant)` and requires a reason on every exception.
@@ -556,7 +601,18 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
   row. Spec, documentation, literal and packetisation checks pass. In this agent environment the
   CUDA wheel is correct (`torch 2.13.0+cu130`, built for CUDA 13.0), but OS policy blocks NVML/device
   access, so the two deliberately unskipped GPU-runtime tests remain expected failures here and must
-  be rerun on the primary device before the author signs the commit.
+  be rerun on the primary device before the author signs the commit. **Confirmed 36 passed on the
+  primary device**, so the two failures were environmental exactly as reported. **Adjudication then
+  found one real defect, and it is the lesson worth keeping:** `_resolve_choice` silently returned
+  the raw string when a symbolic name failed to resolve, so `train_snr_db: train_snr_db_fixedd` — a
+  one-character typo — was *accepted*, resolved to the literal string instead of `7`, and flowed
+  into `config_hash`. `bw_ratio` was protected by `_validate_named_choices`; `train_snr_db` and
+  `lambda` were not, and the test suite covered only the happy path. Fixed by requiring resolution
+  whenever a symbolically-namespaced choice carries a **string**, while numeric values still pass
+  through untouched, so a config that hard-codes a number keeps working and the classical file — which
+  has no `lambda` at all — still loads. Both the defect and the fix were verified by *running* the
+  typo, not by reading the diff, which is the same habit that caught the AM-24 LLR sign and AM-58's
+  passing-but-wrong evidence script.
 - **2026-07-28 (W1 batch 1)** — **First commit of project code; AM-65..AM-67, 172 → 175
   requirements.** The environment is locked, installed and asserted: torch 2.13.0+cu130 on CUDA 13.0,
   torchvision 0.28.0+cu130, driver 592.82, `torch.cuda.is_available()` True, 18 tests passing. All

@@ -218,8 +218,9 @@ __marimo__/
 .streamlit/secrets.toml
 
 # --- project artifacts (W1) --------------------------------------------------
-# Datasets are fetched and checksum-verified, never committed (SR-2, SR-20).
-data/
+# Root dataset artifacts are fetched and checksum-verified, never committed
+# (SR-2, SR-20); `src/data/` contains tracked loader boundary code.
+/data/
 # Model weights. Provenance lives in the run metadata and the training log (BR-8).
 checkpoints/
 

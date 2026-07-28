@@ -54,8 +54,9 @@ drift guard to run after any spec change.
 ## Status
 
 Implementation is underway: W1 batch 1 established the locked environment and repository scaffold,
-and W1 batch 2 added the resolved run-configuration layer and SR-1 literal checker. **W0 is complete
-and W1 is open**.
+batch 2 added the resolved run-configuration layer and SR-1 literal checker, and batch 3 added the
+content-addressed identity keys, the counter-based keyed RNG and the guarded test-split boundary —
+the contracts that cannot be retrofitted once results exist. **W0 is complete and W1 is open**.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
