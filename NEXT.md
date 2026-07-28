@@ -277,11 +277,29 @@ UV_CONCURRENT_DOWNLOADS=2` got it through, and the cache persists so retries res
 restart. And **do not pipe the install through `tail`** — `$?` then reports the pipe's status and a
 failed sync looks like a success.
 
-Then **batch 2** is `src/config/` proper + `tools/check_literals.py` (SR-1) — `src/config/params.py`
-already exists as the loader, so batch 2 grows it into the run-config layer that derives
-`config_hash` (SR-13) rather than starting from nothing — and **batch 3** is `src/artifacts/ids.py`,
-`src/artifacts/rng.py` and `src/data/test_access.py` (SR-18, SR-22), which are the two that cannot be
-retrofitted. Details in (b), (d2) and (e3) below.
+#### ⏭️ Batch 2 — **the full plan is written: [`docs/plans/w1-batch2.md`](docs/plans/w1-batch2.md)**
+
+**Read that file before starting.** It is self-contained — cold-start orientation, the repo
+conventions that are not optional, the file list, both designs, the two amendments it needs, the
+verification block and the risks — so a fresh session does not have to reconstruct any of it.
+
+Batch 2 is `src/config/` proper + `tools/check_literals.py` (SR-1). `src/config/params.py` already
+exists as the loader, so batch 2 grows it into the run-config layer that derives `config_hash`
+(SR-13) rather than starting from nothing. Three things settled with the author and recorded there:
+run configs are **committed experiment files naming choices only**, with sweep axes and the resolved
+per-run config archived beside results (one file per run would be thousands of unreviewable files);
+the literal lint **hard-fails with per-site `# literal-ok: <reason>` annotations** that must carry a
+reason and are counted in the summary; and the plan lives in the repo rather than inline here.
+
+**One finding from planning that batch 3 depends on:** `params.artifacts.run_id_key` names five
+fields and **two of them — `dataset_version` and `analysis_version` — are defined nowhere in
+params**, so SR-18's `run_id` is not constructible as written. `config_hash` and `checkpoint_id` are
+runtime-computed by design and are not gaps. Batch 2 closes the two real ones; the plan carries the
+amendment text, deliberately unnumbered here, because a reference to an amendment that does not exist
+yet is indistinguishable from a typo and `check_doc_consistency.py` rejects it — as it just did.
+
+Then **batch 3** is `src/artifacts/ids.py`, `src/artifacts/rng.py` and `src/data/test_access.py`
+(SR-18, SR-22), which are the two that cannot be retrofitted. Details in (b), (d2) and (e3) below.
 
 ---
 
