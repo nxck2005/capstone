@@ -576,10 +576,10 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `deliverables.review_weeks.first` | 4 | AM-59, PR-2, PR-8 |
 | `deliverables.review_weeks.second` | 10 | AM-59, PR-2, PR-8 |
 | `deliverables.review_weeks.third` | 17 | AM-59, PR-2, PR-8 |
-| `deliverables.review_dates.first` | 2026-08-18/2026-08-22 | - |
-| `deliverables.review_dates.second` | 2026-09-29/2026-10-03 | - |
-| `deliverables.review_dates.third` | 2026-11-17/2026-11-21 | - |
-| `deliverables.review_dates.report_due` | 2026-11-20 | - |
+| `deliverables.review_dates.first` | 2026-08-18/2026-08-22 | AM-64 |
+| `deliverables.review_dates.second` | 2026-09-29/2026-10-03 | AM-64 |
+| `deliverables.review_dates.third` | 2026-11-17/2026-11-21 | AM-64 |
+| `deliverables.review_dates.report_due` | 2026-11-20 | AM-64 |
 | `deliverables.review_marks.first` | 10 | - |
 | `deliverables.review_marks.second` | 30 | - |
 | `deliverables.review_marks.third` | 40 | - |
@@ -604,6 +604,13 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `deliverables.hardware_alternative_decision_due_week` | 4 | AM-63, PR-9 |
 | `deliverables.hardware_alternative_acceptance` | guide_acknowledgement_recorded | AM-63, PR-9 |
 | `deliverables.proposal_registration_status` | complete_confirmed_by_author_2026_07_28 | AM-63, PR-10 |
+| `deliverables.review_package_dir` | deliverables/ | AM-64, PR-8 |
+| `deliverables.review_snapshot_mechanism` | annotated_git_tag | PR-8 |
+| `deliverables.review_snapshot_tag_format` | review-{n}-basis | PR-8 |
+| `deliverables.review_1_ready_when` | PR-1, PR-2, G-1 | PR-8 |
+| `deliverables.review_1_rubric_criteria` | motivation, objectives, hypothesis, problem_survey, subject_knowledge, time_plan | PR-8 |
+| `deliverables.review_1_submarks_each` | 5 | PR-8 |
+| `deliverables.review_1_slot_minutes` | 15 | PR-8 |
 | `deliverables.proposal_registration_owner` | author | PR-10 |
 
 ## environment

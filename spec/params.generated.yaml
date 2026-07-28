@@ -963,6 +963,22 @@ deliverables:
   hardware_alternative_decision_due_week: 4
   hardware_alternative_acceptance: guide_acknowledgement_recorded
   proposal_registration_status: complete_confirmed_by_author_2026_07_28
+  review_package_dir: deliverables/
+  review_snapshot_mechanism: annotated_git_tag
+  review_snapshot_tag_format: review-{n}-basis
+  review_1_ready_when:
+  - PR-1
+  - PR-2
+  - G-1
+  review_1_rubric_criteria:
+  - motivation
+  - objectives
+  - hypothesis
+  - problem_survey
+  - subject_knowledge
+  - time_plan
+  review_1_submarks_each: 5
+  review_1_slot_minutes: 15
   proposal_registration_owner: author
 environment:
   python_version: 3.14.6

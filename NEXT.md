@@ -9,16 +9,16 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 **Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, three
 rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the docs
-sweep in `7b7c70a`, **AM-57..AM-63 this session**). **No project code exists yet:** no `src/`, no
+sweep in `7b7c70a`, **AM-57..AM-64 this session**). **No project code exists yet:** no `src/`, no
 `tests/`, and `requirements.txt` is still tooling-only by design (SR-21 puts the runtime stack in a
-hashed `requirements.lock` built at W1). All three checks pass: `gen_spec_views.py --check` at **171
+hashed `requirements.lock` built at W1). All three checks pass: `gen_spec_views.py --check` at **172
 requirements**, `check_doc_consistency.py` (new, AM-62) across 8 hand-written docs, and
 `check_packetisation.py` with **zero failures** — if any is untrue when you read this, something
 landed after this line was written.
 
 ---
 
-## Just landed — the Codex gate audit adjudicated, AM-57..AM-63 applied
+## Just landed — the Codex gate audit adjudicated, AM-57..AM-64 applied
 
 **`audit/JUDGE_codex` (`EXT-6`)** returned **project GO, W1 NOGO — temporary hold**: 11 P0 findings,
 10 P1s, 3 P2s. It is the most accurate review this project has received. **Every checkable numeric
@@ -85,7 +85,7 @@ worst defects; EXT-5 said "NO-GO/HOLD on the whole spec" but only *one* of its f
 Result: 122 → **158 requirements**, `AM-26`..`AM-55`, split into two rounds in §17. A third round
 followed on 2026-07-28 — `AM-56`, from a **self-audit of those two rounds**, which found that AM-53
 had left H2 able to select its comparison window on a different curve from the one it evaluates.
-That round closed at 159 requirements; the count is **171** after AM-57..AM-63 above. Worth noting as
+That round closed at 159 requirements; the count is **172** after AM-57..AM-64 above. Worth noting as
 a pattern rather than an embarrassment: every audit round so far — including the audit of the audit,
 and including the round that audited a *passing* evidence script — has found something real.
 
@@ -182,6 +182,38 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
+### ⏰ Standing trigger — First Review package (check this every session)
+
+**Fires when all three are true: PR-1 committed · PR-2 committed · G-1 passed.**
+(`params.deliverables.review_1_ready_when`. As of 2026-07-28: **none of the three**.)
+
+When it fires, do two things and do them in this order:
+
+1. **Cut the snapshot tag** — a tag, deliberately not a branch (AM-64):
+   ```bash
+   git tag -a review-1-basis -m "State the First Review package is derived from"
+   ```
+2. **Tell Nick to start the review package.** He asked to be reminded, and it is not something he
+   should have to remember on the right week. It lives in `deliverables/review-1/`.
+
+**Why those three gate it.** The rubric scores the First Review as six criteria × 5 sub-marks = 30,
+scaled to 10: Motivation · Objectives · Hypothesis · Problem Survey · Subject Knowledge · Time Plan.
+**Problem Survey *is* PR-1 and Time Plan *is* PR-2** — a third of the review, with nothing behind it
+today. G-1 is in the list because Subject Knowledge is assessed by general viva and Hypothesis by
+whether a real proposal exists; a measured clean-accuracy number makes both concrete.
+
+⚠️ **The one way to lose marks at W17 by what you say at W4.** PR-8 requires objectives stated in
+§2's **completion** terms — build, validate, bandwidth-match, bit-account, evaluate at the
+learned-blind operating point, report with paired inference — and **never** as an outcome such as
+"show the learned system beats the classical one". The Third Review scores `Objectives Met` against
+whatever is set here, so an outcome-phrased objective turns DEC-16's perfectly valid dominance
+fallback into a visible failure. Check the objectives slide against §2 before it is shown.
+
+Two smaller facts: the slot is **15 minutes**, so ~10–12 slides; and **Presentation is not a First
+Review criterion** — it first appears at the Second — so these marks are for substance, not delivery.
+
+---
+
 ### Cold-start: the first thing to do in a fresh session
 
 **Nothing blocks W1.** The specification side is finished; what remains is code. Registration is
@@ -202,7 +234,7 @@ acceptance criterion fires when the dossier is delivered, and the conversation s
 Confirm nothing drifted, then start W1(a):
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 171 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 172 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
 git status --short                                          # expect: clean
@@ -278,7 +310,8 @@ so the hold is cleared on the specification side.
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | First Review package |
 | 4 | **W1(a)–(f) below**, starting with the install | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
-| 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, and it is the only W1-safe work needing no code | First Review, and DEC-13's novelty claim (AM-10 makes the claim *conditional* on it) |
+| 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
+| 6 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
 **Two things to carry into W1 that are new this round and easy to get wrong:**
 
@@ -509,9 +542,16 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
-- **2026-07-28 (end of session)** — **PR-10 closed (AM-63); batch 1 written up for a cold start.**
-  Registration confirmed complete, which closes the last item no audit could resolve and the only one
-  with no graceful degradation. Also settled, after working through the amendment record: **stop
+- **2026-07-28 (end of session)** — **PR-10 closed (AM-63); First Review package specified (AM-64);
+  batch 1 written up for a cold start.** Registration confirmed complete, which closes the last item
+  no audit could resolve and the only one with no graceful degradation. Reading the rubric
+  spreadsheet against the repo then found that **a third of the First Review has no artifact behind
+  it**: it scores six criteria at 5 sub-marks each, and *Problem Survey* is PR-1 while *Time Plan* is
+  PR-2 — neither of which exists. AM-64 adds `params.deliverables.review_package_dir`, the snapshot
+  mechanism (an annotated **tag**, not a branch — a branch diverges, reads as N commits behind and
+  invites a merge that must not happen), and `review_1_ready_when` = PR-1 + PR-2 + G-1 as a checkable
+  trigger. The ⏰ standing trigger at the top of this file fires on it and is the reminder Nick asked
+  for. Also settled, after working through the amendment record: **stop
   auditing the specification.** The trajectory is 25 → 23 → 7 → 1 → 3 → 1 → 1 → 1 entries per round;
   every fatal finding landed in rounds 0–3 and the last was AM-55; rounds 6 and 8 found only
   self-inflicted damage. A stopping rule of "audit until two agents return GO" was considered and
