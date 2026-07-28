@@ -59,8 +59,8 @@ content-addressed identity keys, the counter-based keyed RNG and the guarded tes
 and batch 4 (checkpoint `eba5bd2`) implements the canonical preprocessing contract. The
 AM-72–76 W1 sweep remediation is committed as `8e59535`: complete versioned run
 fingerprints, a genuinely CPU-only lock, source-bound preprocessing plus exact RNG/SSIM contracts,
-honest OpenJPEG provisioning, and current-document consistency coverage. The next bounded batch is
-implemented and staged but uncommitted: AM-77, one registry over Imagenette-160/STL-10/CIFAR-10,
+honest OpenJPEG provisioning, and current-document consistency coverage. The AM-77 batch is
+committed as `2c6f780`: one registry over Imagenette-160/STL-10/CIFAR-10,
 real source-byte decoders, exact archive provenance, and deterministic committed split manifests.
 **W0 is complete and W1 is open**. The reference classifier and validation-only G-1 remain next;
 no classifier was implemented or trained in this batch.

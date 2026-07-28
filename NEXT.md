@@ -7,9 +7,9 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–4 and AM-72–76 remediation committed;
-AM-77 dataset registry/provenance/manifests batch implemented, verified and staged but uncommitted;
-reference classifier then validation-only G-1 next** · spike executed,
+**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–5 and AM-72–76 remediation committed;
+AM-77 dataset registry/provenance/manifests landed as `2c6f780`; reference classifier then
+validation-only G-1 next** · spike executed,
 three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
 docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
 session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70, batch 4's AM-71, and the committed W1 sweep remediation AM-72..AM-76. `requirements.txt` is still tooling-only by design; the runtime stack now
@@ -230,8 +230,8 @@ had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three opera
 by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
 
 **State on 2026-07-29, verified:** committed batches 1–4 (`e90a1e0`, `2b23c1e`, `72be2af`,
-`eba5bd2`) plus AM-72..AM-76 remediation (`8e59535`) remain the repository base. The AM-77
-loader/provenance/manifest batch is implemented and staged but uncommitted: `src/data/` now carries
+`eba5bd2`), AM-72..AM-76 remediation (`8e59535`) and the AM-77 dataset batch (`2c6f780`) form the
+repository base. `src/data/` now carries
 the adapters, identity, manifest, provenance and registry modules; `data/manifests/` carries three
 tracked CSVs; archives and extracted datasets exist locally but are ignored. There are still no
 `results/` or `checkpoints/`.
@@ -253,7 +253,7 @@ Confirm nothing drifted, then continue with the reference classifier only:
 .venv/bin/python tools/verify_datasets.py
 .venv/bin/python -m pytest                                  # expect: 146 passed
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
-git status --short                                          # AM-77 batch is staged until committed by the author
+git status --short                                          # expect: clean
 ```
 
 #### GPU access — probe it, do not assume it either way
@@ -282,17 +282,18 @@ it from the other two. Two notes: the plain `nvidia-smi` on `PATH` and the one a
 `nvidia-smi` says `CUDA Version: 13.1` while torch is built for `13.0` — **normal minor-version
 compatibility, not a mismatch, and not a reason to move the pin.**
 
-⚠️ **If `torch.cuda.is_available()` is `False`, the current 97-test suite reads
-`95 passed, 2 failed`.** The two are
+⚠️ **If `torch.cuda.is_available()` is `False`, the current 146-test suite is expected to read
+`144 passed, 2 failed`.** The two are
 `test_cuda_is_available` and `test_environment_record_is_fully_populated`, they need real device
 access, and they **must not be skipped, weakened, or given a skip marker** — that is the AM-23 alarm
 working, and an escape hatch would disarm the only check that catches a CPU build on the machine
-that trains. Report `95 passed, 2 failed`, say which two, and continue; it is not a regression.
+that trains. Report `144 passed, 2 failed`, say which two, and continue; it is not a regression.
 
-Network is a **separate** permission from device access, and it matters later: an unsandboxed shell
-here gets **HTTP 200** from `params.datasets.imagenette160.source_url`. If yours does not, the
-**SR-20 dataset fetch and the BR-8 classifier training must run unsandboxed** — everything up to and
-including the preprocessing contract does not.
+Network is a **separate** permission from device access. The AM-77 fetch completed from all three
+normative URLs; a clean checkout still needs access for `tools/fetch_datasets.py` because archives
+and extractions are deliberately ignored. If the configured URLs are blocked in a sandbox, request
+unsandboxed network access rather than substituting mirrors. Once provisioned, manifest checks,
+dataset verification and classifier training use the local verified data.
 
 `check_doc_consistency.py` is new (AM-62) and exists because the same propagation failure happened
 three rounds running. It enforces the convention this repo already had — **a superseded value may
@@ -444,7 +445,7 @@ real 64×64 device matmul completes. Dataset fetching, real decoder registration
 classifier training, J2K implementation and Sionna integration remain deliberately out of scope.
 This paragraph is checkpoint evidence from before AM-77; the current totals are 185/77.
 
-#### AM-77 dataset provenance and manifests — **DONE 2026-07-29, staged and uncommitted**
+#### AM-77 dataset provenance and manifests — **DONE 2026-07-29, committed as `2c6f780`**
 
 One registry now covers `imagenette160`, `stl10` and `cifar10`; it accepts only `train` and `val`
 and rejects `test` back to SR-22/G-12. Dataset-specific source extraction stays inside registered
@@ -494,7 +495,7 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 The specification/remediation checklist is complete and its hold is cleared. Three fronts remain:
 the W1 reference-classifier work through G-1, PR-1 and PR-2 for the First Review, and the author-owned
-PR-9 acknowledgement. The loader/provenance/manifest prerequisite is staged.
+PR-9 acknowledgement. The loader/provenance/manifest prerequisite is committed and verified.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
@@ -508,11 +509,11 @@ PR-9 acknowledgement. The loader/provenance/manifest prerequisite is staged.
 
 **Two landed guardrails the remaining W1 work must preserve:**
 
-- **The identity/pairing keys (SR-18) and the test guard (SR-22) are already implemented.** The
-  loader and manifest batch must integrate with them rather than create parallel IDs or a second
-  test-access path. `run_id` alone used to *collide* between validation and test.
-- **G-1 is validation-only and must prove zero test reads.** The guard exists; the remaining loader,
-  manifest and classifier paths must demonstrate that they actually obey it.
+- **The identity/pairing keys (SR-18), manifest-bound registry (SR-2/SR-17) and test guard (SR-22)
+  are already implemented.** The AM-77 path reuses the stable IDs and exposes no second model-facing
+  test path. `run_id` alone used to *collide* between validation and test.
+- **G-1 is validation-only and must prove zero test decoder, canonicalization and inference calls.**
+  The data path and guard exist; the remaining classifier path must demonstrate that it obeys them.
 
 **And one habit worth keeping.** This round found a passing evidence script that violated four rules
 it claimed to enforce, and then a follow-up audit found that the round's *own* schedule edits had
@@ -564,7 +565,7 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    `torch==2.13.0+cu130` · `torchvision==0.28.0+cu130` (from the cu130 index; the wheel is
    `torchvision-0.28.0+cu130-cp314-cp314-manylinux_2_28_x86_64.whl`) · `sionna-no-rt==2.0.1`
    (W3, not W1) · `numpy 2.5.1` · `pillow 12.3.0` · `scikit-image 0.26.0` · `pytest 9.1.1`.
-   The W1 pins are installed together in the repository `.venv` and the 97-test suite passes on the
+   The W1 pins are installed together in the repository `.venv` and the 146-test suite passes on the
    RTX 4060. `sionna-no-rt` remains intentionally deferred to W3; it was proven separately in the W0
    spike environment, not as part of the W1 lock.
 
@@ -574,18 +575,18 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
    **(c) Preprocessing contract (SR-19) — DONE in batch 4 and AM-74 remediation.**
    `src/data/preprocessing.py` owns the source-bound canonical **uint8 RGB HWC** product and derives
-   the encoder tensor and codec input from it. The loader batch must register real decoders through
-   that boundary; it must not add a second decode or pixel-normalisation path.
+   the encoder tensor and codec input from it. AM-77 registers all three real decoders through that
+   boundary without adding a second decode or pixel-normalisation path.
 
-   **(d) Splits (SR-17) — DONE in the staged AM-77 batch, together with (e) and (e2).** Deterministic val carve from the
+   **(d) Splits (SR-17) — DONE in committed AM-77 batch `2c6f780`, together with (e) and (e2).** Deterministic val carve from the
    *published train* split using
    `params.evaluation.split_seed` (1337). The arithmetic lines up with the real datasets, which is
    worth knowing before you debug a count: Imagenette v2-160 ships 9469 train / 3925 val, so
    9469 − 1000 = 8469 train, 1000 val, and the published val becomes the 3925-image **test** split;
    STL-10 is 5000 labelled + 8000 test → 4500 + 500 + 8000; CIFAR-10 is 50000 + 10000 →
-   45000 + 5000 + 10000. Owed: a disjointness test **and** an audit that no selection code path can
-   reach the test loader — the audit is the harder half and is easiest as a structural rule (test
-   access lives in one module nothing else imports) rather than a convention.
+   45000 + 5000 + 10000. Disjointness, exact counts, enumeration-order invariance and the
+   provenance-only zero-decoder/canonicalization boundary are covered by tests; the AST guard still
+   enforces that model-facing test access lives in one module nothing else imports.
 
    **(d2) Identity and pairing keys (SR-18) — DONE in batch 3.**
    Four keys, not one: `run_id` (content-addressed over the full `params.artifacts.run_id_key`,
@@ -596,27 +597,29 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    different images, so a shared seed desynchronises exactly when it matters. Per-image rows carry
    every join column and a **stable sample ID**, not a positional index.
 
-   **(e) Dataset registry (SR-2, SR-20) — DONE in the staged AM-77 batch; the note that used to sit here was wrong.**
+   **(e) Dataset registry (SR-2, SR-20) — DONE in committed AM-77 batch `2c6f780`; the note that used to sit here was wrong.**
    ⚠️ **Imagenette IS in torchvision**: `torchvision.datasets.Imagenette(root, split=..., size="160px",
    download=True)`, checked against current upstream docs. This file previously asserted the
-   opposite and sent you to build a bespoke fetcher. Use the library loader (`params.datasets.
-   imagenette160.loader`), and *also* record `archive_sha256` yourself — torchvision's docs do not
-   state that it verifies integrity, and SR-20 fails G-1 while any checksum is still `pending`.
-   STL-10 and CIFAR-10 likewise come from torchvision. All three go through one code path with no
-   dataset-specific branching; CIFAR-10 is a plumbing path only (DEC-1) but must still instantiate,
-   because SR-2's verify clause instantiates every dataset. Storage headroom is not a concern:
+   opposite and sent you to build a bespoke public path. The project registry uses the configured
+   loader identity and normative URL, verifies its own pinned archive byte length/SHA-256, and keeps
+   exact source-record extraction inside dataset-specific adapters whose pixels match pinned
+   Torchvision 0.28.0 behaviour. All three go through one caller-facing path; CIFAR-10 is a plumbing
+   path only (DEC-1) but still instantiates because SR-2's verify clause covers every dataset.
+   Storage headroom is not a concern:
    more than 800 GB was free on 2026-07-29.
 
-   **(e2) Split manifests (SR-17) — DONE in the staged AM-77 batch; a seed is not a split.** Loader ordering and library behaviour
+   **(e2) Split manifests (SR-17) — DONE in committed AM-77 batch `2c6f780`; a seed is not a split.** Loader ordering and library behaviour
    change between versions, so materialise the carve as a **committed manifest** of stable sample IDs
    under `params.datasets.manifest_dir`, hashed into run metadata. Stratified, ordered by stable ID
-   before shuffling, drawn with the named RNG. Class indices from sorted directory names.
+   before drawing, with the named RNG. Class indices come from sorted authoritative Imagenette WNIDs,
+   STL-10 `class_names.txt` order and CIFAR-10 `batches.meta` label-name order.
 
-   **(e3) Test-access guard (SR-22) — DONE in batch 3; integration remains part of the loader
-   batch.** `src/data/test_access.py` fails closed without a freeze manifest and is the sole allowed
+   **(e3) Test-access guard (SR-22) — DONE in batch 3; loader integration completed in AM-77.**
+   `src/data/test_access.py` fails closed without a freeze manifest and is the sole allowed
    test boundary. The release point is **G-12 at W11** — not G-10, which now sits at the start of W9
-   (AM-60). The new loaders must not expose a parallel test path, and G-1 plus the W10 rehearsal must
-   demonstrate zero test-loader reads. Resolving the freeze-manifest hashes against real manifests
+   (AM-60). The ordinary registry rejects test, and the provenance-only scan records zero decoder
+   and canonicalization calls; G-1 must extend that proof through the classifier with zero inference.
+   Resolving the freeze-manifest hashes against real manifests
    and checkpoints remains deliberately deferred to G-12.
 
    **(f) Reference classifier (BR-8, DEC-15) — AFTER manifests, then G-1.**
@@ -724,7 +727,7 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 - **ER-9 keeps entropy coding** (AM-5), bounded to a static offline-fitted coder. Dropping it would
   weaken the control that exists to *deny* joint-coding credit, which makes H4 easier to pass — the
   wrong direction to be wrong in.
-- **Read `SPEC.md` §17 before acting on any future review.** Seventy-six amendments across fourteen
+- **Read `SPEC.md` §17 before acting on any future review.** Seventy-seven amendments across fifteen
   rounds now record what changed and why, including recommendations that were already settled.
   AM-24 and AM-25 are the W0 spike; note that AM-25 corrects a *factual premise* of AM-22 and AM-23
   (srsRAN's vectors were never committed to git), which is why it is a new entry and not an edit —
@@ -732,6 +735,10 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-29 (AM-77 committed and cold-start handoff refreshed)** — The complete dataset
+  registry/provenance/manifest batch was committed as `2c6f780`. Current status text now points
+  directly to the reference classifier and validation-only G-1; there is no staged implementation
+  batch, no unresolved loader integration, and no pending archive or manifest provenance.
 - **2026-07-29 (W1 dataset provenance/manifests, staged)** — **AM-77; 184 → 185 requirements and 76 → 77 amendments.** Added `src/data/{identity,adapters,provenance,manifests,registry}.py`, `tools/{fetch_datasets,materialize_manifests,verify_datasets}.py`, three focused test modules plus synthetic fixtures, and the three tracked canonical CSV manifests. The configured archives were fetched from their exact URLs, measured and pinned by byte length and SHA-256, verified again before extraction, then independently cross-checked against readable tar structure and Torchvision's MD5. Manifest generation found the exact expected 13,394 / 13,000 / 60,000 totals with no duplicate source IDs; `--check` reproduced every byte. Real train/validation samples canonicalized at 160×160, 96×96 and 32×32, and a full provenance-only published-test scan recorded zero decoder/canonicalization calls. No test image was decoded or evaluated. The network was available but each long connection was throttled and intermittently truncated, so the exact same normative objects were completed with resumable byte ranges; CUDA remained available. Reference classifier work and validation-only G-1 remain next.
 - **2026-07-29 (future-work documentation audit)** — Re-read the current handoff against the
 repository and G-1. Corrected the obsolete no-GPU pytest count, marked batches 1–4 contracts as
