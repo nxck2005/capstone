@@ -41,3 +41,7 @@ PyYAML==6.0.3
 
 # NOT here on purpose:
 #   sionna-no-rt==2.0.1  -- W3, when the LDPC chain is integrated (DEC-10).
+#
+# OpenJPEG 2.5.4 is also not repository-provisioned: it is a system library,
+# externally installed and exactly verified before any J2K path (AM-75).
+# `glymur` above is only its pinned Python binding.

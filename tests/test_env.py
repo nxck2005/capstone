@@ -94,8 +94,18 @@ def test_unknown_determinism_key_raises(monkeypatch):
     SR-12's promise rests on these being set; a parameter the code skips would
     leave the promise resting on nothing while every test still passed.
     """
-    monkeypatch.setattr(env, "get", lambda path: {"tf32_allowed": True})
-    with pytest.raises(NotImplementedError, match="tf32_allowed"):
+    monkeypatch.setattr(env, "get", lambda path: {"cudnn_allow_tf32": True})
+    with pytest.raises(NotImplementedError, match="cudnn_allow_tf32"):
+        env.set_deterministic_backend()
+
+
+def test_determinism_values_must_be_boolean(monkeypatch):
+    monkeypatch.setattr(
+        env,
+        "get",
+        lambda path: {"cudnn_deterministic": "yes"},
+    )
+    with pytest.raises(TypeError, match="must be boolean"):
         env.set_deterministic_backend()
 
 
@@ -106,6 +116,7 @@ def test_environment_record_keys_match_params():
     """Set equality, both directions: no missing field, no extra field."""
     record = env.environment_record()
     assert set(record) == set(get("environment.record_in_run_metadata"))
+    assert record["openjpeg_version"] == get("environment.openjpeg")
 
 
 def test_environment_record_is_fully_populated():
@@ -141,3 +152,32 @@ def test_cpu_lock_file_exists():
     """The CPU-only install path is a MUST, not an aspiration (SR-21, AM-66)."""
     cpu_lock = REPO_ROOT / get("environment.cpu_lock_file")
     assert cpu_lock.is_file(), f"{cpu_lock} is missing"
+
+
+def test_openjpeg_may_be_unavailable_for_non_j2k_metadata(monkeypatch):
+    def unavailable():
+        raise ImportError("fixture has no OpenJPEG")
+
+    monkeypatch.setattr(env, "_query_openjpeg_version", unavailable)
+
+    assert env.loaded_openjpeg_version(required=False) is None
+
+
+def test_openjpeg_mismatch_fails_even_when_metadata_is_optional(monkeypatch):
+    monkeypatch.setattr(env, "_query_openjpeg_version", lambda: "9.9.9")
+
+    with pytest.raises(RuntimeError, match="version mismatch"):
+        env.loaded_openjpeg_version(required=False)
+
+
+def test_j2k_preflight_fails_before_artifact_creation(tmp_path, monkeypatch):
+    artifact = tmp_path / "results" / "j2k-output.jp2"
+
+    def unavailable():
+        raise OSError("fixture loader unavailable")
+
+    monkeypatch.setattr(env, "_query_openjpeg_version", unavailable)
+
+    with pytest.raises(RuntimeError, match="required.*unavailable"):
+        env.assert_j2k_runtime()
+    assert not artifact.parent.exists()

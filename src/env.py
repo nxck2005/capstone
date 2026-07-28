@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import platform
 import subprocess
+from collections.abc import Mapping
 from typing import Any, Callable
 
 from config.params import REPO_ROOT, get
@@ -58,20 +59,67 @@ def assert_cuda() -> None:
 def set_deterministic_backend() -> None:
     """Apply every key in `params.environment.deterministic_backend`.
 
-    Keys are mapped structurally (`cudnn_<attr>` -> `torch.backends.cudnn.<attr>`)
-    so that adding one to the spec takes effect here without a code change. A key
-    that does not fit the pattern raises: silently ignoring it would leave SR-12's
-    determinism promise resting on a setting nobody applied.
+    Only the two audited mappings are supported. Adding a similarly named torch
+    attribute is not enough: a new result-affecting setting needs an explicit
+    implementation and test.
     """
     import torch
 
-    for key, value in get("environment.deterministic_backend").items():
-        if not key.startswith("cudnn_"):
+    settings = get("environment.deterministic_backend")
+    if not isinstance(settings, Mapping):
+        raise TypeError("params.environment.deterministic_backend must be a mapping")
+    handlers = {
+        "cudnn_deterministic": (torch.backends.cudnn, "deterministic"),
+        "cudnn_benchmark": (torch.backends.cudnn, "benchmark"),
+    }
+    for key, value in settings.items():
+        if key not in handlers:
             raise NotImplementedError(
                 f"params.environment.deterministic_backend.{key} has no handler in "
                 "src/env.py. Add one rather than letting the setting go unapplied."
             )
-        setattr(torch.backends.cudnn, key.removeprefix("cudnn_"), value)
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"params.environment.deterministic_backend.{key} must be boolean"
+            )
+        owner, attribute = handlers[key]
+        setattr(owner, attribute, value)
+        if getattr(owner, attribute) is not value:
+            raise RuntimeError(
+                f"failed to apply params.environment.deterministic_backend.{key}"
+            )
+
+
+def _query_openjpeg_version() -> str:
+    from glymur.version import openjpeg_version
+
+    return str(openjpeg_version)
+
+
+def loaded_openjpeg_version(*, required: bool = False) -> str | None:
+    """Return the verified loaded OpenJPEG version, or ``None`` when optional."""
+
+    expected = str(get("environment.openjpeg"))
+    try:
+        loaded = _query_openjpeg_version()
+    except (ImportError, OSError):
+        if required:
+            raise RuntimeError(
+                f"OpenJPEG {expected} is required for this JPEG 2000 path "
+                "but is unavailable"
+            ) from None
+        return None
+    if loaded != expected:
+        raise RuntimeError(
+            f"OpenJPEG version mismatch: loaded {loaded!r}, expected {expected!r}"
+        )
+    return loaded
+
+
+def assert_j2k_runtime() -> None:
+    """Fail before a JPEG 2000 path creates result directories or artifacts."""
+
+    loaded_openjpeg_version(required=True)
 
 
 # --- run metadata ------------------------------------------------------------
@@ -127,6 +175,10 @@ def _lock_file_sha256() -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _openjpeg_version() -> str | None:
+    return loaded_openjpeg_version(required=False)
+
+
 _PROVIDERS: dict[str, Callable[[], Any]] = {
     "python_version": _python_version,
     "torch_version": _torch_version,
@@ -134,6 +186,7 @@ _PROVIDERS: dict[str, Callable[[], Any]] = {
     "driver_version": _driver_version,
     "device_name": _device_name,
     "lock_file_sha256": _lock_file_sha256,
+    "openjpeg_version": _openjpeg_version,
 }
 
 

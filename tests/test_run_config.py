@@ -53,6 +53,8 @@ def test_round_trip_is_exact_and_frozen():
         restored.experiment = "mutated"  # type: ignore[misc]
     with pytest.raises(TypeError):
         restored.resolved["dataset"] = "stl10"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        restored.parameters["channel"] = {}  # type: ignore[index]
 
 
 def test_symbolic_choices_resolve_and_are_retained():
@@ -155,6 +157,10 @@ def test_hash_is_deterministic_under_serialised_key_reordering():
     reordered["resolved"] = {
         key: body["resolved"][key] for key in reversed(tuple(body["resolved"]))
     }
+    reordered["parameters"] = {
+        key: body["parameters"][key]
+        for key in reversed(tuple(body["parameters"]))
+    }
 
     assert config_hash(RunConfig.from_dict(reordered)) == config_hash(cfg)
     assert len(config_hash(cfg)) == 64
@@ -167,6 +173,70 @@ def test_hash_changes_when_a_resolved_setting_changes():
     changed = RunConfig.from_dict(body)
 
     assert config_hash(changed) != config_hash(cfg)
+
+
+def test_hash_changes_when_fingerprint_schema_version_changes():
+    cfg = _learned_config()
+    body = cfg.to_dict()
+    body["fingerprint_schema_version"] += 1
+
+    assert config_hash(RunConfig.from_dict(body)) != config_hash(cfg)
+
+
+@pytest.mark.parametrize(
+    "root",
+    (
+        "project",
+        "datasets",
+        "preprocessing",
+        "bandwidth",
+        "channel",
+        "learned_system",
+        "baseline",
+        "reference_classifier",
+        "digital_semantic_control",
+        "evaluation",
+        "compute",
+        "artifacts",
+        "environment",
+    ),
+)
+def test_every_scientific_runtime_parameter_root_affects_hash(root):
+    cfg = _learned_config()
+    body = cfg.to_dict()
+    body["parameters"][root]["_fingerprint_test_mutation"] = root
+
+    assert config_hash(RunConfig.from_dict(body)) != config_hash(cfg)
+
+
+def test_fingerprint_snapshot_excludes_administrative_roots():
+    cfg = _learned_config()
+
+    assert set(cfg.parameters) == {
+        "project",
+        "datasets",
+        "preprocessing",
+        "bandwidth",
+        "channel",
+        "learned_system",
+        "baseline",
+        "reference_classifier",
+        "digital_semantic_control",
+        "evaluation",
+        "compute",
+        "artifacts",
+        "environment",
+    }
+    assert not {
+        "config",
+        "demo",
+        "hardware_tier23",
+        "deliverables",
+    } & set(cfg.parameters)
+    assert cfg.resolved["analysis_version"] == get("config.analysis_version")
+    assert cfg.resolved["dataset_version"] == get(
+        "datasets.imagenette160.archive_sha256"
+    )
 
 
 def test_every_sweep_axis_requires_one_valid_override():

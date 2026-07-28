@@ -123,6 +123,69 @@ def test_bold_whole_amendment_round_phrase_is_a_current_claim(run_checker):
     assert "claims 64 AM entries as current" in out
 
 
+def _historical_banner(target: str) -> str:
+    return (
+        f"{cdc.HISTORICAL_MARKER}\n"
+        "> **Historical snapshot:** This plan is retained for provenance and may "
+        "contain superseded commands or status. See "
+        f"[`NEXT.md`]({target}) for current repository state.\n\n"
+        f"The evaluation swept {STALE_TEXT}; retained as provenance.\n"
+    )
+
+
+def test_only_exact_resolving_historical_plan_banner_is_excluded(
+    tmp_path, monkeypatch, capsys
+):
+    plan = tmp_path / "docs" / "plans" / "old.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(_historical_banner("../../NEXT.md"))
+    (tmp_path / "NEXT.md").write_text("# Current handoff\n")
+    monkeypatch.setattr(cdc, "REPO", tmp_path)
+    monkeypatch.setattr(cdc, "DOCS", None)
+    monkeypatch.setattr(cdc, "PACKET_RECORD", tmp_path / "missing.json")
+    monkeypatch.setattr(sys, "argv", ["check_doc_consistency.py"])
+
+    code = cdc.main()
+    out = capsys.readouterr().out
+
+    assert code == 0, out
+    assert "1 current hand-written documentation files" in out
+
+
+@pytest.mark.parametrize(
+    "body, expected",
+    [
+        (
+            f"The evaluation swept {STALE_TEXT}.\n",
+            "missing exact opening historical-plan marker",
+        ),
+        (
+            _historical_banner("../NEXT.md"),
+            "does not resolve to repository root",
+        ),
+    ],
+)
+def test_invalid_historical_plan_banner_is_reported_and_scanned(
+    tmp_path, monkeypatch, capsys, body, expected
+):
+    plan = tmp_path / "docs" / "plans" / "old.md"
+    plan.parent.mkdir(parents=True)
+    plan.write_text(body)
+    (tmp_path / "NEXT.md").write_text("# Current handoff\n")
+    monkeypatch.setattr(cdc, "REPO", tmp_path)
+    monkeypatch.setattr(cdc, "DOCS", None)
+    monkeypatch.setattr(cdc, "PACKET_RECORD", tmp_path / "missing.json")
+    monkeypatch.setattr(sys, "argv", ["check_doc_consistency.py"])
+
+    code = cdc.main()
+    out = capsys.readouterr().out
+
+    assert code == 1
+    assert "historical-plan banner finding" in out
+    assert expected in out
+    assert "superseded grid size" in out
+
+
 def test_repo_docs_are_consistent(monkeypatch, capsys):
     """The real documents pass. This is the check the commit hook cares about."""
     monkeypatch.setattr(sys, "argv", ["check_doc_consistency.py"])

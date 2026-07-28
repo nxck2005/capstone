@@ -56,11 +56,15 @@ drift guard to run after any spec change.
 Implementation is underway: W1 batch 1 established the locked environment and repository scaffold,
 batch 2 added the resolved run-configuration layer and SR-1 literal checker, batch 3 added the
 content-addressed identity keys, the counter-based keyed RNG and the guarded test-split boundary,
-and batch 4 implements the canonical preprocessing contract. **W0 is complete and W1 is open**.
+and batch 4 (checkpoint `eba5bd2`) implements the canonical preprocessing contract. The
+AM-72–76 W1 sweep remediation is implemented and staged separately: complete versioned run
+fingerprints, a genuinely CPU-only lock, source-bound preprocessing plus exact RNG/SSIM contracts,
+honest OpenJPEG provisioning, and current-document consistency coverage. **W0 is complete and W1
+is open**.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **thirteen amendment rounds** across 71 `AM` entries, and is the file to read before
+records **fourteen amendment rounds** across 76 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -72,10 +76,11 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 179 requirements, 10 generated files
-.venv/bin/python tools/check_doc_consistency.py        # hand-written docs agree with the spec
+.venv/bin/python tools/gen_spec_views.py --check       # 184 requirements, 10 generated files
+.venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
+.venv/bin/python tools/verify_cpu_lock.py --clean-install
 ```
 
 [`NEXT.md`](NEXT.md) is the short-lived working file for what happens next — read it first.

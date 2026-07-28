@@ -101,7 +101,13 @@ preprocessing:
   reconstruction_clipped_before_metrics: true
   psnr_data_range: 1.0
   ssim_impl: skimage_structural_similarity
+  ssim_channel_axis: -1
   ssim_gaussian_weights: true
+  ssim_sigma: 1.5
+  ssim_k1: 0.01
+  ssim_k2: 0.03
+  ssim_use_sample_covariance: false
+  ssim_effective_gaussian_support_samples: 11
 bandwidth:
   symbol_type: complex_baseband
   power_constraint: unit_average_power
@@ -729,7 +735,27 @@ config:
   file_format: yaml
   experiment_file_policy: committed_choices_and_sweep_axes_only
   resolved_config_archive: beside_run_results
-  run_config_hash_form: sha256_over_canonical_json_sorted_keys_compact_separators
+  fingerprint_schema_version: 1
+  fingerprint_parameter_roots:
+  - project
+  - datasets
+  - preprocessing
+  - bandwidth
+  - channel
+  - learned_system
+  - baseline
+  - reference_classifier
+  - digital_semantic_control
+  - evaluation
+  - compute
+  - artifacts
+  - environment
+  fingerprint_excluded_roots:
+  - config
+  - demo
+  - hardware_tier23
+  - deliverables
+  run_config_hash_form: sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json
   analysis_version: 1
   analysis_version_bump_rule: bump_on_inference_estimand_or_analysis_implementation_change
   dataset_version_rule: archive_sha256
@@ -797,6 +823,21 @@ artifacts:
   - outage_label
   - augmentation
   - init
+  rng_identity_fields:
+    channel_noise:
+    - noise_id
+    outage_label:
+    - split_manifest_hash
+    - stable_sample_id
+    - channel_seed
+    augmentation:
+    - stable_sample_id
+    - train_seed
+    - epoch
+    init:
+    - train_seed
+    - component_path
+  init_component_path_rule: stable_model_qualified_name
   system_values:
   - learned
   - learned_papr_constrained
@@ -1013,6 +1054,9 @@ environment:
   pyyaml: 6.0.3
   cpu_lock_file: requirements-cpu.lock
   cpu_lock_source: requirements-cpu.in
+  torch_cpu: 2.13.0+cpu
+  torchvision_cpu: 0.28.0+cpu
+  torch_cpu_index_url: https://download.pytorch.org/whl/cpu
   torch: 2.13.0+cu130
   torchvision: 0.28.0+cu130
   torch_index_url: https://download.pytorch.org/whl/cu130
@@ -1022,6 +1066,7 @@ environment:
   scikit_image: 0.26.0
   glymur: 0.14.3
   openjpeg: 2.5.4
+  openjpeg_provisioning: externally_provisioned_and_verified_not_repository_locked
   pytest: 9.1.1
   cuda_assertion: torch.version.cuda is not None
   record_in_run_metadata:
@@ -1031,6 +1076,7 @@ environment:
   - driver_version
   - device_name
   - lock_file_sha256
+  - openjpeg_version
   cpu_install_path_required_for:
   - analysis
   - demo

@@ -10,8 +10,11 @@ Files here are committed, reviewable descriptions of an experiment. They contain
 They do not duplicate values derived from `spec/params.generated.yaml`. For
 example, a file names `crossover_ratio`, not `r_1_3`, and never repeats `k`.
 Loading a file stores both the symbolic choice and what it currently resolves
-to. The fully resolved `RunConfig` and its SHA-256 hash are archived beside the
-run results.
+to. The archived, immutable `RunConfig` also snapshots every scientific/runtime
+parameter root named by `params.config.fingerprint_parameter_roots`. Its
+versioned SHA-256 fingerprint covers the schema version, resolved run and that
+complete snapshot, so any scientific-arm change intentionally changes the hash
+(AM-72).
 
 Add files when an experiment needs them; do not generate one committed YAML file
 per sweep cell.

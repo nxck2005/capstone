@@ -1,3 +1,6 @@
+<!-- capstone-doc-status: historical-plan -->
+> **Historical snapshot:** This plan is retained for provenance and may contain superseded commands or status. See [`NEXT.md`](../../NEXT.md) for current repository state.
+
 # W1 Batch 2 — config plumbing and the SR-1 literal lint
 
 **Status: DONE** — committed 2026-07-28 as `2b23c1e` · **Written:** 2026-07-28, immediately after

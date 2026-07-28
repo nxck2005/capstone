@@ -7,14 +7,16 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-28 · **Phase:** **W1 — batches 1–4 done, dataset registry and split manifests next** · spike executed,
+**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–4 committed, AM-72–76 remediation staged; dataset registry and split manifests next** · spike executed,
 three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
 docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
-session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70 and batch 4's AM-71. `requirements.txt` is still tooling-only by design; the runtime stack now
+session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70, batch 4's AM-71, and the staged W1 sweep remediation AM-72..AM-76. `requirements.txt` is still tooling-only by design; the runtime stack now
 lives in the hashed `requirements.lock` that SR-21 asked for, and it is installed. All checks pass:
-`gen_spec_views.py --check` at **179 requirements**, `check_doc_consistency.py` across 8 hand-written
-docs, and `check_packetisation.py` with **zero failures**. Pytest passes outside the two deliberately
-the full **63-test** suite, including both GPU-runtime assertions.
+`gen_spec_views.py --check` at **184 requirements**, `check_doc_consistency.py` across **11 current
+hand-written documentation files with one valid historical plan excluded**, and
+`check_packetisation.py` with **zero failures**. The remediation suite is **97 passed**, the CPU lock
+passes a clean plain-pip `--require-hashes` install with no CUDA distributions and
+`torch.version.cuda is None`, and the CUDA probe returns `True` with a real device matmul.
 
 ---
 
@@ -225,8 +227,8 @@ and rounds 6 and 8 found only damage the fixing itself caused. The two worst def
 had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three operating points — were found
 by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
 
-**State on 2026-07-28, verified:** `src/`, `tests/` and both lockfiles exist, carrying committed
-batches 1–3 (`e90a1e0`, `2b23c1e`, `72be2af`) with batch 4 staged for author commit; no `data/`,
+**State on 2026-07-29, verified:** `src/`, `tests/` and both lockfiles exist, carrying committed
+batches 1–4 (`e90a1e0`, `2b23c1e`, `72be2af`, `eba5bd2`) with AM-72..AM-76 staged for author commit; no `data/`,
 no `results/`, no `checkpoints/` yet.
 `.venv` now holds the full runtime stack, installed from `requirements.lock`.
 Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · driver 592.82.
@@ -237,12 +239,13 @@ acceptance criterion fires when the dossier is delivered, and the conversation s
 Confirm nothing drifted, then continue with the dataset registry and split manifests:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 179 requirements (2 retired)
-.venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 184 requirements (2 retired)
+.venv/bin/python tools/check_doc_consistency.py            # expect: 11 current docs, 1 historical excluded
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
-.venv/bin/python -m pytest                                  # expect: 63 passed
-git status --short                                          # expect: clean
+.venv/bin/python -m pytest                                  # expect: 97 passed
+.venv/bin/python tools/verify_cpu_lock.py --clean-install
+git status --short                                          # expect: staged AM-72..AM-76 remediation only
 ```
 
 #### GPU access — probe it, do not assume it either way
@@ -351,7 +354,7 @@ short; and nothing outside `tests/` imports the guarded module, enforced by an A
 `config_hash` is byte-identical after the hash helper was generalised, so batch 2's committed
 configs did not silently move.
 
-#### ~~Batch 4 — canonical preprocessing contract~~ **DONE 2026-07-28, staged** (SR-19, AM-71)
+#### ~~Batch 4 — canonical preprocessing contract~~ **DONE 2026-07-28, committed as `eba5bd2`** (SR-19, AM-71)
 
 `src/data/preprocessing.py` now makes the canonical image one immutable uint8 RGB HWC product shared
 by codec and encoder paths. The encoder tensor is exactly float32 CHW divided by 255 from that array;
@@ -402,6 +405,34 @@ because the guard is green.
 any depth and would therefore have silently untracked `src/data/`. It is now `/data/`, anchored to
 the repository root. Worth remembering as a class — an unanchored ignore pattern is invisible until
 the file it swallowed is needed.
+
+**Checkpoint evidence, preserved separately:** before remediation, batch 4 passed **63 tests**, all
+five project checks, and the CUDA probe returned `True`. It was committed without overrides as
+`eba5bd21b2d051bb5c0741dd6aa1971eec134392`.
+
+#### AM-72..AM-76 W1 sweep remediation — **DONE 2026-07-29, staged and not committed**
+
+Five implemented-contract defects were repaired before loaders, manifests or results exist:
+
+- `config_hash` now fingerprints schema version + resolved run + immutable snapshots of all thirteen
+  scientific/runtime roots; administrative roots remain excluded and mapping order is irrelevant.
+- The CPU lock pins `torch==2.13.0+cpu` and `torchvision==0.28.0+cpu` from the official CPU index.
+  `tools/verify_cpu_lock.py --clean-install` proved a plain-pip hashed install has
+  `torch.version.cuda is None` and no `cuda-*`, `nvidia-*` or `triton` distributions.
+- `canonicalize_source(source_bytes, dataset)` is the sole product factory; source decoding is
+  private and registry-selected, RNG purposes reject missing/extra identity fields, and SSIM passes
+  every public result-affecting argument explicitly with the 0.26.0 Gaussian behaviour fixture.
+- Determinism accepts only the two named cuDNN mappings. Python locks no longer claim to provision
+  OpenJPEG: loaded version 2.5.4 is verified externally, learned-only metadata may record null, and
+  J2K preflight fails before artifact creation.
+- Current-document discovery now scans the complete AM-76 scope. The completed batch-2 plan is
+  excluded only by its exact historical marker, visible banner and root-resolving `NEXT.md` link.
+
+**Remediation evidence:** **97 tests passed**; `gen_spec_views.py --check` reports **184 requirements
+(2 retired)**; current-document consistency scans **11** files and excludes one valid historical
+plan; literal lint and packetisation pass; the CPU clean install passes; CUDA returns `True` and a
+real 64×64 device matmul completes. Dataset fetching, real decoder registration, loaders, manifests,
+classifier training, J2K implementation and Sionna integration remain deliberately out of scope.
 
 ---
 
@@ -649,6 +680,17 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-29 (W1 sweep remediation, staged)** — **SR-19 checkpoint committed as `eba5bd2`;
+  AM-72..AM-76 implemented and left staged for author commit.** The checkpoint was accepted only
+  after exact ten-path scope, no unstaged/untracked files, no remediation markers and
+  `git diff --cached --check` all passed; its evidence remains 63 tests, five project checks and
+  CUDA `True`. The new batch closes thin config fingerprints, the CUDA-bearing CPU lock, public
+  decoded-pixel construction, arbitrary RNG identities, SSIM defaults, open-ended determinism,
+  overstated OpenJPEG provisioning and fixed-list documentation coverage. New acceptance evidence:
+  97 tests, 184 requirements / 76 amendments, 11 current documentation files plus one valid
+  historical-plan exclusion, clean CPU plain-pip install with no CUDA distributions, and live CUDA
+  matmul. Next remains the W1 dataset registry, archive checksums and split manifests; real decoder
+  registration lands with that loader batch.
 - **2026-07-28 (W1 batch 4, staged)** — **Canonical preprocessing contract implemented; SR-19
   complete, AM-71 resolves stable source bytes, 63 tests passing.** Canonicalisation is an immutable
   uint8 RGB HWC product; encoder and codec inputs derive from the same pixels, augmentation uses the

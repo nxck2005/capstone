@@ -12,6 +12,27 @@ from artifacts.rng import keyed_generator, keyed_standard_normal
 from config.params import get
 
 
+def _identity(purpose: str) -> dict[str, object]:
+    identities: dict[str, dict[str, object]] = {
+        "channel_noise": {"noise_id": "noise-sha256"},
+        "outage_label": {
+            "split_manifest_hash": "split-sha256",
+            "stable_sample_id": "sample-a",
+            "channel_seed": 101,
+        },
+        "augmentation": {
+            "stable_sample_id": "sample-a",
+            "train_seed": 17,
+            "epoch": 4,
+        },
+        "init": {
+            "train_seed": 17,
+            "component_path": "encoder.stem.weight",
+        },
+    }
+    return identities[purpose]
+
+
 def _noise_fields(sample: str, block_index: int) -> dict[str, object]:
     return {
         "dataset_version": "dataset-sha256",
@@ -76,11 +97,32 @@ def test_distinct_identity_changes_draw():
 
 def test_every_declared_rng_purpose_is_supported():
     for purpose in get("artifacts.rng_purposes"):
-        first = keyed_generator(purpose, {"fixture": "same"}).random()
-        second = keyed_generator(purpose, {"fixture": "same"}).random()
+        first = keyed_generator(purpose, _identity(purpose)).random()
+        second = keyed_generator(purpose, _identity(purpose)).random()
         assert first == second
 
 
 def test_unknown_rng_purpose_raises():
     with pytest.raises(ValueError, match="unknown RNG purpose"):
         keyed_generator("not-a-purpose", {"fixture": "value"})
+
+
+@pytest.mark.parametrize("purpose", get("artifacts.rng_purposes"))
+def test_rng_purposes_reject_missing_and_extra_identity_fields(purpose):
+    complete = _identity(purpose)
+    missing = dict(complete)
+    missing.pop(next(iter(missing)))
+    extra = {**complete, "unexpected": "value"}
+
+    with pytest.raises(ValueError, match="missing="):
+        keyed_generator(purpose, missing)
+    with pytest.raises(ValueError, match="extra=.*unexpected"):
+        keyed_generator(purpose, extra)
+
+
+def test_init_component_path_is_model_qualified():
+    with pytest.raises(ValueError, match="stable model-qualified name"):
+        keyed_generator(
+            "init",
+            {"train_seed": 17, "component_path": "weight"},
+        )

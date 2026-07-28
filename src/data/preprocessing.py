@@ -6,8 +6,10 @@ different pixels for the same nominal interpolation.  Interpolation and
 antialiasing are passed explicitly from ``params.preprocessing``.
 
 Canonicalisation and augmentation are deliberately separate.  A
-``CanonicalProduct`` owns the immutable uint8 RGB HWC image shared by both
-systems.  The encoder tensor is derived only from those bytes by conversion to
+``canonicalize_source`` is the sole supported factory.  It passes the original
+source bytes to a private data-layer decoder registry, then returns the
+read-only ``CanonicalProduct`` protocol backed by an unexported implementation.
+The encoder tensor is derived only from its canonical bytes by conversion to
 float32 CHW and division by 255; the codec receives a byte-identical uint8 copy.
 Training augmentation starts from that same canonical image and obtains every
 random draw from the keyed ``augmentation`` Philox stream.
@@ -18,9 +20,9 @@ from __future__ import annotations
 import hashlib
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import numpy as np
 import torch
@@ -39,9 +41,19 @@ _SAMPLE_ID_RULE = re.compile(
 )
 
 
+class CanonicalProduct(Protocol):
+    """Read-only view of a source-bound canonical product."""
+
+    @property
+    def stable_sample_id(self) -> str: ...
+
+    @property
+    def canonical_image(self) -> np.ndarray: ...
+
+
 @dataclass(frozen=True)
-class CanonicalProduct:
-    """A stable sample identity and its one shared canonical pixel array."""
+class _CanonicalProduct:
+    """Private implementation; products are created only from source bytes."""
 
     stable_sample_id: str
     canonical_image: np.ndarray
@@ -58,6 +70,10 @@ class ReconstructionMetrics:
 
     psnr_db: float
     ssim: float
+
+
+_SourceDecoder = Callable[[bytes], Image.Image | np.ndarray]
+_SOURCE_DECODERS: dict[str, _SourceDecoder] = {}
 
 
 def stable_sample_id(source_bytes: bytes) -> str:
@@ -78,13 +94,40 @@ def stable_sample_id(source_bytes: bytes) -> str:
     return hashlib.sha256(source_bytes).hexdigest()[:width]
 
 
-def canonicalize_image(
+def canonicalize_source(
+    source_bytes: bytes,
+    dataset: str,
+) -> CanonicalProduct:
+    """Decode source bytes once and create the canonical product.
+
+    Dataset-loader implementations register their byte decoders privately in
+    this data-layer module. Real registrations land with the loader batch;
+    contract tests inject a private fixture decoder.
+    """
+
+    if not isinstance(source_bytes, bytes):
+        raise TypeError("source_bytes must be bytes")
+    if not source_bytes:
+        raise ValueError("source_bytes must not be empty")
+    try:
+        decoder = _SOURCE_DECODERS[dataset]
+    except KeyError:
+        raise ValueError(f"no source decoder registered for dataset {dataset!r}") from None
+    decoded = decoder(source_bytes)
+    return _canonicalize_decoded(
+        decoded,
+        dataset=dataset,
+        source_bytes=source_bytes,
+    )
+
+
+def _canonicalize_decoded(
     image: Image.Image | np.ndarray,
     *,
     dataset: str,
     source_bytes: bytes,
-) -> CanonicalProduct:
-    """Create the deterministic uint8 RGB HWC canonical image for one sample."""
+) -> _CanonicalProduct:
+    """Private decoded-pixel boundary used only by ``canonicalize_source``."""
 
     _validate_pipeline_contract()
     target_hw = _dataset_hw(dataset)
@@ -119,7 +162,7 @@ def canonicalize_image(
             f"canonical image has shape {canonical.shape}, expected "
             f"{(*target_hw, _RGB_CHANNELS)}"
         )
-    return CanonicalProduct(
+    return _CanonicalProduct(
         stable_sample_id=stable_sample_id(source_bytes),
         canonical_image=canonical,
     )
@@ -133,10 +176,10 @@ def codec_input(product: CanonicalProduct) -> np.ndarray:
             f"unsupported params.preprocessing.codec_input: "
             f"{get('preprocessing.codec_input')}"
         )
-    return product.canonical_image.copy()
+    return _require_product(product).canonical_image.copy()
 
 
-def canonical_uint8_to_tensor(image: np.ndarray) -> torch.Tensor:
+def _canonical_uint8_to_tensor(image: np.ndarray) -> torch.Tensor:
     """Convert uint8 RGB HWC to float32 RGB CHW by exactly ``image / 255``."""
 
     _validate_pipeline_contract()
@@ -152,7 +195,7 @@ def canonical_uint8_to_tensor(image: np.ndarray) -> torch.Tensor:
 def encoder_input(product: CanonicalProduct) -> torch.Tensor:
     """Return the unnormalised model input derived only from canonical pixels."""
 
-    return canonical_uint8_to_tensor(product.canonical_image)
+    return _canonical_uint8_to_tensor(_require_product(product).canonical_image)
 
 
 def evaluation_input(product: CanonicalProduct) -> torch.Tensor:
@@ -172,11 +215,10 @@ def training_input(
     if not rng_identity:
         raise ValueError("augmentation RNG identity must not be empty")
     _validate_pipeline_contract()
+    actual_product = _require_product(product)
     identity = dict(rng_identity)
-    supplied_sample_id = identity.setdefault(
-        "stable_sample_id", product.stable_sample_id
-    )
-    if supplied_sample_id != product.stable_sample_id:
+    supplied_sample_id = identity.get("stable_sample_id")
+    if supplied_sample_id != actual_product.stable_sample_id:
         raise ValueError(
             "augmentation RNG stable_sample_id does not match the canonical product"
         )
@@ -188,11 +230,11 @@ def training_input(
             f"{get('preprocessing.train_crop')}"
         )
     top, left, height, width = _random_resized_crop_box(
-        product.canonical_image.shape[:2], rng
+        actual_product.canonical_image.shape[:2], rng
     )
-    output_hw = product.canonical_image.shape[:2]
+    output_hw = actual_product.canonical_image.shape[:2]
     augmented = vision_f.resized_crop(
-        Image.fromarray(product.canonical_image),
+        Image.fromarray(actual_product.canonical_image),
         top,
         left,
         height,
@@ -203,7 +245,7 @@ def training_input(
     )
     if rng.random() < float(get("preprocessing.train_hflip_p")):
         augmented = vision_f.hflip(augmented)
-    return canonical_uint8_to_tensor(_pil_to_uint8_rgb(augmented))
+    return _canonical_uint8_to_tensor(_pil_to_uint8_rgb(augmented))
 
 
 def channel_normalisation_stats() -> tuple[tuple[float, ...], tuple[float, ...]]:
@@ -312,8 +354,14 @@ def reconstruction_ssim(
             reference_array,
             clipped,
             data_range=float(get("preprocessing.psnr_data_range")),
-            channel_axis=-1,
+            channel_axis=int(get("preprocessing.ssim_channel_axis")),
             gaussian_weights=bool(get("preprocessing.ssim_gaussian_weights")),
+            sigma=float(get("preprocessing.ssim_sigma")),
+            K1=float(get("preprocessing.ssim_k1")),
+            K2=float(get("preprocessing.ssim_k2")),
+            use_sample_covariance=bool(
+                get("preprocessing.ssim_use_sample_covariance")
+            ),
         )
     )
 
@@ -410,6 +458,14 @@ def _validated_uint8_rgb(image: np.ndarray) -> np.ndarray:
     if array.ndim != 3 or array.shape[-1] != _RGB_CHANNELS:
         raise ValueError("canonical and codec images must be RGB HWC")
     return np.ascontiguousarray(array)
+
+
+def _require_product(product: CanonicalProduct) -> _CanonicalProduct:
+    if not isinstance(product, _CanonicalProduct):
+        raise TypeError(
+            "canonical products must be obtained from canonicalize_source"
+        )
+    return product
 
 
 def _interpolation(parameter: str) -> InterpolationMode:

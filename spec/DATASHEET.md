@@ -94,7 +94,13 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `preprocessing.reconstruction_clipped_before_metrics` | true | AM-28, SR-19 |
 | `preprocessing.psnr_data_range` | 1.0 | AM-28, SR-19 |
 | `preprocessing.ssim_impl` | skimage_structural_similarity | AM-28, SR-19 |
+| `preprocessing.ssim_channel_axis` | -1 | AM-28, SR-19 |
 | `preprocessing.ssim_gaussian_weights` | true | AM-28, SR-19 |
+| `preprocessing.ssim_sigma` | 1.5 | AM-28, SR-19 |
+| `preprocessing.ssim_k1` | 0.01 | AM-28, SR-19 |
+| `preprocessing.ssim_k2` | 0.03 | AM-28, SR-19 |
+| `preprocessing.ssim_use_sample_covariance` | false | AM-28, SR-19 |
+| `preprocessing.ssim_effective_gaussian_support_samples` | 11 | AM-28, SR-19 |
 
 ## bandwidth
 
@@ -524,7 +530,10 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `config.file_format` | yaml | AM-68, SR-1, SR-18 |
 | `config.experiment_file_policy` | committed_choices_and_sweep_axes_only | AM-68, SR-1, SR-18 |
 | `config.resolved_config_archive` | beside_run_results | AM-68, SR-1, SR-18 |
-| `config.run_config_hash_form` | sha256_over_canonical_json_sorted_keys_compact_separators | AM-68, SR-1, SR-18 |
+| `config.fingerprint_schema_version` | 1 | AM-68, AM-72, SR-1, SR-18 |
+| `config.fingerprint_parameter_roots` | project, datasets, preprocessing, bandwidth, channel, learned_system, baseline, reference_classifier, digital_semantic_control, evaluation, compute, artifacts, environment | AM-68, SR-1, SR-18 |
+| `config.fingerprint_excluded_roots` | config, demo, hardware_tier23, deliverables | AM-68, SR-1, SR-18 |
+| `config.run_config_hash_form` | sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json | AM-68, SR-1, SR-18 |
 | `config.analysis_version` | 1 | AM-68, AM-69, SR-1, SR-18 |
 | `config.analysis_version_bump_rule` | bump_on_inference_estimand_or_analysis_implementation_change | AM-68, SR-1, SR-18 |
 | `config.dataset_version_rule` | archive_sha256 | AM-68, AM-69, SR-1, SR-18 |
@@ -549,6 +558,11 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `artifacts.pair_id_excludes` | system, comparison | SR-13, SR-18 |
 | `artifacts.rng_stream` | counter_based_keyed_not_sequential | SR-13, SR-18 |
 | `artifacts.rng_purposes` | channel_noise, outage_label, augmentation, init | SR-13, SR-18 |
+| `artifacts.rng_identity_fields.channel_noise` | noise_id | SR-13 |
+| `artifacts.rng_identity_fields.outage_label` | split_manifest_hash, stable_sample_id, channel_seed | SR-13 |
+| `artifacts.rng_identity_fields.augmentation` | stable_sample_id, train_seed, epoch | SR-13 |
+| `artifacts.rng_identity_fields.init` | train_seed, component_path | SR-13 |
+| `artifacts.init_component_path_rule` | stable_model_qualified_name | SR-13, SR-18 |
 | `artifacts.system_values` | learned, learned_papr_constrained, learned_snr_randomised, classical_adaptive, classical_fixed_mcs, classical_fixed_mod, classical_jpeg_secondary, classical_finetune_scored, er9_digital, label_transmission_bound, semantic_recon_ablation | AM-38, SR-13 |
 | `artifacts.csv_schema` | run_id, timestamp, git_commit, git_dirty, config_hash, checkpoint_id, system, dataset, split, n, k, bw_ratio, channel, train_snr_db, test_snr_db, train_seed, channel_seed, lambda, source_codec, jpeg_quality, j2k_target_bytes, ldpc_rate, modulation, top1_acc, n_correct, n_test, psnr_db, ssim, bytes_sent, header_bytes, payload_bytes, papr_db, decode_failure_rate, infeasible_rate, coverage_rate, acc_given_delivery, test_subset, wall_clock_s, peak_vram_gb, classifier_variant, quantiser_bits, transmit_dim, entropy_stream_bytes, entropy_table_bytes, side_information_bytes, tb_crc_type, base_graph, lifting_size, num_codeblocks, filler_bits, effective_code_rate, model_param_count | AM-38, ER-5, FW-2, SR-13 |
 | `artifacts.per_image_schema` | run_id, pair_id, noise_id, analysis_cell_id, dataset, dataset_version, split, stable_sample_id, bw_ratio, test_snr_db, true_label, pred_label, correct, outage, outage_reason, source_bytes | AM-37, AM-58, SR-13, SR-18 |
@@ -646,6 +660,9 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `environment.pyyaml` | 6.0.3 | AM-58, AM-65, SR-21 |
 | `environment.cpu_lock_file` | requirements-cpu.lock | AM-58, AM-67, SR-21 |
 | `environment.cpu_lock_source` | requirements-cpu.in | AM-58, AM-67, SR-21 |
+| `environment.torch_cpu` | 2.13.0+cpu | AM-58, AM-73, SR-21 |
+| `environment.torchvision_cpu` | 0.28.0+cpu | AM-58, SR-21 |
+| `environment.torch_cpu_index_url` | https://download.pytorch.org/whl/cpu | AM-58, SR-21 |
 | `environment.torch` | 2.13.0+cu130 | AM-58, SR-21 |
 | `environment.torchvision` | 0.28.0+cu130 | AM-58, SR-21 |
 | `environment.torch_index_url` | https://download.pytorch.org/whl/cu130 | AM-58, AM-61, SR-21 |
@@ -655,11 +672,12 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `environment.scikit_image` | 0.26.0 | AM-58, SR-21 |
 | `environment.glymur` | 0.14.3 | AM-58, SR-21 |
 | `environment.openjpeg` | 2.5.4 | AM-58, SR-21 |
+| `environment.openjpeg_provisioning` | externally_provisioned_and_verified_not_repository_locked | AM-58, SR-21 |
 | `environment.pytest` | 9.1.1 | AM-58, SR-21 |
 | `environment.cuda_assertion` | torch.version.cuda is not None | AM-58, SR-21 |
-| `environment.record_in_run_metadata` | python_version, torch_version, cuda_version, driver_version, device_name, lock_file_sha256 | AM-58, SR-21 |
+| `environment.record_in_run_metadata` | python_version, torch_version, cuda_version, driver_version, device_name, lock_file_sha256, openjpeg_version | AM-58, SR-21 |
 | `environment.cpu_install_path_required_for` | analysis, demo | AM-58, AM-67, SR-21 |
-| `environment.deterministic_backend.cudnn_deterministic` | true | AM-58, SR-21 |
-| `environment.deterministic_backend.cudnn_benchmark` | false | AM-58, SR-21 |
+| `environment.deterministic_backend.cudnn_deterministic` | true | AM-58, SR-12, SR-21 |
+| `environment.deterministic_backend.cudnn_benchmark` | false | AM-58, SR-12, SR-21 |
 | `environment.reproduction_tolerance.cpu_fixture` | exact_hash | AM-58, SR-21 |
 | `environment.reproduction_tolerance.gpu_same_seed_retrain_top1_pp` | 0.1 | AM-58, SR-21 |

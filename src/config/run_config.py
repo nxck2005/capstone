@@ -73,24 +73,36 @@ class FrozenMap(Mapping[str, Any]):
 class RunConfig:
     """One fully resolved run, retaining its committed symbolic choices."""
 
+    fingerprint_schema_version: int
     experiment: str
     source: str
     choices: FrozenMap
     sweep_axes: FrozenMap
     resolved: FrozenMap
+    parameters: FrozenMap
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "fingerprint_schema_version": self.fingerprint_schema_version,
             "experiment": self.experiment,
             "source": self.source,
             "choices": self.choices.to_dict(),
             "sweep_axes": self.sweep_axes.to_dict(),
             "resolved": self.resolved.to_dict(),
+            "parameters": self.parameters.to_dict(),
         }
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> RunConfig:
-        expected = {"experiment", "source", "choices", "sweep_axes", "resolved"}
+        expected = {
+            "fingerprint_schema_version",
+            "experiment",
+            "source",
+            "choices",
+            "sweep_axes",
+            "resolved",
+            "parameters",
+        }
         extra = set(value) - expected
         missing = expected - set(value)
         if missing or extra:
@@ -99,19 +111,35 @@ class RunConfig:
             )
         experiment = value["experiment"]
         source = value["source"]
+        fingerprint_schema_version = value["fingerprint_schema_version"]
+        if (
+            not isinstance(fingerprint_schema_version, int)
+            or isinstance(fingerprint_schema_version, bool)
+            or fingerprint_schema_version <= 0
+        ):
+            raise TypeError("fingerprint_schema_version must be a positive integer")
         if not isinstance(experiment, str) or not experiment:
             raise TypeError("experiment must be a non-empty string")
         if not isinstance(source, str) or not source:
             raise TypeError("source must be a non-empty string")
-        mappings = (value["choices"], value["sweep_axes"], value["resolved"])
+        mappings = (
+            value["choices"],
+            value["sweep_axes"],
+            value["resolved"],
+            value["parameters"],
+        )
         if not all(isinstance(item, Mapping) for item in mappings):
-            raise TypeError("choices, sweep_axes and resolved must be mappings")
+            raise TypeError(
+                "choices, sweep_axes, resolved and parameters must be mappings"
+            )
         return cls(
+            fingerprint_schema_version=fingerprint_schema_version,
             experiment=experiment,
             source=source,
             choices=FrozenMap.from_mapping(value["choices"]),
             sweep_axes=FrozenMap.from_mapping(value["sweep_axes"]),
             resolved=FrozenMap.from_mapping(value["resolved"]),
+            parameters=FrozenMap.from_mapping(value["parameters"]),
         )
 
 
@@ -126,7 +154,6 @@ _SWEEP_PARAMS = {
     "channel_seed": "evaluation.channel_seeds",
     "test_snr_db": "channel.test_snr_grid_db",
 }
-
 
 def _experiment_path(path: str | Path) -> Path:
     config_root = (REPO_ROOT / get("config.dir")).resolve()
@@ -251,11 +278,18 @@ def load_experiment(path: str | Path, **overrides: Any) -> RunConfig:
     except ValueError:
         source_label = str(source)
     return RunConfig(
+        fingerprint_schema_version=get("config.fingerprint_schema_version"),
         experiment=str(body["experiment"]),
         source=source_label,
         choices=FrozenMap.from_mapping(choices),
         sweep_axes=FrozenMap.from_mapping(sweep_axes),
         resolved=FrozenMap.from_mapping(resolved),
+        parameters=FrozenMap.from_mapping(
+            {
+                root: get(root)
+                for root in get("config.fingerprint_parameter_roots")
+            }
+        ),
     )
 
 
@@ -273,9 +307,17 @@ def canonical_sha256(value: Any) -> str:
 
 
 def config_hash(cfg: RunConfig) -> str:
-    """Stable SHA-256 over canonical JSON of the resolved configuration."""
+    """Hash the versioned resolved run and complete scientific parameter snapshot."""
 
     hash_form = get("config.run_config_hash_form")
-    if hash_form != "sha256_over_canonical_json_sorted_keys_compact_separators":
+    if hash_form != (
+        "sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json"
+    ):
         raise NotImplementedError(f"unsupported params.config.run_config_hash_form: {hash_form}")
-    return canonical_sha256(cfg.resolved.to_dict())
+    return canonical_sha256(
+        {
+            "fingerprint_schema_version": cfg.fingerprint_schema_version,
+            "resolved": cfg.resolved.to_dict(),
+            "parameters": cfg.parameters.to_dict(),
+        }
+    )

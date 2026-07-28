@@ -1,24 +1,27 @@
-# CPU-only install path (SR-21, AM-66).
+# CPU-only install path (SR-21, AM-66, AM-73).
 #
 # Required by `params.environment.cpu_install_path_required_for` -- analysis and
 # demo. Those two need to run on a machine with no NVIDIA GPU (a marker laptop,
 # a CI runner, the Streamlit host), and neither trains anything.
 #
-#   uv pip compile requirements-cpu.in --generate-hashes -o requirements-cpu.lock
+#   uv pip compile requirements-cpu.in --generate-hashes --emit-index-url \
+#       --index-strategy unsafe-best-match -o requirements-cpu.lock
 #
-# Differs from `requirements.in` in exactly two ways, both deliberate:
-#   * no `--extra-index-url`, so everything resolves from PyPI;
-#   * torch and torchvision carry no `+cu130` LOCAL VERSION. The upstream
-#     release is the same; only the build differs.
+# Torch and torchvision come explicitly from PyTorch's official CPU index. The
+# unsuffixed PyPI wheels are not a CPU-only guarantee: the original lock pulled
+# cuda-bindings, cuda-toolkit and related distributions while calling itself
+# CPU-only (AM-73).
 #
 # This path does NOT run the test suite. `tests/test_env.py::test_cuda_build`
 # hard-asserts a CUDA build with no skip marker, on purpose (AM-23): an env var
 # that disables it would be set once in a shell profile and silently disarm the
 # only check that catches a CPU build on the training machine.
 
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 # --- runtime stack (params.environment), CPU builds --------------------------
-torch==2.13.0
-torchvision==0.28.0
+torch==2.13.0+cpu
+torchvision==0.28.0+cpu
 numpy==2.5.1
 pillow==12.3.0
 scikit-image==0.26.0
@@ -27,3 +30,7 @@ pytest==9.1.1
 
 # --- spec tooling, same rationale as requirements.in (AM-65) -----------------
 PyYAML==6.0.3
+
+# OpenJPEG 2.5.4 is a system library, externally provisioned and verified
+# (AM-75); no Python lockfile can install or hash it. Glymur is the pinned Python
+# binding only.

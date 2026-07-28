@@ -2,8 +2,8 @@
 """Cross-document consistency check: do the hand-written docs still agree with the spec?
 
 `gen_spec_views.py --check` validates `SPEC.md` against itself and regenerates the
-derived views. Nothing validated the *hand-written* files -- `README.md`,
-`AGENTS.md`, `NEXT.md`, `docs/`, `spec/evidence/README.md` -- against it. Three
+derived views. Nothing validated the *current hand-written documentation*
+against it. Three
 separate drift incidents came out of that gap:
 
   * AM-52 enlarged the SNR grid and nothing that *counts* the grid was updated,
@@ -40,10 +40,16 @@ PARAMS = REPO / "spec" / "params.generated.yaml"
 SPEC = REPO / "spec" / "SPEC.md"
 PACKET_RECORD = REPO / "spec" / "evidence" / "packetisation_record.json"
 
-# Hand-written files. The generated views under spec/ are excluded: they are
-# reproduced from SPEC.md and `gen_spec_views.py --check` already guards them.
-DOCS = ["README.md", "AGENTS.md", "NEXT.md", "CLAUDE.md", "requirements.txt",
-        "spec/SPEC.md", "spec/evidence/README.md", "docs/crossover-explained.md"]
+# Tests may replace this with an explicit fixture list. The real run discovers
+# current hand-written documentation so a newly added file cannot evade checks.
+DOCS: list[str] | None = None
+
+HISTORICAL_MARKER = "<!-- capstone-doc-status: historical-plan -->"
+HISTORICAL_BANNER_RE = re.compile(
+    r"^> \*\*Historical snapshot:\*\* This plan is retained for provenance and "
+    r"may contain superseded commands or status\. See "
+    r"\[`NEXT\.md`\]\((?P<target>[^)]+)\) for current repository state\.$"
+)
 
 REQ_RE = re.compile(r"^- \*\*([A-Z]+)-(\d+)\*\* — ")
 TOMBSTONE_RE = re.compile(r"^- ~~\*\*([A-Z]+)-(\d+)\*\*~~ — ")
@@ -101,6 +107,47 @@ def blocks(body: str) -> list[tuple[int, str]]:
     return out
 
 
+def discover_documents() -> list[str]:
+    """Return the complete AM-76 current-document scope."""
+
+    if DOCS is not None:
+        return list(DOCS)
+    paths = set(REPO.glob("*.md"))
+    paths.update((REPO / "configs").rglob("*.md"))
+    paths.update((REPO / "docs").rglob("*.md"))
+    paths.update((REPO / "spec" / "evidence").rglob("*.md"))
+    paths.add(REPO / "spec" / "SPEC.md")
+    paths.add(REPO / "requirements.txt")
+    paths.update(REPO.glob("requirements*.in"))
+    return sorted(
+        str(path.relative_to(REPO))
+        for path in paths
+        if path.is_file()
+    )
+
+
+def _is_plan(path: str) -> bool:
+    parts = Path(path).parts
+    return "plans" in parts and Path(path).suffix == ".md"
+
+
+def historical_plan_error(path: str, body: str) -> str | None:
+    """Validate the exact marker, visible banner and root-NEXT resolving link."""
+
+    lines = body.splitlines()
+    if not lines or lines[0] != HISTORICAL_MARKER:
+        return "missing exact opening historical-plan marker"
+    if len(lines) < 2:
+        return "missing exact visible historical-snapshot banner"
+    match = HISTORICAL_BANNER_RE.fullmatch(lines[1])
+    if match is None:
+        return "historical-plan banner text is not exact"
+    target = (REPO / path).parent / match.group("target")
+    if target.resolve() != (REPO / "NEXT.md").resolve():
+        return "historical-plan NEXT.md link does not resolve to repository root"
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -110,13 +157,31 @@ def main() -> int:
     params = yaml.safe_load(PARAMS.read_text())
     spec_text = SPEC.read_text()
     ids, n_live = spec_ids(spec_text)
-    text = {d: (REPO / d).read_text() for d in DOCS if (REPO / d).exists()}
+    documents = discover_documents()
+    findings: list[str] = []
+    text: dict[str, str] = {}
+    excluded_historical = 0
+    for doc in documents:
+        path = REPO / doc
+        if not path.exists():
+            continue
+        body = path.read_text()
+        if _is_plan(doc):
+            banner_error = historical_plan_error(doc, body)
+            if banner_error is None:
+                excluded_historical += 1
+                continue
+            findings.append(f"{doc}:1: historical-plan banner finding: {banner_error}")
+        text[doc] = body
     doc_blocks = {d: blocks(b) for d, b in text.items()}
     n_am = len(ids.get("AM", set()))
     rec = json.loads(PACKET_RECORD.read_text()) if PACKET_RECORD.exists() else None
 
-    findings: list[str] = []
     passed: list[str] = []
+    passed.append(
+        f"current-document discovery ({len(text)} scanned, "
+        f"{excluded_historical} valid historical plans excluded)"
+    )
 
     # --- 1. Superseded values must carry the amendment that superseded them ----
     #
@@ -152,6 +217,17 @@ def main() -> int:
         (r"until G-10 closes|G-10 at W10|test_access_gate.*G-10", "test-release gate (now G-12)", 60),
         (r"registration status is unverified|registration.*unverified",
          "proposal registration (confirmed complete)", 63),
+        (
+            r"config_hash.*(?:canonical JSON of|SHA-256 over).*resolved configuration",
+            "partial run fingerprint",
+            72,
+        ),
+        (
+            r"torch==2\.13\.0(?!\+)|torchvision==0\.28\.0(?!\+)|"
+            r"CPU-only.*(?:PyPI|public index)",
+            "false CPU-only lock claim",
+            73,
+        ),
     ]
     for doc, bl in doc_blocks.items():
         for ln, block in bl:
@@ -258,7 +334,8 @@ def main() -> int:
         for f in findings:
             print(f"  - {f}")
         return 1
-    print(f"ok: {len(DOCS)} hand-written docs consistent with the spec "
+    print(f"ok: {len(text)} current hand-written documentation files consistent "
+          f"with the spec "
           f"({n_live} requirements, {n_am} amendments)")
     return 0
 
