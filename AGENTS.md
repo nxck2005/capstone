@@ -4,7 +4,7 @@ This file provides guidance to coding agents (Claude Code, and any other agent t
 
 ## Repository status
 
-**Implementation started 2026-07-28. Four batches are committed: W1 batch 1 (`e90a1e0`), batch 2 (`2b23c1e`), batch 3 (`72be2af`) and batch 4 (`eba5bd2`); the AM-72–76 remediation is committed as `8e59535`.** What exists: `requirements.in`/`requirements.lock` and the genuinely CPU-only pair (SR-21); `pyproject.toml` (pytest config only — no `[project]` table, no packaging, no install step); `src/config/params.py` and the versioned complete experiment fingerprints in `src/config/run_config.py`; `src/env.py` (CUDA assertion, explicit determinism mappings, run metadata and OpenJPEG preflight); committed experiment-choice files under `configs/`; `tools/check_literals.py`, `tools/verify_cpu_lock.py`; and `tests/`. Batch 3 adds the four content-addressed identity keys, exact-purpose keyed Philox streams and the SR-22 freeze guard. Batch 4 adds the source-bound canonical preprocessing contract. What does **not** exist yet: dataset loaders and real decoder registry entries, split manifests, and the reference classifier — those are the remaining W1 batches, through G-1. When you add project tooling, record the commands here.
+**Implementation started 2026-07-28. Four batches are committed: W1 batch 1 (`e90a1e0`), batch 2 (`2b23c1e`), batch 3 (`72be2af`) and batch 4 (`eba5bd2`); the AM-72–76 remediation is committed as `8e59535`. The next bounded batch is implemented and staged but deliberately uncommitted: AM-77, the dataset adapters/registry, archive provenance and committed split manifests.** What exists: `requirements.in`/`requirements.lock` and the genuinely CPU-only pair (SR-21); `pyproject.toml` (pytest config only — no `[project]` table, no packaging, no install step); `src/config/params.py` and the versioned complete experiment fingerprints in `src/config/run_config.py`; `src/env.py` (CUDA assertion, explicit determinism mappings, run metadata and OpenJPEG preflight); committed experiment-choice files under `configs/`; the source-bound canonical preprocessing path; the three dataset adapters and real source-byte decoders behind `src/data/registry.py`; verified archive tooling; canonical committed manifests under `data/manifests/`; and `tests/`. What does **not** exist yet: the reference classifier, classifier training/checkpoints, and validation-only G-1 — those are the next W1 batch. When you add project tooling, record the commands here.
 
 **`src/data/test_access.py` is the sole guarded boundary to the test split and nothing else may import it** (SR-22, DEC-12). That rule is enforced by an AST-walking test, not by convention, and it is the reason the module exists as its own file. Test access releases at `params.evaluation.test_access_gate` — **G-12, W11** — not G-10, which AM-60 caught pointing three weeks early.
 
@@ -16,7 +16,7 @@ non-normative by design (`spec/SPEC.md` wins on any conflict), and it is **expec
 before a session ends** if the state changed. Promote anything durable out of it: decisions become a
 `DEC` in `SPEC.md` §3, risks and provisional values go to `SPEC.md` §16, explanations go to `docs/`.
 
-**Where the spec stands.** It now carries 184 requirements (2 retired), of which 76 are `AM` amendment records. **The most recent round, AM-72..AM-76, remediates the implemented W1 contracts before loaders or results exist:** complete versioned fingerprints, a verified CPU-only lock, source-bound products plus exact RNG/SSIM arguments, explicit determinism and honest external OpenJPEG scope, and dynamic current-document coverage. AM-71 remains the stable-source-byte identity clarification. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done, G-9 passed, W1 batches 1–4 are committed, and dataset loaders, split manifests and classifier code remain the current front of the queue.
+**Where the spec stands.** It now carries 185 requirements (2 retired), of which 77 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done, G-9 passed, W1 batches 1–4 plus remediation are committed, the loader/manifest batch is staged, and the reference classifier is the current front of the queue.
 
 ### Commands
 
@@ -29,8 +29,24 @@ python tools/check_literals.py            # SR-1 numeric-literal lint; -v lists 
 python spec/evidence/check_packetisation.py            # TS 38.212 conformance, no GPU/network, <1s
 python spec/evidence/check_packetisation.py --json spec/evidence/packetisation_record.json
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
+.venv/bin/python tools/fetch_datasets.py --measure       # first fetch only; no extraction while hashes are pending
+.venv/bin/python tools/fetch_datasets.py                 # verify pinned byte length/SHA-256, then extract
+.venv/bin/python tools/fetch_datasets.py --check         # network-free archive provenance verification
+.venv/bin/python tools/materialize_manifests.py
+.venv/bin/python tools/materialize_manifests.py --check  # regenerate in memory; compare exact committed bytes
+.venv/bin/python tools/verify_datasets.py                 # real train/val smoke + zero-call test-provenance audit
 .venv/bin/python -m pytest              # project test suite; config is in pyproject.toml
 ```
+
+**AM-77 provenance pins:** Imagenette-160 `imagenette2-160.tgz`, 99,003,388 bytes,
+SHA-256 `64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5`; STL-10
+`stl10_binary.tar.gz`, 2,640,397,119 bytes,
+`f31fd99273a1acb8609c8db427cebb1de3f71de77758cdc0e22956e1289b9866`; CIFAR-10
+`cifar-10-python.tar.gz`, 170,498,071 bytes,
+`6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce`. Manifest pins:
+`data/manifests/imagenette160.csv` → `224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889`;
+`data/manifests/stl10.csv` → `67936da779dc0010160b37b3b40001490304a5873eb978d261e3a57947387b47`;
+`data/manifests/cifar10.csv` → `09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537`.
 
 **GPU check on this machine — it is WSL2, so look for `/dev/dxg`, not `/dev/nvidia*`:**
 
@@ -117,8 +133,9 @@ These are the terms the project is being judged on; preserve them in any design 
 - `spec/DATASHEET.md`, `spec/concerns/`, `spec/params.generated.yaml` — generated views (see Commands above). `spec/concerns/programme.md` holds the `PR` course deliverables; `spec/concerns/amendments.md` is the §17 amendment record — what changed in the spec and why, the file to read before re-litigating a decision or acting on an external review; the others group `SR`/`BR`/`ER`/`DR`/`HR` by concern, with retired IDs shown under a "Retired" heading.
 - `spec/evidence/` — supporting material for measured claims in the spec, currently the W0 LDPC spike behind AM-24 and AM-25: the machine-readable spike record, the scripts that produced it, and the golden-vector cross-check with its log. Not normative; it exists so the spec's numbers can be checked rather than trusted. Third-party vector data is **not** committed there — the directory carries checksums and a fetcher instead (AM-25), and `.gitignore` enforces it. Read its `README.md` before adding anything.
 - `tools/gen_spec_views.py` — the generator and spec validator.
-- `src/` — project code. `config/params.py` is the SR-1 loader every other module reads its constants through; `env.py` holds the CUDA assertion, the determinism settings and the run-metadata record (SR-21, SR-12). Nothing here is a package: `pyproject.toml` puts `src` on `pythonpath` for pytest, so there is no install step.
-- `tests/` — the test suite, nine files, run with `.venv/bin/python -m pytest`. Several exist because a comment would not have caught what they catch: `test_env.py` hard-asserts the CUDA build and OpenJPEG boundary; `test_cpu_lock.py` rejects CUDA distributions structurally; `test_doc_consistency.py` mutation-tests stale values and historical-plan banners; `test_artifact_rng.py` proves exact-key and control-flow invariance; and `test_test_access.py` walks the import graph around the guarded test split.
+- `src/` — project code. `config/params.py` is the SR-1 loader every other module reads its constants through; `env.py` holds the CUDA assertion, the determinism settings and the run-metadata record (SR-21, SR-12). `data/adapters.py`, `identity.py`, `manifests.py`, `provenance.py` and `registry.py` implement the AM-77 batch. Nothing here is a package: `pyproject.toml` puts `src` on `pythonpath` for pytest, so there is no install step.
+- `data/manifests/` — the only tracked part of root `data/`: `imagenette160.csv`, `stl10.csv` and `cifar10.csv`. Downloaded archives, verified extractions and range/cache files remain ignored.
+- `tests/` — twelve test modules plus `conftest.py`, run with `.venv/bin/python -m pytest`. Several exist because a comment would not have caught what they catch: `test_env.py` hard-asserts the CUDA build and OpenJPEG boundary; `test_cpu_lock.py` rejects CUDA distributions structurally; `test_doc_consistency.py` mutation-tests stale values and historical-plan banners; `test_artifact_rng.py` proves exact-key and control-flow invariance; `test_test_access.py` walks the import graph around the guarded test split; and the dataset/manifest/provenance tests use synthetic local sources so the default suite stays network-free.
 - `requirements.in` → `requirements.lock`, and `requirements-cpu.in` → `requirements-cpu.lock` — the SR-21 environment locks, hashed and committed. Source files are hand-written from `params.environment`; the locks are generated (see Commands) and must not be hand-edited.
 - `docs/` — hand-written background notes, not generated and not normative. `crossover-explained.md` explains why §2's crossover criterion was replaced, in plain language and then technically; it is written to feed the thesis discussion chapter and viva prep, and it is the thing to hand a supervisor who asks why the success criterion changed.
 

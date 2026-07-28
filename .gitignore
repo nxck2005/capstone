@@ -218,9 +218,12 @@ __marimo__/
 .streamlit/secrets.toml
 
 # --- project artifacts (W1) --------------------------------------------------
-# Root dataset artifacts are fetched and checksum-verified, never committed
-# (SR-2, SR-20); `src/data/` contains tracked loader boundary code.
-/data/
+# Root dataset archives, extractions and caches are fetched and verified but
+# never committed (SR-2, SR-20).  Canonical CSV manifests are SR-17 artifacts.
+/data/*
+!/data/manifests/
+/data/manifests/*
+!/data/manifests/*.csv
 # Model weights. Provenance lives in the run metadata and the training log (BR-8).
 checkpoints/
 
@@ -237,4 +240,3 @@ results/per_image/
 #   requirements*.lock -- the whole point of SR-21 is that they are committed.
 #
 # `.pytest_cache/` is already covered by the Python section above.
-

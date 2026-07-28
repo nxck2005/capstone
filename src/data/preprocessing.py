@@ -17,9 +17,7 @@ random draw from the keyed ``augmentation`` Philox stream.
 
 from __future__ import annotations
 
-import hashlib
 import math
-import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -33,12 +31,10 @@ from torchvision.transforms.functional import InterpolationMode
 
 from artifacts.rng import keyed_generator
 from config.params import get
+from data.identity import stable_sample_id
 
 _RGB_CHANNELS = len("RGB")
 _UINT8_MAX = np.iinfo(np.uint8).max
-_SAMPLE_ID_RULE = re.compile(
-    r"sha256_of_original_per_sample_source_bytes_truncated_(?P<width>\d+)_hex"
-)
 
 
 class CanonicalProduct(Protocol):
@@ -76,39 +72,24 @@ _SourceDecoder = Callable[[bytes], Image.Image | np.ndarray]
 _SOURCE_DECODERS: dict[str, _SourceDecoder] = {}
 
 
-def stable_sample_id(source_bytes: bytes) -> str:
-    """Hash the original per-sample payload bytes, before decode or preprocessing."""
-
-    if not isinstance(source_bytes, bytes):
-        raise TypeError("source_bytes must be bytes")
-    if not source_bytes:
-        raise ValueError("source_bytes must not be empty")
-
-    rule = get("datasets.stable_sample_id_rule")
-    match = _SAMPLE_ID_RULE.fullmatch(rule)
-    if match is None:
-        raise NotImplementedError(
-            f"unsupported params.datasets.stable_sample_id_rule: {rule}"
-        )
-    width = int(match.group("width"))
-    return hashlib.sha256(source_bytes).hexdigest()[:width]
-
-
 def canonicalize_source(
     source_bytes: bytes,
     dataset: str,
 ) -> CanonicalProduct:
     """Decode source bytes once and create the canonical product.
 
-    Dataset-loader implementations register their byte decoders privately in
-    this data-layer module. Real registrations land with the loader batch;
-    contract tests inject a private fixture decoder.
+    Dataset-loader implementations register their byte decoders privately.
+    Contract tests may replace the private mapping with fixture decoders.
     """
 
     if not isinstance(source_bytes, bytes):
         raise TypeError("source_bytes must be bytes")
     if not source_bytes:
         raise ValueError("source_bytes must not be empty")
+    if not _SOURCE_DECODERS:
+        from data.adapters import _registered_source_decoders
+
+        _SOURCE_DECODERS.update(_registered_source_decoders())
     try:
         decoder = _SOURCE_DECODERS[dataset]
     except KeyError:

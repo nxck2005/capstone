@@ -59,13 +59,15 @@ content-addressed identity keys, the counter-based keyed RNG and the guarded tes
 and batch 4 (checkpoint `eba5bd2`) implements the canonical preprocessing contract. The
 AM-72–76 W1 sweep remediation is committed as `8e59535`: complete versioned run
 fingerprints, a genuinely CPU-only lock, source-bound preprocessing plus exact RNG/SSIM contracts,
-honest OpenJPEG provisioning, and current-document consistency coverage. **W0 is complete and W1
-is open**. The immediate implementation front is the dataset loader/decoder registry, archive
-provenance and committed split manifests; the reference classifier and validation-only G-1 follow.
+honest OpenJPEG provisioning, and current-document consistency coverage. The next bounded batch is
+implemented and staged but uncommitted: AM-77, one registry over Imagenette-160/STL-10/CIFAR-10,
+real source-byte decoders, exact archive provenance, and deterministic committed split manifests.
+**W0 is complete and W1 is open**. The reference classifier and validation-only G-1 remain next;
+no classifier was implemented or trained in this batch.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **fourteen amendment rounds** across 76 `AM` entries, and is the file to read before
+records **fifteen amendment rounds** across 77 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -77,12 +79,28 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 184 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 185 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
+.venv/bin/python tools/fetch_datasets.py --check       # exact archive length + SHA-256
+.venv/bin/python tools/materialize_manifests.py --check
+.venv/bin/python tools/verify_datasets.py              # real train/val smoke; zero test decode/canonicalization
+.venv/bin/python -m pytest
 ```
+
+The tracked manifests and their exact SHA-256 values are:
+
+| Dataset | Manifest | Train / val / test | SHA-256 |
+|---|---|---:|---|
+| Imagenette-160 | `data/manifests/imagenette160.csv` | 8469 / 1000 / 3925 | `224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889` |
+| STL-10 | `data/manifests/stl10.csv` | 4500 / 500 / 8000 | `67936da779dc0010160b37b3b40001490304a5873eb978d261e3a57947387b47` |
+| CIFAR-10 | `data/manifests/cifar10.csv` | 45000 / 5000 / 10000 | `09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537` |
+
+Downloaded archives and extracted datasets stay ignored. Their normative URL, filename, exact byte
+length and SHA-256 are pinned under `params.datasets` in the generated datasheet and verified before
+any sample or manifest scan is allowed.
 
 [`NEXT.md`](NEXT.md) is the short-lived working file for what happens next — read it first.
 See [`AGENTS.md`](AGENTS.md) for how the repo is organized.

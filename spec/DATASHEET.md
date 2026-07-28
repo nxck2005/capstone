@@ -17,13 +17,23 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 
 | Parameter | Value | Cited by |
 | --- | --- | --- |
+| `datasets.archive_dir` | data/archives/ | AM-77, ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.extracted_dir` | data/datasets/ | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.manifest_dir` | data/manifests/ | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.manifest_format` | csv_stable_id_label_split | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.manifest_encoding` | utf-8 | AM-77, ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.manifest_newline` | lf | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.manifest_columns` | stable_sample_id, label, split | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.manifest_splits` | train, val, test | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.manifest_sort` | globally_by_stable_sample_id | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.manifest_hash` | sha256_of_exact_committed_csv_bytes | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.manifest_duplicate_id_policy` | hard_failure_within_dataset | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.stable_sample_id_rule` | sha256_of_original_per_sample_source_bytes_truncated_16_hex | AM-71, ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.split_carve_stratified` | true | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.split_rng` | numpy_default_rng_pcg64 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.split_draw` | choice_without_replacement_per_class_in_ascending_label_order | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.split_pre_shuffle_order` | sorted_by_stable_sample_id | ER-3, FW-6, SR-2, SR-17, SR-20 |
-| `datasets.class_index_source` | sorted_class_directory_names | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.class_index_source` | dataset_specific_authoritative_metadata | AM-77, ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.imagenette160.role` | headline | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.imagenette160.image_size` | 160, 160, 3 | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.imagenette160.n` | 76800 | ER-3, FW-6, SR-2, SR-17, SR-20 |
@@ -35,7 +45,13 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `datasets.imagenette160.loader` | torchvision_datasets_imagenette | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.imagenette160.loader_size_arg` | 160px | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.imagenette160.source_url` | https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz | ER-3, FW-6, SR-2, SR-17, SR-20 |
-| `datasets.imagenette160.archive_sha256` | pending_first_fetch_at_W1 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.imagenette160.archive_filename` | imagenette2-160.tgz | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.imagenette160.archive_bytes` | 99003388 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.imagenette160.archive_sha256` | 64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.imagenette160.manifest_filename` | imagenette160.csv | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.imagenette160.manifest_sha256` | 224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.imagenette160.source_payload` | exact_encoded_jpeg_file_bytes | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.imagenette160.class_index_source` | sorted_authoritative_class_directory_identifiers | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.imagenette160.licence` | apache_2_0 | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.imagenette160.published_val_becomes` | test | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.stl10.role` | fallback_headline | ER-3, FW-6, SR-2, SR-17, SR-20 |
@@ -49,7 +65,13 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `datasets.stl10.loader` | torchvision_datasets_stl10 | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.stl10.loader_size_arg` | None | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.stl10.source_url` | https://cs.stanford.edu/~acoates/stl10/stl10_binary.tar.gz | ER-3, FW-6, SR-2, SR-17, SR-20 |
-| `datasets.stl10.archive_sha256` | pending_first_fetch_at_W1 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stl10.archive_filename` | stl10_binary.tar.gz | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stl10.archive_bytes` | 2640397119 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stl10.archive_sha256` | f31fd99273a1acb8609c8db427cebb1de3f71de77758cdc0e22956e1289b9866 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stl10.manifest_filename` | stl10.csv | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stl10.manifest_sha256` | 67936da779dc0010160b37b3b40001490304a5873eb978d261e3a57947387b47 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stl10.source_payload` | exact_per_image_record_from_train_X_or_test_X_before_axis_transpose_or_pil | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stl10.class_index_source` | class_names_txt_line_order_corresponding_to_one_based_labels | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.stl10.licence` | research_use_see_source | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.stl10.published_val_becomes` | test | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.cifar10.role` | smoke_only | ER-3, FW-6, SR-2, SR-17, SR-20 |
@@ -63,7 +85,13 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `datasets.cifar10.loader` | torchvision_datasets_cifar10 | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.cifar10.loader_size_arg` | None | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.cifar10.source_url` | https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz | ER-3, FW-6, SR-2, SR-17, SR-20 |
-| `datasets.cifar10.archive_sha256` | pending_first_fetch_at_W1 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.cifar10.archive_filename` | cifar-10-python.tar.gz | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.cifar10.archive_bytes` | 170498071 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.cifar10.archive_sha256` | 6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.cifar10.manifest_filename` | cifar10.csv | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.cifar10.manifest_sha256` | 09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537 | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.cifar10.source_payload` | exact_3072_byte_per_image_chw_batch_record_before_hwc_or_pil | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.cifar10.class_index_source` | batches_meta_label_names_order_corresponding_to_payload_labels | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.cifar10.licence` | mit | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.cifar10.published_val_becomes` | test | ER-3, FW-6, SR-2, SR-17, SR-20 |
 
