@@ -7,15 +7,14 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-28 · **Phase:** **W1 — batches 1–3 done, preprocessing (SR-19) next** · spike executed,
+**Last updated:** 2026-07-28 · **Phase:** **W1 — batches 1–4 done, dataset registry and split manifests next** · spike executed,
 three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
 docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
-session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70. `requirements.txt` is still tooling-only by design; the runtime stack now
+session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70 and batch 4's AM-71. `requirements.txt` is still tooling-only by design; the runtime stack now
 lives in the hashed `requirements.lock` that SR-21 asked for, and it is installed. All checks pass:
-`gen_spec_views.py --check` at **178 requirements**, `check_doc_consistency.py` across 8 hand-written
+`gen_spec_views.py --check` at **179 requirements**, `check_doc_consistency.py` across 8 hand-written
 docs, and `check_packetisation.py` with **zero failures**. Pytest passes outside the two deliberately
-unskipped GPU-runtime assertions; this agent environment blocks NVML/CUDA device access despite the
-correct CUDA build, so those two require the primary-device run before the signed commit.
+the full **63-test** suite, including both GPU-runtime assertions.
 
 ---
 
@@ -226,22 +225,23 @@ and rounds 6 and 8 found only damage the fixing itself caused. The two worst def
 had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three operating points — were found
 by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
 
-**State on 2026-07-28, verified:** `src/`, `tests/` and both lockfiles exist, carrying batches 1–3
-(`e90a1e0`, `2b23c1e`, `72be2af`); no `data/`, no `results/`, no `checkpoints/` yet.
+**State on 2026-07-28, verified:** `src/`, `tests/` and both lockfiles exist, carrying committed
+batches 1–3 (`e90a1e0`, `2b23c1e`, `72be2af`) with batch 4 staged for author commit; no `data/`,
+no `results/`, no `checkpoints/` yet.
 `.venv` now holds the full runtime stack, installed from `requirements.lock`.
 Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · driver 592.82.
 srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files, gitignored).
 Only IRL item still open: PR-9's hardware-alternative acknowledgement, which is not blocking — its
 acceptance criterion fires when the dossier is delivered, and the conversation sits before W4.
 
-Confirm nothing drifted, then start the preprocessing contract (SR-19):
+Confirm nothing drifted, then continue with the dataset registry and split manifests:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 178 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 179 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
-.venv/bin/python -m pytest                                  # expect: 54 passed
+.venv/bin/python -m pytest                                  # expect: 63 passed
 git status --short                                          # expect: clean
 ```
 
@@ -351,6 +351,45 @@ short; and nothing outside `tests/` imports the guarded module, enforced by an A
 `config_hash` is byte-identical after the hash helper was generalised, so batch 2's committed
 configs did not silently move.
 
+#### ~~Batch 4 — canonical preprocessing contract~~ **DONE 2026-07-28, staged** (SR-19, AM-71)
+
+`src/data/preprocessing.py` now makes the canonical image one immutable uint8 RGB HWC product shared
+by codec and encoder paths. The encoder tensor is exactly float32 CHW divided by 255 from that array;
+PIL-backed torchvision functional resizing is pinned in the module docstring and every interpolation
+and antialias argument is explicit. Evaluation is deterministic, while training crop and flip draws
+come from the keyed Philox `augmentation` purpose with the stable sample ID bound into the identity.
+The same module owns aspect-preserving codec down/up sampling and clipped PSNR/SSIM.
+
+**AM-71 resolves the only ambiguity found while building it:** stable sample IDs hash the exact
+original per-sample source payload bytes before decode or preprocessing, not canonical RGB pixels.
+The rejected reading would make a preprocessing amendment change every ID, invalidating committed
+split manifests plus all `pair_id` and `noise_id` joins. Synthetic tests prove the ID is invariant
+when the canonical output size changes, while different source bytes change it.
+
+Nine focused tests cover bit identity, exact uint8-to-float conversion, deterministic eval,
+same-key/different-key augmentation, codec resize direction and aspect failures, analytical PSNR,
+effective clipping, and invalid canonical input. The full suite is **63 passed** on CUDA.
+
+**Batch 4 independently adjudicated — structural and behavioural passes complete.** Every previous
+batch was independently re-derived rather than read, and two of those passes found real defects
+(batch 2's silent `_resolve_choice` fallthrough; batch 1's unanchored `data/` ignore rule). The
+structural pass found that `CanonicalProduct` holds one uint8 array frozen with
+`setflags(write=False)`, `codec_input` is a copy of it and `encoder_input` is that same array over
+255, so there is no second decode path and bit-identity is true by construction rather than by
+assertion. All three `# literal-ok` annotations are legitimate (PSNR's ten-times-log, torchvision's
+fixed ten crop proposals, the pre-existing subprocess timeout), and AM-71 is enforced structurally:
+`canonicalize_image` derives the ID from `source_bytes` and cannot be given a mismatching one.
+
+The behavioural pass used a standalone synthetic probe against `src/data/preprocessing.py`, not the
+committed tests. A constant offset `d = 0.25` produced PSNR `12.041199826559`, exactly
+`10*log10(1/d**2)`; repeated evaluation tensors were equal; repeated training calls with one keyed
+identity were equal while a changed epoch produced different pixels; clipping an out-of-range
+reconstruction changed PSNR from `-0.827853703165` to `4.436974992327` and capped its maximum at
+1.0; and identical source bytes retained ID `c93463a0e3d57766` across 32×32 and 96×96 canonical
+outputs while changed bytes produced `2c5b154581398a18`. The first standalone attempt failed only
+because this no-package repository requires `PYTHONPATH=src:tools` outside pytest; rerunning with
+the repository source paths supplied passed every assertion. No implementation defect was found.
+
 ⚠️ **One SR-22 clause is deferred and must not be forgotten at the freeze.** Its verify clause wants
 *an archived freeze manifest whose hashes resolve to the committed code, config, manifests and
 checkpoints*. The guard currently checks that every field in
@@ -377,7 +416,7 @@ so the hold is cleared on the specification side.
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
-| 4 | **Continue W1(c)–(f) below** — batches 1–3 done; next is the preprocessing contract (SR-19), then registry, splits, classifier | agent, **except the two sandboxed steps below** | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
+| 4 | **Continue W1(d)–(f) below** — batches 1–4 done; next is registry, provenance and split manifests, then classifier | agent, **except the two sandboxed steps below** | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
 | 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 6 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
@@ -610,6 +649,13 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-28 (W1 batch 4, staged)** — **Canonical preprocessing contract implemented; SR-19
+  complete, AM-71 resolves stable source bytes, 63 tests passing.** Canonicalisation is an immutable
+  uint8 RGB HWC product; encoder and codec inputs derive from the same pixels, augmentation uses the
+  keyed Philox `augmentation` stream, evaluation is deterministic, and codec resampling plus clipped
+  PSNR/SSIM are pinned. The source-ID alternative was tested rather than left verbal: the same source
+  bytes retain one ID across different canonical output sizes, while changed bytes produce a new ID.
+  CUDA initialised successfully and a real device matmul ran before the full suite.
 - **2026-07-28 (W1 batch 3, `72be2af`)** — **Identity keys, keyed RNG and the test-access guard;
   SR-18 and SR-22 implemented, no amendment needed, 54 tests passing.** The cleanest batch of the
   three, and the one that mattered most: these are the pieces that cannot be retrofitted once results

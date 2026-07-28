@@ -19,7 +19,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | --- | --- | --- |
 | `datasets.manifest_dir` | data/manifests/ | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.manifest_format` | csv_stable_id_label_split | ER-3, FW-6, SR-2, SR-17, SR-20 |
-| `datasets.stable_sample_id_rule` | sha256_of_canonical_source_bytes_truncated_16_hex | ER-3, FW-6, SR-2, SR-17, SR-20 |
+| `datasets.stable_sample_id_rule` | sha256_of_original_per_sample_source_bytes_truncated_16_hex | AM-71, ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.split_carve_stratified` | true | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.split_rng` | numpy_default_rng_pcg64 | ER-3, FW-6, SR-2, SR-17, SR-20 |
 | `datasets.split_pre_shuffle_order` | sorted_by_stable_sample_id | ER-3, FW-6, SR-2, SR-17, SR-20 |

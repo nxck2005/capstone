@@ -54,13 +54,13 @@ drift guard to run after any spec change.
 ## Status
 
 Implementation is underway: W1 batch 1 established the locked environment and repository scaffold,
-batch 2 added the resolved run-configuration layer and SR-1 literal checker, and batch 3 added the
-content-addressed identity keys, the counter-based keyed RNG and the guarded test-split boundary —
-the contracts that cannot be retrofitted once results exist. **W0 is complete and W1 is open**.
+batch 2 added the resolved run-configuration layer and SR-1 literal checker, batch 3 added the
+content-addressed identity keys, the counter-based keyed RNG and the guarded test-split boundary,
+and batch 4 implements the canonical preprocessing contract. **W0 is complete and W1 is open**.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **twelve amendment rounds** across 70 `AM` entries, and is the file to read before
+records **thirteen amendment rounds** across 71 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -72,7 +72,7 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 178 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 179 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # hand-written docs agree with the spec
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures

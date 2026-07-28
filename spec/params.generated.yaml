@@ -8,7 +8,7 @@ project:
 datasets:
   manifest_dir: data/manifests/
   manifest_format: csv_stable_id_label_split
-  stable_sample_id_rule: sha256_of_canonical_source_bytes_truncated_16_hex
+  stable_sample_id_rule: sha256_of_original_per_sample_source_bytes_truncated_16_hex
   split_carve_stratified: true
   split_rng: numpy_default_rng_pcg64
   split_pre_shuffle_order: sorted_by_stable_sample_id
