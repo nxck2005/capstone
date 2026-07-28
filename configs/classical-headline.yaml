@@ -1,0 +1,11 @@
+experiment: classical_headline
+choices:
+  system: classical_adaptive
+  dataset: imagenette160
+  split: validation
+  bw_ratio: crossover_ratio
+  channel: awgn
+  classifier_variant: artifact_finetuned
+sweep_axes:
+  channel_seed: channel_seeds
+  test_snr_db: test_snr_grid_db

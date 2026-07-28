@@ -724,6 +724,26 @@ compute:
   schedule_cost_compared_as:
   - per_run_against_max_wall_clock_hours_per_run
   - aggregate_calendar_time
+config:
+  dir: configs/
+  file_format: yaml
+  experiment_file_policy: committed_choices_and_sweep_axes_only
+  resolved_config_archive: beside_run_results
+  run_config_hash_form: sha256_over_canonical_json_sorted_keys_compact_separators
+  analysis_version: 1
+  analysis_version_bump_rule: bump_on_inference_estimand_or_analysis_implementation_change
+  dataset_version_rule: archive_sha256
+  literal_lint_scope:
+  - src/
+  literal_lint_excluded_paths:
+  - src/config/
+  literal_lint_exempt_values:
+  - -1
+  - 0
+  - 1
+  - 2
+  - 3
+  literal_lint_annotation: '# literal-ok:'
 artifacts:
   results_dir: results/
   per_image_dir: results/per_image/

@@ -177,8 +177,10 @@ def main() -> int:
     # Judged on a LOCAL window, not the whole block: AGENTS.md's status paragraph is
     # a single block carrying both "it now carries 169" and "it was revised (97)",
     # so block-level currency cannot tell them apart.
-    CURRENT = re.compile(r"now carries|passes at|currently|expect:|--check|"
-                         r"records \*\*\w+\*\* amendment rounds")
+    CURRENT = re.compile(
+        r"now carries|passes at|currently|expect:|--check|"
+        r"records \*\*(?:\w+\*\* amendment rounds|\w+ amendment rounds\*\*)"
+    )
     HISTORY = re.compile(r"\bwas\b|\bwere\b|closed at|previously|took it to|→|->|~~|Result:|"
                          r"round closed|Before that")
     COUNTS = [(re.compile(r"\b(\d+)\s+requirements\b"), n_live, "requirements"),

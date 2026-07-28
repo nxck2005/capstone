@@ -7,14 +7,15 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-28 · **Phase:** **W1 — batch 1 landed, batch 2 next** · spike executed,
+**Last updated:** 2026-07-28 · **Phase:** **W1 — batch 2 implemented, signed commit pending** · spike executed,
 three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
 docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
-session (AM-65..AM-67)**. `requirements.txt` is still tooling-only by design; the runtime stack now
+session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70. `requirements.txt` is still tooling-only by design; the runtime stack now
 lives in the hashed `requirements.lock` that SR-21 asked for, and it is installed. All checks pass:
-`gen_spec_views.py --check` at **175 requirements**, `check_doc_consistency.py` across 8 hand-written
-docs, `check_packetisation.py` with **zero failures**, and `pytest` — if any is untrue when you read
-this, something landed after this line was written.
+`gen_spec_views.py --check` at **178 requirements**, `check_doc_consistency.py` across 8 hand-written
+docs, and `check_packetisation.py` with **zero failures**. Pytest passes outside the two deliberately
+unskipped GPU-runtime assertions; this agent environment blocks NVML/CUDA device access despite the
+correct CUDA build, so those two require the primary-device run before the signed commit.
 
 ---
 
@@ -44,8 +45,8 @@ magnitude-contraction clause (the audit's high-SNR refit was rejected — it aba
 grid where the effect is largest); W10's rehearsal and the Second Review figure move to
 **validation**, test stays sealed behind a freeze manifest until **G-12 at W11** (AM-60 — it briefly
 read G-10, which after AM-59 sits at the *start of W9* and would have released the split three weeks
-early); H4's power floor is **declared and simulated before W8** rather than fixed by more training
-runs.
+early); H4's power floor is declared and simulated **before the test split opens at G-12** rather
+than fixed by more training runs (AM-70 — ER-9 does not exist until W9).
 
 **The packetisation script reported zero failures while breaking four of its own rules** — that is
 the finding worth carrying forward. 92/215 rows had a non-byte-aligned `A` under a solver whose own
@@ -232,11 +233,12 @@ srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files
 Only IRL item still open: PR-9's hardware-alternative acknowledgement, which is not blocking — its
 acceptance criterion fires when the dossier is delivered, and the conversation sits before W4.
 
-Confirm nothing drifted, then start batch 2:
+Confirm nothing drifted, then start batch 3:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 175 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 178 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
+.venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
 .venv/bin/python -m pytest                                  # expect: all pass, incl. the CUDA assertion
 git status --short                                          # expect: clean
@@ -277,28 +279,25 @@ UV_CONCURRENT_DOWNLOADS=2` got it through, and the cache persists so retries res
 restart. And **do not pipe the install through `tail`** — `$?` then reports the pipe's status and a
 failed sync looks like a success.
 
-#### ⏭️ Batch 2 — **the full plan is written: [`docs/plans/w1-batch2.md`](docs/plans/w1-batch2.md)**
+#### ~~Batch 2 — config plumbing + literal lint~~ **IMPLEMENTED 2026-07-28; signed commit pending**
 
-**Read that file before starting.** It is self-contained — cold-start orientation, the repo
-conventions that are not optional, the file list, both designs, the two amendments it needs, the
-verification block and the risks — so a fresh session does not have to reconstruct any of it.
+The point-in-time plan is [`docs/plans/w1-batch2.md`](docs/plans/w1-batch2.md). Batch 2 added the
+resolved frozen `RunConfig`, canonical SHA-256 config hashing, two committed experiment-choice YAML
+files, and `tools/check_literals.py` with mutation tests for positive and negative literals and
+reasoned exceptions. AM-68..AM-70 take the spec to 178 requirements.
 
-Batch 2 is `src/config/` proper + `tools/check_literals.py` (SR-1). `src/config/params.py` already
-exists as the loader, so batch 2 grows it into the run-config layer that derives `config_hash`
-(SR-13) rather than starting from nothing. Three things settled with the author and recorded there:
+Three things settled with the author and recorded there:
 run configs are **committed experiment files naming choices only**, with sweep axes and the resolved
 per-run config archived beside results (one file per run would be thousands of unreviewable files);
 the literal lint **hard-fails with per-site `# literal-ok: <reason>` annotations** that must carry a
 reason and are counted in the summary; and the plan lives in the repo rather than inline here.
 
-**One finding from planning that batch 3 depends on:** `params.artifacts.run_id_key` names five
-fields and **two of them — `dataset_version` and `analysis_version` — are defined nowhere in
-params**, so SR-18's `run_id` is not constructible as written. `config_hash` and `checkpoint_id` are
-runtime-computed by design and are not gaps. Batch 2 closes the two real ones; the plan carries the
-amendment text, deliberately unnumbered here, because a reference to an amendment that does not exist
-yet is indistinguishable from a typo and `check_doc_consistency.py` rejects it — as it just did.
+**The finding from planning that batch 3 depended on is closed by AM-69:** `dataset_version` and
+`analysis_version`, previously undefined, now resolve through `params.config`; `config_hash` and
+`checkpoint_id` remain runtime-computed by design and were never gaps.
 
-Then **batch 3** is `src/artifacts/ids.py`, `src/artifacts/rng.py` and `src/data/test_access.py`
+**Batch 3 is next but has not started:** `src/artifacts/ids.py`, `src/artifacts/rng.py` and
+`src/data/test_access.py`
 (SR-18, SR-22), which are the two that cannot be retrofitted. Details in (b), (d2) and (e3) below.
 
 ---
@@ -313,8 +312,8 @@ so the hold is cleared on the specification side.
 | ~~0~~ | ~~**Commit `AM-57`..`AM-60`**~~ **DONE** — `37a02dd` | — | — | — |
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
-| 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | First Review package |
-| 4 | **W1(b)–(f) below** — (a) is done, batch 2 is `src/config/` + `check_literals.py` | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
+| 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
+| 4 | **Continue W1(b)–(f) below** — (a) and batch 2 are done; batch 3 is identity/RNG/test guard | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
 | 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 6 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
@@ -547,6 +546,17 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-28 (W1 batch 2, staged)** — **Config plumbing and SR-1 literal lint implemented;
+  AM-68..AM-70, 175 → 178 requirements.** Added a deeply frozen resolved `RunConfig`, canonical
+  SHA-256 hashing, learned/classical experiment-choice YAMLs, and a parameter-driven AST lint that
+  catches negative SNRs as `UnaryOp(USub, Constant)` and requires a reason on every exception.
+  Mutation tests prove bare `7`, bare `-8`, and an empty `# literal-ok:` fail. The README status and
+  its doc-consistency regression were repaired, PR-9 was removed from the First Review readiness
+  column, and AM-70 corrected §16's H4 deadline to before G-12 without moving any gate or schedule
+  row. Spec, documentation, literal and packetisation checks pass. In this agent environment the
+  CUDA wheel is correct (`torch 2.13.0+cu130`, built for CUDA 13.0), but OS policy blocks NVML/device
+  access, so the two deliberately unskipped GPU-runtime tests remain expected failures here and must
+  be rerun on the primary device before the author signs the commit.
 - **2026-07-28 (W1 batch 1)** — **First commit of project code; AM-65..AM-67, 172 → 175
   requirements.** The environment is locked, installed and asserted: torch 2.13.0+cu130 on CUDA 13.0,
   torchvision 0.28.0+cu130, driver 592.82, `torch.cuda.is_available()` True, 18 tests passing. All

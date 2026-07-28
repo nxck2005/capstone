@@ -1,0 +1,14 @@
+experiment: learned_headline
+choices:
+  system: learned
+  dataset: imagenette160
+  split: validation
+  bw_ratio: crossover_ratio
+  channel: awgn
+  train_snr_db: train_snr_db_fixed
+  lambda: lambda_core
+  classifier_variant: clean
+sweep_axes:
+  train_seed: train_seeds
+  channel_seed: channel_seeds
+  test_snr_db: test_snr_grid_db

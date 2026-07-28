@@ -450,7 +450,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `evaluation.h1_run_calibration_alpha` | 0.05 | ER-10 |
 | `evaluation.h4_uses_h1_rule` | true | ER-10 |
 | `evaluation.h4_comparator` | er9_digital | ER-10 |
-| `evaluation.h4_mde_gate` | G-11 | ER-10, G-11 |
+| `evaluation.h4_mde_gate` | G-11 | AM-70, ER-10, G-11 |
 | `evaluation.h4_mde_simulation` | prospective_paired_precision_on_validation_discordance | ER-10, G-11 |
 | `evaluation.gap_trend_test` | wls_slope_of_paired_gap_vs_snr | ER-10 |
 | `evaluation.gap_trend_bootstrap_unit` | per_image_seed_trajectory | ER-10 |
@@ -516,6 +516,23 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `compute.schedule_cost_gate` | G-8 | AM-24 |
 | `compute.schedule_cost_compared_as` | per_run_against_max_wall_clock_hours_per_run, aggregate_calendar_time | AM-24, G-8 |
 
+## config
+
+| Parameter | Value | Cited by |
+| --- | --- | --- |
+| `config.dir` | configs/ | AM-68, SR-1, SR-18 |
+| `config.file_format` | yaml | AM-68, SR-1, SR-18 |
+| `config.experiment_file_policy` | committed_choices_and_sweep_axes_only | AM-68, SR-1, SR-18 |
+| `config.resolved_config_archive` | beside_run_results | AM-68, SR-1, SR-18 |
+| `config.run_config_hash_form` | sha256_over_canonical_json_sorted_keys_compact_separators | AM-68, SR-1, SR-18 |
+| `config.analysis_version` | 1 | AM-68, AM-69, SR-1, SR-18 |
+| `config.analysis_version_bump_rule` | bump_on_inference_estimand_or_analysis_implementation_change | AM-68, SR-1, SR-18 |
+| `config.dataset_version_rule` | archive_sha256 | AM-68, AM-69, SR-1, SR-18 |
+| `config.literal_lint_scope` | src/ | AM-68, SR-1, SR-18 |
+| `config.literal_lint_excluded_paths` | src/config/ | AM-68, SR-1, SR-18 |
+| `config.literal_lint_exempt_values` | -1, 0, 1, 2, 3 | AM-68, SR-1, SR-18 |
+| `config.literal_lint_annotation` | # literal-ok: | AM-68, SR-1, SR-18 |
+
 ## artifacts
 
 | Parameter | Value | Cited by |
@@ -524,7 +541,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `artifacts.per_image_dir` | results/per_image/ | ER-10, SR-13, SR-18 |
 | `artifacts.checkpoint_dir` | checkpoints/ | SR-13 |
 | `artifacts.figures_dir` | figures/ | SR-13 |
-| `artifacts.run_id_key` | system, dataset, dataset_version, split, split_manifest_hash, bw_ratio, test_snr_db, train_seed, channel_seed, config_hash, checkpoint_id, classifier_variant, ldpc_rate, modulation, quantiser_bits, transmit_dim, lambda, analysis_version | AM-37, AM-58, SR-13, SR-18 |
+| `artifacts.run_id_key` | system, dataset, dataset_version, split, split_manifest_hash, bw_ratio, test_snr_db, train_seed, channel_seed, config_hash, checkpoint_id, classifier_variant, ldpc_rate, modulation, quantiser_bits, transmit_dim, lambda, analysis_version | AM-37, AM-58, AM-69, SR-13, SR-18 |
 | `artifacts.run_id_form` | content_addressed_sha256_over_sorted_key_value_pairs | SR-13, SR-18 |
 | `artifacts.analysis_cell_id_key` | train_seed, channel_seed | SR-13, SR-18 |
 | `artifacts.noise_id_key` | dataset_version, split_manifest_hash, stable_sample_id, test_snr_db, channel_seed, channel, k, block_index, rng_purpose | SR-13, SR-18 |

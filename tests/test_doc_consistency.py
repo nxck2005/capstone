@@ -108,6 +108,21 @@ def test_nonexistent_amendment_grants_no_exemption(run_checker):
     assert f"references {NONEXISTENT}" in out
 
 
+def test_bold_whole_amendment_round_phrase_is_a_current_claim(run_checker):
+    """The README's emphasis shape must not hide a stale live AM count.
+
+    The checker originally recognised ``records **ten** amendment rounds`` but
+    not ``records **ten amendment rounds**``. The latter is the exact form that
+    let README.md continue claiming 64 entries after AM-65..AM-67 existed.
+    """
+    code, out = run_checker(
+        "The specification records **ten amendment rounds** across 64 `AM` entries.\n"
+    )
+
+    assert code == 1
+    assert "claims 64 AM entries as current" in out
+
+
 def test_repo_docs_are_consistent(monkeypatch, capsys):
     """The real documents pass. This is the check the commit hook cares about."""
     monkeypatch.setattr(sys, "argv", ["check_doc_consistency.py"])

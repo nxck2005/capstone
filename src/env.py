@@ -112,7 +112,10 @@ def _driver_version() -> str | None:
     try:
         out = subprocess.run(
             ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
-            capture_output=True, text=True, timeout=15, check=True,
+            capture_output=True,
+            text=True,
+            timeout=15,  # literal-ok: subprocess safety timeout, not an experiment setting
+            check=True,
         )
     except (OSError, subprocess.SubprocessError):
         return None
