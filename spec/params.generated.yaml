@@ -962,7 +962,7 @@ deliverables:
   - simulation_to_radio_mapping
   hardware_alternative_decision_due_week: 4
   hardware_alternative_acceptance: guide_acknowledgement_recorded
-  proposal_registration_status: unverified_repo_copy_is_blank_template
+  proposal_registration_status: complete_confirmed_by_author_2026_07_28
   proposal_registration_owner: author
 environment:
   python_version: 3.14.6

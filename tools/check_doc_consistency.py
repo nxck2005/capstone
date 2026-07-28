@@ -150,6 +150,8 @@ def main() -> int:
         (r"the test split is touched once", "DEC-12 wording", 58),
         (r"third: 16\b|W4 / W10 / W16", "third review week (now 17)", 59),
         (r"until G-10 closes|G-10 at W10|test_access_gate.*G-10", "test-release gate (now G-12)", 60),
+        (r"registration status is unverified|registration.*unverified",
+         "proposal registration (confirmed complete)", 63),
     ]
     for doc, bl in doc_blocks.items():
         for ln, block in bl:

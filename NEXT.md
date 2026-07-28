@@ -9,16 +9,16 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 **Last updated:** 2026-07-28 · **Phase:** **W1 — implementation starts here** · spike executed, three
 rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the docs
-sweep in `7b7c70a`, **AM-57..AM-62 this session**). **No project code exists yet:** no `src/`, no
+sweep in `7b7c70a`, **AM-57..AM-63 this session**). **No project code exists yet:** no `src/`, no
 `tests/`, and `requirements.txt` is still tooling-only by design (SR-21 puts the runtime stack in a
-hashed `requirements.lock` built at W1). All three checks pass: `gen_spec_views.py --check` at **170
+hashed `requirements.lock` built at W1). All three checks pass: `gen_spec_views.py --check` at **171
 requirements**, `check_doc_consistency.py` (new, AM-62) across 8 hand-written docs, and
 `check_packetisation.py` with **zero failures** — if any is untrue when you read this, something
 landed after this line was written.
 
 ---
 
-## Just landed — the Codex gate audit adjudicated, AM-57..AM-62 applied
+## Just landed — the Codex gate audit adjudicated, AM-57..AM-63 applied
 
 **`audit/JUDGE_codex` (`EXT-6`)** returned **project GO, W1 NOGO — temporary hold**: 11 P0 findings,
 10 P1s, 3 P2s. It is the most accurate review this project has received. **Every checkable numeric
@@ -69,8 +69,10 @@ the same as unreadable. Rendering its two pages resolves all four dates: First R
 due **20 Nov — inside Final Review week**. W16 is now deliberately allocated contingency and W15
 carries an internal freeze. Clause 5 also expects hardware or "significant design aspects with an
 application to real world problems", so PR-9 is a full deployment dossier and the guide must be asked
-before W4. ⚠️ **The repo's proposal DOCX is a blank template — PR-10 exists because registration
-status is unverified and that is the one failure nothing recovers from.**
+before W4. ~~⚠️ **The repo's proposal DOCX is a blank template — PR-10 exists because registration
+status is unverified.**~~ **Registration confirmed complete 2026-07-28 (AM-63)** — the blank
+attachment proved nothing either way, which is why it was checked rather than assumed. That was the
+only carried risk with no graceful degradation; PR-10 is closed.
 
 ---
 
@@ -83,7 +85,7 @@ worst defects; EXT-5 said "NO-GO/HOLD on the whole spec" but only *one* of its f
 Result: 122 → **158 requirements**, `AM-26`..`AM-55`, split into two rounds in §17. A third round
 followed on 2026-07-28 — `AM-56`, from a **self-audit of those two rounds**, which found that AM-53
 had left H2 able to select its comparison window on a different curve from the one it evaluates.
-That round closed at 159 requirements; the count is **170** after AM-57..AM-62 above. Worth noting as
+That round closed at 159 requirements; the count is **171** after AM-57..AM-63 above. Worth noting as
 a pattern rather than an embarrassment: every audit round so far — including the audit of the audit,
 and including the round that audited a *passing* evidence script — has found something real.
 
@@ -182,14 +184,25 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ### Cold-start: the first thing to do in a fresh session
 
+**Nothing blocks W1.** The specification side is finished; what remains is code. Registration is
+confirmed (AM-63), which was the only carried risk with no graceful degradation — every other failure
+mode has a fallback ladder, a recorded alternative outcome, or a gate that catches it. **Do not open
+another full-spec audit round.** The record says why: all fatal findings landed in rounds 0–3, the
+last one being AM-55 (ER-9 infeasible); rounds 4–9 have been correctness, defensibility and process,
+and rounds 6 and 8 found only damage the fixing itself caused. The two worst defects this project ever
+had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three operating points — were found
+by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
+
 **State on 2026-07-28, verified:** no `src/`, no `tests/`, no `data/`. `.venv` has PyYAML only.
 Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · 890 GB free.
 srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files, gitignored).
+Only IRL item still open: PR-9's hardware-alternative acknowledgement, which is not blocking — its
+acceptance criterion fires when the dossier is delivered, and the conversation sits before W4.
 
 Confirm nothing drifted, then start W1(a):
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 170 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 171 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: 8 hand-written docs consistent
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
 git status --short                                          # expect: clean
@@ -226,7 +239,30 @@ what SR-21's "one documented command from a clean checkout" means here, and it i
 
 While the install downloads, build the three pure-Python pieces in (b), (d2) and (e3) below. They
 need no torch, everything else imports them, and they are the ones that cannot be retrofitted once
-results exist. Also set up `pytest` + `tests/` and record the commands in `AGENTS.md`, as it says to.
+results exist.
+
+#### Batch 1 — the exact file list (scaffold + environment, W1a)
+
+This is the first commit of project code. Nothing here exists yet; the whole batch is new.
+
+| | Path | What, and which requirement |
+|---|---|---|
+| NEW | `requirements.in` | Source pins read off `params.environment`: torch 2.13.0+cu130, torchvision 0.28.0+cu130, numpy 2.5.1, pillow 12.3.0, scikit-image 0.26.0, glymur 0.14.3, pytest 9.1.1. **Sionna is W3, not now.** (SR-21) |
+| NEW | `requirements.lock` | `uv pip compile --generate-hashes` output. Committed. (SR-21, AM-61) |
+| NEW | `pyproject.toml` | pytest config only — `pythonpath = ["src"]`, so there is no install step and no packaging. |
+| EDIT | `.gitignore` | add `data/`, `checkpoints/`, `results/per_image/`, `.pytest_cache/`. **Not `results/`** — ER-7 needs the aggregate CSVs tracked. |
+| NEW | `src/env.py` | asserts `params.environment.cuda_assertion`; sets `deterministic_backend`; emits `record_in_run_metadata`. (SR-21, SR-12) |
+| NEW | `tests/test_env.py` | the CUDA assertion **as a test**. This is the AM-23 trap; a comment does not catch it. |
+| NEW | `tests/test_doc_consistency.py` | the inject-and-assert case for `check_doc_consistency.py`, which was run by hand at AM-62 and should not stay that way. Assert both directions: stale value with no back-reference fails; the same value with a correct one passes. |
+| EDIT | `AGENTS.md` | record the `pytest` command — that file says to, and there is no test runner recorded yet. |
+
+**The one real unknown:** whether `uv` resolves torch from the cu130 *extra* index cleanly under
+`--generate-hashes`. If it fights, the fallback is pinning the wheel URLs directly in
+`requirements.in`. Either way the assertion is what proves it, never a successful install.
+
+Then **batch 2** is `src/config/` + `tools/check_literals.py` (SR-1) — everything later imports it —
+and **batch 3** is `src/artifacts/ids.py`, `src/artifacts/rng.py` and `src/data/test_access.py`
+(SR-18, SR-22), which are the two that cannot be retrofitted. Details in (b), (d2) and (e3) below.
 
 ---
 
@@ -239,8 +275,8 @@ so the hold is cleared on the specification side.
 |---|---|---|---|---|
 | ~~0~~ | ~~**Commit `AM-57`..`AM-60`**~~ **DONE** — `37a02dd` | — | — | — |
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
-| 1 | ⚠️ **Verify proposal registration** (PR-10) | **author** | The circular makes proposal submission part of *registration*, and the repo's copy is a blank template | nothing technical — but nothing recovers from it |
-| 2 | ⚠️ **Ask the guide about the hardware alternative** (PR-9) | **author** | Circular clause 5. Due before W4, and the answer shapes the dossier's scope | First Review package |
+| ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
+| 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | First Review package |
 | 4 | **W1(a)–(f) below**, starting with the install | agent | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
 | 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, and it is the only W1-safe work needing no code | First Review, and DEC-13's novelty claim (AM-10 makes the claim *conditional* on it) |
 
@@ -473,7 +509,17 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
-- **2026-07-28 (end of session)** — **`check_doc_consistency.py` committed (AM-62); vectors archived;
+- **2026-07-28 (end of session)** — **PR-10 closed (AM-63); batch 1 written up for a cold start.**
+  Registration confirmed complete, which closes the last item no audit could resolve and the only one
+  with no graceful degradation. Also settled, after working through the amendment record: **stop
+  auditing the specification.** The trajectory is 25 → 23 → 7 → 1 → 3 → 1 → 1 → 1 entries per round;
+  every fatal finding landed in rounds 0–3 and the last was AM-55; rounds 6 and 8 found only
+  self-inflicted damage. A stopping rule of "audit until two agents return GO" was considered and
+  **rejected as re-rollable** — with enough draws two GOs appear regardless of the spec's state, which
+  is preregistration discipline applied to the science but not to the process gating it. Three of
+  EXT-6's own 22 release-checklist items (#7 tested IDs, #8 committed manifests, #11 the lockfile)
+  are W1 deliverables, so its exit criterion is partly circular and cannot be closed by reading.
+- **2026-07-28 (earlier)** — **`check_doc_consistency.py` committed (AM-62); vectors archived;
   `uv` chosen; hand-off written for a cold start.** The tool exists because the same propagation
   failure happened three rounds running and `gen_spec_views.py --check` could never have seen any of
   them — it validates `SPEC.md` against itself, while all three failures were in the hand-written

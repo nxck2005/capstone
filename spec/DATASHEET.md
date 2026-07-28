@@ -601,9 +601,9 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `deliverables.hardware_alternative_clause` | circular_clause_5_significant_design_aspects_real_world_application | PR-9 |
 | `deliverables.hardware_alternative_artifact` | deployment_system_design_dossier | PR-9 |
 | `deliverables.hardware_alternative_dossier_contents` | deployment_architecture, link_budget, packet_and_frame_design, latency_compute_energy_estimates, simulation_to_radio_mapping | PR-9 |
-| `deliverables.hardware_alternative_decision_due_week` | 4 | PR-9 |
-| `deliverables.hardware_alternative_acceptance` | guide_acknowledgement_recorded | PR-9 |
-| `deliverables.proposal_registration_status` | unverified_repo_copy_is_blank_template | PR-10 |
+| `deliverables.hardware_alternative_decision_due_week` | 4 | AM-63, PR-9 |
+| `deliverables.hardware_alternative_acceptance` | guide_acknowledgement_recorded | AM-63, PR-9 |
+| `deliverables.proposal_registration_status` | complete_confirmed_by_author_2026_07_28 | AM-63, PR-10 |
 | `deliverables.proposal_registration_owner` | author | PR-10 |
 
 ## environment

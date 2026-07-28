@@ -57,9 +57,9 @@ Specification and tooling only — no implementation code yet, but **W0 is compl
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **eight amendment rounds** across 62 `AM` entries, and is the file to read before
+records **nine amendment rounds** across 63 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
-The most recent rounds (2026-07-28, `AM-57`..`AM-62`) answered the pre-implementation gate audit in
+The most recent rounds (2026-07-28, `AM-57`..`AM-63`) answered the pre-implementation gate audit in
 [`audit/`](audit/): it tightened all four preregistered hypotheses into uniquely executable form,
 rewrote the packetisation evidence after finding it reported zero failures while breaking four rules
 it claimed to enforce, and resolved the academic calendar.
@@ -70,7 +70,7 @@ under a second with no GPU and no network. Both of the repository's checks are m
 trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 170 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 171 requirements, 10 generated files
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
 ```
 
