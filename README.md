@@ -60,7 +60,8 @@ and batch 4 (checkpoint `eba5bd2`) implements the canonical preprocessing contra
 AM-72–76 W1 sweep remediation is committed as `8e59535`: complete versioned run
 fingerprints, a genuinely CPU-only lock, source-bound preprocessing plus exact RNG/SSIM contracts,
 honest OpenJPEG provisioning, and current-document consistency coverage. **W0 is complete and W1
-is open**.
+is open**. The immediate implementation front is the dataset loader/decoder registry, archive
+provenance and committed split manifests; the reference classifier and validation-only G-1 follow.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17

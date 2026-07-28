@@ -7,7 +7,9 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–4 and AM-72–76 remediation committed; dataset registry and split manifests next** · spike executed,
+**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–4 and AM-72–76 remediation committed;
+dataset loaders, real decoder registration, provenance/checksums and split manifests next, then the
+reference classifier and G-1** · spike executed,
 three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
 docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
 session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70, batch 4's AM-71, and the committed W1 sweep remediation AM-72..AM-76. `requirements.txt` is still tooling-only by design; the runtime stack now
@@ -275,11 +277,12 @@ it from the other two. Two notes: the plain `nvidia-smi` on `PATH` and the one a
 `nvidia-smi` says `CUDA Version: 13.1` while torch is built for `13.0` — **normal minor-version
 compatibility, not a mismatch, and not a reason to move the pin.**
 
-⚠️ **If `torch.cuda.is_available()` is `False`, `pytest` reads `52 passed, 2 failed`.** The two are
+⚠️ **If `torch.cuda.is_available()` is `False`, the current 97-test suite reads
+`95 passed, 2 failed`.** The two are
 `test_cuda_is_available` and `test_environment_record_is_fully_populated`, they need real device
 access, and they **must not be skipped, weakened, or given a skip marker** — that is the AM-23 alarm
 working, and an escape hatch would disarm the only check that catches a CPU build on the machine
-that trains. Report `52 passed, 2 failed`, say which two, and continue; it is not a regression.
+that trains. Report `95 passed, 2 failed`, say which two, and continue; it is not a regression.
 
 Network is a **separate** permission from device access, and it matters later: an unsandboxed shell
 here gets **HTTP 200** from `params.datasets.imagenette160.source_url`. If yours does not, the
@@ -439,8 +442,9 @@ classifier training, J2K implementation and Sionna integration remain deliberate
 
 ### The short version, in order
 
-Everything in the W1 release checklist is now satisfied except the two items only the author can do,
-so the hold is cleared on the specification side.
+The specification/remediation checklist is complete and its hold is cleared. Three fronts remain:
+the W1 loader/manifests/classifier work through G-1, PR-1 and PR-2 for the First Review, and the
+author-owned PR-9 acknowledgement.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
@@ -448,17 +452,17 @@ so the hold is cleared on the specification side.
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
-| 4 | **Continue W1(d)–(f) below** — batches 1–4 done; next is registry, provenance and split manifests, then classifier | agent, **except the two sandboxed steps below** | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
+| 4 | **Continue W1(d)–(f) below** — next is the loader/decoder registry, provenance checksums and split manifests, then the classifier | agent, **except the two environment-dependent steps below** | G-1 is now wide: environment, provenance, manifests, preprocessing, guard, classifier | all of W2+ |
 | 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 6 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
-**Two things to carry into W1 that are new this round and easy to get wrong:**
+**Two landed guardrails the remaining W1 work must preserve:**
 
-- **The identity/pairing keys (SR-18) and the test guard (SR-22) are W1 work, not W10 work.** Both are
-  cheap now and near-impossible to retrofit once results exist. `run_id` alone used to *collide*
-  between validation and test.
-- **G-1 is validation-only and must prove zero test reads.** Build the guard before the loaders, not
-  after.
+- **The identity/pairing keys (SR-18) and the test guard (SR-22) are already implemented.** The
+  loader and manifest batch must integrate with them rather than create parallel IDs or a second
+  test-access path. `run_id` alone used to *collide* between validation and test.
+- **G-1 is validation-only and must prove zero test reads.** The guard exists; the remaining loader,
+  manifest and classifier paths must demonstrate that they actually obey it.
 
 **And one habit worth keeping.** This round found a passing evidence script that violated four rules
 it claimed to enforce, and then a follow-up audit found that the round's *own* schedule edits had
@@ -497,38 +501,34 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    and the classifier's provenance — and it is **validation-only**, with SR-22's guard in place to
    prove zero test reads. Everything below is a G-1 acceptance item, not just step (f).
 
-   **(a) Environment lock (SR-21, AM-61) — see the cold-start block above for the commands.**
+   **(a) Environment lock (SR-21, AM-61) — DONE in batch 1 and AM-73 remediation.**
+   See the cold-start block above for the verification commands.
    `requirements.txt` stays tooling-only by design; the runtime stack is `requirements.in` →
    `requirements.lock` (hashed, committed), resolved by **`uv`** and installed from
-   `params.environment.torch_index_url`. Also owed here, and easy to forget because the install
-   succeeding feels like done: `params.environment.deterministic_backend` set; driver/device captured
-   into run metadata per `params.environment.record_in_run_metadata`; a **CPU-only install path** for
-   analysis and demo; and the `pip --require-hashes` portability check.
+   `params.environment.torch_index_url`. The implementation also sets
+   `params.environment.deterministic_backend`, captures driver/device into run metadata per
+   `params.environment.record_in_run_metadata`, provides a **CPU-only install path** for analysis and
+   demo, and passes the `pip --require-hashes` portability check.
 
    **All pins resolved 2026-07-28 — every one has a `cp314` wheel, nothing is guesswork:**
    `torch==2.13.0+cu130` · `torchvision==0.28.0+cu130` (from the cu130 index; the wheel is
    `torchvision-0.28.0+cu130-cp314-cp314-manylinux_2_28_x86_64.whl`) · `sionna-no-rt==2.0.1`
    (W3, not W1) · `numpy 2.5.1` · `pillow 12.3.0` · `scikit-image 0.26.0` · `pytest 9.1.1`.
-   The first four are already proven working together in `~/capstone-w0-spike/venv`, where
-   `torch.cuda.is_available()` is True on the RTX 4060. `scikit-image` is only needed from W2 for
-   `params.preprocessing.ssim_impl`, but it resolves cleanly, so there is no reason to defer it.
+   The W1 pins are installed together in the repository `.venv` and the 97-test suite passes on the
+   RTX 4060. `sionna-no-rt` remains intentionally deferred to W3; it was proven separately in the W0
+   spike environment, not as part of the W1 lock.
 
-   **(b) Config plumbing (SR-1)** — `src/config/`. Code reads `spec/params.generated.yaml`, never
-   markdown and never literals. Needs a run-config that *derives* from params and carries the
-   `config_hash` SR-13 wants. Two verify clauses: a round-trip test, and **a lint rule flagging
-   numeric SNR/k literals outside `src/config/` and tests**. The workable form of that lint is to
-   pull the experiment-affecting values *out of* params (SNR grid, `k_symbols`, thresholds, lr,
-   epochs) and flag source literals matching them, excluding trivia like 0/1/2 — a blanket
-   "no magic numbers" scan is unusably noisy.
+   **(b) Config plumbing (SR-1) — DONE in batch 2 and AM-72 remediation.**
+   `src/config/` reads `spec/params.generated.yaml`, provides the resolved immutable `RunConfig` and
+   complete versioned `config_hash`, and `tools/check_literals.py` enforces the source-literal rule.
 
-   **(c) Preprocessing contract (SR-19)** — `src/data/preprocessing.py`. **Build this before
-   anything touches a pixel.** Define the canonical image as **uint8 RGB HWC**, with the `[0,1]`
-   float tensor a pure function of it; then "the codec compresses the same pixels the encoder
-   receives" is true by construction and SR-19's bit-identical test is trivial rather than a
-   promise. `params.preprocessing.channel_normalisation` is `inside_model_never_in_the_pipeline`, so
-   the classifier owns its own normalisation layer.
+   **(c) Preprocessing contract (SR-19) — DONE in batch 4 and AM-74 remediation.**
+   `src/data/preprocessing.py` owns the source-bound canonical **uint8 RGB HWC** product and derives
+   the encoder tensor and codec input from it. The loader batch must register real decoders through
+   that boundary; it must not add a second decode or pixel-normalisation path.
 
-   **(d) Splits (SR-17)** — deterministic val carve from the *published train* split using
+   **(d) Splits (SR-17) — NEXT, together with (e) and (e2).** Deterministic val carve from the
+   *published train* split using
    `params.evaluation.split_seed` (1337). The arithmetic lines up with the real datasets, which is
    worth knowing before you debug a count: Imagenette v2-160 ships 9469 train / 3925 val, so
    9469 − 1000 = 8469 train, 1000 val, and the published val becomes the 3925-image **test** split;
@@ -537,7 +537,7 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    reach the test loader — the audit is the harder half and is easiest as a structural rule (test
    access lives in one module nothing else imports) rather than a convention.
 
-   **(d2) Identity and pairing keys (SR-18) — get this right in W1 or pay for it in W11.**
+   **(d2) Identity and pairing keys (SR-18) — DONE in batch 3.**
    Four keys, not one: `run_id` (content-addressed over the full `params.artifacts.run_id_key`,
    including `split`, config and checkpoint hashes and the classifier variant — the old key omitted
    all of them and **collided** between validation and test), `noise_id`, `analysis_cell_id`, and a
@@ -546,7 +546,7 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    different images, so a shared seed desynchronises exactly when it matters. Per-image rows carry
    every join column and a **stable sample ID**, not a positional index.
 
-   **(e) Dataset registry (SR-2, SR-20) — and the note that used to sit here was wrong.**
+   **(e) Dataset registry (SR-2, SR-20) — NEXT; the note that used to sit here was wrong.**
    ⚠️ **Imagenette IS in torchvision**: `torchvision.datasets.Imagenette(root, split=..., size="160px",
    download=True)`, checked against current upstream docs. This file previously asserted the
    opposite and sent you to build a bespoke fetcher. Use the library loader (`params.datasets.
@@ -554,20 +554,23 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    state that it verifies integrity, and SR-20 fails G-1 while any checksum is still `pending`.
    STL-10 and CIFAR-10 likewise come from torchvision. All three go through one code path with no
    dataset-specific branching; CIFAR-10 is a plumbing path only (DEC-1) but must still instantiate,
-   because SR-2's verify clause instantiates every dataset. Headroom is not a concern: 891 GB free.
+   because SR-2's verify clause instantiates every dataset. Storage headroom is not a concern:
+   more than 800 GB was free on 2026-07-29.
 
-   **(e2) Split manifests (SR-17) — a seed is not a split.** Loader ordering and library behaviour
+   **(e2) Split manifests (SR-17) — NEXT; a seed is not a split.** Loader ordering and library behaviour
    change between versions, so materialise the carve as a **committed manifest** of stable sample IDs
    under `params.datasets.manifest_dir`, hashed into run metadata. Stratified, ordered by stable ID
    before shuffling, drawn with the named RNG. Class indices from sorted directory names.
 
-   **(e3) Test-access guard (SR-22) — build it in W1, not when you need it.** Loading a test sample
-   must **fail** without a committed freeze manifest. The release point is **G-12 at W11** — not
-   G-10, which now sits at the start of W9 (AM-60 caught that: the guard would have opened three
-   weeks before anything was frozen). G-1 and the W10 rehearsal must demonstrate **zero** test-loader
-   reads, which is far easier as a structural rule now than as a retrofit later.
+   **(e3) Test-access guard (SR-22) — DONE in batch 3; integration remains part of the loader
+   batch.** `src/data/test_access.py` fails closed without a freeze manifest and is the sole allowed
+   test boundary. The release point is **G-12 at W11** — not G-10, which now sits at the start of W9
+   (AM-60). The new loaders must not expose a parallel test path, and G-1 plus the W10 rehearsal must
+   demonstrate zero test-loader reads. Resolving the freeze-manifest hashes against real manifests
+   and checkpoints remains deliberately deferred to G-12.
 
-   **(f) Reference classifier (BR-8, DEC-15) → G-1.** ResNet-18 **from scratch**, and the recipe is
+   **(f) Reference classifier (BR-8, DEC-15) — AFTER manifests, then G-1.**
+   ResNet-18 **from scratch**, and the recipe is
    now fully specified in `params.reference_classifier` — SGD+momentum, lr 0.1, momentum 0.9, weight
    decay 5e-4, cosine with 5 warmup epochs, 100 epochs, batch 128, label smoothing 0.1, and
    `[random_resized_crop, horizontal_flip]`. **Read it from config; do not improvise one** — the
@@ -585,8 +588,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    It is not "lower the floor"; §16 says to move a floor *at G-1* as a recorded spec change if it
    turns out wrong, not to quietly miss it later.
 
-   Also needed at some point in W1, cheaply: `.gitignore` entries for `data/`, `checkpoints/` and
-   `results/per_image/` — none exist yet. Aggregate `results/*.csv` stays **tracked**, because ER-7
+   **Artifact ignore policy is already in place:** `.gitignore` excludes root `/data/`,
+   `checkpoints/` and `results/per_image/`. Aggregate `results/*.csv` stays **tracked**, because ER-7
    requires every thesis number to resolve to a committed CSV, and so do
    `params.artifacts.inference_summary_file` and `params.artifacts.per_image_manifest` — the
    inference summary is new (AM-57) and exists because the aggregate schema cannot hold an interval
@@ -638,10 +641,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
   meant unreadable; rendering the two pages to PNG and reading them resolves all four dates directly.
   Lesson worth keeping: "no extractable text" is a statement about `pdftotext`, not about the
   document. The guess was half wrong — Final Review is **W17**, not W16.
-- ⚠️ **Proposal registration status — this one really does need you.** The circular makes submitting
-  the proposal to your guide part of **registration**, and the only copy in this repo is a blank
-  template. That does not prove nothing was submitted, which is exactly why it must be checked. PR-10
-  exists for it. Nothing in the specification recovers from an unregistered project.
+- ~~**Proposal registration status.**~~ **Closed 2026-07-28 (AM-63):** the author confirmed
+  registration is complete. The blank template in the repository was not evidence either way.
 - ⚠️ **The hardware-alternative decision, due before W4 (PR-9).** Circular clause 5: projects are
   *expected* to have a hardware implementation, "if not, at least they should have significant design
   aspects with an application to real world problems". Tier 1 can satisfy that, but only if the design
@@ -673,14 +674,20 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 - **ER-9 keeps entropy coding** (AM-5), bounded to a static offline-fitted coder. Dropping it would
   weaken the control that exists to *deny* joint-coding credit, which makes H4 easier to pass — the
   wrong direction to be wrong in.
-- **Read `SPEC.md` §17 before acting on any future review.** Twenty-five amendments now record what
-  changed and why, including four things an external review recommended that were already settled.
+- **Read `SPEC.md` §17 before acting on any future review.** Seventy-six amendments across fourteen
+  rounds now record what changed and why, including recommendations that were already settled.
   AM-24 and AM-25 are the W0 spike; note that AM-25 corrects a *factual premise* of AM-22 and AM-23
   (srsRAN's vectors were never committed to git), which is why it is a new entry and not an edit —
   §17 is append-only and superseded entries stay wrong in place, on purpose.
 
 ## Session log
 
+- **2026-07-29 (future-work documentation audit)** — Re-read the current handoff against the
+  repository and G-1. Corrected the obsolete no-GPU pytest count, marked batches 1–4 contracts as
+  landed inside the long-form W1 checklist, removed the already-completed ignore rules and proposal
+  registration from pending work, and made the next dependency chain explicit: real decoders and
+  one dataset registry → archive provenance/checksums → committed split manifests → reference
+  classifier → validation-only G-1. No normative requirement, parameter or gate changed.
 - **2026-07-29 (W1 sweep remediation, committed)** — **SR-19 checkpoint committed as `eba5bd2`;
   AM-72..AM-76 remediation committed as `8e59535`.** The checkpoint was accepted only
   after exact ten-path scope, no unstaged/untracked files, no remediation markers and
