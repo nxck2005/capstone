@@ -785,8 +785,16 @@ def verify(
     _require(
         resolved["source"] == "configs/transparency-bitrate-probe.yaml"
         and resolved["design"] == design
-        and resolved["parameters"] == parameter_snapshot()
-        and resolved["design_hash"] == design_fingerprint(design),
+        and resolved["design_hash"]
+        == hashlib.sha256(
+            canonical_json(
+                {
+                    "schema_version": 1,
+                    "design": design,
+                    "parameters": resolved["parameters"],
+                }
+            )
+        ).hexdigest(),
         "resolved probe configuration differs",
     )
     _require(

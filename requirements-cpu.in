@@ -27,6 +27,7 @@ pillow==12.3.0
 scikit-image==0.26.0
 glymur==0.14.3
 pytest==9.1.1
+sionna-no-rt==2.0.1
 
 # --- spec tooling, same rationale as requirements.in (AM-65) -----------------
 PyYAML==6.0.3

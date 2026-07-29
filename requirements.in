@@ -29,6 +29,7 @@ pillow==12.3.0
 scikit-image==0.26.0
 glymur==0.14.3
 pytest==9.1.1
+sionna-no-rt==2.0.1
 
 # --- spec tooling, deliberately inside the lock (AM-65) ----------------------
 # `uv pip sync` makes the environment EXACTLY the lockfile: anything absent is
@@ -39,9 +40,6 @@ pytest==9.1.1
 # dependency-light bootstrap for a machine with nothing else installed.
 PyYAML==6.0.3
 
-# NOT here on purpose:
-#   sionna-no-rt==2.0.1  -- W3, when the LDPC chain is integrated (DEC-10).
-#
 # OpenJPEG 2.5.4 is also not repository-provisioned: it is a system library,
 # externally installed and exactly verified before any J2K path (AM-75).
 # `glymur` above is only its pinned Python binding.

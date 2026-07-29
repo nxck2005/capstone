@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "origin": "project-owned hand derivation from TS 38.212 BG2, iLS=0, Z=2",
+  "derivation": "Solve H_parity*p=H_systematic*u over GF(2), then remove eight filler positions, remove the already-punctured first 2Z positions, and take the first N bits.",
+  "base_graph": 2,
+  "lifting_size": 2,
+  "k": 12,
+  "n": 20,
+  "input_bits": "101100101011",
+  "full_parity_bits": "101011001100000110111001001010011001101111101111110111100000111110011001100110100110",
+  "rate_matched_bits": "00101011101011001100",
+  "full_syndrome_weight": 0
+}

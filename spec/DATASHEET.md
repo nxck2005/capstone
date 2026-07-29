@@ -288,7 +288,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.fixed_mcs_design_snr_db` | 7 | AM-51, AM-53, BR-16 |
 | `baseline.container_policy` | all emitted container bytes count against payload_bits; shared-table or stripped-header variants MAY be reported as a labelled sensitivity, never as the headline | AM-51, BR-11 |
 | `baseline.channel_code` | 5g_nr_ldpc | AM-51, BR-1, ER-9, ER-12 |
-| `baseline.ldpc_standard` | 3gpp_ts_38_212 | AM-51, BR-2, G-2, G-9 |
+| `baseline.ldpc_standard` | 3gpp_ts_38_212 | AM-51, BR-2, G-9 |
 | `baseline.ldpc_standard_release` | rel_17 | AM-51, G-9 |
 | `baseline.ldpc_standard_version` | 17.13.0 | AM-51 |
 | `baseline.ldpc_standard_version_date` | 2026-02 | AM-51 |
@@ -307,12 +307,25 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.ldpc_golden_vector_upstream_release` | release_25_10 | AM-51, BR-2 |
 | `baseline.ldpc_golden_vector_upstream_asset` | phy_testvectors.tar | AM-51, BR-2 |
 | `baseline.ldpc_golden_vector_upstream_url` | https://github.com/srsran/srsRAN_Project/releases/download/release_25_10/phy_testvectors.tar | AM-30, AM-51, BR-2 |
+| `baseline.ldpc_golden_vector_asset_sha256` | 816d75db7c0d175ea906cae1c515a6ea5295d91e1db14b5285a950c452fa70b5 | AM-51 |
 | `baseline.ldpc_golden_vector_upstream_successor` | https://gitlab.com/ocudu/ocudu | AM-51 |
 | `baseline.ldpc_golden_vector_sha256.ldpc_encoder_test_data.tar.gz` | cb92fe900682632a50959cbc5b164e873f733a4c911108f374e37dda3606143d | AM-51, BR-2 |
 | `baseline.ldpc_golden_vector_sha256.ldpc_rate_matcher_test_data.tar.gz` | fc5e333bd94a836c4304dcdda82eac583554685aed37f0bed3758f9e573719a4 | AM-51, BR-2 |
 | `baseline.ldpc_golden_vector_sha256.ldpc_segmenter_test_data.tar.gz` | f53c6ab5baac521def745e8ca591197a8dbf8b06d2d60cc3b4335a36752d6fe1 | AM-51, BR-2 |
 | `baseline.ldpc_golden_vector_offline_floor` | hand_verified_small_case | AM-30, AM-51, BR-2 |
+| `baseline.ldpc_golden_vector_cases` | {'index': 23, 'base_graph': 1, 'lifting_size': 36, 'modulation': 'qam16'}, {'index': 81, 'base_graph': 2, 'lifting_size': 64, 'modulation': 'qam16'} | AM-51 |
 | `baseline.ldpc_base_graph` | auto_per_ts_38212 | AM-51, BR-10 |
+| `baseline.ldpc_lifting_sizes` | 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 26, 28, 30, 32, 36, 40, 44, 48, 52, 56, 60, 64, 72, 80, 88, 96, 104, 112, 120, 128, 144, 160, 176, 192, 208, 224, 240, 256, 288, 320, 352, 384 | AM-51 |
+| `baseline.ldpc_mother_code_columns.bg1` | 68 | AM-51 |
+| `baseline.ldpc_mother_code_columns.bg2` | 52 | AM-51 |
+| `baseline.ldpc_punctured_systematic_columns` | 2 | AM-51 |
+| `baseline.ldpc_base_graph_thresholds.small_payload_bits` | 292 | AM-51 |
+| `baseline.ldpc_base_graph_thresholds.medium_payload_bits` | 3824 | AM-51 |
+| `baseline.ldpc_base_graph_thresholds.medium_max_rate` | 0.67 | AM-51 |
+| `baseline.ldpc_base_graph_thresholds.robust_max_rate` | 0.25 | AM-51 |
+| `baseline.ldpc_bg2_kb_thresholds.kb10_above_bits` | 640 | AM-51 |
+| `baseline.ldpc_bg2_kb_thresholds.kb9_above_bits` | 560 | AM-51 |
+| `baseline.ldpc_bg2_kb_thresholds.kb8_above_bits` | 192 | AM-51 |
 | `baseline.ldpc_bg1_min_coderate` | 0.3333333333333333 | AM-51, BR-10 |
 | `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | AM-24, AM-51, BR-4, BR-9, BR-15 |
 | `baseline.ldpc_decoder` | offset_min_sum | AM-51, BR-14, DEC-10, G-9 |
@@ -323,8 +336,37 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.ldpc_decoder_vn_update` | sum | AM-51 |
 | `baseline.ldpc_llr_convention` | log_p1_over_p0 | AM-51, BR-14 |
 | `baseline.ldpc_max_iters` | 50 | AM-24, AM-51 |
-| `baseline.ldpc_bler_reference_source` | pending_named_and_checksummed_before_G-2 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference_source` | lcrypto_simple_5g_ldpc_platform | AM-51, G-2 |
 | `baseline.ldpc_bler_reference_must_match` | k_and_n, base_graph, lifting_size, modulation, decoder_algorithm, decoder_offset, iterations, snr_convention | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.repository` | https://github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.commit` | 2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.archive_url` | https://codeload.github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders/tar.gz/2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.archive_sha256` | 457a90726a40dd40f7c115b2477f4b5ce11cecea968f8a48e51f52d0aff43ffc | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.licence` | MIT | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.decoder_source` | mexFunction/decode.c | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.graph_source` | BG2_iLS6 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.reconstruction` | batched_literal_port_with_early_termination_disabled | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.k` | 128 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.n` | 256 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.base_graph` | 2 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.lifting_size` | 22 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.rate` | 0.5 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.source_snr_convention` | eb_n0_per_information_bit | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.snr_grid_ebn0_db.bpsk` | 1.5, 2.0, 2.5, 2.75 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.snr_grid_ebn0_db.qpsk` | 1.5, 2.0, 2.5, 2.75 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.snr_grid_ebn0_db.qam16` | 4.0, 4.5, 5.0, 5.25 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.blocks_per_snr` | 5000 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.simulation_seed` | 20260730 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.confidence_percent` | 95 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.waterfall_target_bler` | 0.01 | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.waterfall_interpolation` | linear_in_snr_vs_log10_bler | AM-51, G-2 |
+| `baseline.ldpc_bler_reference.required_minimum_block_errors_below_waterfall` | 5 | AM-51, G-2 |
+| `baseline.progressive_packetisation_sensitivity.status` | frozen_not_run_at_G2 | AM-51 |
+| `baseline.progressive_packetisation_sensitivity.ratio` | future_G8_headline_ratio | AM-51 |
+| `baseline.progressive_packetisation_sensitivity.packet_counts` | 1, 2, 4 | AM-51 |
+| `baseline.progressive_packetisation_sensitivity.allocation` | contiguous_equal_payload_layers_with_final_remainder | AM-51 |
+| `baseline.progressive_packetisation_sensitivity.comparison` | same_total_channel_symbols_and_frozen_mcs | AM-51 |
+| `baseline.progressive_packetisation_sensitivity.execution_gate` | after_G8 | AM-51 |
 | `baseline.tb_crc.threshold_payload_bits` | 3824 | AM-49, AM-51, BR-5, BR-10 |
 | `baseline.tb_crc.small_bits` | 16 | AM-49, AM-51, BR-5, BR-10 |
 | `baseline.tb_crc.small_polynomial` | crc16 | AM-49, AM-51, BR-5, BR-10 |

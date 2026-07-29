@@ -420,13 +420,88 @@ baseline:
   ldpc_golden_vector_upstream_release: release_25_10
   ldpc_golden_vector_upstream_asset: phy_testvectors.tar
   ldpc_golden_vector_upstream_url: https://github.com/srsran/srsRAN_Project/releases/download/release_25_10/phy_testvectors.tar
+  ldpc_golden_vector_asset_sha256: 816d75db7c0d175ea906cae1c515a6ea5295d91e1db14b5285a950c452fa70b5
   ldpc_golden_vector_upstream_successor: https://gitlab.com/ocudu/ocudu
   ldpc_golden_vector_sha256:
     ldpc_encoder_test_data.tar.gz: cb92fe900682632a50959cbc5b164e873f733a4c911108f374e37dda3606143d
     ldpc_rate_matcher_test_data.tar.gz: fc5e333bd94a836c4304dcdda82eac583554685aed37f0bed3758f9e573719a4
     ldpc_segmenter_test_data.tar.gz: f53c6ab5baac521def745e8ca591197a8dbf8b06d2d60cc3b4335a36752d6fe1
   ldpc_golden_vector_offline_floor: hand_verified_small_case
+  ldpc_golden_vector_cases:
+  - index: 23
+    base_graph: 1
+    lifting_size: 36
+    modulation: qam16
+  - index: 81
+    base_graph: 2
+    lifting_size: 64
+    modulation: qam16
   ldpc_base_graph: auto_per_ts_38212
+  ldpc_lifting_sizes:
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 18
+  - 20
+  - 22
+  - 24
+  - 26
+  - 28
+  - 30
+  - 32
+  - 36
+  - 40
+  - 44
+  - 48
+  - 52
+  - 56
+  - 60
+  - 64
+  - 72
+  - 80
+  - 88
+  - 96
+  - 104
+  - 112
+  - 120
+  - 128
+  - 144
+  - 160
+  - 176
+  - 192
+  - 208
+  - 224
+  - 240
+  - 256
+  - 288
+  - 320
+  - 352
+  - 384
+  ldpc_mother_code_columns:
+    bg1: 68
+    bg2: 52
+  ldpc_punctured_systematic_columns: 2
+  ldpc_base_graph_thresholds:
+    small_payload_bits: 292
+    medium_payload_bits: 3824
+    medium_max_rate: 0.67
+    robust_max_rate: 0.25
+  ldpc_bg2_kb_thresholds:
+    kb10_above_bits: 640
+    kb9_above_bits: 560
+    kb8_above_bits: 192
   ldpc_bg1_min_coderate: 0.3333333333333333
   ldpc_rates:
   - 1/3
@@ -441,7 +516,7 @@ baseline:
   ldpc_decoder_vn_update: sum
   ldpc_llr_convention: log_p1_over_p0
   ldpc_max_iters: 50
-  ldpc_bler_reference_source: pending_named_and_checksummed_before_G-2
+  ldpc_bler_reference_source: lcrypto_simple_5g_ldpc_platform
   ldpc_bler_reference_must_match:
   - k_and_n
   - base_graph
@@ -451,6 +526,53 @@ baseline:
   - decoder_offset
   - iterations
   - snr_convention
+  ldpc_bler_reference:
+    repository: https://github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders
+    commit: 2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c
+    archive_url: https://codeload.github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders/tar.gz/2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c
+    archive_sha256: 457a90726a40dd40f7c115b2477f4b5ce11cecea968f8a48e51f52d0aff43ffc
+    licence: MIT
+    decoder_source: mexFunction/decode.c
+    graph_source: BG2_iLS6
+    reconstruction: batched_literal_port_with_early_termination_disabled
+    k: 128
+    n: 256
+    base_graph: 2
+    lifting_size: 22
+    rate: 0.5
+    source_snr_convention: eb_n0_per_information_bit
+    snr_grid_ebn0_db:
+      bpsk:
+      - 1.5
+      - 2.0
+      - 2.5
+      - 2.75
+      qpsk:
+      - 1.5
+      - 2.0
+      - 2.5
+      - 2.75
+      qam16:
+      - 4.0
+      - 4.5
+      - 5.0
+      - 5.25
+    blocks_per_snr: 5000
+    simulation_seed: 20260730
+    confidence_percent: 95
+    waterfall_target_bler: 0.01
+    waterfall_interpolation: linear_in_snr_vs_log10_bler
+    required_minimum_block_errors_below_waterfall: 5
+  progressive_packetisation_sensitivity:
+    status: frozen_not_run_at_G2
+    ratio: future_G8_headline_ratio
+    packet_counts:
+    - 1
+    - 2
+    - 4
+    allocation: contiguous_equal_payload_layers_with_final_remainder
+    comparison: same_total_channel_symbols_and_frozen_mcs
+    execution_gate: after_G8
   tb_crc:
     threshold_payload_bits: 3824
     small_bits: 16

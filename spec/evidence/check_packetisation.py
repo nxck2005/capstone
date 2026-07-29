@@ -51,6 +51,9 @@ import yaml
 
 REPO = Path(__file__).resolve().parent.parent.parent
 PARAMS = REPO / "spec" / "params.generated.yaml"
+sys.path.insert(0, str(REPO / "src"))
+
+from baseline.ldpc.transport import build_packet_plan  # noqa: E402
 
 MOD_BITS = {"bpsk": 1, "qpsk": 2, "qam16": 4}
 
@@ -337,6 +340,29 @@ def main() -> int:
                            "nominal_rate_str": rs, "k": k, "G": G,
                            "obligation": obligation, "live": obligation and rk in live_ratios,
                            **r}
+                    runtime = build_packet_plan(k, mod, rs)
+                    row["runtime_metadata"] = runtime.metadata()
+                    if bool(runtime.feasible) != bool(r["feasible"]):
+                        failures.append(f"{tag}: runtime feasibility differs from solver")
+                    elif r["feasible"]:
+                        runtime_keys = (
+                            "A", "source_bytes", "tb_crc_type", "tb_crc_bits", "B",
+                            "base_graph", "code_block_max_bits", "num_codeblocks",
+                            "cb_crc_bits_total", "B_prime", "K_prime",
+                            "K_b_for_lifting", "lifting_size", "K",
+                            "filler_bits_per_block", "filler_bits_total", "E", "E_sum",
+                            "B_nominal", "effective_code_rate",
+                        )
+                        mismatched = [
+                            key for key in runtime_keys
+                            if row["runtime_metadata"].get(key) != r.get(key)
+                        ]
+                        if mismatched:
+                            failures.append(
+                                f"{tag}: runtime metadata differs at {','.join(mismatched)}"
+                            )
+                    elif runtime.reason != r["reason"]:
+                        failures.append(f"{tag}: runtime infeasibility reason differs")
                     if r["feasible"]:
                         row["er9_options"] = er9_feasible(P, r["A"])
                     rows.append(row)

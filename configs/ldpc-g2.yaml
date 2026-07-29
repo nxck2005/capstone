@@ -1,0 +1,13 @@
+schema_version: 1
+gate: G-2
+parameter_source: spec/params.generated.yaml
+standard_parameter: baseline.ldpc_standard_version
+runtime_parameter_root: baseline
+reference_parameter: baseline.ldpc_bler_reference
+comparison_statistic_parameter: evaluation.ber_match_statistic
+tolerance_parameter: evaluation.ber_match_tolerance_db
+test_split_access: forbidden
+full_br4_image_sweep: forbidden
+progressive_packetisation:
+  design_parameter: baseline.progressive_packetisation_sensitivity
+  execute: false

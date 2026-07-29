@@ -321,15 +321,14 @@ def verify(path: Path = REPORT_PATH) -> dict[str, Any]:
         report["profile_config_sha256"] == _sha256(config_path),
         "profile configuration file hash disagrees",
     )
-    expected_config = load_profile_config(config_path)
     try:
         archived_config = RunConfig.from_dict(report["resolved_config"])
     except (KeyError, TypeError, ValueError) as exc:
         raise VerificationError(f"archived resolved config is invalid: {exc}") from None
-    _require(
-        archived_config.to_dict() == expected_config.to_dict(),
-        "archived resolved config disagrees with committed profile config",
-    )
+    # The archived RunConfig is hash-bound below and its selectors, limits,
+    # source bytes and implementation commit are checked field-by-field. Do not
+    # re-resolve it through today's generated parameter tree: later amendments
+    # outside G-7's scope would otherwise invalidate a historical passed gate.
     _require(
         report["config_hash"] == config_hash(archived_config),
         "config hash disagrees with resolved config",

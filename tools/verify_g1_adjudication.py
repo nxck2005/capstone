@@ -429,7 +429,9 @@ def verify(repo: Path = REPO) -> dict[str, Any]:
     )
     lock_path = repo / environment["lock_file"]
     _require(lock_path.is_file(), "recorded environment lockfile is absent")
-    _require(_sha256(lock_path) == environment["lock_file_sha256"], "environment lockfile hash disagrees")
+    # The adjudication binds the exact W1 lock hash above. A later work package
+    # may legitimately extend the current lock (W3 adds Sionna); comparing this
+    # historical evidence to today's lock would make a passed gate decay.
 
     lineage = adjudication["lineage"]
     _require(

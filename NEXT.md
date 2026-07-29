@@ -279,7 +279,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted, then begin the transparency-bitrate probe only:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 186 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 187 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: 11 current docs, 1 historical excluded
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures

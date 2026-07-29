@@ -154,6 +154,7 @@ activemq-data/
 env/
 venv/
 ENV/
+tests/fixtures/ldpc_ts38212_golden.npz
 env.bak/
 venv.bak/
 
