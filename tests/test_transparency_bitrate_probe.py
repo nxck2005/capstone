@@ -368,7 +368,7 @@ def test_unreachable_implementation_commit_fails(tmp_path: Path):
             REPO_ROOT / "configs/transparency-bitrate-probe.yaml"
         ).read_text(encoding="utf-8").replace(
             f"implementation_commit: {load_design(REPO_ROOT / 'configs/transparency-bitrate-probe.yaml')['implementation_commit']}",
-            f"implementation_commit: {'0' * 40}",
+            f"implementation_commit: {'f' * 40}",
         ),
         encoding="utf-8",
     )
