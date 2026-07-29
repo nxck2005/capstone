@@ -96,8 +96,20 @@ mean 0.987788 bpp, 0.886 accuracy, LCB −0.018). Neither result is censored. Th
 forecasts, not G-8 operating-point selections: G-8 remains unresolved, no training ran, and the
 test split stayed sealed. Evidence lives under `results/probes/transparency_bitrate/` and verifies
 with `tools/verify_transparency_bitrate_probe.py`.
-The single next engineering task is **W3: LDPC fixture/integration, BER/BLER validation, and complete
-packetisation/bit accounting through G-2**. W4 and G-8 have not started.
+**W3 is complete and G-2 passed.** Implementation commit
+`968e907237bbe571adf6ec48e4711ea021831719` provides the local transport/segmentation/CRC layer,
+Sionna `2.0.1` adapter, BPSK/QPSK/16-QAM mapping and soft demapping, exact modulation interleaving,
+the independent flooding offset-min-sum reconstruction and executable runtime packetisation.
+srsRAN `release_25_10` exact vectors and the project-owned BG2/Z2 offline floor match bit-exactly.
+At BLER `1e-2`, measured waterfall displacements were **0.0 dB BPSK**,
+**+0.0036302379 dB QPSK**, and **0.0 dB 16-QAM**, each inside the 0.5 dB gate. Runtime metadata
+reconciled all 216 configured packetisation cells, with all 144 headline obligations feasible and
+the one preregistered smoke infeasibility classified explicitly. Evidence lives under
+`results/baseline/g2/` and verifies with `tools/verify_g2_adjudication.py`. No image sweep, training,
+G-8 selection or test access occurred.
+
+The single next engineering task is **bounded W4 classical-baseline integration required before
+G-8**. G-8 has not started.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
@@ -124,6 +136,8 @@ under a second with no GPU and no network. The repository's checks are meant to 
 .venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --smoke-steps 3 --smoke-val-batches 2  # bounded smoke; never G-1 evidence
 .venv/bin/python tools/verify_g1_adjudication.py        # offline: epochs, counts, hashes, floor, lineage and checkpoint identity
 .venv/bin/python tools/verify_g7_profile.py             # offline: clean commit, CUDA profile, caps, limits and training-only scope
+.venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/verify_g2_adjudication.py
 .venv/bin/python -m pytest
 ```
 

@@ -1,0 +1,105 @@
+{
+  "components": {
+    "bler_displacement": true,
+    "bler_reference_provenance": true,
+    "bler_simulation_sufficiency": true,
+    "clean_reachable_measurement_commit": true,
+    "golden_vectors": true,
+    "known_answers": true,
+    "packetisation_runtime": true,
+    "progressive_design_frozen_not_run": true,
+    "test_split_sealed": true
+  },
+  "evidence_commit": null,
+  "evidence_files": {
+    "bler_reference.json": "7bff89f21786e253b612f88dd7c4f3777eb6abf3792b2fb622613a47455bbfa8",
+    "bler_results.csv": "b2049ab8ccb4e58c0713e6b484ef760507c0b750d5232a04e31e3aa92e89984d",
+    "golden_vector_provenance.json": "7c43a1130b0747ca4ac6f393a0ebea13cd22f387600a30b1b7a6e5fb138ef72d",
+    "golden_vector_summary.json": "a8807546dd6fdf49681ce0184de72ecb7bf0ada811f97f901933d26095e0423a",
+    "known_answer_summary.json": "beee80dcf7a5ae7d9c02b66a23a1a98f87216e4e6b76051a7e58bc0e3d9d30c5",
+    "packetisation_runtime_check.json": "2815e62ca1d52f691eaf9ddd2c2a013dbfdcf598759b800443f5edda1fb5f017",
+    "resolved_config.json": "6766c82a273fa09321bb49f660f0d32fdc93b9ad22a8872f5c9f5dc77b5320f9"
+  },
+  "gate": "G-2",
+  "measurement_commit": "968e907237bbe571adf6ec48e4711ea021831719",
+  "measurement_dirty": false,
+  "realised_symbol_energy": {
+    "bpsk": {
+      "packet_mean_energy": 1.0,
+      "symbols_accumulated_over_blocks": 5120000
+    },
+    "qam16": {
+      "packet_mean_energy": 1.0003387451171875,
+      "symbols_accumulated_over_blocks": 1280000
+    },
+    "qpsk": {
+      "packet_mean_energy": 0.9999999403953552,
+      "symbols_accumulated_over_blocks": 2560000
+    }
+  },
+  "schema_version": 1,
+  "simulation_sufficiency": {
+    "bpsk": {
+      "reference": true,
+      "sionna": true
+    },
+    "qam16": {
+      "reference": true,
+      "sionna": true
+    },
+    "qpsk": {
+      "reference": true,
+      "sionna": true
+    }
+  },
+  "snr_conversion": {
+    "bpsk": {
+      "additive_db": -3.010299956639812,
+      "formula": "Es/N0 = Eb/N0 + 10 log10(R Qm)",
+      "q_m": 1,
+      "rate": 0.5
+    },
+    "qam16": {
+      "additive_db": 3.010299956639812,
+      "formula": "Es/N0 = Eb/N0 + 10 log10(R Qm)",
+      "q_m": 4,
+      "rate": 0.5
+    },
+    "qpsk": {
+      "additive_db": 0.0,
+      "formula": "Es/N0 = Eb/N0 + 10 log10(R Qm)",
+      "q_m": 2,
+      "rate": 0.5
+    }
+  },
+  "statistic": "waterfall_displacement_at_bler_1e-2",
+  "target_bler": 0.01,
+  "tolerance_db": 0.5,
+  "verdict": "PASS",
+  "waterfalls": {
+    "bpsk": {
+      "absolute_displacement_db": 0.0,
+      "displacement_db": 0.0,
+      "pass": true,
+      "reference_waterfall_esn0_db": -0.44272625389121256,
+      "sionna_waterfall_esn0_db": -0.44272625389121256,
+      "tolerance_db": 0.5
+    },
+    "qam16": {
+      "absolute_displacement_db": 0.0,
+      "displacement_db": 0.0,
+      "pass": true,
+      "reference_waterfall_esn0_db": 7.894208261597202,
+      "sionna_waterfall_esn0_db": 7.894208261597202,
+      "tolerance_db": 0.5
+    },
+    "qpsk": {
+      "absolute_displacement_db": 0.0036302378989723216,
+      "displacement_db": 0.0036302378989723216,
+      "pass": true,
+      "reference_waterfall_esn0_db": 2.5213324689357486,
+      "sionna_waterfall_esn0_db": 2.524962706834721,
+      "tolerance_db": 0.5
+    }
+  }
+}

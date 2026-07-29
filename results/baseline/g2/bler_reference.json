@@ -1,0 +1,58 @@
+{
+  "archive_sha256": "457a90726a40dd40f7c115b2477f4b5ce11cecea968f8a48e51f52d0aff43ffc",
+  "archive_url": "https://codeload.github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders/tar.gz/2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c",
+  "commit": "2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c",
+  "decoder_offset": 0.5,
+  "decoder_sha256": "2871211bd0233095754b20e68210ccbf0849a8f847a08daa37a768c2186e579f",
+  "decoder_source": "mexFunction/decode.c",
+  "graph_sha256": "f6c026d56e93bfd7d5d8dc78a6a147c5d4b4189d0d2e3f310ae6acdd160d4dd0",
+  "graph_source": "BG2_iLS6",
+  "iterations": 50,
+  "licence": "MIT",
+  "name": "lcrypto_simple_5g_ldpc_platform",
+  "reconstruction": "batched_literal_port_with_early_termination_disabled",
+  "repository": "https://github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders",
+  "settings": {
+    "archive_sha256": "457a90726a40dd40f7c115b2477f4b5ce11cecea968f8a48e51f52d0aff43ffc",
+    "archive_url": "https://codeload.github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders/tar.gz/2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c",
+    "base_graph": 2,
+    "blocks_per_snr": 5000,
+    "commit": "2fde4c43bae04c0d8397b3e7e46eaa6070e16b3c",
+    "confidence_percent": 95,
+    "decoder_source": "mexFunction/decode.c",
+    "graph_source": "BG2_iLS6",
+    "k": 128,
+    "licence": "MIT",
+    "lifting_size": 22,
+    "n": 256,
+    "rate": 0.5,
+    "reconstruction": "batched_literal_port_with_early_termination_disabled",
+    "repository": "https://github.com/Lcrypto/Simple-platform-to-Study-5G-LDPC-codes-and-decoders",
+    "required_minimum_block_errors_below_waterfall": 5,
+    "simulation_seed": 20260730,
+    "snr_grid_ebn0_db": {
+      "bpsk": [
+        1.5,
+        2.0,
+        2.5,
+        2.75
+      ],
+      "qam16": [
+        4.0,
+        4.5,
+        5.0,
+        5.25
+      ],
+      "qpsk": [
+        1.5,
+        2.0,
+        2.5,
+        2.75
+      ]
+    },
+    "source_snr_convention": "eb_n0_per_information_bit",
+    "waterfall_interpolation": "linear_in_snr_vs_log10_bler",
+    "waterfall_target_bler": 0.01
+  },
+  "snr_conversion": "Es/N0[dB] = Eb/N0[dB] + 10*log10(R*Qm)"
+}

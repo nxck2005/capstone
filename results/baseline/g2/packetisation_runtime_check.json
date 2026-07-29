@@ -1,0 +1,28 @@
+{
+  "configurations": 216,
+  "expected_structural_infeasibility": [
+    {
+      "reason": "no_legal_byte_aligned_A_within_nominal_budget",
+      "tag": "cifar10/r_1_48/bpsk/1/3"
+    }
+  ],
+  "feasible": 215,
+  "mismatches": [],
+  "pass": true,
+  "progressive_design": {
+    "allocation": "contiguous_equal_payload_layers_with_final_remainder",
+    "comparison": "same_total_channel_symbols_and_frozen_mcs",
+    "execution_gate": "after_G8",
+    "packet_counts": [
+      1,
+      2,
+      4
+    ],
+    "ratio": "future_G8_headline_ratio",
+    "status": "frozen_not_run_at_G2"
+  },
+  "progressive_design_executed": false,
+  "proof_obligations": 144,
+  "solver_record": "spec/evidence/packetisation_record.json",
+  "solver_record_sha256": "2d73da02f93b3eedc70727f94f103e4562064ee8802e9180966139ed094ea3b0"
+}

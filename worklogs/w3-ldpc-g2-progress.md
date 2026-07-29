@@ -30,3 +30,33 @@ training, ER-9, lambda work, or test evaluation.
 The G-2 runner does not import `src/data/test_access.py`, load an image,
 canonicalize pixels, run a classifier, or train a model. Its only random data
 are synthetic information bits and keyed AWGN.
+
+## G-2 adjudication — 2026-07-30
+
+W3 implementation is frozen at
+`968e907237bbe571adf6ec48e4711ea021831719`. The attempt to wait on
+`PYTHONPATH=src .venv/bin/python tools/run_ldpc_g2.py` was interrupted by the
+user, but the runner had already finished normally; a process check confirmed
+there is no surviving G-2 process.
+
+Eight complete evidence files are committed under `results/baseline/g2/`. The
+CSV has 24 data rows. The adjudication binds the clean W3 commit and reports
+PASS for golden vectors, offline fixture,
+known answers, independent-reference provenance, simulation sufficiency,
+waterfall displacement, 216-cell runtime packetisation, the frozen-but-unrun
+progressive design, commit cleanliness and the test seal.
+
+Measured displacements:
+
+- BPSK: `0.0 dB` (`Es/N0` waterfall `-0.44272625389121256 dB` in both arms).
+- QPSK: `+0.0036302378989723216 dB` (reference `2.5213324689357486 dB`,
+  Sionna `2.524962706834721 dB`).
+- 16-QAM: `0.0 dB` (`7.894208261597202 dB` in both arms).
+
+All three are inside the configured 0.5 dB limit. Both implementations met the
+configured simulation-sufficiency check at every modulation, every known-answer
+and golden-vector component passed, runtime packetisation reconciled all 216
+cells, and test-access counters remained zero. The progressive 1/2/4-packet
+design is frozen but deliberately unrun until G-8 supplies the validation-selected
+headline ratio. The single next task is bounded W4 classical-baseline integration
+before G-8; no W4 work was started here.

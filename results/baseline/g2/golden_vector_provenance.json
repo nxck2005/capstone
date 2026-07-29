@@ -1,0 +1,10 @@
+{
+  "alignment": "remove_filler_marker_254_only_input_already_2Z_punctured",
+  "asset": "phy_testvectors.tar",
+  "asset_sha256": "816d75db7c0d175ea906cae1c515a6ea5295d91e1db14b5285a950c452fa70b5",
+  "asset_url": "https://github.com/srsran/srsRAN_Project/releases/download/release_25_10/phy_testvectors.tar",
+  "fixture": "tests/fixtures/ldpc_ts38212_golden.npz",
+  "fixture_sha256": "55754b508ab1b6eb6625eae301d2d0a3fefcdf7b03e98038264b76b71e26aae0",
+  "release": "release_25_10",
+  "source_rung": 2
+}

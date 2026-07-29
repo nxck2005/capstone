@@ -1,0 +1,47 @@
+{
+  "alignment": "remove_filler_marker_254_only_input_already_2Z_punctured",
+  "asset": "phy_testvectors.tar",
+  "asset_sha256": "816d75db7c0d175ea906cae1c515a6ea5295d91e1db14b5285a950c452fa70b5",
+  "asset_url": "https://github.com/srsran/srsRAN_Project/releases/download/release_25_10/phy_testvectors.tar",
+  "cases": [
+    {
+      "alignment": "remove_filler_marker_254_only_input_already_2Z_punctured",
+      "base_graph": 1,
+      "encoder_mismatches": 0,
+      "index": 23,
+      "k": 712,
+      "lifting_size": 36,
+      "messages": 10,
+      "modulation": "qam16",
+      "n": 2132,
+      "rate_matched_mismatches": 0,
+      "selected_lifting_size": 36
+    },
+    {
+      "alignment": "remove_filler_marker_254_only_input_already_2Z_punctured",
+      "base_graph": 2,
+      "encoder_mismatches": 0,
+      "index": 81,
+      "k": 576,
+      "lifting_size": 64,
+      "messages": 10,
+      "modulation": "qam16",
+      "n": 2876,
+      "rate_matched_mismatches": 0,
+      "selected_lifting_size": 64
+    }
+  ],
+  "fixture": "tests/fixtures/ldpc_ts38212_golden.npz",
+  "fixture_sha256": "55754b508ab1b6eb6625eae301d2d0a3fefcdf7b03e98038264b76b71e26aae0",
+  "offline_floor": {
+    "expected_lifting_size": 2,
+    "fixture": "tests/fixtures/ldpc_offline_floor.json",
+    "fixture_sha256": "f7542f911ec524ac0e7814642abbcbbd6f30376be89fc123d295979a39dc4a41",
+    "mismatches": 0,
+    "selected_lifting_size": 2,
+    "syndrome_weight": 0
+  },
+  "pass": true,
+  "release": "release_25_10",
+  "source_rung": 2
+}

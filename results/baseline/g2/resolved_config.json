@@ -1,0 +1,21 @@
+{
+  "config_file": "configs/ldpc-g2.yaml",
+  "config_sha256": "fd819ce70a472a31a40e5c22ebbc0547abbf54d5435f514a4e22ac30f132775d",
+  "device": "cuda",
+  "measurement_commit": "968e907237bbe571adf6ec48e4711ea021831719",
+  "measurement_dirty": false,
+  "params_file": "spec/params.generated.yaml",
+  "params_sha256": "255bb5eaa04cdadbce324ade3cea9c54192cef3ae7c3447f3dcafa5eec63062b",
+  "python_version": "3.14.6",
+  "schema_version": 1,
+  "sionna_version": "2.0.1",
+  "standard": "3gpp_ts_38_212",
+  "standard_version": "17.13.0",
+  "test_split_access": {
+    "accuracy_calls": 0,
+    "canonicalisation_calls": 0,
+    "decoder_calls": 0,
+    "inference_calls": 0
+  },
+  "torch_version": "2.13.0+cu130"
+}

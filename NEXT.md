@@ -7,7 +7,39 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-30 · **Phase:** **Transparency-bitrate probe complete; W3 through G-2 next.**
+**Last updated:** 2026-07-30 · **Phase:** **W3 complete; G-2 PASS.**
+
+## Single next task
+
+Begin only the bounded **W4 classical-baseline integration required before G-8**. G-8 has not
+started. Do not run the full BR-4 validation sweep, select ratios, calibrate λ, train learned
+models, implement ER-9, or access the test split until their scheduled gates.
+
+W3 implementation is frozen at
+`968e907237bbe571adf6ec48e4711ea021831719`. The committed G-2 evidence under
+`results/baseline/g2/` binds that clean commit and passes golden vectors, the project-owned offline
+fixture, mapper/demapper/interleaver and CRC known answers, independent BLER-reference provenance,
+all three waterfall comparisons, 216-cell runtime packetisation, the frozen-but-unrun progressive
+packet design, commit cleanliness and the test seal.
+
+Measured waterfall displacements at BLER `1e-2` are BPSK `0.0 dB`, QPSK
+`+0.0036302378989723216 dB`, and 16-QAM `0.0 dB`, all within the `0.5 dB` gate. The G-2 campaign
+used 5,000 blocks at each of four points per modulation, K=128, N=256, BG2, Z=22, rate 1/2,
+flooding offset-min-sum with offset 0.5 and 50 iterations. No image path, model training or test
+access ran.
+
+### Completed and remotely published before W3
+
+Transparency lineage commits: implementation A
+`90007f165f8f669a54127bdd6539472cb2d3f534`, direct-child design B
+`7896c7a744149cfa1e51948a86cff05f16a346b5`, evidence C
+`2ebb2cefade25add5f65c3ce0efa40bb747aba16`, and the descendant unreachable-commit mutation-test
+fix `d82e5354dd1dc66461333ea2b16a47957f158ca0`. Remote `main` was verified at `d82e5354…` before
+W3 began. The probe rerun had zero scientific drift: clean `898/1000`, 68,000 cells, zero
+infeasible encodes, zero decode failures, and byte-identical per-image/aggregate outputs.
+
+---
+
 The reference-classifier integrity implementation is committed as
 `89a3af48c48a91d6d272ba62337f890c59bb40a5`. The full clean Imagenette-160 campaign then ran
 fresh from epoch zero through epoch 99 on the configured RTX 4060 Laptop GPU path. It achieved
@@ -42,8 +74,9 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 1. ~~Evidence-hardening cleanup.~~ **Complete.**
 2. ~~**W2 implementation through G-7.**~~ **Complete — G-7 PASS.**
 3. ~~**Transparency-bitrate probe using the frozen reference classifier.**~~ **Complete.**
-4. **W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting
-   through G-2.**
+4. ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting
+   through G-2.**~~ **Complete — G-2 PASS.**
+5. **W4: bounded classical-baseline integration required before G-8.**
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
@@ -258,11 +291,11 @@ Review criterion** — it first appears at the Second — so these marks are for
 
 ### Cold-start: the first thing to do in a fresh session
 
-**W1 and W2, G-1, G-7 and the validation-only transparency-bitrate probe are complete.** Do not
+**W1, W2 and W3, G-1, G-2, G-7 and the validation-only transparency-bitrate probe are complete.** Do not
 reopen the reference-classifier recipe, start its fallback ladder, implement the G-7 width fallback,
 select a G-8 operating point from the probe, or open another full-spec audit round without new
-evidence. The single next engineering task is W3: LDPC fixture/integration, BER/BLER validation, and
-complete packetisation/bit accounting through G-2. Registration remains confirmed (AM-63), and
+evidence. The single next engineering task is bounded W4 classical-baseline integration before
+G-8. Registration remains confirmed (AM-63), and
 PR-9's author-owned hardware-alternative acknowledgement remains
 non-blocking.
 
@@ -529,9 +562,9 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-W1, W2, G-1, G-7 and the validation-only transparency-bitrate probe are complete. The single next
-engineering task is W3's LDPC fixture/integration, BER/BLER validation, and complete
-packetisation/bit accounting through G-2. PR-1 and PR-2 remain parallel First Review work, and the
+W1, W2 and W3, G-1, G-2, G-7 and the validation-only transparency-bitrate probe are complete. The
+single next engineering task is bounded W4 classical-baseline integration before G-8. PR-1 and
+PR-2 remain parallel First Review work, and the
 author-owned PR-9 acknowledgement remains open.
 
 | # | Do | Owner | Why now | Blocks |
@@ -543,7 +576,8 @@ author-owned PR-9 acknowledgement remains open.
 | ~~4~~ | ~~**Run W1(f) and adjudicate G-1**~~ **DONE 2026-07-29** — 0.898 at epoch 99, G-1 PASS | — | Full validation-only evidence verified; test stayed sealed | ~~all of W2+~~ |
 | ~~5~~ | ~~**Build W2 through G-7**~~ **DONE 2026-07-29** — primary model, batch 32, G-7 PASS | — | Corrected implementation-bound full training-only CUDA epoch; 48.684 s, 1.004 GiB reserved, 1.352 h projected | ~~W3+~~ |
 | ~~5a~~ | ~~**Transparency-bitrate probe with the frozen classifier**~~ **DONE 2026-07-30** — 68,000 validation cells, 0 infeasible, 0 decode failures | — | Frozen classifier reproduced 898/1000; forecasts only, G-8 unresolved | ~~W3/W4~~ |
-| 5b | **W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2** | agent | Probe complete; G-9 fixtures and packetisation evidence are ready | W4+ |
+| ~~5b~~ | ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2**~~ **DONE 2026-07-30 — G-2 PASS** | — | Golden, known-answer, BLER and packetisation evidence verified | ~~W4+~~ |
+| 5c | **W4 bounded classical-baseline integration before G-8** | agent | G-2 passed; integrate the validated physical layer without starting the full BR-4 sweep | G-8 |
 | 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
