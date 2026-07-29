@@ -355,7 +355,7 @@
       ]
     }
   ],
-  "cache_manifest_hash": "94bde1e183ff5c2b2b8c2bdd222837bd8ab5b8b6b7340ad0f861a7e0603ac5de",
+  "cache_manifest_hash": "721a8c4bb172e8c49b12751a9308bc71a5d41ac0ea0b33564e2a4bb1859a2a3f",
   "cache_size_bytes": 464997315,
   "classifier_checkpoint_identity": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
   "classifier_config_identity": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
@@ -452,11 +452,13 @@
     96,
     64
   ],
+  "execution_sources_hash": "82a0f5a0573f40b54184c8994c8fd6b760622169188c2bd6874dc2a33fc00177",
   "g8_status": "unresolved",
   "git_dirty_state": false,
   "glymur_version": "0.14.3",
+  "implementation_commit": "90007f165f8f669a54127bdd6539472cb2d3f534",
   "manifest_identity": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
-  "measurement_commit": "3ccb0aa970e8d2d36f65f89a840785f92f73dec5",
+  "measurement_commit": "7896c7a744149cfa1e51948a86cff05f16a346b5",
   "openjpeg_version": "2.5.4",
   "per_image_file_hash": "6602932cbbd728502b36e7a2794fa95e42c0348922bbfae93cc9e79573868085",
   "point_estimate_best_axes": [
@@ -568,7 +570,7 @@
     "status": "measured"
   },
   "probe_status": "COMPLETE",
-  "probe_wall_time_s": 4612.091769229002,
+  "probe_wall_time_s": 9235.081653717003,
   "prominent_declaration": "Validation-only engineering probe. Does not select or replace G-8 operating points.",
   "provisional_bandwidth_parameters": {
     "crossover_ratio": "r_1_3",
@@ -578,8 +580,8 @@
     "low_ratio_operating_point": "r_1_12",
     "low_ratio_operating_point_status": "provisional_until_G-8"
   },
-  "resolved_config_hash": "d18034ada00827178f455bb59d7b3f0ffdf55ca1464256b7820ff22f02f509c0",
-  "schema_version": 1,
+  "resolved_config_hash": "abe6a908c34a37fea3cf999fcab580c7b9b11453af220b23fa7704b536b43dfc",
+  "schema_version": 2,
   "split": "validation",
   "test_isolation_declaration": {
     "test_accessed": false,

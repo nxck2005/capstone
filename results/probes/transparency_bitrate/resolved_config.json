@@ -146,7 +146,7 @@
       64
     ],
     "experiment": "transparency_bitrate_probe",
-    "implementation_commit": "94f448db302f68c2f046cdd2f560d9e4805387db",
+    "implementation_commit": "90007f165f8f669a54127bdd6539472cb2d3f534",
     "outputs": {
       "aggregate": "results/probes/transparency_bitrate/aggregate.csv",
       "cache_manifest": "results/probes/transparency_bitrate/cache_manifest.json",
@@ -173,8 +173,94 @@
     },
     "tie_breaking": "highest_integer_n_correct_then_first_configured_axis"
   },
-  "design_hash": "b58a6999ecee860385b2d7292f6c7ac37b3ade66a7a5ba9a6240417254ce330f",
-  "measurement_commit": "3ccb0aa970e8d2d36f65f89a840785f92f73dec5",
+  "design_hash": "de9e4ea0bd4286dde371eb7085f682226aec2d13f767425441ec1af7171383b7",
+  "execution_sources": {
+    "critical_files": {
+      "src/baseline/j2k.py": {
+        "executed_byte_sha256": "91781fbe878ea255be5802606f71d23ca95fb46e02795289686d8ca42bb13251",
+        "implementation_git_blob_sha": "1a90690b0952197f3f4911ed606aa8ffe7b55e19",
+        "measurement_git_blob_sha": "1a90690b0952197f3f4911ed606aa8ffe7b55e19",
+        "repository_relative_path": "src/baseline/j2k.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/baseline/j2k.py"
+      },
+      "src/config/params.py": {
+        "executed_byte_sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc",
+        "implementation_git_blob_sha": "4de8414d0acb07dd85eaa8aba58a627ba7693f1a",
+        "measurement_git_blob_sha": "4de8414d0acb07dd85eaa8aba58a627ba7693f1a",
+        "repository_relative_path": "src/config/params.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/config/params.py"
+      },
+      "src/config/run_config.py": {
+        "executed_byte_sha256": "3fe4968662d70e6a7a71e9078a7cce2e6b2747dc99868f724188ef2d465c83e3",
+        "implementation_git_blob_sha": "3f86faa314ccd8b6ca5eaba2c051eeb9b90e9096",
+        "measurement_git_blob_sha": "3f86faa314ccd8b6ca5eaba2c051eeb9b90e9096",
+        "repository_relative_path": "src/config/run_config.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/config/run_config.py"
+      },
+      "src/data/classifier.py": {
+        "executed_byte_sha256": "1108ad155e2d0dd1fc2658ef27757b0a4249926316cae5cebb9081471c92f64b",
+        "implementation_git_blob_sha": "8ef90ef316cb0b964b2b928375624b638767c2f9",
+        "measurement_git_blob_sha": "8ef90ef316cb0b964b2b928375624b638767c2f9",
+        "repository_relative_path": "src/data/classifier.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/data/classifier.py"
+      },
+      "src/data/preprocessing.py": {
+        "executed_byte_sha256": "1aa5eafc8d02be5e79ee10b342cb8fb901e2600ba7a77224ecaf29dbcbcbacdf",
+        "implementation_git_blob_sha": "28cedfa57a3a6eeae0e7a05763733e8a4a847add",
+        "measurement_git_blob_sha": "28cedfa57a3a6eeae0e7a05763733e8a4a847add",
+        "repository_relative_path": "src/data/preprocessing.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/data/preprocessing.py"
+      },
+      "src/data/registry.py": {
+        "executed_byte_sha256": "da790dcee14835f756302a360defa9158f63a56eded87605fe383ade6297b8ae",
+        "implementation_git_blob_sha": "c3617adbaa0ae45ffe688b7b25db00203f32a59a",
+        "measurement_git_blob_sha": "c3617adbaa0ae45ffe688b7b25db00203f32a59a",
+        "repository_relative_path": "src/data/registry.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/data/registry.py"
+      },
+      "src/env.py": {
+        "executed_byte_sha256": "0a0977ec5731a6ecbb30f02fa3c0f1b4f35bb9b32fe95c3ae8dd0cb4d1470a66",
+        "implementation_git_blob_sha": "9ef12c4cd1e9fdf18ed4ae3b7ce4d03f3bfa9521",
+        "measurement_git_blob_sha": "9ef12c4cd1e9fdf18ed4ae3b7ce4d03f3bfa9521",
+        "repository_relative_path": "src/env.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/env.py"
+      },
+      "src/models/frozen_reference_classifier.py": {
+        "executed_byte_sha256": "6df88447c1afbcf7c7d5f9484d18a20637085a2552c326bc0ee2a33f2ab90fce",
+        "implementation_git_blob_sha": "d8685b7bbb27d9219f3a19399b308ee789b97c5f",
+        "measurement_git_blob_sha": "d8685b7bbb27d9219f3a19399b308ee789b97c5f",
+        "repository_relative_path": "src/models/frozen_reference_classifier.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/models/frozen_reference_classifier.py"
+      },
+      "src/models/reference_classifier.py": {
+        "executed_byte_sha256": "d2f52ee616a582657e895a9b1c56250ee83d172b963cd00bb55bb0c8942eb703",
+        "implementation_git_blob_sha": "3b85ea979e49bbd0024eff9f6a3c66779bb7bf8a",
+        "measurement_git_blob_sha": "3b85ea979e49bbd0024eff9f6a3c66779bb7bf8a",
+        "repository_relative_path": "src/models/reference_classifier.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/models/reference_classifier.py"
+      },
+      "src/probes/transparency_bitrate.py": {
+        "executed_byte_sha256": "bbf378b2ef9f9bc1f2319f57abec148edbb3f096a4e5c6d42f56453daae019b5",
+        "implementation_git_blob_sha": "3f95174d864625db5d16407c7f1917d300e4c8b3",
+        "measurement_git_blob_sha": "3f95174d864625db5d16407c7f1917d300e4c8b3",
+        "repository_relative_path": "src/probes/transparency_bitrate.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/src/probes/transparency_bitrate.py"
+      },
+      "tools/run_transparency_bitrate_probe.py": {
+        "executed_byte_sha256": "511691325acee68bd75893703bb9273bf9d847eba0b3bbad6b32846d718cd212",
+        "implementation_git_blob_sha": "eb3197433215ded08f1692f0d8899499c014e9eb",
+        "measurement_git_blob_sha": "eb3197433215ded08f1692f0d8899499c014e9eb",
+        "repository_relative_path": "tools/run_transparency_bitrate_probe.py",
+        "resolved_runtime_path": "/tmp/capstone-probe-b-Fyr9eR/tools/run_transparency_bitrate_probe.py"
+      }
+    },
+    "execution_source_root": "/tmp/capstone-probe-b-Fyr9eR",
+    "implementation_commit": "90007f165f8f669a54127bdd6539472cb2d3f534",
+    "measurement_commit": "7896c7a744149cfa1e51948a86cff05f16a346b5",
+    "measurement_tree_clean": true,
+    "schema_version": 1
+  },
+  "measurement_commit": "7896c7a744149cfa1e51948a86cff05f16a346b5",
   "measurement_git_dirty": false,
   "parameters": {
     "bandwidth": {
@@ -857,6 +943,6 @@
       "weights": null
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "source": "configs/transparency-bitrate-probe.yaml"
 }

@@ -7,13 +7,24 @@ Validation-only engineering probe. Does not select or replace G-8 operating poin
 No training ran, the classifier remained frozen, and the test split stayed sealed.
 G-8 remains unresolved; both threshold outputs below are probe forecasts only.
 
-The design was committed before measurement. Its implementation identity is
-`94f448db302f68c2f046cdd2f560d9e4805387db`, and the clean measurement checkout was
-`3ccb0aa970e8d2d36f65f89a840785f92f73dec5`. The fixed 10-ID pilot exercised all 680
-budget/axis/sample cells in 37.863 s, demonstrated repeat cache hits and projected the full probe at
-1.052 h. The restartable four-axis full run took 4,612.092 s (76.868 min) in total. The ignored
-content-addressed cache contains 68,000 entries and 464,997,315 logical bytes; tracked evidence
-contains hashes and metadata but no pixels or codestream bytes.
+The reachable implementation identity is
+`90007f165f8f669a54127bdd6539472cb2d3f534`, and the clean measurement checkout was its direct
+child `7896c7a744149cfa1e51948a86cff05f16a346b5`. All eleven critical runtime files resolved beneath
+that checkout, had identical bytes at both commits, and are recorded with executed-byte SHA-256 and
+both git blob identities. The fixed 10-ID pilot exercised all 680 budget/axis/sample cells in
+6.230 s and demonstrated repeat cache hits. The four full axes then reloaded, identity-checked,
+decoded and rescored every ignored cache entry: 17,000 cells per axis and 68,000 in total. They ran
+concurrently in 38.4--38.6 minutes per shard; the evidence's additive per-shard accounting is
+9,235.082 s. The ignored content-addressed cache contains 68,000 entries and 464,997,315 logical
+bytes. Its sorted-entry root is
+`c4e27610dbe1543dfe3cfaeefdcf283271ac8fa7f0af332f4c4e8da063181f2a`; all 68,000 local files
+additionally reproduced their recorded exact-byte SHA-256 values. Tracked evidence contains hashes
+and metadata but no pixels or codestream bytes.
+
+The recomputed `per_image.csv` and `aggregate.csv` are byte-for-byte identical to the prior
+publication (`6602932cbbd728502b36e7a2794fa95e42c0348922bbfae93cc9e79573868085` and
+`8f6bdefd0cd05275881cfb66a9f97070c14b541600c2fd962fee4d675f5a59e0`, respectively): no
+prediction, aggregate, bootstrap result, selected axis or threshold changed.
 
 The frozen 17-budget grid, in bytes, was:
 `663, 800, 1330, 1600, 2400, 2661, 3200, 4000, 4800, 5328, 5344, 6400, 8000, 9600,
