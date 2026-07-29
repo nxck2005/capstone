@@ -305,6 +305,11 @@ def test_fetch_restarts_when_server_ignores_range(
     [
         ("bytes 3-9/10", "does not start"),
         ("bytes 4-9/11", "total"),
+        # This is the audit case: a five-byte inclusive range must not
+        # authorize six response bytes merely because the final file is sized.
+        ("bytes 4-8/10", "end 8 != expected 9"),
+        ("bytes 4-10/10", "end 10 != expected 9"),
+        ("bytes 4-3/10", "precedes start"),
         ("not-a-range", "does not start"),
     ],
 )
@@ -331,6 +336,34 @@ def test_fetch_rejects_invalid_resume_content_range_and_keeps_partial(
                 payload[4:],
                 status=206,
                 headers={"Content-Range": content_range, "Content-Length": "6"},
+            ),
+        )
+
+    assert partial.read_bytes() == payload[:4]
+    assert not destination.exists()
+
+
+def test_fetch_rejects_resume_content_length_mismatch_before_writing_partial(
+    synthetic_dataset_repo: Path,
+):
+    dataset = "cifar10"
+    destination = archive_path(dataset, synthetic_dataset_repo)
+    destination.unlink()
+    payload = b"0123456789"
+    config = get(f"datasets.{dataset}")
+    config["archive_bytes"] = len(payload)
+    config["archive_sha256"] = hashlib.sha256(payload).hexdigest()
+    partial = destination.with_name(f"{destination.name}.part")
+    partial.write_bytes(payload[:4])
+
+    with pytest.raises(ProvenanceError, match="Content-Length 5 != expected 6"):
+        fetch_archive(
+            dataset,
+            synthetic_dataset_repo,
+            opener=lambda _request: _Response(
+                payload[4:],
+                status=206,
+                headers={"Content-Range": "bytes 4-9/10", "Content-Length": "5"},
             ),
         )
 

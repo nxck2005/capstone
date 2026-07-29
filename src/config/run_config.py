@@ -299,9 +299,19 @@ def load_experiment(path: str | Path, **overrides: Any) -> RunConfig:
     )
 
 
-def load_reference_classifier_config(path: str | Path, *, dataset: str) -> RunConfig:
+def load_reference_classifier_config(
+    path: str | Path,
+    *,
+    dataset: str,
+    **overrides: Any,
+) -> RunConfig:
     """Resolve the clean classifier recipe without channel-shaped placeholders."""
 
+    if overrides:
+        raise ValueError(
+            "reference classifier config accepts no overrides: "
+            f"extra={sorted(overrides)}"
+        )
     source = _experiment_path(path)
     body = yaml.safe_load(source.read_text())
     if not isinstance(body, Mapping):
@@ -316,6 +326,8 @@ def load_reference_classifier_config(path: str | Path, *, dataset: str) -> RunCo
     sweep_axes = body["sweep_axes"]
     if not isinstance(choices, Mapping) or not isinstance(sweep_axes, Mapping):
         raise TypeError("classifier choices and sweep_axes must be mappings")
+    if not isinstance(body["experiment"], str) or not body["experiment"]:
+        raise TypeError("classifier experiment must be a non-empty string")
     if set(choices) != {"classifier_variant", "train_seed"}:
         raise ValueError("classifier choices must be classifier_variant and train_seed")
     if dict(sweep_axes) != {"dataset": "configured_datasets"}:

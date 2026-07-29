@@ -226,11 +226,25 @@ def fetch_archive(
                         raise ProvenanceError(
                             f"{dataset}: resume Content-Range does not start at {offset}: {content_range!r}"
                         )
-                    if int(match.group(3)) != expected_total:
+                    range_start, range_end, range_total = (int(value) for value in match.groups())
+                    if range_total != expected_total:
                         raise ProvenanceError(
-                            f"{dataset}: resume Content-Range total {match.group(3)} != expected {expected_total}"
+                            f"{dataset}: resume Content-Range total {range_total} != expected {expected_total}"
                         )
                     expected_remaining = expected_total - offset
+                    if range_end < range_start:
+                        raise ProvenanceError(
+                            f"{dataset}: resume Content-Range end {range_end} precedes start {range_start}"
+                        )
+                    if range_end != expected_total - 1:
+                        raise ProvenanceError(
+                            f"{dataset}: resume Content-Range end {range_end} != expected {expected_total - 1}"
+                        )
+                    if range_end - range_start + 1 != expected_remaining:
+                        raise ProvenanceError(
+                            f"{dataset}: resume Content-Range length {range_end - range_start + 1} "
+                            f"!= expected {expected_remaining}"
+                        )
                 else:
                     raise ProvenanceError(f"{dataset}: expected HTTP 206 or 200 for resume, got {status}")
             elif status != _HTTP_OK:
@@ -238,10 +252,15 @@ def fetch_archive(
                     f"{dataset}: expected HTTP {_HTTP_OK} for fresh fetch, got {status}"
                 )
             declared = response_headers.get("Content-Length")
-            if declared is not None and int(declared) != expected_remaining:
-                raise ProvenanceError(
-                    f"{dataset}: Content-Length {declared} != expected {expected_remaining}"
-                )
+            if declared is not None:
+                try:
+                    declared_length = int(declared)
+                except (TypeError, ValueError):
+                    raise ProvenanceError(f"{dataset}: invalid Content-Length {declared!r}") from None
+                if declared_length != expected_remaining:
+                    raise ProvenanceError(
+                        f"{dataset}: Content-Length {declared} != expected {expected_remaining}"
+                    )
             with partial.open(mode) as output:
                 written = 0
                 while chunk := response.read(_HASH_CHUNK_BYTES):

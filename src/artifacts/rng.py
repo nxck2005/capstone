@@ -71,6 +71,22 @@ def keyed_generator(
     return np.random.Generator(np.random.Philox(seed))
 
 
+def keyed_torch_seed(identity: Mapping[str, Any]) -> int:
+    """Derive the isolated CPU Torch seed for the declared ``init`` identity.
+
+    The seed is the first eight bytes of the canonical keyed-Philox identity
+    digest interpreted as an unsigned big-endian integer.  It shares the
+    project identity convention without consuming any NumPy or Torch stream.
+    """
+
+    validated_identity = _validate_identity("init", identity)
+    material = {"purpose": "init", "identity": validated_identity}
+    return int.from_bytes(
+        bytes.fromhex(canonical_sha256(material))[:8],  # literal-ok: 64-bit Torch seed width
+        "big",
+    )
+
+
 def keyed_standard_normal(
     purpose: str,
     identity: Mapping[str, Any],

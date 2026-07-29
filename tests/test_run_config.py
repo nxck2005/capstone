@@ -172,6 +172,65 @@ def test_reference_classifier_rejects_unknown_dataset():
         load_reference_classifier_config(REFERENCE_CLASSIFIER, dataset="unknown")
 
 
+@pytest.mark.parametrize(
+    "dataset",
+    tuple(
+        name
+        for name, value in get("datasets").items()
+        if isinstance(value, dict) and "loader" in value
+    ),
+)
+def test_reference_classifier_config_resolves_every_configured_dataset(dataset):
+    cfg = load_reference_classifier_config(REFERENCE_CLASSIFIER, dataset=dataset)
+
+    assert cfg.resolved["dataset"] == dataset
+    assert cfg.resolved["dataset_version"] == get(
+        f"datasets.{dataset}.archive_sha256"
+    )
+    assert cfg.resolved["split_manifest_hash"] == get(
+        f"datasets.{dataset}.manifest_sha256"
+    )
+    assert set(cfg.parameters) == set(get("config.fingerprint_parameter_roots"))
+    with pytest.raises(TypeError):
+        cfg.parameters["reference_classifier"]["arch"] = "resnet50"  # type: ignore[index]
+
+
+def test_reference_classifier_rejects_overrides():
+    with pytest.raises(ValueError, match="accepts no overrides"):
+        load_reference_classifier_config(
+            REFERENCE_CLASSIFIER,
+            dataset="imagenette160",
+            channel_seed=0,
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    (
+        (lambda body: body.update({"unexpected": True}), "keys differ"),
+        (lambda body: body["choices"].update({"channel": "awgn"}), "choices"),
+        (
+            lambda body: body["sweep_axes"].update({"train_seed": "train_seeds"}),
+            "sweep_axes",
+        ),
+    ),
+)
+def test_reference_classifier_rejects_malformed_choice_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: object,
+    message: str,
+):
+    body = yaml.safe_load(REFERENCE_CLASSIFIER.read_text(encoding="utf-8"))
+    mutation(body)
+    path = tmp_path / "malformed-reference-classifier.yaml"
+    path.write_text(yaml.safe_dump(body, sort_keys=False), encoding="utf-8")
+    monkeypatch.setattr(run_config, "_experiment_path", lambda _: path)
+
+    with pytest.raises(ValueError, match=message):
+        run_config.load_reference_classifier_config(path.name, dataset="imagenette160")
+
+
 def test_hash_is_deterministic_under_serialised_key_reordering():
     cfg = _learned_config()
     body = cfg.to_dict()

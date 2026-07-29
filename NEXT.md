@@ -20,6 +20,17 @@ byte-for-byte; the real train/validation paths canonicalize successfully while t
 provenance-only published-test scan records zero decoder and zero canonicalization calls. The final
 suite and CPU-lock clean install are recorded in the AM-77 block below.
 
+**2026-07-29 corrective handoff:** the final pre-G-1 classifier audit initially failed on six bounded
+implementation findings. A follow-up found two production checkpoint gaps in the first correction;
+both are now closed. Checkpoint lineage is derived only from irreversible trainer execution state,
+direct `max_steps`/`max_batches` work cannot enter full lineage, and detached resume now rejects
+configured SGD-group or epoch learning-rate drift before live mutation. The complete corrected
+remainder is staged, including exact resumed `Content-Range` checks, deterministic standalone CLI
+setup and deletion of the obsolete recovery patch. The focused checkpoint/training/CLI suite
+(`35` tests) and complete suite (`223` tests) pass. No full Imagenette training or G-1 was run. See
+`worklogs/w1-reference-classifier-progress.md`; next is user review and commit, then only an
+explicitly approved full-run campaign.
+
 ---
 
 ## Just landed — the Codex gate audit adjudicated, AM-57..AM-64 applied
@@ -622,15 +633,21 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    Resolving the freeze-manifest hashes against real manifests
    and checkpoints remains deliberately deferred to G-12.
 
-   **(f) Reference classifier (BR-8, DEC-15) — AFTER manifests, then G-1.**
-   ResNet-18 **from scratch**, and the recipe is
+   **(f) Reference classifier (BR-8, DEC-15) — IMPLEMENTED AND SMOKE-VERIFIED; G-1 NEXT.**
+   The staged AM-78 contract uses ResNet-18 **from scratch** from
+   `configs/reference-classifier-clean.yaml`; it accepts unnormalised tensors and applies the
+   configured channel normalization as its first model operation. Initialization is the isolated
+   keyed identity `(init, train_seed, reference_classifier.<arch>)`; each train epoch has an
+   independent keyed Philox permutation `(batch_order, train_seed, epoch)`. The recipe is
    now fully specified in `params.reference_classifier` — SGD+momentum, lr 0.1, momentum 0.9, weight
    decay 5e-4, cosine with 5 warmup epochs, 100 epochs, batch 128, label smoothing 0.1, and
    `[random_resized_crop, horizontal_flip]`. **Read it from config; do not improvise one** — the
    absence of that recipe was a straight SR-1 violation on the artifact that gates G-1 *and* defines
-   the denominator of ER-3's whole selection rule (AM-27). Owed: measured clean accuracy archived, a
-   training log showing no pretrained initialisation, and a test that every element of the recipe is
-   config-derived.
+   the denominator of ER-3's whole selection rule (AM-27). Training is validation-only, performs
+   integer-count top-1 selection with earliest-epoch ties, and atomically saves portable checkpoints
+   identified by exact finalized-file SHA-256. The bounded CUDA smoke completed three Imagenette
+   steps, validation and resume with no pretrained download and no test access. Owed: the actual
+   measured clean-accuracy artifact from the explicitly requested 100-epoch campaign.
 
    **G-1 is `clean_acc_floor` = 0.88 on Imagenette, clean variant only, measured on validation.**
    STL-10's and CIFAR-10's floors are reported but advisory (AM-13). If 0.88 does not come, the
@@ -735,6 +752,7 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-29 (reference-classifier pre-G-1 batch staged)** — **AM-78; 185 → 186 requirements and 77 → 78 amendments.** Added fail-closed extraction-marker binding and Range-resumable archive finalization, the immutable dedicated classifier configuration, source-ID augmentation views, isolated keyed model initialization, keyed epoch ordering, model-owned normalization, validation-only SGD, exact warmup/cosine scheduling, atomic portable checkpoints and direct-epoch resume. The complete network-free suite passed `192`; three real CUDA Imagenette steps and a resume step passed under ignored `checkpoints/smoke/`, with checkpoint hashes `669c82a1…bd2345c` and `90787eda…8ab627`. Full 100-epoch Imagenette training was not started and G-1 was not executed. Next: review/commit this batch, then run the preregistered full Imagenette campaign as its own evidence batch.
 - **2026-07-29 (AM-77 committed and cold-start handoff refreshed)** — The complete dataset
   registry/provenance/manifest batch was committed as `2c6f780`. Current status text now points
   directly to the reference classifier and validation-only G-1; there is no staged implementation

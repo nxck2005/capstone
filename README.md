@@ -62,8 +62,11 @@ fingerprints, a genuinely CPU-only lock, source-bound preprocessing plus exact R
 honest OpenJPEG provisioning, and current-document consistency coverage. The AM-77 batch is
 committed as `2c6f780`: one registry over Imagenette-160/STL-10/CIFAR-10,
 real source-byte decoders, exact archive provenance, and deterministic committed split manifests.
-**W0 is complete and W1 is open**. The reference classifier and validation-only G-1 remain next;
-no classifier was implemented or trained in this batch.
+The staged pre-G-1 batch completes extraction-marker binding and resumable archive fetches, and
+implements AM-78's deterministic reference classifier: `configs/reference-classifier-clean.yaml`,
+model-owned normalization, keyed initialization and keyed epoch ordering, validation-only SGD,
+and atomic portable checkpoints. **W0 is complete and W1 remains open**: the 100-epoch Imagenette
+campaign and validation-only G-1 remain next and have not been run.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
@@ -87,6 +90,7 @@ under a second with no GPU and no network. The repository's checks are meant to 
 .venv/bin/python tools/fetch_datasets.py --check       # exact archive length + SHA-256
 .venv/bin/python tools/materialize_manifests.py --check
 .venv/bin/python tools/verify_datasets.py              # real train/val smoke; zero test decode/canonicalization
+.venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --smoke-steps 3 --smoke-val-batches 2  # bounded smoke; never G-1 evidence
 .venv/bin/python -m pytest
 ```
 
