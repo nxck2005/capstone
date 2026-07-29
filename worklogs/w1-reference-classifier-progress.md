@@ -75,6 +75,25 @@ reported zero test decoder/canonicalization calls for all three datasets; pytest
 **250 passed**; and `git diff --check` passed. The final diff contains no recipe, source, test,
 specification, generated-view, manifest or lockfile change.
 
+## Post-G-1 evidence portability hardening
+
+The completed campaign was not rerun. Its final checkpoint remains byte-identical at the portable
+repository path `checkpoints/reference_classifier/epoch-99.pt`, with SHA-256
+`9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002`.
+`results/reference_classifier/g1_adjudication.json` now records the validation-only G-1 decision,
+integer counts, configuration and dataset identities, source/evidence lineage, environment,
+test-isolation state and the external artifact identity. The network-free command
+`.venv/bin/python tools/verify_g1_adjudication.py` recomputes all 100 epoch obligations and, when the
+ignored local checkpoint is present, hashes its bytes; absence of those local ignored bytes is not a
+failure because the committed external identity remains available.
+
+Only epoch 99 was preserved externally, under GitHub Release
+`g1-reference-classifier-2026-07-29` as
+`reference-classifier-imagenette160-epoch99-9c37362347a0203597d6e8e9d9a58fde.pt`. The other 99
+ignored checkpoints were not uploaded or force-added. This cleanup changed no epoch measurement,
+recipe, architecture, split, manifest, specification, generated view or lockfile; the test split
+remained sealed. W2 remains the next engineering task.
+
 ## Historical pre-G-1 trainer-integrity correction
 
 A subsequent production audit of the then-staged checkpoint work found three remaining integrity

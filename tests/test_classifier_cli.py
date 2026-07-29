@@ -55,6 +55,38 @@ def test_epoch_log_keeps_small_summary_not_full_permutation(tmp_path: Path):
     assert record["validation"]["n_total"] == 2
 
 
+def test_checkpoint_metadata_path_is_repository_relative_posix():
+    module = _cli_module()
+    checkpoint = REPO_ROOT / "checkpoints/reference_classifier/epoch-99.pt"
+
+    serialized = module._repository_relative_posix(checkpoint)
+
+    assert serialized == "checkpoints/reference_classifier/epoch-99.pt"
+    assert not Path(serialized).is_absolute()
+    assert "\\" not in serialized
+
+
+def test_checkpoint_metadata_path_rejects_external_target(tmp_path: Path):
+    module = _cli_module()
+
+    with pytest.raises(ValueError, match="must remain under repository"):
+        module._repository_relative_posix(tmp_path / "epoch-99.pt")
+
+
+def test_committed_production_checkpoint_metadata_has_no_machine_root():
+    metadata_path = REPO_ROOT / get("artifacts.classifier_best_checkpoint_metadata_file")
+    raw = metadata_path.read_text(encoding="utf-8")
+    metadata = json.loads(raw)
+
+    for key in ("best_checkpoint", "final_checkpoint"):
+        serialized = metadata[key]
+        assert serialized == "checkpoints/reference_classifier/epoch-99.pt"
+        assert not Path(serialized).is_absolute()
+    assert "/home/" not in raw
+    assert "/Users/" not in raw
+    assert ":\\" not in raw
+
+
 def test_cli_applies_deterministic_backend_before_trainer_construction(monkeypatch):
     module = _cli_module()
     events: list[str] = []

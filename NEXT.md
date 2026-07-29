@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-29 · **Phase:** **W1 complete; validation-only G-1 PASS; W2 open.**
+**Last updated:** 2026-07-29 · **Phase:** **G-1 evidence hardening complete; W2 next.**
 The reference-classifier integrity implementation is committed as
 `89a3af48c48a91d6d272ba62337f890c59bb40a5`. The full clean Imagenette-160 campaign then ran
 fresh from epoch zero through epoch 99 on the configured RTX 4060 Laptop GPU path. It achieved
@@ -28,11 +28,24 @@ module is structurally isolated, full mode constructs only train/validation view
 instrumented published-test provenance scans made zero decoder and canonicalization calls. There was
 therefore zero model-facing test loading, inference or accuracy computation.
 
-The four tracked aggregate evidence files are under `results/reference_classifier/`; all 100
-checkpoints are intentionally ignored under `checkpoints/reference_classifier/`. See
-`worklogs/w1-reference-classifier-progress.md` for the full adjudication. The next engineering
-frontier is W2's channel model, power normalization, PAPR work, DJSCC skeleton and compute profiling
-through G-7. Do not begin the reference-classifier fallback ladder: G-1 passed.
+The four tracked aggregate outputs plus `results/reference_classifier/g1_adjudication.json` hold the
+portable evidence. The final checkpoint path is
+`checkpoints/reference_classifier/epoch-99.pt`; it is preserved as the sole asset of GitHub Release
+`g1-reference-classifier-2026-07-29`, named
+`reference-classifier-imagenette160-epoch99-9c37362347a0203597d6e8e9d9a58fde.pt`. The other 99
+ignored checkpoints were not uploaded, and no training was rerun. Verify the record offline with
+`.venv/bin/python tools/verify_g1_adjudication.py`. See
+`worklogs/w1-reference-classifier-progress.md` for the full adjudication.
+
+**Current engineering order:**
+
+1. ~~Evidence-hardening cleanup.~~ **Complete.**
+2. **W2 implementation through G-7.**
+3. **Transparency-bitrate probe before W3/W4 baseline work.**
+4. **W3.**
+
+The trained classifier exists and unblocks the probe, but the probe does not block W2. Do not begin
+the reference-classifier fallback ladder: G-1 passed.
 
 ---
 
@@ -241,9 +254,11 @@ constraint path, build the DJSCC skeleton, and profile it through G-7. Registrat
 (AM-63), and PR-9's author-owned hardware-alternative acknowledgement remains non-blocking.
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
-produced from that exact clean commit. `results/reference_classifier/` holds the four tracked
-aggregate artifacts, while `checkpoints/reference_classifier/` holds 100 ignored checkpoints from
-epoch 0 through 99. The best/final validation result is 898/1000 = 0.898 at epoch 99.
+produced from that exact clean commit. `results/reference_classifier/` holds the four original
+aggregate artifacts plus the machine-readable adjudication. `checkpoints/reference_classifier/`
+holds 100 ignored checkpoints from epoch 0 through 99, but only the portable epoch-99 path was
+preserved in the named GitHub Release. The best/final validation result is 898/1000 = 0.898 at epoch
+99.
 `.venv` holds the locked runtime stack. Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` ·
 RTX 4060 Laptop 8 GB · driver 592.82 · Torch CUDA 13.0. The three dataset archives/extractions and
 srsRAN vectors remain locally available and ignored as designed.
@@ -258,9 +273,10 @@ Confirm nothing drifted, then begin W2 only:
 .venv/bin/python tools/fetch_datasets.py --check
 .venv/bin/python tools/materialize_manifests.py --check
 .venv/bin/python tools/verify_datasets.py
-.venv/bin/python -m pytest                                  # expect: 250 passed
+.venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python -m pytest                                  # expect: all tests pass with CUDA access
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
-git status --short                                          # evidence/docs may be pending commit
+git status --short                                          # expect: clean
 ```
 
 #### GPU access — probe it, do not assume it either way
@@ -289,12 +305,11 @@ it from the other two. Two notes: the plain `nvidia-smi` on `PATH` and the one a
 `nvidia-smi` says `CUDA Version: 13.1` while torch is built for `13.0` — **normal minor-version
 compatibility, not a mismatch, and not a reason to move the pin.**
 
-⚠️ **If `torch.cuda.is_available()` is `False`, the current 146-test suite is expected to read
-`144 passed, 2 failed`.** The two are
-`test_cuda_is_available` and `test_environment_record_is_fully_populated`, they need real device
-access, and they **must not be skipped, weakened, or given a skip marker** — that is the AM-23 alarm
-working, and an escape hatch would disarm the only check that catches a CPU build on the machine
-that trains. Report `144 passed, 2 failed`, say which two, and continue; it is not a regression.
+If CUDA device access is unavailable while the pinned CUDA build remains installed, the two
+device-dependent tests are expected to fail; all other tests must pass. The two are
+`test_cuda_is_available` and `test_environment_record_is_fully_populated`, and they **must not be
+skipped, weakened, or given a skip marker** — that is the AM-23 alarm working, and an escape hatch
+would disarm the only check that catches a CPU build on the machine that trains.
 
 Network is a **separate** permission from device access. The AM-77 fetch completed from all three
 normative URLs; a clean checkout still needs access for `tools/fetch_datasets.py` because archives
@@ -676,13 +691,13 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    - **The comparison can only cover rates above each base graph's minimum**, since Sionna refuses to
      encode below them. Say so in the fixture rather than quietly truncating.
 
-4. **Transparency bitrate — needs a classifier first.** `r ≈ 1/5` rests on the estimate that JPEG 2000
-   goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines how much
-   airtime the headline comparison needs. **Dependency:** scoring needs a classifier, and the
-   reference classifier is not trained until W1/G-1. Either slot this immediately after G-1, or get a
-   rough early read with an ImageNet-pretrained proxy — legitimate for locating the knee in
-   the curve, but *spike only*, never reported, since DEC-15 bans pretrained weights for the
-   reference classifier and Imagenette is an ImageNet subset. ⚠️ **AM-30 sharpened why this matters:**
+4. **Transparency bitrate — classifier dependency is complete.** `r ≈ 1/5` rests on the estimate that
+   JPEG 2000 goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines
+   how much airtime the headline comparison needs. The trained reference classifier now exists, so
+   the probe is unblocked. The fixed order is evidence hardening → W2 through G-7 → this probe before
+   W3/W4 baseline work → W3; the probe does not block W2. No ImageNet-pretrained proxy is needed, and
+   DEC-15 continues to ban pretrained weights for the reference classifier. ⚠️ **AM-30 sharpened why
+   this matters:**
    §16 now records the 1.5–2.0 bpp figure as the weakest number in the spec — it is a *visual*
    transparency threshold applied to an *accuracy* criterion, and classification tolerates several
    times more compression, so ER-3's rule may bite much further down the ladder than the provisional

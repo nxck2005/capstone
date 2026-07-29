@@ -74,6 +74,18 @@ def _write_json(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def _repository_relative_posix(path: Path, *, repository: Path = REPO) -> str:
+    """Return a portable repository-relative path, rejecting external targets."""
+
+    root = repository.resolve()
+    candidate = path.resolve()
+    try:
+        relative = candidate.relative_to(root)
+    except ValueError:
+        raise ValueError(f"checkpoint path must remain under repository {root}: {candidate}") from None
+    return relative.as_posix()
+
+
 def _write_epoch_log(path: Path, training_history: list[dict[str, Any]], validation_history: list[dict[str, Any]]) -> None:
     validation_by_epoch = {int(record["epoch"]): record for record in validation_history}
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -135,6 +147,10 @@ def main() -> int:
     best_checkpoint = (
         paths["checkpoint_dir"] / f"epoch-{best_epoch}.pt" if best_checkpoint_id is not None else None
     )
+    best_checkpoint_path = (
+        _repository_relative_posix(best_checkpoint) if best_checkpoint is not None else None
+    )
+    final_checkpoint_path = _repository_relative_posix(final.path)
     paths["artifact_dir"].mkdir(parents=True, exist_ok=True)
     _write_json(paths["resolved_config"], config.to_dict())
     _write_epoch_log(paths["epochs"], trainer.state.training_history, trainer.state.validation_history)
@@ -156,10 +172,10 @@ def main() -> int:
         {
             "best_epoch": best_epoch,
             "best_validation_top1": trainer.state.best_validation_top1,
-            "best_checkpoint": str(best_checkpoint) if best_checkpoint else None,
+            "best_checkpoint": best_checkpoint_path,
             "best_checkpoint_id": best_checkpoint_id,
             "final_epoch": trainer.state.completed_epoch,
-            "final_checkpoint": str(final.path),
+            "final_checkpoint": final_checkpoint_path,
             "final_checkpoint_id": final.checkpoint_id,
         },
     )

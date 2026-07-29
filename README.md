@@ -70,8 +70,13 @@ Imagenette-160 campaign ran all 100 epochs from scratch and reached **898/1000 =
 top-1 at epoch 99**, above the preregistered 0.88 floor. The final and best checkpoint are both
 `9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002`; the config hash is
 `a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1`. The four aggregate
-classifier evidence files live under `results/reference_classifier/`; the 100 model checkpoints
-remain intentionally ignored. W2 is now open, with channel modelling, power normalization, PAPR,
+classifier outputs plus the machine-readable `g1_adjudication.json` live under
+`results/reference_classifier/`. The portable frozen-checkpoint path is
+`checkpoints/reference_classifier/epoch-99.pt`. Only that final checkpoint was preserved externally:
+GitHub Release `g1-reference-classifier-2026-07-29`, asset
+`reference-classifier-imagenette160-epoch99-9c37362347a0203597d6e8e9d9a58fde.pt`, with the exact
+SHA-256 above. The other 99 ignored checkpoints were not uploaded, and no training was rerun during
+the evidence-hardening cleanup. W2 is now open, with channel modelling, power normalization, PAPR,
 the DJSCC skeleton and compute profiling through G-7 as the next engineering frontier.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
@@ -97,6 +102,7 @@ under a second with no GPU and no network. The repository's checks are meant to 
 .venv/bin/python tools/materialize_manifests.py --check
 .venv/bin/python tools/verify_datasets.py              # real train/val smoke; zero test decode/canonicalization
 .venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --smoke-steps 3 --smoke-val-batches 2  # bounded smoke; never G-1 evidence
+.venv/bin/python tools/verify_g1_adjudication.py        # offline: epochs, counts, hashes, floor, lineage and checkpoint identity
 .venv/bin/python -m pytest
 ```
 
