@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import subprocess
 import sys
@@ -37,8 +38,10 @@ from models.frozen_reference_classifier import (  # noqa: E402
 )
 from probes.transparency_bitrate import (  # noqa: E402
     AGGREGATE_FIELDS,
+    CRITICAL_EXECUTION_SOURCES,
     PER_IMAGE_FIELDS,
     aggregate,
+    build_execution_sources,
     canonical_json,
     design_fingerprint,
     format_float,
@@ -56,6 +59,20 @@ _DISCLAIMER = (
     "Validation-only engineering probe. "
     "Does not select or replace G-8 operating points."
 )
+_RUNTIME_MODULES = {
+    "src/baseline/j2k.py": "baseline.j2k",
+    "src/data/preprocessing.py": "data.preprocessing",
+    "src/models/frozen_reference_classifier.py": (
+        "models.frozen_reference_classifier"
+    ),
+    "src/probes/transparency_bitrate.py": "probes.transparency_bitrate",
+    "src/config/params.py": "config.params",
+    "src/config/run_config.py": "config.run_config",
+    "src/data/registry.py": "data.registry",
+    "src/data/classifier.py": "data.classifier",
+    "src/models/reference_classifier.py": "models.reference_classifier",
+    "src/env.py": "env",
+}
 
 
 class ProbeRunError(RuntimeError):
@@ -81,6 +98,22 @@ def _measurement_state() -> tuple[str, bool]:
     commit = _git("rev-parse", "HEAD")
     dirty = bool(_git("status", "--porcelain", "--untracked-files=all"))
     return commit, dirty
+
+
+def _runtime_source_paths() -> dict[str, Path]:
+    paths: dict[str, Path] = {}
+    for relative_path, module_name in _RUNTIME_MODULES.items():
+        module = importlib.import_module(module_name)
+        module_path = getattr(module, "__file__", None)
+        if not isinstance(module_path, str):
+            raise ProbeRunError(
+                f"critical runtime module has no source path: {module_name}"
+            )
+        paths[relative_path] = Path(module_path)
+    paths["tools/run_transparency_bitrate_probe.py"] = Path(__file__)
+    if set(paths) != set(CRITICAL_EXECUTION_SOURCES):
+        raise ProbeRunError("critical runtime-source resolver differs from contract")
+    return paths
 
 
 def _json_write(path: Path, value: Any) -> None:
@@ -405,6 +438,12 @@ def run_axis(design: dict[str, Any], axis: int) -> dict[str, Any]:
     commit, dirty = _measurement_state()
     if dirty:
         raise ProbeRunError("full probe measurement requires a clean worktree")
+    execution_sources = build_execution_sources(
+        repo_root=REPO,
+        implementation_commit=str(design["implementation_commit"]),
+        measurement_commit=commit,
+        runtime_paths=_runtime_source_paths(),
+    )
     assert_j2k_runtime()
     assert_cuda()
     device = torch.device("cuda", 0)
@@ -433,7 +472,7 @@ def run_axis(design: dict[str, Any], axis: int) -> dict[str, Any]:
     metadata_path = shard_root / f"axis-{axis}.json"
     write_csv(csv_path, PER_IMAGE_FIELDS, _serialise_per_image(rows))
     metadata = {
-        "schema_version": 1,
+        "schema_version": 2,
         "axis": axis,
         "measurement_commit": commit,
         "git_dirty": dirty,
@@ -445,6 +484,7 @@ def run_axis(design: dict[str, Any], axis: int) -> dict[str, Any]:
         "csv_sha256": sha256_path(csv_path),
         "codec_configuration_hash": codec.configuration_hash,
         "stats": stats,
+        "execution_sources": execution_sources,
         "test_split_accessed": False,
         "training_performed": False,
     }
@@ -506,12 +546,30 @@ def _cache_manifest(rows: list[dict[str, Any]], design: dict[str, Any]):
                 "feasible": bool(row["feasible"]),
             }
         )
+    sorted_entries = sorted(entries, key=lambda item: item["cache_key"])
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "cache_root": (REPO / design["cache_root"]).relative_to(REPO).as_posix(),
-        "entry_count": len(entries),
-        "entries": sorted(entries, key=lambda item: item["cache_key"]),
+        "entry_count": len(sorted_entries),
+        "entries_root_sha256": hashlib.sha256(
+            canonical_json(sorted_entries)
+        ).hexdigest(),
+        "entries": sorted_entries,
     }
+
+
+def _consistent_shard_lineage(
+    metadata: list[dict[str, Any]],
+) -> tuple[str, dict[str, Any]]:
+    commits = {item["measurement_commit"] for item in metadata}
+    if len(commits) != 1:
+        raise ProbeRunError("shards disagree on measurement commit")
+    sources = [item.get("execution_sources") for item in metadata]
+    if not sources or any(source != sources[0] for source in sources[1:]):
+        raise ProbeRunError("shards disagree on execution-source lineage")
+    if not isinstance(sources[0], dict):
+        raise ProbeRunError("shard execution-source lineage is absent")
+    return next(iter(commits)), sources[0]
 
 
 def _worklog(summary: dict[str, Any], aggregate_rows: list[dict[str, Any]]) -> str:
@@ -595,11 +653,11 @@ def merge(design: dict[str, Any]) -> dict[str, Any]:
             raise ProbeRunError(f"axis {axis} shard metadata disagrees")
         metadata.append(item)
         rows.extend(_parse_per_image(read_csv(csv_path, PER_IMAGE_FIELDS)))
-    commits = {item["measurement_commit"] for item in metadata}
+    measurement_commit, execution_sources = _consistent_shard_lineage(metadata)
     design_hashes = {item["design_hash"] for item in metadata}
     codec_hashes = {item["codec_configuration_hash"] for item in metadata}
-    if len(commits) != 1 or len(design_hashes) != 1 or len(codec_hashes) != 1:
-        raise ProbeRunError("shards disagree on commit, design, or codec identity")
+    if len(design_hashes) != 1 or len(codec_hashes) != 1:
+        raise ProbeRunError("shards disagree on design or codec identity")
     expected_cells = (
         int(get("datasets.imagenette160.val_images"))
         * len(design["budget_grid"])
@@ -650,15 +708,15 @@ def merge(design: dict[str, Any]) -> dict[str, Any]:
     )
     manifest = _cache_manifest(rows, design)
     _json_write(outputs["cache_manifest"], manifest)
-    measurement_commit = next(iter(commits))
     resolved = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source": "configs/transparency-bitrate-probe.yaml",
         "design": design,
         "parameters": parameter_snapshot(),
         "design_hash": design_fingerprint(design),
         "measurement_commit": measurement_commit,
         "measurement_git_dirty": False,
+        "execution_sources": execution_sources,
     }
     _json_write(outputs["resolved_config"], resolved)
     total_wall = sum(float(item["stats"]["wall_time_s"]) for item in metadata)
@@ -667,9 +725,10 @@ def merge(design: dict[str, Any]) -> dict[str, Any]:
         for entry in manifest["entries"]
     )
     summary = {
-        "schema_version": 1,
+        "schema_version": 2,
         "probe_status": "COMPLETE",
         "prominent_declaration": _DISCLAIMER,
+        "implementation_commit": design["implementation_commit"],
         "measurement_commit": measurement_commit,
         "git_dirty_state": False,
         "dataset": "imagenette160",
@@ -709,6 +768,9 @@ def merge(design: dict[str, Any]) -> dict[str, Any]:
             "test_accuracy_computed": False,
         },
         "cache_manifest_hash": sha256_path(outputs["cache_manifest"]),
+        "execution_sources_hash": hashlib.sha256(
+            canonical_json(execution_sources)
+        ).hexdigest(),
         "per_image_file_hash": sha256_path(outputs["per_image"]),
         "aggregate_file_hash": sha256_path(outputs["aggregate"]),
         "resolved_config_hash": sha256_path(outputs["resolved_config"]),

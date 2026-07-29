@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import subprocess
 from collections import defaultdict
 from decimal import Decimal
 from pathlib import Path
@@ -70,6 +71,34 @@ AGGREGATE_FIELDS = (
     "selected_point_estimate",
 )
 _GIT_SHA_HEX_LENGTH = hashlib.sha1().digest_size * 2
+CRITICAL_EXECUTION_SOURCES = (
+    "src/baseline/j2k.py",
+    "src/data/preprocessing.py",
+    "src/models/frozen_reference_classifier.py",
+    "src/probes/transparency_bitrate.py",
+    "src/config/params.py",
+    "src/config/run_config.py",
+    "src/data/registry.py",
+    "src/data/classifier.py",
+    "src/models/reference_classifier.py",
+    "src/env.py",
+    "tools/run_transparency_bitrate_probe.py",
+)
+EXECUTION_SOURCE_RECORD_FIELDS = {
+    "repository_relative_path",
+    "resolved_runtime_path",
+    "executed_byte_sha256",
+    "implementation_git_blob_sha",
+    "measurement_git_blob_sha",
+}
+EXECUTION_SOURCES_FIELDS = {
+    "schema_version",
+    "execution_source_root",
+    "implementation_commit",
+    "measurement_commit",
+    "measurement_tree_clean",
+    "critical_files",
+}
 
 
 class ProbeDesignError(ValueError):
@@ -94,6 +123,128 @@ def sha256_path(path: Path) -> str:
         ):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _git(
+    repo_root: Path,
+    *args: str,
+    binary: bool = False,
+) -> str | bytes:
+    result = subprocess.run(
+        ["git", *args],
+        cwd=repo_root,
+        capture_output=True,
+        text=not binary,
+        check=False,
+    )
+    if result.returncode:
+        stderr = (
+            result.stderr.decode("utf-8", errors="replace")
+            if binary
+            else result.stderr
+        )
+        raise ProbeDesignError(
+            f"git {' '.join(args)} failed: {stderr.strip()}"
+        )
+    return result.stdout
+
+
+def _git_commit_exists(repo_root: Path, commit: str) -> None:
+    _git(repo_root, "cat-file", "-e", f"{commit}^{{commit}}")
+
+
+def _git_file_bytes(repo_root: Path, commit: str, relative_path: str) -> bytes:
+    value = _git(
+        repo_root,
+        "show",
+        f"{commit}:{relative_path}",
+        binary=True,
+    )
+    if not isinstance(value, bytes):
+        raise ProbeDesignError("git returned text for committed source bytes")
+    return value
+
+
+def _git_blob_sha(repo_root: Path, commit: str, relative_path: str) -> str:
+    value = _git(repo_root, "rev-parse", f"{commit}:{relative_path}")
+    if not isinstance(value, str):
+        raise ProbeDesignError("git returned bytes for blob identity")
+    return value.strip()
+
+
+def build_execution_sources(
+    *,
+    repo_root: Path,
+    implementation_commit: str,
+    measurement_commit: str,
+    runtime_paths: dict[str, Path],
+) -> dict[str, Any]:
+    """Bind the executed probe bytes to the reachable A/B commit pair."""
+
+    root = repo_root.resolve(strict=True)
+    _git_commit_exists(root, implementation_commit)
+    _git_commit_exists(root, measurement_commit)
+    head = _git(root, "rev-parse", "HEAD")
+    if not isinstance(head, str) or head.strip() != measurement_commit:
+        raise ProbeDesignError("measurement checkout HEAD differs from commit B")
+    parent = _git(root, "rev-parse", f"{measurement_commit}^")
+    if not isinstance(parent, str) or parent.strip() != implementation_commit:
+        raise ProbeDesignError(
+            "measurement commit B is not the direct child of implementation commit A"
+        )
+    dirty = _git(root, "status", "--porcelain", "--untracked-files=all")
+    if not isinstance(dirty, str) or dirty.strip():
+        raise ProbeDesignError("measurement checkout is not clean")
+    expected = set(CRITICAL_EXECUTION_SOURCES)
+    if set(runtime_paths) != expected:
+        missing = sorted(expected - set(runtime_paths))
+        unexpected = sorted(set(runtime_paths) - expected)
+        raise ProbeDesignError(
+            "critical runtime source set differs: "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+    records: dict[str, dict[str, Any]] = {}
+    for relative_path in CRITICAL_EXECUTION_SOURCES:
+        runtime_path = runtime_paths[relative_path].resolve(strict=True)
+        expected_path = (root / relative_path).resolve(strict=True)
+        if runtime_path != expected_path:
+            raise ProbeDesignError(
+                f"runtime source is outside measurement checkout: {relative_path}"
+            )
+        runtime_bytes = runtime_path.read_bytes()
+        implementation_bytes = _git_file_bytes(
+            root, implementation_commit, relative_path
+        )
+        measurement_bytes = _git_file_bytes(
+            root, measurement_commit, relative_path
+        )
+        if implementation_bytes != measurement_bytes:
+            raise ProbeDesignError(
+                f"critical source changed between A and B: {relative_path}"
+            )
+        if runtime_bytes != implementation_bytes:
+            raise ProbeDesignError(
+                f"runtime bytes differ from frozen commits: {relative_path}"
+            )
+        records[relative_path] = {
+            "repository_relative_path": relative_path,
+            "resolved_runtime_path": str(runtime_path),
+            "executed_byte_sha256": hashlib.sha256(runtime_bytes).hexdigest(),
+            "implementation_git_blob_sha": _git_blob_sha(
+                root, implementation_commit, relative_path
+            ),
+            "measurement_git_blob_sha": _git_blob_sha(
+                root, measurement_commit, relative_path
+            ),
+        }
+    return {
+        "schema_version": 1,
+        "execution_source_root": str(root),
+        "implementation_commit": implementation_commit,
+        "measurement_commit": measurement_commit,
+        "measurement_tree_clean": True,
+        "critical_files": records,
+    }
 
 
 def _packet_budgets(repo_root: Path, selector: dict[str, Any]) -> dict[int, str]:
