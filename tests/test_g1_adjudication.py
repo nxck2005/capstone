@@ -147,3 +147,37 @@ def test_verifier_rejects_missing_external_artifact_identity(adjudication_repo: 
 
     with pytest.raises(VerificationError, match="external artifact identity missing"):
         verify(adjudication_repo)
+
+
+@pytest.mark.parametrize(
+    ("field", "required_key"),
+    [
+        ("preflight_checks", "cuda_device_matmul"),
+        ("final_checks", "git_diff_check"),
+    ],
+)
+def test_verifier_rejects_missing_required_check(
+    adjudication_repo: Path,
+    field: str,
+    required_key: str,
+):
+    _mutate_json(
+        adjudication_repo,
+        "g1_adjudication.json",
+        lambda value: value[field].pop(required_key),
+    )
+
+    with pytest.raises(VerificationError, match="check keys differ.*missing"):
+        verify(adjudication_repo)
+
+
+@pytest.mark.parametrize("field", ["preflight_checks", "final_checks"])
+def test_verifier_rejects_unexpected_check(adjudication_repo: Path, field: str):
+    _mutate_json(
+        adjudication_repo,
+        "g1_adjudication.json",
+        lambda value: value[field].update(unknown_check="pass"),
+    )
+
+    with pytest.raises(VerificationError, match="check keys differ.*unexpected"):
+        verify(adjudication_repo)

@@ -143,3 +143,41 @@ def synthetic_dataset_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
 
     yield tmp_path
     config_params.load_params.cache_clear()
+
+
+@pytest.fixture
+def run_config_factory():
+    """Build resolved learned configs for synthetic dataset/ratio unit cases."""
+
+    from config.params import get
+    from config.run_config import RunConfig, load_experiment
+
+    first_train_seed = get("evaluation.train_seeds")[0]
+    base = load_experiment(
+        "configs/learned-headline.yaml",
+        train_seed=first_train_seed,
+        channel_seed=get("evaluation.channel_seeds")[0],
+        test_snr_db=get("channel.test_snr_grid_db")[0],
+    )
+
+    def factory(
+        dataset: str = "cifar10",
+        ratio: str = "r_1_48",
+        *,
+        train_seed: int = first_train_seed,
+        reconstruction_weight: float | None = None,
+    ) -> RunConfig:
+        value = base.to_dict()
+        resolved = value["resolved"]
+        resolved["dataset"] = dataset
+        resolved["bw_ratio"] = ratio
+        resolved["train_seed"] = train_seed
+        resolved["dataset_version"] = get(
+            f"datasets.{dataset}.{get('config.dataset_version_rule')}"
+        )
+        resolved["k"] = get(f"bandwidth.k_symbols.{dataset}.{ratio}")
+        if reconstruction_weight is not None:
+            resolved["lambda"] = reconstruction_weight
+        return RunConfig.from_dict(value)
+
+    return factory

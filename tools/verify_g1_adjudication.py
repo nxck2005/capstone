@@ -70,6 +70,31 @@ REQUIRED_ADJUDICATION_FIELDS = {
     "final_checks",
 }
 
+REQUIRED_PREFLIGHT_CHECKS = {
+    "archive_provenance",
+    "cpu_lock_clean_install",
+    "cuda_device_matmul",
+    "dataset_verification",
+    "documentation_consistency",
+    "literal_lint",
+    "manifest_materialization",
+    "packetisation",
+    "pytest_250",
+    "spec_views",
+}
+
+REQUIRED_FINAL_CHECKS = {
+    "archive_provenance",
+    "dataset_verification",
+    "documentation_consistency",
+    "git_diff_check",
+    "literal_lint",
+    "manifest_materialization",
+    "packetisation",
+    "pytest_250",
+    "spec_views",
+}
+
 
 class VerificationError(ValueError):
     """A closed verification failure with an actionable reason."""
@@ -431,16 +456,23 @@ def verify(repo: Path = REPO) -> dict[str, Any]:
         },
         "test-isolation record permits or claims test evaluation/access",
     )
-    _require(isinstance(adjudication["preflight_checks"], dict) and adjudication["preflight_checks"], "preflight checks are absent")
-    _require(isinstance(adjudication["final_checks"], dict) and adjudication["final_checks"], "final checks are absent")
-    _require(
-        all(value == "pass" for value in adjudication["preflight_checks"].values()),
-        "preflight checks contain a non-pass result",
-    )
-    _require(
-        all(value == "pass" for value in adjudication["final_checks"].values()),
-        "final checks contain a non-pass result",
-    )
+    for label, field, required in (
+        ("preflight", "preflight_checks", REQUIRED_PREFLIGHT_CHECKS),
+        ("final", "final_checks", REQUIRED_FINAL_CHECKS),
+    ):
+        checks = adjudication[field]
+        _require(isinstance(checks, dict) and checks, f"{label} checks are absent")
+        missing = required - set(checks)
+        unexpected = set(checks) - required
+        _require(
+            not missing and not unexpected,
+            f"{label} check keys differ: "
+            f"missing={sorted(missing)}, unexpected={sorted(unexpected)}",
+        )
+        _require(
+            all(value == "pass" for value in checks.values()),
+            f"{label} checks contain a non-pass result",
+        )
 
     return {
         "gate": "G-1",
