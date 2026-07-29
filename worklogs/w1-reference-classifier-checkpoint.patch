@@ -1,0 +1,511 @@
+diff --git a/src/data/manifests.py b/src/data/manifests.py
+index c644f9b..b3cf0a4 100644
+--- a/src/data/manifests.py
++++ b/src/data/manifests.py
+@@ -17,7 +17,7 @@ import numpy as np
+ from config.params import REPO_ROOT, get
+ from data.adapters import _adapter
+ from data.identity import stable_sample_id_width
+-from data.provenance import dataset_root, verify_archive
++from data.provenance import dataset_root, verify_extracted_dataset
+
+
+ class ManifestError(RuntimeError):
+@@ -204,7 +204,7 @@ def materialize_manifest_bytes(
+ ) -> bytes:
+     """Regenerate one manifest without decoding or canonicalizing any image."""
+
+-    verify_archive(dataset, repo_root)
++    verify_extracted_dataset(dataset, repo_root)
+     adapter = _adapter(dataset, dataset_root(dataset, repo_root))
+     mapping = dict(adapter.class_mapping())
+     expected_labels = list(range(int(_dataset_config(dataset)["classes"])))
+diff --git a/src/data/provenance.py b/src/data/provenance.py
+index d000b5e..c010e5c 100644
+--- a/src/data/provenance.py
++++ b/src/data/provenance.py
+@@ -4,6 +4,7 @@ from __future__ import annotations
+
+ import hashlib
+ import os
++import re
+ import tarfile
+ import tempfile
+ import urllib.request
+@@ -118,37 +119,146 @@ def verify_archive(
+     return measured
+
+
++def _required_extraction_paths(dataset: str) -> tuple[Path, ...]:
++    """Return opaque top-level payload paths required before adapter use."""
++
++    config = _dataset_config(dataset)
++    loader = str(config["loader"])
++    if loader == "torchvision_datasets_imagenette":
++        base = Path("imagenette2-160")
++        return (base / "train", base / "val")
++    if loader == "torchvision_datasets_stl10":
++        base = Path("stl10_binary")
++        return (
++            base / "class_names.txt",
++            base / "train_X.bin",
++            base / "train_y.bin",
++            base / "test_X.bin",
++            base / "test_y.bin",
++        )
++    if loader == "torchvision_datasets_cifar10":
++        base = Path("cifar-10-batches-py")
++        return (
++            base / "batches.meta",
++            *(base / f"data_batch_{index}" for index in range(1, 6)),
++            base / "test_batch",
++        )
++    raise ProvenanceError(f"{dataset}: unsupported extraction loader {loader!r}")
++
++
++def verify_extracted_dataset(
++    dataset: str,
++    repo_root: Path = REPO_ROOT,
++) -> ArchiveProvenance:
++    """Fail closed unless extraction is bound to the verified configured archive."""
++
++    provenance = verify_archive(dataset, repo_root)
++    root = dataset_root(dataset, repo_root)
++    if not root.is_dir():
++        raise ProvenanceError(
++            f"{dataset}: extraction path is missing: {root}; expected archive SHA-256 "
++            f"{provenance.sha256}"
++        )
++    marker = root / ".archive-sha256"
++    try:
++        observed = marker.read_bytes()
++    except FileNotFoundError:
++        raise ProvenanceError(
++            f"{dataset}: extraction marker is missing: {marker}; expected archive "
++            f"SHA-256 {provenance.sha256}"
++        ) from None
++    expected_marker = f"{provenance.sha256}\n".encode("ascii")
++    if not re.fullmatch(rb"[0-9a-f]{64}\n", observed) or observed != expected_marker:
++        display = observed.decode("ascii", errors="backslashreplace")
++        raise ProvenanceError(
++            f"{dataset}: extraction marker mismatch at {marker}: observed "
++            f"{display!r}, expected archive SHA-256 {provenance.sha256}"
++        )
++    missing = [str(root / path) for path in _required_extraction_paths(dataset) if not (root / path).exists()]
++    if missing:
++        raise ProvenanceError(
++            f"{dataset}: extraction path {root} is missing required content: "
++            f"{missing}; expected archive SHA-256 {provenance.sha256}"
++        )
++    return provenance
++
++
+ def fetch_archive(
+     dataset: str,
+     repo_root: Path = REPO_ROOT,
+     *,
+     opener: Callable[..., Any] = urllib.request.urlopen,
+ ) -> ArchiveProvenance:
+-    """Fetch exactly the configured normative URL and measure the resulting file."""
++    """Fetch exactly the configured URL with verified, resumable finalization."""
+
+     config = _dataset_config(dataset)
+     destination = archive_path(dataset, repo_root)
+     destination.parent.mkdir(parents=True, exist_ok=True)
+-    if destination.is_file():
+-        return measure_archive(dataset, repo_root)
+-
+-    request = urllib.request.Request(
+-        str(config["source_url"]),
+-        headers={"User-Agent": "capstone-dataset-provenance/1"},
+-    )
+     partial = destination.with_name(f"{destination.name}.part")
++    if destination.exists():
++        if not destination.is_file():
++            raise ProvenanceError(f"{dataset}: archive destination is not a file: {destination}")
++        return verify_archive(dataset, repo_root)
++    offset = partial.stat().st_size if partial.exists() else 0
++    headers = {"User-Agent": "capstone-dataset-provenance/1"}
++    if offset:
++        headers["Range"] = f"bytes={offset}-"
++    request = urllib.request.Request(str(config["source_url"]), headers=headers)
++    expected_total = int(config["archive_bytes"])
+     try:
+-        with opener(request) as response, partial.open("wb") as output:
+-            while chunk := response.read(_HASH_CHUNK_BYTES):
+-                output.write(chunk)
++        with opener(request) as response:
++            status = getattr(response, "status", None)
++            if status is None:
++                status = getattr(response, "getcode", lambda: 200)()
++            response_headers = getattr(response, "headers", {})
++            mode = "ab" if offset else "wb"
++            expected_remaining = expected_total
++            if offset:
++                if status == 200:
++                    mode = "wb"
++                    offset = 0
++                elif status == 206:
++                    content_range = response_headers.get("Content-Range")
++                    match = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", content_range or "")
++                    if match is None or int(match.group(1)) != offset:
++                        raise ProvenanceError(
++                            f"{dataset}: resume Content-Range does not start at {offset}: {content_range!r}"
++                        )
++                    if int(match.group(3)) != expected_total:
++                        raise ProvenanceError(
++                            f"{dataset}: resume Content-Range total {match.group(3)} != expected {expected_total}"
++                        )
++                    expected_remaining = expected_total - offset
++                else:
++                    raise ProvenanceError(f"{dataset}: expected HTTP 206 or 200 for resume, got {status}")
++            elif status != 200:
++                raise ProvenanceError(f"{dataset}: expected HTTP 200 for fresh fetch, got {status}")
++            declared = response_headers.get("Content-Length")
++            if declared is not None and int(declared) != expected_remaining:
++                raise ProvenanceError(
++                    f"{dataset}: Content-Length {declared} != expected {expected_remaining}"
++                )
++            with partial.open(mode) as output:
++                written = 0
++                while chunk := response.read(_HASH_CHUNK_BYTES):
++                    written += len(chunk)
++                    if offset + written > expected_total:
++                        raise ProvenanceError(f"{dataset}: transfer exceeds expected byte length {expected_total}")
++                    output.write(chunk)
++            if written != expected_remaining or partial.stat().st_size != expected_total:
++                raise ProvenanceError(
++                    f"{dataset}: transfer ended at {partial.stat().st_size} bytes; expected {expected_total}"
++                )
++        with partial.open("rb") as stream:
++            measured_bytes, measured_hash = _hash_stream(stream)
++        if measured_bytes != expected_total or measured_hash != str(config["archive_sha256"]):
++            raise ProvenanceError(
++                f"{dataset}: completed partial does not match configured archive provenance"
++            )
+         os.replace(partial, destination)
+     except BaseException:
+-        try:
+-            partial.unlink()
+-        except FileNotFoundError:
+-            pass
+         raise
+-    return measure_archive(dataset, repo_root)
++    return verify_archive(dataset, repo_root)
+
+
+ def extract_verified_archive(
+@@ -162,9 +272,8 @@ def extract_verified_archive(
+     marker_name = ".archive-sha256"
+     marker = destination / marker_name
+     if destination.exists():
+-        if marker.is_file() and marker.read_text(encoding="ascii").strip() == (
+-            provenance.sha256
+-        ):
++        if marker.is_file():
++            verify_extracted_dataset(dataset, repo_root)
+             return destination
+         raise ProvenanceError(
+             f"{dataset}: extracted destination exists without matching provenance "
+@@ -188,6 +297,7 @@ def extract_verified_archive(
+             newline="\n",
+         )
+         temp.rename(destination)
++    verify_extracted_dataset(dataset, repo_root)
+     return destination
+
+
+diff --git a/src/data/registry.py b/src/data/registry.py
+index b91fcc5..c3617ad 100644
+--- a/src/data/registry.py
++++ b/src/data/registry.py
+@@ -22,7 +22,7 @@ from data.manifests import (
+     validate_manifest_bytes,
+ )
+ from data.preprocessing import CanonicalProduct, canonicalize_source
+-from data.provenance import ProvenanceError, dataset_root, verify_archive
++from data.provenance import ProvenanceError, dataset_root, verify_extracted_dataset
+
+
+ class DatasetRegistryError(RuntimeError):
+@@ -98,7 +98,7 @@ def load_dataset(
+         )
+
+     try:
+-        verify_archive(dataset, repo_root)
++        verify_extracted_dataset(dataset, repo_root)
+         manifest_file = _manifest_path(dataset, repo_root)
+         rows = validate_manifest_bytes(dataset, manifest_file.read_bytes())
+         _verify_manifest_pin(dataset, _manifest_sha256(dataset, repo_root))
+diff --git a/tests/conftest.py b/tests/conftest.py
+index dd87add..aa1703b 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -132,6 +132,12 @@ def synthetic_dataset_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
+
+     loaded = config_params.load_params()
+     for name in ("imagenette160", "stl10", "cifar10"):
++        root = extracted / name
++        (root / ".archive-sha256").write_text(
++            f"{params['datasets'][name]['archive_sha256']}\n",
++            encoding="ascii",
++            newline="\n",
++        )
+         _path, sha256 = write_manifest(name, tmp_path)
+         loaded["datasets"][name]["manifest_sha256"] = sha256
+
+diff --git a/tests/test_provenance.py b/tests/test_provenance.py
+index 6c6a67f..7284f46 100644
+--- a/tests/test_provenance.py
++++ b/tests/test_provenance.py
+@@ -25,6 +25,14 @@ from data.manifests import materialize_manifest_bytes
+
+
+ class _Response(io.BytesIO):
++    status = 200
++    headers: dict[str, str]
++
++    def __init__(self, value: bytes, *, status: int = 200, headers: dict[str, str] | None = None):
++        super().__init__(value)
++        self.status = status
++        self.headers = headers or {"Content-Length": str(len(value))}
++
+     def __enter__(self):
+         return self
+
+@@ -39,17 +47,21 @@ def test_fetch_requests_the_exact_normative_url(
+     path = archive_path(dataset, synthetic_dataset_repo)
+     path.unlink()
+     requested: list[str] = []
++    payload = b"new measured archive bytes"
++    config = get(f"datasets.{dataset}")
++    config["archive_bytes"] = len(payload)
++    config["archive_sha256"] = hashlib.sha256(payload).hexdigest()
+
+     def opener(request):
+         requested.append(request.full_url)
+-        return _Response(b"new measured archive bytes")
++        return _Response(payload)
+
+     measured = fetch_archive(dataset, synthetic_dataset_repo, opener=opener)
+
+     assert requested == [get(f"datasets.{dataset}.source_url")]
+     assert measured.filename == get(f"datasets.{dataset}.archive_filename")
+-    assert measured.byte_length == len(b"new measured archive bytes")
+-    assert measured.path.read_bytes() == b"new measured archive bytes"
++    assert measured.byte_length == len(payload)
++    assert measured.path.read_bytes() == payload
+
+
+ def test_archive_mismatch_fails_before_adapter_or_sample_use(
+@@ -72,6 +84,44 @@ def test_archive_mismatch_fails_before_adapter_or_sample_use(
+     assert calls == []
+
+
++def test_missing_extraction_marker_fails_before_adapter_use(
++    synthetic_dataset_repo: Path,
++    monkeypatch: pytest.MonkeyPatch,
++):
++    import data.registry as registry
++
++    marker = dataset_root("stl10", synthetic_dataset_repo) / ".archive-sha256"
++    marker.unlink()
++    calls: list[str] = []
++    monkeypatch.setattr(registry, "_adapter", lambda *_args: calls.append("adapter"))
++
++    with pytest.raises(DatasetRegistryError, match="extraction marker is missing"):
++        load_dataset("stl10", "train", synthetic_dataset_repo)
++    assert calls == []
++
++
++@pytest.mark.parametrize("marker", [b"not-a-hash\n", b"A" * 64 + b"\n"])
++def test_malformed_extraction_marker_fails(
++    synthetic_dataset_repo: Path,
++    marker: bytes,
++):
++    path = dataset_root("cifar10", synthetic_dataset_repo) / ".archive-sha256"
++    path.write_bytes(marker)
++
++    with pytest.raises(DatasetRegistryError, match="extraction marker mismatch"):
++        load_dataset("cifar10", "val", synthetic_dataset_repo)
++
++
++def test_missing_required_extraction_content_blocks_manifest_regeneration(
++    synthetic_dataset_repo: Path,
++):
++    path = dataset_root("imagenette160", synthetic_dataset_repo) / "imagenette2-160" / "val"
++    shutil.rmtree(path)
++
++    with pytest.raises(ProvenanceError, match="missing required content"):
++        materialize_manifest_bytes("imagenette160", synthetic_dataset_repo)
++
++
+ @pytest.mark.parametrize("field", ["archive_sha256", "archive_bytes"])
+ def test_no_pending_archive_provenance_passes(
+     synthetic_dataset_repo: Path,
+@@ -133,10 +183,12 @@ def test_verified_archive_extracts_only_after_exact_hash(
+ ):
+     dataset = "cifar10"
+     archive = archive_path(dataset, synthetic_dataset_repo)
+-    payload_file = tmp_path / "payload.txt"
+-    payload_file.write_text("verified extraction fixture", encoding="utf-8")
++    payload_root = tmp_path / "cifar-10-batches-py"
++    payload_root.mkdir()
++    for name in ["batches.meta", *(f"data_batch_{index}" for index in range(1, 6)), "test_batch"]:
++        (payload_root / name).write_bytes(b"fixture")
+     with tarfile.open(archive, "w:gz") as bundle:
+-        bundle.add(payload_file, arcname="fixture/payload.txt")
++        bundle.add(payload_root, arcname="cifar-10-batches-py")
+     config = get(f"datasets.{dataset}")
+     config["archive_bytes"] = archive.stat().st_size
+     config["archive_sha256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
+@@ -145,14 +197,69 @@ def test_verified_archive_extracts_only_after_exact_hash(
+
+     extracted = extract_verified_archive(dataset, synthetic_dataset_repo)
+
+-    assert (extracted / "fixture/payload.txt").read_text(encoding="utf-8") == (
+-        "verified extraction fixture"
+-    )
++    assert (extracted / "cifar-10-batches-py" / "batches.meta").read_bytes() == b"fixture"
+     assert (extracted / ".archive-sha256").read_text(encoding="ascii").strip() == (
+         config["archive_sha256"]
+     )
+
+
++def test_fetch_resumes_a_partial_with_valid_content_range(
++    synthetic_dataset_repo: Path,
++):
++    dataset = "cifar10"
++    destination = archive_path(dataset, synthetic_dataset_repo)
++    destination.unlink()
++    payload = b"0123456789"
++    config = get(f"datasets.{dataset}")
++    config["archive_bytes"] = len(payload)
++    config["archive_sha256"] = hashlib.sha256(payload).hexdigest()
++    partial = destination.with_name(f"{destination.name}.part")
++    partial.write_bytes(payload[:4])
++    requested: list[str | None] = []
++
++    def opener(request):
++        requested.append(request.get_header("Range"))
++        return _Response(
++            payload[4:],
++            status=206,
++            headers={
++                "Content-Range": "bytes 4-9/10",
++                "Content-Length": "6",
++            },
++        )
++
++    result = fetch_archive(dataset, synthetic_dataset_repo, opener=opener)
++
++    assert requested == ["bytes=4-"]
++    assert result.path.read_bytes() == payload
++    assert not partial.exists()
++
++
++def test_fetch_short_transfer_preserves_partial(
++    synthetic_dataset_repo: Path,
++):
++    dataset = "stl10"
++    destination = archive_path(dataset, synthetic_dataset_repo)
++    destination.unlink()
++    payload = b"expected-ten"
++    config = get(f"datasets.{dataset}")
++    config["archive_bytes"] = len(payload)
++    config["archive_sha256"] = hashlib.sha256(payload).hexdigest()
++
++    with pytest.raises(ProvenanceError, match="transfer ended"):
++        fetch_archive(
++            dataset,
++            synthetic_dataset_repo,
++            opener=lambda _request: _Response(
++                b"short", headers={"Content-Length": str(len(payload))}
++            ),
++        )
++
++    partial = destination.with_name(f"{destination.name}.part")
++    assert partial.read_bytes() == b"short"
++    assert not destination.exists()
++
++
+ def test_missing_manifest_fails_public_loading(
+     synthetic_dataset_repo: Path,
+ ):
+diff --git a/tools/verify_datasets.py b/tools/verify_datasets.py
+index 474953b..43a1d39 100644
+--- a/tools/verify_datasets.py
++++ b/tools/verify_datasets.py
+@@ -12,7 +12,7 @@ sys.path.insert(0, str(REPO / "src"))
+ from config.params import get  # noqa: E402
+ from data import adapters, preprocessing  # noqa: E402
+ from data.manifests import check_manifest, materialize_manifest_bytes  # noqa: E402
+-from data.provenance import configured_datasets, verify_archive  # noqa: E402
++from data.provenance import configured_datasets, verify_extracted_dataset  # noqa: E402
+ from data.registry import load_dataset  # noqa: E402
+
+
+@@ -26,7 +26,7 @@ def _forbidden(name: str, calls: dict[str, int]):
+
+ def main() -> int:
+     for dataset in configured_datasets():
+-        provenance = verify_archive(dataset, REPO)
++        provenance = verify_extracted_dataset(dataset, REPO)
+         manifest_hash = check_manifest(dataset, REPO)
+         samples: list[str] = []
+         for split in ("train", "val"):
+diff --git a/worklogs/w1-reference-classifier-progress.md b/worklogs/w1-reference-classifier-progress.md
+new file mode 100644
+index 0000000..8785e55
+--- /dev/null
++++ b/worklogs/w1-reference-classifier-progress.md
+@@ -0,0 +1,49 @@
++# W1 Reference Classifier Progress
++
++- Starting HEAD: 43be6eee7910ecb7c50a941e8fabc7589cbb19f1
++- Expected starting HEAD: 43be6eee7910ecb7c50a941e8fabc7589cbb19f1
++- Started: 2026-07-29
++- Last updated: 2026-07-29 (Milestone 1 partial handoff)
++- Last completed milestone: 0. Baseline and contract confirmation
++- Current milestone: 1. Extraction and fetch hardening
++- Current status: in-progress
++- Worktree summary: intentional partial Milestone 1 changes only
++- Staged paths: src/data/provenance.py; src/data/registry.py; src/data/manifests.py; tools/verify_datasets.py; tests/conftest.py; tests/test_provenance.py; worklogs/w1-reference-classifier-progress.md; worklogs/w1-reference-classifier-checkpoint.patch
++- Unstaged paths: none
++- Untracked intended paths: worklogs/w1-reference-classifier-progress.md; worklogs/w1-reference-classifier-checkpoint.patch
++- Baseline verification: `gen_spec_views.py --check` passed: 185 requirements (2 retired), 10 generated files up to date. `check_doc_consistency.py -v` passed: 11 current documents, 1 valid historical plan excluded, 185 requirements, 77 amendments. `check_literals.py -v` passed: 12 Python files, 0 findings. `check_packetisation.py` passed: 215 feasible configurations, 0 failures. `fetch_datasets.py --check` verified all three pinned archives. `materialize_manifests.py --check` regenerated all three CSVs byte-for-byte. `verify_datasets.py` passed for all real train/validation paths with zero published-test decoder and canonicalization calls. `pytest` passed: 146 tests in 4.76s. `verify_cpu_lock.py --clean-install` passed. CUDA probe passed: CUDA 13.0, NVIDIA GeForce RTX 4060 Laptop GPU, device matmul completed.
++- Context/credit status: unavailable; conservative early handoff before Milestone 2.
++- Remaining work: finish Milestone 1 archive-response coverage; milestones 2–6.
++- Known failures: none. Milestone 1 is intentionally partial because tests still need the complete specified HTTP matrix (ignored Range/200 restart, wrong range offset and total, excess transfer, hash mismatch, existing invalid final); no classifier work has begun.
++- Exact next command: .venv/bin/python -m pytest tests/test_provenance.py tests/test_datasets.py tests/test_manifests.py
++
++| Milestone | Status | Files | Targeted verification | Notes |
++|---|---|---|---|---|
++| 0. Baseline and contract confirmation | complete | worklogs/w1-reference-classifier-progress.md, worklogs/w1-reference-classifier-checkpoint.patch | all requested baseline commands passed; 146 pytest tests | Exact starting HEAD and clean worktree confirmed; CUDA probe passed. |
++| 1. Extraction and fetch hardening | partial | src/data/provenance.py, src/data/registry.py, src/data/manifests.py, tools/verify_datasets.py, tests/conftest.py, tests/test_provenance.py | 55 focused tests passed; fetch, manifest, and real dataset checks passed | Added fail-closed marker/structure verification before adapter construction and atomic verified `.part` finalization with Range resume. Complete the remaining HTTP response test matrix before marking complete. |
++| 2. AM-78 and classifier configuration | not started | | | |
++| 3. Model, dataset view and deterministic order | not started | | | |
++| 4. Training, validation and checkpoint/resume | not started | | | |
++| 5. Acceptance tests and real smoke execution | not started | | | |
++| 6. Documentation, full verification and staging | not started | | | |
++
++## Emergency handoff
++
++- Interruption reason: conservative persistence boundary before the large AM-78/configuration milestone; remaining capacity is unavailable.
++- Last verified completed milestone: 0. Baseline and contract confirmation.
++- Incomplete milestone: 1. Extraction and fetch hardening.
++- Files modified: src/data/provenance.py; src/data/registry.py; src/data/manifests.py; tools/verify_datasets.py; tests/conftest.py; tests/test_provenance.py; this progress file.
++- Files staged: all intended partial Milestone 1 files and both recovery artifacts.
++- Files unstaged: none.
++- Intended untracked files: worklogs/w1-reference-classifier-progress.md; worklogs/w1-reference-classifier-checkpoint.patch.
++- Tests already passing: focused data suite: 55 passed in 4.27s; `fetch_datasets.py --check`; `materialize_manifests.py --check`; `verify_datasets.py`; `git diff --check`; baseline full pytest: 146 passed in 4.76s.
++- Tests failing: none.
++- Tests not run: full suite after partial M1; all remaining archive-response cases; all classifier/configuration/training tests.
++- Work believed correct: marker requires lowercase SHA-256 plus LF and matching verified archive; registry, manifest materialization, and real verification bind extraction before adapters; fetch preserves `.part`, validates range/length/hash, and atomically replaces only after verification.
++- Work incomplete or unsafe: test coverage must be expanded to every required archive-response branch before claiming M1 complete.
++- Exact next command: .venv/bin/python -m pytest tests/test_provenance.py tests/test_datasets.py tests/test_manifests.py
++- Recommended recovery:
++  - continue the incomplete milestone; or
++  - restart only the incomplete milestone.
++
++Marker re-derivation completed: `data/datasets/imagenette160/.archive-sha256` equals archive SHA-256 `64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5` and has a terminal LF.

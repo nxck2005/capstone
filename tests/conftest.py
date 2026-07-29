@@ -132,6 +132,12 @@ def synthetic_dataset_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
 
     loaded = config_params.load_params()
     for name in ("imagenette160", "stl10", "cifar10"):
+        root = extracted / name
+        (root / ".archive-sha256").write_text(
+            f"{params['datasets'][name]['archive_sha256']}\n",
+            encoding="ascii",
+            newline="\n",
+        )
         _path, sha256 = write_manifest(name, tmp_path)
         loaded["datasets"][name]["manifest_sha256"] = sha256
 

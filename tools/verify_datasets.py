@@ -12,7 +12,7 @@ sys.path.insert(0, str(REPO / "src"))
 from config.params import get  # noqa: E402
 from data import adapters, preprocessing  # noqa: E402
 from data.manifests import check_manifest, materialize_manifest_bytes  # noqa: E402
-from data.provenance import configured_datasets, verify_archive  # noqa: E402
+from data.provenance import configured_datasets, verify_extracted_dataset  # noqa: E402
 from data.registry import load_dataset  # noqa: E402
 
 
@@ -26,7 +26,7 @@ def _forbidden(name: str, calls: dict[str, int]):
 
 def main() -> int:
     for dataset in configured_datasets():
-        provenance = verify_archive(dataset, REPO)
+        provenance = verify_extracted_dataset(dataset, REPO)
         manifest_hash = check_manifest(dataset, REPO)
         samples: list[str] = []
         for split in ("train", "val"):

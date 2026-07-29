@@ -22,7 +22,7 @@ from data.manifests import (
     validate_manifest_bytes,
 )
 from data.preprocessing import CanonicalProduct, canonicalize_source
-from data.provenance import ProvenanceError, dataset_root, verify_archive
+from data.provenance import ProvenanceError, dataset_root, verify_extracted_dataset
 
 
 class DatasetRegistryError(RuntimeError):
@@ -98,7 +98,7 @@ def load_dataset(
         )
 
     try:
-        verify_archive(dataset, repo_root)
+        verify_extracted_dataset(dataset, repo_root)
         manifest_file = _manifest_path(dataset, repo_root)
         rows = validate_manifest_bytes(dataset, manifest_file.read_bytes())
         _verify_manifest_pin(dataset, _manifest_sha256(dataset, repo_root))

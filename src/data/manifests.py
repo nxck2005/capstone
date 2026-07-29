@@ -17,7 +17,7 @@ import numpy as np
 from config.params import REPO_ROOT, get
 from data.adapters import _adapter
 from data.identity import stable_sample_id_width
-from data.provenance import dataset_root, verify_archive
+from data.provenance import dataset_root, verify_extracted_dataset
 
 
 class ManifestError(RuntimeError):
@@ -204,7 +204,7 @@ def materialize_manifest_bytes(
 ) -> bytes:
     """Regenerate one manifest without decoding or canonicalizing any image."""
 
-    verify_archive(dataset, repo_root)
+    verify_extracted_dataset(dataset, repo_root)
     adapter = _adapter(dataset, dataset_root(dataset, repo_root))
     mapping = dict(adapter.class_mapping())
     expected_labels = list(range(int(_dataset_config(dataset)["classes"])))

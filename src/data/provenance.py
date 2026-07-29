@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import tarfile
 import tempfile
 import urllib.request
@@ -118,37 +119,146 @@ def verify_archive(
     return measured
 
 
+def _required_extraction_paths(dataset: str) -> tuple[Path, ...]:
+    """Return opaque top-level payload paths required before adapter use."""
+
+    config = _dataset_config(dataset)
+    loader = str(config["loader"])
+    if loader == "torchvision_datasets_imagenette":
+        base = Path("imagenette2-160")
+        return (base / "train", base / "val")
+    if loader == "torchvision_datasets_stl10":
+        base = Path("stl10_binary")
+        return (
+            base / "class_names.txt",
+            base / "train_X.bin",
+            base / "train_y.bin",
+            base / "test_X.bin",
+            base / "test_y.bin",
+        )
+    if loader == "torchvision_datasets_cifar10":
+        base = Path("cifar-10-batches-py")
+        return (
+            base / "batches.meta",
+            *(base / f"data_batch_{index}" for index in range(1, 6)),
+            base / "test_batch",
+        )
+    raise ProvenanceError(f"{dataset}: unsupported extraction loader {loader!r}")
+
+
+def verify_extracted_dataset(
+    dataset: str,
+    repo_root: Path = REPO_ROOT,
+) -> ArchiveProvenance:
+    """Fail closed unless extraction is bound to the verified configured archive."""
+
+    provenance = verify_archive(dataset, repo_root)
+    root = dataset_root(dataset, repo_root)
+    if not root.is_dir():
+        raise ProvenanceError(
+            f"{dataset}: extraction path is missing: {root}; expected archive SHA-256 "
+            f"{provenance.sha256}"
+        )
+    marker = root / ".archive-sha256"
+    try:
+        observed = marker.read_bytes()
+    except FileNotFoundError:
+        raise ProvenanceError(
+            f"{dataset}: extraction marker is missing: {marker}; expected archive "
+            f"SHA-256 {provenance.sha256}"
+        ) from None
+    expected_marker = f"{provenance.sha256}\n".encode("ascii")
+    if not re.fullmatch(rb"[0-9a-f]{64}\n", observed) or observed != expected_marker:
+        display = observed.decode("ascii", errors="backslashreplace")
+        raise ProvenanceError(
+            f"{dataset}: extraction marker mismatch at {marker}: observed "
+            f"{display!r}, expected archive SHA-256 {provenance.sha256}"
+        )
+    missing = [str(root / path) for path in _required_extraction_paths(dataset) if not (root / path).exists()]
+    if missing:
+        raise ProvenanceError(
+            f"{dataset}: extraction path {root} is missing required content: "
+            f"{missing}; expected archive SHA-256 {provenance.sha256}"
+        )
+    return provenance
+
+
 def fetch_archive(
     dataset: str,
     repo_root: Path = REPO_ROOT,
     *,
     opener: Callable[..., Any] = urllib.request.urlopen,
 ) -> ArchiveProvenance:
-    """Fetch exactly the configured normative URL and measure the resulting file."""
+    """Fetch exactly the configured URL with verified, resumable finalization."""
 
     config = _dataset_config(dataset)
     destination = archive_path(dataset, repo_root)
     destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.is_file():
-        return measure_archive(dataset, repo_root)
-
-    request = urllib.request.Request(
-        str(config["source_url"]),
-        headers={"User-Agent": "capstone-dataset-provenance/1"},
-    )
     partial = destination.with_name(f"{destination.name}.part")
+    if destination.exists():
+        if not destination.is_file():
+            raise ProvenanceError(f"{dataset}: archive destination is not a file: {destination}")
+        return verify_archive(dataset, repo_root)
+    offset = partial.stat().st_size if partial.exists() else 0
+    headers = {"User-Agent": "capstone-dataset-provenance/1"}
+    if offset:
+        headers["Range"] = f"bytes={offset}-"
+    request = urllib.request.Request(str(config["source_url"]), headers=headers)
+    expected_total = int(config["archive_bytes"])
     try:
-        with opener(request) as response, partial.open("wb") as output:
-            while chunk := response.read(_HASH_CHUNK_BYTES):
-                output.write(chunk)
+        with opener(request) as response:
+            status = getattr(response, "status", None)
+            if status is None:
+                status = getattr(response, "getcode", lambda: 200)()
+            response_headers = getattr(response, "headers", {})
+            mode = "ab" if offset else "wb"
+            expected_remaining = expected_total
+            if offset:
+                if status == 200:
+                    mode = "wb"
+                    offset = 0
+                elif status == 206:
+                    content_range = response_headers.get("Content-Range")
+                    match = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", content_range or "")
+                    if match is None or int(match.group(1)) != offset:
+                        raise ProvenanceError(
+                            f"{dataset}: resume Content-Range does not start at {offset}: {content_range!r}"
+                        )
+                    if int(match.group(3)) != expected_total:
+                        raise ProvenanceError(
+                            f"{dataset}: resume Content-Range total {match.group(3)} != expected {expected_total}"
+                        )
+                    expected_remaining = expected_total - offset
+                else:
+                    raise ProvenanceError(f"{dataset}: expected HTTP 206 or 200 for resume, got {status}")
+            elif status != 200:
+                raise ProvenanceError(f"{dataset}: expected HTTP 200 for fresh fetch, got {status}")
+            declared = response_headers.get("Content-Length")
+            if declared is not None and int(declared) != expected_remaining:
+                raise ProvenanceError(
+                    f"{dataset}: Content-Length {declared} != expected {expected_remaining}"
+                )
+            with partial.open(mode) as output:
+                written = 0
+                while chunk := response.read(_HASH_CHUNK_BYTES):
+                    written += len(chunk)
+                    if offset + written > expected_total:
+                        raise ProvenanceError(f"{dataset}: transfer exceeds expected byte length {expected_total}")
+                    output.write(chunk)
+            if written != expected_remaining or partial.stat().st_size != expected_total:
+                raise ProvenanceError(
+                    f"{dataset}: transfer ended at {partial.stat().st_size} bytes; expected {expected_total}"
+                )
+        with partial.open("rb") as stream:
+            measured_bytes, measured_hash = _hash_stream(stream)
+        if measured_bytes != expected_total or measured_hash != str(config["archive_sha256"]):
+            raise ProvenanceError(
+                f"{dataset}: completed partial does not match configured archive provenance"
+            )
         os.replace(partial, destination)
     except BaseException:
-        try:
-            partial.unlink()
-        except FileNotFoundError:
-            pass
         raise
-    return measure_archive(dataset, repo_root)
+    return verify_archive(dataset, repo_root)
 
 
 def extract_verified_archive(
@@ -162,9 +272,8 @@ def extract_verified_archive(
     marker_name = ".archive-sha256"
     marker = destination / marker_name
     if destination.exists():
-        if marker.is_file() and marker.read_text(encoding="ascii").strip() == (
-            provenance.sha256
-        ):
+        if marker.is_file():
+            verify_extracted_dataset(dataset, repo_root)
             return destination
         raise ProvenanceError(
             f"{dataset}: extracted destination exists without matching provenance "
@@ -188,6 +297,7 @@ def extract_verified_archive(
             newline="\n",
         )
         temp.rename(destination)
+    verify_extracted_dataset(dataset, repo_root)
     return destination
 
 
