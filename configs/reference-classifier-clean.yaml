@@ -1,0 +1,6 @@
+experiment: reference-classifier-clean
+choices:
+  classifier_variant: clean
+  train_seed: clean_train_seed
+sweep_axes:
+  dataset: configured_datasets

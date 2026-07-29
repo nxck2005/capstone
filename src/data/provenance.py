@@ -17,6 +17,8 @@ from config.params import REPO_ROOT, get
 
 _PENDING_PREFIX = "pending_"
 _HASH_CHUNK_BYTES = 1024 * 1024  # literal-ok: one MiB streaming I/O chunk
+_HTTP_OK = 200  # literal-ok: HTTP protocol status code, not an experiment setting
+_HTTP_PARTIAL_CONTENT = 206  # literal-ok: HTTP protocol status code, not an experiment setting
 
 
 class ProvenanceError(RuntimeError):
@@ -140,7 +142,7 @@ def _required_extraction_paths(dataset: str) -> tuple[Path, ...]:
         base = Path("cifar-10-batches-py")
         return (
             base / "batches.meta",
-            *(base / f"data_batch_{index}" for index in range(1, 6)),
+            *(base / f"data_batch_{index}" for index in range(1, 6)),  # literal-ok: CIFAR-10 archive has five fixed train members
             base / "test_batch",
         )
     raise ProvenanceError(f"{dataset}: unsupported extraction loader {loader!r}")
@@ -209,15 +211,15 @@ def fetch_archive(
         with opener(request) as response:
             status = getattr(response, "status", None)
             if status is None:
-                status = getattr(response, "getcode", lambda: 200)()
+                status = getattr(response, "getcode", lambda: _HTTP_OK)()
             response_headers = getattr(response, "headers", {})
             mode = "ab" if offset else "wb"
             expected_remaining = expected_total
             if offset:
-                if status == 200:
+                if status == _HTTP_OK:
                     mode = "wb"
                     offset = 0
-                elif status == 206:
+                elif status == _HTTP_PARTIAL_CONTENT:
                     content_range = response_headers.get("Content-Range")
                     match = re.fullmatch(r"bytes (\d+)-(\d+)/(\d+)", content_range or "")
                     if match is None or int(match.group(1)) != offset:
@@ -231,8 +233,10 @@ def fetch_archive(
                     expected_remaining = expected_total - offset
                 else:
                     raise ProvenanceError(f"{dataset}: expected HTTP 206 or 200 for resume, got {status}")
-            elif status != 200:
-                raise ProvenanceError(f"{dataset}: expected HTTP 200 for fresh fetch, got {status}")
+            elif status != _HTTP_OK:
+                raise ProvenanceError(
+                    f"{dataset}: expected HTTP {_HTTP_OK} for fresh fetch, got {status}"
+                )
             declared = response_headers.get("Content-Length")
             if declared is not None and int(declared) != expected_remaining:
                 raise ProvenanceError(

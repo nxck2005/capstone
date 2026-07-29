@@ -537,20 +537,40 @@ baseline:
   tuning: best_feasible_config_per_snr_on_validation_split
 reference_classifier:
   arch: resnet18
+  implementation: torchvision_models_resnet
+  weights: null
+  clean_variant_name: clean
+  clean_train_seed: 0
+  init_component_path_template: reference_classifier.{arch}
   trained_on: clean_images
   pretrained_weights_permitted: false
   optimizer: sgd_momentum
+  loss: cross_entropy
   lr: 0.1
   momentum: 0.9
+  nesterov: false
   weight_decay: 0.0005
   lr_schedule: cosine
   lr_warmup_epochs: 5
+  lr_warmup_schedule: linear
+  lr_warmup_start_factor: 0.1
+  lr_min: 0.0
+  scheduler_step_unit: epoch_start
+  scheduler_epoch_indexing: zero_based
   epochs: 100
   batch_size: 128
   label_smoothing: 0.1
   augmentation:
   - random_resized_crop
   - horizontal_flip
+  batch_order: keyed_philox_permutation_per_epoch
+  drop_last: false
+  mixed_precision: false
+  validation_every_epochs: 1
+  checkpoint_metric: validation_top1_accuracy
+  checkpoint_mode: max
+  checkpoint_tie_break: earliest_epoch
+  checkpoint_schema_version: 1
   artifact_finetuned_variant_required: true
   artifact_finetune_gate: G-8
   artifact_finetune_corpus: union_of_br4_selected_qualities_at_or_below_train_snr
@@ -857,6 +877,7 @@ artifacts:
   - outage_label
   - augmentation
   - init
+  - batch_order
   rng_identity_fields:
     channel_noise:
     - noise_id
@@ -871,7 +892,17 @@ artifacts:
     init:
     - train_seed
     - component_path
+    batch_order:
+    - train_seed
+    - epoch
   init_component_path_rule: stable_model_qualified_name
+  checkpoint_id_form: sha256_of_exact_checkpoint_file_bytes
+  classifier_artifact_dir: results/reference_classifier/
+  classifier_resolved_config_file: results/reference_classifier/resolved_config.json
+  classifier_epoch_log_file: results/reference_classifier/epochs.jsonl
+  classifier_validation_summary_file: results/reference_classifier/validation_summary.json
+  classifier_best_checkpoint_metadata_file: results/reference_classifier/best_checkpoint.json
+  classifier_checkpoint_dir: checkpoints/reference_classifier/
   system_values:
   - learned
   - learned_papr_constrained

@@ -29,6 +29,7 @@ def _identity(purpose: str) -> dict[str, object]:
             "train_seed": 17,
             "component_path": "encoder.stem.weight",
         },
+        "batch_order": {"train_seed": 17, "epoch": 4},
     }
     return identities[purpose]
 

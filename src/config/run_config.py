@@ -155,6 +155,12 @@ _SWEEP_PARAMS = {
     "test_snr_db": "channel.test_snr_grid_db",
 }
 
+_REFERENCE_CLASSIFIER_SCHEMA = {
+    "experiment",
+    "choices",
+    "sweep_axes",
+}
+
 def _experiment_path(path: str | Path) -> Path:
     config_root = (REPO_ROOT / get("config.dir")).resolve()
     candidate = Path(path)
@@ -289,6 +295,62 @@ def load_experiment(path: str | Path, **overrides: Any) -> RunConfig:
                 root: get(root)
                 for root in get("config.fingerprint_parameter_roots")
             }
+        ),
+    )
+
+
+def load_reference_classifier_config(path: str | Path, *, dataset: str) -> RunConfig:
+    """Resolve the clean classifier recipe without channel-shaped placeholders."""
+
+    source = _experiment_path(path)
+    body = yaml.safe_load(source.read_text())
+    if not isinstance(body, Mapping):
+        raise TypeError(f"classifier config must contain a mapping: {source}")
+    missing = _REFERENCE_CLASSIFIER_SCHEMA - set(body)
+    extra = set(body) - _REFERENCE_CLASSIFIER_SCHEMA
+    if missing or extra:
+        raise ValueError(
+            f"classifier config keys differ: missing={sorted(missing)}, extra={sorted(extra)}"
+        )
+    choices = body["choices"]
+    sweep_axes = body["sweep_axes"]
+    if not isinstance(choices, Mapping) or not isinstance(sweep_axes, Mapping):
+        raise TypeError("classifier choices and sweep_axes must be mappings")
+    if set(choices) != {"classifier_variant", "train_seed"}:
+        raise ValueError("classifier choices must be classifier_variant and train_seed")
+    if dict(sweep_axes) != {"dataset": "configured_datasets"}:
+        raise ValueError("classifier sweep_axes must be dataset: configured_datasets")
+    datasets = get("datasets")
+    if dataset not in datasets or not isinstance(datasets[dataset], Mapping) or "loader" not in datasets[dataset]:
+        raise ValueError(f"unknown classifier dataset: {dataset}")
+    if choices["classifier_variant"] != get("reference_classifier.clean_variant_name"):
+        raise ValueError("classifier variant must be the configured clean variant")
+    if choices["train_seed"] != "clean_train_seed":
+        raise ValueError("classifier train_seed must resolve clean_train_seed")
+    resolved = {
+        "project_id": get("project.id"),
+        "task": get("project.task"),
+        "dataset": dataset,
+        "dataset_version": get(f"datasets.{dataset}.{get('config.dataset_version_rule')}"),
+        "split_manifest_hash": get(f"datasets.{dataset}.manifest_sha256"),
+        "classifier_variant": choices["classifier_variant"],
+        "train_seed": get("reference_classifier.clean_train_seed"),
+        "architecture": get("reference_classifier.arch"),
+        "analysis_version": get("config.analysis_version"),
+    }
+    try:
+        source_label = str(source.relative_to(REPO_ROOT))
+    except ValueError:
+        source_label = str(source)
+    return RunConfig(
+        fingerprint_schema_version=get("config.fingerprint_schema_version"),
+        experiment=str(body["experiment"]),
+        source=source_label,
+        choices=FrozenMap.from_mapping(dict(choices)),
+        sweep_axes=FrozenMap.from_mapping(dict(sweep_axes)),
+        resolved=FrozenMap.from_mapping(resolved),
+        parameters=FrozenMap.from_mapping(
+            {root: get(root) for root in get("config.fingerprint_parameter_roots")}
         ),
     )
 

@@ -10,11 +10,17 @@ import yaml
 
 import config.run_config as run_config
 from config.params import REPO_ROOT, get
-from config.run_config import RunConfig, config_hash, load_experiment
+from config.run_config import (
+    RunConfig,
+    config_hash,
+    load_experiment,
+    load_reference_classifier_config,
+)
 
 
 LEARNED = REPO_ROOT / get("config.dir") / "learned-headline.yaml"
 CLASSICAL = REPO_ROOT / get("config.dir") / "classical-headline.yaml"
+REFERENCE_CLASSIFIER = REPO_ROOT / get("config.dir") / "reference-classifier-clean.yaml"
 
 
 def _learned_config() -> RunConfig:
@@ -144,10 +150,26 @@ def test_all_committed_experiment_configs_still_load():
                 }
             ),
         )
-        for path in sorted(LEARNED.parent.glob("*.yaml"))
+        for path in sorted(LEARNED.parent.glob("*-headline.yaml"))
     }
 
     assert set(loaded) == {LEARNED.name, CLASSICAL.name}
+
+
+def test_reference_classifier_config_resolves_without_channel_fields():
+    cfg = load_reference_classifier_config(REFERENCE_CLASSIFIER, dataset="imagenette160")
+
+    assert cfg.resolved["train_seed"] == get("reference_classifier.clean_train_seed")
+    assert cfg.resolved["classifier_variant"] == "clean"
+    assert cfg.resolved["split_manifest_hash"] == get("datasets.imagenette160.manifest_sha256")
+    assert cfg.resolved["architecture"] == get("reference_classifier.arch")
+    assert not {"channel", "bw_ratio", "k", "test_snr_db"} & set(cfg.resolved)
+    assert RunConfig.from_dict(cfg.to_dict()) == cfg
+
+
+def test_reference_classifier_rejects_unknown_dataset():
+    with pytest.raises(ValueError, match="unknown classifier dataset"):
+        load_reference_classifier_config(REFERENCE_CLASSIFIER, dataset="unknown")
 
 
 def test_hash_is_deterministic_under_serialised_key_reordering():

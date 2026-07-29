@@ -387,42 +387,62 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 
 | Parameter | Value | Cited by |
 | --- | --- | --- |
-| `reference_classifier.arch` | resnet18 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.trained_on` | clean_images | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.pretrained_weights_permitted` | false | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.optimizer` | sgd_momentum | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.lr` | 0.1 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.momentum` | 0.9 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.weight_decay` | 0.0005 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.lr_schedule` | cosine | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.lr_warmup_epochs` | 5 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.epochs` | 100 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.batch_size` | 128 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.label_smoothing` | 0.1 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.augmentation` | random_resized_crop, horizontal_flip | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetuned_variant_required` | true | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_gate` | G-8 | AM-6, AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_corpus` | union_of_br4_selected_qualities_at_or_below_train_snr | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_corpus_split` | train_only | AM-27, AM-36, AM-59, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_corpus_breadth` | preregistered_feasible_quality_band_not_pass_one_winners_alone | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.optimizer` | sgd_momentum | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.lr` | 0.01 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.momentum` | 0.9 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.weight_decay` | 0.0005 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.lr_schedule` | cosine | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.epochs` | 20 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.batch_size` | 128 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.label_smoothing` | 0.1 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.br4_selection_passes` | 2 | AM-27, AM-36, AM-54, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.br4_selection_terminates_after_pass` | 2 | AM-27, AM-36, BR-4, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.headline_scorer` | artifact_finetuned | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.fallback_ladder` | extend_training_to_150_epochs, resnet34, resnet50 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
-| `reference_classifier.fallback_ladder_selection_split` | validation | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
-| `reference_classifier.fallback_ladder_max_epochs` | 150 | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
-| `reference_classifier.fallback_ladder_stop_rule` | first_rung_meeting_clean_acc_floor | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
-| `reference_classifier.fallback_ladder_param_cap_applies` | true | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
-| `reference_classifier.frozen` | true | AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.shared_by` | classical_baseline, semantic_recon_ablation | AM-5, AM-27, AM-36, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.arch` | resnet18 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.implementation` | torchvision_models_resnet | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.weights` | None | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.clean_variant_name` | clean | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.clean_train_seed` | 0 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.init_component_path_template` | reference_classifier.{arch} | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.trained_on` | clean_images | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.pretrained_weights_permitted` | false | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.optimizer` | sgd_momentum | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.loss` | cross_entropy | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.lr` | 0.1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.momentum` | 0.9 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.nesterov` | false | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.weight_decay` | 0.0005 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.lr_schedule` | cosine | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.lr_warmup_epochs` | 5 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.lr_warmup_schedule` | linear | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.lr_warmup_start_factor` | 0.1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.lr_min` | 0.0 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.scheduler_step_unit` | epoch_start | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.scheduler_epoch_indexing` | zero_based | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.epochs` | 100 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.batch_size` | 128 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.label_smoothing` | 0.1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.augmentation` | random_resized_crop, horizontal_flip | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.batch_order` | keyed_philox_permutation_per_epoch | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.drop_last` | false | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.mixed_precision` | false | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.validation_every_epochs` | 1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.checkpoint_metric` | validation_top1_accuracy | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.checkpoint_mode` | max | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.checkpoint_tie_break` | earliest_epoch | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.checkpoint_schema_version` | 1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetuned_variant_required` | true | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_gate` | G-8 | AM-6, AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_corpus` | union_of_br4_selected_qualities_at_or_below_train_snr | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_corpus_split` | train_only | AM-27, AM-36, AM-59, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_corpus_breadth` | preregistered_feasible_quality_band_not_pass_one_winners_alone | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.optimizer` | sgd_momentum | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr` | 0.01 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.momentum` | 0.9 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.weight_decay` | 0.0005 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr_schedule` | cosine | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.epochs` | 20 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.batch_size` | 128 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.label_smoothing` | 0.1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.br4_selection_passes` | 2 | AM-27, AM-36, AM-54, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.br4_selection_terminates_after_pass` | 2 | AM-27, AM-36, AM-78, BR-4, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.headline_scorer` | artifact_finetuned | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.fallback_ladder` | extend_training_to_150_epochs, resnet34, resnet50 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
+| `reference_classifier.fallback_ladder_selection_split` | validation | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
+| `reference_classifier.fallback_ladder_max_epochs` | 150 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
+| `reference_classifier.fallback_ladder_stop_rule` | first_rung_meeting_clean_acc_floor | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
+| `reference_classifier.fallback_ladder_param_cap_applies` | true | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
+| `reference_classifier.frozen` | true | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.shared_by` | classical_baseline, semantic_recon_ablation | AM-5, AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 
 ## digital_semantic_control
 
@@ -574,31 +594,39 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 
 | Parameter | Value | Cited by |
 | --- | --- | --- |
-| `artifacts.results_dir` | results/ | SR-9, SR-13 |
-| `artifacts.per_image_dir` | results/per_image/ | ER-10, SR-13, SR-18 |
-| `artifacts.checkpoint_dir` | checkpoints/ | SR-13 |
-| `artifacts.figures_dir` | figures/ | SR-13 |
-| `artifacts.run_id_key` | system, dataset, dataset_version, split, split_manifest_hash, bw_ratio, test_snr_db, train_seed, channel_seed, config_hash, checkpoint_id, classifier_variant, ldpc_rate, modulation, quantiser_bits, transmit_dim, lambda, analysis_version | AM-37, AM-58, AM-69, SR-13, SR-18 |
-| `artifacts.run_id_form` | content_addressed_sha256_over_sorted_key_value_pairs | SR-13, SR-18 |
-| `artifacts.analysis_cell_id_key` | train_seed, channel_seed | SR-13, SR-18 |
-| `artifacts.noise_id_key` | dataset_version, split_manifest_hash, stable_sample_id, test_snr_db, channel_seed, channel, k, block_index, rng_purpose | SR-13, SR-18 |
-| `artifacts.pair_id_key` | analysis_cell_id, stable_sample_id, bw_ratio, test_snr_db, noise_id | SR-13, SR-18 |
-| `artifacts.pair_id_excludes` | system, comparison | SR-13, SR-18 |
-| `artifacts.rng_stream` | counter_based_keyed_not_sequential | SR-13, SR-18 |
-| `artifacts.rng_purposes` | channel_noise, outage_label, augmentation, init | SR-13, SR-18 |
-| `artifacts.rng_identity_fields.channel_noise` | noise_id | SR-13 |
-| `artifacts.rng_identity_fields.outage_label` | split_manifest_hash, stable_sample_id, channel_seed | SR-13 |
-| `artifacts.rng_identity_fields.augmentation` | stable_sample_id, train_seed, epoch | SR-13 |
-| `artifacts.rng_identity_fields.init` | train_seed, component_path | SR-13 |
-| `artifacts.init_component_path_rule` | stable_model_qualified_name | SR-13, SR-18 |
-| `artifacts.system_values` | learned, learned_papr_constrained, learned_snr_randomised, classical_adaptive, classical_fixed_mcs, classical_fixed_mod, classical_jpeg_secondary, classical_finetune_scored, er9_digital, label_transmission_bound, semantic_recon_ablation | AM-38, SR-13 |
-| `artifacts.csv_schema` | run_id, timestamp, git_commit, git_dirty, config_hash, checkpoint_id, system, dataset, split, n, k, bw_ratio, channel, train_snr_db, test_snr_db, train_seed, channel_seed, lambda, source_codec, jpeg_quality, j2k_target_bytes, ldpc_rate, modulation, top1_acc, n_correct, n_test, psnr_db, ssim, bytes_sent, header_bytes, payload_bytes, papr_db, decode_failure_rate, infeasible_rate, coverage_rate, acc_given_delivery, test_subset, wall_clock_s, peak_vram_gb, classifier_variant, quantiser_bits, transmit_dim, entropy_stream_bytes, entropy_table_bytes, side_information_bytes, tb_crc_type, base_graph, lifting_size, num_codeblocks, filler_bits, effective_code_rate, model_param_count | AM-38, ER-5, FW-2, SR-13 |
-| `artifacts.per_image_schema` | run_id, pair_id, noise_id, analysis_cell_id, dataset, dataset_version, split, stable_sample_id, bw_ratio, test_snr_db, true_label, pred_label, correct, outage, outage_reason, source_bytes | AM-37, AM-58, SR-13, SR-18 |
-| `artifacts.per_image_storage` | content_addressed_release_artifact_with_committed_manifest | ER-10, SR-13 |
-| `artifacts.per_image_manifest` | results/per_image_manifest.csv | ER-10, SR-13 |
-| `artifacts.inference_summary_file` | results/inference_summary.csv | ER-10, SR-13 |
-| `artifacts.inference_summary_schema` | estimand, hypothesis, systems, bw_ratio, snr_region, window, seed_aggregation, estimate, ci_low, ci_high, p_value, calibration_statistic, support_decision, source_run_ids, per_image_artifact_sha256, analysis_commit, analysis_config_hash | ER-10, SR-13 |
-| `artifacts.freeze_manifest_file` | results/freeze_manifest.json | G-12, SR-13, SR-22 |
+| `artifacts.results_dir` | results/ | AM-78, SR-9, SR-13 |
+| `artifacts.per_image_dir` | results/per_image/ | AM-78, ER-10, SR-13, SR-18 |
+| `artifacts.checkpoint_dir` | checkpoints/ | AM-78, SR-13 |
+| `artifacts.figures_dir` | figures/ | AM-78, SR-13 |
+| `artifacts.run_id_key` | system, dataset, dataset_version, split, split_manifest_hash, bw_ratio, test_snr_db, train_seed, channel_seed, config_hash, checkpoint_id, classifier_variant, ldpc_rate, modulation, quantiser_bits, transmit_dim, lambda, analysis_version | AM-37, AM-58, AM-69, AM-78, SR-13, SR-18 |
+| `artifacts.run_id_form` | content_addressed_sha256_over_sorted_key_value_pairs | AM-78, SR-13, SR-18 |
+| `artifacts.analysis_cell_id_key` | train_seed, channel_seed | AM-78, SR-13, SR-18 |
+| `artifacts.noise_id_key` | dataset_version, split_manifest_hash, stable_sample_id, test_snr_db, channel_seed, channel, k, block_index, rng_purpose | AM-78, SR-13, SR-18 |
+| `artifacts.pair_id_key` | analysis_cell_id, stable_sample_id, bw_ratio, test_snr_db, noise_id | AM-78, SR-13, SR-18 |
+| `artifacts.pair_id_excludes` | system, comparison | AM-78, SR-13, SR-18 |
+| `artifacts.rng_stream` | counter_based_keyed_not_sequential | AM-78, SR-13, SR-18 |
+| `artifacts.rng_purposes` | channel_noise, outage_label, augmentation, init, batch_order | AM-78, SR-13, SR-18 |
+| `artifacts.rng_identity_fields.channel_noise` | noise_id | AM-78, SR-13 |
+| `artifacts.rng_identity_fields.outage_label` | split_manifest_hash, stable_sample_id, channel_seed | AM-78, SR-13 |
+| `artifacts.rng_identity_fields.augmentation` | stable_sample_id, train_seed, epoch | AM-78, SR-13 |
+| `artifacts.rng_identity_fields.init` | train_seed, component_path | AM-78, SR-13 |
+| `artifacts.rng_identity_fields.batch_order` | train_seed, epoch | AM-78, SR-13 |
+| `artifacts.init_component_path_rule` | stable_model_qualified_name | AM-78, SR-13, SR-18 |
+| `artifacts.checkpoint_id_form` | sha256_of_exact_checkpoint_file_bytes | AM-78, SR-13 |
+| `artifacts.classifier_artifact_dir` | results/reference_classifier/ | AM-78, SR-13 |
+| `artifacts.classifier_resolved_config_file` | results/reference_classifier/resolved_config.json | AM-78, SR-13 |
+| `artifacts.classifier_epoch_log_file` | results/reference_classifier/epochs.jsonl | AM-78, SR-13 |
+| `artifacts.classifier_validation_summary_file` | results/reference_classifier/validation_summary.json | AM-78, SR-13 |
+| `artifacts.classifier_best_checkpoint_metadata_file` | results/reference_classifier/best_checkpoint.json | AM-78, SR-13 |
+| `artifacts.classifier_checkpoint_dir` | checkpoints/reference_classifier/ | AM-78, SR-13 |
+| `artifacts.system_values` | learned, learned_papr_constrained, learned_snr_randomised, classical_adaptive, classical_fixed_mcs, classical_fixed_mod, classical_jpeg_secondary, classical_finetune_scored, er9_digital, label_transmission_bound, semantic_recon_ablation | AM-38, AM-78, SR-13 |
+| `artifacts.csv_schema` | run_id, timestamp, git_commit, git_dirty, config_hash, checkpoint_id, system, dataset, split, n, k, bw_ratio, channel, train_snr_db, test_snr_db, train_seed, channel_seed, lambda, source_codec, jpeg_quality, j2k_target_bytes, ldpc_rate, modulation, top1_acc, n_correct, n_test, psnr_db, ssim, bytes_sent, header_bytes, payload_bytes, papr_db, decode_failure_rate, infeasible_rate, coverage_rate, acc_given_delivery, test_subset, wall_clock_s, peak_vram_gb, classifier_variant, quantiser_bits, transmit_dim, entropy_stream_bytes, entropy_table_bytes, side_information_bytes, tb_crc_type, base_graph, lifting_size, num_codeblocks, filler_bits, effective_code_rate, model_param_count | AM-38, AM-78, ER-5, FW-2, SR-13 |
+| `artifacts.per_image_schema` | run_id, pair_id, noise_id, analysis_cell_id, dataset, dataset_version, split, stable_sample_id, bw_ratio, test_snr_db, true_label, pred_label, correct, outage, outage_reason, source_bytes | AM-37, AM-58, AM-78, SR-13, SR-18 |
+| `artifacts.per_image_storage` | content_addressed_release_artifact_with_committed_manifest | AM-78, ER-10, SR-13 |
+| `artifacts.per_image_manifest` | results/per_image_manifest.csv | AM-78, ER-10, SR-13 |
+| `artifacts.inference_summary_file` | results/inference_summary.csv | AM-78, ER-10, SR-13 |
+| `artifacts.inference_summary_schema` | estimand, hypothesis, systems, bw_ratio, snr_region, window, seed_aggregation, estimate, ci_low, ci_high, p_value, calibration_statistic, support_decision, source_run_ids, per_image_artifact_sha256, analysis_commit, analysis_config_hash | AM-78, ER-10, SR-13 |
+| `artifacts.freeze_manifest_file` | results/freeze_manifest.json | AM-78, G-12, SR-13, SR-22 |
 
 ## demo
 
