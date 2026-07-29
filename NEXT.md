@@ -20,16 +20,19 @@ byte-for-byte; the real train/validation paths canonicalize successfully while t
 provenance-only published-test scan records zero decoder and zero canonicalization calls. The final
 suite and CPU-lock clean install are recorded in the AM-77 block below.
 
-**2026-07-29 corrective handoff:** the final pre-G-1 classifier audit initially failed on six bounded
-implementation findings. A follow-up found two production checkpoint gaps in the first correction;
-both are now closed. Checkpoint lineage is derived only from irreversible trainer execution state,
-direct `max_steps`/`max_batches` work cannot enter full lineage, and detached resume now rejects
-configured SGD-group or epoch learning-rate drift before live mutation. The complete corrected
-remainder is staged, including exact resumed `Content-Range` checks, deterministic standalone CLI
-setup and deletion of the obsolete recovery patch. The focused checkpoint/training/CLI suite
-(`35` tests) and complete suite (`223` tests) pass. No full Imagenette training or G-1 was run. See
-`worklogs/w1-reference-classifier-progress.md`; next is user review and commit, then only an
-explicitly approved full-run campaign.
+**2026-07-29 final trainer-integrity corrective handoff:** starting from clean base
+`b99bbdf33a4f0dbb762ef1215ed90624e85f1d4c`, a subsequent production audit found three remaining
+reference-classifier gaps. The staged correction makes official `run_epochs(full,
+full_run_requested=True)` the sole full-lineage path; public direct epoch helpers are irreversibly
+smoke/test-only, and full mode rejects external datasets and result-affecting bounds before work or
+artifact creation. Resume now compares the complete fresh optimizer param-group recipe (including
+schema, parameter cardinality, value types and values), and validation histories are exact
+integer-count evidence with the configured full schedule and recomputed earliest-tie best state.
+The final focused suite is `62 passed`, the classifier-related suite is `114 passed`, and the full
+suite is `250 passed`; all seven repository checks pass. Manual arbitrary-dataset, optimizer-mutation
+and validation-history exploits reject transactionally. No full Imagenette training or G-1 was run.
+See `worklogs/w1-reference-classifier-progress.md`; the next action is user review of the staged
+corrective diff.
 
 ---
 
@@ -752,6 +755,7 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-29 (final pre-G-1 trainer-integrity correction, staged)** — Base `b99bbdf33a4f0dbb762ef1215ed90624e85f1d4c`. Closed three additional production-integrity gaps without an AM: only official `run_epochs(..., execution_mode="full", full_run_requested=True)` can establish full lineage and it internally constructs the manifest-backed training/validation views; all public direct epoch hooks are irreversible smoke/test lineage, and full mode rejects injected datasets or bounds before state/artifact mutation. The full CLI also defers production artifact creation until that official path. Resume now compares the complete fresh optimizer param-group schema, cardinality, types and values (with only the epoch LR substitution), and validates/recomputes count-derived validation accuracy, configured full validation schedule and earliest-tie best state before saving or restoring. Regression coverage added for direct hooks, dataset injection, full constructor ownership, CLI artifact ordering, full/smoke resume, all optimizer fields/schema/group mutations, validation count/schedule/best-state mutations and transactional invariance. Focused `62 passed`; classifier-related `114 passed`; complete `250 passed`; spec/doc/literal/packetisation/archive/manifest/dataset checks passed. Manual arbitrary-data, `maximize`, inconsistent-count and missing-scheduled-validation exploit cases all rejected. Full Imagenette training and G-1 were not run. Next: user review of staged corrective diff.
 - **2026-07-29 (reference-classifier pre-G-1 batch staged)** — **AM-78; 185 → 186 requirements and 77 → 78 amendments.** Added fail-closed extraction-marker binding and Range-resumable archive finalization, the immutable dedicated classifier configuration, source-ID augmentation views, isolated keyed model initialization, keyed epoch ordering, model-owned normalization, validation-only SGD, exact warmup/cosine scheduling, atomic portable checkpoints and direct-epoch resume. The complete network-free suite passed `192`; three real CUDA Imagenette steps and a resume step passed under ignored `checkpoints/smoke/`, with checkpoint hashes `669c82a1…bd2345c` and `90787eda…8ab627`. Full 100-epoch Imagenette training was not started and G-1 was not executed. Next: review/commit this batch, then run the preregistered full Imagenette campaign as its own evidence batch.
 - **2026-07-29 (AM-77 committed and cold-start handoff refreshed)** — The complete dataset
   registry/provenance/manifest batch was committed as `2c6f780`. Current status text now points

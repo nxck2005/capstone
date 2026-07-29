@@ -150,3 +150,42 @@ def test_full_cli_resume_requests_full_lineage(monkeypatch, tmp_path: Path):
 
     with pytest.raises(ValueError, match="cannot resume smoke checkpoint in full mode"):
         module.main()
+
+
+def test_full_cli_defers_production_artifact_creation_until_official_run(monkeypatch, tmp_path: Path):
+    module = _cli_module()
+    artifact_dir = tmp_path / "production"
+    monkeypatch.setattr(module, "set_deterministic_backend", lambda: None)
+    monkeypatch.setattr(module, "load_reference_classifier_config", lambda *_args, **_kwargs: object())
+    monkeypatch.setattr(
+        module,
+        "_paths_for_run",
+        lambda **_kwargs: {
+            "artifact_dir": artifact_dir,
+            "resolved_config": artifact_dir / "resolved.json",
+            "epochs": artifact_dir / "epochs.jsonl",
+            "validation_summary": artifact_dir / "validation.json",
+            "best_checkpoint": artifact_dir / "best.json",
+            "checkpoint_dir": artifact_dir / "checkpoints",
+        },
+    )
+
+    class FullRunProbe:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def run_epochs(self, **kwargs):
+            assert kwargs["execution_mode"] == "full"
+            assert kwargs["full_run_requested"] is True
+            assert not artifact_dir.exists()
+            raise RuntimeError("official full run reached before artifacts")
+
+    monkeypatch.setattr(module, "ReferenceClassifierTrainer", FullRunProbe)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["train_reference_classifier.py", "--config", "x.yaml", "--dataset", "cifar10", "--full-run"],
+    )
+
+    with pytest.raises(RuntimeError, match="official full run reached before artifacts"):
+        module.main()

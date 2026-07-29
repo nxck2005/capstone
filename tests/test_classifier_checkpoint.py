@@ -9,6 +9,41 @@ import pytest
 import torch
 
 from tests.test_classifier_training import TinyDataset, _trainer
+import training.reference_classifier as trainer_module
+
+
+def _full_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    epochs: int = 1,
+) -> Path:
+    """Exercise the official full path with production constructors replaced."""
+
+    original_get = trainer_module.get
+
+    def tiny_schedule(key: str):
+        if key == "reference_classifier.epochs":
+            return epochs
+        if key in {"reference_classifier.validation_every_epochs", "compute.checkpoint_every_epochs"}:
+            return 1
+        if key == "reference_classifier.batch_size":
+            return 2
+        return original_get(key)
+
+    monkeypatch.setattr(trainer_module, "get", tiny_schedule)
+    monkeypatch.setattr(trainer_module, "TrainingClassifierDataset", lambda *_args: TinyDataset())
+    monkeypatch.setattr(trainer_module, "ValidationClassifierDataset", lambda *_args: TinyDataset())
+    source = _trainer()
+    records = source.run_epochs(
+        final_epoch=epochs - 1,
+        checkpoint_dir=tmp_path / "full",
+        execution_mode="full",
+        full_run_requested=True,
+        run_complete=True,
+        g1_eligible=True,
+    )
+    return records[-1].path
 
 
 def _tensor_state(trainer):
@@ -71,7 +106,7 @@ def test_interrupted_resume_matches_uninterrupted_training(tmp_path: Path):
     path = tmp_path / "checkpoint.pt"
     checkpoint_id = interrupted.save_checkpoint(path)
     resumed = _trainer()
-    resumed.resume(path)
+    resumed.resume(path, execution_mode="smoke")
     resumed.train_epoch(1, data, batch_size=2, total_epochs=2)
     resumed.validate_epoch(1, data, batch_size=2)
 
@@ -221,8 +256,6 @@ def test_direct_bounded_training_irreversibly_creates_smoke_lineage(tmp_path: Pa
         source.run_epochs(
             final_epoch=2,
             checkpoint_dir=tmp_path / "forbidden-full",
-            training_dataset=TinyDataset(),
-            validation_dataset=TinyDataset(),
             execution_mode="full",
             full_run_requested=True,
         )
@@ -266,12 +299,8 @@ def test_smoke_checkpoint_can_resume_in_smoke_mode(tmp_path: Path):
     assert target.state.completed_epoch == 0
 
 
-def test_full_lineage_checkpoint_resumes_in_full_mode(tmp_path: Path):
-    source = _trainer()
-    source.train_epoch(0, TinyDataset(), batch_size=2, total_epochs=2)
-    source.validate_epoch(0, TinyDataset(), batch_size=2)
-    checkpoint = tmp_path / "full.pt"
-    source.save_checkpoint(checkpoint)
+def test_full_lineage_checkpoint_resumes_in_full_mode(monkeypatch, tmp_path: Path):
+    checkpoint = _full_checkpoint(monkeypatch, tmp_path)
 
     target = _trainer()
     target.resume(checkpoint, execution_mode="full")
@@ -279,6 +308,167 @@ def test_full_lineage_checkpoint_resumes_in_full_mode(tmp_path: Path):
     assert target.execution_mode == "full"
     assert target.full_run_requested is True
     assert target.state.completed_epoch == 0
+
+
+@pytest.mark.parametrize("field", ["maximize", "foreach", "differentiable", "fused"])
+def test_resume_rejects_every_active_optimizer_option_transactionally(tmp_path: Path, field: str):
+    source = _trainer()
+    source.train_epoch(0, TinyDataset(), batch_size=2, total_epochs=2)
+    checkpoint = tmp_path / f"bad-{field}.pt"
+    source.save_checkpoint(checkpoint)
+    payload = torch.load(checkpoint, weights_only=False)
+    current = payload["optimizer_state"]["param_groups"][0][field]
+    payload["optimizer_state"]["param_groups"][0][field] = not current if isinstance(current, bool) else True
+    torch.save(payload, checkpoint)
+    target = _trainer()
+    before = _trainer_snapshot(target)
+
+    with pytest.raises(ValueError):
+        target.resume(checkpoint, execution_mode="smoke")
+
+    _assert_snapshot_unchanged(target, before)
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda group: group.pop("maximize"),
+    lambda group: group.update({"unexpected": "value"}),
+    lambda group: group.update({"momentum": "0.9"}),
+])
+def test_resume_rejects_optimizer_key_and_type_schema_changes_transactionally(tmp_path: Path, mutation):
+    source = _trainer()
+    source.train_epoch(0, TinyDataset(), batch_size=2, total_epochs=2)
+    checkpoint = tmp_path / "bad-group-schema.pt"
+    source.save_checkpoint(checkpoint)
+    payload = torch.load(checkpoint, weights_only=False)
+    mutation(payload["optimizer_state"]["param_groups"][0])
+    torch.save(payload, checkpoint)
+    target = _trainer()
+    before = _trainer_snapshot(target)
+
+    with pytest.raises(ValueError):
+        target.resume(checkpoint, execution_mode="smoke")
+
+    _assert_snapshot_unchanged(target, before)
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda groups: groups.append(copy.deepcopy(groups[0])),
+    lambda groups: groups[0].update({"params": groups[0]["params"][:-1]}),
+])
+def test_resume_rejects_optimizer_group_count_and_cardinality_transactionally(tmp_path: Path, mutation):
+    source = _trainer()
+    source.train_epoch(0, TinyDataset(), batch_size=2, total_epochs=2)
+    checkpoint = tmp_path / "bad-group-count.pt"
+    source.save_checkpoint(checkpoint)
+    payload = torch.load(checkpoint, weights_only=False)
+    mutation(payload["optimizer_state"]["param_groups"])
+    torch.save(payload, checkpoint)
+    target = _trainer()
+    before = _trainer_snapshot(target)
+
+    with pytest.raises(ValueError):
+        target.resume(checkpoint, execution_mode="smoke")
+
+    _assert_snapshot_unchanged(target, before)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda payload: payload["validation_history"][0].update({"n_correct": 3, "n_total": 6, "top1_accuracy": 0.999}),
+        lambda payload: payload["validation_history"][0].update({"top1_accuracy": float("nan")}),
+        lambda payload: payload.update({"best_validation_top1": 0.999}),
+        lambda payload: payload.update({"best_epoch": 99}),
+    ],
+)
+def test_resume_rejects_invalid_validation_integer_evidence_transactionally(tmp_path: Path, mutation):
+    source = _trainer()
+    source.train_epoch(0, TinyDataset(), batch_size=2, total_epochs=2)
+    source.validate_epoch(0, TinyDataset(), batch_size=2)
+    checkpoint = tmp_path / "bad-validation.pt"
+    source.save_checkpoint(checkpoint)
+    payload = torch.load(checkpoint, weights_only=False)
+    mutation(payload)
+    torch.save(payload, checkpoint)
+    target = _trainer()
+    before = _trainer_snapshot(target)
+
+    with pytest.raises(ValueError):
+        target.resume(checkpoint, execution_mode="smoke")
+
+    _assert_snapshot_unchanged(target, before)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda payload: payload["validation_history"].clear(),
+        lambda payload: payload["validation_history"].append(copy.deepcopy(payload["validation_history"][0])),
+        lambda payload: payload["validation_history"].append({"epoch": 1, "n_correct": 1, "n_total": 2, "top1_accuracy": 0.5}),
+        lambda payload: payload["validation_history"].reverse(),
+    ],
+)
+def test_full_resume_rejects_invalid_validation_schedule_transactionally(monkeypatch, tmp_path: Path, mutation):
+    checkpoint = _full_checkpoint(monkeypatch, tmp_path, epochs=2)
+    payload = torch.load(checkpoint, weights_only=False)
+    mutation(payload)
+    torch.save(payload, checkpoint)
+    target = _trainer()
+    before = _trainer_snapshot(target)
+
+    with pytest.raises(ValueError):
+        target.resume(checkpoint, execution_mode="full")
+
+    _assert_snapshot_unchanged(target, before)
+
+
+def test_history_restores_recomputed_best_and_earliest_tie(tmp_path: Path):
+    source = _trainer()
+    source.train_epoch(0, TinyDataset(), batch_size=2, total_epochs=2)
+    source.validate_epoch(0, TinyDataset(), batch_size=2)
+    source.train_epoch(1, TinyDataset(), batch_size=2, total_epochs=2)
+    source.validate_epoch(1, TinyDataset(), batch_size=2)
+    checkpoint = tmp_path / "valid-tie.pt"
+    source.save_checkpoint(checkpoint)
+    target = _trainer()
+
+    target.resume(checkpoint, execution_mode="smoke")
+
+    assert target.state.validation_history[0]["top1_accuracy"] == (
+        target.state.validation_history[0]["n_correct"] / target.state.validation_history[0]["n_total"]
+    )
+    expected_best = max(
+        record["n_correct"] / record["n_total"] for record in target.state.validation_history
+    )
+    assert target.state.best_validation_top1 == expected_best
+    assert target.state.best_epoch == min(
+        record["epoch"]
+        for record in target.state.validation_history
+        if record["n_correct"] / record["n_total"] == expected_best
+    )
+
+
+def test_resume_rejects_later_epoch_for_exact_validation_tie_transactionally(tmp_path: Path):
+    source = _trainer()
+    source.train_epoch(0, TinyDataset(), batch_size=2, total_epochs=2)
+    source.validate_epoch(0, TinyDataset(), batch_size=2)
+    source.train_epoch(1, TinyDataset(), batch_size=2, total_epochs=2)
+    source.validate_epoch(1, TinyDataset(), batch_size=2)
+    checkpoint = tmp_path / "late-tie.pt"
+    source.save_checkpoint(checkpoint)
+    payload = torch.load(checkpoint, weights_only=False)
+    for record in payload["validation_history"]:
+        record.update({"n_correct": 3, "n_total": 6, "top1_accuracy": 0.5})
+    payload["best_validation_top1"] = 0.5
+    payload["best_epoch"] = 1
+    torch.save(payload, checkpoint)
+    target = _trainer()
+    before = _trainer_snapshot(target)
+
+    with pytest.raises(ValueError, match="best validation state is inconsistent"):
+        target.resume(checkpoint, execution_mode="smoke")
+
+    _assert_snapshot_unchanged(target, before)
 
 
 @pytest.mark.parametrize(
@@ -307,6 +497,6 @@ def test_resume_rejects_optimizer_recipe_mismatch_transactionally(
     before = _trainer_snapshot(target)
 
     with pytest.raises(ValueError, match=rf"optimizer {field} mismatch"):
-        target.resume(checkpoint)
+        target.resume(checkpoint, execution_mode="smoke")
 
     _assert_snapshot_unchanged(target, before)

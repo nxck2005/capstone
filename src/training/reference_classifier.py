@@ -243,23 +243,32 @@ class ReferenceClassifierTrainer:
             group["lr"] = value
         return value
 
-    def _mark_bounded_work(self, *, smoke_steps: int | None = None, smoke_val_batches: int | None = None) -> None:
-        """Establish lineage before work; a bounded call permanently makes it smoke-only."""
+    def _mark_smoke_hook(
+        self,
+        *,
+        smoke_steps: int | None = None,
+        smoke_val_batches: int | None = None,
+    ) -> None:
+        """Make every public low-level hook permanently smoke/test-only.
+
+        Full lineage is deliberately established only by ``run_epochs(...,
+        execution_mode="full", full_run_requested=True)``.  In particular,
+        unbounded direct calls must not acquire production provenance merely by
+        omitting their optional bounds.
+        """
 
         self._validate_smoke_bound("smoke_steps", smoke_steps)
         self._validate_smoke_bound("smoke_val_batches", smoke_val_batches)
-        if smoke_steps is not None or smoke_val_batches is not None:
-            self.execution_mode = "smoke"
-            self.full_run_requested = False
-            self.run_complete_requested = False
-            self.g1_eligible_requested = False
-            if smoke_steps is not None:
-                self.smoke_steps = smoke_steps
-            if smoke_val_batches is not None:
-                self.smoke_val_batches = smoke_val_batches
-        elif self.execution_mode is None:
-            self.execution_mode = "full"
-            self.full_run_requested = True
+        if self.execution_mode == "full":
+            raise ValueError("public low-level hooks cannot follow full production orchestration")
+        self.execution_mode = "smoke"
+        self.full_run_requested = False
+        self.run_complete_requested = False
+        self.g1_eligible_requested = False
+        if smoke_steps is not None:
+            self.smoke_steps = smoke_steps
+        if smoke_val_batches is not None:
+            self.smoke_val_batches = smoke_val_batches
 
     def train_epoch(
         self,
@@ -271,13 +280,32 @@ class ReferenceClassifierTrainer:
         max_steps: int | None = None,
         total_epochs: int | None = None,
     ) -> dict[str, Any]:
-        """Train one keyed epoch; bounded steps are smoke-only administrative limits."""
+        """Train one smoke/test epoch; production orchestration is private."""
 
-        self._mark_bounded_work(smoke_steps=max_steps)
+        self._mark_smoke_hook(smoke_steps=max_steps)
         view = dataset or TrainingClassifierDataset(self.dataset, self.train_seed, epoch)
         size = int(get("reference_classifier.batch_size")) if batch_size is None else batch_size
+        return self._train_epoch_impl(
+            epoch,
+            view,
+            batch_size=size,
+            num_workers=num_workers,
+            max_steps=max_steps,
+            total_epochs=total_epochs,
+        )
+
+    def _train_epoch_impl(
+        self,
+        epoch: int,
+        view: Dataset[tuple[torch.Tensor, int]],
+        *,
+        batch_size: int,
+        num_workers: int,
+        max_steps: int | None,
+        total_epochs: int | None,
+    ) -> dict[str, Any]:
         sampler = EpochPermutationSampler(len(view), self.train_seed, epoch)
-        loader = DataLoader(view, batch_size=size, sampler=sampler, num_workers=num_workers, drop_last=False)
+        loader = DataLoader(view, batch_size=batch_size, sampler=sampler, num_workers=num_workers, drop_last=False)
         self.model.train()
         learning_rate = self._set_learning_rate(epoch, total_epochs)
         total_loss = 0.0
@@ -312,15 +340,30 @@ class ReferenceClassifierTrainer:
         num_workers: int = 0,
         max_batches: int | None = None,
     ) -> ValidationResult:
-        self._mark_bounded_work(smoke_val_batches=max_batches)
+        self._mark_smoke_hook(smoke_val_batches=max_batches)
         view = dataset or ValidationClassifierDataset(self.dataset)
         size = int(get("reference_classifier.batch_size")) if batch_size is None else batch_size
-        result = validate(self.model, view, batch_size=size, device=self.device, num_workers=num_workers, max_batches=max_batches)
+        return self._validate_epoch_impl(
+            epoch,
+            view,
+            batch_size=size,
+            num_workers=num_workers,
+            max_batches=max_batches,
+        )
+
+    def _validate_epoch_impl(
+        self,
+        epoch: int,
+        view: Dataset[tuple[torch.Tensor, int]],
+        *,
+        batch_size: int,
+        num_workers: int,
+        max_batches: int | None,
+    ) -> ValidationResult:
+        result = validate(self.model, view, batch_size=batch_size, device=self.device, num_workers=num_workers, max_batches=max_batches)
         record = {"epoch": epoch, "n_correct": result.n_correct, "n_total": result.n_total, "top1_accuracy": result.top1_accuracy}
         self.state.validation_history.append(record)
-        if result.top1_accuracy > self.state.best_validation_top1:
-            self.state.best_validation_top1 = result.top1_accuracy
-            self.state.best_epoch = epoch
+        self._recompute_best_validation_state()
         return result
 
     @staticmethod
@@ -351,8 +394,8 @@ class ReferenceClassifierTrainer:
         cls._validate_smoke_bound("checkpoint smoke_val_batches", smoke_val_batches)
         scheduled_final = int(get("reference_classifier.epochs")) - 1
         if execution_mode == "smoke":
-            if full_run_requested or (smoke_steps is None and smoke_val_batches is None):
-                raise ValueError("smoke checkpoint lineage is incomplete")
+            if full_run_requested:
+                raise ValueError("smoke checkpoint cannot claim full-run lineage")
             if run_complete or g1_eligible or lineage_g1_eligible:
                 raise ValueError("smoke checkpoint cannot be complete or G-1 eligible")
         else:
@@ -383,6 +426,15 @@ class ReferenceClassifierTrainer:
             g1_eligible=g1_eligible,
             lineage_g1_eligible=lineage_g1_eligible,
             completed_epoch=self.state.completed_epoch,
+        )
+        self.state = self._validated_history_state(
+            completed=self.state.completed_epoch,
+            training=self.state.training_history,
+            validation=self.state.validation_history,
+            checkpoints=self.state.checkpoint_history,
+            best_validation_top1=self.state.best_validation_top1,
+            best_epoch=self.state.best_epoch,
+            full_lineage=self.execution_mode == "full",
         )
         return {
             "checkpoint_schema_version": get("reference_classifier.checkpoint_schema_version"),
@@ -437,6 +489,8 @@ class ReferenceClassifierTrainer:
         smoke_val_batches: int | None,
         run_complete: bool,
         g1_eligible: bool,
+        training_dataset: Dataset[tuple[torch.Tensor, int]] | None,
+        validation_dataset: Dataset[tuple[torch.Tensor, int]] | None,
     ) -> None:
         if execution_mode not in {"smoke", "full"}:
             raise ValueError("execution_mode must be 'smoke' or 'full'")
@@ -456,9 +510,15 @@ class ReferenceClassifierTrainer:
             return
         if not full_run_requested:
             raise ValueError("full execution mode requires explicit full_run_requested=True")
+        if training_dataset is not None:
+            raise ValueError("full execution mode constructs its training dataset internally")
+        if validation_dataset is not None:
+            raise ValueError("full execution mode constructs its validation dataset internally")
         if smoke_steps is not None or smoke_val_batches is not None:
             raise ValueError("full execution mode cannot carry smoke bounds")
         scheduled_final = int(get("reference_classifier.epochs")) - 1
+        if final_epoch != scheduled_final:
+            raise ValueError("full execution mode requires the configured total epoch schedule")
         if (run_complete or g1_eligible) and final_epoch != scheduled_final:
             raise ValueError("completion or G-1 eligibility requires the configured full epoch schedule")
         if g1_eligible and not run_complete:
@@ -481,6 +541,8 @@ class ReferenceClassifierTrainer:
     ) -> list[CheckpointRecord]:
         """Run a contiguous full or bounded-smoke interval and checkpoint it."""
 
+        if self.execution_mode == "smoke" and execution_mode == "full":
+            raise ValueError("smoke-only trainer lineage cannot be promoted to full mode")
         self._validate_run_arguments(
             final_epoch=final_epoch,
             execution_mode=execution_mode,
@@ -489,9 +551,9 @@ class ReferenceClassifierTrainer:
             smoke_val_batches=smoke_val_batches,
             run_complete=run_complete,
             g1_eligible=g1_eligible,
+            training_dataset=training_dataset,
+            validation_dataset=validation_dataset,
         )
-        if self.execution_mode == "smoke" and execution_mode == "full":
-            raise ValueError("smoke-only trainer lineage cannot be promoted to full mode")
         start_epoch = self.state.completed_epoch + 1
         if final_epoch < start_epoch:
             raise ValueError(f"final epoch {final_epoch} precedes next epoch {start_epoch}")
@@ -502,6 +564,8 @@ class ReferenceClassifierTrainer:
         if validation_interval <= 0:
             raise ValueError("validation_every_epochs must be positive")
         total_epochs = int(get("reference_classifier.epochs"))
+        # This is the sole entry point that can establish full lineage.  It
+        # precedes construction of production views and every artifact write.
         self.execution_mode = execution_mode
         self.smoke_steps = smoke_steps
         self.smoke_val_batches = smoke_val_batches
@@ -510,17 +574,29 @@ class ReferenceClassifierTrainer:
         self.g1_eligible_requested = g1_eligible
         records: list[CheckpointRecord] = []
         for epoch in range(start_epoch, final_epoch + 1):
-            self.train_epoch(
+            training_view = (
+                TrainingClassifierDataset(self.dataset, self.train_seed, epoch)
+                if execution_mode == "full"
+                else training_dataset or TrainingClassifierDataset(self.dataset, self.train_seed, epoch)
+            )
+            self._train_epoch_impl(
                 epoch,
-                training_dataset,
+                training_view,
+                batch_size=int(get("reference_classifier.batch_size")),
                 num_workers=num_workers,
                 max_steps=smoke_steps,
                 total_epochs=total_epochs,
             )
             if (epoch + 1) % validation_interval == 0:
-                self.validate_epoch(
+                validation_view = (
+                    ValidationClassifierDataset(self.dataset)
+                    if execution_mode == "full"
+                    else validation_dataset or ValidationClassifierDataset(self.dataset)
+                )
+                self._validate_epoch_impl(
                     epoch,
-                    validation_dataset,
+                    validation_view,
+                    batch_size=int(get("reference_classifier.batch_size")),
                     num_workers=num_workers,
                     max_batches=smoke_val_batches,
                 )
@@ -545,10 +621,17 @@ class ReferenceClassifierTrainer:
         return result
 
     @classmethod
-    def _validate_history(cls, payload: Mapping[str, Any], completed: int) -> TrainingState:
-        training = payload["training_history"]
-        validation = payload["validation_history"]
-        checkpoints = payload["checkpoint_history"]
+    def _validated_history_state(
+        cls,
+        *,
+        completed: int,
+        training: object,
+        validation: object,
+        checkpoints: object,
+        best_validation_top1: object,
+        best_epoch: object,
+        full_lineage: bool,
+    ) -> TrainingState:
         if not isinstance(training, list) or not isinstance(validation, list) or not isinstance(checkpoints, list):
             raise ValueError("checkpoint histories must be lists")
         training_records = [
@@ -575,8 +658,31 @@ class ReferenceClassifierTrainer:
         if len({item["epoch"] for item in validation_records}) != len(validation_records) or any(item["epoch"] > completed for item in validation_records):
             raise ValueError("checkpoint validation history epochs are invalid")
         for item in validation_records:
-            if not _is_int(item["n_correct"]) or not _is_int(item["n_total"]) or item["n_total"] <= 0 or not 0 <= item["n_correct"] <= item["n_total"] or not isinstance(item["top1_accuracy"], Real) or isinstance(item["top1_accuracy"], bool):
+            if (
+                not _is_int(item["n_correct"])
+                or not _is_int(item["n_total"])
+                or item["n_total"] <= 0
+                or not 0 <= item["n_correct"] <= item["n_total"]
+                or not isinstance(item["top1_accuracy"], Real)
+                or isinstance(item["top1_accuracy"], bool)
+                or not math.isfinite(float(item["top1_accuracy"]))
+            ):
                 raise ValueError("checkpoint validation history values are invalid")
+            expected_accuracy = item["n_correct"] / item["n_total"]
+            if float(item["top1_accuracy"]) != expected_accuracy:
+                raise ValueError("checkpoint validation accuracy does not match integer counts")
+            item["top1_accuracy"] = expected_accuracy
+        if full_lineage:
+            interval = int(get("reference_classifier.validation_every_epochs"))
+            if interval <= 0:
+                raise ValueError("validation_every_epochs must be positive")
+            expected_epochs = [
+                epoch
+                for epoch in range(completed + 1)
+                if (epoch + 1) % interval == 0
+            ]
+            if [item["epoch"] for item in validation_records] != expected_epochs:
+                raise ValueError("full checkpoint validation history does not match configured schedule")
         checkpoint_records = [
             cls._validate_history_entry(
                 item,
@@ -588,28 +694,44 @@ class ReferenceClassifierTrainer:
         for item in checkpoint_records:
             if item["epoch"] > completed or not isinstance(item["checkpoint_id"], str) or not re_full_sha256(item["checkpoint_id"]):
                 raise ValueError("checkpoint checkpoint history values are invalid")
-        best = payload["best_validation_top1"]
-        best_epoch = payload["best_epoch"]
-        if not isinstance(best, Real) or isinstance(best, bool):
+        if not isinstance(best_validation_top1, Real) or isinstance(best_validation_top1, bool):
             raise ValueError("checkpoint best_validation_top1 is invalid")
         if best_epoch is not None and not _is_int(best_epoch):
             raise ValueError("checkpoint best_epoch is invalid")
         if validation_records:
-            if not math.isfinite(float(best)):
+            if not math.isfinite(float(best_validation_top1)):
                 raise ValueError("checkpoint best_validation_top1 is invalid")
-            maximum = max(float(item["top1_accuracy"]) for item in validation_records)
-            expected_best = next(item["epoch"] for item in validation_records if float(item["top1_accuracy"]) == maximum)
-            if best_epoch != expected_best or float(best) != maximum:
+            maximum = max(item["top1_accuracy"] for item in validation_records)
+            expected_best = min(
+                item["epoch"] for item in validation_records if item["top1_accuracy"] == maximum
+            )
+            if best_epoch != expected_best or float(best_validation_top1) != maximum:
                 raise ValueError("checkpoint best validation state is inconsistent")
-        elif best_epoch is not None or best != float("-inf"):
+        elif best_epoch is not None or best_validation_top1 != float("-inf"):
             raise ValueError("checkpoint empty validation history has a best metric")
         return TrainingState(
             completed_epoch=completed,
-            best_validation_top1=float(best),
-            best_epoch=best_epoch,
+            best_validation_top1=maximum if validation_records else float("-inf"),
+            best_epoch=expected_best if validation_records else None,
             training_history=training_records,
             validation_history=validation_records,
             checkpoint_history=checkpoint_records,
+        )
+
+    def _recompute_best_validation_state(self) -> None:
+        """Update mutable state from integer validation evidence only."""
+
+        validation = self.state.validation_history
+        if not validation:
+            self.state.best_validation_top1 = float("-inf")
+            self.state.best_epoch = None
+            return
+        maximum = max(item["n_correct"] / item["n_total"] for item in validation)
+        self.state.best_validation_top1 = maximum
+        self.state.best_epoch = min(
+            item["epoch"]
+            for item in validation
+            if item["n_correct"] / item["n_total"] == maximum
         )
 
     def _validated_resume_candidate(
@@ -674,7 +796,15 @@ class ReferenceClassifierTrainer:
         temporary_scheduler.load_state_dict(scheduler_state)
         if temporary_scheduler.completed_epoch != completed:
             raise ValueError("checkpoint completed/scheduler epoch state is inconsistent")
-        state = self._validate_history(payload, completed)
+        state = self._validated_history_state(
+            completed=completed,
+            training=payload["training_history"],
+            validation=payload["validation_history"],
+            checkpoints=payload["checkpoint_history"],
+            best_validation_top1=payload["best_validation_top1"],
+            best_epoch=payload["best_epoch"],
+            full_lineage=execution_mode == "full",
+        )
         model_state = payload["model_state"]
         optimizer_state = payload["optimizer_state"]
         if not isinstance(model_state, Mapping) or not isinstance(optimizer_state, Mapping):
@@ -692,11 +822,33 @@ class ReferenceClassifierTrainer:
             temporary_optimizer = self._new_optimizer(temporary_model)
             expected_optimizer_groups = [
                 {
-                    key: group[key]
-                    for key in ("momentum", "weight_decay", "nesterov", "dampening")
+                    key: value
+                    for key, value in group.items()
+                    if key != "params"
                 }
                 for group in temporary_optimizer.param_groups
             ]
+            expected_optimizer_parameter_counts = [
+                len(group["params"])
+                for group in temporary_optimizer.param_groups
+            ]
+            candidate_optimizer_groups = optimizer_state.get("param_groups")
+            if not isinstance(candidate_optimizer_groups, list):
+                raise ValueError("checkpoint optimizer param groups are invalid")
+            if len(candidate_optimizer_groups) != len(expected_optimizer_groups):
+                raise ValueError("checkpoint optimizer param-group count mismatch")
+            for candidate_group, expected_group, parameter_count in zip(
+                candidate_optimizer_groups,
+                expected_optimizer_groups,
+                expected_optimizer_parameter_counts,
+                strict=True,
+            ):
+                if not isinstance(candidate_group, Mapping):
+                    raise ValueError("checkpoint optimizer param group is invalid")
+                if set(candidate_group) - {"params"} != set(expected_group):
+                    raise ValueError("checkpoint optimizer param-group key set mismatch")
+                if not isinstance(candidate_group.get("params"), list) or len(candidate_group["params"]) != parameter_count:
+                    raise ValueError("checkpoint optimizer param-group parameter count mismatch")
             temporary_optimizer.load_state_dict(optimizer_state)
         except (KeyError, RuntimeError, TypeError, ValueError) as exc:
             raise ValueError(f"checkpoint optimizer or model state is invalid: {exc}") from None
@@ -715,8 +867,13 @@ class ReferenceClassifierTrainer:
             strict=True,
         ):
             expected_group["lr"] = expected_lr
+            if len(group["params"]) != expected_optimizer_parameter_counts.pop(0):
+                raise ValueError("checkpoint optimizer param-group parameter count mismatch")
+            candidate_keys = set(group) - {"params"}
+            if candidate_keys != set(expected_group):
+                raise ValueError("checkpoint optimizer param-group key set mismatch")
             for key, expected_value in expected_group.items():
-                candidate_value = group.get(key)
+                candidate_value = group[key]
                 if type(candidate_value) is not type(expected_value) or candidate_value != expected_value:
                     raise ValueError(
                         f"checkpoint optimizer {key} mismatch: "

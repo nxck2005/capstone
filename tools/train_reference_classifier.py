@@ -102,7 +102,10 @@ def main() -> int:
     config = load_reference_classifier_config(args.config, dataset=args.dataset)
     smoke = not args.full_run
     paths = _paths_for_run(smoke=smoke, output_root=args.output_root)
-    paths["artifact_dir"].mkdir(parents=True, exist_ok=True)
+    # Full lineage is established by trainer.run_epochs() before it may create
+    # any production artifact. Smoke output has no production lineage.
+    if smoke:
+        paths["artifact_dir"].mkdir(parents=True, exist_ok=True)
     trainer = ReferenceClassifierTrainer(config, device=args.device)
     if args.resume:
         trainer.resume(args.resume, execution_mode="full" if args.full_run else "smoke")
@@ -132,6 +135,7 @@ def main() -> int:
     best_checkpoint = (
         paths["checkpoint_dir"] / f"epoch-{best_epoch}.pt" if best_checkpoint_id is not None else None
     )
+    paths["artifact_dir"].mkdir(parents=True, exist_ok=True)
     _write_json(paths["resolved_config"], config.to_dict())
     _write_epoch_log(paths["epochs"], trainer.state.training_history, trainer.state.validation_history)
     _write_json(
