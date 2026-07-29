@@ -16,6 +16,9 @@ from pathlib import Path
 
 import numpy as np
 
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
 from config.params import REPO_ROOT, get
 from baseline.ldpc.modulation import bits_per_symbol, interleave
 

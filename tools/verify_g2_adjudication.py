@@ -11,6 +11,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
 from baseline.ldpc.modulation import bits_per_symbol
 from config.params import REPO_ROOT, get
 

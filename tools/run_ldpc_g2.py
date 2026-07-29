@@ -24,6 +24,9 @@ import yaml
 from sionna import __version__ as sionna_version
 from sionna.phy.fec.ldpc import LDPC5GEncoder
 
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "src"))
+
 from baseline.ldpc.adapter import SionnaLDPCAdapter
 from baseline.ldpc.modulation import (
     bits_per_symbol,
