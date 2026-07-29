@@ -1,6 +1,7 @@
 {
   "conditions": {
     "absolute_parameter_cap": "PASS",
+    "bound_execution_sources": "PASS",
     "clean_implementation_commit": "PASS",
     "configured_batch_size_32": "PASS",
     "peak_reserved_vram": "PASS",
@@ -49,6 +50,91 @@
     "torch_cuda_available": true,
     "total_memory_bytes": 8585216000
   },
+  "execution_sources": {
+    "critical_files": {
+      "src/channels/awgn.py": {
+        "git_blob_sha": "34c6c9a96441f80dacc258409f662c26e694b770",
+        "repository_relative_path": "src/channels/awgn.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/channels/awgn.py",
+        "sha256": "ac8c356484cd6a99a705a3fef6036ca97871ddc6f562be0ae80f06721200a59c"
+      },
+      "src/channels/power.py": {
+        "git_blob_sha": "45524840a474a3492d6b0199053d7885921e0923",
+        "repository_relative_path": "src/channels/power.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/channels/power.py",
+        "sha256": "788ef8a5343154add5102c5fd18060eea6284c9dadd4638163adafb7b3bb63f9"
+      },
+      "src/channels/registry.py": {
+        "git_blob_sha": "c9ca5c1be8338132911d0603f217a214d6f305ae",
+        "repository_relative_path": "src/channels/registry.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/channels/registry.py",
+        "sha256": "e6c8c2ea044e7e0d71be807e9c8ea7cda4259899da461f6079f24b16a3556815"
+      },
+      "src/config/params.py": {
+        "git_blob_sha": "4de8414d0acb07dd85eaa8aba58a627ba7693f1a",
+        "repository_relative_path": "src/config/params.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/config/params.py",
+        "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc"
+      },
+      "src/config/run_config.py": {
+        "git_blob_sha": "3f86faa314ccd8b6ca5eaba2c051eeb9b90e9096",
+        "repository_relative_path": "src/config/run_config.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/config/run_config.py",
+        "sha256": "3fe4968662d70e6a7a71e9078a7cce2e6b2747dc99868f724188ef2d465c83e3"
+      },
+      "src/data/classifier.py": {
+        "git_blob_sha": "8ef90ef316cb0b964b2b928375624b638767c2f9",
+        "repository_relative_path": "src/data/classifier.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/data/classifier.py",
+        "sha256": "1108ad155e2d0dd1fc2658ef27757b0a4249926316cae5cebb9081471c92f64b"
+      },
+      "src/data/preprocessing.py": {
+        "git_blob_sha": "1a4c09faf43fed34bae9855eb7e4e3c73716dd04",
+        "repository_relative_path": "src/data/preprocessing.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/data/preprocessing.py",
+        "sha256": "9c0bef89d99c544841399e7e1d1aa66c4cde0527ae915bdcd543df70d50445c9"
+      },
+      "src/env.py": {
+        "git_blob_sha": "9ef12c4cd1e9fdf18ed4ae3b7ce4d03f3bfa9521",
+        "repository_relative_path": "src/env.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/env.py",
+        "sha256": "0a0977ec5731a6ecbb30f02fa3c0f1b4f35bb9b32fe95c3ae8dd0cb4d1470a66"
+      },
+      "src/models/djscc.py": {
+        "git_blob_sha": "e2f44fffe97211358f4ad0d391ae708fde5d6624",
+        "repository_relative_path": "src/models/djscc.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/models/djscc.py",
+        "sha256": "2b8ce3fffa2bf0118fd09e17f69edb4328ad28fd029e86458aafa096b6d02e76"
+      },
+      "src/models/reference_classifier.py": {
+        "git_blob_sha": "3b85ea979e49bbd0024eff9f6a3c66779bb7bf8a",
+        "repository_relative_path": "src/models/reference_classifier.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/models/reference_classifier.py",
+        "sha256": "d2f52ee616a582657e895a9b1c56250ee83d172b963cd00bb55bb0c8942eb703"
+      },
+      "src/models/task_heads.py": {
+        "git_blob_sha": "78b900e8e0ae84c8b6ef7bf2bb40c3977fc5ea94",
+        "repository_relative_path": "src/models/task_heads.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/models/task_heads.py",
+        "sha256": "c9cb557bb38880d3418e88337e80de125bfddd1afff1fa345fcb8bbeb80c0213"
+      },
+      "src/training/djscc_loss.py": {
+        "git_blob_sha": "f11fd64c98852093830da267404952fc65a45e3d",
+        "repository_relative_path": "src/training/djscc_loss.py",
+        "resolved_runtime_path": "/tmp/capstone-g7-impl-26b631e/src/training/djscc_loss.py",
+        "sha256": "f6117923913a96d770b7aaa09384c7c5d99a6ff428027b11e7a564eb70472aff"
+      }
+    },
+    "execution_source_root": "/tmp/capstone-g7-impl-26b631e",
+    "implementation_commit": "26b631ede27a6f88f1d004a66b845c52a658e07c",
+    "implementation_tree_clean": true,
+    "profile_tool_source": {
+      "git_blob_sha": "3d309ec36fce5d4f3ec5ddae050b89e99f02a7b3",
+      "repository_relative_path": "tools/profile_djscc_g7.py",
+      "resolved_runtime_path": "/home/nick/projects/capstone/tools/profile_djscc_g7.py",
+      "sha256": "8bbf006485f4aca6d811fe54d5a74c36fe4984e8fc2a4c28f8ae8f20dada2a43"
+    }
+  },
   "gate": "G-7",
   "git_dirty": false,
   "implementation_commit": "26b631ede27a6f88f1d004a66b845c52a658e07c",
@@ -77,7 +163,7 @@
   },
   "profile_config_path": "configs/learned-g7-profile.yaml",
   "profile_config_sha256": "cf76994a6fa8521eeb5423097322c18b3ba5a3705e24661176821be42015435f",
-  "profiled_at_utc": "2026-07-29T17:45:24.820430+00:00",
+  "profiled_at_utc": "2026-07-29T19:11:04.836027+00:00",
   "resolved_config": {
     "choices": {
       "architecture": "djscc_residual_v1",
@@ -1218,20 +1304,20 @@
     "source": "configs/learned-g7-profile.yaml",
     "sweep_axes": {}
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "training": {
     "amp": true,
     "batch_size": 32,
     "epoch_mean_loss": 2.257662296295166,
-    "epoch_time_s": 35.1711091640027,
+    "epoch_time_s": 48.68431210900235,
     "epochs_completed": 1,
-    "images_per_second": 240.79422575242359,
+    "images_per_second": 173.9574748645565,
     "num_batches": 265,
     "num_examples": 8469,
     "num_workers": 0,
     "optimizer": "adam",
     "projected_epochs": 100,
-    "projected_training_hours": 0.9769752545556306,
+    "projected_training_hours": 1.352342003027843,
     "warmup_steps": 3
   },
   "verdict": "PASS"

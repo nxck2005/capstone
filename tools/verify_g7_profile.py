@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -41,6 +42,7 @@ _TOP_FIELDS = {
     "limits",
     "conditions",
     "data_isolation",
+    "execution_sources",
 }
 _DATASET_FIELDS = {
     "name",
@@ -111,6 +113,7 @@ _CONDITION_FIELDS = {
     "real_cuda",
     "training_split_only",
     "report_consistency",
+    "bound_execution_sources",
 }
 _ISOLATION_FIELDS = {
     "scope",
@@ -118,6 +121,34 @@ _ISOLATION_FIELDS = {
     "test_inference",
     "test_accuracy_computed",
 }
+_EXECUTION_SOURCE_FIELDS = {
+    "execution_source_root",
+    "implementation_commit",
+    "implementation_tree_clean",
+    "profile_tool_source",
+    "critical_files",
+}
+_SOURCE_RECORD_FIELDS = {
+    "repository_relative_path",
+    "resolved_runtime_path",
+    "sha256",
+    "git_blob_sha",
+}
+_CRITICAL_SOURCE_PATHS = {
+    "src/channels/awgn.py",
+    "src/channels/power.py",
+    "src/channels/registry.py",
+    "src/models/djscc.py",
+    "src/models/task_heads.py",
+    "src/models/reference_classifier.py",
+    "src/training/djscc_loss.py",
+    "src/data/classifier.py",
+    "src/data/preprocessing.py",
+    "src/config/params.py",
+    "src/config/run_config.py",
+    "src/env.py",
+}
+_PROFILE_TOOL_PATH = "tools/profile_djscc_g7.py"
 
 
 class VerificationError(ValueError):
@@ -153,6 +184,111 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _git_bytes(revision_path: str) -> bytes:
+    result = subprocess.run(
+        ["git", "show", revision_path],
+        cwd=REPO,
+        capture_output=True,
+        check=False,
+    )
+    _require(
+        result.returncode == 0,
+        f"cannot resolve committed execution source {revision_path}",
+    )
+    return result.stdout
+
+
+def _git_blob_sha(data: bytes) -> str:
+    header = f"blob {len(data)}\0".encode("ascii")
+    return hashlib.sha1(header + data).hexdigest()
+
+
+def _verify_source_record(
+    value: object,
+    *,
+    relative_path: str,
+    source_root: Path,
+    implementation_commit: str,
+    label: str,
+) -> None:
+    record = _exact_fields(value, _SOURCE_RECORD_FIELDS, label)
+    _require(
+        record["repository_relative_path"] == relative_path,
+        f"{label} repository-relative path disagrees",
+    )
+    runtime_path = Path(record["resolved_runtime_path"])
+    _require(runtime_path.is_absolute(), f"{label} runtime path is not absolute")
+    _require(
+        runtime_path.resolve(strict=False)
+        == (source_root / relative_path).resolve(strict=False),
+        f"{label} runtime path is outside execution source root",
+    )
+    committed = _git_bytes(f"{implementation_commit}:{relative_path}")
+    _require(
+        record["sha256"] == hashlib.sha256(committed).hexdigest(),
+        f"{label} executed file hash disagrees with implementation commit",
+    )
+    _require(
+        record["git_blob_sha"] == _git_blob_sha(committed),
+        f"{label} git blob SHA disagrees with implementation commit",
+    )
+
+
+def _verify_execution_sources(value: object) -> None:
+    sources = _exact_fields(value, _EXECUTION_SOURCE_FIELDS, "execution_sources")
+    _require(
+        sources["implementation_commit"] == EXPECTED_IMPLEMENTATION_COMMIT,
+        "execution sources bind the wrong implementation commit",
+    )
+    _require(
+        sources["implementation_tree_clean"] is True,
+        "execution source worktree was dirty",
+    )
+    source_root = Path(sources["execution_source_root"])
+    _require(source_root.is_absolute(), "execution source root is not absolute")
+    critical_files = sources["critical_files"]
+    _require(isinstance(critical_files, dict), "critical_files must be an object")
+    missing = _CRITICAL_SOURCE_PATHS - set(critical_files)
+    unexpected = set(critical_files) - _CRITICAL_SOURCE_PATHS
+    _require(
+        not missing and not unexpected,
+        "critical source entries differ: "
+        f"missing={sorted(missing)}, unexpected={sorted(unexpected)}",
+    )
+    for relative_path in sorted(_CRITICAL_SOURCE_PATHS):
+        _verify_source_record(
+            critical_files[relative_path],
+            relative_path=relative_path,
+            source_root=source_root,
+            implementation_commit=EXPECTED_IMPLEMENTATION_COMMIT,
+            label=f"execution_sources.critical_files[{relative_path}]",
+        )
+    profile_tool = _exact_fields(
+        sources["profile_tool_source"],
+        _SOURCE_RECORD_FIELDS,
+        "execution_sources.profile_tool_source",
+    )
+    _require(
+        profile_tool["repository_relative_path"] == _PROFILE_TOOL_PATH,
+        "profile tool repository-relative path disagrees",
+    )
+    profile_tool_path = REPO / _PROFILE_TOOL_PATH
+    _require(
+        Path(profile_tool["resolved_runtime_path"]).resolve(strict=False)
+        == profile_tool_path.resolve(strict=False),
+        "profile tool runtime path disagrees",
+    )
+    profile_tool_bytes = profile_tool_path.read_bytes()
+    _require(
+        profile_tool["sha256"] == hashlib.sha256(profile_tool_bytes).hexdigest(),
+        "profile tool file hash disagrees",
+    )
+    _require(
+        profile_tool["git_blob_sha"] == _git_blob_sha(profile_tool_bytes),
+        "profile tool git blob SHA disagrees",
+    )
+
+
 def verify(path: Path = REPORT_PATH) -> dict[str, Any]:
     report = _load(path)
     dataset = _exact_fields(report["dataset"], _DATASET_FIELDS, "dataset")
@@ -169,8 +305,9 @@ def verify(path: Path = REPORT_PATH) -> dict[str, Any]:
     isolation = _exact_fields(
         report["data_isolation"], _ISOLATION_FIELDS, "data_isolation"
     )
+    _verify_execution_sources(report["execution_sources"])
 
-    _require(report["schema_version"] == 1, "unsupported G-7 schema version")
+    _require(report["schema_version"] == 2, "unsupported G-7 schema version")
     _require(report["gate"] == "G-7", "report is not for G-7")
     _require(report["implementation_commit"] == EXPECTED_IMPLEMENTATION_COMMIT, "wrong implementation commit")
     _require(report["git_dirty"] is False, "implementation state was dirty")
@@ -397,6 +534,7 @@ def verify(path: Path = REPORT_PATH) -> dict[str, Any]:
         "real_cuda": "PASS",
         "training_split_only": "PASS",
         "report_consistency": "PASS",
+        "bound_execution_sources": "PASS",
     }
     _require(conditions == expected_conditions, "G-7 component verdict is inconsistent")
     _require(report["verdict"] == "PASS", "overall G-7 PASS verdict is inconsistent")

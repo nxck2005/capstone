@@ -80,9 +80,11 @@ the evidence-hardening cleanup. **W2 and G-7 are complete.** Implementation comm
 `26b631ede27a6f88f1d004a66b845c52a658e07c` provides native-complex AWGN, per-image
 unit-power normalization, keyed complex noise, symbol-domain PAPR and capped-power projection,
 `djscc_residual_v1`, the task-head registry, config-derived loss, and parameter caps. The clean
-Imagenette `r_1_2` CUDA profile completed batch 32 in 35.171 s, reserved 1.004 GiB, projects
-100 epochs to 0.977 h, and measured 1,640,957 parameters. The machine-readable report lives under
-`results/profiling/` and verifies offline. The single next engineering task is the
+corrected, implementation-bound Imagenette `r_1_2` CUDA profile completed batch 32 in 48.684 s,
+reserved 1.004 GiB, projects 100 epochs to 1.352 h, and measured 1,640,957 parameters. Every
+critical imported project module is recorded by resolved path, executed-byte SHA-256 and immutable
+W2 git blob SHA. The machine-readable report lives under `results/profiling/` and verifies offline.
+The single next engineering task is the
 transparency-bitrate probe with the frozen classifier, before W3/W4 baseline work.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through

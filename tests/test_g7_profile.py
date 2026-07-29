@@ -3,11 +3,21 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 
 from config.params import REPO_ROOT
+from profile_djscc_g7 import (
+    DEFAULT_CONFIG,
+    DEFAULT_REPORT,
+    PROFILE_TOOL_RELATIVE_PATH,
+    ProfileError,
+    _bound_worker_command,
+    _source_record,
+    profile,
+)
 from verify_g7_profile import VerificationError, verify
 
 
@@ -233,4 +243,122 @@ def test_verifier_rejects_manifest_disagreement(profile_report: Path):
     )
 
     with pytest.raises(VerificationError, match="manifest identity disagrees"):
+        verify(profile_report)
+
+
+def test_different_clean_checkout_cannot_silently_execute_current_code():
+    with pytest.raises(ProfileError, match="profile target HEAD"):
+        profile(
+            config_path=DEFAULT_CONFIG,
+            report_path=DEFAULT_REPORT,
+            git_repo=REPO_ROOT,
+            data_repo=REPO_ROOT,
+        )
+
+
+def test_bound_worker_command_uses_implementation_script_and_separate_data_root(
+    tmp_path: Path,
+):
+    implementation = tmp_path / "implementation"
+    data_root = tmp_path / "verified-data"
+    command = _bound_worker_command(
+        profile_script=implementation / PROFILE_TOOL_RELATIVE_PATH,
+        audit_path=tmp_path / "audit.json",
+        implementation_config=implementation / "configs/learned-g7-profile.yaml",
+        raw_report_path=tmp_path / "raw.json",
+        git_repo=implementation,
+        data_repo=data_root,
+    )
+
+    assert command[3] == str(implementation / PROFILE_TOOL_RELATIVE_PATH)
+    assert command[command.index("--git-repo") + 1] == str(implementation)
+    assert command[command.index("--data-repo") + 1] == str(data_root)
+    assert str(REPO_ROOT / PROFILE_TOOL_RELATIVE_PATH) not in command
+
+
+def _make_source_repository(tmp_path: Path) -> tuple[Path, str, Path]:
+    repository = tmp_path / "implementation"
+    source = repository / "src/env.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("VALUE = 1\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "config", "user.email", "test@example.invalid"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "config", "user.name", "G-7 Test"],
+        cwd=repository,
+        check=True,
+    )
+    subprocess.run(["git", "add", "src/env.py"], cwd=repository, check=True)
+    subprocess.run(
+        ["git", "commit", "-q", "-m", "fixture"],
+        cwd=repository,
+        check=True,
+    )
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    return repository, commit, source
+
+
+def test_modified_implementation_source_is_rejected(tmp_path: Path):
+    repository, commit, source = _make_source_repository(tmp_path)
+    source.write_text("VALUE = 2\n", encoding="utf-8")
+
+    with pytest.raises(ProfileError, match="executed bytes differ"):
+        _source_record(
+            git_repo=repository,
+            implementation_commit=commit,
+            repository_relative_path="src/env.py",
+            runtime_path=source,
+        )
+
+
+def test_critical_module_imported_outside_worktree_is_rejected(tmp_path: Path):
+    repository, commit, _ = _make_source_repository(tmp_path)
+    outside = tmp_path / "outside.py"
+    outside.write_text("VALUE = 1\n", encoding="utf-8")
+
+    with pytest.raises(ProfileError, match="outside implementation worktree"):
+        _source_record(
+            git_repo=repository,
+            implementation_commit=commit,
+            repository_relative_path="src/env.py",
+            runtime_path=outside,
+        )
+
+
+@pytest.mark.parametrize("field", ["sha256", "git_blob_sha"])
+def test_verifier_rejects_wrong_execution_source_identity(
+    profile_report: Path, field: str
+):
+    def mutation(value):
+        source = value["execution_sources"]["critical_files"]["src/env.py"]
+        source[field] = "0" * len(source[field])
+
+    _mutate(profile_report, mutation)
+    with pytest.raises(VerificationError, match="implementation commit"):
+        verify(profile_report)
+
+
+@pytest.mark.parametrize("mutation", ["missing", "unexpected"])
+def test_verifier_rejects_missing_or_unexpected_execution_source(
+    profile_report: Path, mutation: str
+):
+    def change(value):
+        sources = value["execution_sources"]["critical_files"]
+        if mutation == "missing":
+            sources.pop("src/env.py")
+        else:
+            sources["src/unexpected.py"] = dict(sources["src/env.py"])
+
+    _mutate(profile_report, change)
+    with pytest.raises(VerificationError, match="critical source entries differ"):
         verify(profile_report)

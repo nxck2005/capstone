@@ -45,8 +45,10 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 4. **W3.**
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
-profile completed all 8,469 Imagenette training images at batch 32 in 35.171 s, with 1.004 GiB
-peak reserved VRAM, a 0.977 h 100-epoch projection and 1,640,957 parameters. Do not begin W3/W4
+corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
+in 48.684 s, with 1.004 GiB peak reserved VRAM, a 1.352 h 100-epoch projection and 1,640,957
+parameters. Every critical runtime module is byte- and blob-bound to the clean detached W2
+implementation worktree. Do not begin W3/W4
 baseline work until the transparency-bitrate probe is complete, and do not begin the
 reference-classifier fallback ladder: G-1 passed.
 
@@ -531,7 +533,7 @@ open.
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
 | ~~4~~ | ~~**Run W1(f) and adjudicate G-1**~~ **DONE 2026-07-29** — 0.898 at epoch 99, G-1 PASS | — | Full validation-only evidence verified; test stayed sealed | ~~all of W2+~~ |
-| ~~5~~ | ~~**Build W2 through G-7**~~ **DONE 2026-07-29** — primary model, batch 32, G-7 PASS | — | Full training-only CUDA epoch; 35.171 s, 1.004 GiB reserved, 0.977 h projected | ~~W3+~~ |
+| ~~5~~ | ~~**Build W2 through G-7**~~ **DONE 2026-07-29** — primary model, batch 32, G-7 PASS | — | Corrected implementation-bound full training-only CUDA epoch; 48.684 s, 1.004 GiB reserved, 1.352 h projected | ~~W3+~~ |
 | 5a | **Transparency-bitrate probe with the frozen classifier** | agent | W2/G-7 and G-1 are complete; deliberately before baseline integration | W3/W4 |
 | 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
@@ -783,6 +785,14 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
   Only training data and synthetic fixtures were used; test stayed sealed, G-1 remained valid, no
   full learned campaign or constrained variant ran, and SR-16 all-system reporting remains
   downstream. Next: transparency-bitrate probe, then W3/W4.
+- **2026-07-30 (G-7 implementation binding repaired; G-7 still PASS)** — The original profiler
+  verified a separate clean W2 worktree but imported project modules from the evidence checkout.
+  The corrected orchestration now preflights and executes every critical module from the detached
+  `26b631e` worktree, rejects path or byte drift, and records executed-byte SHA-256 and git blob SHA
+  identities in the report. The rerun completed 8,469 examples in 48.68431210900235 s, reserved
+  1.00390625 GiB, projected 1.352342003027843 h for 100 epochs, and retained the 1,640,957-parameter
+  primary architecture. G-7 remains PASS; test stayed sealed and no checkpoint or training campaign
+  was created.
 - **2026-07-29 (full Imagenette campaign; G-1 PASS; W1 complete)** — Started from the clean committed
   classifier implementation `89a3af48c48a91d6d272ba62337f890c59bb40a5`; no production artifact
   existed, so the exact `--full-run` command ran fresh and uninterrupted through epoch 99. Best and

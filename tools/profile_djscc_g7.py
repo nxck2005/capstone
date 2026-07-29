@@ -7,8 +7,10 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,8 +20,10 @@ import torch
 import yaml
 from torch.utils.data import DataLoader
 
-REPO = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO / "src"))
+TOOL_REPO = Path(__file__).resolve().parent.parent
+REPO = Path(os.environ.get("G7_EXECUTION_SOURCE_ROOT", TOOL_REPO)).resolve()
+SOURCE_REPO = REPO
+sys.path.insert(0, str(SOURCE_REPO / "src"))
 
 from config.params import get  # noqa: E402
 from config.run_config import FrozenMap, RunConfig, config_hash  # noqa: E402
@@ -31,6 +35,21 @@ from training.djscc_loss import DJSCCObjective  # noqa: E402
 
 DEFAULT_CONFIG = REPO / "configs/learned-g7-profile.yaml"
 DEFAULT_REPORT = REPO / "results/profiling/g7_djscc_profile.json"
+CRITICAL_EXECUTION_MODULES = {
+    "src/channels/awgn.py": "channels.awgn",
+    "src/channels/power.py": "channels.power",
+    "src/channels/registry.py": "channels.registry",
+    "src/models/djscc.py": "models.djscc",
+    "src/models/task_heads.py": "models.task_heads",
+    "src/models/reference_classifier.py": "models.reference_classifier",
+    "src/training/djscc_loss.py": "training.djscc_loss",
+    "src/data/classifier.py": "data.classifier",
+    "src/data/preprocessing.py": "data.preprocessing",
+    "src/config/params.py": "config.params",
+    "src/config/run_config.py": "config.run_config",
+    "src/env.py": "env",
+}
+PROFILE_TOOL_RELATIVE_PATH = "tools/profile_djscc_g7.py"
 _PROFILE_CHOICE_KEYS = {
     "system",
     "dataset",
@@ -71,6 +90,168 @@ def _git(git_repo: Path, *args: str) -> str:
             f"git {' '.join(args)} failed in {git_repo}: {result.stderr.strip()}"
         )
     return result.stdout.strip()
+
+
+def _git_bytes(git_repo: Path, revision_path: str) -> bytes:
+    result = subprocess.run(
+        ["git", "show", revision_path],
+        cwd=git_repo,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise ProfileError(
+            f"git show {revision_path} failed in {git_repo}: "
+            f"{result.stderr.decode(errors='replace').strip()}"
+        )
+    return result.stdout
+
+
+def _source_environment(git_repo: Path) -> dict[str, str]:
+    environment = os.environ.copy()
+    implementation_src = str((git_repo / "src").resolve())
+    inherited = environment.get("PYTHONPATH")
+    environment["PYTHONPATH"] = (
+        implementation_src
+        if not inherited
+        else os.pathsep.join((implementation_src, inherited))
+    )
+    environment["G7_EXECUTION_SOURCE_ROOT"] = str(git_repo.resolve())
+    return environment
+
+
+def _module_audit_program(*, run_profile: bool) -> str:
+    module_map = repr(CRITICAL_EXECUTION_MODULES)
+    profile_body = """
+script = pathlib.Path(sys.argv[1]).resolve()
+audit_path = pathlib.Path(sys.argv[2]).resolve()
+sys.argv = [str(script), *sys.argv[3:]]
+exit_code = 0
+try:
+    runpy.run_path(str(script), run_name="__main__")
+except SystemExit as exc:
+    exit_code = exc.code if isinstance(exc.code, int) else 1
+finally:
+    paths = {
+        relative: str(pathlib.Path(sys.modules[module].__file__).resolve())
+        for relative, module in module_map.items()
+    }
+    audit_path.write_text(json.dumps(paths, sort_keys=True) + "\\n", encoding="utf-8")
+raise SystemExit(exit_code)
+"""
+    audit_body = """
+for module in module_map.values():
+    importlib.import_module(module)
+paths = {
+    relative: str(pathlib.Path(sys.modules[module].__file__).resolve())
+    for relative, module in module_map.items()
+}
+print(json.dumps(paths, sort_keys=True))
+"""
+    return (
+        "import importlib, json, pathlib, runpy, sys\n"
+        f"module_map = {module_map}\n"
+        + (profile_body if run_profile else audit_body)
+    )
+
+
+def _run_import_audit(git_repo: Path) -> dict[str, str]:
+    result = subprocess.run(
+        [sys.executable, "-c", _module_audit_program(run_profile=False)],
+        cwd=git_repo,
+        env=_source_environment(git_repo),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        raise ProfileError(
+            "implementation source import audit failed: "
+            f"{result.stderr.strip() or result.stdout.strip()}"
+        )
+    try:
+        paths = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ProfileError(f"implementation source audit was not valid JSON: {exc}") from None
+    if not isinstance(paths, dict):
+        raise ProfileError("implementation source audit must be an object")
+    return paths
+
+
+def _source_record(
+    *,
+    git_repo: Path,
+    implementation_commit: str,
+    repository_relative_path: str,
+    runtime_path: Path,
+) -> dict[str, str]:
+    root = git_repo.resolve()
+    resolved = runtime_path.resolve()
+    expected = (root / repository_relative_path).resolve()
+    if resolved != expected or not resolved.is_relative_to(root):
+        raise ProfileError(
+            f"critical module {repository_relative_path} resolved outside "
+            f"implementation worktree: {resolved}"
+        )
+    executed_bytes = resolved.read_bytes()
+    committed_bytes = _git_bytes(
+        git_repo, f"{implementation_commit}:{repository_relative_path}"
+    )
+    if executed_bytes != committed_bytes:
+        raise ProfileError(
+            f"executed bytes differ from {implementation_commit}:"
+            f"{repository_relative_path}"
+        )
+    blob_sha = _git(
+        git_repo, "rev-parse", f"{implementation_commit}:{repository_relative_path}"
+    )
+    return {
+        "repository_relative_path": repository_relative_path,
+        "resolved_runtime_path": str(resolved),
+        "sha256": hashlib.sha256(executed_bytes).hexdigest(),
+        "git_blob_sha": blob_sha,
+    }
+
+
+def inspect_execution_sources(
+    git_repo: Path, implementation_commit: str
+) -> dict[str, Any]:
+    """Audit imports and committed bytes before the measured process starts."""
+
+    root = git_repo.resolve()
+    runtime_paths = _run_import_audit(root)
+    expected = set(CRITICAL_EXECUTION_MODULES)
+    missing = expected - set(runtime_paths)
+    unexpected = set(runtime_paths) - expected
+    if missing or unexpected:
+        raise ProfileError(
+            "critical execution source entries differ: "
+            f"missing={sorted(missing)}, unexpected={sorted(unexpected)}"
+        )
+    files = {
+        relative: _source_record(
+            git_repo=root,
+            implementation_commit=implementation_commit,
+            repository_relative_path=relative,
+            runtime_path=Path(runtime_paths[relative]),
+        )
+        for relative in sorted(expected)
+    }
+    profile_tool_path = Path(__file__).resolve()
+    profile_tool_bytes = profile_tool_path.read_bytes()
+    profile_tool = {
+        "repository_relative_path": PROFILE_TOOL_RELATIVE_PATH,
+        "resolved_runtime_path": str(profile_tool_path),
+        "sha256": hashlib.sha256(profile_tool_bytes).hexdigest(),
+        "git_blob_sha": _git(REPO, "hash-object", str(profile_tool_path)),
+    }
+    return {
+        "execution_source_root": str(root),
+        "implementation_commit": implementation_commit,
+        "implementation_tree_clean": True,
+        "profile_tool_source": profile_tool,
+        "critical_files": files,
+    }
 
 
 def load_profile_config(path: Path = DEFAULT_CONFIG) -> RunConfig:
@@ -145,7 +326,10 @@ def load_profile_config(path: Path = DEFAULT_CONFIG) -> RunConfig:
     try:
         source = str(path.relative_to(REPO))
     except ValueError:
-        source = str(path)
+        try:
+            source = str(path.relative_to(TOOL_REPO))
+        except ValueError:
+            source = str(path)
     return RunConfig(
         fingerprint_schema_version=get("config.fingerprint_schema_version"),
         experiment=body["experiment"],
@@ -205,7 +389,7 @@ def model_config_snr(model) -> float:
     return model.g7_train_snr_db
 
 
-def profile(
+def _profile_in_process(
     *,
     config_path: Path,
     report_path: Path,
@@ -456,6 +640,136 @@ def profile(
     return report
 
 
+def _run_bound_worker(
+    *,
+    git_repo: Path,
+    data_repo: Path,
+    config_path: Path,
+    raw_report_path: Path,
+    audit_path: Path,
+) -> dict[str, str]:
+    profile_script = Path(__file__).resolve()
+    command = _bound_worker_command(
+        profile_script=profile_script,
+        audit_path=audit_path,
+        implementation_config=config_path.resolve(),
+        raw_report_path=raw_report_path,
+        git_repo=git_repo,
+        data_repo=data_repo,
+    )
+    result = subprocess.run(
+        command,
+        cwd=git_repo,
+        env=_source_environment(git_repo),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode:
+        raise ProfileError(
+            "implementation-bound G-7 worker failed: "
+            f"{result.stderr.strip() or result.stdout.strip()}"
+        )
+    try:
+        paths = json.loads(audit_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProfileError(f"cannot read worker source audit: {exc}") from None
+    if not isinstance(paths, dict):
+        raise ProfileError("worker source audit must be an object")
+    return paths
+
+
+def _bound_worker_command(
+    *,
+    profile_script: Path,
+    audit_path: Path,
+    implementation_config: Path,
+    raw_report_path: Path,
+    git_repo: Path,
+    data_repo: Path,
+) -> list[str]:
+    return [
+        sys.executable,
+        "-c",
+        _module_audit_program(run_profile=True),
+        str(profile_script),
+        str(audit_path),
+        "--config",
+        str(implementation_config),
+        "--output",
+        str(raw_report_path),
+        "--git-repo",
+        str(git_repo),
+        "--data-repo",
+        str(data_repo),
+        "--bound-worker",
+    ]
+
+
+def profile(
+    *,
+    config_path: Path,
+    report_path: Path,
+    git_repo: Path,
+    data_repo: Path,
+) -> dict[str, Any]:
+    """Orchestrate profiling from the configured immutable implementation tree."""
+
+    config = load_profile_config(config_path)
+    implementation_commit = _git(git_repo, "rev-parse", "HEAD")
+    dirty_output = _git(git_repo, "status", "--porcelain", "--untracked-files=all")
+    if implementation_commit != config.resolved["implementation_commit"]:
+        raise ProfileError(
+            f"profile target HEAD {implementation_commit} is not configured "
+            f"implementation commit {config.resolved['implementation_commit']}"
+        )
+    if dirty_output:
+        raise ProfileError("profile target repository is dirty")
+
+    execution_sources = inspect_execution_sources(git_repo, implementation_commit)
+    with tempfile.TemporaryDirectory(prefix="g7-profile-bound-") as temporary:
+        temporary_root = Path(temporary)
+        raw_report_path = temporary_root / "worker-report.json"
+        audit_path = temporary_root / "worker-sources.json"
+        worker_paths = _run_bound_worker(
+            git_repo=git_repo.resolve(),
+            data_repo=data_repo.resolve(),
+            config_path=config_path.resolve(),
+            raw_report_path=raw_report_path,
+            audit_path=audit_path,
+        )
+        expected_paths = {
+            relative: record["resolved_runtime_path"]
+            for relative, record in execution_sources["critical_files"].items()
+        }
+        if worker_paths != expected_paths:
+            raise ProfileError(
+                "measured worker imported different critical sources than its "
+                "pre-measurement audit"
+            )
+        try:
+            report = json.loads(raw_report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ProfileError(f"cannot read implementation worker report: {exc}") from None
+
+    if not isinstance(report, dict):
+        raise ProfileError("implementation worker report must be an object")
+    report["schema_version"] = 2
+    report["execution_sources"] = execution_sources
+    report["conditions"]["bound_execution_sources"] = "PASS"
+    report["verdict"] = (
+        "PASS"
+        if all(value == "PASS" for value in report["conditions"].values())
+        else "HOLD"
+    )
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    return report
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
@@ -472,14 +786,16 @@ def main() -> int:
         default=REPO,
         help="repository root containing verified local training data",
     )
+    parser.add_argument("--bound-worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
-        report = profile(
-            config_path=args.config.resolve(),
-            report_path=args.output.resolve(),
-            git_repo=args.git_repo.resolve(),
-            data_repo=args.data_repo.resolve(),
-        )
+        runner = _profile_in_process if args.bound_worker else profile
+        report = runner(
+                config_path=args.config.resolve(),
+                report_path=args.output.resolve(),
+                git_repo=args.git_repo.resolve(),
+                data_repo=args.data_repo.resolve(),
+            )
     except (OSError, ProfileError, RuntimeError, ValueError) as exc:
         print(f"G-7 profiling FAILED: {exc}", file=sys.stderr)
         return 1

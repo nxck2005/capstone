@@ -53,7 +53,10 @@ complete model has **1,640,957 parameters**, below 10,000,000 and 11,181,642.
 A bounded smoke used the real manifest-backed Imagenette training view, batch 2, `r_1_2`, AWGN,
 AMP, loss, backward, and one Adam step. It wrote no checkpoint or scientific result.
 
-The measured profile ran from a clean detached worktree at the implementation commit. It used all
+The corrected measured profile imported every critical project module from a clean detached
+worktree at the implementation commit. A pre-measurement audit and the measured worker both resolved
+the same module paths; the report binds each executed file to its SHA-256 and immutable git blob SHA.
+It used all
 8,469 Imagenette training examples, `r_1_2`, batch 32, zero workers, Adam, AMP, and three excluded
 warm-up steps. `results/profiling/g7_djscc_profile.json` records config hash
 `a31e426f11418c38ff094fde639f7d3bb9a9fa31261079d5efc84c363bd63974`.
@@ -68,11 +71,11 @@ from the later evidence files.
 | Compute capability / total memory | 8.9 / 8,585,216,000 bytes |
 | Achieved configured batch | 32 |
 | Full epoch | 265 batches, 8,469 examples |
-| Measured epoch time | 35.1711091640027 s |
-| Throughput | 240.79422575242359 images/s |
+| Measured epoch time | 48.68431210900235 s |
+| Throughput | 173.9574748645565 images/s |
 | Peak allocated VRAM | 966,199,296 bytes = 0.8998432159423828 GiB |
 | Peak reserved VRAM | 1,077,936,128 bytes = 1.00390625 GiB |
-| Projected 100-epoch time | 0.9769752545556306 h |
+| Projected 100-epoch time | 1.352342003027843 h |
 | Parameters | 1,640,957 |
 
 Every G-7 condition passed: complete primary-architecture epoch, configured batch 32, reserved VRAM
