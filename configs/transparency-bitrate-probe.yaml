@@ -54,4 +54,4 @@ outputs:
   worklog: worklogs/transparency-bitrate-probe.md
 cache_root: data/cache/transparency_bitrate/j2k
 shard_root: data/cache/transparency_bitrate/shards
-implementation_commit: 94f448db302f68c2f046cdd2f560d9e4805387db
+implementation_commit: 90007f165f8f669a54127bdd6539472cb2d3f534
