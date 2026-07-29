@@ -4,7 +4,7 @@ This file provides guidance to coding agents (Claude Code, and any other agent t
 
 ## Repository status
 
-**Implementation started 2026-07-28. Five W1 batches are committed: batch 1 (`e90a1e0`), batch 2 (`2b23c1e`), batch 3 (`72be2af`), batch 4 (`eba5bd2`) and the AM-77 dataset registry/provenance/manifest batch (`2c6f780`); the AM-72–76 remediation between batches 4 and 5 is committed as `8e59535`.** The staged pre-G-1 reference-classifier batch adds fail-closed extraction-marker verification, resumable archive fetches, AM-78, immutable train/validation views, a from-scratch Torchvision ResNet, deterministic initialization and epoch ordering, validation-only training, and atomic checkpoint/resume. The 100-epoch Imagenette run and G-1 are still unexecuted. When you add project tooling, record the commands here.
+**Implementation started 2026-07-28. W1 is complete.** Five bounded W1 batches are committed: batch 1 (`e90a1e0`), batch 2 (`2b23c1e`), batch 3 (`72be2af`), batch 4 (`eba5bd2`) and the AM-77 dataset registry/provenance/manifest batch (`2c6f780`); the AM-72–76 remediation is committed as `8e59535`, and the final pre-G-1 reference-classifier integrity implementation is committed as `89a3af4`. The clean 100-epoch Imagenette-160 campaign ran from scratch on 2026-07-29 and validation-only G-1 **passed** at 898/1000 = 0.898, best and final at epoch 99. The final/best checkpoint ID is `9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002`; the config hash is `a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1`. W2 is open; do not rerun G-1 or begin a fallback rung without new evidence requiring it. When you add project tooling, record the commands here.
 
 **`src/data/test_access.py` is the sole guarded boundary to the test split and nothing else may import it** (SR-22, DEC-12). That rule is enforced by an AST-walking test, not by convention, and it is the reason the module exists as its own file. Test access releases at `params.evaluation.test_access_gate` — **G-12, W11** — not G-10, which AM-60 caught pointing three weeks early.
 
@@ -16,7 +16,7 @@ non-normative by design (`spec/SPEC.md` wins on any conflict), and it is **expec
 before a session ends** if the state changed. Promote anything durable out of it: decisions become a
 `DEC` in `SPEC.md` §3, risks and provisional values go to `SPEC.md` §16, explanations go to `docs/`.
 
-**Where the spec stands.** It now carries 186 requirements (2 retired), of which 78 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done, G-9 passed, all five bounded W1 implementation batches plus remediation are committed, and the reference classifier is the current front of the queue.
+**Where the spec stands.** It now carries 186 requirements (2 retired), of which 78 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done, G-9 and G-1 passed, W1 is complete, and W2's channel model, power normalization, PAPR work, DJSCC skeleton and compute profiling through G-7 are the current engineering frontier.
 
 ### Commands
 
@@ -35,6 +35,7 @@ python spec/evidence/check_packetisation.py --json spec/evidence/packetisation_r
 .venv/bin/python tools/materialize_manifests.py --check  # regenerate in memory; compare exact committed bytes
 .venv/bin/python tools/verify_datasets.py                 # real train/val smoke + zero-call test-provenance audit
 .venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --smoke-steps 3 --smoke-val-batches 2  # bounded, ignored smoke only
+.venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --full-run  # production G-1 campaign; completed 2026-07-29
 .venv/bin/python -m pytest              # project test suite; config is in pyproject.toml
 ```
 

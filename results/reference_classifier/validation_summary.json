@@ -1,0 +1,1 @@
+{"administrative": {"device": "cuda", "num_workers": 0}, "best_epoch": 99, "best_validation_top1": 0.898, "config_hash": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1", "final_checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002", "final_epoch": 99, "g1_eligible": true, "run_complete": true}

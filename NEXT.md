@@ -7,32 +7,32 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-29 · **Phase:** **W1 — batches 1–5 and AM-72–76 remediation committed;
-AM-77 dataset registry/provenance/manifests landed as `2c6f780`; reference classifier then
-validation-only G-1 next** · spike executed,
-three rounds of external review adjudicated and applied (AM-26..AM-55 in `8e65329`, AM-56 and the
-docs sweep in `7b7c70a`, AM-57..AM-64 in `9d46d6d`), and **the first commit of project code this
-session (AM-65..AM-67)**, followed by batch 2's AM-68..AM-70, batch 4's AM-71, and the committed W1 sweep remediation AM-72..AM-76. `requirements.txt` is still tooling-only by design; the runtime stack now
-lives in the hashed `requirements.lock` that SR-21 asked for, and it is installed. AM-77 takes the
-spec to **185 requirements / 77 amendments**. All three normative archives were fetched, measured,
-pinned and verified twice; all three canonical manifests are committed artifacts and regenerate
-byte-for-byte; the real train/validation paths canonicalize successfully while the full
-provenance-only published-test scan records zero decoder and zero canonicalization calls. The final
-suite and CPU-lock clean install are recorded in the AM-77 block below.
+**Last updated:** 2026-07-29 · **Phase:** **W1 complete; validation-only G-1 PASS; W2 open.**
+The reference-classifier integrity implementation is committed as
+`89a3af48c48a91d6d272ba62337f890c59bb40a5`. The full clean Imagenette-160 campaign then ran
+fresh from epoch zero through epoch 99 on the configured RTX 4060 Laptop GPU path. It achieved
+**898/1000 = 0.898 validation top-1**, best and final at epoch 99, clearing the preregistered 0.88
+floor without a fallback rung.
 
-**2026-07-29 final trainer-integrity corrective handoff:** starting from clean base
-`b99bbdf33a4f0dbb762ef1215ed90624e85f1d4c`, a subsequent production audit found three remaining
-reference-classifier gaps. The staged correction makes official `run_epochs(full,
-full_run_requested=True)` the sole full-lineage path; public direct epoch helpers are irreversibly
-smoke/test-only, and full mode rejects external datasets and result-affecting bounds before work or
-artifact creation. Resume now compares the complete fresh optimizer param-group recipe (including
-schema, parameter cardinality, value types and values), and validation histories are exact
-integer-count evidence with the configured full schedule and recomputed earliest-tie best state.
-The final focused suite is `62 passed`, the classifier-related suite is `114 passed`, and the full
-suite is `250 passed`; all seven repository checks pass. Manual arbitrary-dataset, optimizer-mutation
-and validation-history exploits reject transactionally. No full Imagenette training or G-1 was run.
-See `worklogs/w1-reference-classifier-progress.md`; the next action is user review of the staged
-corrective diff.
+**G-1 evidence:** final and best checkpoint
+`9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002`; config hash
+`a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1`; Imagenette archive
+identity `64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5`; split-manifest
+identity `224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889`; code commit
+`89a3af48`; device NVIDIA GeForce RTX 4060 Laptop GPU, driver 592.82, Torch CUDA 13.0. Independent
+verification recomputed all 100 count-derived validation records, best selection, keyed epoch
+orders, checkpoint/config identities, optimizer/scheduler state and full-lineage fields, then
+exercised the transactional full-mode resume validator. The complete preflight suite was 250 passed;
+all wider G-1 checks passed. Test remained sealed: ordinary test loading is rejected, the guarded
+module is structurally isolated, full mode constructs only train/validation views, and the
+instrumented published-test provenance scans made zero decoder and canonicalization calls. There was
+therefore zero model-facing test loading, inference or accuracy computation.
+
+The four tracked aggregate evidence files are under `results/reference_classifier/`; all 100
+checkpoints are intentionally ignored under `checkpoints/reference_classifier/`. See
+`worklogs/w1-reference-classifier-progress.md` for the full adjudication. The next engineering
+frontier is W2's channel model, power normalization, PAPR work, DJSCC skeleton and compute profiling
+through G-7. Do not begin the reference-classifier fallback ladder: G-1 passed.
 
 ---
 
@@ -234,28 +234,21 @@ Review criterion** — it first appears at the Second — so these marks are for
 
 ### Cold-start: the first thing to do in a fresh session
 
-**Nothing blocks W1.** The specification side is finished; what remains is code. Registration is
-confirmed (AM-63), which was the only carried risk with no graceful degradation — every other failure
-mode has a fallback ladder, a recorded alternative outcome, or a gate that catches it. **Do not open
-another full-spec audit round.** The record says why: all fatal findings landed in rounds 0–3, the
-last one being AM-55 (ER-9 infeasible); rounds 4–9 have been correctness, defensibility and process,
-and rounds 6 and 8 found only damage the fixing itself caused. The two worst defects this project ever
-had — the silent LLR sign at BER 0.77 and rate 1/3 not existing at three operating points — were found
-by **running** the W0 spike, not by reading. G-1 and G-2 are the audits with teeth now.
+**W1 is complete and G-1 passed.** Do not reopen the reference-classifier recipe, start its fallback
+ladder, or open another full-spec audit round without new evidence. The next engineering task is W2:
+implement the channel model and explicit power normalization, add the required PAPR measurement and
+constraint path, build the DJSCC skeleton, and profile it through G-7. Registration remains confirmed
+(AM-63), and PR-9's author-owned hardware-alternative acknowledgement remains non-blocking.
 
-**State on 2026-07-29, verified:** committed batches 1–4 (`e90a1e0`, `2b23c1e`, `72be2af`,
-`eba5bd2`), AM-72..AM-76 remediation (`8e59535`) and the AM-77 dataset batch (`2c6f780`) form the
-repository base. `src/data/` now carries
-the adapters, identity, manifest, provenance and registry modules; `data/manifests/` carries three
-tracked CSVs; archives and extracted datasets exist locally but are ignored. There are still no
-`results/` or `checkpoints/`.
-`.venv` now holds the full runtime stack, installed from `requirements.lock`.
-Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` · RTX 4060 Laptop 8 GB · driver 592.82.
-srsRAN vectors **already fetched** to `spec/evidence/srsran_vectors/` (276 files, gitignored).
-Only IRL item still open: PR-9's hardware-alternative acknowledgement, which is not blocking — its
-acceptance criterion fires when the dossier is delivered, and the conversation sits before W4.
+**State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
+produced from that exact clean commit. `results/reference_classifier/` holds the four tracked
+aggregate artifacts, while `checkpoints/reference_classifier/` holds 100 ignored checkpoints from
+epoch 0 through 99. The best/final validation result is 898/1000 = 0.898 at epoch 99.
+`.venv` holds the locked runtime stack. Machine: Python 3.14.6 · `uv` 0.11.32 at `/usr/sbin/uv` ·
+RTX 4060 Laptop 8 GB · driver 592.82 · Torch CUDA 13.0. The three dataset archives/extractions and
+srsRAN vectors remain locally available and ignored as designed.
 
-Confirm nothing drifted, then continue with the reference classifier only:
+Confirm nothing drifted, then begin W2 only:
 
 ```bash
 .venv/bin/python tools/gen_spec_views.py --check           # expect: 186 requirements (2 retired)
@@ -265,9 +258,9 @@ Confirm nothing drifted, then continue with the reference classifier only:
 .venv/bin/python tools/fetch_datasets.py --check
 .venv/bin/python tools/materialize_manifests.py --check
 .venv/bin/python tools/verify_datasets.py
-.venv/bin/python -m pytest                                  # expect: 146 passed
+.venv/bin/python -m pytest                                  # expect: 250 passed
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
-git status --short                                          # expect: clean
+git status --short                                          # evidence/docs may be pending commit
 ```
 
 #### GPU access — probe it, do not assume it either way
@@ -507,9 +500,8 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-The specification/remediation checklist is complete and its hold is cleared. Three fronts remain:
-the W1 reference-classifier work through G-1, PR-1 and PR-2 for the First Review, and the author-owned
-PR-9 acknowledgement. The loader/provenance/manifest prerequisite is committed and verified.
+W1 and G-1 are complete. The next engineering front is W2 through G-7; PR-1 and PR-2 remain parallel
+First Review work, and the author-owned PR-9 acknowledgement remains open.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
@@ -517,17 +509,18 @@ PR-9 acknowledgement. The loader/provenance/manifest prerequisite is committed a
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
-| 4 | **Continue W1(f) below** — reference classifier from scratch, then validation-only G-1 | agent, **GPU required for training** | Loader, provenance, manifests, preprocessing and guard are landed; classifier provenance remains | all of W2+ |
-| 5 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
-| 6 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
+| ~~4~~ | ~~**Run W1(f) and adjudicate G-1**~~ **DONE 2026-07-29** — 0.898 at epoch 99, G-1 PASS | — | Full validation-only evidence verified; test stayed sealed | ~~all of W2+~~ |
+| 5 | **Build W2 through G-7** — channel, power normalization, PAPR, DJSCC skeleton, profiling | agent | G-1 now releases W2; this is the single next engineering task | W3+ |
+| 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
+| 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
-**Two landed guardrails the remaining W1 work must preserve:**
+**Two G-1 guardrails that remain binding downstream:**
 
 - **The identity/pairing keys (SR-18), manifest-bound registry (SR-2/SR-17) and test guard (SR-22)
   are already implemented.** The AM-77 path reuses the stable IDs and exposes no second model-facing
   test path. `run_id` alone used to *collide* between validation and test.
-- **G-1 is validation-only and must prove zero test decoder, canonicalization and inference calls.**
-  The data path and guard exist; the remaining classifier path must demonstrate that it obeys them.
+- **G-1 was validation-only and proved zero test decoder, canonicalization and inference calls.**
+  Keep the test boundary sealed until G-12; G-1 passing does not release it.
 
 **And one habit worth keeping.** This round found a passing evidence script that violated four rules
 it claimed to enforce, and then a follow-up audit found that the round's *own* schedule edits had
@@ -632,12 +625,14 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    `src/data/test_access.py` fails closed without a freeze manifest and is the sole allowed
    test boundary. The release point is **G-12 at W11** — not G-10, which now sits at the start of W9
    (AM-60). The ordinary registry rejects test, and the provenance-only scan records zero decoder
-   and canonicalization calls; G-1 must extend that proof through the classifier with zero inference.
+   and canonicalization calls. G-1 extended that proof through the classifier: the full path
+   constructs only train/validation views, the guarded module remained structurally isolated, and
+   there was zero model-facing test loading, inference or accuracy computation.
    Resolving the freeze-manifest hashes against real manifests
    and checkpoints remains deliberately deferred to G-12.
 
-   **(f) Reference classifier (BR-8, DEC-15) — IMPLEMENTED AND SMOKE-VERIFIED; G-1 NEXT.**
-   The staged AM-78 contract uses ResNet-18 **from scratch** from
+   **(f) Reference classifier (BR-8, DEC-15) — DONE; G-1 PASS 2026-07-29.**
+   The committed AM-78 contract uses ResNet-18 **from scratch** from
    `configs/reference-classifier-clean.yaml`; it accepts unnormalised tensors and applies the
    configured channel normalization as its first model operation. Initialization is the isolated
    keyed identity `(init, train_seed, reference_classifier.<arch>)`; each train epoch has an
@@ -648,18 +643,18 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    absence of that recipe was a straight SR-1 violation on the artifact that gates G-1 *and* defines
    the denominator of ER-3's whole selection rule (AM-27). Training is validation-only, performs
    integer-count top-1 selection with earliest-epoch ties, and atomically saves portable checkpoints
-   identified by exact finalized-file SHA-256. The bounded CUDA smoke completed three Imagenette
-   steps, validation and resume with no pretrained download and no test access. Owed: the actual
-   measured clean-accuracy artifact from the explicitly requested 100-epoch campaign.
+   identified by exact finalized-file SHA-256. The full fresh campaign completed epochs 0–99 with
+   100 exact validation records and selected 898/1000 = 0.898 at epoch 99. The best and final
+   checkpoint ID is
+   `9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002`.
 
-   **G-1 is `clean_acc_floor` = 0.88 on Imagenette, clean variant only, measured on validation.**
-   STL-10's and CIFAR-10's floors are reported but advisory (AM-13). If 0.88 does not come, the
-   fallback is now an **ordered ladder** rather than a licence (AM-58):
+   **G-1's `clean_acc_floor` = 0.88 on Imagenette passed in the clean variant on validation.**
+   STL-10's and CIFAR-10's floors remain advisory (AM-13). The fallback is an **ordered ladder**
+   rather than a licence (AM-58):
    `params.reference_classifier.fallback_ladder` — extend to 150 epochs, then ResNet-34, then
    ResNet-50 — selected on validation, stopping at the first rung that clears the floor, and still
    bound by SR-14's cap that the learned arm may not exceed the network scoring the classical arm.
-   It is not "lower the floor"; §16 says to move a floor *at G-1* as a recorded spec change if it
-   turns out wrong, not to quietly miss it later.
+   **Do not start it:** the base recipe cleared the floor.
 
    **Artifact ignore policy is already in place:** `.gitignore` excludes root `/data/`,
    `checkpoints/` and `results/per_image/`. Aggregate `results/*.csv` stays **tracked**, because ER-7
@@ -668,8 +663,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    inference summary is new (AM-57) and exists because the aggregate schema cannot hold an interval
    bound, a p-value or a verdict, i.e. exactly the numbers §2 turns on.
 
-   **Ordering constraint waiting on this:** the transparency-bitrate probe (item 4) needs a trained
-   classifier, so it slots in immediately after G-1. Don't re-derive that dependency.
+   The trained classifier now releases downstream scoring work. The current engineering order is
+   W2 through G-7; the transparency-bitrate probe remains downstream of this completed dependency.
 
 3. **Build BR-2's fixture when W3 approaches — the design is settled, the work is not done.** The
    spec now specifies a committed fetch-and-convert script that pins release `release_25_10`, verifies
@@ -755,6 +750,20 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-29 (full Imagenette campaign; G-1 PASS; W1 complete)** — Started from the clean committed
+  classifier implementation `89a3af48c48a91d6d272ba62337f890c59bb40a5`; no production artifact
+  existed, so the exact `--full-run` command ran fresh and uninterrupted through epoch 99. Best and
+  final validation were both 898/1000 = 0.898 at epoch 99, above the 0.88 floor. Final/best
+  checkpoint `9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002`; config
+  `a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1`; manifest
+  `224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889`. Independent verification
+  reproduced the count-derived history, exact earliest-tie selection, keyed epoch ordering,
+  optimizer/scheduler recipe, full lineage and all identities; transactional full resume accepted
+  the checkpoint. Wider archive/manifest, split, registry, config, preprocessing, environment,
+  accelerator and provenance obligations passed. The test boundary remained sealed with zero
+  test decode, canonicalization, model-facing load, inference or accuracy calls. W2 is open; its
+  channel/power/PAPR/DJSCC/profiling work through G-7 is next. The older staged entries below remain
+  point-in-time history.
 - **2026-07-29 (final pre-G-1 trainer-integrity correction, staged)** — Base `b99bbdf33a4f0dbb762ef1215ed90624e85f1d4c`. Closed three additional production-integrity gaps without an AM: only official `run_epochs(..., execution_mode="full", full_run_requested=True)` can establish full lineage and it internally constructs the manifest-backed training/validation views; all public direct epoch hooks are irreversible smoke/test lineage, and full mode rejects injected datasets or bounds before state/artifact mutation. The full CLI also defers production artifact creation until that official path. Resume now compares the complete fresh optimizer param-group schema, cardinality, types and values (with only the epoch LR substitution), and validates/recomputes count-derived validation accuracy, configured full validation schedule and earliest-tie best state before saving or restoring. Regression coverage added for direct hooks, dataset injection, full constructor ownership, CLI artifact ordering, full/smoke resume, all optimizer fields/schema/group mutations, validation count/schedule/best-state mutations and transactional invariance. Focused `62 passed`; classifier-related `114 passed`; complete `250 passed`; spec/doc/literal/packetisation/archive/manifest/dataset checks passed. Manual arbitrary-data, `maximize`, inconsistent-count and missing-scheduled-validation exploit cases all rejected. Full Imagenette training and G-1 were not run. Next: user review of staged corrective diff.
 - **2026-07-29 (reference-classifier pre-G-1 batch staged)** — **AM-78; 185 → 186 requirements and 77 → 78 amendments.** Added fail-closed extraction-marker binding and Range-resumable archive finalization, the immutable dedicated classifier configuration, source-ID augmentation views, isolated keyed model initialization, keyed epoch ordering, model-owned normalization, validation-only SGD, exact warmup/cosine scheduling, atomic portable checkpoints and direct-epoch resume. The complete network-free suite passed `192`; three real CUDA Imagenette steps and a resume step passed under ignored `checkpoints/smoke/`, with checkpoint hashes `669c82a1…bd2345c` and `90787eda…8ab627`. Full 100-epoch Imagenette training was not started and G-1 was not executed. Next: review/commit this batch, then run the preregistered full Imagenette campaign as its own evidence batch.
 - **2026-07-29 (AM-77 committed and cold-start handoff refreshed)** — The complete dataset

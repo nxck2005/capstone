@@ -62,11 +62,17 @@ fingerprints, a genuinely CPU-only lock, source-bound preprocessing plus exact R
 honest OpenJPEG provisioning, and current-document consistency coverage. The AM-77 batch is
 committed as `2c6f780`: one registry over Imagenette-160/STL-10/CIFAR-10,
 real source-byte decoders, exact archive provenance, and deterministic committed split manifests.
-The staged pre-G-1 batch completes extraction-marker binding and resumable archive fetches, and
-implements AM-78's deterministic reference classifier: `configs/reference-classifier-clean.yaml`,
-model-owned normalization, keyed initialization and keyed epoch ordering, validation-only SGD,
-and atomic portable checkpoints. **W0 is complete and W1 remains open**: the 100-epoch Imagenette
-campaign and validation-only G-1 remain next and have not been run.
+The reference-classifier integrity implementation is committed as `89a3af4`: extraction-marker
+binding, resumable archive fetches, AM-78's deterministic from-scratch classifier, model-owned
+normalization, keyed initialization and epoch ordering, validation-only SGD, and atomic portable
+checkpoints. **W1 is complete and validation-only G-1 passed on 2026-07-29.** The clean
+Imagenette-160 campaign ran all 100 epochs from scratch and reached **898/1000 = 0.898 validation
+top-1 at epoch 99**, above the preregistered 0.88 floor. The final and best checkpoint are both
+`9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002`; the config hash is
+`a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1`. The four aggregate
+classifier evidence files live under `results/reference_classifier/`; the 100 model checkpoints
+remain intentionally ignored. W2 is now open, with channel modelling, power normalization, PAPR,
+the DJSCC skeleton and compute profiling through G-7 as the next engineering frontier.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
