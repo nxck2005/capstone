@@ -84,8 +84,20 @@ corrected, implementation-bound Imagenette `r_1_2` CUDA profile completed batch 
 reserved 1.004 GiB, projects 100 epochs to 1.352 h, and measured 1,640,957 parameters. Every
 critical imported project module is recorded by resolved path, executed-byte SHA-256 and immutable
 W2 git blob SHA. The machine-readable report lives under `results/profiling/` and verifies offline.
-The single next engineering task is the
-transparency-bitrate probe with the frozen classifier, before W3/W4 baseline work.
+The validation-only JPEG 2000 transparency-bitrate probe is also complete. It loaded the exact
+frozen classifier above, reproduced **898/1000 = 0.898** on the uncompressed validation view, then
+evaluated 1,000 stable validation IDs across 17 frozen byte budgets and the 160/128/96/64 encode
+axes: 68,000 cells, with zero infeasible encodes and zero decode failures. OpenJPEG 2.5.4 through
+Glymur 0.14.3 used raw codestreams, irreversible 9/7, RPCL, six resolutions, 64×64 code blocks and
+whole-image tiles. The selection-aware paired bootstrap forecasts the 5 pp
+`probe_efficiency_threshold` at **1,330 bytes** (axis 128, mean 0.408654 bpp, 0.870 accuracy,
+one-sided 95% LCB −0.041) and the 2 pp `probe_crossover_threshold` at **3,200 bytes** (axis 160,
+mean 0.987788 bpp, 0.886 accuracy, LCB −0.018). Neither result is censored. These are engineering
+forecasts, not G-8 operating-point selections: G-8 remains unresolved, no training ran, and the
+test split stayed sealed. Evidence lives under `results/probes/transparency_bitrate/` and verifies
+with `tools/verify_transparency_bitrate_probe.py`.
+The single next engineering task is **W3: LDPC fixture/integration, BER/BLER validation, and complete
+packetisation/bit accounting through G-2**. W4 and G-8 have not started.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17

@@ -292,6 +292,11 @@ def _make_source_repository(tmp_path: Path) -> tuple[Path, str, Path]:
         cwd=repository,
         check=True,
     )
+    subprocess.run(
+        ["git", "config", "commit.gpgsign", "false"],
+        cwd=repository,
+        check=True,
+    )
     subprocess.run(["git", "add", "src/env.py"], cwd=repository, check=True)
     subprocess.run(
         ["git", "commit", "-q", "-m", "fixture"],

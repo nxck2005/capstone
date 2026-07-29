@@ -187,6 +187,17 @@ def evaluation_input(product: CanonicalProduct) -> torch.Tensor:
     return encoder_input(product)
 
 
+def reconstruction_input(image: np.ndarray) -> torch.Tensor:
+    """Convert decoded canonical-size uint8 RGB pixels for classifier inference.
+
+    The reference classifier owns channel normalisation.  This boundary applies
+    no crop, augmentation, resize, or normalisation and deliberately reuses the
+    sole canonical uint8-to-tensor conversion.
+    """
+
+    return _canonical_uint8_to_tensor(image)
+
+
 def training_input(
     product: CanonicalProduct,
     rng_identity: Mapping[str, Any],

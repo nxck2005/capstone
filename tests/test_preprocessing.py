@@ -24,6 +24,7 @@ from data.preprocessing import (
     encoder_input,
     evaluation_input,
     reconstruction_metrics,
+    reconstruction_input,
     reconstruction_psnr,
     stable_sample_id,
     training_input,
@@ -110,6 +111,33 @@ def test_eval_path_is_deterministic_and_never_normalises():
         tuple(get("preprocessing.channel_mean")),
         tuple(get("preprocessing.channel_std")),
     )
+
+
+def test_reconstruction_input_is_byte_and_tensor_identical_to_evaluation_input():
+    product = _product()
+    reconstructed = product.canonical_image.copy()
+
+    tensor = reconstruction_input(reconstructed)
+
+    np.testing.assert_array_equal(reconstructed, product.canonical_image)
+    assert torch.equal(tensor, evaluation_input(product))
+    assert tensor.dtype == torch.float32
+    assert tensor.shape == (3, *product.canonical_image.shape[:2])
+    assert float(tensor.min()) >= 0
+    assert float(tensor.max()) <= 1
+
+
+@pytest.mark.parametrize(
+    "invalid",
+    [
+        np.zeros((8, 8), dtype=np.uint8),
+        np.zeros((8, 8, 4), dtype=np.uint8),
+        np.zeros((8, 8, 3), dtype=np.float32),
+    ],
+)
+def test_reconstruction_input_accepts_only_uint8_rgb_hwc(invalid: np.ndarray):
+    with pytest.raises((TypeError, ValueError)):
+        reconstruction_input(invalid)
 
 
 def test_train_path_is_keyed_reproducible_and_identity_sensitive():

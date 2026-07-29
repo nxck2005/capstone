@@ -1,0 +1,595 @@
+{
+  "aggregate_file_hash": "8f6bdefd0cd05275881cfb66a9f97070c14b541600c2fd962fee4d675f5a59e0",
+  "archive_identity": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+  "bootstrap": {
+    "budgets": [
+      {
+        "budget_bytes": 663,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 0.20390125,
+        "meets_2pp": false,
+        "meets_5pp": false,
+        "one_sided_95_lower_bound": -0.14100000000000001,
+        "point_difference": -0.124,
+        "requested_bpp": 0.2071875,
+        "selected_accuracy": 0.774,
+        "selected_encode_axis": 96,
+        "selected_n_correct": 774
+      },
+      {
+        "budget_bytes": 800,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 0.24599625000000003,
+        "meets_2pp": false,
+        "meets_5pp": false,
+        "one_sided_95_lower_bound": -0.10799999999999998,
+        "point_difference": -0.09199999999999997,
+        "requested_bpp": 0.25,
+        "selected_accuracy": 0.806,
+        "selected_encode_axis": 96,
+        "selected_n_correct": 806
+      },
+      {
+        "budget_bytes": 1330,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 0.408654375,
+        "meets_2pp": false,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.041000000000000036,
+        "point_difference": -0.028000000000000025,
+        "requested_bpp": 0.415625,
+        "selected_accuracy": 0.87,
+        "selected_encode_axis": 128,
+        "selected_n_correct": 870
+      },
+      {
+        "budget_bytes": 1600,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 0.4920315625,
+        "meets_2pp": false,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.041000000000000036,
+        "point_difference": -0.029000000000000026,
+        "requested_bpp": 0.5,
+        "selected_accuracy": 0.869,
+        "selected_encode_axis": 128,
+        "selected_n_correct": 869
+      },
+      {
+        "budget_bytes": 2400,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 0.7399534375000001,
+        "meets_2pp": false,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.02400000000000002,
+        "point_difference": -0.015000000000000013,
+        "requested_bpp": 0.75,
+        "selected_accuracy": 0.883,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 883
+      },
+      {
+        "budget_bytes": 2661,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 0.8210443749999999,
+        "meets_2pp": false,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.02100000000000002,
+        "point_difference": -0.014000000000000012,
+        "requested_bpp": 0.8315625,
+        "selected_accuracy": 0.884,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 884
+      },
+      {
+        "budget_bytes": 3200,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 0.9877875,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.018000000000000016,
+        "point_difference": -0.01200000000000001,
+        "requested_bpp": 1.0,
+        "selected_accuracy": 0.886,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 886
+      },
+      {
+        "budget_bytes": 4000,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 1.235976875,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.01200000000000001,
+        "point_difference": -0.007000000000000006,
+        "requested_bpp": 1.25,
+        "selected_accuracy": 0.891,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 891
+      },
+      {
+        "budget_bytes": 4800,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 1.485043125,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.007000000000000006,
+        "point_difference": -0.0040000000000000036,
+        "requested_bpp": 1.5,
+        "selected_accuracy": 0.894,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 894
+      },
+      {
+        "budget_bytes": 5328,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 1.6485549999999998,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.0040000000000000036,
+        "point_difference": -0.0010000000000000009,
+        "requested_bpp": 1.665,
+        "selected_accuracy": 0.897,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 897
+      },
+      {
+        "budget_bytes": 5344,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 1.653524375,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.0040000000000000036,
+        "point_difference": -0.0010000000000000009,
+        "requested_bpp": 1.67,
+        "selected_accuracy": 0.897,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 897
+      },
+      {
+        "budget_bytes": 6400,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 1.9810375,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.006000000000000005,
+        "point_difference": -0.0030000000000000027,
+        "requested_bpp": 2.0,
+        "selected_accuracy": 0.895,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 895
+      },
+      {
+        "budget_bytes": 8000,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 2.473208125,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": -0.0040000000000000036,
+        "point_difference": -0.0020000000000000018,
+        "requested_bpp": 2.5,
+        "selected_accuracy": 0.896,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 896
+      },
+      {
+        "budget_bytes": 9600,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 2.9606056250000004,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": 0.0,
+        "point_difference": 0.0010000000000000009,
+        "requested_bpp": 3.0,
+        "selected_accuracy": 0.899,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 899
+      },
+      {
+        "budget_bytes": 10656,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 3.2728065625,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": 0.0,
+        "point_difference": 0.0,
+        "requested_bpp": 3.33,
+        "selected_accuracy": 0.898,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 898
+      },
+      {
+        "budget_bytes": 12800,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 3.8754565625000006,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": 0.0,
+        "point_difference": 0.0,
+        "requested_bpp": 4.0,
+        "selected_accuracy": 0.898,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 898
+      },
+      {
+        "budget_bytes": 15997,
+        "clean_accuracy": 0.898,
+        "mean_realized_bpp": 4.6725109375,
+        "meets_2pp": true,
+        "meets_5pp": true,
+        "one_sided_95_lower_bound": 0.0,
+        "point_difference": 0.0,
+        "requested_bpp": 4.9990625,
+        "selected_accuracy": 0.898,
+        "selected_encode_axis": 160,
+        "selected_n_correct": 898
+      }
+    ],
+    "identity": "transparency-bitrate-probe-selection-aware-v1",
+    "method": "stable_id_trajectory_selection_aware_paired_bootstrap",
+    "one_sided_confidence": 0.95,
+    "quantile_method": "lower",
+    "resamples": 10000,
+    "seed": 20260730
+  },
+  "bootstrap_resamples": 10000,
+  "budget_grid": [
+    {
+      "budget_bytes": 663,
+      "requested_bpp": 0.2071875,
+      "sources": [
+        "packetisation:qam16:5/6:r_1_48"
+      ]
+    },
+    {
+      "budget_bytes": 800,
+      "requested_bpp": 0.25,
+      "sources": [
+        "direct_bpp:0.25"
+      ]
+    },
+    {
+      "budget_bytes": 1330,
+      "requested_bpp": 0.415625,
+      "sources": [
+        "packetisation:qam16:5/6:r_1_24"
+      ]
+    },
+    {
+      "budget_bytes": 1600,
+      "requested_bpp": 0.5,
+      "sources": [
+        "direct_bpp:0.50"
+      ]
+    },
+    {
+      "budget_bytes": 2400,
+      "requested_bpp": 0.75,
+      "sources": [
+        "direct_bpp:0.75"
+      ]
+    },
+    {
+      "budget_bytes": 2661,
+      "requested_bpp": 0.8315625,
+      "sources": [
+        "packetisation:qam16:5/6:r_1_12"
+      ]
+    },
+    {
+      "budget_bytes": 3200,
+      "requested_bpp": 1.0,
+      "sources": [
+        "direct_bpp:1.00"
+      ]
+    },
+    {
+      "budget_bytes": 4000,
+      "requested_bpp": 1.25,
+      "sources": [
+        "direct_bpp:1.25"
+      ]
+    },
+    {
+      "budget_bytes": 4800,
+      "requested_bpp": 1.5,
+      "sources": [
+        "direct_bpp:1.50"
+      ]
+    },
+    {
+      "budget_bytes": 5328,
+      "requested_bpp": 1.665,
+      "sources": [
+        "packetisation:qam16:5/6:r_1_6"
+      ]
+    },
+    {
+      "budget_bytes": 5344,
+      "requested_bpp": 1.67,
+      "sources": [
+        "direct_bpp:1.67"
+      ]
+    },
+    {
+      "budget_bytes": 6400,
+      "requested_bpp": 2.0,
+      "sources": [
+        "direct_bpp:2.00"
+      ]
+    },
+    {
+      "budget_bytes": 8000,
+      "requested_bpp": 2.5,
+      "sources": [
+        "direct_bpp:2.50"
+      ]
+    },
+    {
+      "budget_bytes": 9600,
+      "requested_bpp": 3.0,
+      "sources": [
+        "direct_bpp:3.00"
+      ]
+    },
+    {
+      "budget_bytes": 10656,
+      "requested_bpp": 3.33,
+      "sources": [
+        "packetisation:qam16:5/6:r_1_3",
+        "direct_bpp:3.33"
+      ]
+    },
+    {
+      "budget_bytes": 12800,
+      "requested_bpp": 4.0,
+      "sources": [
+        "direct_bpp:4.00"
+      ]
+    },
+    {
+      "budget_bytes": 15997,
+      "requested_bpp": 4.9990625,
+      "sources": [
+        "packetisation:qam16:5/6:r_1_2"
+      ]
+    }
+  ],
+  "cache_manifest_hash": "94bde1e183ff5c2b2b8c2bdd222837bd8ab5b8b6b7340ad0f861a7e0603ac5de",
+  "cache_size_bytes": 464997315,
+  "classifier_checkpoint_identity": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+  "classifier_config_identity": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
+  "classifier_variant": "clean",
+  "clean_validation": {
+    "n_correct": 898,
+    "n_total": 1000,
+    "top1_accuracy": 0.898
+  },
+  "codec_configuration": {
+    "baseline": {
+      "downsample_axis_never_upscales": true,
+      "downsample_axis_px": {
+        "cifar10": [
+          32,
+          24,
+          16
+        ],
+        "imagenette160": [
+          160,
+          128,
+          96,
+          64
+        ],
+        "stl10": [
+          96,
+          80,
+          64,
+          48
+        ]
+      },
+      "j2k_binding": "glymur",
+      "j2k_cache_key": [
+        "canonical_pixels_sha256",
+        "budget_bytes",
+        "encode_axis_px",
+        "codec_config_hash",
+        "j2k_impl_version"
+      ],
+      "j2k_code_block_size": [
+        64,
+        64
+      ],
+      "j2k_container": "raw_codestream",
+      "j2k_emitted_size_authoritative": true,
+      "j2k_impl": "openjpeg",
+      "j2k_impl_version": "2.5.4",
+      "j2k_nonmonotone_policy": "keep_largest_codestream_at_or_below_budget",
+      "j2k_progression_order": "RPCL",
+      "j2k_rate_control": "largest_codestream_within_budget",
+      "j2k_rate_control_method": "cached_search_over_compression_ratio",
+      "j2k_resolutions": 6,
+      "j2k_search_bounds": [
+        1.0,
+        4000.0
+      ],
+      "j2k_search_max_iters": 24,
+      "j2k_search_method": "bisection_on_compression_ratio",
+      "j2k_search_tolerance_bytes": 16,
+      "j2k_tile_size": "whole_image",
+      "j2k_wavelet": "irreversible_9_7",
+      "source_codec": "jpeg2000"
+    },
+    "environment": {
+      "glymur": "0.14.3",
+      "openjpeg": "2.5.4"
+    },
+    "preprocessing": {
+      "codec_downsample_interpolation": "bilinear",
+      "codec_input": "canonical_8bit_pixels",
+      "codec_resize_preserves_aspect": true,
+      "codec_upsample_interpolation": "bicubic"
+    }
+  },
+  "codec_configuration_hash": "1a0b0d74bef1caed33b8cff8f866dee967ff202493a0a8e2993619e0b1e2a064",
+  "codec_totals": {
+    "decode_failure_count": 0,
+    "infeasible_count": 0
+  },
+  "commands_used": [
+    ".venv/bin/python tools/run_transparency_bitrate_probe.py --pilot",
+    ".venv/bin/python tools/run_transparency_bitrate_probe.py --axis 160",
+    ".venv/bin/python tools/run_transparency_bitrate_probe.py --axis 128",
+    ".venv/bin/python tools/run_transparency_bitrate_probe.py --axis 96",
+    ".venv/bin/python tools/run_transparency_bitrate_probe.py --axis 64",
+    ".venv/bin/python tools/run_transparency_bitrate_probe.py --merge"
+  ],
+  "completed_validation_cells": 68000,
+  "dataset": "imagenette160",
+  "dataset_identity": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+  "encode_axis_order": [
+    160,
+    128,
+    96,
+    64
+  ],
+  "g8_status": "unresolved",
+  "git_dirty_state": false,
+  "glymur_version": "0.14.3",
+  "manifest_identity": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+  "measurement_commit": "3ccb0aa970e8d2d36f65f89a840785f92f73dec5",
+  "openjpeg_version": "2.5.4",
+  "per_image_file_hash": "6602932cbbd728502b36e7a2794fa95e42c0348922bbfae93cc9e79573868085",
+  "point_estimate_best_axes": [
+    {
+      "budget_bytes": 663,
+      "encode_axis": 96
+    },
+    {
+      "budget_bytes": 800,
+      "encode_axis": 96
+    },
+    {
+      "budget_bytes": 1330,
+      "encode_axis": 128
+    },
+    {
+      "budget_bytes": 1600,
+      "encode_axis": 128
+    },
+    {
+      "budget_bytes": 2400,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 2661,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 3200,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 4000,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 4800,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 5328,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 5344,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 6400,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 8000,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 9600,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 10656,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 12800,
+      "encode_axis": 160
+    },
+    {
+      "budget_bytes": 15997,
+      "encode_axis": 160
+    }
+  ],
+  "probe_crossover_threshold": {
+    "label": "probe_crossover_threshold",
+    "left_censored": false,
+    "result": {
+      "budget_bytes": 3200,
+      "clean_accuracy": 0.898,
+      "mean_realized_bpp": 0.9877875,
+      "meets_2pp": true,
+      "meets_5pp": true,
+      "one_sided_95_lower_bound": -0.018000000000000016,
+      "point_difference": -0.01200000000000001,
+      "requested_bpp": 1.0,
+      "selected_accuracy": 0.886,
+      "selected_encode_axis": 160,
+      "selected_n_correct": 886
+    },
+    "right_censored": false,
+    "status": "measured"
+  },
+  "probe_efficiency_threshold": {
+    "label": "probe_efficiency_threshold",
+    "left_censored": false,
+    "result": {
+      "budget_bytes": 1330,
+      "clean_accuracy": 0.898,
+      "mean_realized_bpp": 0.408654375,
+      "meets_2pp": false,
+      "meets_5pp": true,
+      "one_sided_95_lower_bound": -0.041000000000000036,
+      "point_difference": -0.028000000000000025,
+      "requested_bpp": 0.415625,
+      "selected_accuracy": 0.87,
+      "selected_encode_axis": 128,
+      "selected_n_correct": 870
+    },
+    "right_censored": false,
+    "status": "measured"
+  },
+  "probe_status": "COMPLETE",
+  "probe_wall_time_s": 4612.091769229002,
+  "prominent_declaration": "Validation-only engineering probe. Does not select or replace G-8 operating points.",
+  "provisional_bandwidth_parameters": {
+    "crossover_ratio": "r_1_3",
+    "crossover_ratio_status": "provisional_until_G-8",
+    "efficiency_ratio": "r_1_6",
+    "efficiency_ratio_status": "provisional_until_G-8",
+    "low_ratio_operating_point": "r_1_12",
+    "low_ratio_operating_point_status": "provisional_until_G-8"
+  },
+  "resolved_config_hash": "d18034ada00827178f455bb59d7b3f0ffdf55ca1464256b7820ff22f02f509c0",
+  "schema_version": 1,
+  "split": "validation",
+  "test_isolation_declaration": {
+    "test_accessed": false,
+    "test_accuracy_computed": false,
+    "test_inference": false,
+    "test_split_sealed": true
+  },
+  "threshold_definitions": {
+    "probe_crossover_threshold_max_drop_pp": 2,
+    "probe_efficiency_threshold_max_drop_pp": 5
+  },
+  "training_performed": false
+}

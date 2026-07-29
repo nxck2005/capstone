@@ -1,0 +1,57 @@
+experiment: transparency_bitrate_probe
+dataset: imagenette160
+split: validation
+classifier_variant: clean
+classifier:
+  checkpoint_sha256: 9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002
+  config_hash: a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1
+codec: jpeg2000
+encode_axes_px: [160, 128, 96, 64]
+classifier_batch_size: 128
+bootstrap:
+  method: stable_id_trajectory_selection_aware_paired_bootstrap
+  resamples: 10000
+  seed: 20260730
+  identity: transparency-bitrate-probe-selection-aware-v1
+  one_sided_confidence: 0.95
+  quantile_method: lower
+tie_breaking: highest_integer_n_correct_then_first_configured_axis
+pilot:
+  size: 10
+  selection: lowest_sha256_of_identity_separator_stable_sample_id
+  identity: transparency-bitrate-probe-pilot-v1
+packetisation_budget_selector:
+  dataset: imagenette160
+  modulation: qam16
+  nominal_rate: 5/6
+budget_grid:
+  - {budget_bytes: 663, requested_bpp: 0.2071875, sources: [packetisation:qam16:5/6:r_1_48]}
+  - {budget_bytes: 800, requested_bpp: 0.25, sources: [direct_bpp:0.25]}
+  - {budget_bytes: 1330, requested_bpp: 0.415625, sources: [packetisation:qam16:5/6:r_1_24]}
+  - {budget_bytes: 1600, requested_bpp: 0.50, sources: [direct_bpp:0.50]}
+  - {budget_bytes: 2400, requested_bpp: 0.75, sources: [direct_bpp:0.75]}
+  - {budget_bytes: 2661, requested_bpp: 0.8315625, sources: [packetisation:qam16:5/6:r_1_12]}
+  - {budget_bytes: 3200, requested_bpp: 1.00, sources: [direct_bpp:1.00]}
+  - {budget_bytes: 4000, requested_bpp: 1.25, sources: [direct_bpp:1.25]}
+  - {budget_bytes: 4800, requested_bpp: 1.50, sources: [direct_bpp:1.50]}
+  - {budget_bytes: 5328, requested_bpp: 1.665, sources: [packetisation:qam16:5/6:r_1_6]}
+  - {budget_bytes: 5344, requested_bpp: 1.67, sources: [direct_bpp:1.67]}
+  - {budget_bytes: 6400, requested_bpp: 2.00, sources: [direct_bpp:2.00]}
+  - {budget_bytes: 8000, requested_bpp: 2.50, sources: [direct_bpp:2.50]}
+  - {budget_bytes: 9600, requested_bpp: 3.00, sources: [direct_bpp:3.00]}
+  - {budget_bytes: 10656, requested_bpp: 3.33, sources: [packetisation:qam16:5/6:r_1_3, direct_bpp:3.33]}
+  - {budget_bytes: 12800, requested_bpp: 4.00, sources: [direct_bpp:4.00]}
+  - {budget_bytes: 15997, requested_bpp: 4.9990625, sources: [packetisation:qam16:5/6:r_1_2]}
+thresholds:
+  probe_efficiency_threshold_max_drop_pp: 5
+  probe_crossover_threshold_max_drop_pp: 2
+outputs:
+  resolved_config: results/probes/transparency_bitrate/resolved_config.json
+  aggregate: results/probes/transparency_bitrate/aggregate.csv
+  per_image: results/probes/transparency_bitrate/per_image.csv
+  summary: results/probes/transparency_bitrate/summary.json
+  cache_manifest: results/probes/transparency_bitrate/cache_manifest.json
+  worklog: worklogs/transparency-bitrate-probe.md
+cache_root: data/cache/transparency_bitrate/j2k
+shard_root: data/cache/transparency_bitrate/shards
+implementation_commit: 94f448db302f68c2f046cdd2f560d9e4805387db

@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-29 · **Phase:** **W2 complete; G-7 PASS; transparency-bitrate probe next.**
+**Last updated:** 2026-07-30 · **Phase:** **Transparency-bitrate probe complete; W3 through G-2 next.**
 The reference-classifier integrity implementation is committed as
 `89a3af48c48a91d6d272ba62337f890c59bb40a5`. The full clean Imagenette-160 campaign then ran
 fresh from epoch zero through epoch 99 on the configured RTX 4060 Laptop GPU path. It achieved
@@ -41,16 +41,22 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 
 1. ~~Evidence-hardening cleanup.~~ **Complete.**
 2. ~~**W2 implementation through G-7.**~~ **Complete — G-7 PASS.**
-3. **Transparency-bitrate probe using the frozen reference classifier.**
-4. **W3.**
+3. ~~**Transparency-bitrate probe using the frozen reference classifier.**~~ **Complete.**
+4. **W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting
+   through G-2.**
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
 in 48.684 s, with 1.004 GiB peak reserved VRAM, a 1.352 h 100-epoch projection and 1,640,957
 parameters. Every critical runtime module is byte- and blob-bound to the clean detached W2
-implementation worktree. Do not begin W3/W4
-baseline work until the transparency-bitrate probe is complete, and do not begin the
-reference-classifier fallback ladder: G-1 passed.
+implementation worktree. The subsequent validation-only JPEG 2000 probe loaded the exact frozen
+G-1 checkpoint, reproduced 898/1000 clean, and completed all 68,000 fixed budget/axis/sample cells.
+OpenJPEG 2.5.4 through Glymur 0.14.3 produced zero infeasible cells and zero decode failures. The
+selection-aware paired bootstrap forecasts the 5 pp threshold at 1,330 bytes (axis 128, mean
+0.408654 bpp, 0.870 accuracy, LCB −0.041) and the 2 pp threshold at 3,200 bytes (axis 160, mean
+0.987788 bpp, 0.886 accuracy, LCB −0.018); neither is censored. These are probe forecasts only:
+G-8 remains unresolved. No training ran and the test split stayed sealed. Do not begin W4, G-8, or
+the reference-classifier fallback ladder.
 
 ---
 
@@ -252,11 +258,12 @@ Review criterion** — it first appears at the Second — so these marks are for
 
 ### Cold-start: the first thing to do in a fresh session
 
-**W1 and W2 are complete; G-1 and G-7 passed.** Do not reopen the reference-classifier recipe,
-start its fallback ladder, implement the G-7 width fallback, or open another full-spec audit round
-without new evidence. The single next engineering task is the transparency-bitrate probe using the
-frozen reference classifier. It must finish before W3/W4 baseline work. Registration remains
-confirmed (AM-63), and PR-9's author-owned hardware-alternative acknowledgement remains
+**W1 and W2, G-1, G-7 and the validation-only transparency-bitrate probe are complete.** Do not
+reopen the reference-classifier recipe, start its fallback ladder, implement the G-7 width fallback,
+select a G-8 operating point from the probe, or open another full-spec audit round without new
+evidence. The single next engineering task is W3: LDPC fixture/integration, BER/BLER validation, and
+complete packetisation/bit accounting through G-2. Registration remains confirmed (AM-63), and
+PR-9's author-owned hardware-alternative acknowledgement remains
 non-blocking.
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
@@ -522,9 +529,10 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-W1, W2, G-1 and G-7 are complete. The transparency-bitrate probe is the next engineering task;
-PR-1 and PR-2 remain parallel First Review work, and the author-owned PR-9 acknowledgement remains
-open.
+W1, W2, G-1, G-7 and the validation-only transparency-bitrate probe are complete. The single next
+engineering task is W3's LDPC fixture/integration, BER/BLER validation, and complete
+packetisation/bit accounting through G-2. PR-1 and PR-2 remain parallel First Review work, and the
+author-owned PR-9 acknowledgement remains open.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
@@ -534,7 +542,8 @@ open.
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
 | ~~4~~ | ~~**Run W1(f) and adjudicate G-1**~~ **DONE 2026-07-29** — 0.898 at epoch 99, G-1 PASS | — | Full validation-only evidence verified; test stayed sealed | ~~all of W2+~~ |
 | ~~5~~ | ~~**Build W2 through G-7**~~ **DONE 2026-07-29** — primary model, batch 32, G-7 PASS | — | Corrected implementation-bound full training-only CUDA epoch; 48.684 s, 1.004 GiB reserved, 1.352 h projected | ~~W3+~~ |
-| 5a | **Transparency-bitrate probe with the frozen classifier** | agent | W2/G-7 and G-1 are complete; deliberately before baseline integration | W3/W4 |
+| ~~5a~~ | ~~**Transparency-bitrate probe with the frozen classifier**~~ **DONE 2026-07-30** — 68,000 validation cells, 0 infeasible, 0 decode failures | — | Frozen classifier reproduced 898/1000; forecasts only, G-8 unresolved | ~~W3/W4~~ |
+| 5b | **W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2** | agent | Probe complete; G-9 fixtures and packetisation evidence are ready | W4+ |
 | 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
@@ -687,8 +696,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    inference summary is new (AM-57) and exists because the aggregate schema cannot hold an interval
    bound, a p-value or a verdict, i.e. exactly the numbers §2 turns on.
 
-   The trained classifier releases downstream scoring work, and W2/G-7 are now complete. The
-   transparency-bitrate probe is the next task.
+   The trained classifier released downstream scoring work, W2/G-7 are complete, and the
+   validation-only transparency-bitrate probe has now finished without changing the classifier.
 
 3. **Build BR-2's fixture when W3 approaches — the design is settled, the work is not done.** The
    spec now specifies a committed fetch-and-convert script that pins release `release_25_10`, verifies
@@ -700,11 +709,11 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    - **The comparison can only cover rates above each base graph's minimum**, since Sionna refuses to
      encode below them. Say so in the fixture rather than quietly truncating.
 
-4. **Transparency bitrate — classifier dependency is complete.** `r ≈ 1/5` rests on the estimate that
-   JPEG 2000 goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines
-   how much airtime the headline comparison needs. The trained reference classifier now exists, so
-   the probe is unblocked. The fixed order is now at this probe, before W3/W4 baseline work. No
-   ImageNet-pretrained proxy is needed, and
+4. **Transparency bitrate — probe complete, G-8 still unresolved.** The old `r ≈ 1/5` planning
+   estimate rested on visual transparency around 1.5–2.0 bpp at 160 px. The frozen validation-only
+   task probe instead forecasts its 5 pp condition at mean 0.408654 bpp and its 2 pp condition at
+   mean 0.987788 bpp. These forecasts are evidence for later engineering, not replacements for the
+   provisional ratios and not a G-8 selection. No ImageNet-pretrained proxy was used, and
    DEC-15 continues to ban pretrained weights for the reference classifier. ⚠️ **AM-30 sharpened why
    this matters:**
    §16 now records the 1.5–2.0 bpp figure as the weakest number in the spec — it is a *visual*
@@ -774,6 +783,18 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-30 (validation-only transparency-bitrate probe complete)** — Froze the design before
+  measurement, loaded checkpoint
+  `9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002` without the training-resume
+  path, and reproduced its clean 898/1000 validation result. OpenJPEG 2.5.4 through Glymur 0.14.3
+  encoded raw irreversible-9/7 RPCL codestreams at 17 fixed byte budgets and all four committed
+  axes. The full stable-ID result has 68,000 cells, no infeasible encodes and no decode failures.
+  Selection-aware 10,000-resample paired bootstrap forecasts the 5 pp threshold at 1,330 bytes
+  (axis 128, mean 0.408654 bpp, accuracy 0.870, lower bound −0.041) and the 2 pp threshold at 3,200
+  bytes (axis 160, mean 0.987788 bpp, accuracy 0.886, lower bound −0.018). Neither result is
+  censored. They do not select or replace a G-8 operating point; G-8 remains unresolved. No training
+  ran, test remained sealed, and W4/G-8 did not start. Next: W3 LDPC fixture/integration, BER/BLER,
+  and complete packetisation/bit accounting through G-2.
 - **2026-07-29 (W2 complete; G-7 PASS)** — Started from clean `8462082`; committed the channel,
   power, keyed-noise, PAPR, task-head, loss and `djscc_residual_v1` foundation as
   `26b631ede27a6f88f1d004a66b845c52a658e07c`. All 18 dataset/ratio symbol budgets and both
