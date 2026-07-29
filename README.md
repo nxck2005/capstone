@@ -76,8 +76,14 @@ classifier outputs plus the machine-readable `g1_adjudication.json` live under
 GitHub Release `g1-reference-classifier-2026-07-29`, asset
 `reference-classifier-imagenette160-epoch99-9c37362347a0203597d6e8e9d9a58fde.pt`, with the exact
 SHA-256 above. The other 99 ignored checkpoints were not uploaded, and no training was rerun during
-the evidence-hardening cleanup. W2 is now open, with channel modelling, power normalization, PAPR,
-the DJSCC skeleton and compute profiling through G-7 as the next engineering frontier.
+the evidence-hardening cleanup. **W2 and G-7 are complete.** Implementation commit
+`26b631ede27a6f88f1d004a66b845c52a658e07c` provides native-complex AWGN, per-image
+unit-power normalization, keyed complex noise, symbol-domain PAPR and capped-power projection,
+`djscc_residual_v1`, the task-head registry, config-derived loss, and parameter caps. The clean
+Imagenette `r_1_2` CUDA profile completed batch 32 in 35.171 s, reserved 1.004 GiB, projects
+100 epochs to 0.977 h, and measured 1,640,957 parameters. The machine-readable report lives under
+`results/profiling/` and verifies offline. The single next engineering task is the
+transparency-bitrate probe with the frozen classifier, before W3/W4 baseline work.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
@@ -103,6 +109,7 @@ under a second with no GPU and no network. The repository's checks are meant to 
 .venv/bin/python tools/verify_datasets.py              # real train/val smoke; zero test decode/canonicalization
 .venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --smoke-steps 3 --smoke-val-batches 2  # bounded smoke; never G-1 evidence
 .venv/bin/python tools/verify_g1_adjudication.py        # offline: epochs, counts, hashes, floor, lineage and checkpoint identity
+.venv/bin/python tools/verify_g7_profile.py             # offline: clean commit, CUDA profile, caps, limits and training-only scope
 .venv/bin/python -m pytest
 ```
 

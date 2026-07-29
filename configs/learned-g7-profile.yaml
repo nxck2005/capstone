@@ -1,0 +1,18 @@
+experiment: learned_g7_profile
+choices:
+  system: learned
+  dataset: imagenette160
+  split: train
+  bw_ratio: r_1_2
+  channel: awgn
+  train_snr_db: train_snr_db_fixed
+  lambda: lambda_core
+  classifier_variant: clean
+  train_seed: 0
+  channel_seed: 0
+  batch_size: 32
+  num_workers: 0
+  architecture: djscc_residual_v1
+  warmup_steps: 3
+  implementation_commit: 26b631ede27a6f88f1d004a66b845c52a658e07c
+sweep_axes: {}

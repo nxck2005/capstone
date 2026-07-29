@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-29 · **Phase:** **G-1 evidence hardening complete; W2 next.**
+**Last updated:** 2026-07-29 · **Phase:** **W2 complete; G-7 PASS; transparency-bitrate probe next.**
 The reference-classifier integrity implementation is committed as
 `89a3af48c48a91d6d272ba62337f890c59bb40a5`. The full clean Imagenette-160 campaign then ran
 fresh from epoch zero through epoch 99 on the configured RTX 4060 Laptop GPU path. It achieved
@@ -40,12 +40,15 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 **Current engineering order:**
 
 1. ~~Evidence-hardening cleanup.~~ **Complete.**
-2. **W2 implementation through G-7.**
-3. **Transparency-bitrate probe before W3/W4 baseline work.**
+2. ~~**W2 implementation through G-7.**~~ **Complete — G-7 PASS.**
+3. **Transparency-bitrate probe using the frozen reference classifier.**
 4. **W3.**
 
-The trained classifier exists and unblocks the probe, but the probe does not block W2. Do not begin
-the reference-classifier fallback ladder: G-1 passed.
+W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
+profile completed all 8,469 Imagenette training images at batch 32 in 35.171 s, with 1.004 GiB
+peak reserved VRAM, a 0.977 h 100-epoch projection and 1,640,957 parameters. Do not begin W3/W4
+baseline work until the transparency-bitrate probe is complete, and do not begin the
+reference-classifier fallback ladder: G-1 passed.
 
 ---
 
@@ -216,7 +219,7 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 ### ⏰ Standing trigger — First Review package (check this every session)
 
 **Fires when all three are true: PR-1 committed · PR-2 committed · G-1 passed.**
-(`params.deliverables.review_1_ready_when`. As of 2026-07-28: **none of the three**.)
+(`params.deliverables.review_1_ready_when`. As of 2026-07-29: **G-1 passed; PR-1 and PR-2 remain**.)
 
 When it fires, do two things and do them in this order:
 
@@ -247,11 +250,12 @@ Review criterion** — it first appears at the Second — so these marks are for
 
 ### Cold-start: the first thing to do in a fresh session
 
-**W1 is complete and G-1 passed.** Do not reopen the reference-classifier recipe, start its fallback
-ladder, or open another full-spec audit round without new evidence. The next engineering task is W2:
-implement the channel model and explicit power normalization, add the required PAPR measurement and
-constraint path, build the DJSCC skeleton, and profile it through G-7. Registration remains confirmed
-(AM-63), and PR-9's author-owned hardware-alternative acknowledgement remains non-blocking.
+**W1 and W2 are complete; G-1 and G-7 passed.** Do not reopen the reference-classifier recipe,
+start its fallback ladder, implement the G-7 width fallback, or open another full-spec audit round
+without new evidence. The single next engineering task is the transparency-bitrate probe using the
+frozen reference classifier. It must finish before W3/W4 baseline work. Registration remains
+confirmed (AM-63), and PR-9's author-owned hardware-alternative acknowledgement remains
+non-blocking.
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
 produced from that exact clean commit. `results/reference_classifier/` holds the four original
@@ -263,7 +267,7 @@ preserved in the named GitHub Release. The best/final validation result is 898/1
 RTX 4060 Laptop 8 GB · driver 592.82 · Torch CUDA 13.0. The three dataset archives/extractions and
 srsRAN vectors remain locally available and ignored as designed.
 
-Confirm nothing drifted, then begin W2 only:
+Confirm nothing drifted, then begin the transparency-bitrate probe only:
 
 ```bash
 .venv/bin/python tools/gen_spec_views.py --check           # expect: 186 requirements (2 retired)
@@ -274,6 +278,7 @@ Confirm nothing drifted, then begin W2 only:
 .venv/bin/python tools/materialize_manifests.py --check
 .venv/bin/python tools/verify_datasets.py
 .venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python tools/verify_g7_profile.py
 .venv/bin/python -m pytest                                  # expect: all tests pass with CUDA access
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
 git status --short                                          # expect: clean
@@ -515,8 +520,9 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-W1 and G-1 are complete. The next engineering front is W2 through G-7; PR-1 and PR-2 remain parallel
-First Review work, and the author-owned PR-9 acknowledgement remains open.
+W1, W2, G-1 and G-7 are complete. The transparency-bitrate probe is the next engineering task;
+PR-1 and PR-2 remain parallel First Review work, and the author-owned PR-9 acknowledgement remains
+open.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
@@ -525,7 +531,8 @@ First Review work, and the author-owned PR-9 acknowledgement remains open.
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
 | 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
 | ~~4~~ | ~~**Run W1(f) and adjudicate G-1**~~ **DONE 2026-07-29** — 0.898 at epoch 99, G-1 PASS | — | Full validation-only evidence verified; test stayed sealed | ~~all of W2+~~ |
-| 5 | **Build W2 through G-7** — channel, power normalization, PAPR, DJSCC skeleton, profiling | agent | G-1 now releases W2; this is the single next engineering task | W3+ |
+| ~~5~~ | ~~**Build W2 through G-7**~~ **DONE 2026-07-29** — primary model, batch 32, G-7 PASS | — | Full training-only CUDA epoch; 35.171 s, 1.004 GiB reserved, 0.977 h projected | ~~W3+~~ |
+| 5a | **Transparency-bitrate probe with the frozen classifier** | agent | W2/G-7 and G-1 are complete; deliberately before baseline integration | W3/W4 |
 | 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
@@ -678,8 +685,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
    inference summary is new (AM-57) and exists because the aggregate schema cannot hold an interval
    bound, a p-value or a verdict, i.e. exactly the numbers §2 turns on.
 
-   The trained classifier now releases downstream scoring work. The current engineering order is
-   W2 through G-7; the transparency-bitrate probe remains downstream of this completed dependency.
+   The trained classifier releases downstream scoring work, and W2/G-7 are now complete. The
+   transparency-bitrate probe is the next task.
 
 3. **Build BR-2's fixture when W3 approaches — the design is settled, the work is not done.** The
    spec now specifies a committed fetch-and-convert script that pins release `release_25_10`, verifies
@@ -694,8 +701,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 4. **Transparency bitrate — classifier dependency is complete.** `r ≈ 1/5` rests on the estimate that
    JPEG 2000 goes task-transparent around 1.5–2.0 bpp at 160 px. It is the number that most determines
    how much airtime the headline comparison needs. The trained reference classifier now exists, so
-   the probe is unblocked. The fixed order is evidence hardening → W2 through G-7 → this probe before
-   W3/W4 baseline work → W3; the probe does not block W2. No ImageNet-pretrained proxy is needed, and
+   the probe is unblocked. The fixed order is now at this probe, before W3/W4 baseline work. No
+   ImageNet-pretrained proxy is needed, and
    DEC-15 continues to ban pretrained weights for the reference classifier. ⚠️ **AM-30 sharpened why
    this matters:**
    §16 now records the 1.5–2.0 bpp figure as the weakest number in the spec — it is a *visual*
@@ -765,6 +772,17 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Session log
 
+- **2026-07-29 (W2 complete; G-7 PASS)** — Started from clean `8462082`; committed the channel,
+  power, keyed-noise, PAPR, task-head, loss and `djscc_residual_v1` foundation as
+  `26b631ede27a6f88f1d004a66b845c52a658e07c`. All 18 dataset/ratio symbol budgets and both
+  parameter caps pass. A training-only CUDA smoke completed forward/backward/Adam without writing a
+  checkpoint. G-7 profiled the clean implementation commit on the RTX 4060 Laptop GPU: 8,469
+  examples, 265 batches, batch 32, 35.1711091640027 s, 0.899843 GiB allocated, 1.003906 GiB
+  reserved, 0.976975 h projected for 100 epochs, and 1,640,957 parameters. The primary architecture
+  passed, so no width fallback was implemented. The offline verifier and all mutation classes pass.
+  Only training data and synthetic fixtures were used; test stayed sealed, G-1 remained valid, no
+  full learned campaign or constrained variant ran, and SR-16 all-system reporting remains
+  downstream. Next: transparency-bitrate probe, then W3/W4.
 - **2026-07-29 (full Imagenette campaign; G-1 PASS; W1 complete)** — Started from the clean committed
   classifier implementation `89a3af48c48a91d6d272ba62337f890c59bb40a5`; no production artifact
   existed, so the exact `--full-run` command ran fresh and uninterrupted through epoch 99. Best and
