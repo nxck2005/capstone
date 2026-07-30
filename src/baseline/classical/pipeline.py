@@ -126,6 +126,11 @@ class SourceCoding:
     cache_key: str | None
     cache_hit: bool | None
     search_iterations: int | None
+    #: The exact emitted codestream bytes.  Retained so the record layer can
+    #: split them into JPEG 2000 container bytes and entropy-coded data bytes
+    #: for BR-11's ``header_bytes``/``payload_bytes`` columns without
+    #: re-encoding.  ``None`` whenever no codestream was emitted.
+    emitted_codestream: bytes | None = None
 
 
 @dataclass(frozen=True)
@@ -292,6 +297,7 @@ def _encode_source(
                 cache_key=result.cache_key,
                 cache_hit=result.cache_hit,
                 search_iterations=result.search_iterations,
+                emitted_codestream=result.codestream,
             ),
             result,
             downsampled,
