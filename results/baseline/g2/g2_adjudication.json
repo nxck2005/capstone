@@ -10,7 +10,7 @@
     "progressive_design_frozen_not_run": true,
     "test_split_sealed": true
   },
-  "evidence_commit": null,
+  "evidence_commit_resolution": "git log -1 --format=%H -- results/baseline/g2/g2_adjudication.json",
   "evidence_files": {
     "bler_reference.json": "7bff89f21786e253b612f88dd7c4f3777eb6abf3792b2fb622613a47455bbfa8",
     "bler_results.csv": "b2049ab8ccb4e58c0713e6b484ef760507c0b750d5232a04e31e3aa92e89984d",

@@ -11,7 +11,12 @@ from pathlib import Path
 import pytest
 
 from config.params import REPO_ROOT
-from verify_g2_adjudication import REQUIRED_FILES, VerificationError, verify
+from verify_g2_adjudication import (
+    REQUIRED_FILES,
+    SOURCE_MANIFEST,
+    VerificationError,
+    verify,
+)
 
 SOURCE = REPO_ROOT / "results/baseline/g2"
 pytestmark = pytest.mark.skipif(
@@ -24,7 +29,7 @@ pytestmark = pytest.mark.skipif(
 def evidence(tmp_path: Path) -> Path:
     target = tmp_path / "g2"
     target.mkdir()
-    for name in REQUIRED_FILES:
+    for name in REQUIRED_FILES | {SOURCE_MANIFEST}:
         shutil.copyfile(SOURCE / name, target / name)
     return target
 
