@@ -18,6 +18,7 @@ does not, it is wrong and this block is right.**
 |---|---|
 | W3 | complete |
 | G-2 | PASS |
+| transparency-bitrate probe | complete |
 | bounded W4 integration | **next — this is the single live engineering task** |
 | full BR-4 sweep | not started |
 | G-8 | unresolved |
@@ -345,7 +346,7 @@ Confirm nothing drifted, then begin bounded W4 classical-baseline integration on
 .venv/bin/python tools/verify_transparency_bitrate_probe.py
 .venv/bin/python tools/fetch_ldpc_golden_vectors.py         # materialize the ignored rung-2 fixture BEFORE pytest
 .venv/bin/python tools/verify_g2_adjudication.py            # expect: measurement=968e907237bb, rows=24, test_split_access=0
-.venv/bin/python -m pytest                                  # expect: 473 passed with CUDA access
+.venv/bin/python -m pytest                                  # expect: 483 passed with CUDA access
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
 git status --short                                          # expect: clean
 ```

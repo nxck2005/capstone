@@ -60,6 +60,205 @@ GATE_REF_RE = re.compile(r"\bG-(\d+)\b")
 HISTORY_LINE_RE = re.compile(r"^\s*[-*]\s+~?~?\*\*(AM|G|SR|BR|ER|DR|HR|PR|OPT|FW|DEC)-\d+\*\*|"
                              r"^\*\*Amendment round|^\s*[-*]\s+\*\*20\d\d-\d\d-\d\d")
 
+# --- current-phase agreement inside NEXT.md --------------------------------------
+#
+# NEXT.md declares its phase once, in the table under `## Single next task`, and
+# then explains it over a thousand lines of accreted prose. Three of those live
+# sections drifted into stating three different next steps: one said to begin
+# bounded W4 integration, one said "Do not begin W4", and the live Cold-start
+# section said to begin the transparency-bitrate probe -- which had already
+# finished. None of the three was behind a historical banner, so nothing caught it.
+#
+# What is checked, in one sentence: a live section may not prohibit the declared
+# next task, may not direct already-completed work as the next step, and the
+# sections that a cold start actually reads must each name the declared frontier.
+#
+# Deliberately NOT attempted: parsing the whole file as current state. Most of
+# NEXT.md is accreted record, and a checker that read it as instructions would
+# fire on every sentence. Historical content is exempt where it sits behind a
+# struck-through heading, a DONE/Complete/PASS marker, a struck line, or the
+# session log -- the markers this file already uses.
+NEXT_DOC = "NEXT.md"
+DECLARATION_HEADING = "## Single next task"
+DECL_ROW_RE = re.compile(r"^\|\s*(?P<subject>[^|]*?)\s*\|\s*(?P<state>[^|]*?)\s*\|\s*$")
+MILESTONE_RE = re.compile(r"\b(W\d+|G-\d+)\b", re.IGNORECASE)
+HEADING_RE = re.compile(r"^(?P<hashes>#{1,6})\s+(?P<title>.*)$")
+HISTORICAL_HEADINGS = ("session log",)
+HISTORICAL_HEADING_RE = re.compile(r"~~|\*\*DONE|\*\*Complete|PASS\*\*")
+# Verbs that start work. `started`/`begins` are excluded by the word boundary on
+# purpose: "G-8 has not started" is a status report, not a directive.
+DIRECTIVE_RE = re.compile(r"\b(?:begin|start|open|run)\s+(?P<object>[^.:;]*)", re.IGNORECASE)
+NEGATION_RE = re.compile(r"\b(?:do not|don't|never|cannot|not yet|no longer)\b", re.IGNORECASE)
+# A prohibition naming the frontier is legitimate when it names a *part* of the
+# frontier that really is out of scope. This table is judgement, and like the
+# `stale` table above it is meant to grow.
+NARROWING = ("'s", "sweep", "selection", "select", "full ", "lambda", "λ",
+             "training", "train", "test split", "er-9", "g-8")
+# The sections a cold start actually reads. Every one of these that is PRESENT must
+# name the declared frontier, and at least one live section outside the declaration
+# must name it -- which is what makes "the top status line, the cold-start section
+# and the task table must all agree" mechanical rather than aspirational. Presence
+# is not required: NEXT.md is rewritten constantly and pinning three exact heading
+# strings forever would fail a rename rather than a drift, while the declaration
+# itself stays mandatory so the check cannot be disarmed by deleting it.
+FRONTIER_SECTIONS = (
+    "## Single next task",
+    "### Cold-start: the first thing to do in a fresh session",
+    "### The short version, in order",
+)
+# A fenced block that runs the whole preflight must materialize the git-ignored
+# rung-2 LDPC fixture before pytest, or a fresh clone fails the suite for a
+# provenance reason that reads like a scientific one.
+PREFLIGHT_ANCHOR = "gen_spec_views.py --check"
+PREFLIGHT_FETCH = "fetch_ldpc_golden_vectors.py"
+PREFLIGHT_TESTS = "-m pytest"
+
+
+def _norm(text: str) -> str:
+    """Strip markdown emphasis and collapse whitespace, for comparing prose."""
+    return re.sub(r"\s+", " ", re.sub(r"[`*_]", "", text)).strip().lower()
+
+
+def _milestone(subject: str) -> str | None:
+    match = MILESTONE_RE.search(subject)
+    return match.group(1).lower() if match else None
+
+
+def declared_phase(body: str) -> tuple[str | None, str | None, list[str]]:
+    """Read NEXT.md's own phase declaration: (frontier subject, its milestone, done).
+
+    The declaration is the table under `## Single next task` and nothing else. One
+    designated place has to be authoritative or "contradicts the declared phase"
+    has no meaning; this is that place.
+    """
+    frontier: str | None = None
+    done: list[str] = []
+    inside = False
+    for line in body.splitlines():
+        if line.startswith("#"):
+            inside = line.strip() == DECLARATION_HEADING
+            continue
+        if not inside:
+            continue
+        row = DECL_ROW_RE.match(line)
+        if row is None:
+            continue
+        subject, state = _norm(row.group("subject")), _norm(row.group("state"))
+        if not subject or set(subject) <= set("- "):
+            continue
+        if "next" in state:
+            frontier = subject
+        elif "complete" in state or "pass" in state:
+            done.append(subject)
+    return frontier, _milestone(frontier) if frontier else None, done
+
+
+def live_lines(body: str) -> list[tuple[int, str]]:
+    """Lines of NEXT.md that read as current instructions.
+
+    A heading is historical if it is struck through, carries a DONE/Complete/PASS
+    marker, or is the session log; everything under it stays historical until a
+    heading at the same or a higher level takes over. Struck lines are dropped
+    wherever they appear, which covers the completed rows of the task table.
+    """
+    out: list[tuple[int, str]] = []
+    historical_at: int | None = None
+    for number, line in enumerate(body.splitlines(), 1):
+        heading = HEADING_RE.match(line)
+        if heading:
+            level = len(heading.group("hashes"))
+            title = heading.group("title")
+            if historical_at is not None and level <= historical_at:
+                historical_at = None
+            if (HISTORICAL_HEADING_RE.search(title)
+                    or any(marker in title.lower() for marker in HISTORICAL_HEADINGS)):
+                historical_at = level
+            continue
+        if historical_at is not None or "~~" in line or HISTORY_LINE_RE.match(line):
+            continue
+        out.append((number, line))
+    return out
+
+
+def _objects(text: str) -> list[str]:
+    """Split a directive's object list into individual objects."""
+    parts = re.split(r",|\bor\b|\band\b", _norm(text))
+    out = []
+    for part in parts:
+        part = re.sub(r"^(?:only\s+)?(?:the|a|an|any|its|another)\s+", "", part.strip())
+        if part:
+            out.append(part)
+    return out
+
+
+def next_phase_findings(body: str) -> list[str]:
+    """Findings where a live NEXT.md section contradicts NEXT.md's declared phase."""
+    frontier, token, done = declared_phase(body)
+    if frontier is None or token is None:
+        return [f"{NEXT_DOC}:1: no declared next task under '{DECLARATION_HEADING}'"]
+    findings = []
+    for number, line in live_lines(body):
+        for sentence in re.split(r"(?<=[.:;])\s+", line):
+            negated = bool(NEGATION_RE.search(sentence))
+            for match in DIRECTIVE_RE.finditer(sentence):
+                for obj in _objects(match.group("object")):
+                    if negated:
+                        rest = obj[len(token):] if obj.startswith(token) else None
+                        if (obj == token or (rest is not None
+                                             and not any(n in obj for n in NARROWING))):
+                            findings.append(
+                                f"{NEXT_DOC}:{number}: prohibits the declared next task "
+                                f"({frontier!r}): {sentence.strip()[:100]}")
+                    else:
+                        for finished in done:
+                            if re.search(rf"\b{re.escape(finished)}\b", obj):
+                                findings.append(
+                                    f"{NEXT_DOC}:{number}: directs completed work "
+                                    f"({finished!r}) as the next step, but the declared "
+                                    f"next task is {frontier!r}: {sentence.strip()[:100]}")
+    live = {number for number, _ in live_lines(body)}
+    section: str | None = None
+    seen: dict[str, bool] = {}
+    elsewhere = False
+    for number, line in enumerate(body.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            section = stripped if stripped in FRONTIER_SECTIONS else None
+            if section:
+                seen.setdefault(section, False)
+            continue
+        if number not in live or not re.search(rf"\b{token}\b", line, re.IGNORECASE):
+            continue
+        if section:
+            seen[section] = True
+        if section != DECLARATION_HEADING:
+            elsewhere = True
+    for wanted, named in seen.items():
+        if not named:
+            findings.append(
+                f"{NEXT_DOC}:1: section '{wanted}' never names the declared frontier "
+                f"{token.upper()}, so a cold start reading only that section is misdirected")
+    if not elsewhere:
+        findings.append(
+            f"{NEXT_DOC}:1: the declared frontier {token.upper()} is named only inside "
+            f"'{DECLARATION_HEADING}', so no live section tells a cold start to do it")
+    return findings
+
+
+def preflight_order_findings(doc: str, body: str) -> list[str]:
+    """Findings where a full-preflight command block runs pytest before the fetch."""
+    findings = []
+    for block in re.findall(r"^```(?:bash|sh)?\n(.*?)^```", body, re.M | re.S):
+        if PREFLIGHT_ANCHOR not in block or PREFLIGHT_TESTS not in block:
+            continue
+        if PREFLIGHT_FETCH not in block:
+            findings.append(f"{doc}: preflight block runs pytest without first running "
+                            f"{PREFLIGHT_FETCH}; a fresh clone fails on the ignored fixture")
+        elif block.index(PREFLIGHT_FETCH) > block.index(PREFLIGHT_TESTS):
+            findings.append(f"{doc}: preflight block runs {PREFLIGHT_FETCH} after pytest, "
+                            "so the first run still fails on the absent fixture")
+    return findings
+
 
 def resolve(params: dict, path: str):
     node = params
@@ -324,6 +523,21 @@ def main() -> int:
                     findings.append(f"{doc}:{i}: says six clamps, record has {len(clamps)}")
         passed.append(f"evidence record: {len(feas)} feasible, {len(clamps)} clamped, "
                       f"{len(rec.get('failures', []))} failures")
+
+    # --- 6. NEXT.md's live sections agree with its declared phase -------------
+    if NEXT_DOC in text:
+        phase_findings = next_phase_findings(text[NEXT_DOC])
+        findings.extend(phase_findings)
+        frontier, token, done = declared_phase(text[NEXT_DOC])
+        passed.append(
+            f"NEXT.md current-phase agreement (frontier {token.upper() if token else '?'}, "
+            f"{len(done)} completed subjects, {len(live_lines(text[NEXT_DOC]))} live lines)"
+        )
+
+    # --- 7. Full-preflight blocks materialize the fixture before pytest -------
+    for doc, body in text.items():
+        findings.extend(preflight_order_findings(doc, body))
+    passed.append("preflight blocks fetch the ignored LDPC fixture before pytest")
 
     # --- report ---------------------------------------------------------------
     if args.verbose:

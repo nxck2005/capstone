@@ -123,6 +123,22 @@ def test_bold_whole_amendment_round_phrase_is_a_current_claim(run_checker):
     assert "claims 64 AM entries as current" in out
 
 
+# The historical-plan cases below need a root `NEXT.md` only so the banner's link
+# resolves, but NEXT.md is required to declare its current phase (see the
+# current-phase block further down), so the stub declares one rather than being
+# exempted -- an exemption would be a hole in the rule that matters.
+MINIMAL_NEXT = """# Current handoff
+
+## Single next task
+
+| bounded W4 integration | **next** |
+
+### Cold-start: the first thing to do in a fresh session
+
+Begin bounded W4 integration only.
+"""
+
+
 def _historical_banner(target: str) -> str:
     return (
         f"{cdc.HISTORICAL_MARKER}\n"
@@ -139,7 +155,7 @@ def test_only_exact_resolving_historical_plan_banner_is_excluded(
     plan = tmp_path / "docs" / "plans" / "old.md"
     plan.parent.mkdir(parents=True)
     plan.write_text(_historical_banner("../../NEXT.md"))
-    (tmp_path / "NEXT.md").write_text("# Current handoff\n")
+    (tmp_path / "NEXT.md").write_text(MINIMAL_NEXT)
     monkeypatch.setattr(cdc, "REPO", tmp_path)
     monkeypatch.setattr(cdc, "DOCS", None)
     monkeypatch.setattr(cdc, "PACKET_RECORD", tmp_path / "missing.json")
@@ -171,7 +187,7 @@ def test_invalid_historical_plan_banner_is_reported_and_scanned(
     plan = tmp_path / "docs" / "plans" / "old.md"
     plan.parent.mkdir(parents=True)
     plan.write_text(body)
-    (tmp_path / "NEXT.md").write_text("# Current handoff\n")
+    (tmp_path / "NEXT.md").write_text(MINIMAL_NEXT)
     monkeypatch.setattr(cdc, "REPO", tmp_path)
     monkeypatch.setattr(cdc, "DOCS", None)
     monkeypatch.setattr(cdc, "PACKET_RECORD", tmp_path / "missing.json")
@@ -191,3 +207,185 @@ def test_repo_docs_are_consistent(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["check_doc_consistency.py"])
     code = cdc.main()
     assert code == 0, capsys.readouterr().out
+
+
+# --- NEXT.md current-phase agreement ----------------------------------------------
+#
+# The defect: NEXT.md declared bounded W4 integration as the single next task, and
+# then two other live sections said "Do not begin W4" and "begin the
+# transparency-bitrate probe only" -- work that had already finished. Three live
+# next steps in one file, none behind a banner, surviving several sessions.
+#
+# The synthetic file below is deliberately minimal but structurally real: a
+# declaration table, the three sections a cold start reads, and a session-log entry
+# that says exactly the wrong thing on purpose. Each test substitutes ONE live
+# sentence, so a failure names the rule that broke.
+
+NEXT_TEMPLATE = """# Very Next Steps
+
+**Last updated:** 2026-07-30 · **Phase:** **W3 complete; G-2 PASS.**
+
+## Single next task
+
+| | |
+|---|---|
+| W3 | complete |
+| transparency-bitrate probe | complete |
+| bounded W4 integration | **next** |
+| G-8 | unresolved |
+
+Begin only the bounded **W4 classical-baseline integration required before G-8**.
+Do not run the full BR-4 sweep, calibrate lambda, or open G-8.
+
+### Cold-start: the first thing to do in a fresh session
+
+The single next engineering task is bounded W4 classical-baseline integration.
+{live}
+
+### The short version, in order
+
+Bounded W4 integration is the single next engineering task.
+
+#### ~~Batch 1 — the old plan~~ **DONE 2026-07-28**
+
+Confirm nothing drifted, then begin the transparency-bitrate probe only.
+
+## Session log
+
+- **2026-07-29** — Ran the probe. Next: begin the transparency-bitrate probe, then W3.
+"""
+
+
+@pytest.fixture
+def run_next_checker(tmp_path, monkeypatch, capsys):
+    """Run `main()` over a synthetic `NEXT.md`, returning (exit_code, stdout)."""
+
+    def _run(live: str, template: str = NEXT_TEMPLATE) -> tuple[int, str]:
+        (tmp_path / "NEXT.md").write_text(template.format(live=live))
+        monkeypatch.setattr(cdc, "REPO", tmp_path)
+        monkeypatch.setattr(cdc, "DOCS", ["NEXT.md"])
+        monkeypatch.setattr(cdc, "PACKET_RECORD", tmp_path / "no-such-record.json")
+        monkeypatch.setattr(sys, "argv", ["check_doc_consistency.py"])
+        code = cdc.main()
+        return code, capsys.readouterr().out
+
+    return _run
+
+
+def test_agreeing_handoff_passes(run_next_checker):
+    """The baseline: one declared phase, every live section agreeing with it.
+
+    Without this case the four below could all pass against a checker that simply
+    fails everything.
+    """
+    code, out = run_next_checker(
+        "Confirm nothing drifted, then begin bounded W4 integration only."
+    )
+    assert code == 0, out
+
+
+def test_prohibiting_the_declared_next_task_fails(run_next_checker):
+    """The live NEXT.md:91 defect: a live section forbidding the declared frontier."""
+    code, out = run_next_checker(
+        "Do not begin W4, G-8, or the reference-classifier fallback ladder."
+    )
+    assert code == 1
+    assert "prohibits the declared next task" in out
+
+
+def test_prohibiting_part_of_the_next_task_is_allowed(run_next_checker):
+    """The distinction that makes the rule usable rather than merely noisy.
+
+    Bounded W4 integration being live does NOT license the full BR-4 sweep, so a
+    live section must still be able to forbid the sweep by name. A checker that
+    fired on this would force the hand-off to drop its real scope boundary.
+    """
+    code, out = run_next_checker("Do not begin W4's full BR-4 validation sweep.")
+    assert code == 0, out
+
+
+def test_directing_completed_work_as_next_fails(run_next_checker):
+    """The live NEXT.md:312 defect: a live section sending a cold start backwards."""
+    code, out = run_next_checker(
+        "Confirm nothing drifted, then begin the transparency-bitrate probe only:"
+    )
+    assert code == 1
+    assert "directs completed work" in out
+    assert "transparency-bitrate probe" in out
+
+
+def test_historical_sections_may_still_say_the_wrong_thing(run_next_checker):
+    """History is exempt, and the template proves it on two markers at once.
+
+    Every case above runs against a file that already contains the stale directive
+    twice -- once under a struck-through `**DONE**` heading and once as a dated
+    session-log entry. Both must stay silent, or the only way to pass the check
+    would be to rewrite the record, which is the opposite of the convention.
+    """
+    code, out = run_next_checker("Nothing further.")
+    assert code == 0, out
+
+
+def test_live_section_that_never_names_the_frontier_fails(run_next_checker):
+    """Agreement is positive, not just the absence of contradiction.
+
+    A cold start that reads only the Cold-start section must find the frontier
+    there. Deleting the mention is not a contradiction any negative rule can see.
+    """
+    code, out = run_next_checker("Nothing further.", NEXT_TEMPLATE.replace(
+        "The single next engineering task is bounded W4 classical-baseline integration.",
+        "The single next engineering task is named at the top of this file.",
+    ))
+    assert code == 1
+    assert "never names the declared frontier W4" in out
+
+
+def test_missing_declaration_is_reported(run_next_checker):
+    """No authoritative declaration means the whole check is vacuous -- say so."""
+    code, out = run_next_checker(
+        "Nothing further.",
+        NEXT_TEMPLATE.replace("| bounded W4 integration | **next** |\n", ""),
+    )
+    assert code == 1
+    assert "no declared next task" in out
+
+
+# --- preflight ordering -----------------------------------------------------------
+
+
+PREFLIGHT = """# Commands
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check
+{fetch_before}.venv/bin/python -m pytest
+{fetch_after}```
+"""
+
+
+@pytest.mark.parametrize(
+    "fetch_before, fetch_after, expected",
+    [
+        (".venv/bin/python tools/fetch_ldpc_golden_vectors.py\n", "", None),
+        ("", "", "without first running"),
+        ("", ".venv/bin/python tools/fetch_ldpc_golden_vectors.py\n", "after pytest"),
+    ],
+    ids=["fetch-first", "no-fetch", "fetch-last"],
+)
+def test_preflight_block_must_fetch_the_ignored_fixture_first(
+    fetch_before, fetch_after, expected
+):
+    """A fresh clone that runs the documented preflight in order must not fail.
+
+    `tests/fixtures/ldpc_ts38212_golden.npz` is git-ignored (AM-25) and the srsRAN
+    fixture test hard-asserts it rather than skipping, so a preflight block that
+    reaches pytest first fails the suite for a provenance reason that reads like a
+    scientific one. Ordering, not just presence, is the thing checked -- a fetch
+    line below pytest documents the fix while still breaking the first run.
+    """
+    body = PREFLIGHT.format(fetch_before=fetch_before, fetch_after=fetch_after)
+    findings = cdc.preflight_order_findings("doc.md", body)
+    if expected is None:
+        assert findings == []
+    else:
+        assert len(findings) == 1
+        assert expected in findings[0]

@@ -46,7 +46,7 @@ Then:
 
 **Current phase:** PA — in progress (fresh run, started at A1)
 **Last green commit:** `82f6c569f792bf17ff28acd80ed1d516adfc06fa` (`fix(ldpc): make G-2 tools directly executable`)
-**Next action:** run `instructions/PA.txt` step A4 (rewrite `NEXT.md`, then add the current-phase consistency check)
+**Next action:** run `instructions/PA.txt` step A5 (G-2 source provenance) — mark it `in-progress` and commit that first
 
 ---
 
@@ -57,7 +57,7 @@ Then:
 | A1 establish exact state | done | fresh run; no prior `wip(handoff)` commits, clean worktree, HEAD = origin/main |
 | A2 fixture workflow + docs | done | fetch-tool audit (do NOT re-audit): **already present** — pinned-asset-only fetch, complete-asset SHA-256 vs `baseline.ldpc_golden_vector_asset_sha256`, produces the ignored `.npz`, records source rung 2, never writes third-party bytes anywhere tracked (`.gitignore:157` + `/data/*`). **Added** — (a) `.npz`-absent guard: was gated on the *asset tarball*, now a network-free no-op when the fixture exists, `--force` to re-materialize; (b) inner-archive verification widened from encoder-only to *every* pinned archive in `baseline.ldpc_golden_vector_sha256` (encoder + rate_matcher + segmenter). Docs: fetch+verify_g2 lines added to `AGENTS.md`, fetch line added to `README.md`, both with the fresh-clone rationale. Offline floor left ungated. |
 | A3 complete preflight | done | all 14 commands pass with newly observed output (facts table below); 473 tests pass; CUDA present, so nothing is expected to fail on this install path |
-| A4 repair hand-off + consistency check | in-progress | A4a done: `NEXT.md` rewritten — canonical six-line current-path block added under `## Single next task`; the stale "Do not begin W4, G-8, or the reference-classifier fallback ladder" replaced; the Cold-start directive changed from "begin the transparency-bitrate probe only" to bounded W4, and its command block gained `verify_transparency_bitrate_probe` / `fetch_ldpc_golden_vectors` / `verify_g2_adjudication` before `pytest` (expect 473). Session-log "Next: W3 ..." entries left alone (dated history). A4b (the consistency check) still to do. |
+| A4 repair hand-off + consistency check | done | A4b: `tools/check_doc_consistency.py` gained checks 6 and 7 — (6) NEXT.md's live sections must agree with the phase declared in the table under `## Single next task`: no live section may prohibit the declared frontier (unless it names a narrowing sub-scope such as the full BR-4 sweep), none may direct a completed subject as next, each *present* frontier section must name the frontier, and the frontier must be named outside the declaration; (7) any fenced preflight block must run `fetch_ldpc_golden_vectors.py` before `-m pytest`. History is exempt via struck headings/lines, DONE/Complete/PASS markers and `## Session log`. 10 mutation tests in `tests/test_doc_consistency.py`; verified firing on the two real defects. A4a: `NEXT.md` rewritten — canonical six-line current-path block added under `## Single next task`; the stale "Do not begin W4, G-8, or the reference-classifier fallback ladder" replaced; the Cold-start directive changed from "begin the transparency-bitrate probe only" to bounded W4, and its command block gained `verify_transparency_bitrate_probe` / `fetch_ldpc_golden_vectors` / `verify_g2_adjudication` before `pytest` (expect 473). Session-log "Next: W3 ..." entries left alone (dated history). A4b (the consistency check) still to do. |
 | A5 G-2 source provenance manifest | not-started | |
 | A5b G-2 mutation tests | not-started | |
 | A6 green commit + push | not-started | |
@@ -126,10 +126,10 @@ Then:
 | A3 cmd 9 `verify_g7_profile` | PASS: commit=26b631ede27a, params=1640957, epoch=48.684s, reserved=1.004 GB, projected=1.352 h | A3 | yes |
 | A3 cmd 10 `verify_transparency_bitrate_probe` | PASS: A=90007f165f8f, B=7896c7a74414, C=2ebb2cefade2, 68000 cells, 5pp=1330 B, 2pp=3200 B | A3 | yes |
 | A3 cmd 11 `verify_g2_adjudication` | PASS: measurement=968e907237bb, rows=24, test_split_access=0 | A3 | yes |
-| A3 cmd 12 `pytest` (full suite) | **473 passed, 0 failed** in 60.76s | A3 | yes |
+| A3 cmd 12 `pytest` (full suite) | **473 passed, 0 failed** in 60.76s at A3; **483 passed** after A4b added 10 tests | A3 / A4b | yes |
 | A3 cmd 13 `verify_cpu_lock --clean-install` | ok: structurally CUDA-free and clean plain-pip install CUDA-free (torch 2.13.0+cpu, torchvision 0.28.0+cpu) | A3 | yes |
 | A3 cmd 14 `git diff --check` | clean; `git status --short` empty | A3 | yes |
-| total tests | 473 passed (0 failed, 0 skipped) | A3 | yes |
+| total tests | 483 passed (0 failed, 0 skipped) — 473 at A3 plus 10 added by A4b | A4b | yes |
 | `tests/test_test_access.py` count | 4 tests, all pass | A3 | yes |
 | CUDA available | **yes** — torch 2.13.0+cu130, `torch.version.cuda=13.0`, `is_available()=True`, NVIDIA GeForce RTX 4060 Laptop GPU. So `tests/test_env.py::test_cuda_build` (AM-67) passes; this is not the CPU-only install path | A3 | yes |
 | test-isolation counters | all zero: decoder=0, canonicalization=0 (per dataset, `verify_datasets`), inference=0, accuracy=0 (`results/baseline/g2/resolved_config.json` `test_split_access`, re-verified live by `verify_g2_adjudication`) | A3 | yes |
