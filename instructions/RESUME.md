@@ -45,7 +45,7 @@ Then:
 ## Status
 
 **Current phase:** PB_2 — not started
-**Last green commit:** `dcf84a865b3249f9842e8755ebcaaee74b6aa805` (`docs(handoff): record the PA green commit SHA`)
+**Last green commit:** `e47913c52e9117179691b70b29a289880b22dbdd` (`feat(classical): implement W4 classical transport path`)
 **Next action:** run `instructions/PB_2.txt` from step B2.0. PB_1 is complete and pushed; confirm
 its green commit first (clean worktree, HEAD = origin/main, full 8-command block passes).
 
