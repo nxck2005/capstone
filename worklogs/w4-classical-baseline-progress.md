@@ -273,3 +273,42 @@ Repair belongs in `src/baseline/classical/`, not in `src/baseline/ldpc/`: Sionna
 interleaver, so the project-side application in `channel_transport.py` is what must go. The
 standalone utilities in `src/baseline/ldpc/modulation.py` stay — they are G-2 known-answer material
 and are now also the independent reference this correction tests against.
+
+## C1.5 — JPEG-2000 resolution constraint: adjudicated as **unresolved, with an explicit downstream block**
+
+`params.baseline.j2k_resolutions = 6` requires every tile dimension to be at least `2^5 = 32` px;
+`params.baseline.downsample_axis_px.cifar10` is `[32, 24, 16]`. OpenJPEG hard-errors at the 24 px
+and 16 px axes for every image and every budget.
+
+**Is there an existing normative rule that resolves it?** No. BR-1 (via AM-51) freezes
+`j2k_resolutions` as a flat scalar alongside the other codec flags, and AM-58 makes
+`downsample_axis_px` dataset-specific with `downsample_axis_never_upscales` as its only stated
+invariant. Neither states a clamping rule, a per-axis resolution rule, or a minimum-axis
+precondition. The two parameters were frozen in different amendments and were never checked against
+each other — the transparency probe ran Imagenette only (160/128/96/64), all of which clear 32 px.
+
+**Decision: leave it unresolved during PB_1C.** PB_1 correctness does not require changing it.
+CIFAR-10 is a plumbing smoke path only (DEC-1), its 32 px axis encodes correctly, and the pipeline
+already reports the two failing axes honestly rather than skipping them. Changing a frozen codec
+parameter to tidy up an unrelated interleaver repair would be exactly the silent-amendment failure
+the §17 convention exists to prevent, and it would invalidate every committed J2K cache key.
+
+**Candidate resolutions, both recorded, neither selected:**
+
+1. remove axes 24 and 16 from `params.baseline.downsample_axis_px.cifar10`;
+2. make `j2k_resolutions` axis-dependent or deterministically clamped to
+   `min(6, floor(log2(axis)) + 1)`.
+
+Either needs the next valid `AM` entry: both change the codec configuration and therefore the
+`j2k_cache_key` for every dataset, not only CIFAR-10.
+
+**Blocked on the decision:** PB_3, the full BR-4 sweep, G-8. **Not blocked:** PB_2, which emits
+outage policy, records and smoke evidence without selecting or sweeping codec-rate candidates.
+
+**Executable reproduction** —
+`tests/test_classical_pipeline.py::test_j2k_resolutions_cannot_encode_cifar10s_small_axes` pins
+`j2k_resolutions == 6` and the CIFAR-10 axis list, then asserts that under one packet plan the 32 px
+axis reports `budget_exceeded` while 24 px and 16 px report `codec_configuration_error` — and that
+the distinction is not a budget artefact, since 32 px succeeds outright at a generous budget. Keeping
+the two reasons separate is the point: a configuration fault reported as "the codestream did not
+fit" would read as a channel result.

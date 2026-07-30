@@ -37,6 +37,32 @@ shared AWGN under keyed noise, with exact bit accounting. **The next task is
 infrastructure) follows. PR-1, PR-2 and PR-9 remain outstanding programme deliverables and are
 unblocked by all of this.
 
+### Open block — `j2k_resolutions` vs CIFAR-10's small axes
+
+**Undecided, and it blocks PB_3, the full BR-4 sweep and G-8. It does not block PB_2.**
+
+`params.baseline.j2k_resolutions = 6` requires every tile dimension to be at least `2^5 = 32` px,
+but `params.baseline.downsample_axis_px.cifar10` is `[32, 24, 16]`. OpenJPEG hard-errors at 24 px
+and 16 px for *every* image and *every* budget, so two of CIFAR-10's three configured axes cannot
+encode at all. Nothing in `spec/SPEC.md` resolves this — BR-1/AM-51 freeze `j2k_resolutions` flat,
+and no clamping rule exists — so it needs a decision, not a bug fix.
+
+Two candidates, both requiring an `AM` entry because either changes the codec configuration hash
+and therefore **every J2K cache key**:
+
+1. drop 24 and 16 from `params.baseline.downsample_axis_px.cifar10`;
+2. make `j2k_resolutions` axis-dependent or deterministically clamped to
+   `min(6, floor(log2(axis)) + 1)`.
+
+Deliberately left unresolved by PB_1C, which had no need to change a frozen parameter to correct an
+implementation defect. Until it is decided, the pipeline reports the two axes per-axis as
+`codec_configuration_error`, kept distinct from `budget_exceeded` so a setup fault can never be
+read as a channel result. Reproduction:
+`tests/test_classical_pipeline.py::test_j2k_resolutions_cannot_encode_cifar10s_small_axes`.
+
+CIFAR-10 is a plumbing smoke path only (DEC-1) and its 32 px axis works, so this costs nothing
+before the sweep.
+
 `tools/check_doc_consistency.py` mechanically enforces that this block is not contradicted
 elsewhere in this file: a live section may not prohibit the declared next task, may not direct
 already-completed work as the next step, and the live sections named in the check must each mention

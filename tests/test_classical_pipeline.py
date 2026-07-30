@@ -147,6 +147,48 @@ def test_codec_infeasibility_is_distinct_from_structural_infeasibility(
     )
 
 
+def test_j2k_resolutions_cannot_encode_cifar10s_small_axes(product, codec, identity):
+    """Executable reproduction of the open `j2k_resolutions` issue (PB_1C/C1.5).
+
+    `params.baseline.j2k_resolutions = 6` needs every tile dimension to be at
+    least 2**5 = 32 px, but `params.baseline.downsample_axis_px.cifar10` is
+    [32, 24, 16].  Two of CIFAR-10's three configured axes therefore cannot
+    encode *at all*, for any image and any budget.
+
+    This is deliberately **not** fixed here: it changes a frozen codec parameter
+    and so every J2K cache key, which needs a spec decision rather than a bug
+    fix.  The test exists so the incompatibility stays visible and so the two
+    failure modes stay distinguishable — a configuration error must never be
+    reported as "the codestream did not fit", which would read as a channel
+    result rather than a setup fault.
+    """
+
+    assert get("baseline.j2k_resolutions") == 6
+    assert [int(axis) for axis in get("baseline.downsample_axis_px")["cifar10"]] == [
+        32, 24, 16,
+    ]
+
+    result = _run(
+        product, codec, identity, k_symbols=CIFAR10_K["r_1_48"], modulation="qpsk",
+        ldpc_rate="1/2",
+    )
+    assert result.verdict == CODEC_INFEASIBILITY
+    assert result.source_coding is not None
+    reasons = dict(result.source_coding.axis_reasons)
+
+    # 32 px encodes fine and fails on size alone — a real budget outcome
+    assert reasons[32] == BUDGET_EXCEEDED
+    # 24 px and 16 px never produce a codestream, whatever the budget
+    for axis in (24, 16):
+        assert reasons[axis].startswith(CODEC_CONFIGURATION_ERROR), axis
+        assert reasons[axis] != BUDGET_EXCEEDED
+
+    # and the distinction is not an artefact of this budget: at a generous one,
+    # 32 px succeeds while the two small axes still cannot be configured
+    generous = _run(product, codec, identity, encode_axis_px=32)
+    assert generous.source_coding is not None and generous.source_coding.feasible
+
+
 def test_decode_failure_is_its_own_verdict_after_a_real_transmission(
     product, codec, identity
 ):
