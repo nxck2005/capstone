@@ -194,11 +194,12 @@ def _require_fixed_normalisation() -> None:
         raise NotImplementedError("unsupported constellation mapping")
 
 
-def modulate(blocks: list[np.ndarray], modulation: str) -> np.ndarray:
-    """Interleave each code block, concatenate, and Gray-map to complex symbols.
+def mapper_input_bits(blocks: list[np.ndarray], modulation: str) -> np.ndarray:
+    """The exact bit sequence handed to the constellation mapper.
 
-    No power normalisation is applied here beyond the fixed constellation
-    normalisation baked into ``map_bits``.
+    Exposed as its own seam so a conformance test can compare it against an
+    independently derived TS 38.212 reference.  A round-trip test cannot: a
+    transmitter permutation that the receiver undoes is invisible end to end.
     """
 
     _require_interleaver()
@@ -208,7 +209,17 @@ def modulate(blocks: list[np.ndarray], modulation: str) -> np.ndarray:
         interleave(np.asarray(block, dtype=np.uint8).reshape(-1), q_m)
         for block in blocks
     ]
-    return map_bits(np.concatenate(interleaved), modulation)
+    return np.concatenate(interleaved)
+
+
+def modulate(blocks: list[np.ndarray], modulation: str) -> np.ndarray:
+    """Concatenate the encoded code blocks and Gray-map them to complex symbols.
+
+    No power normalisation is applied here beyond the fixed constellation
+    normalisation baked into ``map_bits``.
+    """
+
+    return map_bits(mapper_input_bits(blocks, modulation), modulation)
 
 
 def demodulate(
@@ -230,12 +241,22 @@ def demodulate(
         raise NotImplementedError("unsupported LLR convention")
     q_m = bits_per_symbol(modulation)
     llrs = max_log_llr(np.asarray(symbols).reshape(1, -1), modulation, n0).reshape(-1)
-    if llrs.size != int(sum(block_lengths)):
+    blocks = split_llr_blocks(llrs, block_lengths)
+    return [deinterleave(block, q_m) for block in blocks]
+
+
+def split_llr_blocks(
+    llrs: np.ndarray, block_lengths: tuple[int, ...]
+) -> list[np.ndarray]:
+    """Cut the packet's LLRs at the exact ``E_r`` code-block boundaries."""
+
+    values = np.asarray(llrs).reshape(-1)
+    if values.size != int(sum(block_lengths)):
         raise ValueError("demapped LLR count does not match the packet plan")
     blocks = []
     offset = 0
     for length in block_lengths:
-        blocks.append(deinterleave(llrs[offset : offset + length], q_m))
+        blocks.append(values[offset : offset + length])
         offset += length
     return blocks
 
