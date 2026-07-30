@@ -44,16 +44,17 @@ Then:
 
 ## Status
 
-**Current phase:** PB_1C — corrective repair in progress
-**Last green commit:** `e47913c52e9117179691b70b29a289880b22dbdd` (`feat(classical): implement W4 classical transport path`) — the *pre-correction* PB_1 green commit; it stays the last green commit until the whole PB_1C verification block passes
-**Last durable checkpoint:** `50d6b62c7c12a9916a7f5fd75c6a8b98a310b79b` (C1.8 documentation)
-**Next action:** create the final green commit `fix(classical): correct PB_1 modulation interleaver ownership`, then the handoff commit resolving `PENDING_FINAL_SHA` (C1.9)
+**Current phase:** PB_2 — not started
+**Last green commit:** `PENDING_FINAL_SHA` (`fix(classical): correct PB_1 modulation interleaver ownership`)
+**Last durable checkpoint:** `PENDING_FINAL_SHA`
+**Next action:** run `instructions/PB_2.txt` from step B2.0
 
-**PB_2 is not started and must not begin until PB_1C is green.** An external audit raised a likely
-standards-conformance defect in the QPSK/16-QAM transport path (a suspected *duplicate* TS 38.212
-§5.4.2.2 modulation bit interleaver — once inside Sionna, once in `channel_transport.modulate()`).
-PB_1's "done" judgment is therefore under correction; see the PB_1C section below. Do not trust the
-PB_1 B1.6 QPSK/16-QAM bounded observations until C1.7 re-runs them.
+**PB_1 is complete, including its PB_1C correction.** The pre-correction PB_1 green commit was
+`e47913c52e9117179691b70b29a289880b22dbdd`; it is superseded as "last green" by the corrective
+commit above. PB_1C removed a duplicated TS 38.212 §5.4.2.2 modulation bit interleaver from the
+classical transmit path — Sionna owns that permutation and `channel_transport.modulate()` was
+applying it a second time. **The B1.6 QPSK/16-QAM realised-energy and PAPR figures are superseded by
+the C1.7 rerun**; every other B1.6 observation stands. Details in the PB_1C section below.
 
 Two things PB_2 inherits:
 * **An undecided spec issue** — `baseline.j2k_resolutions = 6` cannot encode CIFAR-10's 24 px and
