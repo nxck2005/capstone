@@ -39,7 +39,7 @@ from baseline.ldpc.transport import (
     receive_transport_verified,
     transmit_transport,
 )
-from channels.awgn import keyed_complex_noise
+from channels.awgn import AWGN, keyed_complex_noise
 from channels.power import symbol_papr_db
 from channels.registry import build_channel
 from config.params import get
@@ -241,7 +241,24 @@ def demodulate(
 
 
 def _shared_channel() -> torch.nn.Module:
+    """Build the one project channel, and refuse anything that is not it.
+
+    The classical and learned arms must share the same AWGN implementation and
+    the same SNR definition.  A second implementation — even a correct-looking
+    one — silently breaks every paired comparison, so it is rejected here rather
+    than discovered in the results.
+    """
+
+    if _CHANNEL_MODEL not in get("channel.models_supported"):
+        raise NotImplementedError(
+            f"{_CHANNEL_MODEL} is not in params.channel.models_supported"
+        )
     channel = build_channel(_CHANNEL_MODEL)
+    if not isinstance(channel, AWGN):
+        raise RuntimeError(
+            "the classical arm must use the shared channels.awgn.AWGN, not "
+            f"{type(channel).__module__}.{type(channel).__qualname__}"
+        )
     channel.eval()
     return channel
 

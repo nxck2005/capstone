@@ -44,13 +44,12 @@ Then:
 
 ## Status
 
-**Current phase:** PB_1 — in progress (B1.1–B1.4 landed)
+**Current phase:** PB_1 — in progress (B1.1–B1.5 landed)
 **Last green commit:** `dcf84a865b3249f9842e8755ebcaaee74b6aa805` (`docs(handoff): record the PA green commit SHA`)
-**Next action:** run `instructions/PB_1.txt` step B1.5 — add `tests/test_classical_mutations.py`
-covering the nine mutation classes (LLR sign reversal, disabled 16-QAM interleaver, wrong k,
-dropped filler, unaccounted CRC, codec size above budget, silently skipped infeasibility, a
-substituted channel implementation, sequential rather than keyed noise). Then B1.6 bounded
-executions, then B1.7. Note: PB_1 commits are `--no-gpg-sign` (the user chose this; pinentry
+**Next action:** run `instructions/PB_1.txt` step B1.6 — the bounded executions listed in PB_1.txt
+(CIFAR-10 validation smoke, one case per modulation, a multi-code-block case, structural and codec
+infeasibility, a forced decode failure, a high-SNR round trip, a cached J2K repeat). Record each
+verdict in the B1.6 row. Then B1.7. Note: PB_1 commits are `--no-gpg-sign` (the user chose this; pinentry
 timed out).
 
 ---
@@ -76,7 +75,7 @@ timed out).
 | B1.2 `pipeline.py` | done | `src/baseline/classical/pipeline.py` + `tests/test_classical_pipeline.py` (13 tests). Full segment wired: `codec_input` → `codec_downsample` → `J2KCodec.encode_to_budget` → zero-filler padding to A → `transmit_transport` → `transport_round_trip` → CRC → EOC-truncated payload → `J2KCodec.decode_codestream` → `codec_upsample`. Receiver recovers the codestream with **no signalled length**: filler is zero bytes so the *last* `ff d9` EOC in the padded payload is the real one (`control_plane_policy` stays honest). Added public `J2KCodec.decode_codestream` so the receiver decodes what it received, not the encoder's cached image. |
 | B1.3 accounting + failure taxonomy | done | Four verdicts, all observed and mutually exclusive: `structural_infeasibility` (before any encoding, `accounting`/`source_coding`/`transport`/`noise_id` all `None`), `codec_infeasibility` (`packet_feasible=True`, accounting present, per-axis reasons recorded), `decode_failure` (transmission happened; measurements survive), `delivered`. **Per-axis sub-reasons** `budget_exceeded` / `codec_configuration_error` are recorded inside `codec_infeasibility` — see the open issue below. |
 | B1.4 required tests | done | **All 14 required areas covered** across `tests/test_classical_transport.py` (22 tests) + `tests/test_classical_pipeline.py` (13 tests): exact channel uses (215 feasible × ratio × modulation × rate), exact bit reconciliation (every committed packetisation row, both identities), shared channel object (registry factory spy), keyed noise for one identity (unchanged by intervening draws), three modulations, four LDPC rates, partial final code block (`E=(8532,8532,8536)`), structural-vs-codec distinction, decode-failure classification, J2K emitted-byte authority, J2K cache identity, no per-packet rescaling, realised symbol energy, PAPR, validation-only loading with test access sealed. |
-| B1.5 mutation tests | not-started | |
+| B1.5 mutation tests | done | `tests/test_classical_mutations.py`, 18 tests, **all nine required classes caught**: (1) LLR sign reversal → CRC fails at 20 dB; (2) disabled 16-QAM interleaver → `NotImplementedError` when the required flag is cleared, link destroyed when bypassed; (3) wrong `k` → `channel_reconciles`/`channel_uses_exact` false and `transport_round_trip` raises, plus the pipeline's requested-`k` guard; (4) dropped filler → LDPC filler fails `systematic_reconciles`, dropped payload filler caught before transmission; (5) unaccounted CRC → TB and CB variants both fail reconciliation; (6) codec size above budget → `ClassicalPipelineError`; (7) silently skipped infeasibility → verdict returned, and `build_accounting`/`transmit_transport` both refuse an infeasible plan; (8) substituted channel → three angles (registry entry replaced, `build_channel` bypassed, unregistered model) all rejected by the new `_shared_channel` guard; (9) sequential noise → the keyed-invariance property holds unmutated and fails under a sequential generator. |
 | B1.6 bounded executions | not-started | |
 | B1.7 green commit + push | not-started | |
 
