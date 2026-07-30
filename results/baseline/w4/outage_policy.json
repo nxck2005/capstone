@@ -1,0 +1,70 @@
+{
+  "accuracy_derivation": "selected_count / validation_count",
+  "assumed_uniform_accuracy_rejected": true,
+  "class_count": 10,
+  "class_counts": [
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100,
+    100
+  ],
+  "dataset": "imagenette160",
+  "dataset_version": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+  "denominator": 1000,
+  "evidence_labels": [
+    "bounded validation/plumbing integration",
+    "not the BR-4 full validation sweep",
+    "not a G-8 operating-point selection",
+    "not test evidence"
+  ],
+  "frozen_before": "test",
+  "generated_at": "2026-07-30T18:53:43+00:00",
+  "manifest_path": "data/manifests/imagenette160.csv",
+  "manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+  "maximum_count": 100,
+  "measured_validation_accuracy": 0.1,
+  "numerator": 100,
+  "params_sha256": "3236daa6f4cfb44ace63f891ae60fa1136f099820f723a3d929a016733e38675",
+  "prominent_declaration": "Bounded validation/plumbing integration. This is not the BR-4 full validation sweep, not a G-8 operating-point selection, and not test evidence. The measured validation accuracy below is a label frequency over the committed validation manifest, not an assumed 1/n_classes.",
+  "purpose": "frozen constant-class outage prediction for undelivered classical transport blocks, selected on the validation split only",
+  "schema_version": 1,
+  "selected_class": 0,
+  "selected_count": 100,
+  "selection_policy": "frozen_constant_class_selected_on_validation",
+  "selection_rule": "highest_validation_accuracy_constant_prediction",
+  "selection_source_commit": "68bb759a81f040396edc79f2f93679f74a027364",
+  "sensitivity_policy": "keyed_uniform_random_label",
+  "sensitivity_rng_identity_fields": [
+    "split_manifest_hash",
+    "stable_sample_id",
+    "channel_seed"
+  ],
+  "split": "val",
+  "status": "frozen",
+  "test_split_access": {
+    "test_labels_counted": false,
+    "test_rows_read": false,
+    "test_split_sealed": true
+  },
+  "tie_break": "lowest_class_index",
+  "tie_break_applied": true,
+  "tied_maximum_classes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "validation_count": 1000
+}

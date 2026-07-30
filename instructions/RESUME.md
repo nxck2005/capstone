@@ -46,8 +46,8 @@ Then:
 
 **Current phase:** PB_2 — in progress
 **Last green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0` (`fix(classical): correct PB_1 modulation interleaver ownership`)
-**Last durable checkpoint:** `8b8aa86126d07f236e76bf408a0e00bfd76c4dde`
-**Next action:** derive the Imagenette validation outage class from the committed manifest
+**Last durable checkpoint:** `68bb759a81f040396edc79f2f93679f74a027364`
+**Next action:** implement `src/baseline/classical/records.py` — exact `artifacts.csv_schema` / `artifacts.per_image_schema` records, identities and aggregation
 
 **PB_2 executes from `instructions/PB_2D.txt`, not `instructions/PB_2.txt`.** `PB_2D.txt` is the
 durable superseding instruction committed at B2.0; the original `PB_2.txt` is retained as historical
@@ -175,7 +175,7 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | Step | State | Notes |
 |---|---|---|
 | B2.0 confirm PB_1/PB_1C green + open durable ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `8b8aa86`; all seven B2.0 commands re-run and pass (see facts); `instructions/PB_2D.txt` created as the durable superseding instruction; no CI/status checks exist (`check-runs` total_count 0); `NEXT.md` and this ledger agree PB_2 is next; the `j2k_resolutions` block is still recorded as blocking PB_3, not PB_2 |
-| B2.1 `outage.py` + frozen selection artifact | not-started | select the constant class from the **entire** committed Imagenette-160 validation manifest by label frequency, lowest-index tie-break; measured accuracy is `selected_count / validation_count`, never `1/n` |
+| B2.1 `outage.py` + frozen selection artifact | done | `src/baseline/classical/outage.py` + `tools/gen_w4_outage_policy.py` (`--check`) + `results/baseline/w4/outage_policy.json` + `tests/test_classical_outage.py` (**44 tests, all pass**). Selection is a label-frequency calculation over the whole committed validation manifest — no image decode, no classifier, no loader order, no subset. **Ten-way tie; tie-break fires and selects class 0.** See the facts rows for counts and accuracy. The artifact will be **regenerated at B2.6** so its `selection_source_commit` names the clean runner-ready commit rather than `68bb759`, which predates `outage.py`. |
 | B2.2 `records.py` + identities and aggregation | not-started | exact `artifacts.csv_schema` / `artifacts.per_image_schema` field names and order read at runtime; reuse `make_run_id` / `make_analysis_cell_id` / `make_noise_id` / `make_pair_id` |
 | B2.3 resumable smoke runner + config | not-started | `configs/classical-baseline-w4-smoke.yaml` + `tools/run_classical_baseline_w4_smoke.py`, incremental JSONL rows with fsync and atomic replacement |
 | B2.4 W4 verifier + execution-source binding | not-started | `tools/verify_w4_baseline_integration.py` + `tools/gen_w4_source_manifest.py --check` |
@@ -208,13 +208,15 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | frozen classifier dataset | **imagenette160** — the adjudicated G-1 checkpoint is an Imagenette-160 classifier. CIFAR-10's ten indices are a *different* class vocabulary; the frozen classifier must never score CIFAR rows | B2.0 | yes |
 | frozen checkpoint SHA-256 | `9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002` (`models/frozen_reference_classifier.EXPECTED_CHECKPOINT_SHA256`, 92,121,803 bytes) | B2.0 | yes |
 | classifier config SHA-256 | `a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1` (`EXPECTED_CONFIG_HASH`) | B2.0 | yes |
-| outage-selection dataset | | B2.1 | |
-| outage-selection manifest SHA-256 | | B2.1 | |
-| validation class counts | | B2.1 | |
-| tied maximum classes | | B2.1 | |
-| selected outage class | | B2.1 | |
-| selected-class validation accuracy | | B2.1 | |
-| outage artifact SHA-256 | | B2.1 | |
+| outage-selection dataset | **imagenette160**, split `val` (the manifest's spelling of validation). Chosen because the frozen G-1 classifier is an Imagenette-160 model, so the outage class must come from the same label vocabulary | B2.1 | yes |
+| outage-selection manifest SHA-256 | `224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889` (`data/manifests/imagenette160.csv`, matches the AM-77 pin) | B2.1 | yes |
+| validation class counts | **`[100, 100, 100, 100, 100, 100, 100, 100, 100, 100]`** over 1000 validation rows (13,394 manifest rows total; train and test rows discarded before counting) | B2.1 | yes |
+| tied maximum classes | **all ten: `[0,1,2,3,4,5,6,7,8,9]`, each at the maximum count 100.** The tie is *structural*, not accidental: `data/manifests.py::_validate_counts_and_stratification` **enforces** an exactly stratified validation split (`val_labels == Counter({label: val_images // classes})`), so a valid manifest can never produce an unbalanced validation histogram. The lowest-class-index tie-break therefore does real work here — it is the only thing that picks a winner | B2.1 | yes |
+| selected outage class | **0** (lowest index among the ten-way tie) | B2.1 | yes |
+| selected-class validation accuracy | **numerator 100, denominator 1000, measured accuracy `100/1000 = 0.1`.** This *coincides* with `1/n_classes = 0.1` because of the enforced stratification above, but it is derived from counts and the artifact records the numerator and denominator explicitly. **Do not simplify it to a hardcoded `0.1`** — `tests/test_classical_outage.py::test_artifact_that_hardcodes_one_over_n_without_matching_counts_fails` shows a mutated count vector that leaves the theoretical value unchanged while the measured one moves, and `policy_from_record` recomputes from counts rather than trusting the float | B2.1 | yes |
+| outage artifact SHA-256 | `68be147e35468351b0bad2b466b56ed5af74b5e0acfc7e1fd3e64bb74976cd84` at B2.1 — **superseded at B2.6** when the artifact is regenerated with the clean runner-ready `selection_source_commit` | B2.1 | yes |
+| outage sensitivity identity | `keyed_uniform_random_label` over `keyed_generator("outage_label", {split_manifest_hash, stable_sample_id, channel_seed})`. `params.baseline.outage_rng_key` spells the purpose as the pseudo-field `purpose=outage_label`; the central `artifacts.rng` contract takes the purpose as the first argument and **rejects** it inside the identity, so `configured_rng_identity_fields()` strips the marker and asserts the remaining three fields equal `params.artifacts.rng_identity_fields.outage_label` | B2.1 | yes |
+| B2.1 targeted tests | `.venv/bin/python -m pytest tests/test_classical_outage.py` → **44 passed** | B2.1 | yes |
 | aggregate schema field count/order | | B2.2 | |
 | per-image schema field count/order | | B2.2 | |
 | fixed PB_2 system value | | B2.2 | |
