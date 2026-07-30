@@ -46,7 +46,7 @@ Then:
 
 **Current phase:** PA — in progress (fresh run, started at A1)
 **Last green commit:** `82f6c569f792bf17ff28acd80ed1d516adfc06fa` (`fix(ldpc): make G-2 tools directly executable`)
-**Next action:** run `instructions/PA.txt` step A2 (fixture workflow + docs)
+**Next action:** run `instructions/PA.txt` step A3 (full preflight) — mark it `in-progress` and commit that first
 
 ---
 
@@ -55,7 +55,7 @@ Then:
 | Step | State | Notes |
 |---|---|---|
 | A1 establish exact state | done | fresh run; no prior `wip(handoff)` commits, clean worktree, HEAD = origin/main |
-| A2 fixture workflow + docs | not-started | |
+| A2 fixture workflow + docs | done | fetch-tool audit (do NOT re-audit): **already present** — pinned-asset-only fetch, complete-asset SHA-256 vs `baseline.ldpc_golden_vector_asset_sha256`, produces the ignored `.npz`, records source rung 2, never writes third-party bytes anywhere tracked (`.gitignore:157` + `/data/*`). **Added** — (a) `.npz`-absent guard: was gated on the *asset tarball*, now a network-free no-op when the fixture exists, `--force` to re-materialize; (b) inner-archive verification widened from encoder-only to *every* pinned archive in `baseline.ldpc_golden_vector_sha256` (encoder + rate_matcher + segmenter). Docs: fetch+verify_g2 lines added to `AGENTS.md`, fetch line added to `README.md`, both with the fresh-clone rationale. Offline floor left ungated. |
 | A3 complete preflight | not-started | |
 | A4 repair hand-off + consistency check | not-started | |
 | A5 G-2 source provenance manifest | not-started | |
@@ -112,6 +112,8 @@ Then:
 | A1 HEAD | `174cf19bfa2b10cb89d85211ab330e5cd8251de0` | A1 | yes |
 | A1 origin/main | `174cf19bfa2b10cb89d85211ab330e5cd8251de0` | A1 | yes |
 | A1 worktree | clean; `git diff --check` clean | A1 | yes |
+| adjudicated fixture SHA-256 (local, matches `results/baseline/g2/golden_vector_summary.json`) | `55754b508ab1b6eb6625eae301d2d0a3fefcdf7b03e98038264b76b71e26aae0` | A2 | yes |
+| fixture regeneration reproducibility | re-materializing from the pinned asset reproduces all 6 arrays and the same `.npz` SHA-256 | A2 | yes |
 | A1 divergence from PA.txt expected HEAD | none material — `174cf19` is docs-only (`chore: add instructions for post W3`, adds `instructions/` only, 5 files / +1443 lines); last code commit is still `82f6c56` | A1 | yes |
 | total tests | — | — | |
 | `tests/test_test_access.py` count | — | — | |

@@ -40,8 +40,20 @@ python spec/evidence/check_packetisation.py --json spec/evidence/packetisation_r
 .venv/bin/python tools/profile_djscc_g7.py             # requires a clean --git-repo worktree at the configured implementation commit; see W2 worklog
 .venv/bin/python tools/verify_g7_profile.py            # network-free frozen G-7 config/commit/metric/gate cross-check
 .venv/bin/python tools/verify_transparency_bitrate_probe.py  # validation-only J2K probe evidence
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py     # materialize the ignored rung-2 LDPC fixture; run before pytest
+.venv/bin/python tools/verify_g2_adjudication.py        # network-free frozen G-2 evidence, source-provenance and lineage cross-check
 .venv/bin/python -m pytest              # project test suite; config is in pyproject.toml
 ```
+
+**On a fresh clone, run the fetch line before `pytest`.** `tests/fixtures/ldpc_ts38212_golden.npz` is
+git-ignored on purpose (`.gitignore:157`, AM-25 — third-party vector bytes are never committed, only
+their checksums and a fetcher), and `tests/test_ldpc.py::test_srsran_encoder_and_rate_matched_fixture_exact`
+hard-asserts the file exists rather than skipping, so an unmaterialized clone fails the suite for a
+provenance reason rather than a scientific one. `fetch_ldpc_golden_vectors.py` authenticates the
+complete release asset and every pinned inner vector archive against `params.baseline`, is a
+network-free no-op once the fixture is present (`--force` re-materializes), and never writes
+third-party bytes anywhere tracked. The project-owned offline-floor test immediately above the srsRAN
+test is deliberately ungated and needs no network.
 
 **AM-77 provenance pins:** Imagenette-160 `imagenette2-160.tgz`, 99,003,388 bytes,
 SHA-256 `64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5`; STL-10

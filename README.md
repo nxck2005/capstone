@@ -137,9 +137,17 @@ under a second with no GPU and no network. The repository's checks are meant to 
 .venv/bin/python tools/verify_g1_adjudication.py        # offline: epochs, counts, hashes, floor, lineage and checkpoint identity
 .venv/bin/python tools/verify_g7_profile.py             # offline: clean commit, CUDA profile, caps, limits and training-only scope
 .venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py     # materialize the ignored rung-2 fixture; required before pytest
 .venv/bin/python tools/verify_g2_adjudication.py
 .venv/bin/python -m pytest
 ```
+
+The rung-2 srsRAN golden-vector fixture `tests/fixtures/ldpc_ts38212_golden.npz` is deliberately
+git-ignored, because third-party vector bytes are never committed — only their checksums and a
+fetcher (AM-25). So on a fresh clone the fetch line above must run **before** `pytest`, or
+`tests/test_ldpc.py::test_srsran_encoder_and_rate_matched_fixture_exact` fails on the absent file.
+The fetch is a network-free no-op once the fixture exists, and the project-owned offline-floor
+test beside it never needs the network at all.
 
 The tracked manifests and their exact SHA-256 values are:
 

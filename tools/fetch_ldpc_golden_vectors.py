@@ -12,7 +12,7 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import numpy as np
 
@@ -24,14 +24,19 @@ from baseline.ldpc.modulation import bits_per_symbol, interleave
 
 FILLER_MARKER = 254
 MIN_RATE_DENOMINATOR = {1: 3, 2: 5}
+ENCODER_ARCHIVE = "ldpc_encoder_test_data.tar.gz"
+
+
+def _digest(read) -> str:
+    digest = hashlib.sha256()
+    for chunk in iter(lambda: read(1024 * 1024), b""):
+        digest.update(chunk)
+    return digest.hexdigest()
 
 
 def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
     with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+        return _digest(handle.read)
 
 
 def _download(url: str, target: Path) -> None:
@@ -40,24 +45,45 @@ def _download(url: str, target: Path) -> None:
         shutil.copyfileobj(response, output)
 
 
-def _extract_encoder_archive(asset: Path, destination: Path) -> None:
+def _extract_encoder_archive(asset: Path, destination: Path) -> dict[str, str]:
+    """Authenticate every pinned inner vector archive, then extract the encoder one.
+
+    All of `baseline.ldpc_golden_vector_sha256` is checked, not just the encoder archive
+    this fixture consumes: a substituted release asset that carries the right encoder
+    bytes but tampered rate-matcher or segmenter bytes must not pass authentication
+    merely because the converter happens not to read those members.
+    """
+    pinned = dict(get("baseline.ldpc_golden_vector_sha256"))
+    if ENCODER_ARCHIVE not in pinned:
+        raise RuntimeError(f"{ENCODER_ARCHIVE} is not pinned in baseline.ldpc_golden_vector_sha256")
+    verified: dict[str, str] = {}
+    inner_bytes = b""
     with tarfile.open(asset) as outer:
-        member = next(
-            (item for item in outer.getmembers()
-             if item.name.endswith("/ldpc_encoder_test_data.tar.gz")),
-            None,
+        for item in outer.getmembers():
+            name = PurePosixPath(item.name).name
+            if name not in pinned or name in verified:
+                continue
+            extracted = outer.extractfile(item)
+            if extracted is None:
+                raise RuntimeError(f"could not read pinned vector archive {name}")
+            if name == ENCODER_ARCHIVE:
+                inner_bytes = extracted.read()
+                actual = hashlib.sha256(inner_bytes).hexdigest()
+            else:
+                actual = _digest(extracted.read)
+            if actual != pinned[name]:
+                raise RuntimeError(
+                    f"inner vector-archive checksum mismatch for {name}: {actual} != {pinned[name]}"
+                )
+            verified[name] = actual
+    missing = sorted(set(pinned) - set(verified))
+    if missing:
+        raise RuntimeError(
+            f"authenticated release asset lacks pinned vector archives: {', '.join(missing)}"
         )
-        if member is None:
-            raise RuntimeError("authenticated release asset lacks the encoder vector archive")
-        extracted = outer.extractfile(member)
-        if extracted is None:
-            raise RuntimeError("could not read encoder vector archive")
-        inner_bytes = extracted.read()
-    expected = get("baseline.ldpc_golden_vector_sha256")["ldpc_encoder_test_data.tar.gz"]
-    if hashlib.sha256(inner_bytes).hexdigest() != expected:
-        raise RuntimeError("inner encoder-vector checksum mismatch")
     with tarfile.open(fileobj=io.BytesIO(inner_bytes), mode="r:gz") as inner:
         inner.extractall(destination, filter="data")
+    return verified
 
 
 def convert(vectors: Path, output: Path) -> dict:
@@ -112,9 +138,36 @@ def main() -> int:
     parser.add_argument(
         "--output", type=Path, default=REPO_ROOT / get("baseline.ldpc_golden_vector_file")
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="re-materialize even if the fixture is already present",
+    )
     args = parser.parse_args()
     expected = get("baseline.ldpc_golden_vector_asset_sha256")
+    record = {
+        "source_rung": int(get("baseline.ldpc_golden_vector_source_rung")),
+        "release": get("baseline.ldpc_golden_vector_upstream_release"),
+        "asset": get("baseline.ldpc_golden_vector_upstream_asset"),
+        "asset_sha256_expected": expected,
+        "fixture": str(args.output.relative_to(REPO_ROOT) if args.output.is_relative_to(REPO_ROOT)
+                       else args.output),
+    }
+    # An existing fixture is authoritative, so this path is a network-free no-op: running
+    # the tool on a clone that already materialized it must not re-fetch the release asset.
+    if args.output.exists() and not args.force:
+        print(json.dumps({
+            **record,
+            "already_present": True,
+            "downloaded": False,
+            "asset_sha256_verified": None,
+            "inner_archives_verified": None,
+            "cases": None,
+            "fixture_sha256": sha256(args.output),
+        }, indent=2))
+        return 0
     downloaded = False
+    inner = None
     if args.vectors_dir is None:
         if not args.asset.exists():
             _download(get("baseline.ldpc_golden_vector_upstream_url"), args.asset)
@@ -124,18 +177,17 @@ def main() -> int:
             raise RuntimeError(f"release asset checksum mismatch: {actual} != {expected}")
         with tempfile.TemporaryDirectory(prefix="capstone-ldpc-vectors-") as directory:
             vectors = Path(directory)
-            _extract_encoder_archive(args.asset, vectors)
+            inner = _extract_encoder_archive(args.asset, vectors)
             summary = convert(vectors, args.output)
     else:
         summary = convert(args.vectors_dir, args.output)
         actual = None
     print(json.dumps({
-        "source_rung": int(get("baseline.ldpc_golden_vector_source_rung")),
-        "release": get("baseline.ldpc_golden_vector_upstream_release"),
-        "asset": get("baseline.ldpc_golden_vector_upstream_asset"),
-        "asset_sha256_expected": expected,
-        "asset_sha256_verified": actual,
+        **record,
+        "already_present": False,
         "downloaded": downloaded,
+        "asset_sha256_verified": actual,
+        "inner_archives_verified": inner,
         **summary,
     }, indent=2))
     return 0
