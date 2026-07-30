@@ -11,9 +11,29 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Single next task
 
+**The current path, stated once. Every live section below must agree with these six lines; if one
+does not, it is wrong and this block is right.**
+
+| | |
+|---|---|
+| W3 | complete |
+| G-2 | PASS |
+| bounded W4 integration | **next — this is the single live engineering task** |
+| full BR-4 sweep | not started |
+| G-8 | unresolved |
+| test split | sealed until G-12 at W11 |
+
 Begin only the bounded **W4 classical-baseline integration required before G-8**. G-8 has not
 started. Do not run the full BR-4 validation sweep, select ratios, calibrate λ, train learned
 models, implement ER-9, or access the test split until their scheduled gates.
+
+`tools/check_doc_consistency.py` mechanically enforces that this block is not contradicted
+elsewhere in this file: a live section may not prohibit the declared next task, may not direct
+already-completed work as the next step, and the live sections named in the check must each mention
+the declared frontier. Historical content is exempt only where it sits behind a struck-through
+heading, a `**DONE**`/`**Complete**`/`PASS` marker, or the `## Session log`. Rewriting the phase in
+that block without rewriting the sections that quote it now fails the preflight rather than
+surviving three sessions.
 
 W3 implementation is frozen at
 `968e907237bbe571adf6ec48e4711ea021831719`. The committed G-2 evidence under
@@ -88,8 +108,9 @@ OpenJPEG 2.5.4 through Glymur 0.14.3 produced zero infeasible cells and zero dec
 selection-aware paired bootstrap forecasts the 5 pp threshold at 1,330 bytes (axis 128, mean
 0.408654 bpp, 0.870 accuracy, LCB −0.041) and the 2 pp threshold at 3,200 bytes (axis 160, mean
 0.987788 bpp, 0.886 accuracy, LCB −0.018); neither is censored. These are probe forecasts only:
-G-8 remains unresolved. No training ran and the test split stayed sealed. Do not begin W4, G-8, or
-the reference-classifier fallback ladder.
+G-8 remains unresolved. No training ran and the test split stayed sealed. Do not select a G-8
+operating point from those forecasts, open G-8, or start the reference-classifier fallback ladder —
+bounded W4 integration is the live task, as stated in the block at the top of this file.
 
 ---
 
@@ -309,7 +330,7 @@ preserved in the named GitHub Release. The best/final validation result is 898/1
 RTX 4060 Laptop 8 GB · driver 592.82 · Torch CUDA 13.0. The three dataset archives/extractions and
 srsRAN vectors remain locally available and ignored as designed.
 
-Confirm nothing drifted, then begin the transparency-bitrate probe only:
+Confirm nothing drifted, then begin bounded W4 classical-baseline integration only:
 
 ```bash
 .venv/bin/python tools/gen_spec_views.py --check           # expect: 187 requirements (2 retired)
@@ -321,10 +342,19 @@ Confirm nothing drifted, then begin the transparency-bitrate probe only:
 .venv/bin/python tools/verify_datasets.py
 .venv/bin/python tools/verify_g1_adjudication.py
 .venv/bin/python tools/verify_g7_profile.py
-.venv/bin/python -m pytest                                  # expect: all tests pass with CUDA access
+.venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py         # materialize the ignored rung-2 fixture BEFORE pytest
+.venv/bin/python tools/verify_g2_adjudication.py            # expect: measurement=968e907237bb, rows=24, test_split_access=0
+.venv/bin/python -m pytest                                  # expect: 473 passed with CUDA access
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
 git status --short                                          # expect: clean
 ```
+
+**The fetch line is not optional on a fresh clone.** `tests/fixtures/ldpc_ts38212_golden.npz` is
+git-ignored by design (AM-25 — third-party vector bytes are never committed, only their checksums and
+a fetcher), and the srsRAN fixture test hard-asserts the file rather than skipping, so an
+unmaterialized clone fails `pytest` for a provenance reason that looks like a scientific one. The
+fetch is a network-free no-op once the fixture exists.
 
 #### GPU access — probe it, do not assume it either way
 
