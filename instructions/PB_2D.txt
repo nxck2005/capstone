@@ -1,0 +1,1559 @@
+# PB_2 — Durable Outage Policy, Records, and Bounded W4 Evidence
+
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
+Interpreter: always `.venv/bin/python`
+Normative source: `spec/SPEC.md`
+
+Expected starting handoff HEAD:
+
+```text
+8b8aa86126d07f236e76bf408a0e00bfd76c4dde
+```
+
+PB_1 corrective green implementation commit:
+
+```text
+4eda158145595de0f2e9aa92456ee4a052db74b0
+```
+
+This instruction supersedes `instructions/PB_2.txt` for execution. Preserve the original file as historical context.
+
+Your task is to complete PB_2 only:
+
+* frozen outage policy and sensitivity;
+* frozen-reference-classifier inference on valid Imagenette reconstructions;
+* reconstruction and communications metrics;
+* exact per-image and aggregate records;
+* a crash-resumable bounded smoke runner;
+* committed bounded validation/plumbing evidence;
+* the first W4 integration verifier.
+
+Do not begin PB_3 or any BR-4 selection machinery.
+
+---
+
+# 1. Read first
+
+On every fresh or resumed session, read in this order:
+
+1. `instructions/RESUME.md`
+2. `instructions/PB_2D.txt`, once committed
+3. `AGENTS.md`
+4. `NEXT.md`
+5. `worklogs/w4-classical-baseline-progress.md`
+6. `instructions/PB_2.txt`
+7. `instructions/PB_1C.txt`
+8. `spec/SPEC.md`
+
+`spec/SPEC.md` is normative.
+
+`instructions/RESUME.md` is the operational cursor. If its progress state conflicts with `NEXT.md`, the ledger wins and `NEXT.md` needs correction.
+
+---
+
+# 2. Abrupt-exit resilience
+
+Assume the session can end without warning during any command.
+
+The repository—not terminal scrollback, chat history, or the final report—must contain enough information for a new agent to resume safely.
+
+## 2.1 Durable instruction copy
+
+At B2.0, save this complete instruction as:
+
+```text
+instructions/PB_2D.txt
+```
+
+Commit and push that file before beginning implementation.
+
+Afterwards, resume from `instructions/PB_2D.txt` and `instructions/RESUME.md`, never from remembered chat context.
+
+## 2.2 Existing ledger rows
+
+Retain the existing PB_2 rows in `instructions/RESUME.md`:
+
+```markdown
+| Step | State | Notes |
+|---|---|---|
+| B2.0 confirm PB_1/PB_1C green | not-started | |
+| B2.1 `outage.py` + frozen selection artifact | not-started | |
+| B2.2 `records.py` + identities and aggregation | not-started | |
+| B2.3 resumable smoke runner + config | not-started | |
+| B2.4 W4 verifier + execution-source binding | not-started | |
+| B2.5 required and mutation tests | not-started | |
+| B2.6 bounded executions + committed evidence | not-started | |
+| B2.7 documentation, full verification and green handoff | not-started | |
+```
+
+If the existing row wording differs slightly, preserve its history while making the scope above unambiguous.
+
+Allowed states:
+
+```text
+not-started
+in-progress
+done
+```
+
+A real blocker belongs in Notes and in a final `HOLD` report. Do not invent another state.
+
+## 2.3 Status header during PB_2
+
+Once B2.0 begins:
+
+```markdown
+**Current phase:** PB_2 — in progress
+**Last green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
+**Last durable checkpoint:** `<latest pushed B2 checkpoint, or 8b8aa861... before the first>`
+**Next action:** `<one concrete command or edit>`
+```
+
+The PB_1C green commit remains the last green implementation commit until the complete PB_2 verification block passes.
+
+WIP checkpoints are durable, not green.
+
+## 2.4 PB_2 facts table
+
+Add an append-only section:
+
+```markdown
+### PB_2 observed facts
+
+| Fact | Value | Observed at | Verified |
+|---|---|---|---|
+| starting local HEAD | | B2.0 | |
+| starting origin/main | | B2.0 | |
+| starting remote main | | B2.0 | |
+| starting worktree state | | B2.0 | |
+| PB_1C green commit | | B2.0 | |
+| PB_1C full-suite baseline | 605 reported; locally rechecked at B2.0 | B2.0 | |
+| frozen classifier dataset | imagenette160 | B2.0 | |
+| frozen checkpoint SHA-256 | | B2.0/B2.1 | |
+| classifier config SHA-256 | | B2.0/B2.1 | |
+| outage-selection dataset | | B2.1 | |
+| outage-selection manifest SHA-256 | | B2.1 | |
+| validation class counts | | B2.1 | |
+| tied maximum classes | | B2.1 | |
+| selected outage class | | B2.1 | |
+| selected-class validation accuracy | | B2.1 | |
+| outage artifact SHA-256 | | B2.1 | |
+| aggregate schema field count/order | | B2.2 | |
+| per-image schema field count/order | | B2.2 | |
+| fixed PB_2 system value | | B2.2 | |
+| runner-ready clean source commit | | B2.5/B2.6 | |
+| resolved config hash | | B2.6 | |
+| execution-source manifest SHA-256 | | B2.6 | |
+| CIFAR transport-only smoke result | | B2.6 | |
+| Imagenette bounded sample count | | B2.6 | |
+| Imagenette SNR points | | B2.6 | |
+| high-SNR record result | | B2.6 | |
+| decode-failure/outage result | | B2.6 | |
+| keyed-noise equality result | | B2.6 | |
+| W4 verifier result | | B2.7 | |
+| full pytest result | | B2.7 | |
+| test-access counters | | B2.7 | |
+| final green implementation commit | | B2.7 | |
+| final handoff HEAD | | B2.7 | |
+```
+
+Add rows where useful. Never delete a prior observation; mark it superseded if necessary.
+
+## 2.5 Checkpoint rules
+
+For every B2.x step:
+
+1. Before beginning a long, expensive, or multi-file step:
+
+   * mark the row `in-progress`;
+   * record the first concrete next action;
+   * commit and push the ledger marker.
+
+2. During the step:
+
+   * never leave more than one checkpoint’s work uncommitted;
+   * record expensive results immediately;
+   * land coherent code with its targeted tests;
+   * do not wait for a polished final report to preserve work.
+
+3. At completion:
+
+   * run targeted tests;
+   * mark the row `done`;
+   * record the test command and result;
+   * update **Last durable checkpoint** and **Next action**;
+   * commit and push.
+
+Use intermediate commits such as:
+
+```text
+wip(pb2): <what became durable>
+```
+
+Leave WIP commits in history. Do not rebase, squash, amend pushed commits, or force-push.
+
+---
+
+# 3. Cold-start protocol
+
+Run on every fresh or resumed session:
+
+```bash
+cd /home/nick/projects/capstone
+
+git status --short
+git log -15 --oneline
+git rev-parse HEAD
+git fetch origin
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Then:
+
+* If the worktree is dirty, treat it as unfinished work belonging to the row marked `in-progress`.
+* Inspect all diffs before editing.
+* Do not discard, reset, restore, clean, or stash unknown changes.
+* If local HEAD is ahead of `origin/main`, push the durable checkpoint before continuing.
+* If `origin/main` is ahead or history diverges, inspect the commits before integrating anything.
+* If the latest commit is `wip(pb2): ...`, resume at the first PB_2 row not marked `done`.
+* Re-verify an `in-progress` step.
+* Do not rerun expensive completed work merely to regain context.
+* Trust a `done` step only if the repository has not drifted in a way that invalidates it.
+
+Never use destructive Git cleanup as a resumption strategy.
+
+---
+
+# 4. Critical semantic boundary: Imagenette classifier versus CIFAR smoke
+
+The adjudicated frozen G-1 checkpoint is an **Imagenette-160 classifier**.
+
+CIFAR-10 also has ten numeric class indices, but the ten indices represent a different class vocabulary. Equal output dimension does not make the labels semantically compatible.
+
+Therefore:
+
+* The real frozen classifier may score only Imagenette-160 canonical images and reconstructions.
+* The frozen outage class used for real W4 task records must be selected from the Imagenette-160 validation labels.
+* The complete real schema-conformant task records committed by PB_2 must be Imagenette-160 validation records.
+* CIFAR-10 remains a transport, verdict, accounting, cache, and schema-plumbing smoke only.
+* Do not report CIFAR `top1_acc`, `correct`, outage-class accuracy, or classifier predictions obtained from the Imagenette classifier.
+* Do not reinterpret CIFAR class index `i` as Imagenette class index `i`.
+* Do not train or introduce a CIFAR classifier in PB_2.
+* Do not invent a second frozen classifier.
+* Synthetic unit-test classifiers may be used only in tests and must be labelled fixtures.
+
+Run the real CIFAR smoke separately from the task-scored record artifact. Its summary must state:
+
+```text
+transport-only plumbing smoke
+no task accuracy
+no frozen-classifier inference
+not comparable to Imagenette task labels
+```
+
+Use the working 32 px CIFAR axis explicitly so the known 24/16 px JPEG-2000 configuration conflict does not contaminate the ordinary smoke. Retain a separate test reproducing that conflict.
+
+If any current instruction is interpreted as requiring real CIFAR task accuracy through the Imagenette checkpoint, do not comply silently. Record:
+
+```text
+PB_2 HOLD — CROSS-DATASET CLASSIFIER SEMANTICS REQUIRE A SPEC DECISION
+```
+
+---
+
+# 5. Scope and prohibitions
+
+PB_2 closes the bounded pipeline:
+
+```text
+PB_1 ClassicalResult
+→ frozen reference classifier for delivered Imagenette reconstructions
+→ frozen outage prediction for undelivered Imagenette rows
+→ reconstruction metrics for delivered rows
+→ per-image records
+→ aggregate records
+→ bounded evidence and verification
+```
+
+Do not:
+
+* create `composition.py`;
+* implement BR-4 analytical composition;
+* create candidate selection or tie-break machinery for MCS/codec selection;
+* run the full BR-4 validation sweep;
+* select any operating ratio;
+* resolve G-8;
+* begin PB_3;
+* train or fine-tune any classifier;
+* train any learned communication model;
+* calibrate lambda;
+* implement ER-9;
+* open the test split;
+* change the frozen G-1 checkpoint;
+* rerun G-7, transparency, or the G-2 campaign;
+* modify provisional bandwidth parameters from smoke observations;
+* treat bounded smoke accuracy as an experimental result;
+* resolve the JPEG-2000 24/16 px issue silently.
+
+Avoid all changes under:
+
+```text
+src/baseline/ldpc/
+```
+
+If such a file must change, stop and assess G-2 provenance before continuing.
+
+---
+
+# B2.0 — Confirm PB_1C and open the durable PB_2 ledger
+
+Run:
+
+```bash
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py
+.venv/bin/python tools/gen_g2_source_manifest.py --check
+.venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python -m pytest
+```
+
+Confirm:
+
+* local, origin, and remote main agree;
+* expected starting HEAD is `8b8aa861...`, or any later commit is understood and harmless;
+* worktree is clean;
+* the current full suite passes;
+* G-1 and G-2 verify;
+* PB_1C interleaver conformance tests pass;
+* test loading remains sealed;
+* no CI/status checks exist unless that has changed;
+* `src/baseline/classical/{pipeline,channel_transport}.py` exist;
+* `instructions/RESUME.md` and `NEXT.md` agree that PB_2 is next;
+* the JPEG-2000 conflict remains unresolved and is still documented as blocking PB_3 rather than PB_2.
+
+Create `instructions/PB_2D.txt`.
+
+Update the PB_2 ledger and facts.
+
+Set the next action to:
+
+```text
+derive the Imagenette validation outage class from the committed manifest
+```
+
+## CHECKPOINT B2.0
+
+Commit and push:
+
+```text
+wip(pb2): open durable PB_2 execution ledger
+```
+
+Do not continue until the instruction and ledger are durable remotely.
+
+---
+
+# B2.1 — Implement and freeze the outage policy
+
+Create:
+
+```text
+src/baseline/classical/outage.py
+```
+
+Create a committed artifact such as:
+
+```text
+results/baseline/w4/outage_policy.json
+```
+
+The exact filename may follow an existing repository convention, but it must be stable and verifier-bound.
+
+## 5.1 Selection source
+
+Select the constant class from the **entire committed Imagenette-160 validation manifest**, not from:
+
+* a sample subset;
+* loader order;
+* decoded images;
+* classifier predictions;
+* test labels;
+* assumed class balance;
+* `1 / n_classes`.
+
+This is a label-frequency calculation. It should not require image decode or classifier inference.
+
+For every class index, count validation labels.
+
+Select:
+
+1. the highest validation-count class;
+2. the lowest class index if multiple classes tie.
+
+Measured outage accuracy is exactly:
+
+```text
+selected_validation_count / total_validation_count
+```
+
+Do not replace it with a theoretical value, even if it happens to equal `0.1`.
+
+## 5.2 Selection artifact
+
+The artifact must include at least:
+
+```text
+schema_version
+purpose
+status
+dataset
+dataset_version
+split
+manifest_path
+manifest_sha256
+selection_policy
+tie_break
+class_count
+validation_count
+class_counts
+maximum_count
+tied_maximum_classes
+selected_class
+selected_count
+measured_validation_accuracy
+numerator
+denominator
+frozen_before
+params_sha256 or complete config identity
+selection_source_commit
+generated_at
+test_split_access
+```
+
+Required labels:
+
+```text
+bounded validation/plumbing integration
+not the BR-4 full validation sweep
+not a G-8 operating-point selection
+not test evidence
+```
+
+The artifact must be deterministic apart from explicitly recorded timestamp fields.
+
+## 5.3 Runtime policy
+
+Provide a clean interface that:
+
+* loads and verifies the frozen artifact;
+* rejects a different dataset, manifest hash, class count, or policy;
+* returns the same constant prediction for every outage row;
+* never reselects the class during inference;
+* never reads validation or test labels during ordinary prediction.
+
+The primary outage outcome stays binary per image:
+
+```text
+correct = pred_label == true_label
+```
+
+Never assign fractional correctness to one row.
+
+## 5.4 Sensitivity policy
+
+Implement:
+
+```text
+keyed_uniform_random_label
+```
+
+using the existing central RNG utility:
+
+```python
+keyed_generator(
+    "outage_label",
+    {
+        "split_manifest_hash": ...,
+        "stable_sample_id": ...,
+        "channel_seed": ...,
+    },
+)
+```
+
+The purpose is supplied as the first argument. Do not also place a `purpose` field in the identity if the central exact-key contract rejects it.
+
+Generate one integer in:
+
+```text
+[0, n_classes)
+```
+
+The sensitivity prediction must be invariant to:
+
+* row order;
+* batch size;
+* system control flow;
+* how many other rows outage;
+* intervening random draws.
+
+It must vary when a declared identity component changes.
+
+## 5.5 Required tests
+
+At minimum:
+
+* full validation counts reproduce the artifact;
+* selected class is the true maximum;
+* ties select the lowest class index;
+* measured accuracy is count-derived, not `1/n`;
+* selection uses validation rows only;
+* test rows are rejected;
+* runtime prediction does not reload or reselect;
+* artifact dataset and manifest mismatches fail closed;
+* sensitivity exact-key validation;
+* sensitivity row-order and batching invariance;
+* changing stable ID, manifest hash, or channel seed changes the keyed stream;
+* constant fallback is invariant across systems.
+
+## CHECKPOINT B2.1
+
+Immediately record and commit:
+
+* class counts;
+* tied classes;
+* selected class;
+* numerator and denominator;
+* measured validation accuracy;
+* artifact SHA-256.
+
+Run targeted tests.
+
+Commit and push:
+
+```text
+wip(pb2): freeze validation-selected outage policy
+```
+
+Do not postpone recording the selected class.
+
+---
+
+# B2.2 — Implement exact records, identities, and aggregation
+
+Create:
+
+```text
+src/baseline/classical/records.py
+```
+
+Reuse the existing identity implementations:
+
+```python
+make_run_id
+make_analysis_cell_id
+make_noise_id
+make_pair_id
+```
+
+Do not create parallel hashing or canonicalization logic.
+
+## 6.1 Exact schemas
+
+Read at runtime:
+
+```text
+artifacts.csv_schema
+artifacts.per_image_schema
+artifacts.system_values
+artifacts.run_id_key
+artifacts.analysis_cell_id_key
+artifacts.noise_id_key
+artifacts.pair_id_key
+artifacts.pair_id_excludes
+artifacts.checkpoint_id_form
+```
+
+Records must match the configured field names and order exactly.
+
+Reject:
+
+* missing fields;
+* additional fields;
+* reordered fields;
+* duplicate field names;
+* unsupported system values.
+
+Do not maintain a second handwritten schema list in production code.
+
+## 6.2 PB_2 system identity
+
+PB_2 runs one explicitly fixed plumbing configuration. It has not implemented adaptive BR-4 selection.
+
+Use:
+
+```text
+classical_fixed_mcs
+```
+
+for the real bounded task-scored records unless the normative spec unambiguously requires another existing value.
+
+Do not use:
+
+```text
+classical_adaptive
+```
+
+before PB_3 constructs and verifies adaptation.
+
+Record the justification in the W4 worklog and evidence.
+
+## 6.3 Identity construction
+
+Required rules:
+
+* `dataset_version` is the configured archive SHA-256.
+* `config_hash` comes from the versioned resolved `RunConfig` fingerprint, not an ad hoc YAML hash.
+* `checkpoint_id` is SHA-256 of the exact frozen checkpoint file bytes.
+* `analysis_cell_id` comes from the configured train-seed/channel-seed key.
+* `noise_id` must agree with the PB_1 `ChannelIdentity` result.
+* `pair_id` excludes system and comparison.
+* Changing system changes `run_id` but not `pair_id`.
+* Changing split, config, checkpoint, or classifier variant changes `run_id`.
+* Row order or batching changes no identity.
+* Missing or extra identity fields fail.
+
+## 6.4 Prediction semantics
+
+For an Imagenette row:
+
+### Delivered
+
+* Run the exact frozen G-1 classifier on `reconstruction_input(decoded_image)`.
+* Use evaluation mode and no gradients.
+* `pred_label = argmax(logits)`.
+* `outage = false`.
+* `outage_reason` uses the repository’s canonical non-outage representation.
+* `correct = pred_label == true_label`.
+* Compute reconstruction metrics against the same canonical source pixels.
+
+### Structural infeasibility
+
+* Apply the frozen constant outage prediction.
+* `outage = true`.
+* `outage_reason = structural_infeasibility`.
+
+### Codec infeasibility
+
+* Apply the frozen constant outage prediction.
+* `outage = true`.
+* `outage_reason = codec_infeasibility`.
+
+### Decode failure
+
+* Apply the frozen constant outage prediction.
+* `outage = true`.
+* `outage_reason = decode_failure`.
+
+Do not run classifier inference on missing reconstructions.
+
+Do not invent substitute pixels for an outage.
+
+## 6.5 Field-semantics table
+
+Before emitting evidence, create a machine-readable mapping—either a separate artifact or an explicit section of `resolved_config.json`—for every aggregate and per-image field:
+
+```text
+field
+source
+type
+unit
+nullable
+not-applicable representation
+aggregation denominator
+```
+
+Resolve each field from the specification and current code. Do not guess silently.
+
+In particular, distinguish:
+
+* source payload capacity;
+* emitted JPEG-2000 codestream bytes;
+* LDPC/channel bits;
+* header/container bytes;
+* payload filler;
+* channel-use count.
+
+Use the BR-10 meaning of `source_bytes`; do not quietly substitute original archive bytes or canonical RGB byte length.
+
+If a schema field’s meaning remains materially ambiguous after inspecting the normative spec and current conventions, record a precise HOLD instead of selecting the interpretation most convenient to implement.
+
+## 6.6 Aggregate reconciliation
+
+At minimum enforce:
+
+```text
+n == number of per-image rows
+n_test == number of evaluated rows despite the legacy field name
+n_correct == sum(correct)
+top1_acc == n_correct / n
+coverage_rate == delivered_count / n
+decode_failure_rate == decode_failure_count / n
+infeasible_rate == (structural_infeasible + codec_infeasible) / n
+```
+
+For delivery-conditional accuracy:
+
+```text
+acc_given_delivery =
+    delivered_correct / delivered_count
+```
+
+Use the documented null/NA representation when `delivered_count == 0`.
+
+Also verify:
+
+```text
+delivered
++ decode_failure
++ structural_infeasibility
++ codec_infeasibility
+== n
+```
+
+Aggregate PSNR and SSIM only over rows with real delivered reconstructions. Record that denominator explicitly in the evidence because the CSV schema does not carry it.
+
+PAPR aggregation and byte totals must state whether they are means, totals, or other configured quantities. Do not mix denominators silently.
+
+## 6.7 Tests
+
+Required:
+
+* exact aggregate schema and order;
+* exact per-image schema and order;
+* field addition/removal/rename/reordering mutations fail;
+* all identity key sets match params;
+* `pair_id` excludes system/comparison;
+* system changes `run_id` but not `pair_id`;
+* config/checkpoint/split changes `run_id`;
+* noise identity equals PB_1;
+* delivered classifier path;
+* each outage reason maps correctly;
+* classifier never runs on outage;
+* outage correctness remains binary;
+* aggregate metrics recompute exactly from per-image rows;
+* zero-delivery denominator behavior;
+* checkpoint hash mismatch fails;
+* non-Imagenette real classifier use fails;
+* test-split record generation fails.
+
+## CHECKPOINT B2.2
+
+Run targeted records and identity tests.
+
+Commit and push:
+
+```text
+wip(pb2): add exact W4 records and identities
+```
+
+---
+
+# B2.3 — Build a crash-resumable bounded runner
+
+Create:
+
+```text
+configs/classical-baseline-w4-smoke.yaml
+tools/run_classical_baseline_w4_smoke.py
+```
+
+Expected final evidence:
+
+```text
+results/baseline/w4/resolved_config.json
+results/baseline/w4/outage_policy.json
+results/baseline/w4/smoke_summary.json
+results/baseline/w4/accounting_examples.json
+results/baseline/w4/execution_source_manifest.json
+```
+
+Add per-image/aggregate outputs under the configured artifact directories or a clearly bounded W4 evidence subdirectory, while preserving exact schema.
+
+## 7.1 Direct execution
+
+The runner must be directly executable using the established bootstrap:
+
+```python
+REPO = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(REPO / "src"))
+```
+
+## 7.2 Resumable execution model
+
+Do not accumulate the complete run only in memory.
+
+Create a deterministic worklist from:
+
+```text
+dataset
+split
+stable_sample_id
+fixed smoke configuration
+SNR
+channel seed
+block index
+```
+
+Use a partial artifact such as:
+
+```text
+results/baseline/w4/smoke_rows.partial.jsonl
+results/baseline/w4/smoke_progress.json
+```
+
+The exact filenames may follow repository conventions.
+
+Requirements:
+
+* write each completed row, or a very small batch, incrementally;
+* flush and `fsync` durable progress;
+* use atomic temporary-file replacement for progress metadata and finalized JSON/CSV;
+* persist the resolved config and worklist identity before the first expensive row;
+* on resume, verify source commit, config hash, checkpoint hash, manifest hash, and worklist hash;
+* skip only rows whose complete identity and content validate;
+* reject duplicate identities;
+* reject a partial file from another commit or config;
+* never silently mix old and new rows;
+* finalization must be deterministic from the validated partial rows;
+* final artifacts carry `complete: true`;
+* partial artifacts carry `complete: false`;
+* the verifier must never accept partial evidence as final.
+
+Capture the run timestamp once at initialization and reuse it on resume.
+
+## 7.3 Clean execution source
+
+Before B2.6 evidence is run:
+
+1. finish runner, records, outage implementation, verifier, and tests;
+2. commit and push a clean runner-ready checkpoint;
+3. record that commit as `execution_source_commit`;
+4. confirm the worktree is clean;
+5. only then execute bounded evidence.
+
+Every scientific record must report that clean source commit, not a later evidence-only commit and not an uncommitted worktree.
+
+## 7.4 Configuration
+
+Keep every smoke choice in the committed YAML, not source code:
+
+* dataset;
+* split;
+* deterministic sample limit;
+* sample selection rule;
+* ratio;
+* modulation;
+* LDPC rate;
+* SNR values;
+* channel seed;
+* classifier variant;
+* explicit CIFAR axis;
+* cache path;
+* output paths;
+* execution labels.
+
+Use configured SNR-grid values for the ordinary bounded run.
+
+The runner may provide a separate targeted failure fixture where required, but must label it as such.
+
+## 7.5 Evidence labels
+
+Every evidence file must state in machine-readable fields and prose:
+
+```text
+bounded validation/plumbing integration
+not the BR-4 full validation sweep
+not a G-8 operating-point selection
+not test evidence
+```
+
+## CHECKPOINT B2.3
+
+Run a tiny end-to-end Imagenette development invocation and interrupt/resume it deliberately.
+
+Prove:
+
+* partial rows survive;
+* completed rows are not recomputed;
+* no duplicates appear;
+* finalization is identical to uninterrupted finalization.
+
+Commit and push:
+
+```text
+wip(pb2): add resumable W4 smoke runner
+```
+
+---
+
+# B2.4 — Build the W4 integration verifier and source binding
+
+Create:
+
+```text
+tools/verify_w4_baseline_integration.py
+```
+
+Also create a reproducible source-manifest mechanism, preferably:
+
+```text
+tools/gen_w4_source_manifest.py
+results/baseline/w4/execution_source_manifest.json
+```
+
+with a `--check` mode.
+
+## 8.1 Source manifest
+
+Bind the bounded evidence to the clean runner-ready commit.
+
+Include at least:
+
+* runtime classical modules;
+* PB_1 transport dependencies actually used;
+* outage and records modules;
+* frozen classifier loader;
+* preprocessing;
+* identity and RNG utilities;
+* dataset loader/manifest utilities;
+* runner;
+* resolved config;
+* parameters snapshot;
+* frozen outage artifact;
+* frozen checkpoint identity;
+* relevant committed records.
+
+For each path, record:
+
+```text
+path
+role
+git_blob_sha
+sha256
+source_commit
+```
+
+Do not regenerate a manifest to hide later source drift.
+
+If a runtime source changes after evidence generation, rerun the affected bounded evidence unless a narrow, verified off-measurement-path judgment is genuinely warranted. Prefer rerunning this small bounded evidence over inventing another exception mechanism.
+
+## 8.2 Verifier requirements
+
+The verifier must fail on:
+
+* missing evidence;
+* incomplete/partial evidence;
+* wrong evidence labels;
+* source commit not reachable;
+* source hash drift;
+* config hash mismatch;
+* params snapshot mismatch;
+* frozen checkpoint mismatch;
+* frozen outage artifact mismatch;
+* different dataset or manifest;
+* incorrect selected outage class;
+* hardcoded `1/n` outage accuracy;
+* test split use;
+* unexpected CIFAR task-scored rows;
+* schema field rename, order change, omission, or addition;
+* invalid `system`;
+* duplicate per-image identities;
+* missing expected rows;
+* aggregate/per-image reconciliation failure;
+* incorrect outage reason;
+* incorrect coverage/decode/infeasible rates;
+* non-binary correctness;
+* pair/noise identity mismatch;
+* unconfigured codec axis;
+* evidence that claims BR-4 or G-8 completion;
+* G-1 or G-2 verification failure;
+* the JPEG-2000 open issue being silently marked resolved.
+
+The verifier should recompute important quantities rather than trusting summary fields.
+
+## 8.3 Mutation tests
+
+Add tests proving the verifier fails when:
+
+* one runtime byte changes;
+* the source commit changes;
+* one per-image row is deleted;
+* a row is duplicated;
+* an aggregate value is altered;
+* selected outage class is altered;
+* outage accuracy is changed to `0.1` without matching counts;
+* a schema column moves;
+* checkpoint identity changes;
+* one row says `split=test`;
+* a CIFAR row carries real task accuracy;
+* a partial run is relabelled complete;
+* evidence wording claims a full sweep or G-8 selection.
+
+## CHECKPOINT B2.4
+
+Run the verifier against a small fixture and all verifier mutations.
+
+Commit and push:
+
+```text
+wip(pb2): add source-bound W4 integration verifier
+```
+
+---
+
+# B2.5 — Complete required and mutation coverage
+
+Cover every requirement from the original `instructions/PB_2.txt`, plus the audit guards above.
+
+## Required areas
+
+* constant outage prediction;
+* measured outage accuracy;
+* validation-only selection;
+* tie-break;
+* frozen selection artifact;
+* reproducibility;
+* keyed sensitivity;
+* exact frozen classifier identity;
+* inference-only classifier use;
+* exact aggregate schema;
+* exact per-image schema;
+* exact IDs;
+* pair-ID exclusions;
+* row-order and batching invariance;
+* aggregate recomputation;
+* coverage and conditional accuracy;
+* structural, codec, and decode outage reasons;
+* reconstruction metrics on delivered rows only;
+* validation-only loading;
+* test-access rejection;
+* CIFAR/Imagenette semantic separation;
+* incremental runner resume;
+* source-manifest verification.
+
+## Mutation classes
+
+At minimum catch:
+
+* hardcoded `1/n_classes`;
+* wrong tie-break;
+* test-split selection;
+* reselecting the class at inference;
+* sequential outage RNG;
+* wrong RNG identity;
+* wrong classifier checkpoint;
+* train-mode or gradient-enabled classifier;
+* cross-dataset classifier application;
+* schema rename/reorder/drop/add;
+* hand-built incorrect identity;
+* system included in `pair_id`;
+* row-order-dependent noise;
+* incorrect aggregate denominator;
+* collapsed outage reasons;
+* omitted outage rows;
+* duplicate partial rows;
+* stale source/config/checkpoint evidence.
+
+Commit after every small coherent group. Keep B2.5 Notes current.
+
+Before bounded evidence, produce and push a clean runner-ready commit.
+
+Record its full SHA as:
+
+```text
+runner-ready clean source commit
+```
+
+## CHECKPOINT B2.5
+
+All targeted tests must pass.
+
+Commit and push:
+
+```text
+wip(pb2): complete outage and record mutation coverage
+```
+
+Confirm the worktree is clean before B2.6.
+
+---
+
+# B2.6 — Run bounded validation/plumbing evidence
+
+Mark B2.6 `in-progress`, commit, and push **before** beginning.
+
+Do not run a sweep.
+
+## 10.1 CIFAR transport-only smoke
+
+Run a handful of deterministic CIFAR-10 validation samples:
+
+* explicit axis = 32 px;
+* one fixed feasible transport configuration;
+* no frozen-classifier inference;
+* no task accuracy;
+* no outage-class accuracy;
+* record transport verdicts, accounting, cache behavior, and test-access counters.
+
+Keep the known 24/16 px conflict as a separate executable test, not as an ordinary smoke candidate.
+
+## 10.2 Imagenette task-scored bounded subset
+
+Run a deterministic few-dozen-image subset from Imagenette validation at one fixed plumbing configuration and one or two configured SNR points.
+
+The subset rule and sample count must be committed in YAML. Prefer a stable-ID-derived order rather than loader order.
+
+This is not BR-4 tuning. Do not compare candidate configurations or select the best.
+
+Required bounded cases:
+
+* high-SNR successful delivery producing complete per-image and aggregate records;
+* low-SNR or otherwise forced real decode failure producing outage records;
+* at least one structural-infeasibility fixture;
+* at least one codec-infeasibility fixture;
+* keyed-noise equality against the shared channel path;
+* cached JPEG-2000 repeat;
+* classifier checkpoint verification;
+* complete accounting example;
+* outage-policy sensitivity example clearly labelled secondary.
+
+## 10.3 Immediate preservation
+
+As soon as each expensive group completes:
+
+* update the ledger with sample count and outcome;
+* commit partial evidence if losing it would require rerunning work;
+* retain `complete: false` until the full bounded set is finalized;
+* push.
+
+Do not wait for every case before preserving the first completed rows.
+
+## 10.4 Evidence outputs
+
+Final evidence must include:
+
+```text
+resolved_config.json
+outage_policy.json
+smoke_summary.json
+accounting_examples.json
+execution_source_manifest.json
+schema/field-semantics information
+per-image records
+aggregate records
+```
+
+`smoke_summary.json` must separate:
+
+```text
+cifar10_transport_only
+imagenette160_task_scored
+```
+
+It must never merge their correctness or accuracy.
+
+## 10.5 Required recorded facts
+
+For every relevant case record:
+
+* dataset and split;
+* sample count;
+* stable sample selection rule;
+* ratio;
+* modulation;
+* Qm;
+* LDPC rate;
+* SNR;
+* `k`, `G`, `A`, CRCs, code blocks, filler, and `ΣE`;
+* verdict counts;
+* emitted bytes;
+* source/payload bytes under the documented semantics;
+* cache identity;
+* exact codestream recovery;
+* realized symbol energy;
+* PAPR;
+* classifier checkpoint ID;
+* selected outage class;
+* outage numerator/denominator;
+* end-to-end accuracy with sample size;
+* coverage rate;
+* accuracy given delivery;
+* decode-failure rate;
+* infeasible rate;
+* PSNR/SSIM delivered denominator;
+* run/pair/noise identities;
+* test-access counters;
+* execution source commit;
+* config and manifest hashes.
+
+Do not describe smoke accuracy as an experiment, finding, or estimate of test performance.
+
+## CHECKPOINT B2.6
+
+Finalize complete evidence only after all required rows validate.
+
+Run:
+
+```bash
+.venv/bin/python tools/gen_w4_source_manifest.py --check
+.venv/bin/python tools/verify_w4_baseline_integration.py
+```
+
+Mark B2.6 `done`.
+
+Commit and push:
+
+```text
+wip(pb2): commit bounded W4 outage and record evidence
+```
+
+---
+
+# B2.7 — Documentation, full verification, and green handoff
+
+## 11.1 Documentation
+
+### `instructions/RESUME.md`
+
+Record:
+
+* every B2 step;
+* all checkpoint SHAs;
+* selected outage class and exact accuracy;
+* class counts and tie-break;
+* runner-ready source commit;
+* evidence hashes;
+* bounded sample counts and outcomes;
+* test totals;
+* verifier results;
+* test-access counters;
+* no-sweep/no-training/no-test confirmation;
+* unresolved JPEG-2000 issue.
+
+### `worklogs/w4-classical-baseline-progress.md`
+
+Append:
+
+* outage-policy method;
+* full validation count result;
+* sensitivity implementation;
+* classifier dataset boundary;
+* record architecture;
+* identity construction;
+* aggregate formulas and denominators;
+* crash-resume behavior;
+* bounded executions;
+* verifier/source binding;
+* amendment judgment;
+* remaining block before PB_3.
+
+Do not rewrite PB_1/PB_1C history.
+
+### `NEXT.md`
+
+After PB_2 is green, state:
+
+* PB_1/PB_1C complete;
+* PB_2 complete;
+* PB_3 not started;
+* PB_3 remains blocked by the unresolved JPEG-2000 resolution/axis decision;
+* full BR-4 sweep not started;
+* G-8 unresolved;
+* test split sealed.
+
+The single next action must not falsely say “run PB_3 immediately” while its documented prerequisite remains unresolved.
+
+Use wording equivalent to:
+
+```text
+Resolve the j2k_resolutions versus CIFAR-10 axis conflict through a recorded
+spec decision/amendment, then run instructions/PB_3.txt from B3.0.
+```
+
+### `AGENTS.md` and `README.md`
+
+Update only if their live status or W4 evidence instructions otherwise become stale.
+
+## 11.2 Amendment judgment
+
+Expected result:
+
+* PB_2 implements already specified outage, records, identities, and bounded evidence.
+* No requirement, gate, frozen parameter, or decision changes.
+* Therefore no amendment is required.
+
+Do not create an amendment for ordinary implementation detail.
+
+If a real normative ambiguity cannot be resolved from the spec—especially cross-dataset classifier semantics or a schema field whose interpretation changes reported meaning—stop and request a proper decision rather than hiding it in code.
+
+## 11.3 Full verification
+
+Run each command separately and record its result immediately:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+.venv/bin/python spec/evidence/check_packetisation.py
+.venv/bin/python tools/fetch_datasets.py --check
+.venv/bin/python tools/materialize_manifests.py --check
+.venv/bin/python tools/verify_datasets.py
+.venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python tools/verify_g7_profile.py
+.venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py
+.venv/bin/python tools/gen_g2_source_manifest.py --check
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python tools/gen_w4_source_manifest.py --check
+.venv/bin/python tools/verify_w4_baseline_integration.py
+.venv/bin/python -m pytest
+git diff --check
+```
+
+Then:
+
+```bash
+git status --short
+```
+
+Every verification result must be newly observed against the current tree.
+
+Do not infer success from PB_1C’s 605-test record.
+
+If a command fails:
+
+* preserve its output;
+* keep B2.7 `in-progress`;
+* record the exact failure and next command;
+* commit and push coherent work;
+* do not claim PB_2 complete.
+
+## 11.4 Final commits
+
+Use a normal green implementation/evidence commit such as:
+
+```text
+feat(classical): add W4 outage records and bounded evidence
+```
+
+Then use a small handoff commit if required to record the green SHA:
+
+```text
+docs(handoff): close PB_2 and block PB_3 on codec decision
+```
+
+Do not amend or rewrite pushed WIP history.
+
+Final ledger state:
+
+```markdown
+**Current phase:** PB_3 — blocked pending JPEG-2000 parameter decision
+**Last green commit:** `<PB_2 green implementation/evidence SHA>`
+**Last durable checkpoint:** `<final handoff HEAD or established repository convention>`
+**Next action:** resolve the j2k_resolutions/CIFAR-axis conflict through a recorded spec amendment, then run `instructions/PB_3.txt` from B3.0
+```
+
+## 11.5 Final remote confirmation
+
+Run:
+
+```bash
+git diff --check
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Require:
+
+* clean worktree;
+* local HEAD equals `origin/main`;
+* local HEAD equals remote main;
+* all commits pushed;
+* no PB_3 implementation;
+* no full sweep;
+* no training;
+* no test access.
+
+Report the absence of CI/status checks if it remains true.
+
+---
+
+# 12. Emergency usage-exhaustion protocol
+
+When usage appears low, do not start:
+
+* the full test suite;
+* the bounded Imagenette run;
+* a multi-file refactor;
+* a new mutation group;
+* a final documentation rewrite.
+
+Perform these actions in order:
+
+1. Stop beginning new work.
+
+2. Safely finish or interrupt the current command.
+
+3. Run:
+
+   ```bash
+   git status --short
+   git diff --stat
+   ```
+
+4. Update `instructions/RESUME.md` with:
+
+   * current B2.x row = `in-progress`;
+   * exact files changed;
+   * commands completed;
+   * commands not run;
+   * known passing tests;
+   * known failing tests;
+   * evidence rows already durable;
+   * partial-run completion count;
+   * exact next command;
+   * whether the worktree is currently green.
+
+5. Ensure partial evidence says:
+
+   ```text
+   complete: false
+   ```
+
+6. Commit coherent unfinished work:
+
+   ```text
+   wip(pb2): preserve <precise unfinished work>
+   ```
+
+7. Push.
+
+8. Confirm:
+
+   ```bash
+   git rev-parse HEAD
+   git rev-parse origin/main
+   git ls-remote origin refs/heads/main
+   ```
+
+9. Report the pushed checkpoint SHA and stop.
+
+A non-green pushed WIP commit is preferable to lost work, provided its failures are documented.
+
+Never leave a dirty, unpushed worktree as the only resumption mechanism.
+
+Never spend the final available usage polishing a chat report before pushing the ledger and work.
+
+Emergency completion line:
+
+```text
+PB_2 INCOMPLETE — RESUME AT B2.<n>
+```
+
+If a durable push fails:
+
+```text
+PB_2 HOLD — DURABLE PUSH FAILED: <precise condition>
+```
+
+---
+
+# 13. Suggested durable commit sequence
+
+```text
+wip(pb2): open durable PB_2 execution ledger
+wip(pb2): freeze validation-selected outage policy
+wip(pb2): add exact W4 records and identities
+wip(pb2): add resumable W4 smoke runner
+wip(pb2): add source-bound W4 integration verifier
+wip(pb2): complete outage and record mutation coverage
+wip(pb2): mark bounded W4 execution in progress
+wip(pb2): preserve partial bounded evidence
+wip(pb2): commit bounded W4 outage and record evidence
+wip(pb2): complete PB_2 full verification
+feat(classical): add W4 outage records and bounded evidence
+docs(handoff): close PB_2 and block PB_3 on codec decision
+```
+
+Do not combine B2.1, B2.2, B2.3, B2.4, or B2.6 into one large checkpoint.
+
+---
+
+# 14. Final report
+
+Report:
+
+0. Fresh run or resumption, and starting B2 row.
+1. Starting local, origin, and remote SHAs.
+2. Starting worktree state.
+3. Every durable PB_2 checkpoint SHA.
+4. Confirmation PB_1C remained green.
+5. Frozen classifier dataset, checkpoint hash, and config hash.
+6. Confirmation no CIFAR task accuracy was computed with the Imagenette classifier.
+7. Imagenette validation class counts.
+8. Tied maximum classes and tie-break path.
+9. Selected outage class.
+10. Exact outage numerator, denominator, and measured accuracy.
+11. Outage artifact path and SHA-256.
+12. Sensitivity RNG identity and invariance results.
+13. Files/modules added.
+14. Exact aggregate and per-image schema conformance.
+15. System value used and justification.
+16. Identity-construction tests.
+17. Field-semantics and null/NA policy.
+18. Incremental-resume behavior and interruption test.
+19. Clean execution-source commit.
+20. Source-manifest result.
+21. CIFAR transport-only smoke, with sample count.
+22. Imagenette task-scored bounded runs, with sample counts and SNRs.
+23. High-SNR record result.
+24. Decode-failure and infeasibility record results.
+25. Coverage, conditional accuracy, and denominator reconciliation.
+26. Accounting examples.
+27. W4 verifier mutation classes.
+28. Full test count.
+29. G-1, G-2, G-7, transparency, and W4-verifier results.
+30. Test-access counters.
+31. Confirmation no sweep, selection, training, or test access occurred.
+32. Amendment judgment.
+33. JPEG-2000 unresolved status.
+34. PB_2 green commit SHA.
+35. Final handoff HEAD.
+36. Final local, origin, and remote SHAs.
+37. Clean-worktree confirmation.
+38. Single next action.
+
+End with exactly one of:
+
+```text
+PB_2 COMPLETE — PB_3 BLOCKED PENDING JPEG-2000 PARAMETER DECISION
+PB_2 INCOMPLETE — RESUME AT B2.<n>
+PB_2 HOLD — <precise blocking condition>
+```
+
+`INCOMPLETE` means unfinished work is durably pushed and can resume at the named row.
+
+`HOLD` means a real technical, semantic, provenance, or durability condition needs human judgment.
+
+Do not conflate them.

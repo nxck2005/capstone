@@ -44,10 +44,17 @@ Then:
 
 ## Status
 
-**Current phase:** PB_2 — not started
+**Current phase:** PB_2 — in progress
 **Last green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0` (`fix(classical): correct PB_1 modulation interleaver ownership`)
-**Last durable checkpoint:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
-**Next action:** run `instructions/PB_2.txt` from step B2.0
+**Last durable checkpoint:** `8b8aa86126d07f236e76bf408a0e00bfd76c4dde`
+**Next action:** derive the Imagenette validation outage class from the committed manifest
+
+**PB_2 executes from `instructions/PB_2D.txt`, not `instructions/PB_2.txt`.** `PB_2D.txt` is the
+durable superseding instruction committed at B2.0; the original `PB_2.txt` is retained as historical
+context. Where they differ, `PB_2D.txt` wins — note in particular that `PB_2.txt` names the schema
+parameters as `analysis.csv_schema` / `analysis.per_image_schema`, which is stale shorthand: the real
+parameter section is **`artifacts.*`** (`artifacts.csv_schema`, `artifacts.per_image_schema`,
+`artifacts.system_values`, `artifacts.run_id_key`, …), as `PB_2D.txt` §6.1 states.
 
 **PB_1 is complete, including its PB_1C correction.** The pre-correction PB_1 green commit was
 `e47913c52e9117179691b70b29a289880b22dbdd`; it is superseded as "last green" by the corrective
@@ -167,14 +174,66 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 
 | Step | State | Notes |
 |---|---|---|
-| B2.0 confirm PB_1 green | not-started | |
-| B2.1 `outage.py` + validation selection | not-started | |
-| B2.2 `records.py` + identities | not-started | |
-| B2.3 smoke runner + configs | not-started | |
-| B2.4 `verify_w4_baseline_integration.py` v1 | not-started | |
-| B2.5 required + mutation tests | not-started | |
-| B2.6 bounded executions + evidence | not-started | |
-| B2.7 green commit + push | not-started | |
+| B2.0 confirm PB_1/PB_1C green + open durable ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `8b8aa86`; all seven B2.0 commands re-run and pass (see facts); `instructions/PB_2D.txt` created as the durable superseding instruction; no CI/status checks exist (`check-runs` total_count 0); `NEXT.md` and this ledger agree PB_2 is next; the `j2k_resolutions` block is still recorded as blocking PB_3, not PB_2 |
+| B2.1 `outage.py` + frozen selection artifact | not-started | select the constant class from the **entire** committed Imagenette-160 validation manifest by label frequency, lowest-index tie-break; measured accuracy is `selected_count / validation_count`, never `1/n` |
+| B2.2 `records.py` + identities and aggregation | not-started | exact `artifacts.csv_schema` / `artifacts.per_image_schema` field names and order read at runtime; reuse `make_run_id` / `make_analysis_cell_id` / `make_noise_id` / `make_pair_id` |
+| B2.3 resumable smoke runner + config | not-started | `configs/classical-baseline-w4-smoke.yaml` + `tools/run_classical_baseline_w4_smoke.py`, incremental JSONL rows with fsync and atomic replacement |
+| B2.4 W4 verifier + execution-source binding | not-started | `tools/verify_w4_baseline_integration.py` + `tools/gen_w4_source_manifest.py --check` |
+| B2.5 required and mutation tests | not-started | |
+| B2.6 bounded executions + committed evidence | not-started | CIFAR-10 transport-only (32 px axis, no classifier) kept strictly separate from the Imagenette-160 task-scored subset |
+| B2.7 documentation, full verification and green handoff | not-started | |
+
+### PB_2 observed facts
+
+Append-only. A superseded observation is *marked* superseded, never deleted.
+
+| Fact | Value | Observed at | Verified |
+|---|---|---|---|
+| starting local HEAD | `8b8aa86126d07f236e76bf408a0e00bfd76c4dde` | B2.0 | yes |
+| starting origin/main | `8b8aa86126d07f236e76bf408a0e00bfd76c4dde` | B2.0 | yes |
+| starting remote main | `8b8aa86126d07f236e76bf408a0e00bfd76c4dde` (`git ls-remote`) — all three agree | B2.0 | yes |
+| starting worktree state | clean (`git status --short` empty) | B2.0 | yes |
+| PB_1C green commit | `4eda158145595de0f2e9aa92456ee4a052db74b0` | B2.0 | yes |
+| PB_1C full-suite baseline | **605 passed, 0 failed, 0 skipped in 82.64s** — re-observed locally at B2.0 against the `8b8aa86` tree, matching the 605 recorded at C1.8 | B2.0 | yes |
+| B2.0 cmd `gen_spec_views --check` | ok: 187 requirements (2 retired), 10 generated files up to date | B2.0 | yes |
+| B2.0 cmd `check_doc_consistency -v` | ok: 11 current docs consistent (187 reqs, 79 AMs); NEXT.md current-phase agreement ok (frontier W4, 5 completed subjects, 679 live lines) | B2.0 | yes |
+| B2.0 cmd `fetch_ldpc_golden_vectors` | ok, network-free no-op; `fixture_sha256=55754b508ab1b6eb6625eae301d2d0a3fefcdf7b03e98038264b76b71e26aae0` | B2.0 | yes |
+| B2.0 cmd `gen_g2_source_manifest --check` | ok: manifest matches the measurement commit (14 sources) | B2.0 | yes |
+| B2.0 cmd `verify_g1_adjudication` | PASS: 100 epochs, best=898/1000, local checkpoint verified | B2.0 | yes |
+| B2.0 cmd `verify_g2_adjudication` | PASS: `measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']` | B2.0 | yes |
+| CI / status checks | **still none** — `repos/nxck2005/capstone/commits/8b8aa86/check-runs` returns `total_count: 0`. Nothing in PB_2 will be CI-validated either | B2.0 | yes |
+| PB_1 classical modules present | `src/baseline/classical/pipeline.py` and `channel_transport.py` both exist and are exercised by the passing suite | B2.0 | yes |
+| JPEG-2000 open issue status | **still unresolved**, still documented in `NEXT.md` §"Open block" and the PB_1C facts as blocking PB_3 / the BR-4 sweep / G-8, and explicitly *not* blocking PB_2 | B2.0 | yes |
+| schema parameter section | **`artifacts.*`, not `analysis.*`.** `instructions/PB_2.txt` uses `analysis.csv_schema` / `analysis.per_image_schema` as shorthand; `spec/params.generated.yaml` has no `analysis` root. The real keys are `artifacts.csv_schema` (52 fields), `artifacts.per_image_schema` (16 fields), `artifacts.system_values`, `artifacts.run_id_key`, `artifacts.analysis_cell_id_key`, `artifacts.noise_id_key`, `artifacts.pair_id_key`, `artifacts.pair_id_excludes`, `artifacts.checkpoint_id_form` | B2.0 | yes |
+| frozen classifier dataset | **imagenette160** — the adjudicated G-1 checkpoint is an Imagenette-160 classifier. CIFAR-10's ten indices are a *different* class vocabulary; the frozen classifier must never score CIFAR rows | B2.0 | yes |
+| frozen checkpoint SHA-256 | `9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002` (`models/frozen_reference_classifier.EXPECTED_CHECKPOINT_SHA256`, 92,121,803 bytes) | B2.0 | yes |
+| classifier config SHA-256 | `a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1` (`EXPECTED_CONFIG_HASH`) | B2.0 | yes |
+| outage-selection dataset | | B2.1 | |
+| outage-selection manifest SHA-256 | | B2.1 | |
+| validation class counts | | B2.1 | |
+| tied maximum classes | | B2.1 | |
+| selected outage class | | B2.1 | |
+| selected-class validation accuracy | | B2.1 | |
+| outage artifact SHA-256 | | B2.1 | |
+| aggregate schema field count/order | | B2.2 | |
+| per-image schema field count/order | | B2.2 | |
+| fixed PB_2 system value | | B2.2 | |
+| runner-ready clean source commit | | B2.5/B2.6 | |
+| resolved config hash | | B2.6 | |
+| execution-source manifest SHA-256 | | B2.6 | |
+| CIFAR transport-only smoke result | | B2.6 | |
+| Imagenette bounded sample count | | B2.6 | |
+| Imagenette SNR points | | B2.6 | |
+| high-SNR record result | | B2.6 | |
+| decode-failure/outage result | | B2.6 | |
+| keyed-noise equality result | | B2.6 | |
+| W4 verifier result | | B2.7 | |
+| full pytest result | | B2.7 | |
+| test-access counters | | B2.7 | |
+| final green implementation commit | | B2.7 | |
+| final handoff HEAD | | B2.7 | |
+
+| PB_2 checkpoint commits | (append as they land) | B2.x | |
 
 ## PB_3 — BR-4 selection infrastructure + W4 adjudication
 
