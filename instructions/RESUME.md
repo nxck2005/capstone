@@ -44,10 +44,16 @@ Then:
 
 ## Status
 
-**Current phase:** PB_2 — not started
-**Last green commit:** `e47913c52e9117179691b70b29a289880b22dbdd` (`feat(classical): implement W4 classical transport path`)
-**Next action:** run `instructions/PB_2.txt` from step B2.0. PB_1 is complete and pushed; confirm
-its green commit first (clean worktree, HEAD = origin/main, full 8-command block passes).
+**Current phase:** PB_1C — corrective repair in progress
+**Last green commit:** `e47913c52e9117179691b70b29a289880b22dbdd` (`feat(classical): implement W4 classical transport path`) — the *pre-correction* PB_1 green commit; it stays the last green commit until the whole PB_1C verification block passes
+**Last durable checkpoint:** none yet
+**Next action:** inspect the installed Sionna encoder and decoder sources for `num_bits_per_symbol` handling
+
+**PB_2 is not started and must not begin until PB_1C is green.** An external audit raised a likely
+standards-conformance defect in the QPSK/16-QAM transport path (a suspected *duplicate* TS 38.212
+§5.4.2.2 modulation bit interleaver — once inside Sionna, once in `channel_transport.modulate()`).
+PB_1's "done" judgment is therefore under correction; see the PB_1C section below. Do not trust the
+PB_1 B1.6 QPSK/16-QAM bounded observations until C1.7 re-runs them.
 
 Two things PB_2 inherits:
 * **An undecided spec issue** — `baseline.j2k_resolutions = 6` cannot encode CIFAR-10's 24 px and
@@ -81,6 +87,59 @@ Two things PB_2 inherits:
 | B1.5 mutation tests | done | `tests/test_classical_mutations.py`, 18 tests, **all nine required classes caught**: (1) LLR sign reversal → CRC fails at 20 dB; (2) disabled 16-QAM interleaver → `NotImplementedError` when the required flag is cleared, link destroyed when bypassed; (3) wrong `k` → `channel_reconciles`/`channel_uses_exact` false and `transport_round_trip` raises, plus the pipeline's requested-`k` guard; (4) dropped filler → LDPC filler fails `systematic_reconciles`, dropped payload filler caught before transmission; (5) unaccounted CRC → TB and CB variants both fail reconciliation; (6) codec size above budget → `ClassicalPipelineError`; (7) silently skipped infeasibility → verdict returned, and `build_accounting`/`transmit_transport` both refuse an infeasible plan; (8) substituted channel → three angles (registry entry replaced, `build_channel` bypassed, unregistered model) all rejected by the new `_shared_channel` guard; (9) sequential noise → the keyed-invariance property holds unmutated and fails under a sequential generator. |
 | B1.6 bounded executions | done | All nine run against **real validation data** (`load_dataset(..., "val")`; test split never touched), ~7 s total, no sweep and no training. Verdicts: **(1) CIFAR-10 plumbing smoke** — 5 real val images, `r_1_2/qpsk/(1/2)` at 12 dB, **5/5 `delivered`**, all `codestream_exact=True`, `k=1536 Qm=2 G=3072 A=1520 C=1 ΣE=3072`, capacity 190 B, emitted 184–187 B, filler 3–6 B. **(2) per modulation at `r_1_2` rate 1/2, 18 dB** — `qpsk` **delivered** (190 B cap, 187 B emitted, Es=1.000000, PAPR 0.0000 dB); `qam16` **delivered** (`Qm=4 G=6144 A=3056`, 382 B cap, 380 B emitted, **Es=0.926562**, PAPR 2.8840 dB); `bpsk` **codec_infeasibility** on CIFAR-10 — its 94 B budget is genuinely too small, reasons `[32: budget_exceeded, 24/16: codec_configuration_error]`. **(2b)** BPSK **delivered** where the budget allows it: STL-10 `r_1_2/bpsk/(1/2)` 18 dB, `k=13824 Qm=1 G=13824 A=6888`, axis 96, 861 B cap, 842 B emitted, 19 B filler, Es=1.000000. **(3) multi-code-block** — Imagenette-160 `r_1_24/qam16/(2/3)` 18 dB, **delivered**, `k=3200 Qm=4 G=12800 A=8504 C=2 ΣE=12800`, axis 160, 1063 B cap / 1062 B emitted / 1 B filler, Es=0.989500, PAPR 2.5986 dB. **(4) structural infeasibility** — CIFAR-10 `r_1_48/bpsk/(1/3)` → `structural_infeasibility`, nothing downstream ran. **(5) codec infeasibility** — CIFAR-10 `r_1_48/qpsk/(1/2)`, packetisation feasible (`A=48`, capacity **6 B**), no axis produced a codestream. **(6) forced decode failure** — `r_1_2/qpsk/(1/2)` at **−10 dB** → `decode_failure`, `crc=False`, measurements still emitted. **(7) high-SNR round trip** — 18 dB, **delivered**, `codestream_exact=True`. **(8) cached J2K repeat** — identical second call: `cache_hit=True`, same `cache_key`, same `codestream_sha256`, **byte-identical decoded image**, same `unit_noise_sha256`. Script kept in the session scratchpad (not committed — a smoke runner is PB_2's B2.3); cache written to the ignored `data/cache/classical_b1_smoke/`. |
 | B1.7 green commit + push | done | Full 8-command verification block passes (see facts). **G-2 HOLD raised and resolved**: the B1.1 fix to `src/baseline/ldpc/transport.py` tripped the runtime byte-identity rule. Resolved by recording a real `off_measurement_path` re-adjudication — *not* by regenerating the manifest — after confirming `run_ldpc_g2.py` imports only `build_packet_plan` from that module and that function is byte-identical. The mechanism was tightened at the same time (manifest `schema_version` 1 → 2): an entry now needs `kind` ∈ {`recampaigned`, `off_measurement_path`}, `justification`, `readjudicated_at`, non-empty `evidence`, the superseded `measurement_sha256` and the covered `current_sha256`, and is **pinned to those bytes** so a further edit re-raises the HOLD. `gen_g2_source_manifest.py` now carries committed entries forward. **AM judgment: no amendment.** No requirement, gate, decision or parameter changed; G-2's recorded BLER numbers, waterfall displacements and verdict are unchanged, `check_packetisation.py` still reports 0 failures over 216 cells, and the K→K' correction is an implementation detail of the BR-14 seam (`base_graph_pinned_at_seam` is honoured either way, and `ldpc_impl_provides` already assigns lifting-size selection to Sionna, which we now assert against the plan). Worklog: `worklogs/w4-classical-baseline-progress.md`. |
+
+## PB_1C — corrective audit and repair
+
+Driven by `instructions/PB_1C.txt` (committed at C1.0 — resume from that file plus this ledger, never
+from chat context). This section is append-only and does **not** erase the PB_1 rows above: PB_1's
+implementation happened, and PB_1C records that its *completion judgment* is being corrected.
+
+| Step | State | Notes |
+|---|---|---|
+| C1.0 establish state and open corrective ledger | done | fresh run; clean worktree, HEAD = origin/main = remote main = `028d3c8`; `verify_g2_adjudication.py` PASS; no CI/status checks exist on this repo (`check-runs` total_count 0, combined status `pending` with 0 statuses) — nothing about these commits was ever CI-validated; commits are unsigned and continue under the recorded PB_1 `--no-gpg-sign` approval |
+| C1.1 independently verify interleaver ownership | not-started | |
+| C1.2 independent conformance and mutation tests | not-started | |
+| C1.3 repair classical interleaver ownership | not-started | |
+| C1.4 enforce configured explicit axes | not-started | |
+| C1.5 adjudicate the JPEG-2000 resolution issue | not-started | |
+| C1.6 targeted regression verification | not-started | |
+| C1.7 corrected bounded executions | not-started | |
+| C1.8 documentation and full verification | not-started | |
+| C1.9 final green commit and handoff | not-started | |
+
+### PB_1C observed facts
+
+Append-only. A superseded observation is *marked* superseded, never deleted.
+
+| Fact | Value | Observed at | Verified |
+|---|---|---|---|
+| starting local HEAD | `028d3c88b6b159f18c8f6bd734b30d41ffd6089d` | C1.0 | yes |
+| starting origin/main | `028d3c88b6b159f18c8f6bd734b30d41ffd6089d` | C1.0 | yes |
+| starting remote main | `028d3c88b6b159f18c8f6bd734b30d41ffd6089d` (`git ls-remote`) — all three agree | C1.0 | yes |
+| starting worktree state | clean (`git status --short` empty) | C1.0 | yes |
+| pre-correction green commit | `e47913c52e9117179691b70b29a289880b22dbdd` | C1.0 | yes |
+| C1.0 G-2 verifier | PASS: `measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']` | C1.0 | yes |
+| CI / status checks | **none** — `repos/nxck2005/capstone/commits/028d3c8/check-runs` returns `total_count: 0`, combined status has 0 statuses. No commit in this repository has been CI-validated | C1.0 | yes |
+| commit signing | unsigned (`%G?` = `N`) on `028d3c8`, `e47913c`, `49c6a57`; continues under the PB_1 `--no-gpg-sign` approval recorded in the PB_2 inheritance note above | C1.0 | yes |
+| installed Sionna version | | C1.1 | |
+| encoder source location | | C1.1 | |
+| decoder source location | | C1.1 | |
+| encoder interleaver conclusion | | C1.1 | |
+| decoder inverse-interleaver conclusion | | C1.1 | |
+| double interleaver confirmed | | C1.1 | |
+| independent QPSK fixture | | C1.2 | |
+| independent 16-QAM fixture | | C1.2 | |
+| mutation classes caught | | C1.2/C1.6 | |
+| files changed under src/baseline/ldpc | | C1.3 | |
+| G-2 source-binding result | | C1.3/C1.8 | |
+| explicit-axis guard result | | C1.4 | |
+| JPEG-2000 resolution decision | | C1.5 | |
+| bounded execution results | | C1.7 | |
+| full pytest result | | C1.8 | |
+| test-split access counters | | C1.8 | |
+| final local HEAD | | C1.9 | |
+| final origin/main | | C1.9 | |
+| final remote main | | C1.9 | |
 
 ## PB_2 — outage, records, smoke evidence
 

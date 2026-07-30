@@ -1,0 +1,1180 @@
+# PB_1C — Corrective Audit and Repair of the Classical Transport Path
+
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
+Interpreter: always `.venv/bin/python`
+Normative source: `spec/SPEC.md`
+
+This is a corrective continuation of PB_1.
+
+PB_1 was previously marked complete, but an external audit identified a likely standards-conformance defect in the QPSK/16-QAM transport path. PB_2 must remain not started until this correction is green.
+
+Do not begin PB_2, PB_3, BR-4, G-8, training, or test-split work.
+
+---
+
+# READ FIRST — abrupt-exit resilience
+
+Assume the session can end without warning during any command.
+
+The repository, not the chat transcript or final response, must contain everything needed for another agent to continue.
+
+## Operational cursor
+
+`instructions/RESUME.md` is the single operational cursor.
+
+Read it before making any changes.
+
+Add a new append-only section named:
+
+```markdown
+## PB_1C — corrective audit and repair
+```
+
+Do not rewrite or erase the completed PB_1 rows. PB_1C records that the earlier completion judgment is undergoing correction.
+
+Use these exact rows:
+
+```markdown
+| Step | State | Notes |
+|---|---|---|
+| C1.0 establish state and open corrective ledger | not-started | |
+| C1.1 independently verify interleaver ownership | not-started | |
+| C1.2 independent conformance and mutation tests | not-started | |
+| C1.3 repair classical interleaver ownership | not-started | |
+| C1.4 enforce configured explicit axes | not-started | |
+| C1.5 adjudicate the JPEG-2000 resolution issue | not-started | |
+| C1.6 targeted regression verification | not-started | |
+| C1.7 corrected bounded executions | not-started | |
+| C1.8 documentation and full verification | not-started | |
+| C1.9 final green commit and handoff | not-started | |
+```
+
+Allowed states are:
+
+```text
+not-started
+in-progress
+done
+```
+
+A real blocking failure belongs in the Notes column and in the final `HOLD` report. Do not invent a fourth state.
+
+## Status header during correction
+
+Once C1.0 begins, update the top-level status in `RESUME.md` to:
+
+```markdown
+**Current phase:** PB_1C — corrective repair in progress
+**Last green commit:** `<the pre-correction PB_1 green SHA>`
+**Last durable checkpoint:** `<latest pushed PB_1C checkpoint SHA, or none>`
+**Next action:** `<one concrete command or edit from the current step>`
+```
+
+The old PB_1 commit remains the **Last green commit** until the complete PB_1C verification block passes.
+
+Do not call a WIP checkpoint green.
+
+## Required fact ledger
+
+Add an append-only table under the PB_1C rows:
+
+```markdown
+### PB_1C observed facts
+
+| Fact | Value | Observed at | Verified |
+|---|---|---|---|
+| starting local HEAD | | C1.0 | |
+| starting origin/main | | C1.0 | |
+| starting remote main | | C1.0 | |
+| starting worktree state | | C1.0 | |
+| pre-correction green commit | | C1.0 | |
+| installed Sionna version | | C1.1 | |
+| encoder source location | | C1.1 | |
+| decoder source location | | C1.1 | |
+| encoder interleaver conclusion | | C1.1 | |
+| decoder inverse-interleaver conclusion | | C1.1 | |
+| double interleaver confirmed | | C1.1 | |
+| independent QPSK fixture | | C1.2 | |
+| independent 16-QAM fixture | | C1.2 | |
+| mutation classes caught | | C1.2/C1.6 | |
+| files changed under src/baseline/ldpc | | C1.3 | |
+| G-2 source-binding result | | C1.3/C1.8 | |
+| explicit-axis guard result | | C1.4 | |
+| JPEG-2000 resolution decision | | C1.5 | |
+| bounded execution results | | C1.7 | |
+| full pytest result | | C1.8 | |
+| test-split access counters | | C1.8 | |
+| final local HEAD | | C1.9 | |
+| final origin/main | | C1.9 | |
+| final remote main | | C1.9 | |
+```
+
+Add rows when useful. Never delete prior observations merely because a later run supersedes them. Mark superseded facts explicitly.
+
+## Checkpoint rules
+
+For every C1.x step:
+
+1. Before starting a long, expensive, or multi-file step:
+
+   * set that row to `in-progress`;
+   * set **Next action** to the first concrete operation;
+   * commit the ledger update;
+   * push it.
+
+2. During the step:
+
+   * never allow more than one checkpoint’s work to remain uncommitted;
+   * update the row Notes with files, test names, commands, observations, and known failures;
+   * record expensive command results as soon as they finish;
+   * do not rely on terminal scrollback or chat context.
+
+3. At the checkpoint:
+
+   * run the targeted tests for that step;
+   * mark the row `done`;
+   * record the checkpoint commit SHA and test result;
+   * update **Last durable checkpoint**;
+   * rewrite **Next action** for the next step;
+   * commit and push.
+
+Intermediate commits must use:
+
+```text
+wip(pb1c): <what became durable>
+```
+
+They may be non-green. Leave them in history. Do not rebase, squash, amend pushed commits, or force-push.
+
+The phase ends with one normal green commit after C1.8 passes.
+
+## Durable instruction copy
+
+During C1.0, save this complete instruction as:
+
+```text
+instructions/PB_1C.txt
+```
+
+If that file already exists, compare it with the instruction being executed.
+
+After C1.0 is pushed, future sessions must resume from `instructions/PB_1C.txt` and `instructions/RESUME.md`, not from remembered chat context.
+
+---
+
+# Cold-start protocol
+
+On every fresh or resumed session, read in this order:
+
+1. `instructions/RESUME.md`
+2. `instructions/PB_1C.txt`, if present
+3. `AGENTS.md`
+4. `NEXT.md`
+5. `worklogs/w4-classical-baseline-progress.md`
+6. `instructions/PB_1.txt`
+7. `spec/SPEC.md`
+
+Then run:
+
+```bash
+cd /home/nick/projects/capstone
+
+git status --short
+git log -12 --oneline
+git rev-parse HEAD
+git fetch origin
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Apply these rules:
+
+* If the worktree is dirty, assume it contains unfinished work from the row marked `in-progress`.
+* Inspect the diff before editing anything.
+* Do not discard, reset, clean, overwrite, or stash unknown work.
+* If the top commit is `wip(pb1c): ...`, resume at the first PB_1C row not marked `done`.
+* Trust a `done` row unless repository drift contradicts it.
+* Re-verify an `in-progress` row before continuing.
+* Do not rerun expensive completed work merely to regain context.
+* If local HEAD is ahead of `origin/main`, push the durable commit before continuing.
+* If `origin/main` is ahead, inspect the divergence before integrating anything.
+* Never use `git reset`, `git checkout --`, `git restore`, `git clean`, or a destructive rebase to simplify resumption.
+
+If `instructions/PB_1C.txt` has not yet been committed, execute C1.0 first.
+
+---
+
+# Objective
+
+Independently verify and, if confirmed, repair the suspected duplicate modulation bit interleaving in the PB_1 classical transport path.
+
+Also:
+
+1. replace self-consistency-only tests with independent transmitter-order conformance tests;
+2. close the explicit codec-axis configuration bypass;
+3. preserve G-2’s valid measurement provenance;
+4. make an explicit JPEG-2000 resolution judgment;
+5. rerun corrected bounded PB_1 evidence;
+6. correct stale status documentation;
+7. leave a clean, pushed, fully resumable repository.
+
+---
+
+# C1.0 — Establish state and open the corrective ledger
+
+Before changing implementation code:
+
+```bash
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+.venv/bin/python tools/verify_g2_adjudication.py
+```
+
+Confirm and record:
+
+* local HEAD;
+* `origin/main`;
+* remote `main`;
+* whether all three agree;
+* worktree state;
+* current Last green commit;
+* G-2 verifier output;
+* test-split sealing state;
+* whether any CI/status checks exist for the commit;
+* whether commit signing is currently usable or an existing recorded approval permits `--no-gpg-sign`.
+
+If the worktree is dirty, preserve it and associate it with the appropriate ledger row. Do not discard it.
+
+Create `instructions/PB_1C.txt` from this instruction.
+
+Create the PB_1C ledger rows and fact table in `instructions/RESUME.md`.
+
+Set:
+
+```text
+C1.0 establish state and open corrective ledger = done
+C1.1 independently verify interleaver ownership = not-started
+Next action = inspect the installed Sionna encoder and decoder sources for num_bits_per_symbol handling
+```
+
+Commit and push:
+
+```text
+wip(pb1c): open corrective repair ledger
+```
+
+## CHECKPOINT C1.0
+
+Do not proceed until the instruction file and ledger are pushed.
+
+---
+
+# C1.1 — Independently verify the suspected defect
+
+The external audit found the following likely sequence:
+
+1. `SionnaLDPCAdapter` constructs `LDPC5GEncoder` with `num_bits_per_symbol=q_m`.
+2. Sionna applies the TS 38.212 §5.4.2.2 output interleaver after rate matching.
+3. `src/baseline/classical/channel_transport.py::modulate()` applies the project `interleave()` again.
+4. `demodulate()` applies the project `deinterleave()`.
+5. Sionna’s decoder applies its own inverse interleaver before rate recovery.
+
+The suspected current chain is:
+
+```text
+rate matching
+→ Sionna interleaver
+→ project interleaver
+→ constellation mapping
+→ demapping
+→ project inverse interleaver
+→ Sionna inverse interleaver
+→ rate recovery and decoding
+```
+
+The required chain must contain exactly one modulation bit interleaver.
+
+## Required investigation
+
+Do not accept this claim from prose alone.
+
+Inspect the exact installed Sionna implementation in `.venv`.
+
+Determine and record:
+
+* exact Sionna package version;
+* exact local encoder source path;
+* exact local decoder source path;
+* where `num_bits_per_symbol` is stored and validated;
+* whether the encoder applies the output interleaver;
+* whether it occurs after rate matching;
+* whether the paired decoder automatically uses the encoder’s inverse interleaver;
+* whether inverse interleaving occurs before rate recovery;
+* behavior for BPSK, QPSK, and 16-QAM;
+* whether BPSK is an identity permutation;
+* whether the project classical layer adds a second permutation.
+
+Use local installed source as the primary evidence.
+
+Commands and short Python probes used for the investigation must be recorded in the C1.1 Notes or worklog.
+
+Append a technical note to:
+
+```text
+worklogs/w4-classical-baseline-progress.md
+```
+
+The note must give local source locations and the conclusion.
+
+## Branching rule
+
+If the audit is confirmed:
+
+```text
+double interleaver confirmed = yes
+Next action = add an independent failing transmitter-order test before modifying the implementation
+```
+
+If the audit is disproved:
+
+* add an executable independent test proving why;
+* do not make the proposed transport change;
+* run enough targeted verification to support the conclusion;
+* update the ledger;
+* end with:
+
+```text
+PB_1 HOLD — EXTERNAL DEFECT CLAIM DISPROVED; HUMAN REVIEW REQUIRED BEFORE PB_2
+```
+
+Do not continue based only on intuition.
+
+## CHECKPOINT C1.1
+
+Run any small source-inspection or probe tests needed.
+
+Mark C1.1 `done`, record the conclusion and paths, commit and push:
+
+```text
+wip(pb1c): verify Sionna interleaver ownership
+```
+
+---
+
+# C1.2 — Add independent conformance and mutation tests
+
+Do this before repairing the implementation.
+
+The existing round-trip tests are insufficient because paired transmitter and receiver errors can cancel.
+
+Add tests that inspect the actual bit ordering entering the mapper and leaving the demapper.
+
+## A. Complete transmitter ordering
+
+For QPSK and 16-QAM:
+
+1. construct a deterministic payload;
+2. construct a feasible deterministic `PacketPlan`;
+3. independently derive the expected rate-matched and TS 38.212 modulation-interleaved sequence;
+4. capture or expose the PB_1 bit sequence immediately before constellation mapping;
+5. assert exact equality.
+
+The expected value must not be generated by calling the complete `modulate()` implementation under test.
+
+Acceptable references are:
+
+* a pinned known-answer vector;
+* a small hand-derived fixture;
+* an independent test-only implementation of the formula;
+* validated adapter output, provided the test explicitly proves that PB_1 consumes it unchanged.
+
+At least one test must fail against the pre-correction implementation for the expected duplicate-permutation reason.
+
+Record the exact failing assertion before fixing it.
+
+## B. Single-owner seam tests
+
+Prove:
+
+* `SionnaLDPCAdapter.encode()` returns modulation-interleaved bits when `q_m > 1`;
+* PB_1 passes those bits to mapping unchanged;
+* PB_1 passes demapper LLRs back to the Sionna decoder unchanged except for exact code-block splitting;
+* each block split uses the corresponding `packet.e_r`;
+* adapter `num_bits_per_symbol` equals the selected modulation’s Qm.
+
+## C. Required mutations
+
+The tests must catch:
+
+* constructing the adapter without `num_bits_per_symbol=q_m`;
+* wrong Qm passed to the adapter;
+* an additional transmitter interleaver;
+* an additional receiver inverse interleaver;
+* bypassing the sole required interleaver;
+* incorrect code-block concatenation;
+* incorrect LLR block splitting.
+
+A mutation must fail because an independent seam or known-answer property is violated, not only because end-to-end CRC eventually fails.
+
+## CHECKPOINT C1.2
+
+Run only the new targeted tests.
+
+It is expected that the duplicate-interleaver fixture fails before the repair. Record:
+
+* test names;
+* expected failure;
+* observed failure;
+* why the failure independently exposes the defect.
+
+Commit and push:
+
+```text
+wip(pb1c): add independent interleaver conformance tests
+```
+
+Mark C1.2 `done` even though the expected pre-fix test is failing, provided the failure is the intended defect and is recorded precisely.
+
+Set the next action to the first implementation edit.
+
+---
+
+# C1.3 — Repair interleaver ownership
+
+Use the smallest correct ownership model:
+
+* Sionna owns the TS 38.212 modulation bit interleaver and inverse interleaver.
+* The project classical layer owns:
+
+  * code-block concatenation and splitting;
+  * constellation mapping;
+  * shared AWGN;
+  * soft demapping;
+  * exact accounting;
+  * verdict classification.
+
+Expected correction:
+
+* remove the additional project-side `interleave()` from the PB_1 transmitter path;
+* remove the additional project-side `deinterleave()` from the PB_1 receiver path;
+* concatenate adapter-produced encoded blocks before mapping;
+* split demapper LLRs according to exact `packet.e_r` boundaries;
+* pass each LLR block to the paired Sionna adapter without another inverse permutation.
+
+Preserve:
+
+* exact `k × Qm` accounting;
+* partial final code blocks;
+* fixed constellation mapping;
+* fixed constellation normalization;
+* no per-packet power rescaling;
+* realized energy and PAPR logging;
+* shared project AWGN;
+* keyed noise identity;
+* four PB_1 verdicts;
+* exact codestream recovery.
+
+Do not remove standalone interleaver utilities or known-answer functionality from:
+
+```text
+src/baseline/ldpc/modulation.py
+```
+
+They remain useful for G-2 and independent validation.
+
+## G-2 constraint
+
+Avoid changing any file under:
+
+```text
+src/baseline/ldpc/
+```
+
+The expected repair belongs in:
+
+```text
+src/baseline/classical/
+```
+
+Before committing, record:
+
+```bash
+git diff --name-only
+```
+
+If no `src/baseline/ldpc/` file changed:
+
+* preserve the existing G-2 re-adjudication;
+* do not add another re-adjudication;
+* do not regenerate scientific evidence;
+* do not rerun the G-2 BLER campaign.
+
+If any `src/baseline/ldpc/` file appears in the diff:
+
+* stop implementation work;
+* record the exact file and reason in the ledger;
+* run the G-2 source-binding verifier;
+* do not regenerate the manifest to make drift disappear;
+* do not proceed until the impact is explicitly adjudicated.
+
+## CHECKPOINT C1.3
+
+Run:
+
+* all new C1.2 conformance tests;
+* targeted classical transport tests;
+* targeted QPSK and 16-QAM high-SNR tests;
+* G-2 adjudication verification.
+
+The formerly failing independent transmitter-order test must now pass.
+
+Mark C1.3 `done`, record changed files and targeted results, commit and push:
+
+```text
+wip(pb1c): correct classical interleaver ownership
+```
+
+---
+
+# C1.4 — Close the explicit-axis configuration bypass
+
+The current explicit `encode_axis_px` path may accept a non-upscaling axis that is absent from:
+
+```text
+params.baseline.downsample_axis_px.<dataset>
+```
+
+Repair this before PB_3.
+
+When `encode_axis_px` is explicitly provided, require membership in:
+
+```python
+configured_axes(dataset, canonical_shorter_side)
+```
+
+An unconfigured axis must fail before JPEG-2000 encoding.
+
+Add tests proving:
+
+* a configured explicit axis succeeds;
+* an unconfigured smaller axis is rejected;
+* an upscaling axis is rejected;
+* automatic axis iteration remains descending;
+* automatic axis iteration contains only configured axes;
+* rejection occurs before codec execution.
+
+Do not introduce a second configuration source.
+
+## CHECKPOINT C1.4
+
+Run only the relevant pipeline/configuration tests.
+
+Mark C1.4 `done`, record test names and behavior, commit and push:
+
+```text
+wip(pb1c): enforce configured explicit codec axes
+```
+
+---
+
+# C1.5 — Adjudicate the JPEG-2000 resolution issue
+
+Known issue:
+
+```text
+baseline.j2k_resolutions = 6
+CIFAR-10 configured axes = [32, 24, 16]
+```
+
+OpenJPEG cannot encode the 24 px and 16 px axes with six resolutions.
+
+Do not silently change this while repairing the interleaver.
+
+## Required investigation
+
+Determine whether the normative specification already defines a rule that resolves the incompatibility.
+
+Preserve or add an executable reproduction that distinguishes:
+
+```text
+codec_configuration_error
+```
+
+from:
+
+```text
+budget_exceeded
+```
+
+Record both candidate resolutions:
+
+1. remove CIFAR-10 axes 24 and 16;
+2. make `j2k_resolutions` axis-dependent or deterministically clamped.
+
+## Decision rule
+
+Prefer leaving the parameter unresolved during PB_1C unless PB_1 correctness itself requires changing it.
+
+If unresolved:
+
+* preserve per-axis configuration-error reporting;
+* record that PB_3, BR-4, and G-8 are blocked on the decision;
+* do not block PB_2 if PB_2 can proceed without selecting or sweeping these candidates;
+* add the issue prominently to `RESUME.md`, `NEXT.md`, and the W4 worklog.
+
+If changing a frozen parameter or normative rule:
+
+* add the next valid `AM` entry;
+* explain why the change is required now;
+* regenerate every generated spec view atomically;
+* update cache-key implications;
+* add tests for the amended rule;
+* record the amendment SHA and affected requirements.
+
+A normal implementation bug fix does not require an amendment.
+
+## CHECKPOINT C1.5
+
+Mark C1.5 `done` after recording one of:
+
+```text
+unresolved with explicit downstream block
+resolved by existing normative rule
+resolved through AM-<number>
+```
+
+Commit and push:
+
+```text
+wip(pb1c): adjudicate JPEG-2000 resolution constraint
+```
+
+---
+
+# C1.6 — Targeted regression verification
+
+Run targeted tests covering:
+
+* BPSK transmitter ordering;
+* QPSK transmitter ordering;
+* 16-QAM transmitter ordering;
+* single-interleaver ownership;
+* all required interleaver mutations;
+* QPSK high-SNR round trip;
+* 16-QAM high-SNR round trip;
+* BPSK high-SNR round trip where codec capacity permits;
+* low-SNR decode failure;
+* exact bit accounting;
+* partial final code blocks;
+* keyed noise identity;
+* realized symbol energy;
+* PAPR;
+* no per-packet rescaling;
+* structural infeasibility;
+* codec infeasibility;
+* explicit-axis rejection;
+* test-split sealing.
+
+Also prove that the new independent fixture fails under each intended synthetic mutation.
+
+Do not merely report a single aggregate count. Record the relevant test node IDs or test groups in the ledger.
+
+## CHECKPOINT C1.6
+
+All targeted tests must pass in the corrected implementation.
+
+Mark C1.6 `done`, commit and push:
+
+```text
+wip(pb1c): complete corrective regression coverage
+```
+
+---
+
+# C1.7 — Rerun corrected bounded executions
+
+Rerun the bounded PB_1 plumbing executions from `instructions/PB_1.txt`.
+
+At minimum:
+
+1. small CIFAR-10 validation smoke;
+2. QPSK successful delivery;
+3. 16-QAM successful delivery;
+4. BPSK successful delivery on a dataset/budget where feasible;
+5. multi-code-block delivery;
+6. structural infeasibility;
+7. codec infeasibility;
+8. forced low-SNR decode failure;
+9. high-SNR successful delivery;
+10. cached byte-identical JPEG-2000 repeat.
+
+These are plumbing observations, not experimental results.
+
+Do not run a sweep or select a ratio.
+
+For every execution, immediately record:
+
+* dataset;
+* split;
+* sample count;
+* stable sample identity where applicable;
+* ratio;
+* modulation;
+* Qm;
+* nominal LDPC rate;
+* SNR;
+* verdict;
+* `k`;
+* `G = k × Qm`;
+* `A`;
+* TB CRC;
+* CB CRC;
+* number of code blocks;
+* filler;
+* `ΣE`;
+* emitted bytes;
+* payload filler bytes;
+* exact codestream recovery;
+* realized symbol energy;
+* PAPR;
+* cache identity;
+* keyed noise identity or hash;
+* test-access counters.
+
+Do not wait until the entire set finishes to update the ledger.
+
+After each expensive or tedious execution group, update `RESUME.md` and push a WIP checkpoint if losing the observations would require rerunning work.
+
+Compare corrected QPSK and 16-QAM observations with the original PB_1 observations.
+
+State explicitly:
+
+* which values are invariant;
+* which values changed;
+* whether symbol ordering changed;
+* whether realized energy, PAPR, CRC outcome, delivery outcome, or recovered codestream changed;
+* why any difference is expected.
+
+Mark old affected observations as superseded, not deleted.
+
+## CHECKPOINT C1.7
+
+Mark C1.7 `done` after every required bounded execution is durably recorded.
+
+Commit and push:
+
+```text
+wip(pb1c): record corrected bounded transport evidence
+```
+
+---
+
+# C1.8 — Documentation and full verification
+
+Update current documentation so all live status sections agree.
+
+## `instructions/RESUME.md`
+
+Retain:
+
+* original PB_1 implementation SHA;
+* PB_1C checkpoint history;
+* original and corrected observations;
+* exact files changed;
+* Sionna source conclusions;
+* new tests and mutations;
+* G-2 result;
+* J2K resolution status;
+* full verification results.
+
+During verification, C1.8 remains `in-progress`.
+
+Do not set the phase to PB_2 until all verification commands pass.
+
+## `worklogs/w4-classical-baseline-progress.md`
+
+Append a corrective section. Do not rewrite history.
+
+Include:
+
+* defect;
+* why paired round trips missed it;
+* inspected Sionna behavior;
+* local Sionna source locations;
+* independent pre-fix failing evidence;
+* exact repair;
+* new conformance tests;
+* mutation coverage;
+* explicit-axis correction;
+* J2K judgment;
+* corrected bounded observations;
+* G-2 impact;
+* amendment judgment;
+* remaining open issues.
+
+Mark affected original QPSK/16-QAM observations as superseded.
+
+## `NEXT.md`
+
+Make all live sections agree that:
+
+* PB_1C corrective repair is complete only after the final green commit;
+* PB_2 is the next engineering phase;
+* PB_3 is not started;
+* the full BR-4 sweep is not started;
+* G-8 is unresolved;
+* the test split remains sealed;
+* the JPEG-2000 decision remains an explicit block where applicable.
+
+Update the authoritative table, not only explanatory prose.
+
+## `AGENTS.md`
+
+Update repository status to state:
+
+* PB_1 includes the PB_1C correction;
+* PB_2 is next after the corrective green commit;
+* G-2 remains valid through the exact-byte `transport.py` re-adjudication;
+* G-2 runtime drift normally fails closed unless covered by a verified byte-pinned readjudication.
+
+## `README.md`
+
+Correct any unconditional statement that every LDPC runtime file is byte-identical to the G-2 measurement commit.
+
+State briefly:
+
+* drift fails closed;
+* the existing `transport.py` exception is exact-byte and `off_measurement_path`;
+* G-2 measurement code did not call the changed wrappers;
+* the verifier reports and pins the exception.
+
+## Amendment judgment
+
+Record explicitly:
+
+* removing an accidentally duplicated interleaver restores the existing specified behavior;
+* it does not by itself modify a requirement, gate, decision, or frozen parameter;
+* therefore no amendment is required for that correction.
+
+If C1.5 changed normative behavior, reference the actual amendment instead.
+
+## Full verification
+
+Run each command separately and record its result immediately in the ledger:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+.venv/bin/python spec/evidence/check_packetisation.py
+.venv/bin/python tools/fetch_datasets.py --check
+.venv/bin/python tools/materialize_manifests.py --check
+.venv/bin/python tools/verify_datasets.py
+.venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python tools/verify_g7_profile.py
+.venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py
+.venv/bin/python tools/gen_g2_source_manifest.py --check
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python -m pytest
+git diff --check
+```
+
+After each command, update the C1.8 Notes or facts table with:
+
+```text
+command
+result
+test/count summary
+commit tested
+newly observed or carried forward
+```
+
+Do not claim that a prior run proves the current tree.
+
+If a command fails:
+
+* preserve the output;
+* update **Next action** with the failing command and first diagnosis;
+* commit and push the ledger and any coherent fix;
+* keep C1.8 `in-progress`;
+* do not continue to C1.9.
+
+After all commands pass, run:
+
+```bash
+git status --short
+```
+
+The only remaining changes should be the final documentation and ledger completion changes intended for C1.9.
+
+## CHECKPOINT C1.8
+
+Mark C1.8 `done`.
+
+Record the new total test count, test-access counters, G-1/G-2/G-7/transparency results, and amendment judgment.
+
+Commit and push:
+
+```text
+wip(pb1c): complete corrective full verification
+```
+
+This is the last WIP checkpoint.
+
+---
+
+# C1.9 — Final green commit and handoff
+
+Re-check that every PB_1C row C1.0–C1.8 is `done`.
+
+Update `RESUME.md` to:
+
+```markdown
+**Current phase:** PB_2 — not started
+**Last green commit:** `<new corrective green commit SHA>`
+**Last durable checkpoint:** `<same SHA>`
+**Next action:** run `instructions/PB_2.txt` from step B2.0
+```
+
+Because a commit cannot accurately contain its own SHA before creation, use this two-commit-safe procedure:
+
+1. prepare all final status text using `PENDING_FINAL_SHA`;
+2. create the final normal commit;
+3. obtain its SHA;
+4. replace `PENDING_FINAL_SHA` with the actual SHA in a tiny handoff commit;
+5. run the documentation consistency checks again;
+6. push both;
+7. treat the later handoff commit as the final repository HEAD and record both:
+
+   * corrective green implementation commit;
+   * final handoff/status commit.
+
+Alternatively, if the repository’s established convention records the immediately preceding green implementation SHA rather than the handoff commit, follow that convention consistently and explain it in the ledger.
+
+Use a normal final implementation commit such as:
+
+```text
+fix(classical): correct PB_1 modulation interleaver ownership
+```
+
+Use a final handoff commit if needed:
+
+```text
+docs(handoff): close PB_1 corrective repair
+```
+
+Do not amend or rewrite pushed WIP commits.
+
+Run after the final commits:
+
+```bash
+git diff --check
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Requirements:
+
+* worktree clean;
+* local HEAD equals `origin/main`;
+* local HEAD equals remote `main`;
+* every commit pushed;
+* no unrecorded work;
+* PB_2 remains unimplemented;
+* test split remains sealed.
+
+If GitHub has no status checks, report that fact. Do not imply CI validation occurred.
+
+Mark C1.9 `done` in the final handoff state.
+
+---
+
+# G-2 non-regression rules
+
+The existing G-2 result remains valid only if its source-binding verifier continues to pass.
+
+Do not:
+
+* regenerate the G-2 scientific campaign;
+* rerun the BLER campaign;
+* alter recorded G-2 values;
+* weaken source-binding verification;
+* fabricate or broaden a readjudication;
+* regenerate a manifest merely to accept drift.
+
+The intended PB_1C repair should not touch `src/baseline/ldpc/`.
+
+If it does, stop and record a precise HOLD unless the impact can be resolved under the existing verified readjudication rules.
+
+---
+
+# Commit discipline summary
+
+Expected durable sequence:
+
+```text
+wip(pb1c): open corrective repair ledger
+wip(pb1c): verify Sionna interleaver ownership
+wip(pb1c): add independent interleaver conformance tests
+wip(pb1c): correct classical interleaver ownership
+wip(pb1c): enforce configured explicit codec axes
+wip(pb1c): adjudicate JPEG-2000 resolution constraint
+wip(pb1c): complete corrective regression coverage
+wip(pb1c): record corrected bounded transport evidence
+wip(pb1c): complete corrective full verification
+fix(classical): correct PB_1 modulation interleaver ownership
+docs(handoff): close PB_1 corrective repair
+```
+
+Combine adjacent tiny checkpoints only when both are completed in the same session and no durable evidence would be lost. Never combine C1.1, C1.2, C1.3, C1.7, or C1.8.
+
+---
+
+# Emergency protocol when usage is running out
+
+Do not attempt one last large command.
+
+Do not start the full test suite, a bounded execution group, or a multi-file refactor when usage appears nearly exhausted.
+
+Perform these actions in order:
+
+1. Stop starting new work.
+2. Let the currently running command finish only if it is already close to completion; otherwise interrupt it safely.
+3. Inspect:
+
+   ```bash
+   git status --short
+   git diff --stat
+   ```
+4. Update `instructions/RESUME.md` with:
+
+   * current C1.x row = `in-progress`;
+   * exact files changed;
+   * commands completed;
+   * commands not run;
+   * failures observed;
+   * facts not yet verified;
+   * the exact next command;
+   * whether the worktree currently passes targeted tests.
+5. If coherent work exists, commit it as:
+
+   ```text
+   wip(pb1c): preserve <precise unfinished work>
+   ```
+6. If code is partially broken, still commit it as WIP, but record the known failing tests and failure reason.
+7. Push the commit.
+8. Confirm:
+
+   ```bash
+   git rev-parse HEAD
+   git rev-parse origin/main
+   git ls-remote origin refs/heads/main
+   ```
+9. Report the durable checkpoint and stop.
+
+Never leave a dirty, unpushed worktree as the resumption mechanism.
+
+Never claim an `in-progress` step is complete because most of it was implemented.
+
+Never spend the final available usage writing a polished chat report before the ledger and commit are pushed.
+
+The emergency final response must end with:
+
+```text
+PB_1 CORRECTION INCOMPLETE — RESUME AT C1.<n>
+```
+
+and include the pushed checkpoint SHA.
+
+If pushing is impossible because of authentication, signing, connectivity, or remote rejection:
+
+* preserve the local commit;
+* record the exact failure in `RESUME.md` if possible;
+* report:
+
+```text
+PB_1 HOLD — DURABLE PUSH FAILED: <precise condition>
+```
+
+---
+
+# Prohibitions
+
+Do not:
+
+* begin PB_2 implementation;
+* begin PB_3;
+* run the full BR-4 validation sweep;
+* perform G-8 selection;
+* train any model;
+* calibrate lambda;
+* implement ER-9;
+* access the test split;
+* change the frozen G-1 checkpoint;
+* rerun G-7;
+* rerun the transparency campaign;
+* rerun the G-2 BLER campaign unless a genuine measurement-path source change forces recampaigning;
+* regenerate provenance merely to conceal drift;
+* weaken or delete independent tests to obtain green;
+* silently change frozen JPEG-2000 parameters;
+* treat smoke accuracy as an experimental result;
+* erase completed PB_1 history;
+* overwrite observed facts without marking them superseded;
+* leave work only in terminal history or chat context;
+* use destructive Git cleanup during resumption;
+* rewrite pushed history.
+
+---
+
+# Final report
+
+Report:
+
+0. Whether this was a fresh run or resumption, and the starting C1.x row.
+1. Starting local, origin, and remote SHAs.
+2. Starting worktree state.
+3. PB_1C checkpoint commits and their SHAs.
+4. Whether the duplicate interleaver was independently confirmed.
+5. Installed Sionna version and exact inspected source locations.
+6. Encoder and decoder interleaver behavior.
+7. Root cause.
+8. Independent pre-fix failing evidence.
+9. Exact implementation repair.
+10. Files changed.
+11. Whether any `src/baseline/ldpc/` file changed.
+12. Independent conformance tests added.
+13. Mutation classes caught.
+14. Explicit-axis guard result.
+15. JPEG-2000 resolution decision or unresolved downstream block.
+16. Corrected bounded executions.
+17. Original versus corrected QPSK/16-QAM observations.
+18. Full test count.
+19. G-1, G-2, G-7, and transparency-verifier results.
+20. Test-access counters.
+21. Amendment judgment.
+22. Documentation files updated.
+23. Corrective green implementation SHA.
+24. Final handoff SHA.
+25. Final local, origin, and remote SHAs.
+26. Clean-worktree confirmation.
+27. Single next task.
+
+End with exactly one of:
+
+```text
+PB_1 CORRECTED AND GREEN — PB_2 NOT STARTED
+PB_1 CORRECTION INCOMPLETE — RESUME AT C1.<n>
+PB_1 HOLD — <precise blocking condition>
+```
+
+`INCOMPLETE` means the work is durably pushed and can continue from the named ledger row.
+
+`HOLD` means a real condition requires human judgment or prevents durable preservation.
+
+Do not conflate them.
