@@ -314,45 +314,128 @@ def test_modified_current_ldpc_runtime_fails(
         verify(evidence, require_evidence_commit=False)
 
 
+def _drift(monkeypatch: pytest.MonkeyPatch, path: str = RUNTIME_FILE):
+    """Make one runtime file read as changed, and return its drifted bytes."""
+
+    real = verifier.current_bytes
+    drifted_bytes = real(path) + b"\n"
+
+    def drifted(source_path: str) -> bytes:
+        return drifted_bytes if source_path == path else real(source_path)
+
+    monkeypatch.setattr(verifier, "current_bytes", drifted)
+    return drifted_bytes
+
+
+def _readjudication(manifest: dict, path: str, current: bytes, **overrides) -> dict:
+    entry = {
+        "path": path,
+        "kind": "off_measurement_path",
+        "readjudicated_at": "synthetic, test only",
+        "measurement_sha256": _entry(manifest, path)["measurement_sha256"],
+        "current_sha256": hashlib.sha256(current).hexdigest(),
+        "justification": "synthetic re-adjudication, test only",
+        "evidence": ["synthetic evidence, test only"],
+    }
+    entry.update(overrides)
+    return {key: value for key, value in entry.items() if value is not _ABSENT}
+
+
+_ABSENT = object()
+
+
 def test_recorded_readjudication_permits_runtime_drift(
     evidence: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    """The escape hatch works, and only for the path it names.
+    """The escape hatch works, and only for the path and bytes it names.
 
     Without this case the rule above could be satisfied by a verifier that ignores
     `readjudications` entirely, and a legitimate re-adjudication would have no way
     to land.
     """
-    real = verifier.current_bytes
-
-    def drifted(source_path: str) -> bytes:
-        value = real(source_path)
-        return value + b"\n" if source_path == RUNTIME_FILE else value
-
-    monkeypatch.setattr(verifier, "current_bytes", drifted)
-    _mutate_manifest(evidence, lambda v: v["readjudications"].append({
-        "path": RUNTIME_FILE,
-        "reason": "synthetic re-adjudication, test only",
-    }))
+    drifted = _drift(monkeypatch)
+    _mutate_manifest(evidence, lambda v: v["readjudications"].append(
+        _readjudication(v, RUNTIME_FILE, drifted)))
     assert verify(evidence, require_evidence_commit=False)["verdict"] == "PASS"
 
 
 def test_readjudication_of_another_path_does_not_excuse_drift(
     evidence: Path, monkeypatch: pytest.MonkeyPatch
 ):
-    real = verifier.current_bytes
-
-    def drifted(source_path: str) -> bytes:
-        value = real(source_path)
-        return value + b"\n" if source_path == RUNTIME_FILE else value
-
-    monkeypatch.setattr(verifier, "current_bytes", drifted)
-    _mutate_manifest(evidence, lambda v: v["readjudications"].append({
-        "path": "src/baseline/ldpc/crc.py",
-        "reason": "unrelated",
-    }))
+    _drift(monkeypatch)
+    other = "src/baseline/ldpc/crc.py"
+    _mutate_manifest(evidence, lambda v: v["readjudications"].append(
+        _readjudication(v, other, verifier.current_bytes(other))))
     with pytest.raises(VerificationError, match="HOLD — G-2 runtime differs"):
         verify(evidence, require_evidence_commit=False)
+
+
+def test_readjudication_stops_covering_a_file_that_changed_again(
+    evidence: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """The escape hatch is pinned to bytes, so it cannot be inherited.
+
+    A re-adjudication says "these current bytes are justified". If the file then
+    changes once more, the justification no longer describes it and the HOLD must
+    come back rather than being carried by the stale entry.
+    """
+    drifted = _drift(monkeypatch)
+    _mutate_manifest(evidence, lambda v: v["readjudications"].append(
+        _readjudication(v, RUNTIME_FILE, drifted + b"# changed again\n")))
+    with pytest.raises(VerificationError, match="does not cover the current bytes"):
+        verify(evidence, require_evidence_commit=False)
+
+
+@pytest.mark.parametrize(
+    ("overrides", "message"),
+    [
+        ({"kind": _ABSENT}, "readjudication kind must be one of"),
+        ({"kind": "because I said so"}, "readjudication kind must be one of"),
+        ({"justification": _ABSENT}, "readjudication has no justification"),
+        ({"justification": "   "}, "readjudication has no justification"),
+        ({"readjudicated_at": _ABSENT}, "readjudication has no readjudicated_at"),
+        ({"evidence": []}, "readjudication records no evidence"),
+        ({"evidence": _ABSENT}, "readjudication records no evidence"),
+        ({"measurement_sha256": "0" * 64}, "not the adjudicated measurement bytes"),
+    ],
+)
+def test_an_unjustified_readjudication_is_rejected(
+    evidence: Path, monkeypatch: pytest.MonkeyPatch, overrides: dict, message: str
+):
+    drifted = _drift(monkeypatch)
+    _mutate_manifest(evidence, lambda v: v["readjudications"].append(
+        _readjudication(v, RUNTIME_FILE, drifted, **overrides)))
+    with pytest.raises(VerificationError, match=message):
+        verify(evidence, require_evidence_commit=False)
+
+
+def test_a_readjudication_may_not_name_a_history_only_source(
+    evidence: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """Only `runtime` is asserted at HEAD, so nothing else can be re-adjudicated."""
+
+    drifted = _drift(monkeypatch)
+    _mutate_manifest(evidence, lambda v: v["readjudications"].extend([
+        _readjudication(v, RUNTIME_FILE, drifted),
+        _readjudication(v, "spec/params.generated.yaml", b"", current_sha256="0" * 64),
+    ]))
+    with pytest.raises(VerificationError, match="names a non-runtime source"):
+        verify(evidence, require_evidence_commit=False)
+
+
+def test_the_committed_transport_readjudication_is_recorded_and_reported():
+    """The real B1.1 re-adjudication, not a synthetic one."""
+
+    result = verify()
+    assert result["verdict"] == "PASS"
+    assert result["runtime_readjudicated"] == ["src/baseline/ldpc/transport.py"]
+    entry, = _json(SOURCE / SOURCE_MANIFEST)["readjudications"]
+    assert entry["kind"] == "off_measurement_path"
+    assert entry["current_sha256"] == hashlib.sha256(
+        (REPO_ROOT / entry["path"]).read_bytes()
+    ).hexdigest()
+    assert len(entry["evidence"]) >= 3
+    assert "build_packet_plan" in " ".join(entry["evidence"])
 
 
 @pytest.mark.parametrize(

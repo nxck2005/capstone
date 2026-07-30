@@ -44,6 +44,22 @@ from verify_g2_adjudication import (  # noqa: E402  (path bootstrap must precede
 )
 
 
+def existing_readjudications() -> list:
+    """Carry forward the committed re-adjudications verbatim.
+
+    They are a hand-written judgment about *why* a runtime file legitimately
+    differs from the adjudicated bytes; nothing in Git can regenerate them. They
+    are preserved rather than reset so that regenerating the manifest cannot
+    quietly drop a recorded justification — and so `--check` stays byte-stable.
+    The verifier is what validates their content.
+    """
+
+    target = manifest_path()
+    if not target.exists():
+        return []
+    return json.loads(target.read_text()).get("readjudications", [])
+
+
 def build(measurement: str) -> dict:
     sources = []
     at_measurement = measurement_blobs(measurement, sorted(EXPECTED_SOURCES))
@@ -57,7 +73,7 @@ def build(measurement: str) -> dict:
             "measurement_bytes": len(content),
         })
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "g2_execution_source_manifest",
         "gate": "G-2",
         "generated_by": "tools/gen_g2_source_manifest.py",
@@ -70,9 +86,12 @@ def build(measurement: str) -> dict:
             "git log -1 --format=%H -- results/baseline/g2/g2_adjudication.json",
         "roles": ROLE_POLICY,
         # An entry here is the only thing that permits the current
-        # `src/baseline/ldpc/` bytes to differ from the adjudicated ones. Adding one
-        # means a new G-2 campaign really ran; it is not a way to silence the check.
-        "readjudications": [],
+        # `src/baseline/ldpc/` bytes to differ from the adjudicated ones. It claims
+        # either that a new campaign ran (`recampaigned`) or that the changed
+        # definitions were provably unreachable from the measurement
+        # (`off_measurement_path`), and it covers only the exact bytes it names —
+        # see READJUDICATION_KINDS in the verifier, which enforces both.
+        "readjudications": existing_readjudications(),
         "sources": sources,
     }
 

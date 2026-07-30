@@ -211,6 +211,52 @@ def current_bytes(source_path: str) -> bytes:
     return (REPO_ROOT / source_path).read_bytes()
 
 
+#: The only two things a `readjudications` entry may claim.
+#:
+#: `recampaigned` — a new G-2 campaign really ran against the current bytes.
+#: `off_measurement_path` — the bytes changed, but the changed definitions were
+#:   provably not reachable from the measurement, so no recorded number can
+#:   depend on them. The `evidence` list must say how that was established.
+#:
+#: Neither is a way to silence the check. An entry covers exactly the bytes it
+#: names: `current_sha256` must equal the file on disk today, so the *next* edit
+#: to a re-adjudicated file re-raises the HOLD instead of inheriting this one.
+READJUDICATION_KINDS = ("recampaigned", "off_measurement_path")
+
+
+def _validated_readjudications(manifest: dict, recorded: dict) -> set[str]:
+    entries = manifest.get("readjudications")
+    require(isinstance(entries, list), "readjudications must be a list")
+    covered: set[str] = set()
+    for entry in entries:
+        require(isinstance(entry, dict), "malformed readjudication entry")
+        path = entry.get("path")
+        require(isinstance(path, str) and path in EXPECTED_SOURCES,
+                f"readjudication names an unbound source: {path!r}")
+        require(EXPECTED_SOURCES[path] == "runtime",
+                f"readjudication names a non-runtime source: {path}")
+        require(path not in covered, f"duplicate readjudication: {path}")
+        require(entry.get("kind") in READJUDICATION_KINDS,
+                f"{path}: readjudication kind must be one of {list(READJUDICATION_KINDS)}")
+        for field in ("justification", "readjudicated_at"):
+            value = entry.get(field)
+            require(isinstance(value, str) and value.strip(),
+                    f"{path}: readjudication has no {field}")
+        evidence = entry.get("evidence")
+        require(isinstance(evidence, list) and evidence
+                and all(isinstance(item, str) and item.strip() for item in evidence),
+                f"{path}: readjudication records no evidence")
+        require((REPO_ROOT / path).is_file(), f"{path}: re-adjudicated source is absent")
+        require(entry.get("measurement_sha256") == recorded[path]["measurement_sha256"],
+                f"{path}: readjudication supersedes bytes that are not the "
+                "adjudicated measurement bytes")
+        require(sha256_bytes(current_bytes(path)) == entry.get("current_sha256"),
+                f"{path}: readjudication does not cover the current bytes; "
+                "the source changed again since it was recorded")
+        covered.add(path)
+    return covered
+
+
 def verify_sources(evidence_dir: Path, measurement: str) -> dict:
     """Bind the bytes of the implementation that produced the G-2 measurement.
 
@@ -220,7 +266,7 @@ def verify_sources(evidence_dir: Path, measurement: str) -> dict:
     """
     path = manifest_path(evidence_dir)
     manifest = load_json(path)
-    require(manifest.get("schema_version") == 1
+    require(manifest.get("schema_version") == 2
             and manifest.get("kind") == "g2_execution_source_manifest"
             and manifest.get("gate") == "G-2",
             "wrong execution-source manifest schema or gate")
@@ -255,11 +301,7 @@ def verify_sources(evidence_dir: Path, measurement: str) -> dict:
                 f"missing={sorted(expected_runtime - listed)}, "
                 f"unexpected={sorted(listed - expected_runtime)}")
 
-    readjudicated = {
-        entry.get("path")
-        for entry in manifest.get("readjudications", [])
-        if isinstance(entry, dict)
-    }
+    readjudicated = _validated_readjudications(manifest, recorded)
     at_measurement = measurement_blobs(measurement, sorted(EXPECTED_SOURCES))
     absent = sorted(set(EXPECTED_SOURCES) - set(at_measurement))
     require(not absent,
@@ -516,6 +558,7 @@ def verify(
         "test_split_access": False,
         "sources": sources["sources"],
         "source_roles": sources["roles"],
+        "runtime_readjudicated": sources["runtime_readjudicated"],
     }
 
 
@@ -525,10 +568,14 @@ def main() -> int:
     except VerificationError as exc:
         print(f"G-2 adjudication verification FAILED: {exc}", file=sys.stderr)
         return 1
+    readjudicated = result["runtime_readjudicated"]
     print(
         f"G-2 adjudication verification PASS: measurement={result['measurement_commit'][:12]}, "
         f"rows={result['rows']}, test_split_access=0, "
         f"sources={result['sources']} ({'/'.join(result['source_roles'])})"
+        # A re-adjudicated runtime file is never silent: it says the current bytes
+        # are not the measured bytes, which a reader of this line must see.
+        + (f", runtime_readjudicated={readjudicated}" if readjudicated else "")
     )
     return 0
 

@@ -28,6 +28,15 @@ Begin only the bounded **W4 classical-baseline integration required before G-8**
 started. Do not run the full BR-4 validation sweep, select ratios, calibrate λ, train learned
 models, implement ER-9, or access the test split until their scheduled gates.
 
+**Where bounded W4 stands.** `instructions/RESUME.md` is the operational cursor for the four-phase
+sequence and wins on progress. PA and **PB_1 are complete**: the classical arm now runs end to end
+from a canonical image to a decoded image plus one of four verdicts
+(`structural_infeasibility` / `codec_infeasibility` / `decode_failure` / `delivered`), over the
+shared AWGN under keyed noise, with exact bit accounting. **The next task is
+`instructions/PB_2.txt`** — outage policy, record emission and smoke evidence. PB_3 (BR-4 selection
+infrastructure) follows. PR-1, PR-2 and PR-9 remain outstanding programme deliverables and are
+unblocked by all of this.
+
 `tools/check_doc_consistency.py` mechanically enforces that this block is not contradicted
 elsewhere in this file: a live section may not prohibit the declared next task, may not direct
 already-completed work as the next step, and the live sections named in the check must each mention
@@ -97,7 +106,8 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 3. ~~**Transparency-bitrate probe using the frozen reference classifier.**~~ **Complete.**
 4. ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting
    through G-2.**~~ **Complete — G-2 PASS.**
-5. **W4: bounded classical-baseline integration required before G-8.**
+5. **W4: bounded classical-baseline integration required before G-8.** PB_1 (the classical
+   transport path) is complete; `instructions/PB_2.txt` is the next step.
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
@@ -345,8 +355,8 @@ Confirm nothing drifted, then begin bounded W4 classical-baseline integration on
 .venv/bin/python tools/verify_g7_profile.py
 .venv/bin/python tools/verify_transparency_bitrate_probe.py
 .venv/bin/python tools/fetch_ldpc_golden_vectors.py         # materialize the ignored rung-2 fixture BEFORE pytest
-.venv/bin/python tools/verify_g2_adjudication.py            # expect: measurement=968e907237bb, rows=24, test_split_access=0
-.venv/bin/python -m pytest                                  # expect: 483 passed with CUDA access
+.venv/bin/python tools/verify_g2_adjudication.py            # expect: rows=24, test_split_access=0, runtime_readjudicated=[transport.py]
+.venv/bin/python -m pytest                                  # expect: 565 passed with CUDA access
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
 git status --short                                          # expect: clean
 ```
