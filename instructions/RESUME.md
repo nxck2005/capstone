@@ -46,8 +46,8 @@ Then:
 
 **Current phase:** PB_1C — corrective repair in progress
 **Last green commit:** `e47913c52e9117179691b70b29a289880b22dbdd` (`feat(classical): implement W4 classical transport path`) — the *pre-correction* PB_1 green commit; it stays the last green commit until the whole PB_1C verification block passes
-**Last durable checkpoint:** none yet
-**Next action:** inspect the installed Sionna encoder and decoder sources for `num_bits_per_symbol` handling
+**Last durable checkpoint:** `92ac9a6c9c8ee388b16f58e7cd4c0ec17c823998` (C1.0)
+**Next action:** add an independent failing transmitter-order test before modifying the implementation (C1.2)
 
 **PB_2 is not started and must not begin until PB_1C is green.** An external audit raised a likely
 standards-conformance defect in the QPSK/16-QAM transport path (a suspected *duplicate* TS 38.212
@@ -97,7 +97,7 @@ implementation happened, and PB_1C records that its *completion judgment* is bei
 | Step | State | Notes |
 |---|---|---|
 | C1.0 establish state and open corrective ledger | done | fresh run; clean worktree, HEAD = origin/main = remote main = `028d3c8`; `verify_g2_adjudication.py` PASS; no CI/status checks exist on this repo (`check-runs` total_count 0, combined status `pending` with 0 statuses) — nothing about these commits was ever CI-validated; commits are unsigned and continue under the recorded PB_1 `--no-gpg-sign` approval |
-| C1.1 independently verify interleaver ownership | not-started | |
+| C1.1 independently verify interleaver ownership | done | **audit CONFIRMED against installed source, not prose.** Sionna 2.0.1. Encoder stores `num_bits_per_symbol` at `encoding.py:172`, builds `_out_int`/`_out_int_inv` at `:173-179` from `generate_out_int` (`:303-339`, formula `perm_seq[i + j*Qm] = i*(n/Qm) + j`), and applies `c_out = c_out[..., self._out_int]` at `:791-793` — **after** the rate-matching puncture/selection at `:770-780`. Decoder reaches through the encoder instance: `llr_ch_reshaped[:, self._encoder.out_int_inv]` at `decoding.py:1646-1649` (multi-RV branch `:1636-1637`), **before** rate recovery at `:1654-1667`; `:1693-1694` re-applies `out_int` on the non-infobit path. Pairing is automatic and cannot be disabled while the encoder carries a Qm. **Probe (`k=200,n=400,bg2`): `encoder.out_int` is bit-identical to the project's `interleaver_indices(n,Qm)` for Qm ∈ {1,2,4}, and `out_int_inv == argsort(...)`; Qm=1 is the identity permutation, Qm∈{2,4} are not. Second probe: `encode(num_bits_per_symbol=Qm)` == `interleave(encode(no Qm), Qm)` exactly.** So `channel_transport.modulate()`'s `interleave()` is a *second application of the same permutation*; `demodulate()`'s `deinterleave()` is undone again by the decoder. Transmitted order = permutation squared ≠ identity for QPSK/16-QAM. BPSK unaffected. Round-trip tests missed it because the paired errors cancel and bit counts are permutation-invariant. Technical note appended to `worklogs/w4-classical-baseline-progress.md`. |
 | C1.2 independent conformance and mutation tests | not-started | |
 | C1.3 repair classical interleaver ownership | not-started | |
 | C1.4 enforce configured explicit axes | not-started | |
@@ -121,12 +121,13 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | C1.0 G-2 verifier | PASS: `measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']` | C1.0 | yes |
 | CI / status checks | **none** — `repos/nxck2005/capstone/commits/028d3c8/check-runs` returns `total_count: 0`, combined status has 0 statuses. No commit in this repository has been CI-validated | C1.0 | yes |
 | commit signing | unsigned (`%G?` = `N`) on `028d3c8`, `e47913c`, `49c6a57`; continues under the PB_1 `--no-gpg-sign` approval recorded in the PB_2 inheritance note above | C1.0 | yes |
-| installed Sionna version | | C1.1 | |
-| encoder source location | | C1.1 | |
-| decoder source location | | C1.1 | |
-| encoder interleaver conclusion | | C1.1 | |
-| decoder inverse-interleaver conclusion | | C1.1 | |
-| double interleaver confirmed | | C1.1 | |
+| installed Sionna version | **2.0.1** (`.venv/lib/python3.14/site-packages/sionna/`), matching `baseline.ldpc_impl_version` | C1.1 | yes |
+| encoder source location | `.venv/lib/python3.14/site-packages/sionna/phy/fec/ldpc/encoding.py` | C1.1 | yes |
+| decoder source location | `.venv/lib/python3.14/site-packages/sionna/phy/fec/ldpc/decoding.py` | C1.1 | yes |
+| encoder interleaver conclusion | **applies it, after rate matching.** `num_bits_per_symbol` stored `:172`, validated in `generate_out_int` `:322-332`; buffers built `:173-179`; applied `c_out = c_out[..., self._out_int]` at `:791-793`, after the `2Z` puncture skip and length-`n` selection at `:770-780` | C1.1 | yes |
+| decoder inverse-interleaver conclusion | **automatic, and before rate recovery.** Built from the encoder instance; `llr_ch_reshaped[:, self._encoder.out_int_inv]` at `:1646-1649` (multi-RV `:1636-1637`) precedes the `llr_buf`/`llr_5g` reassembly at `:1654-1667`. Cannot be disabled while the encoder carries a Qm | C1.1 | yes |
+| Sionna vs project permutation | **identical, not merely equivalent.** `encoder.out_int == interleaver_indices(n, Qm)` for Qm ∈ {1,2,4}; `out_int_inv == argsort(...)`. Qm=1 **is** the identity; Qm=2,4 are not. And `encode(num_bits_per_symbol=Qm)(u)` == `interleave(encode(no Qm)(u), Qm)` bit-for-bit for Qm ∈ {2,4} | C1.1 | yes |
+| double interleaver confirmed | **yes.** Transmit order is the §5.4.2.2 permutation *squared* for QPSK/16-QAM; BPSK unaffected (identity). Root cause: `adapter.py:26-32` always passes `num_bits_per_symbol=q_m`, and `channel_transport.modulate()` applies `interleave()` again. Repair belongs in `src/baseline/classical/` | C1.1 | yes |
 | independent QPSK fixture | | C1.2 | |
 | independent 16-QAM fixture | | C1.2 | |
 | mutation classes caught | | C1.2/C1.6 | |

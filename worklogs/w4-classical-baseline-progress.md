@@ -169,3 +169,107 @@ access, and no accuracy number here is an experimental result.
 
 Test-isolation counters remain zero: `verify_g2_adjudication.py` reports `test_split_access=0`, and
 `tests/test_test_access.py` passes its 4 checks. `load_dataset(..., "test")` still refuses.
+
+---
+
+# PB_1C — corrective audit of the classical transport path
+
+PB_1 was marked complete. An external audit then raised a likely standards-conformance defect: the
+TS 38.212 §5.4.2.2 modulation bit interleaver may be applied **twice** on the transmit path and
+undone twice on the receive path. This section records the independent verification. It does not
+rewrite anything above it; observations that this correction supersedes are marked in place.
+
+## C1.1 — Sionna interleaver ownership, verified against installed source
+
+Installed package: **Sionna 2.0.1**, `.venv/lib/python3.14/site-packages/sionna/`.
+
+| What | Where |
+|---|---|
+| encoder | `.venv/lib/python3.14/site-packages/sionna/phy/fec/ldpc/encoding.py` |
+| decoder | `.venv/lib/python3.14/site-packages/sionna/phy/fec/ldpc/decoding.py` |
+
+**Encoder.** `LDPC5GEncoder.__init__` stores `num_bits_per_symbol` at `encoding.py:172` and, when it
+is not `None`, immediately builds both permutations at `encoding.py:173-179` via
+`generate_out_int(n, num_bits_per_symbol)` (`encoding.py:303-339`), registering them as the
+`_out_int` / `_out_int_inv` buffers exposed as the `out_int` / `out_int_inv` properties
+(`encoding.py:268-274`). Validation is inside `generate_out_int`: integral, positive, and
+`n % num_bits_per_symbol == 0`.
+
+The permutation is built as
+
+```python
+perm_seq[i + j * num_bits_per_symbol] = i * int(n / num_bits_per_symbol) + j
+```
+
+`encoding.py:336-339`, i.e. exactly the "write by rows of Qm, read by columns" §5.4.2.2 map.
+
+In `call()`, the order is unambiguous: filler padding and encoding (`encoding.py:749-765`), filler
+removal, **then rate matching** — the `2Z` puncture skip and the length-`n` selection at
+`encoding.py:770-780` — and only *after* that the interleaver, at `encoding.py:791-793`:
+
+```python
+# Output interleaver (Sec. 5.4.2.2) — works on last dim for any rank
+if self._num_bits_per_symbol is not None:
+    c_out = c_out[..., self._out_int]
+```
+
+So the encoder **does** apply the output interleaver, and it applies it **after** rate matching.
+
+**Decoder.** `LDPC5GDecoder` is constructed *from the encoder instance* and reaches through it. At
+`decoding.py:1646-1649` (and the multi-RV branch at `decoding.py:1636-1637`) it applies
+`self._encoder.out_int_inv` to the channel LLRs, and it does so **before** rate recovery — the
+de-interleaved LLRs are what get padded into `llr_buf` and reassembled into the full `n_ldpc` vector
+at `decoding.py:1654-1667`. `decoding.py:1693-1694` re-applies `out_int` on the way out when
+`return_infobits` is false. The pairing is automatic: nothing in the project selects it, and nothing
+can disable it while the encoder carries a `num_bits_per_symbol`.
+
+**Behaviour by modulation.** Probed directly against the installed package (`k=200, n=400, bg2`):
+
+| Qm | `encoder.out_int` equals project `interleaver_indices(n, Qm)` | identity permutation |
+|---|---|---|
+| 1 (BPSK) | yes | **yes** |
+| 2 (QPSK) | yes | no |
+| 4 (16-QAM) | yes | no |
+
+and `encoder.out_int_inv` equals `np.argsort(project interleaver_indices(n, Qm))` for all three. A
+second probe confirmed the composition directly: for Qm ∈ {2, 4},
+`LDPC5GEncoder(..., num_bits_per_symbol=Qm)(u)` is bit-identical to
+`interleave(LDPC5GEncoder(...)(u), Qm)`.
+
+That is the whole finding. The project's own `interleaver_indices`
+(`src/baseline/ldpc/modulation.py:24-32`) is not merely *a* valid §5.4.2.2 interleaver — it is the
+**same permutation Sionna already applied**.
+
+## Conclusion — the audit is confirmed
+
+`SionnaLDPCAdapter` (`src/baseline/ldpc/adapter.py:26-32`) always passes `num_bits_per_symbol=q_m`,
+so every encode is already interleaved. `channel_transport.modulate()` then applies `interleave()`
+again per code block, and `demodulate()` applies `deinterleave()` before handing LLRs back to the
+paired Sionna decoder, which applies `out_int_inv` a second time. The realised chain is
+
+```text
+rate matching → Sionna interleaver → project interleaver → mapping
+             → demapping → project inverse → Sionna inverse → rate recovery → decode
+```
+
+which contains **two** modulation bit interleavers where TS 38.212 specifies one. The transmitted
+bit order is the permutation *squared*, which is not the identity for Qm = 2 or 4.
+
+**Why the PB_1 round-trip tests missed it.** They are self-consistency tests: the extra transmit
+permutation is exactly undone by the extra receive permutation, so CRC passes, the codestream is
+recovered byte-exactly, and every accounting identity still holds — bit *counts* are permutation-
+invariant. Nothing in PB_1 ever compared the sequence entering the mapper against an independently
+derived reference, which is the only check that can see a paired error.
+
+**Scope of the consequence.** No bit is lost and no count changes, so the PB_1 accounting evidence
+stands. What is wrong is the *channel-facing bit order*: BICM exists to spread a code block's bits
+across symbol bit-positions, and applying the map twice partially re-clusters them. Realised symbol
+energy, PAPR and the noise realisation are therefore not the values a conforming transmitter would
+produce, and BLER at a given SNR is not the standards-conformant one. Since BR-4 tunes the baseline
+per SNR, a non-conformant baseline link is exactly the kind of unfair-baseline defect the project's
+non-negotiables forbid. **BPSK is unaffected** — at Qm = 1 both permutations are the identity.
+
+Repair belongs in `src/baseline/classical/`, not in `src/baseline/ldpc/`: Sionna owns the
+interleaver, so the project-side application in `channel_transport.py` is what must go. The
+standalone utilities in `src/baseline/ldpc/modulation.py` stay — they are G-2 known-answer material
+and are now also the independent reference this correction tests against.
