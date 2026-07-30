@@ -37,22 +37,22 @@ from verify_g2_adjudication import (  # noqa: E402  (path bootstrap must precede
     EXPECTED_SOURCES,
     ROLE_POLICY,
     SOURCE_MANIFEST,
-    blob_bytes,
-    blob_id,
     git,
     manifest_path,
+    measurement_blobs,
     sha256_bytes,
 )
 
 
 def build(measurement: str) -> dict:
     sources = []
+    at_measurement = measurement_blobs(measurement, sorted(EXPECTED_SOURCES))
     for path, role in sorted(EXPECTED_SOURCES.items()):
-        content = blob_bytes(measurement, path)
+        oid, content = at_measurement[path]
         sources.append({
             "path": path,
             "role": role,
-            "measurement_blob": blob_id(measurement, path),
+            "measurement_blob": oid,
             "measurement_sha256": sha256_bytes(content),
             "measurement_bytes": len(content),
         })

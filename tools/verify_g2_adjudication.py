@@ -154,16 +154,61 @@ def git_bytes(*args: str) -> bytes:
     return result.stdout
 
 
-def blob_id(commit: str, path: str) -> str:
-    return git("rev-parse", f"{commit}:{path}")
+def measurement_blobs(commit: str, paths: list[str]) -> dict[str, tuple[str, bytes]]:
+    """Return {path: (blob id, bytes)} for `paths` at `commit`, in two Git calls.
 
+    Batched deliberately. Per-path `rev-parse` + `cat-file` is three subprocesses per
+    file, and the mutation tests call this once per case, which took the whole test
+    suite from 62 s to 169 s before this was batched. A provenance check that makes
+    every future run of the suite slower is a check people start skipping.
 
-def blob_bytes(commit: str, path: str) -> bytes:
-    return git_bytes("cat-file", "blob", f"{commit}:{path}")
+    A path absent from the tree is simply absent from the result, which is what lets
+    the caller report "does not exist at the measurement commit" as itself rather
+    than as a hash mismatch.
+    """
+    listing = git("ls-tree", "-r", "-z", "--format=%(objectname) %(path)", commit, "--", *paths)
+    ids: dict[str, str] = {}
+    for record in listing.split("\0"):
+        if not record.strip():
+            continue
+        oid, _, path = record.partition(" ")
+        ids[path] = oid
+    if not ids:
+        return {}
+    payload = "\n".join(ids.values()) + "\n"
+    result = subprocess.run(
+        ["git", "-C", str(REPO_ROOT), "cat-file", "--batch"],
+        input=payload.encode(), capture_output=True,
+    )
+    if result.returncode:
+        raise VerificationError(f"git object read failed for {commit}")
+    contents: dict[str, bytes] = {}
+    stream, order = result.stdout, list(ids)
+    offset = 0
+    for path in order:
+        newline = stream.index(b"\n", offset)
+        header = stream[offset:newline].split()
+        require(len(header) == 3 and header[1] == b"blob",
+                f"{path}: not a blob at {commit[:12]}")
+        size = int(header[2])
+        start = newline + 1
+        contents[path] = stream[start:start + size]
+        offset = start + size + 1  # trailing newline after each object
+    return {path: (ids[path], contents[path]) for path in order}
 
 
 def manifest_path(evidence_dir: Path = DEFAULT_EVIDENCE) -> Path:
     return evidence_dir / SOURCE_MANIFEST
+
+
+def current_bytes(source_path: str) -> bytes:
+    """Read a source as it exists in the working tree right now.
+
+    A named seam, so the runtime-drift check can be exercised by a test without
+    editing the adjudicated implementation on disk. The equivalent seam in the
+    transparency-probe verifier exists for the same reason.
+    """
+    return (REPO_ROOT / source_path).read_bytes()
 
 
 def verify_sources(evidence_dir: Path, measurement: str) -> dict:
@@ -215,27 +260,28 @@ def verify_sources(evidence_dir: Path, measurement: str) -> dict:
         for entry in manifest.get("readjudications", [])
         if isinstance(entry, dict)
     }
+    at_measurement = measurement_blobs(measurement, sorted(EXPECTED_SOURCES))
+    absent = sorted(set(EXPECTED_SOURCES) - set(at_measurement))
+    require(not absent,
+            f"expected sources do not exist at the measurement commit: {absent}")
+
     drifted = []
     for source_path, role in sorted(EXPECTED_SOURCES.items()):
         entry = recorded[source_path]
         require(entry.get("role") == role,
                 f"{source_path}: manifest role {entry.get('role')!r} is not {role!r}")
-        # Existence at the measurement commit is implied by a readable blob, and
-        # asserted separately so an absent path reports as absent rather than as a
-        # hash mismatch.
-        git("cat-file", "-e", f"{measurement}:{source_path}")
-        require(blob_id(measurement, source_path) == entry.get("measurement_blob"),
+        oid, content = at_measurement[source_path]
+        require(oid == entry.get("measurement_blob"),
                 f"{source_path}: recorded Git blob does not match the measurement commit")
-        content = blob_bytes(measurement, source_path)
         require(sha256_bytes(content) == entry.get("measurement_sha256"),
                 f"{source_path}: recorded byte SHA-256 does not match the measurement commit")
         require(len(content) == entry.get("measurement_bytes"),
                 f"{source_path}: recorded byte length does not match the measurement commit")
         if role != "runtime":
             continue
-        current = REPO_ROOT / source_path
-        require(current.is_file(), f"{source_path}: adjudicated G-2 runtime is absent")
-        if sha256_bytes(current.read_bytes()) != entry["measurement_sha256"]:
+        require((REPO_ROOT / source_path).is_file(),
+                f"{source_path}: adjudicated G-2 runtime is absent")
+        if sha256_bytes(current_bytes(source_path)) != entry["measurement_sha256"]:
             drifted.append(source_path)
     unexplained = sorted(set(drifted) - readjudicated)
     require(not unexplained,
