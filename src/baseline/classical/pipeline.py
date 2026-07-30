@@ -234,9 +234,21 @@ def _encode_source(
     if encode_axis_px is None:
         axes = configured_axes(dataset, canonical_shorter_side)
     else:
-        axes = (int(encode_axis_px),)
-        if axes[0] > canonical_shorter_side:
+        # An explicit axis is a *selection* from the configured ladder, not a
+        # second configuration source.  PB_1 only checked that it did not
+        # upscale, which let an unconfigured axis (say 48 px for CIFAR-10) reach
+        # the codec and produce cache keys and evidence for a configuration the
+        # spec never authorised.  Membership is checked before any encoding runs.
+        requested = int(encode_axis_px)
+        if requested > canonical_shorter_side:
             raise ClassicalPipelineError("requested encode axis would upscale the source")
+        permitted = configured_axes(dataset, canonical_shorter_side)
+        if requested not in permitted:
+            raise ClassicalPipelineError(
+                f"requested encode axis {requested}px is not configured for "
+                f"{dataset}: params.baseline.downsample_axis_px permits {list(permitted)}"
+            )
+        axes = (requested,)
 
     attempted: list[int] = []
     reasons: list[tuple[int, str]] = []

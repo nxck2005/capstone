@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import baseline.classical.pipeline as pipeline
 import data.preprocessing as preprocessing
 from baseline.classical.pipeline import (
     BUDGET_EXCEEDED,
@@ -263,6 +264,65 @@ def test_configured_axes_are_descending_and_never_upscale():
 def test_requested_axis_may_not_upscale_the_source(product, codec, identity):
     with pytest.raises(ClassicalPipelineError, match="would upscale"):
         _run(product, codec, identity, encode_axis_px=64)
+
+
+# --- explicit encode axes are a selection, not a second configuration source ---
+
+
+def test_configured_explicit_axis_is_accepted(product, codec, identity):
+    assert 32 in configured_axes("cifar10", 32)
+    outcome = _run(product, codec, identity, encode_axis_px=32)
+    assert outcome.source_coding is not None
+    assert outcome.source_coding.encode_axis_px == 32
+    assert outcome.source_coding.axes_attempted == (32,)
+
+
+def test_unconfigured_explicit_axis_is_rejected(product, codec, identity):
+    """A smaller, non-upscaling, but unconfigured axis must not reach the codec."""
+
+    axes = {int(value) for value in get("baseline.downsample_axis_px")["cifar10"]}
+    assert 28 not in axes and 28 < 32
+    with pytest.raises(ClassicalPipelineError, match="is not configured"):
+        _run(product, codec, identity, encode_axis_px=28)
+
+
+def test_unconfigured_explicit_axis_is_rejected_before_the_codec_runs(
+    product, codec, identity, monkeypatch
+):
+    """Rejection must precede JPEG 2000, or it produces cache keys and evidence
+    for a configuration the spec never authorised."""
+
+    def refuse(*args, **kwargs):
+        raise AssertionError("the codec must not run for an unconfigured axis")
+
+    monkeypatch.setattr(J2KCodec, "encode_to_budget", refuse)
+    monkeypatch.setattr(pipeline, "codec_downsample", refuse)
+
+    with pytest.raises(ClassicalPipelineError, match="is not configured"):
+        _run(product, codec, identity, encode_axis_px=28)
+    # the same guard fires for an upscaling axis, also before any encoding
+    with pytest.raises(ClassicalPipelineError, match="would upscale"):
+        _run(product, codec, identity, encode_axis_px=64)
+
+
+def test_automatic_axis_iteration_is_descending_and_only_configured_axes(
+    product, codec, identity, monkeypatch
+):
+    seen: list[int] = []
+    original = pipeline.codec_downsample
+
+    def spy(image, axis):
+        seen.append(int(axis))
+        return original(image, axis)
+
+    monkeypatch.setattr(pipeline, "codec_downsample", spy)
+    _run(product, codec, identity)
+
+    permitted = configured_axes("cifar10", 32)
+    assert seen, "automatic selection must attempt at least one axis"
+    assert seen == sorted(seen, reverse=True)
+    assert set(seen) <= set(permitted)
+    assert seen[0] == max(permitted)
 
 
 def test_unconfigured_ldpc_rate_is_rejected(product, codec, identity):
