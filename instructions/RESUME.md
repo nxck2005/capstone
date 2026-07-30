@@ -56,7 +56,7 @@ Then:
 |---|---|---|
 | A1 establish exact state | done | fresh run; no prior `wip(handoff)` commits, clean worktree, HEAD = origin/main |
 | A2 fixture workflow + docs | done | fetch-tool audit (do NOT re-audit): **already present** — pinned-asset-only fetch, complete-asset SHA-256 vs `baseline.ldpc_golden_vector_asset_sha256`, produces the ignored `.npz`, records source rung 2, never writes third-party bytes anywhere tracked (`.gitignore:157` + `/data/*`). **Added** — (a) `.npz`-absent guard: was gated on the *asset tarball*, now a network-free no-op when the fixture exists, `--force` to re-materialize; (b) inner-archive verification widened from encoder-only to *every* pinned archive in `baseline.ldpc_golden_vector_sha256` (encoder + rate_matcher + segmenter). Docs: fetch+verify_g2 lines added to `AGENTS.md`, fetch line added to `README.md`, both with the fresh-clone rationale. Offline floor left ungated. |
-| A3 complete preflight | not-started | |
+| A3 complete preflight | in-progress | 14-command block + `tests/test_test_access.py`; results land in the facts table as each command returns. Do not trust partial results — re-run any command whose row is absent. |
 | A4 repair hand-off + consistency check | not-started | |
 | A5 G-2 source provenance manifest | not-started | |
 | A5b G-2 mutation tests | not-started | |
