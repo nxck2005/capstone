@@ -44,10 +44,10 @@ Then:
 
 ## Status
 
-**Current phase:** PB_2 — in progress
-**Last green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0` (`fix(classical): correct PB_1 modulation interleaver ownership`)
-**Last durable checkpoint:** `98ea4cb62a0117a546cffdfb7f6f35fb0eff9f07`
-**Next action:** B2.7 — append the W4 worklog, update `NEXT.md`, then run the complete 17-command verification block
+**Current phase:** PB_3 — blocked pending JPEG-2000 parameter decision
+**Last green commit:** `PENDING_FINAL_SHA` (`feat(classical): add W4 outage records and bounded evidence`) — the PB_1C green commit `4eda158145595de0f2e9aa92456ee4a052db74b0` is superseded
+**Last durable checkpoint:** `28bd3d483d5b956ba3ebd69369de6cb2cb0772f2`
+**Next action:** resolve the `j2k_resolutions`/CIFAR-axis conflict through a recorded spec amendment, then run `instructions/PB_3.txt` from B3.0
 
 **PB_2 executes from `instructions/PB_2D.txt`, not `instructions/PB_2.txt`.** `PB_2D.txt` is the
 durable superseding instruction committed at B2.0; the original `PB_2.txt` is retained as historical
@@ -55,6 +55,13 @@ context. Where they differ, `PB_2D.txt` wins — note in particular that `PB_2.t
 parameters as `analysis.csv_schema` / `analysis.per_image_schema`, which is stale shorthand: the real
 parameter section is **`artifacts.*`** (`artifacts.csv_schema`, `artifacts.per_image_schema`,
 `artifacts.system_values`, `artifacts.run_id_key`, …), as `PB_2D.txt` §6.1 states.
+
+**PB_2 is complete.** The classical arm now runs from a canonical image all the way to
+schema-exact per-image and aggregate records: frozen constant-class outage policy (class 0,
+measured 100/1000), frozen-G-1 inference on delivered Imagenette-160 reconstructions, reconstruction
+and communications metrics, a crash-resumable bounded runner, committed bounded evidence and the
+first W4 integration verifier. **PB_3 is blocked** by the unresolved `j2k_resolutions` decision —
+that decision, not PB_3 itself, is the next action.
 
 **PB_1 is complete, including its PB_1C correction.** The pre-correction PB_1 green commit was
 `e47913c52e9117179691b70b29a289880b22dbdd`; it is superseded as "last green" by the corrective
@@ -181,7 +188,7 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | B2.4 W4 verifier + execution-source binding | done | `tools/verify_w4_baseline_integration.py` + `tools/gen_w4_source_manifest.py` (`--check`) + `tests/test_w4_verification.py` (**38 mutation tests, all pass**). The manifest binds **38 sources** in four roles (`runtime` / `measurement_runner` / `configuration` / `record`); unlike G-2 there is deliberately **no re-adjudication mechanism** — the bounded run takes ~47 s, so a changed runtime source is answered by rerunning it. The verifier recomputes rather than trusts: it re-derives the outage class from the committed manifest, recomputes every aggregate rate from the per-image rows, and re-hashes every bound source at the declared commit. Mutation tests build a complete valid evidence directory from scratch, so they prove discrimination without depending on the real bounded run. |
 | B2.5 required and mutation tests | done | `tests/test_w4_smoke_runner.py` (**25 tests**) closes the remaining gaps: committed-plan completeness, configured-SNR-grid membership, configured CIFAR axis, worklist determinism and stable-ID ordering, six resume-binding rejection classes, duplicate/identity-less/schema-mismatched partial rows, the frozen checkpoint's real SHA-256 over the 92,121,803 on-disk bytes, and an explicit **sequential-vs-keyed outage RNG** mutation. **Full suite 605 -> 757 passed.** This test group caught a real defect: the plan used 12 dB, which is *not* a member of `params.channel.test_snr_grid_db` — corrected to 11 dB. |
 | B2.6 bounded executions + committed evidence | done | **55 rows in 44.3 s from a clean tree at `b8462316c3c9cc97798934ec2e14347c9eeb71e2`.** No sweep, no candidate comparison, no selection, no training, no test access. `gen_w4_source_manifest.py --check` ok (37 sources) and `verify_w4_baseline_integration.py` **PASS**. Two reruns were needed and both were forced by the tooling working correctly: the first recorded a stale `execution_source_commit` because the runner itself was uncommitted, the second because the runner changed to record the container split on transport-only rows. Each time the source-drift check refused the evidence rather than accepting it. |
-| B2.7 documentation, full verification and green handoff | not-started | |
+| B2.7 documentation, full verification and green handoff | done | `worklogs/w4-classical-baseline-progress.md` gained the PB_2 section (outage method, the stratification coincidence, sensitivity, classifier dataset boundary, record architecture, identities, field semantics with the one flagged BR-11 reading, aggregate denominators, crash-resume, bounded executions, verifier/source binding, amendment judgment, remaining block). `NEXT.md` declares PB_2 complete and PB_3 the frontier **blocked** by the `j2k_resolutions` decision. `AGENTS.md` gained the PB_2 status, the six new W4 commands, the classifier-dataset-boundary warning, the no-re-adjudication rule and the corrected test counts. **All 17 verification commands re-run separately against the current tree and all pass; 757 tests.** |
 
 ### PB_2 observed facts
 
