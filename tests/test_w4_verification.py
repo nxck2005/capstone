@@ -35,9 +35,13 @@ from models.frozen_reference_classifier import (
 DATASET = "imagenette160"
 #: A small, stable set of real tracked files, so the source-binding checks run
 #: against genuine Git blobs without hashing the whole runtime.
+#: `record`-role paths, because only non-record roles are asserted byte-identical
+#: against the working tree — binding a source under active edit would make the
+#: fixture fail for an unrelated reason. The drift branch itself is covered by
+#: `test_runtime_drift_since_the_evidence_is_caught`.
 FIXTURE_SOURCES = {
-    "src/baseline/classical/outage.py": "runtime",
-    "configs/classical-baseline-w4-smoke-plan.yaml": "configuration",
+    "results/reference_classifier/g1_adjudication.json": "record",
+    "results/baseline/g2/g2_adjudication.json": "record",
 }
 
 
@@ -408,6 +412,30 @@ def test_one_changed_runtime_byte_is_caught(evidence: Path) -> None:
 
     _rewrite(evidence, "execution_source_manifest.json", mutate)
     with pytest.raises(verifier.VerificationError, match="differ from the manifest"):
+        _run_all(evidence)
+
+
+def test_runtime_drift_since_the_evidence_is_caught(
+    evidence: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A runtime source edited after the run must invalidate the evidence."""
+
+    path = next(iter(FIXTURE_SOURCES))
+    monkeypatch.setattr(verifier, "EXPECTED_SOURCES", {path: "runtime"})
+    _rewrite(
+        evidence,
+        "execution_source_manifest.json",
+        lambda p: p.__setitem__(
+            "sources", [e for e in p["sources"] if e["path"] == path]
+        ),
+    )
+    _rewrite(
+        evidence,
+        "execution_source_manifest.json",
+        lambda p: p["sources"][0].__setitem__("role", "runtime"),
+    )
+    monkeypatch.setattr(verifier, "_current_bytes", lambda _path: b"drifted")
+    with pytest.raises(verifier.VerificationError, match="has drifted"):
         _run_all(evidence)
 
 

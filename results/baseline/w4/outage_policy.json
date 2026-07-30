@@ -24,7 +24,7 @@
     "not test evidence"
   ],
   "frozen_before": "test",
-  "generated_at": "2026-07-30T18:53:43+00:00",
+  "generated_at": "2026-07-30T19:27:48+00:00",
   "manifest_path": "data/manifests/imagenette160.csv",
   "manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
   "maximum_count": 100,
@@ -38,7 +38,7 @@
   "selected_count": 100,
   "selection_policy": "frozen_constant_class_selected_on_validation",
   "selection_rule": "highest_validation_accuracy_constant_prediction",
-  "selection_source_commit": "68bb759a81f040396edc79f2f93679f74a027364",
+  "selection_source_commit": "1ac452a76206bd034385522b1fb097fadfd98e7e",
   "sensitivity_policy": "keyed_uniform_random_label",
   "sensitivity_rng_identity_fields": [
     "split_manifest_hash",

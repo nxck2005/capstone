@@ -428,6 +428,16 @@ def check_cifar_separation(summary: dict[str, Any]) -> int:
     return int(cifar.get("sample_count", 0))
 
 
+def _current_bytes(path: str) -> bytes:
+    """Read a bound source as it exists now.
+
+    Its own function so the drift branch below can be exercised directly by a
+    test, rather than only when a real file happens to be dirty.
+    """
+
+    return (REPO / path).read_bytes()
+
+
 def check_sources(evidence: Path, summary: dict[str, Any]) -> dict[str, Any]:
     manifest = _json(evidence / "execution_source_manifest.json")
     commit = manifest.get("execution_source_commit")
@@ -460,7 +470,7 @@ def check_sources(evidence: Path, summary: dict[str, Any]) -> dict[str, Any]:
             f"{path} is bound to a different commit",
         )
         if role != "record":
-            current = (REPO / path).read_bytes()
+            current = _current_bytes(path)
             _require(
                 sha256_bytes(current) == entry["sha256"],
                 f"{path} has drifted since the bounded evidence was produced; "

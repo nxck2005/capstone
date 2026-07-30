@@ -82,10 +82,13 @@ EXPECTED_SOURCES: dict[str, str] = {
     "spec/params.generated.yaml": "configuration",
     "data/manifests/imagenette160.csv": "configuration",
     "data/manifests/cifar10.csv": "configuration",
-    # Frozen artifacts and the produced records.
+    # Frozen artifacts that exist *before* the run and feed into it.
+    #
+    # The produced records — per_image.csv and aggregate.csv — are deliberately
+    # NOT bound here: they are outputs of the execution commit, so they cannot
+    # exist at it. They are bound instead by SHA-256 inside smoke_summary.json,
+    # which the verifier recomputes from the files on disk.
     "results/baseline/w4/outage_policy.json": "record",
-    "results/baseline/w4/per_image.csv": "record",
-    "results/baseline/w4/aggregate.csv": "record",
     "results/reference_classifier/g1_adjudication.json": "record",
 }
 
