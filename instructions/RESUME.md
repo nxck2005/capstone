@@ -44,9 +44,9 @@ Then:
 
 ## Status
 
-**Current phase:** PA — not started
+**Current phase:** PA — in progress (fresh run, started at A1)
 **Last green commit:** `82f6c569f792bf17ff28acd80ed1d516adfc06fa` (`fix(ldpc): make G-2 tools directly executable`)
-**Next action:** run `instructions/PA.txt` from step A1
+**Next action:** run `instructions/PA.txt` step A2 (fixture workflow + docs)
 
 ---
 
@@ -54,7 +54,7 @@ Then:
 
 | Step | State | Notes |
 |---|---|---|
-| A1 establish exact state | not-started | |
+| A1 establish exact state | done | fresh run; no prior `wip(handoff)` commits, clean worktree, HEAD = origin/main |
 | A2 fixture workflow + docs | not-started | |
 | A3 complete preflight | not-started | |
 | A4 repair hand-off + consistency check | not-started | |
@@ -109,6 +109,10 @@ Then:
 
 | Fact | Value | Observed at | Verified |
 |---|---|---|---|
+| A1 HEAD | `174cf19bfa2b10cb89d85211ab330e5cd8251de0` | A1 | yes |
+| A1 origin/main | `174cf19bfa2b10cb89d85211ab330e5cd8251de0` | A1 | yes |
+| A1 worktree | clean; `git diff --check` clean | A1 | yes |
+| A1 divergence from PA.txt expected HEAD | none material — `174cf19` is docs-only (`chore: add instructions for post W3`, adds `instructions/` only, 5 files / +1443 lines); last code commit is still `82f6c56` | A1 | yes |
 | total tests | — | — | |
 | `tests/test_test_access.py` count | — | — | |
 | CUDA available | — | — | |
