@@ -8,10 +8,11 @@ import numpy as np
 
 from config.params import get
 
+from . import crc
 from .adapter import SionnaLDPCAdapter
 from .modulation import bits_per_symbol
 from .rate_matching import distribute
-from .segmentation import Segmentation, concatenate, plan, segment
+from .segmentation import Segmentation, plan, segment
 
 
 @dataclass(frozen=True)
@@ -108,31 +109,90 @@ def build_packet_plan(k_symbols: int, modulation: str, nominal_rate: str) -> Pac
 def transmit_transport(payload_bits: np.ndarray, packet: PacketPlan, device: str = "cpu") -> list[np.ndarray]:
     if not packet.feasible or packet.segmentation is None:
         raise ValueError("cannot transmit a structurally infeasible packet")
-    blocks = segment(payload_bits, packet.segmentation)
+    layout = packet.segmentation
+    blocks = segment(payload_bits, layout)
     outputs = []
     for block, e_r in zip(blocks, packet.e_r, strict=True):
+        # Sionna owns filler insertion and shortening, and derives Z from the
+        # information length it is given.  TS 38.212 §5.2.2 derives Z from K',
+        # so K' is the argument that reproduces the packetisation lifting size;
+        # passing K (which already carries our explicit filler) makes Sionna
+        # re-derive K_b from the padded length and select a different Z.
         adapter = SionnaLDPCAdapter(
-            packet.segmentation.k, e_r, packet.q_m,
-            packet.segmentation.base_graph, device,
+            layout.k_prime, e_r, packet.q_m, layout.base_graph, device,
         )
         if adapter.lifting_size != packet.segmentation.lifting_size:
             raise ValueError("Sionna selected a lifting size that differs from packetisation")
-        outputs.append(adapter.encode(block[None, :])[0])
+        outputs.append(adapter.encode(block[: layout.k_prime][None, :])[0])
     if sum(value.size for value in outputs) != packet.channel_bits:
         raise AssertionError("encoded channel bits do not reconcile")
     return outputs
 
 
-def receive_transport(llrs: list[np.ndarray], packet: PacketPlan, device: str = "cpu") -> np.ndarray:
+@dataclass(frozen=True)
+class ReceivedTransport:
+    """Decoded transport block with its CRC verdicts kept, not raised."""
+
+    crc_ok: bool
+    tb_crc_ok: bool
+    code_block_crc_ok: tuple[bool, ...]
+    payload_bits: np.ndarray | None
+
+
+def receive_transport_verified(
+    llrs: list[np.ndarray],
+    packet: PacketPlan,
+    device: str = "cpu",
+) -> ReceivedTransport:
+    """Decode, then *report* CRC outcomes so a failure stays classifiable.
+
+    ``receive_transport`` raises on CRC failure, which cannot be distinguished
+    from a structural error by a caller that must emit a decode-failure verdict.
+    """
+
     if not packet.feasible or packet.segmentation is None or len(llrs) != len(packet.e_r):
         raise ValueError("received blocks do not match packet plan")
+    layout = packet.segmentation
     decoded = []
     for values, e_r in zip(llrs, packet.e_r, strict=True):
         if np.asarray(values).size != e_r:
             raise ValueError("LLR block length does not equal E_r")
         adapter = SionnaLDPCAdapter(
-            packet.segmentation.k, e_r, packet.q_m,
-            packet.segmentation.base_graph, device,
+            layout.k_prime, e_r, packet.q_m, layout.base_graph, device,
         )
+        if adapter.lifting_size != layout.lifting_size:
+            raise ValueError("Sionna selected a lifting size that differs from packetisation")
         decoded.append(adapter.decode(np.asarray(values)[None, :])[0])
-    return concatenate(decoded, packet.segmentation)
+
+    cb_name = get("baseline.cb_crc_polynomial")
+    cb_width = int(get("baseline.crc_spec")[cb_name]["width"])
+    code_block_crc_ok: list[bool] = []
+    restored = []
+    for block in decoded:
+        data = np.asarray(block, dtype=np.uint8).reshape(-1)[: layout.k_prime]
+        if layout.code_blocks > 1:
+            code_block_crc_ok.append(bool(crc.check(data, cb_name)))
+            data = data[:-cb_width]
+        restored.append(data)
+    transport = np.concatenate(restored)
+    tb_crc_ok = bool(crc.check(transport, layout.tb_crc_name))
+    crc_ok = tb_crc_ok and all(code_block_crc_ok)
+    return ReceivedTransport(
+        crc_ok=crc_ok,
+        tb_crc_ok=tb_crc_ok,
+        code_block_crc_ok=tuple(code_block_crc_ok),
+        payload_bits=transport[: layout.payload_bits] if crc_ok else None,
+    )
+
+
+def receive_transport(llrs: list[np.ndarray], packet: PacketPlan, device: str = "cpu") -> np.ndarray:
+    received = receive_transport_verified(llrs, packet, device)
+    if received.payload_bits is None:
+        assert packet.segmentation is not None
+        name = (
+            packet.segmentation.tb_crc_name
+            if received.tb_crc_ok is False
+            else get("baseline.cb_crc_polynomial")
+        )
+        raise ValueError(f"{name.upper()} failure")
+    return received.payload_bits

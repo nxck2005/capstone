@@ -44,9 +44,11 @@ Then:
 
 ## Status
 
-**Current phase:** PB_1 — not started
-**Last green commit:** `031becc51c06ff3901feb6b411f03df512af763a` (`fix(handoff): harden post-G-2 repository state`)
-**Next action:** run `instructions/PB_1.txt` from step B1.0
+**Current phase:** PB_1 — in progress (B1.1 landed)
+**Last green commit:** `dcf84a865b3249f9842e8755ebcaaee74b6aa805` (`docs(handoff): record the PA green commit SHA`)
+**Next action:** run `instructions/PB_1.txt` step B1.2 — write `src/baseline/classical/pipeline.py`
+wiring canonical image → downsample → J2K budget search → `transport_round_trip` → J2K decode →
+upsample, with the three-way verdict. `channel_transport.py` is done and green in isolation.
 
 ---
 
@@ -66,8 +68,8 @@ Then:
 
 | Step | State | Notes |
 |---|---|---|
-| B1.0 confirm PA green | not-started | |
-| B1.1 `channel_transport.py` | not-started | |
+| B1.0 confirm PA green | done | clean worktree, HEAD = origin/main = `dcf84a8`, `verify_g2_adjudication.py` PASS (`measurement=968e907237bb, rows=24, test_split_access=0, sources=14`), LDPC fixture present |
+| B1.1 `channel_transport.py` | done | `src/baseline/classical/{__init__,channel_transport}.py` + `tests/test_classical_transport.py` (22 tests, all pass). **Defect found and fixed in `src/baseline/ldpc/transport.py`:** `transmit_transport` built the Sionna encoder with `K` (systematic length *including* our explicit filler); Sionna re-derives `K_b`/`Z` from the information length it is given, so it selected a different lifting size and the pre-existing `lifting_size` guard raised on real plans. Passing `K'` reproduces the TS 38.212 §5.2.2 lifting size — verified over **all 232 (configuration, `E_r`) pairs of the committed packetisation record: 0 mismatches with `K'`, 46 mismatches/errors with `K`.** Sionna owns filler insertion; `segment()`'s contract is unchanged and the block is sliced to `K'` at the seam. Also added `receive_transport_verified` → `ReceivedTransport` (CRC verdicts reported, not raised) so decode failure stays classifiable; `receive_transport` delegates and keeps its old raising behaviour. These paths were never exercised before — G-2 measured through the adapter directly. |
 | B1.2 `pipeline.py` | not-started | |
 | B1.3 accounting + failure taxonomy | not-started | |
 | B1.4 required tests | not-started | |
