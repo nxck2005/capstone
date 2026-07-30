@@ -1,0 +1,320 @@
+# Phase B1 — Classical baseline: end-to-end transport path
+
+Repository: https://github.com/nxck2005/capstone
+Working directory: /home/nick/projects/capstone
+Interpreter: always `.venv/bin/python` (never `uv run` — see AGENTS.md).
+
+Read `AGENTS.md` first, then `NEXT.md`. `spec/SPEC.md` is normative; `NEXT.md` is not.
+
+This is part 2 of a four-part sequence (PA, PB_1, PB_2, PB_3). **Phase A (`instructions/PA.txt`)
+must be complete and pushed before you start.** Confirm that first: clean worktree, HEAD =
+origin/main, and `tools/verify_g2_adjudication.py` passes including the new source-binding checks.
+If Phase A is not done, stop and say so.
+
+B1 builds the transport path only. Outage policy, record emission and the BR-4 selection machinery
+belong to PB_2 and PB_3 — do not build them here.
+
+---
+
+## READ FIRST — resumability
+
+Sessions here end abruptly when usage runs out, with no warning. Assume this session will be cut
+off mid-step.
+
+**`instructions/RESUME.md` is the operational cursor.** Read it before anything else. It records
+which of the steps B1.0–B1.7 are `done`, `in-progress` or `not-started`, the last green commit, and
+facts already observed. Follow its cold-start protocol. Trust `done`; re-verify `in-progress`;
+never re-derive what is already recorded.
+
+While working:
+
+* **Commit at every `>>> CHECKPOINT` below.** Never let more than one checkpoint's work sit
+  uncommitted.
+* Intermediate commits are `wip(classical): <what landed>`, expected to be non-green. Push every
+  one — unpushed is not durable.
+* Update `RESUME.md` in the *same* commit as the work: flip the step, record facts, and rewrite the
+  **Next action** line as a concrete instruction to your successor.
+* Mid-flight, run only the targeted tests for what you just changed (`pytest -k`). Save the full
+  block for B1.7. The full suite is expensive and running it every checkpoint wastes the budget
+  that finishing the phase needs.
+* This phase is mostly new code, so the cheapest resumption signal is a passing test. Prefer
+  landing `module + its tests` per checkpoint over landing three modules and then all their tests.
+
+If you cold-start into a dirty worktree, it is the previous session's unfinished work on the step
+marked `in-progress`. Read the diff and finish or commit it. Do not discard it.
+
+---
+
+## Objective
+
+Implement the classical arm's end-to-end path from a canonical source image to a decoded image plus
+a decode/outage verdict, reusing existing modules rather than duplicating them.
+
+Target pipeline segment for this phase:
+
+    canonical source image
+    → configured downsample
+    → JPEG 2000 budget search
+    → exact packet plan
+    → TB CRC
+    → code-block segmentation and CRC
+    → filler and rate matching
+    → modulation bit interleaving
+    → BPSK/QPSK/16-QAM mapping
+    → shared project AWGN channel
+    → soft demapping
+    → LDPC decode
+    → CRC check and decode-failure/outage classification
+    → JPEG 2000 decode
+    → configured upsample
+
+The classifier, metrics, records and aggregation are PB_2's job. B1 should return a structured
+result object that PB_2 can consume.
+
+---
+
+## Modules to create
+
+    src/baseline/classical/
+      __init__.py
+      pipeline.py           # orchestration of the segment above
+      channel_transport.py  # bits → symbols → AWGN → LLRs → bits, with exact accounting
+
+Do NOT create `outage.py`, `records.py` or `composition.py` in this phase.
+
+## Modules to reuse (do not reimplement)
+
+    src/baseline/j2k.py                        # J2KCodec: budget search, caching, decode
+    src/baseline/ldpc/transport.py             # build_packet_plan, transmit_transport, receive_transport
+    src/baseline/ldpc/{crc,modulation,rate_matching,segmentation,adapter,reference}.py
+    src/channels/awgn.py                       # AWGN, keyed_complex_noise
+    src/channels/power.py                      # normalize_unit_average_power, symbol_papr_db
+    src/channels/registry.py                   # build_channel
+    src/data/preprocessing.py                  # canonicalize_source, codec_input, codec_downsample,
+                                               #   codec_upsample, reconstruction_metrics
+    src/config/params.py                       # get() — the SR-1 loader; read every constant through it
+
+**Note the directory is `src/channels/`, plural.** There is no `src/channel/`. The learned and
+classical arms must share the *same* channel object and the *same* SNR definition — introducing a
+second AWGN implementation is a defect this phase's mutation tests must catch.
+
+`src/baseline/ldpc/transport.py` already provides `build_packet_plan(k_symbols, modulation,
+nominal_rate) -> PacketPlan`, `transmit_transport(payload_bits, packet, device)` and
+`receive_transport(llrs, packet, device)`. Build on those; if you find a genuine gap, extend them
+in place rather than shadowing them in `classical/`.
+
+Suggested step order, matching the `RESUME.md` rows — build `channel_transport.py` before
+`pipeline.py`, because the former is testable standalone and the latter is not:
+
+>>> CHECKPOINT B1.1 — `channel_transport.py` plus its tests, green in isolation.
+>>> CHECKPOINT B1.2 — `pipeline.py` wired end to end, at least one round trip passing.
+>>> CHECKPOINT B1.3 — accounting and the three-way failure taxonomy, with their tests.
+
+---
+
+## Configuration you must read from the spec, not hardcode
+
+Read via `config.params.get(...)` against `spec/params.generated.yaml`:
+
+  * `bandwidth.ratios` — r_1_2, r_1_3, r_1_6, r_1_12, r_1_24, r_1_48
+  * `baseline.modulations` — `bpsk`, `qpsk`, `qam16`; `baseline.core_modulation` = `qpsk`
+  * `baseline.ldpc_rates` — 1/3, 1/2, 2/3, 5/6
+  * `baseline.budget_rule` — the exact solved (not closed-form) payload rule; implement it literally
+  * `baseline.modulation_bit_interleaver` = `ts_38212_5_4_2_2`, and
+    `baseline.modulation_bit_interleaver_required` = true
+  * `baseline.constellation_mapping` = `ts_38211_gray`
+  * `baseline.constellation_normalisation` = `fixed_unit_average_energy_under_uniform_labels`
+  * `baseline.per_packet_power_rescaling_permitted` = **false**
+  * `baseline.realised_symbol_energy_logged` = true
+  * `baseline.demapper` = `max_log_app`;
+    `baseline.demapper_noise_variance_convention` = `two_sided_n0_over_2_per_real_dimension`
+  * `baseline.ldpc_decoder` = offset_min_sum, offset 0.5, LLR clip 20.0, flooding, 50 iterations;
+    `baseline.ldpc_llr_convention` = `log_p1_over_p0`
+  * `baseline.downsample_axis_px` (per dataset) and `baseline.downsample_axis_never_upscales` = true
+  * `baseline.j2k_cache_key` and `baseline.j2k_nonmonotone_policy` =
+    `keep_largest_codestream_at_or_below_budget`
+
+---
+
+## Budget and accounting requirements
+
+For every invocation of the pipeline:
+
+  * `k` complex channel uses must be **exact** — not approximately, not rounded.
+  * Channel bits must equal `k × Qm` for the selected modulation.
+  * The source codestream, container bytes included, must not exceed payload capacity.
+  * Residual payload slack must be counted as filler, never silently dropped.
+  * TB CRC, per-code-block CRC, filler bits and rate-matched bits must reconcile exactly against
+    the packet plan. Emit this reconciliation as structured data, not as a log line.
+  * Partial final code blocks must be supported.
+  * Realized per-packet symbol energy must be computed and returned.
+  * Symbol-domain PAPR must be computed and returned (`channels.power.symbol_papr_db`).
+  * Per-packet power rescaling is **prohibited**. Normalization is the fixed constellation
+    normalization only; do not renormalize a realized packet to unit energy.
+
+## Failure taxonomy — three distinct outcomes
+
+These must be distinguishable in the returned result and must never be collapsed:
+
+  1. **Structural infeasibility** — no valid TS 38.212 packetisation exists for the requested
+     `(k, modulation, rate)`. Detected before any encoding.
+  2. **Codec infeasibility** — a packetisation exists, but JPEG 2000 cannot produce a codestream at
+     or below the payload budget for this image at any configured axis.
+  3. **Decode failure** — transmission occurred and CRC failed.
+
+A silently skipped infeasible case is a defect. Every invocation returns a verdict.
+
+---
+
+## Bounded executions for this phase
+
+Run only these; they are plumbing checks, not experiments:
+
+  * a small CIFAR-10 plumbing smoke (a handful of images, validation split);
+  * at least one case per modulation (bpsk, qpsk, qam16);
+  * at least one multi-code-block case;
+  * the expected structural-infeasibility case;
+  * a forced codec-infeasibility case;
+  * a forced decode-failure case (very low SNR);
+  * a high-SNR successful round trip;
+  * a cached JPEG 2000 repeat (second call hits the cache and returns byte-identical output).
+
+Do not treat any accuracy number from these as an experimental result. Do not run a validation
+sweep.
+
+Write each execution's verdict into the `RESUME.md` B1.6 row as you get it. They are cheap
+individually but tedious to redo as a set.
+
+>>> CHECKPOINT B1.6 — commit after the bounded executions, with their verdicts recorded.
+
+---
+
+## Required tests (add under `tests/`, matching existing style)
+
+    exact channel-use matching (k is exact for every ratio × modulation)
+    exact bit reconciliation (TB CRC + CB CRC + filler + rate-matched == k × Qm)
+    shared channel object (classical path uses the same AWGN instance/registry entry as learned)
+    same keyed noise across systems for the same noise identity
+    all three modulations round-trip
+    all four configured LDPC rates
+    partial final code blocks
+    structural versus codec infeasibility are distinct
+    decode-failure classification
+    J2K emitted-byte authority (the actual emitted codestream length is authoritative, not the
+      requested target)
+    J2K cache identity (cache key == baseline.j2k_cache_key fields)
+    no per-packet power rescaling
+    realized symbol energy logging
+    PAPR logging
+    validation-only loading; test-split access is rejected (see src/data/test_access.py)
+
+Fourteen test areas is a lot to lose. Commit after every two or three that pass, recording in the
+`RESUME.md` B1.4 row which are done.
+
+>>> CHECKPOINT B1.4 — commit once the required tests pass.
+
+## Mutation tests this phase must catch
+
+    LLR sign reversal
+    disabled 16-QAM bit interleaver
+    wrong k
+    dropped filler
+    unaccounted CRC
+    codec size above budget
+    silently skipped infeasibility
+    a different channel implementation substituted for the shared one
+    sequential rather than keyed noise
+
+Same discipline: commit every two or three, recording which classes are covered.
+
+>>> CHECKPOINT B1.5 — commit once all nine mutation classes pass.
+
+---
+
+## Keyed noise
+
+Noise must be counter-based and keyed, never sequential. Per `analysis.noise_id_key`, the identity
+is: dataset_version, split_manifest_hash, stable_sample_id, test_snr_db, channel_seed, channel, k,
+block_index, rng_purpose. Changing batching, row order, or the other system's control flow must not
+change a row's keyed noise — there is an existing precedent test in
+`tests/test_keyed_complex_noise.py` and `tests/test_artifact_rng.py`; follow it.
+
+---
+
+## Verification before committing
+
+    .venv/bin/python tools/gen_spec_views.py --check
+    .venv/bin/python tools/check_doc_consistency.py -v
+    .venv/bin/python tools/check_literals.py -v
+    .venv/bin/python spec/evidence/check_packetisation.py
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python -m pytest
+    git diff --check
+    git status --short
+
+Note `tests/fixtures/ldpc_ts38212_golden.npz` is git-ignored; if absent, materialize it first with
+`.venv/bin/python tools/fetch_ldpc_golden_vectors.py`.
+
+Everything must pass. Then land the final green commit:
+
+    feat(classical): implement W4 classical transport path
+
+Leave any `wip(classical)` commits in history — do not rebase or force-push.
+
+Push and confirm local HEAD = origin/main = remote main, clean worktree.
+
+Append a progress entry to `worklogs/w4-classical-baseline-progress.md` (create it if absent) and
+update `NEXT.md`'s single-next-task line to point at PB_2. Keep PR-1, PR-2 and PR-9 visible as
+outstanding programme deliverables.
+
+Then update `instructions/RESUME.md`: every PB_1 step `done`, **Current phase** set to
+`PB_2 — not started`, **Last green commit** set to this SHA, **Next action** set to
+`run instructions/PB_2.txt from step B2.0`, facts table filled in. Push it.
+
+>>> CHECKPOINT B1.7 — the green commit.
+
+---
+
+## If you are running out of usage mid-phase
+
+Do not attempt one last big push. In this order:
+
+1. Commit whatever works, as `wip(classical): <what landed>`. A non-green WIP commit beats lost
+   work.
+2. Update `RESUME.md` with exact step states, a concrete **Next action** line, and observed facts.
+3. Push.
+4. Report what you completed and what remains, then stop.
+
+Never leave the worktree dirty and unpushed as a way of "saving your place". It is not saved.
+
+---
+
+## Boundaries
+
+Do not: run the full BR-4 validation sweep; select `efficiency_ratio`, `crossover_ratio` or
+`low_ratio_operating_point`; resolve G-8; train the artifact-finetuned classifier; calibrate lambda;
+train DJSCC models; implement ER-9; open the test split; change the frozen G-1 checkpoint; rerun
+G-7, the transparency campaign, or G-2; or update provisional bandwidth parameters from any smoke
+result.
+
+## Final report
+
+0. Whether this was a fresh run or a resumption, and if a resumption, from which step.
+1. Confirmation Phase A was complete and pushed; starting SHA.
+2. Files and modules added.
+3. Exact bounded executions performed, with their verdicts.
+4. Two or three concrete accounting examples showing exact `k`, `k × Qm`, TB/CB CRC bits, filler
+   bits and rate-matched bits reconciling.
+5. Test totals, newly observed.
+6. Test-isolation counters.
+7. Confirmation no sweep, no training, no test access.
+8. Commit SHA; final local, origin and remote SHAs.
+
+End with exactly one of:
+
+    PB_1 COMPLETE — READY FOR PB_2
+    PB_1 INCOMPLETE — RESUME AT <step id>
+    PB_1 HOLD — <precise failed condition>
+
+INCOMPLETE means "ran out of room, continue from here". HOLD means "a real blocking failure, a
+human must look". Do not conflate them.

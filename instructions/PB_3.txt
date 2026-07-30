@@ -1,0 +1,285 @@
+# Phase B3 — BR-4 selection infrastructure (built, not executed) and W4 adjudication
+
+Repository: https://github.com/nxck2005/capstone
+Working directory: /home/nick/projects/capstone
+Interpreter: always `.venv/bin/python` (never `uv run` — see AGENTS.md).
+
+Read `AGENTS.md` first, then `NEXT.md` and `worklogs/w4-classical-baseline-progress.md`.
+`spec/SPEC.md` is normative; `NEXT.md` is not.
+
+This is part 4 of a four-part sequence (PA, PB_1, PB_2, PB_3). **PB_2 must be complete and pushed
+before you start** — confirm clean worktree, HEAD = origin/main, full suite passing,
+`src/baseline/classical/{pipeline,channel_transport,outage,records}.py` present, and
+`tools/verify_w4_baseline_integration.py` passing. If not, stop and say so.
+
+**The defining constraint of this phase: you build the BR-4 selection machinery and you do not run
+it at scale.** The full validation sweep belongs to G-8. Unit-scale exercises on synthetic or
+tiny fixture inputs are how you test it.
+
+---
+
+## READ FIRST — resumability
+
+Sessions here end abruptly when usage runs out, with no warning. Assume this session will be cut
+off mid-step.
+
+**`instructions/RESUME.md` is the operational cursor.** Read it before anything else. It records
+which of B3.0–B3.9 are `done`, `in-progress` or `not-started`, the last green commit, and the facts
+carried forward from earlier phases. Two of those facts are inputs this phase consumes directly —
+the selected outage class and its measured validation accuracy from PB_2. Read them from the
+ledger; do not recompute them, and do not substitute an assumed value if the ledger row is empty.
+If it is empty, that is a blocking gap: go back and read PB_2's committed selection artifact under
+`results/baseline/w4/`.
+
+While working:
+
+* **Commit at every `>>> CHECKPOINT` below.** Never let more than one checkpoint's work sit
+  uncommitted.
+* Intermediate commits are `wip(classical): <what landed>`, expected to be non-green. Push every
+  one.
+* Update `RESUME.md` in the *same* commit as the work, including a concrete **Next action** line.
+* Mid-flight, run targeted tests only (`pytest -k`). Save the full block for B3.9.
+
+This phase is almost entirely pure logic with no expensive executions, so it is the most naturally
+resumable of the four — but it is also the longest test list. Land each sub-capability with its
+tests before moving to the next, rather than building all of `composition.py` and then testing it.
+
+If you cold-start into a dirty worktree, it is the previous session's unfinished work on the step
+marked `in-progress`. Read the diff and finish or commit it. Do not discard it.
+
+---
+
+## Objective
+
+Implement the analytical validation-selection machinery that G-8 will later execute, and close out
+W4 with an integration adjudication.
+
+## Module to create
+
+    src/baseline/classical/composition.py
+
+Plus extensions to `tools/verify_w4_baseline_integration.py`, and the W4 adjudication evidence.
+
+---
+
+## The analytic composition
+
+    P(TB success) = product over code blocks of (1 - BLER_r)
+
+    expected accuracy =
+          P(TB success) × measured codec reconstruction accuracy
+        + (1 - P(TB success)) × measured outage-class accuracy
+
+Both inputs are **measured**, never assumed:
+
+  * codec reconstruction accuracy comes from actual measured validation cells (the
+    transparency-bitrate probe under `results/` is the precedent — it produced measured
+    accuracy per byte budget and axis);
+  * outage-class accuracy comes from PB_2's frozen constant-class selection, not from
+    `1 / n_classes`.
+
+Requirements:
+
+  * BLER lookup is indexed by the **complete** required physical-layer identity. Per
+    `baseline.ldpc_bler_reference_must_match` that is: k_and_n, base_graph, lifting_size,
+    modulation, decoder_algorithm, decoder_offset, iterations, snr_convention. A lookup missing any
+    of these is a defect.
+  * No interpolation may silently extrapolate outside characterized support. Outside support, the
+    lookup must raise or return an explicit "uncharacterized" verdict — never a quietly extrapolated
+    number.
+  * Candidate feasibility is cached (structural feasibility of a `(k, modulation, rate, axis)`
+    candidate is expensive and deterministic).
+  * Tie-breaking among equal-expected-accuracy candidates is deterministic and documented.
+  * The three system modes must be representable: **adaptive** (`classical_adaptive`), **fixed
+    modulation** (`classical_fixed_mod`), and **fixed MCS** (`classical_fixed_mcs`) — these are
+    entries in `analysis.system_values`. `baseline.modulation_tuning` = `adaptive_per_snr` and
+    `baseline.fixed_mcs_packet_count` = 1 are relevant.
+  * Pass-one clean-classifier selection and the later pass-two artifact-finetuned selection must
+    remain **separate code paths with separate state**. Per `reference_classifier.artifact_finetune_gate`
+    the finetuned variant is gated at G-8 and must not be trained here.
+  * **Two passes are the maximum.** Make this structurally enforced, not merely documented — a third
+    pass must raise.
+
+Checkpoint the composition work in the order the `RESUME.md` rows list it — each of these is a
+self-contained capability with its own tests, and each is a safe stopping point:
+
+>>> CHECKPOINT B3.1 — the composition arithmetic and its worked-example tests.
+>>> CHECKPOINT B3.2 — the BLER lookup, its complete-identity requirement and the no-extrapolation
+    guard.
+>>> CHECKPOINT B3.3 — candidate feasibility caching and deterministic tie-breaking.
+>>> CHECKPOINT B3.4 — the three system modes and the structurally enforced two-pass limit.
+
+---
+
+## What must NOT happen in this phase
+
+  * No full BR-4 validation sweep. The verifier must be able to prove none ran.
+  * No selection of `efficiency_ratio`, `crossover_ratio` or `low_ratio_operating_point` — all three
+    are `provisional_until_G-8` in `spec/params.generated.yaml` and must stay that way.
+  * No lambda calibration, no DJSCC training, no artifact-finetuned classifier training, no ER-9.
+  * No test-split access.
+  * No updates to provisional bandwidth parameters from the transparency probe or any W4 smoke.
+
+Add an explicit guard: the selection entry point should refuse to run over more than a small
+configured candidate/sample budget unless a G-8 flag is set, and that flag must not be set anywhere
+in the repository at this phase. Test the refusal.
+
+>>> CHECKPOINT B3.5 — the sweep budget guard and its refusal test. Land this one early rather than
+    late: it is the single mechanism preventing a confused successor session from accidentally
+    starting G-8 work, so it should exist before the selection machinery is fully wired.
+
+---
+
+## Required tests
+
+    analytic composition arithmetic (hand-checked worked examples, including the degenerate cases
+      P=1 and P=0)
+    product-over-code-blocks is correct for 1, 2 and many code blocks
+    BLER lookup requires the complete physical-layer identity; a partial key raises
+    no silent extrapolation outside characterized support
+    candidate feasibility caching returns identical results to the uncached path
+    selection tie-breaking is deterministic and matches the documented rule
+    adaptive, fixed-modulation and fixed-MCS modes are each representable and distinct
+    pass-one and pass-two selection state do not leak into each other
+    a third selection pass raises
+    no full sweep invocation (the budget guard refuses)
+    measured — not assumed — codec accuracy and outage accuracy are the inputs
+
+## Mutation tests this phase must catch
+
+    more than two selection passes
+    a wrong outage score substituted into the composition
+    an incomplete BLER lookup key
+    silent extrapolation beyond characterized support
+    a full sweep launched without the G-8 flag
+
+Commit after every two or three passing tests, recording coverage in the `RESUME.md` B3.6 row.
+
+>>> CHECKPOINT B3.6 — commit once the required and mutation tests pass.
+
+---
+
+## Evidence to produce
+
+    results/baseline/w4/integration_adjudication.json
+    worklogs/w4-classical-baseline-progress.md      (append the closing entry)
+    tools/verify_w4_baseline_integration.py          (extend to cover the selection machinery)
+
+`integration_adjudication.json` must state prominently, in a machine-readable field and in prose:
+
+    bounded validation/plumbing integration
+    not the BR-4 full validation sweep
+    not a G-8 operating-point selection
+    not test evidence
+
+It should bind, in the style of `results/baseline/g2/g2_adjudication.json` as hardened in Phase A:
+the W4 implementation commit, the evidence file hashes, the frozen G-1 checkpoint identity, the
+selected outage class and its measured accuracy, the bounded executions performed with their sample
+sizes, and the explicit statement that G-8 remains unresolved.
+
+Follow the evidence-commit resolution policy established in Phase A. Do not manufacture a
+self-referential commit SHA and do not reintroduce a null `evidence_commit` field.
+
+>>> CHECKPOINT B3.7 — commit the adjudication evidence and the extended verifier.
+
+---
+
+## Spec bookkeeping
+
+If anything in PB_1..PB_3 changed a normative requirement, gate, parameter or decision, add the next
+`AM` entry in `spec/SPEC.md` §17 and regenerate all views with `tools/gen_spec_views.py`. If the
+work only added implementation and verification without changing semantics, do not create an
+unnecessary amendment. State which way you judged it and why.
+
+>>> CHECKPOINT B3.8 — if an AM entry was warranted, commit it together with the regenerated views.
+    An amendment half-applied (SPEC.md edited, views not regenerated) fails
+    `tools/gen_spec_views.py --check` and is confusing to inherit — so this must be one atomic
+    commit, never split across a session boundary.
+
+---
+
+## Final verification
+
+    .venv/bin/python tools/gen_spec_views.py --check
+    .venv/bin/python tools/check_doc_consistency.py -v
+    .venv/bin/python tools/check_literals.py -v
+    .venv/bin/python spec/evidence/check_packetisation.py
+    .venv/bin/python tools/fetch_datasets.py --check
+    .venv/bin/python tools/materialize_manifests.py --check
+    .venv/bin/python tools/verify_datasets.py
+    .venv/bin/python tools/verify_g1_adjudication.py
+    .venv/bin/python tools/verify_g7_profile.py
+    .venv/bin/python tools/verify_transparency_bitrate_probe.py
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python tools/verify_w4_baseline_integration.py
+    .venv/bin/python -m pytest
+    .venv/bin/python tools/verify_cpu_lock.py --clean-install
+    git diff --check
+    git status --short
+
+Everything must pass. Then land the final green commit:
+
+    feat(classical): add BR-4 selection infrastructure and W4 adjudication
+
+Leave any `wip(classical)` commits in history — do not rebase or force-push.
+
+Push and confirm local HEAD = origin/main = remote main, clean worktree.
+
+>>> CHECKPOINT B3.9 — the green commit.
+
+Rewrite `NEXT.md`'s current-state sections so the single next engineering task is the G-8 work, with
+G-8 clearly marked unresolved and the test split still sealed. Keep PR-1 literature review, PR-2
+Gantt and PR-9 author/guide acknowledgement visible as outstanding programme deliverables. Do not
+fabricate literature-review or supervisor evidence.
+
+Finally, close out `instructions/RESUME.md`: every step in all four phases `done`, **Current phase**
+set to `W4 complete — G-8 not started`, **Last green commit** set to this SHA, **Next action** set
+to the single next engineering task. The facts table should carry forward everything G-8 will need.
+Push it.
+
+---
+
+## If you are running out of usage mid-phase
+
+Do not attempt one last big push. In this order:
+
+1. Commit whatever works, as `wip(classical): <what landed>`.
+2. Update `RESUME.md` with exact step states, a concrete **Next action** line, and observed facts.
+3. Push.
+4. Report what you completed and what remains, then stop.
+
+Never leave the worktree dirty and unpushed as a way of "saving your place". It is not saved.
+
+---
+
+## Final report — this closes W4, so report across all four phases
+
+0. Whether this was a fresh run or a resumption, and if a resumption, from which step. Also note
+   how many sessions the four phases took in total, read from `RESUME.md` and `git log`.
+1. Initial local, origin and remote SHAs (Phase A start) and whether the interrupted repository
+   contained uncommitted work.
+2. Phase A recovery commit SHA.
+3. G-2 source-binding result.
+4. Whether any G-2 scientific result changed.
+5. W4 implementation commit SHAs (PB_1, PB_2, PB_3).
+6. W4 evidence commit SHA.
+7. Files and modules added across W4.
+8. Exact bounded executions performed, with sample sizes.
+9. Accounting examples.
+10. Test totals, newly observed.
+11. Test-isolation counters (decoder / canonicalization / inference / accuracy calls).
+12. Confirmation that no full BR-4 sweep ran.
+13. Confirmation that G-8 remains unresolved.
+14. Confirmation that no model training ran.
+15. Final local, origin and remote SHAs.
+16. The single next engineering task.
+
+End with exactly one of:
+
+    W4 INTEGRATION READY — FULL G-8 SWEEP NOT STARTED
+    PB_3 INCOMPLETE — RESUME AT <step id>
+    W4 HOLD — <precise failed condition>
+
+INCOMPLETE means "ran out of room, continue from here". HOLD means "a real blocking failure, a
+human must look". Do not conflate them. Only emit the READY verdict when every step in all four
+phases is `done` in `RESUME.md` and the full verification block above passes.

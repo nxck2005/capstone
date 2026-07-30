@@ -1,0 +1,320 @@
+# Phase B2 — Classical baseline: outage policy, records, and bounded smoke evidence
+
+Repository: https://github.com/nxck2005/capstone
+Working directory: /home/nick/projects/capstone
+Interpreter: always `.venv/bin/python` (never `uv run` — see AGENTS.md).
+
+Read `AGENTS.md` first, then `NEXT.md` and `worklogs/w4-classical-baseline-progress.md`.
+`spec/SPEC.md` is normative; `NEXT.md` is not.
+
+This is part 3 of a four-part sequence (PA, PB_1, PB_2, PB_3). **PB_1 must be complete and pushed
+before you start** — confirm clean worktree, HEAD = origin/main, full suite passing, and that
+`src/baseline/classical/{pipeline,channel_transport}.py` exist and round-trip. If not, stop and
+say so.
+
+B2 closes the pipeline: classifier inference, outage handling, metrics, record emission, and the
+bounded smoke evidence. The BR-4 analytic selection machinery is PB_3 — do not build it here.
+
+---
+
+## READ FIRST — resumability
+
+Sessions here end abruptly when usage runs out, with no warning. Assume this session will be cut
+off mid-step.
+
+**`instructions/RESUME.md` is the operational cursor.** Read it before anything else. It records
+which of B2.0–B2.7 are `done`, `in-progress` or `not-started`, the last green commit, and facts
+already observed. Follow its cold-start protocol. Trust `done`; re-verify `in-progress`; never
+re-derive what is already recorded.
+
+While working:
+
+* **Commit at every `>>> CHECKPOINT` below.** Never let more than one checkpoint's work sit
+  uncommitted.
+* Intermediate commits are `wip(classical): <what landed>`, expected to be non-green. Push every
+  one.
+* Update `RESUME.md` in the *same* commit as the work, including a concrete **Next action** line.
+* Mid-flight, run targeted tests only (`pytest -k`). Save the full block for B2.7.
+
+**This phase has one expensive, non-reproducible-by-guesswork result: the selected outage class and
+its measured validation accuracy.** The moment you have it, write it into the `RESUME.md` facts
+table and commit. Losing it means re-running the selection pass. Same for the bounded Imagenette
+subset run — record its numbers as soon as they exist, before doing anything else with them.
+
+If you cold-start into a dirty worktree, it is the previous session's unfinished work on the step
+marked `in-progress`. Read the diff and finish or commit it. Do not discard it.
+
+---
+
+## Objective
+
+Extend the classical arm from PB_1's decoded image to a complete per-image and aggregate record:
+
+    ... (PB_1's path) → JPEG 2000 decode → configured upsample
+    → frozen reference classifier
+    → reconstruction and communications metrics
+    → aggregate and per-image records
+
+plus the frozen constant-class outage policy for undelivered transport blocks.
+
+---
+
+## Modules to create
+
+    src/baseline/classical/
+      outage.py     # frozen constant-class outage policy + validation-only selection
+      records.py    # schema-conformant per-image and aggregate record emission
+
+Do NOT create `composition.py` or any selection/sweep machinery in this phase.
+
+## Modules to reuse
+
+    src/models/frozen_reference_classifier.py  # load_frozen_reference_classifier
+    src/data/preprocessing.py                  # codec_upsample, evaluation_input,
+                                               #   reconstruction_metrics, reconstruction_psnr,
+                                               #   reconstruction_ssim
+    src/data/{identity,manifests,provenance,registry}.py
+    src/data/test_access.py                    # the sealed-split guard
+    src/config/{params,run_config}.py
+
+The classifier is frozen. Its checkpoint SHA-256 is
+`9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002` and its config SHA-256 is
+`a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1`. Load it through
+`load_frozen_reference_classifier` — never through the training-resume path — and assert the
+checkpoint identity in a test.
+
+---
+
+## Outage policy
+
+Read from `spec/params.generated.yaml`:
+
+    baseline.outage_policy               = frozen_constant_class_selected_on_validation
+    baseline.outage_class_selection      = highest_validation_accuracy_constant_prediction
+    baseline.outage_class_tie_break      = lowest_class_index
+    baseline.outage_class_frozen_before  = test
+    baseline.outage_policy_sensitivity   = keyed_uniform_random_label
+    baseline.outage_rng_key              = [split_manifest_hash, stable_sample_id, channel_seed,
+                                            purpose=outage_label]
+
+Requirements for selecting the constant class:
+
+  * uses **validation labels only** — never test;
+  * applies the configured tie-break (lowest class index);
+  * is reproducible from the manifest alone;
+  * is frozen before test is ever opened;
+  * **never assumes `1 / n_classes` as the outage accuracy.** The outage accuracy is the *measured*
+    validation accuracy of the frozen constant prediction, which for an imbalanced or even a
+    balanced-but-finite split is not exactly `1/n`.
+
+Provide a clean interface plus a bounded validation proof (a small artifact showing the selected
+class, the measured accuracy, and the tie-break path taken). Do not open the test split.
+
+Also implement the configured sensitivity variant (`keyed_uniform_random_label`) behind the same
+interface, keyed per `baseline.outage_rng_key`, so PB_3 and later G-8 work can compare against it.
+
+Persist the selection result to disk as a small committed artifact (the bounded validation proof
+above serves this purpose) rather than recomputing it on every import. That makes it both
+reproducible and crash-durable.
+
+>>> CHECKPOINT B2.1 — commit `outage.py`, the selection artifact and its tests. Record the selected
+    class and its measured accuracy in the `RESUME.md` facts table in the same commit.
+
+---
+
+## Records and identities
+
+Emit records conforming **exactly** to the configured schemas — field names and order taken from
+`spec/params.generated.yaml`, not invented:
+
+  * `analysis.csv_schema` — the aggregate row (run_id, timestamp, git_commit, git_dirty,
+    config_hash, checkpoint_id, system, dataset, split, n, k, bw_ratio, channel, train_snr_db,
+    test_snr_db, train_seed, channel_seed, lambda, source_codec, jpeg_quality, j2k_target_bytes,
+    ldpc_rate, modulation, top1_acc, n_correct, n_test, psnr_db, ssim, bytes_sent, header_bytes,
+    payload_bytes, papr_db, decode_failure_rate, infeasible_rate, coverage_rate, acc_given_delivery,
+    test_subset, wall_clock_s, peak_vram_gb, classifier_variant, quantiser_bits, transmit_dim,
+    entropy_stream_bytes, entropy_table_bytes, side_information_bytes, tb_crc_type, base_graph,
+    lifting_size, num_codeblocks, filler_bits, effective_code_rate, model_param_count)
+  * `analysis.per_image_schema` — (run_id, pair_id, noise_id, analysis_cell_id, dataset,
+    dataset_version, split, stable_sample_id, bw_ratio, test_snr_db, true_label, pred_label,
+    correct, outage, outage_reason, source_bytes)
+
+Identity construction, per `analysis.*`:
+
+  * `run_id` — content-addressed SHA-256 over sorted key/value pairs of the configured run_id key set
+  * `analysis_cell_id_key` = [train_seed, channel_seed]
+  * `noise_id_key` = [dataset_version, split_manifest_hash, stable_sample_id, test_snr_db,
+    channel_seed, channel, k, block_index, rng_purpose]
+  * `pair_id_key` = [analysis_cell_id, stable_sample_id, bw_ratio, test_snr_db, noise_id];
+    `pair_id_excludes` = [system, comparison]
+  * `checkpoint_id_form` = sha256 of exact checkpoint file bytes
+  * `system` must be one of `analysis.system_values`; for this phase use the appropriate
+    `classical_*` value and justify which.
+
+Invariant to test: changing batching, row order, or the other system's control flow must not change
+a row's keyed noise.
+
+>>> CHECKPOINT B2.2 — commit `records.py` and the identity-construction tests.
+
+---
+
+## Bounded executions for this phase
+
+Run only:
+
+  * a small CIFAR-10 plumbing smoke (extends PB_1's);
+  * a **bounded** Imagenette validation subset — a few dozen images at one or two SNR points, not
+    a sweep;
+  * a high-SNR successful round trip producing a complete record set;
+  * a forced decode-failure case producing an outage record with the correct `outage_reason`;
+  * a keyed-noise equality test against the shared channel path.
+
+Do not treat smoke accuracy as an experimental result. State the sample size next to every number.
+
+The bounded Imagenette subset is the most expensive thing in this phase. Mark B2.6 `in-progress`
+and commit that before starting it. Have the runner write its output incrementally to
+`results/baseline/w4/` rather than accumulating in memory and writing once at the end — a run
+killed at 80% should leave 80% of its rows on disk, and the runner should be able to resume from
+what is already there rather than restarting.
+
+>>> CHECKPOINT B2.6 — commit the executions and their evidence artifacts.
+
+---
+
+## Evidence to produce
+
+    configs/classical-baseline-w4-smoke.yaml
+    results/baseline/w4/resolved_config.json
+    results/baseline/w4/smoke_summary.json
+    results/baseline/w4/accounting_examples.json
+    worklogs/w4-classical-baseline-progress.md      (append)
+    tools/run_classical_baseline_w4_smoke.py
+    tools/verify_w4_baseline_integration.py          (first version — covers PB_1 + PB_2)
+
+Every evidence artifact must state prominently, in a machine-readable field and in prose:
+
+    bounded validation/plumbing integration
+    not the BR-4 full validation sweep
+    not a G-8 operating-point selection
+    not test evidence
+
+`accounting_examples.json` should carry the concrete reconciliations from PB_1 plus at least one
+new one that includes the classifier and outage path.
+
+New CLI tools must be directly executable — follow the `REPO = Path(__file__).resolve().parent.parent`
+/ `sys.path.insert(0, str(REPO / "src"))` bootstrap already used in `tools/run_ldpc_g2.py` and
+`tools/verify_g2_adjudication.py`.
+
+>>> CHECKPOINT B2.3 — commit the smoke runner and config once it executes end to end, even before
+    its output is final.
+>>> CHECKPOINT B2.4 — commit the first version of `tools/verify_w4_baseline_integration.py` once it
+    passes.
+
+---
+
+## Required tests
+
+    constant outage prediction is applied correctly
+    measured outage accuracy (NOT assumed 1/n_classes)
+    outage class selection uses validation labels only
+    outage tie-break is the configured lowest class index
+    outage selection is reproducible
+    classifier checkpoint identity matches the frozen G-1 SHA-256
+    aggregate record conforms exactly to analysis.csv_schema
+    per-image record conforms exactly to analysis.per_image_schema
+    run_id / analysis_cell_id / noise_id / pair_id construction matches the configured key sets
+    pair_id excludes system and comparison
+    row order and batching do not change keyed noise
+    validation-only loading; test-access rejection
+
+## Mutation tests this phase must catch
+
+    wrong outage score (e.g. hardcoded 1/n)
+    test-split access
+    sequential rather than keyed noise
+    a schema field renamed, reordered, dropped or added
+    the classifier loaded from a checkpoint other than the frozen G-1 one
+
+Commit after every two or three passing tests, recording coverage in the `RESUME.md` B2.5 row.
+
+>>> CHECKPOINT B2.5 — commit once the required and mutation tests pass.
+
+---
+
+## Verification before committing
+
+    .venv/bin/python tools/gen_spec_views.py --check
+    .venv/bin/python tools/check_doc_consistency.py -v
+    .venv/bin/python tools/check_literals.py -v
+    .venv/bin/python spec/evidence/check_packetisation.py
+    .venv/bin/python tools/fetch_datasets.py --check
+    .venv/bin/python tools/materialize_manifests.py --check
+    .venv/bin/python tools/verify_datasets.py
+    .venv/bin/python tools/verify_g1_adjudication.py
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python tools/verify_w4_baseline_integration.py
+    .venv/bin/python -m pytest
+    git diff --check
+    git status --short
+
+Everything must pass. Then land the final green commit:
+
+    feat(classical): add W4 outage policy, records and bounded smoke evidence
+
+Leave any `wip(classical)` commits in history — do not rebase or force-push.
+
+Push and confirm local HEAD = origin/main = remote main, clean worktree. Update `NEXT.md`'s
+single-next-task line to point at PB_3, and keep PR-1, PR-2 and PR-9 visible as outstanding.
+
+Then update `instructions/RESUME.md`: every PB_2 step `done`, **Current phase** set to
+`PB_3 — not started`, **Last green commit** set to this SHA, **Next action** set to
+`run instructions/PB_3.txt from step B3.0`, facts table filled in — especially the selected outage
+class and its measured accuracy, which PB_3 consumes directly. Push it.
+
+>>> CHECKPOINT B2.7 — the green commit.
+
+---
+
+## If you are running out of usage mid-phase
+
+Do not attempt one last big push. In this order:
+
+1. Commit whatever works, as `wip(classical): <what landed>`.
+2. Update `RESUME.md` with exact step states, a concrete **Next action** line, and observed facts —
+   above all the outage selection result if you have it.
+3. Push.
+4. Report what you completed and what remains, then stop.
+
+Never leave the worktree dirty and unpushed as a way of "saving your place". It is not saved.
+
+---
+
+## Boundaries
+
+Do not: run the full BR-4 validation sweep; build the analytic selection machinery (PB_3);
+select `efficiency_ratio`, `crossover_ratio` or `low_ratio_operating_point`; resolve G-8; train the
+artifact-finetuned classifier; calibrate lambda; train DJSCC models; implement ER-9; open the test
+split; change the frozen G-1 checkpoint; rerun G-7, the transparency campaign, or G-2; or update
+provisional bandwidth parameters from any smoke result.
+
+## Final report
+
+0. Whether this was a fresh run or a resumption, and if a resumption, from which step.
+1. Confirmation PB_1 was complete and pushed; starting SHA.
+2. Files and modules added.
+3. Exact bounded executions performed, with sample sizes.
+4. The selected outage class, its measured validation accuracy, and the tie-break path.
+5. Accounting examples, including one through the classifier and outage path.
+6. Test totals, newly observed.
+7. Test-isolation counters.
+8. Confirmation no sweep, no training, no test access.
+9. Commit SHA; final local, origin and remote SHAs.
+
+End with exactly one of:
+
+    PB_2 COMPLETE — READY FOR PB_3
+    PB_2 INCOMPLETE — RESUME AT <step id>
+    PB_2 HOLD — <precise failed condition>
+
+INCOMPLETE means "ran out of room, continue from here". HOLD means "a real blocking failure, a
+human must look". Do not conflate them.

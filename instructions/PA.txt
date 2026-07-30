@@ -1,0 +1,401 @@
+# Phase A — Recover and harden the post-G-2 repository state
+
+Repository: https://github.com/nxck2005/capstone
+Working directory: /home/nick/projects/capstone
+Interpreter: always `.venv/bin/python` (never `uv run` — see AGENTS.md).
+
+Read `AGENTS.md` first. `spec/SPEC.md` is normative; `NEXT.md` is a scrappy hand-off file and is
+not normative. If they conflict, the spec wins and NEXT.md is wrong.
+
+This is Phase A of a four-part sequence (PA, PB_1, PB_2, PB_3). Phase A is self-contained: it ends
+in one green pushed commit. Do NOT start any W4 implementation work in this phase.
+
+---
+
+## READ FIRST — resumability
+
+Sessions here end abruptly when usage runs out, with no warning and no chance to tidy up. Assume
+this session will be cut off mid-step. Your job is to make that survivable.
+
+**`instructions/RESUME.md` is the operational cursor.** Read it before anything else — it records
+which steps below are `done`, `in-progress` or `not-started`, the last green commit, and facts
+already observed. Follow its cold-start protocol. Do not re-derive anything it marks `done`; do not
+trust anything it marks `in-progress` without re-verifying that step's outputs.
+
+While working:
+
+* **Commit at every checkpoint marked `>>> CHECKPOINT` below.** Never let more than one
+  checkpoint's work sit uncommitted.
+* Use `wip(handoff): <what landed>` for intermediate commits. They are expected to be non-green —
+  that is fine and expected. Push every one; an unpushed commit is not durable.
+* Update `RESUME.md` in the *same* commit as the work: flip the step to `done`, record any observed
+  counts or SHAs in the facts table, and rewrite the **Next action** line so a cold start knows
+  exactly where to pick up.
+* Before starting A3 or A5 (the two long steps), mark them `in-progress` in `RESUME.md` and commit
+  that first.
+* At the end, A6 replaces the accumulated `wip` commits with one final green commit on top. Do not
+  rewrite pushed history to squash them; just land the green commit and note in `RESUME.md` which
+  SHA is the green one.
+* Do not run the full A3 preflight at every checkpoint — it is expensive. Run the cheap subset
+  (`check_doc_consistency.py`, `check_literals.py`, targeted `pytest -k`) mid-flight and the full
+  block once at A6.
+
+If you cold-start into this file with `RESUME.md` still saying "PA — not started" but `git log`
+showing `wip(handoff)` commits, trust `git log`: reconstruct the true state from the diffs, fix
+`RESUME.md` first, commit that, then continue.
+
+---
+
+## Context you can rely on (already verified — do not re-derive from scratch, but do confirm)
+
+Completed and adjudicated: W0/G-9, W1/G-1, W2/G-7, the lineage-bound transparency-bitrate probe,
+and W3/G-2.
+
+Frozen identities:
+
+    G-1 classifier checkpoint SHA-256:
+      9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002
+    G-1 classifier config SHA-256:
+      a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1
+    W2 implementation commit:  26b631ede27a6f88f1d004a66b845c52a658e07c
+    W3 implementation commit:  968e907237bbe571adf6ec48e4711ea021831719
+    G-2 evidence commit:       622bf12dd3b4459aaf1494d471ad5a096527894f
+    Current operational fix:   82f6c569f792bf17ff28acd80ed1d516adfc06fa  (expected HEAD)
+
+Transparency-probe lineage: implementation A `90007f165f8f669a54127bdd6539472cb2d3f534`,
+design B `7896c7a744149cfa1e51948a86cff05f16a346b5`, evidence C `2ebb2cefade25add5f65c3ce0efa40bb747aba16`.
+
+The test split remains sealed until G-12.
+
+---
+
+## A1. Establish the exact state
+
+Run and retain the output of:
+
+    git status --short
+    git rev-parse HEAD
+    git fetch origin && git rev-parse origin/main
+    git log -8 --oneline
+    git remote -v
+    git diff --check
+
+Expected: clean worktree, and HEAD = origin/main = 82f6c569f792bf17ff28acd80ed1d516adfc06fa.
+
+A previous agent session was stopped mid-flight for usage reasons, so verify rather than assume.
+If anything differs, STOP, inspect, and explain the divergence in full before changing anything.
+Never `git reset`, `git checkout --`, `git clean` or stash away work silently.
+
+Exception: if the divergence is `wip(handoff)` commits or a dirty worktree from a previous
+*interrupted run of this same prompt*, that is not drift — it is your own unfinished work. Read
+`RESUME.md` and the diffs, reconcile, and continue from the first non-`done` step.
+
+>>> CHECKPOINT A1 — commit `RESUME.md` with A1 marked done and the observed SHAs recorded.
+
+---
+
+## A2. Repair the clean-checkout fixture workflow
+
+The broad srsRAN golden-vector fixture `tests/fixtures/ldpc_ts38212_golden.npz` is deliberately
+git-ignored (`.gitignore:157`) because third-party vector bytes must never be committed. But
+`tests/test_ldpc.py:128` (`test_srsran_encoder_and_rate_matched_fixture_exact`) hard-asserts that
+the file exists. Consequence: on a fresh clone, `pytest` fails, and nothing in `README.md` or
+`AGENTS.md` tells a newcomer to materialize it first. That is the defect to fix.
+
+The materializing command is:
+
+    .venv/bin/python tools/fetch_ldpc_golden_vectors.py
+
+Confirm — by reading `tools/fetch_ldpc_golden_vectors.py`, not by assuming — that it:
+
+  * fetches only the configured immutable release asset, and only when the `.npz` is absent;
+  * verifies the complete-asset SHA-256 against
+    `baseline.ldpc_golden_vector_asset_sha256` in `spec/params.generated.yaml`;
+  * verifies the configured inner vector-archive checksum
+    (`ldpc_rate_matcher_test_data.tar.gz`, see `spec/params.generated.yaml:427`);
+  * produces the ignored `.npz`;
+  * records source rung 2;
+  * never commits third-party vector bytes.
+
+If any of those properties is missing, add it. If all are present, say so and change nothing in
+the tool.
+
+The project-owned offline fixture test (the "offline floor" case immediately above the srsRAN test
+in `tests/test_ldpc.py`) must continue to run unconditionally with no network access. Do not gate
+it behind the fetch.
+
+Then fix the documentation so a fresh clone is never told to run the full suite before
+materializing the fixture. Both `AGENTS.md` and `README.md` must show, in this order:
+
+    .venv/bin/python tools/fetch_ldpc_golden_vectors.py
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python -m pytest
+
+Note: `README.md:140-141` already runs `verify_g2_adjudication.py` immediately before `pytest`, so
+in README only the fetch line is missing. `AGENTS.md:43` has `pytest` with neither. Check the
+current text before editing; do not duplicate lines that already exist.
+
+>>> CHECKPOINT A2 — commit the tool changes (if any) and the doc changes together, with `RESUME.md`
+    updated. Note in the ledger which of the six fetch-tool properties were already present versus
+    added, so a cold start does not re-audit the tool.
+
+---
+
+## A3. Run the complete preflight
+
+Run every command below and record its real, newly observed output. Do not copy counts from
+`NEXT.md` or from any earlier session's summary.
+
+    .venv/bin/python tools/gen_spec_views.py --check
+    .venv/bin/python tools/check_doc_consistency.py -v
+    .venv/bin/python tools/check_literals.py -v
+    .venv/bin/python spec/evidence/check_packetisation.py
+    .venv/bin/python tools/fetch_datasets.py --check
+    .venv/bin/python tools/materialize_manifests.py --check
+    .venv/bin/python tools/verify_datasets.py
+    .venv/bin/python tools/verify_g1_adjudication.py
+    .venv/bin/python tools/verify_g7_profile.py
+    .venv/bin/python tools/verify_transparency_bitrate_probe.py
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python -m pytest
+    .venv/bin/python tools/verify_cpu_lock.py --clean-install
+    git diff --check
+
+Separately run the guarded-import AST test — that is `tests/test_test_access.py`, which walks the
+import graph around the sealed test split — and report how many tests it contains and that they
+all pass:
+
+    .venv/bin/python -m pytest tests/test_test_access.py -v
+
+Record explicitly:
+
+  * total tests collected and passed;
+  * CUDA availability as observed (`tests/test_env.py::test_cuda_build` hard-asserts a CUDA build,
+    deliberately, per AM-67 — it is expected to fail on a CPU-only install path and that is not a
+    defect);
+  * zero test decoder calls, zero test canonicalization calls, zero test inference calls, zero test
+    accuracy calls (the test-isolation counters).
+
+This step is long. Mark A3 `in-progress` in `RESUME.md` and commit that before you begin. Write
+each command's result into the ledger's facts table **as you get it**, not in one batch at the end —
+if the session dies after command nine, the next session should only have to run the last four.
+
+>>> CHECKPOINT A3 — commit `RESUME.md` with A3 done and every observed count recorded.
+
+---
+
+## A4. Repair the hand-off
+
+`NEXT.md` currently contradicts itself about what comes next. Verified live contradictions:
+
+  * `NEXT.md:14` — "Begin only the bounded **W4 classical-baseline integration required before
+    G-8**." (correct, current)
+  * `NEXT.md:91` — "Do not begin W4, G-8, or the reference-classifier fallback ladder." (stale,
+    and it is NOT behind a historical banner)
+  * `NEXT.md:312` — "Confirm nothing drifted, then begin the transparency-bitrate probe only:"
+    inside the live **Cold-start: the first thing to do in a fresh session** section (stale)
+
+Entries in the `## Session log` section (around lines 815-845) that say "Next: W3 ..." or
+"Next: transparency-bitrate probe, then W3/W4" are dated historical records and are correctly
+placed. Leave those alone.
+
+Rewrite the current-state portions of `NEXT.md` so there is exactly one unambiguous current path:
+
+    W3 complete
+    G-2 PASS
+    bounded W4 integration next
+    full BR-4 sweep not started
+    G-8 unresolved
+    test split sealed
+
+Remove, or place clearly behind an explicit historical banner, every current-looking instruction
+that says "do not begin W4", "begin the transparency-bitrate probe", or "W3 is next". The top
+status line, the Cold-start section, the cold-start command block and the task table must all
+agree with each other. The Cold-start command block must also gain the fetch/verify ordering from
+A2.
+
+Keep visible in the hand-off that, in parallel with engineering, these programme deliverables
+remain due: PR-1 literature review, PR-2 Gantt, PR-9 author/guide acknowledgement. Do not fabricate
+literature-review or supervisor evidence.
+
+Finally, make this class of contradiction hard to reintroduce. Either extend
+`tools/check_doc_consistency.py` or add a focused current-phase consistency test (there is already
+`tests/test_doc_consistency.py`, which mutation-tests stale values and historical-plan banners —
+follow its style). The check should assert that the declared current phase in `NEXT.md` is not
+contradicted by any current-looking directive elsewhere in the same file. Do NOT attempt to parse
+all historical prose as current state; scope the check to the live sections and require historical
+content to sit behind a recognizable banner.
+
+>>> CHECKPOINT A4a — commit the `NEXT.md` rewrite before writing the consistency check.
+>>> CHECKPOINT A4b — commit the consistency check once it passes.
+    Two checkpoints, because the rewrite is the part that is painful to redo from memory.
+
+---
+
+## A5. Harden G-2 source provenance
+
+Do NOT rerun the BLER campaign merely to change metadata.
+
+Today, `tools/verify_g2_adjudication.py` binds the evidence-file hashes, the measurement commit,
+and the ancestry measurement→evidence. It does **not** bind the bytes of the LDPC implementation
+that produced the measurement. Close that gap.
+
+This is the longest step in the phase. Mark A5 `in-progress` in `RESUME.md` and commit that before
+you begin. It has three natural checkpoints, marked below — take all three. Generating the manifest
+is cheap to redo; writing ten mutation tests is not.
+
+Create a machine-readable execution-source manifest for the G-2 measurement at commit
+`968e907237bbe571adf6ec48e4711ea021831719`, covering at least:
+
+    src/baseline/ldpc/__init__.py
+    src/baseline/ldpc/adapter.py
+    src/baseline/ldpc/crc.py
+    src/baseline/ldpc/modulation.py
+    src/baseline/ldpc/rate_matching.py
+    src/baseline/ldpc/reference.py
+    src/baseline/ldpc/segmentation.py
+    src/baseline/ldpc/transport.py
+    configs/ldpc-g2.yaml
+    spec/params.generated.yaml
+    spec/evidence/check_packetisation.py
+    spec/evidence/packetisation_record.json
+    tools/run_ldpc_g2.py
+    tools/fetch_ldpc_golden_vectors.py
+
+For every path record: repository-relative path, the measurement Git blob SHA, the
+measurement-byte SHA-256, and a role.
+
+**Roles matter — use at least three distinct ones**, because the current HEAD legitimately differs
+from the measurement commit for some of these files:
+
+  * `runtime` — scientific/runtime LDPC implementation bytes (`src/baseline/ldpc/*`). These must
+    still be byte-identical at HEAD.
+  * `measurement_runner` — the measurement-time bytes of the tools (`tools/run_ldpc_g2.py`,
+    `tools/fetch_ldpc_golden_vectors.py`). Bound as a historical record only.
+  * `configuration` / `record` — `configs/ldpc-g2.yaml`, `spec/params.generated.yaml`,
+    `spec/evidence/*`. Bound as a historical record only.
+
+Commit `82f6c569f792bf17ff28acd80ed1d516adfc06fa` added exactly nine lines — a
+`REPO = Path(__file__).resolve().parent.parent` / `sys.path.insert(0, str(REPO / "src"))` pair — to
+`tools/fetch_ldpc_golden_vectors.py`, `tools/run_ldpc_g2.py` and `tools/verify_g2_adjudication.py`,
+and nothing else. That is CLI import bootstrapping. It must NOT invalidate G-2. The verifier must
+distinguish scientific/runtime LDPC implementation bytes from measurement-runner bytes from
+current operational wrapper bytes.
+
+**Trap to avoid:** `spec/params.generated.yaml` is regenerated by `tools/gen_spec_views.py` on every
+amendment. Bind its *measurement-commit* blob and byte hash as history, but do NOT assert that its
+current bytes still match, or the manifest will self-break on the next AM entry. The
+current-bytes-identical assertion applies only to `src/baseline/ldpc/`.
+
+The verifier must establish:
+
+  * the measurement commit exists;
+  * the evidence commit exists;
+  * the measurement commit is an ancestor of the evidence commit;
+  * every expected source path exists at the measurement commit;
+  * no expected path is missing;
+  * no unexpected path appears in the manifest;
+  * every recorded Git blob SHA is correct;
+  * every recorded byte SHA-256 is correct;
+  * the current `src/baseline/ldpc/` runtime remains byte-identical to the adjudicated
+    implementation, unless an explicit G-2 re-adjudication has been recorded.
+
+>>> CHECKPOINT A5a — commit the generated manifest once it is written and readable.
+
+>>> CHECKPOINT A5b — commit the verifier extension once `tools/verify_g2_adjudication.py` passes
+    against the real repository.
+
+Add mutation tests (extend `tests/test_g2_adjudication.py`) for each of: unreachable measurement
+commit, unreachable evidence commit, wrong ancestry, missing source, unexpected source, wrong blob
+SHA, wrong byte SHA, modified current LDPC runtime, wrong measurement config, wrong packetisation
+record.
+
+Ten mutation tests is a lot to lose. Commit after every two or three that pass, updating the
+`RESUME.md` A5b row with which mutation classes are done. A cold start should be able to read
+"unreachable-evidence, wrong-ancestry, missing-source done; seven to go" and continue without
+re-reading the whole test file.
+
+>>> CHECKPOINT A5c — commit once all ten mutation classes pass.
+
+Resolve the dangling `"evidence_commit": null` at `results/baseline/g2/g2_adjudication.json:13`.
+Note that `tools/verify_g2_adjudication.py:107` already resolves the evidence commit through Git
+path history (`git log -1 --format=%H -- <path>`), so the honest fix is to remove the null field and
+document that resolution policy explicitly in the adjudication schema and in the verifier's
+docstring. Do NOT manufacture a self-referential commit SHA.
+
+If this work changes a normative requirement, gate, parameter or decision, add the next `AM` entry
+in `spec/SPEC.md` §17 and regenerate all views with `tools/gen_spec_views.py`. If it only
+strengthens implementation verification without changing semantics — which is the likely case —
+do not create an unnecessary amendment. State which way you judged it and why.
+
+---
+
+## A6. Green recovery commit
+
+Re-run the full A3 preflight block, plus `git diff --check` and `git status --short`. Everything
+must pass. Then land the final commit:
+
+    fix(handoff): harden post-G-2 repository state
+
+If `wip(handoff)` commits accumulated during the phase, leave them in history — do not rebase or
+force-push. This commit sits on top of them and is the green one.
+
+Push it, then verify local HEAD = origin/main = remote main and a clean worktree.
+
+Finally, update `instructions/RESUME.md`: every PA step `done`, **Current phase** set to
+`PB_1 — not started`, **Last green commit** set to this commit's SHA, **Next action** set to
+`run instructions/PB_1.txt from step B1.0`, and the facts table filled in. Amend it into this
+commit or land it as a trailing commit — either is fine, but it must be pushed.
+
+**HOLD condition.** If any G-2 scientific/runtime source under `src/baseline/ldpc/` differs
+unexpectedly from commit `968e907…`, stop and report exactly:
+
+    HOLD — G-2 runtime differs from adjudicated implementation
+
+Otherwise continue. Do not rerun the BLER campaign.
+
+---
+
+## Boundaries for this phase
+
+Do not: begin any W4 implementation; run the full BR-4 validation sweep; select
+`efficiency_ratio`, `crossover_ratio` or `low_ratio_operating_point`; train anything; calibrate
+lambda; implement ER-9; open the test split; change the frozen G-1 checkpoint; rerun G-7; rerun the
+transparency campaign; rerun G-2 without a demonstrated need; or update provisional bandwidth
+parameters.
+
+## If you are running out of usage mid-phase
+
+Do not attempt one last big push. Instead, in this order:
+
+1. Commit whatever currently works, as `wip(handoff): <what landed>`. A non-green WIP commit is
+   strictly better than lost work.
+2. Update `RESUME.md`: exact step states, the **Next action** line written as a concrete
+   instruction to your successor, and any observed facts.
+3. Push.
+4. Report what you completed and what remains, then stop.
+
+Never leave the worktree dirty and unpushed as a way of "saving your place". It is not saved.
+
+## Final report for Phase A
+
+0. Whether this was a fresh run or a resumption, and if a resumption, from which step.
+1. Initial local, origin and remote SHAs.
+2. Whether the interrupted repository contained uncommitted work.
+3. What A2 changed (tool and docs) and what was already correct.
+4. Full preflight results with newly observed counts, plus the `tests/test_test_access.py` count.
+5. Test-isolation counters (decoder / canonicalization / inference / accuracy calls).
+6. What A4 changed in `NEXT.md`, and the shape of the new consistency check.
+7. G-2 source-binding result, and whether any G-2 scientific result changed (expected: no).
+8. How you resolved `evidence_commit`, and whether you judged an AM entry necessary.
+9. Recovery commit SHA; final local, origin and remote SHAs.
+
+End with exactly one of:
+
+    PHASE A COMPLETE — READY FOR PB_1
+    PHASE A INCOMPLETE — RESUME AT <step id>
+    PHASE A HOLD — <precise failed condition>
+
+Use INCOMPLETE for running out of room. Use HOLD only for a real blocking failure — in particular
+the G-2 runtime mismatch above. They are different situations and must not be conflated: INCOMPLETE
+means "continue"; HOLD means "a human must look at this".
