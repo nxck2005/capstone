@@ -32,7 +32,8 @@ from baseline.classical.pipeline import (
     run_classical_pipeline,
 )
 from baseline.j2k import J2KCodec, J2KResult
-from baseline.ldpc.modulation import map_bits
+from baseline.ldpc.adapter import SionnaLDPCAdapter
+from baseline.ldpc.modulation import interleave, map_bits
 from baseline.ldpc.transport import build_packet_plan, transmit_transport
 from channels.awgn import keyed_complex_noise
 from config.params import get
@@ -161,8 +162,27 @@ def test_disabled_qam16_interleaver_is_rejected_and_corrupts_the_link(
         modulate(transmit_transport(payload, packet), "qam16")
     monkeypatch.undo()
 
-    # (b) bypassing it at the transmitter destroys the link
-    monkeypatch.setattr(channel_transport, "interleave", lambda bits, q_m: bits)
+    # (b) applying it a *second* time at the transmitter — the PB_1C defect —
+    # destroys the link, because the receiver only ever undoes it once
+    clean = transport_round_trip(
+        payload, packet, snr_db=HIGH_SNR_DB, noise_id="interleaver-clean"
+    )
+    assert clean.crc_ok
+
+    original = channel_transport.mapper_input_bits
+
+    def doubly_interleaved(blocks, modulation):
+        q_m = channel_transport.bits_per_symbol(modulation)
+        bits = original(blocks, modulation)
+        offset = 0
+        pieces = []
+        for block in blocks:
+            size = np.asarray(block).size
+            pieces.append(interleave(bits[offset : offset + size], q_m))
+            offset += size
+        return np.concatenate(pieces)
+
+    monkeypatch.setattr(channel_transport, "mapper_input_bits", doubly_interleaved)
     mutated = transport_round_trip(
         payload, packet, snr_db=HIGH_SNR_DB, noise_id="interleaver-clean"
     )
@@ -170,9 +190,21 @@ def test_disabled_qam16_interleaver_is_rejected_and_corrupts_the_link(
 
 
 def test_qam16_interleaver_is_not_a_no_op():
+    """Non-trivial at the seam that owns it: the adapter, not ``modulate()``."""
+
     packet, accounting = _packet(modulation="qam16")
-    blocks = transmit_transport(_payload(accounting), packet)
+    layout = packet.segmentation
+    assert layout is not None
+    adapter = SionnaLDPCAdapter(
+        layout.k_prime, packet.e_r[0], packet.q_m, layout.base_graph, "cpu"
+    )
+    assert adapter.encoder.num_bits_per_symbol == 4
     assert not np.array_equal(
+        adapter.encoder.out_int.numpy(), np.arange(packet.e_r[0])
+    )
+    # and the project layer must not add a second one
+    blocks = transmit_transport(_payload(accounting), packet)
+    assert np.array_equal(
         modulate(blocks, "qam16"), map_bits(np.concatenate(blocks), "qam16")
     )
 

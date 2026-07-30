@@ -13,7 +13,14 @@ Two rules here are prohibitions rather than features:
   realised per-packet symbol energy is a *measurement*, not a constant;
 * the modulation bit interleaver (``baseline.modulation_bit_interleaver``) is
   mandatory whenever ``baseline.modulation_bit_interleaver_required`` holds, and
-  it is applied per code block, before mapping.
+  it is applied **exactly once**.  Its single owner is Sionna, not this module:
+  ``SionnaLDPCAdapter`` builds ``LDPC5GEncoder`` with ``num_bits_per_symbol=q_m``,
+  so the TS 38.212 §5.4.2.2 permutation is applied after rate matching inside
+  the encoder, and the paired decoder applies its inverse before rate recovery.
+  This module therefore concatenates and maps, and splits and demaps — it adds
+  no permutation of its own.  (PB_1 did, duplicating Sionna's; PB_1C removed it.
+  The requirement flags above are still asserted here, because they are what
+  makes the adapter's Qm argument mandatory rather than optional.)
 """
 
 from __future__ import annotations
@@ -26,8 +33,6 @@ import torch
 
 from baseline.ldpc.modulation import (
     bits_per_symbol,
-    deinterleave,
-    interleave,
     map_bits,
     max_log_llr,
     n0_from_esn0_db,
@@ -197,6 +202,13 @@ def _require_fixed_normalisation() -> None:
 def mapper_input_bits(blocks: list[np.ndarray], modulation: str) -> np.ndarray:
     """The exact bit sequence handed to the constellation mapper.
 
+    The blocks arrive from ``transmit_transport`` already carrying the TS 38.212
+    §5.4.2.2 modulation bit interleaver: the adapter builds its encoder with
+    ``num_bits_per_symbol=q_m``, and Sionna applies that permutation after rate
+    matching.  Applying it here as well would transmit the permutation *squared*
+    — which is what PB_1 did, and what PB_1C removed — so the only thing this
+    layer does between the encoder and the mapper is concatenate.
+
     Exposed as its own seam so a conformance test can compare it against an
     independently derived TS 38.212 reference.  A round-trip test cannot: a
     transmitter permutation that the receiver undoes is invisible end to end.
@@ -204,12 +216,10 @@ def mapper_input_bits(blocks: list[np.ndarray], modulation: str) -> np.ndarray:
 
     _require_interleaver()
     _require_fixed_normalisation()
-    q_m = bits_per_symbol(modulation)
-    interleaved = [
-        interleave(np.asarray(block, dtype=np.uint8).reshape(-1), q_m)
-        for block in blocks
-    ]
-    return np.concatenate(interleaved)
+    bits_per_symbol(modulation)
+    return np.concatenate(
+        [np.asarray(block, dtype=np.uint8).reshape(-1) for block in blocks]
+    )
 
 
 def modulate(blocks: list[np.ndarray], modulation: str) -> np.ndarray:
@@ -228,7 +238,12 @@ def demodulate(
     n0: float,
     block_lengths: tuple[int, ...],
 ) -> list[np.ndarray]:
-    """Max-log-APP demap the whole packet, then split and deinterleave blocks."""
+    """Max-log-APP demap the whole packet, then split it at the ``E_r`` boundaries.
+
+    No inverse permutation is applied here.  The paired Sionna decoder reads
+    ``encoder.out_int_inv`` itself, before rate recovery, so de-interleaving the
+    LLRs on the way in would undo the interleaver twice.
+    """
 
     _require_interleaver()
     if get("baseline.demapper") != "max_log_app":
@@ -239,10 +254,9 @@ def demodulate(
         raise NotImplementedError("unsupported demapper noise-variance convention")
     if get("baseline.ldpc_llr_convention") != "log_p1_over_p0":
         raise NotImplementedError("unsupported LLR convention")
-    q_m = bits_per_symbol(modulation)
+    bits_per_symbol(modulation)
     llrs = max_log_llr(np.asarray(symbols).reshape(1, -1), modulation, n0).reshape(-1)
-    blocks = split_llr_blocks(llrs, block_lengths)
-    return [deinterleave(block, q_m) for block in blocks]
+    return split_llr_blocks(llrs, block_lengths)
 
 
 def split_llr_blocks(

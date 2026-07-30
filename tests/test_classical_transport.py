@@ -18,9 +18,11 @@ from baseline.classical.channel_transport import (
     modulate,
     transport_round_trip,
 )
+from sionna.phy.fec.ldpc import LDPC5GEncoder
+
+from baseline.ldpc.adapter import SionnaLDPCAdapter
 from baseline.ldpc.modulation import (
     bits_per_symbol,
-    interleave,
     map_bits,
     max_log_llr,
     n0_from_esn0_db,
@@ -274,9 +276,9 @@ def test_modulation_applies_only_the_fixed_constellation_normalisation():
     accounting = build_accounting(packet)
     blocks = transmit_transport(_payload(accounting, 53), packet)
     symbols = modulate(blocks, "qam16")
-    expected = map_bits(
-        np.concatenate([interleave(block, accounting.q_m) for block in blocks]), "qam16"
-    )
+    # the blocks arrive already interleaved by Sionna, so mapping is all that is
+    # left to do — see tests/test_classical_interleaver_conformance.py
+    expected = map_bits(np.concatenate(blocks), "qam16")
     assert np.array_equal(symbols, expected)
     # a renormalised packet would measure exactly unit energy; this one must not
     assert realised_symbol_energy(symbols) != 1.0
@@ -304,14 +306,35 @@ def test_realised_symbol_energy_and_papr_are_measured_and_returned():
 
 
 def test_qam16_bit_interleaver_is_required_and_actually_changes_the_symbols():
+    """Required, non-trivial, and applied by its single owner — the adapter.
+
+    PB_1 asserted this against ``modulate()``, which is why a *second* copy of
+    the permutation there went unnoticed.  The claim is the same; the place it
+    is checked moved to the seam that actually owns it.
+    """
+
     assert get("baseline.modulation_bit_interleaver") == "ts_38212_5_4_2_2"
     assert get("baseline.modulation_bit_interleaver_required") is True
     packet = build_packet_plan(256, "qam16", "1/2")
     accounting = build_accounting(packet)
+    layout = packet.segmentation
+    assert layout is not None
     blocks = transmit_transport(_payload(accounting, 61), packet)
-    interleaved = modulate(blocks, "qam16")
-    plain = map_bits(np.concatenate(blocks), "qam16")
-    assert not np.array_equal(interleaved, plain)
+
+    plain = LDPC5GEncoder(
+        k=layout.k_prime, n=packet.e_r[0], bg=f"bg{layout.base_graph}", device="cpu"
+    )
+    assert plain.num_bits_per_symbol is None
+    interleaved = SionnaLDPCAdapter(
+        layout.k_prime, packet.e_r[0], packet.q_m, layout.base_graph, "cpu"
+    )
+    assert interleaved.encoder.num_bits_per_symbol == accounting.q_m
+    assert not np.array_equal(interleaved.encoder.out_int.numpy(), np.arange(packet.e_r[0]))
+
+    # and the project adds nothing on top of it
+    assert np.array_equal(
+        modulate(blocks, "qam16"), map_bits(np.concatenate(blocks), "qam16")
+    )
 
 
 def test_demapper_convention_is_log_p1_over_p0_and_deinterleaves():
