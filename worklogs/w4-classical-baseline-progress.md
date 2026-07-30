@@ -462,3 +462,247 @@ behaviour, so no `AM` entry arises from it either.
   `J2KCodec._cache_identity` spells it `openjpeg_version`. Values agree; deliberately not renamed
   because the committed transparency-probe evidence records keys produced under the current
   spelling. Tested by value. Unchanged by PB_1C.
+
+---
+
+# PB_2 — outage policy, records, and bounded W4 evidence
+
+Driven by `instructions/PB_2D.txt` (the durable instruction committed at B2.0, which supersedes
+`instructions/PB_2.txt` for execution). This section is append-only and rewrites no PB_1 or PB_1C
+history. Green implementation/evidence commit and per-step SHAs are in `instructions/RESUME.md`.
+
+One naming correction worth stating up front, because it would waste a session: `instructions/PB_2.txt`
+names the record schemas `analysis.csv_schema` and `analysis.per_image_schema`. There is **no
+`analysis` root** in `spec/params.generated.yaml`. The real parameters are `artifacts.csv_schema`
+(52 fields) and `artifacts.per_image_schema` (16 fields), together with `artifacts.system_values`,
+`artifacts.run_id_key`, `artifacts.analysis_cell_id_key`, `artifacts.noise_id_key`,
+`artifacts.pair_id_key`, `artifacts.pair_id_excludes` and `artifacts.checkpoint_id_form`.
+
+## Outage-policy method, and why the measured value is not a hardcoded 1/n
+
+`src/baseline/classical/outage.py` selects the frozen constant class by counting labels across the
+**entire** committed Imagenette-160 validation manifest. It decodes no image, runs no classifier,
+consults no loader order and reads no sample subset; rows outside the `val` split — every `train` and
+every `test` row — are discarded before any counting happens. The artifact is frozen to
+`results/baseline/w4/outage_policy.json` by `tools/gen_w4_outage_policy.py`, which has a `--check`
+mode that regenerates the record in memory and compares it field by field, ignoring only
+`generated_at` and `selection_source_commit`.
+
+**The full validation count is `[100] * 10` over 1000 rows.** All ten classes tie at the maximum, so
+the configured `lowest_class_index` tie-break is the only thing that picks a winner: **class 0**,
+with numerator 100, denominator 1000, measured accuracy **0.1**.
+
+That number coincides exactly with `1 / n_classes`, and the coincidence is not an accident —
+`data/manifests.py::_validate_counts_and_stratification` **enforces** an exactly stratified
+validation split, so no valid manifest in this project can produce an unbalanced validation
+histogram. This is precisely why a float comparison is worthless here: a hardcoded `0.1` and a
+measured `100/1000` are indistinguishable by value. The artifact therefore records the numerator,
+denominator, the full class-count vector, the maximum, and the tied set; `policy_from_record`
+recomputes the selection from those counts and rejects the record if any of them disagree; and the
+verifier re-derives the counts from the manifest itself rather than trusting the artifact.
+`tests/test_classical_outage.py::test_artifact_that_hardcodes_one_over_n_without_matching_counts_fails`
+exhibits the discriminating mutation: halving one class count leaves the theoretical value untouched
+while the measured one moves.
+
+Runtime prediction never reselects. `OutagePolicy.predict()` is argument-free and side-effect-free —
+no sample identity, no label, no manifest and no system control flow can reach it — and a test
+monkeypatches `count_validation_labels` and `validate_manifest_bytes` to raise, then asserts
+prediction still works. Per-row correctness stays strictly binary; no row is ever fractionally right.
+
+## Sensitivity variant
+
+`keyed_uniform_random_label` draws one integer in `[0, n_classes)` from the central counter-based
+Philox stream. `params.baseline.outage_rng_key` spells the purpose as the pseudo-field
+`purpose=outage_label`, but `artifacts.rng.keyed_generator` takes the purpose as its first argument
+and **rejects** it inside the identity, so `configured_rng_identity_fields()` strips the marker and
+asserts the remaining three fields equal `params.artifacts.rng_identity_fields.outage_label`
+— `{split_manifest_hash, stable_sample_id, channel_seed}`. The draw is proved invariant to row order,
+to four batch sizes, to being computed for a subset, and to intervening draws from an unrelated
+generator, and proved to move when any declared component moves. It is recorded as a secondary
+comparison and is deliberately **not** a per-image schema field.
+
+## Classifier dataset boundary
+
+The adjudicated G-1 checkpoint is an **Imagenette-160** classifier
+(`9c37362347a0…`, config `a9717575d71f…`). CIFAR-10 has ten class indices too, but they are a
+different vocabulary, so applying the frozen model to a CIFAR reconstruction would produce a number
+that looks like an accuracy and means nothing. `records.score_result` refuses it by name, the runner
+refuses to task-score any dataset that is not the frozen classifier's, and the verifier fails closed
+if the CIFAR section of the summary carries `top1_acc`, `n_correct`, `task_accuracy` or
+`classifier_inference_performed: true`, or if any per-image row is not Imagenette-160. **No CIFAR
+task accuracy was computed at any point.** CIFAR remains a transport, verdict, accounting, cache and
+schema plumbing smoke, and its summary says so in those exact words.
+
+## Record architecture and identities
+
+`src/baseline/classical/records.py` reads both schemas from `params.artifacts.*` at runtime;
+`validate_row` reports missing, unexpected and reordered fields as distinct failures, and duplicate
+configured field names are rejected outright. The only hand-written table is `FIELD_SEMANTICS`,
+which *annotates* the configured fields and is asserted to cover them exactly — production code
+holds no second copy of a schema list.
+
+Identities reuse `make_run_id`, `make_analysis_cell_id`, `make_noise_id` and `make_pair_id`; no
+parallel hashing or canonicalisation was written. `dataset_version` is the configured archive
+SHA-256, `config_hash` is the versioned resolved `RunConfig` fingerprint (not an ad hoc YAML hash),
+`checkpoint_id` is the SHA-256 of the exact frozen checkpoint bytes, and `noise_id` is proved equal
+to PB_1's `ChannelIdentity` result. Changing `system` changes `run_id` but not `pair_id`; changing
+split, config, checkpoint or classifier variant changes `run_id`; row order and batching change no
+identity.
+
+**System value: `classical_fixed_mcs`.** PB_2 runs one explicitly fixed (ratio, modulation, LDPC
+rate) configuration and implements no per-SNR selection. `classical_adaptive` would assert an
+adaptation that PB_3 has not yet constructed or verified, so it is not used.
+
+`RunIdentity` whitelists the splits a record may describe rather than blacklisting the sealed one.
+That is deliberate: PB_1C left a standing invariant that no file under `src/baseline/classical/`
+may contain the literal `"test"`, and a blacklist would have silently eroded it.
+
+## Field semantics, and one flagged interpretation
+
+`resolved_config.json` carries a machine-readable entry for every field of both schemas, giving
+source, type, unit, nullability, not-applicable representation and aggregation denominator. The
+documented not-applicable representation is JSON `null` / an empty CSV cell.
+
+Two field meanings were resolved from the spec rather than guessed:
+
+* **`source_bytes` is exactly `A/8`**, per BR-10 ("`source_bytes` is exactly `A/8` rather than a
+  floor with a bit remainder"). Confirmed against `spec/evidence/packetisation_record.json`, where
+  `A = 12776` gives `source_bytes = 1597`. It is not the original archive bytes and not the canonical
+  RGB byte length.
+* **`effective_code_rate` is `K' / max(E_r)`**, the worst-block realised rate — confirmed against the
+  same record (`K' = 6424`, `max E_r = 19200`, recorded `0.334583`), and consistent with
+  `params.baseline.min_coderate_predicate`, which is also evaluated on the worst block.
+
+**One interpretation is flagged rather than asserted.** BR-11 requires `header_bytes` and
+`payload_bytes` to be reported separately "so the fraction of the budget spent on format overhead is
+visible", and `params.baseline.container_policy` puts every emitted container byte *inside* the
+payload budget — but the spec never spells the two columns out arithmetically. The resolution used
+here is:
+
+    bytes_sent    = A/8, the complete transport-block payload placed on the channel
+    header_bytes  = JPEG 2000 raw-codestream container bytes (SOC, main-header marker
+                    segments, tile-part headers through SOD, EOC)
+    payload_bytes = emitted_bytes - header_bytes, the entropy-coded image data
+    residual      = bytes_sent - header_bytes - payload_bytes = zero payload filler
+
+The residual has no schema column, so it is reported in `accounting_examples.json` rather than folded
+into either column — that keeps both denominators clean. A reader could instead take `payload_bytes`
+to mean `payload_bits / 8`, which would make it identical to `bytes_sent`. The choice is recorded in
+`records.BYTE_ACCOUNTING_NOTE`, in the committed field-semantics artifact and in `RESUME.md`, and the
+bounded evidence is ~45 s to regenerate if it is decided differently. **This is the one PB_2
+interpretation that should be confirmed rather than inherited.**
+
+The container split is computed by a marker-walking parser over the raw codestream, and the two
+counts are asserted to sum to the emitted byte count on every row — an approximate header figure
+would make BR-11's overhead fraction unfalsifiable. The parser is exercised on real encodes.
+
+## Aggregate formulas and denominators
+
+`n == rows`; `n_test == n` despite the legacy field name (it is **not** a test-split count);
+`n_correct == sum(correct)` counting outage rows; `top1_acc == n_correct / n`;
+`coverage_rate == delivered / n`; `decode_failure_rate == decode_failures / n`;
+`infeasible_rate == (structural + codec) / n`; and
+`delivered + decode_failure + structural + codec == n` is enforced. `acc_given_delivery` is
+`delivered_correct / delivered_count`, or `null` when nothing was delivered. **PSNR and SSIM are
+aggregated over delivered rows only**, and that denominator is recorded explicitly in the summary as
+`psnr_ssim_denominator` because the CSV schema does not carry it. PAPR is a mean over transmitted
+rows (delivered plus decode failures); `bytes_sent` is fixed per configuration; `header_bytes` and
+`payload_bytes` are means over delivered rows. `reconcile_aggregate` recomputes all of it
+independently of the builder, and the verifier recomputes it again from the CSV.
+
+## Crash-resume behaviour
+
+Every completed row is appended to `smoke_rows.partial.jsonl` and `fsync`ed before the next row
+starts; progress metadata and all finalised JSON/CSV are written through atomic temporary-file
+replacement. Resuming re-validates six bindings — source commit, config hash, checkpoint hash,
+manifest hashes, worklist hash and plan hash — and refuses to mix rows if any of them moved. The run
+timestamp is captured once and reused on resume.
+
+The drill: `--max-rows 3 --restart` left 3 durable rows; a second invocation reported `resuming with
+3 durable rows of 55`, recomputed none of them and appended 4 more, leaving 7 rows with 0 duplicates
+and `complete: false`. Tampering with the recorded `source_commit` and then the `config_hash` each
+produced a refusal naming the differing field. Finalisation from 55 already-durable rows recomputed
+nothing. Partial-row identity, duplication and schema mismatches are covered by unit tests.
+
+One real defect surfaced here: partial rows are written with `sort_keys=True` for byte determinism,
+which alphabetises the per-image record, and per-image field *order* is part of the contract. Rather
+than weakening `validate_row` to ignore order, the loader restores schema order and rejects any row
+whose field *set* differs.
+
+## Bounded executions
+
+**55 rows in 44.3 s** from a clean tree at `b8462316c3c9`. No sweep, no candidate comparison, no
+operating-point selection, no training, no test access.
+
+* **CIFAR-10 transport-only** — 5 real validation samples, `r_1_2/qpsk/(1/2)` @ 11 dB, explicit 32 px
+  axis, **5/5 delivered**, `codestream_exact` on all five. `k=1536 Qm=2 G=3072 A=1520`,
+  `bytes_sent=190 B` = 157 B container + 27–30 B entropy data + 3 B filler. **83% of that transport
+  block is JPEG-2000 container** — the clearest illustration in this project of why DEC-9 rejected
+  JPEG and why BR-11 exists. No classifier inference and no task score.
+* **Imagenette-160 task-scored** — 24 images by `lowest_stable_sample_id_first`, at 18 dB and −8 dB,
+  `r_1_24/qam16/(2/3)`, `k=3200 Qm=4 G=12800 A=8504 C=2`, `bytes_sent=1063 B`.
+  * **18 dB, n=24**: 24/24 delivered, `top1_acc = 18/24 = 0.75`, `acc_given_delivery = 0.75`,
+    PSNR 27.034 dB and SSIM 0.7736 over a denominator of 24 delivered rows, PAPR 2.693 dB,
+    1063 = 157 + 905 + 1 bytes.
+  * **−8 dB, n=24**: 24/24 real `decode_failure`, `coverage_rate = 0`, every row taking the frozen
+    class 0, `top1_acc = 3/24 = 0.125` — the three rows whose true label is class 0.
+    `acc_given_delivery`, `psnr_db` and `ssim` are all null under the zero-delivery denominator;
+    PAPR is still recorded, because the packet really was transmitted.
+* **Fixtures** — `structural_infeasibility_cifar10` (`r_1_48/bpsk/(1/3)`, no legal byte-aligned A)
+  and `codec_infeasibility_imagenette160` (64-byte budget, all four configured axes reporting
+  `budget_exceeded`). Both are labelled fixtures and are kept out of the task-scored aggregate.
+* **Cached JPEG-2000 repeat** — 24 distinct cache keys, all 24 repeated across the two SNR points,
+  every repeat a cache hit reproducing a byte-identical codestream.
+
+**None of these accuracies is an experimental result, a finding, or an estimate of test performance.**
+Every one is stated with its sample size, and the two SNR cells are reported separately and never
+pooled.
+
+A fact worth recording because a reader would otherwise expect it: **no configured
+`(bw_ratio, modulation, ldpc_rate)` triple is structurally infeasible on Imagenette-160** — all 72
+packetise. A structural-infeasibility *record* is therefore unreachable on the frozen classifier's
+dataset, so that fixture lives on CIFAR-10 and the Imagenette structural→outage record path is
+covered by unit tests instead.
+
+## Verifier and source binding
+
+`tools/verify_w4_baseline_integration.py` recomputes rather than trusts: it re-derives the outage
+class from the committed manifest, recomputes every aggregate rate from the per-image rows, re-hashes
+the emitted CSVs against the hashes the summary claims, and re-hashes every bound source at the
+declared execution commit. `tools/gen_w4_source_manifest.py` binds **37 sources** in four roles.
+
+Unlike G-2 there is deliberately **no re-adjudication mechanism**: the bounded run takes ~45 s, so a
+changed runtime source is answered by rerunning the evidence, never by recording an exception. That
+rule earned its keep twice during B2.6 — the first run recorded a stale `execution_source_commit`
+because the runner was still uncommitted, and the second was invalidated when the runner changed to
+record the container split on transport-only rows. Both times the drift check refused the evidence.
+
+`per_image.csv` and `aggregate.csv` are deliberately **not** bound in the manifest: they are outputs
+of the execution commit and cannot exist at it. They are bound by SHA-256 inside `smoke_summary.json`,
+which the verifier recomputes from disk.
+
+Mutation coverage is in `tests/test_w4_verification.py` (39 tests), which builds a complete valid
+evidence directory from scratch so it proves discrimination independently of whether the real bounded
+run exists. All 13 required classes are covered plus 12 more.
+
+## Amendment judgment — no amendment required
+
+PB_2 implements outage handling, record emission, identities and bounded evidence that
+`spec/SPEC.md` already specifies. No requirement, gate, decision or frozen parameter changed. The
+outage policy, its tie-break, its freeze point and its sensitivity variant are all read from
+`params.baseline.*` as written; the schemas and identity key sets are read from `params.artifacts.*`
+as written; the frozen G-1 checkpoint is unchanged. The two field meanings resolved above are
+*readings* of BR-10 and BR-11, not modifications of them, and the one that could reasonably be read
+otherwise is flagged rather than buried. §17's convention does not treat implementation of an
+existing requirement as an amendment.
+
+## Remaining block before PB_3
+
+**`j2k_resolutions` vs CIFAR-10's 24/16 px axes remains unresolved by decision.** PB_2 did not touch
+it: the CIFAR smoke pins the working 32 px axis explicitly so the conflict cannot contaminate
+ordinary evidence, and the conflict itself stays reproduced by
+`tests/test_classical_pipeline.py::test_j2k_resolutions_cannot_encode_cifar10s_small_axes`. The W4
+verifier fails closed if any evidence marks the issue resolved. It still blocks PB_3, the full BR-4
+sweep and G-8.
+
+The cache-key field-spelling issue recorded at PB_1 is likewise unchanged.

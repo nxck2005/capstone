@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-30 · **Phase:** **W3 complete; G-2 PASS.**
+**Last updated:** 2026-07-31 · **Phase:** **W4 PB_2 complete; PB_3 blocked on a codec decision.**
 
 ## Single next task
 
@@ -19,28 +19,46 @@ does not, it is wrong and this block is right.**
 | W3 | complete |
 | G-2 | PASS |
 | transparency-bitrate probe | complete |
-| bounded W4 integration | **next — this is the single live engineering task** |
+| bounded W4 integration | PA, PB_1 (incl. PB_1C) and PB_2 complete; PB_3 remains |
 | W4 · PA | complete |
 | W4 · PB_1 (incl. the PB_1C correction) | complete |
-| W4 · PB_2 | **next engineering phase** |
-| W4 · PB_3 | not started |
+| W4 · PB_2 | complete |
+| W4 · PB_3 | **next engineering phase — blocked by the `j2k_resolutions` decision below** |
 | full BR-4 sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | undecided — blocks PB_3, the BR-4 sweep and G-8 |
 | test split | sealed until G-12 at W11 |
 
-Begin only the bounded **W4 classical-baseline integration required before G-8**. G-8 has not
-started. Do not run the full BR-4 validation sweep, select ratios, calibrate λ, train learned
-models, implement ER-9, or access the test split until their scheduled gates.
+Resolve the `j2k_resolutions` versus CIFAR-10 axis conflict through a recorded spec
+decision/amendment, then run `instructions/PB_3.txt` from B3.0. G-8 has not started. Do not run the
+full BR-4 validation sweep, select ratios, calibrate λ, train learned models, implement ER-9, or
+access the test split until their scheduled gates.
 
 **Where bounded W4 stands.** `instructions/RESUME.md` is the operational cursor for the four-phase
 sequence and wins on progress. PA and **PB_1 are complete, PB_1 including its PB_1C correction**:
 the classical arm runs end to end from a canonical image to a decoded image plus one of four
 verdicts (`structural_infeasibility` / `codec_infeasibility` / `decode_failure` / `delivered`), over
-the shared AWGN under keyed noise, with exact bit accounting. **The next task is
-`instructions/PB_2.txt`** — outage policy, record emission and smoke evidence. PB_3 (BR-4 selection
-infrastructure) follows and is **not started**. PR-1, PR-2 and PR-9 remain outstanding programme
-deliverables and are unblocked by all of this.
+the shared AWGN under keyed noise, with exact bit accounting. **PB_2 is now complete too**: the frozen constant-class outage policy, schema-exact per-image and
+aggregate records, a crash-resumable bounded runner, committed bounded evidence and the first W4
+integration verifier. PB_3 (BR-4 selection infrastructure) is **not started** and is blocked by the
+open `j2k_resolutions` decision below. PR-1, PR-2 and PR-9 remain outstanding programme deliverables
+and are unblocked by all of this.
+
+**What PB_2 landed.** The outage class is selected by counting labels across the *entire* committed
+Imagenette-160 validation manifest: the split is exactly stratified, so all ten classes tie at 100
+of 1000 and the configured lowest-index tie-break picks **class 0**, measured accuracy **100/1000 =
+0.1**. That equals `1/n_classes`, which is exactly why nothing here compares the float — the
+artifact records numerator, denominator and the full count vector, and the verifier re-derives them
+from the manifest. Records conform exactly to `params.artifacts.csv_schema` (52 fields) and
+`params.artifacts.per_image_schema` (16 fields), read at runtime; the system value is
+`classical_fixed_mcs`, because PB_2 fixes one configuration and builds no adaptation. Bounded
+evidence: 55 rows in 44.3 s — 5 CIFAR-10 transport-only samples with **no classifier inference and
+no task score at all** (the frozen checkpoint is an Imagenette-160 model, and ten equal output
+indices are not a shared class vocabulary), plus 24 Imagenette-160 validation images at 18 dB
+(24/24 delivered, top1 18/24) and −8 dB (24/24 real decode failures, top1 3/24 via the frozen outage
+class), plus structural- and codec-infeasibility fixtures. **None of those accuracies is an
+experimental result.** One field interpretation is flagged for confirmation rather than asserted —
+how `header_bytes` and `payload_bytes` split the budget under BR-11; see the worklog.
 
 **What PB_1C corrected.** An external audit flagged, and independent inspection of the installed
 Sionna 2.0.1 source confirmed, that the TS 38.212 §5.4.2.2 modulation bit interleaver was being
@@ -57,7 +75,8 @@ Details: `worklogs/w4-classical-baseline-progress.md`; ledger: `instructions/RES
 
 ### Open block — `j2k_resolutions` vs CIFAR-10's small axes
 
-**Undecided, and it blocks PB_3, the full BR-4 sweep and G-8. It does not block PB_2.**
+**Undecided, and it blocks PB_3, the full BR-4 sweep and G-8. It did not block PB_2, which is now
+complete — so this is the single thing standing between the project and PB_3.**
 
 `params.baseline.j2k_resolutions = 6` requires every tile dimension to be at least `2^5 = 32` px,
 but `params.baseline.downsample_axis_px.cifar10` is `[32, 24, 16]`. OpenJPEG hard-errors at 24 px
