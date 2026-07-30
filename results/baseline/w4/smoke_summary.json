@@ -1,5 +1,5 @@
 {
-  "aggregate_csv_sha256": "ac4057051d6bea1bd36e5d78ad1d5d7ce659a33f2cf55db3c2361328d2aac855",
+  "aggregate_csv_sha256": "6969b0c7080665e341d267a35f8d2579d8ec890b696f8763314ae292ed911c35",
   "br4_sweep_completed": false,
   "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
   "cifar10_transport_only": {
@@ -89,7 +89,7 @@
     "not a G-8 operating-point selection",
     "not test evidence"
   ],
-  "execution_source_commit": "83088ed2af4c3d7ee9653a2c7ce7fa3540cde1ad",
+  "execution_source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2",
   "fixtures": [
     {
       "axis_reasons": [
@@ -138,7 +138,7 @@
     }
   ],
   "g8_status": "unresolved",
-  "git_dirty": true,
+  "git_dirty": false,
   "imagenette160_task_scored": {
     "bw_ratio": "r_1_24",
     "cached_j2k_repeat": {
@@ -221,8 +221,8 @@
     "test_inference": false,
     "test_split_sealed": true
   },
-  "timestamp": "2026-07-30T19:32:12+00:00",
+  "timestamp": "2026-07-30T19:33:14+00:00",
   "training_performed": false,
-  "wall_clock_s": 41.40092854500108,
+  "wall_clock_s": 44.29721015299947,
   "worklist_sha256": "5445385a67fa8411b1fa4d8e6e55b150157360d29984b62650743a1e98dbcaa5"
 }

@@ -7,7 +7,7 @@
     "not a G-8 operating-point selection",
     "not test evidence"
   ],
-  "execution_source_commit": "83088ed2af4c3d7ee9653a2c7ce7fa3540cde1ad",
+  "execution_source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2",
   "experiment_config": "configs/classical-baseline-w4-smoke.yaml",
   "field_semantics": {
     "aggregate": {
@@ -560,7 +560,7 @@
       }
     }
   },
-  "git_dirty": true,
+  "git_dirty": false,
   "parameters": {
     "artifacts": {
       "analysis_cell_id_key": [
