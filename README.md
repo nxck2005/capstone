@@ -106,7 +106,10 @@ At BLER `1e-2`, measured waterfall displacements were **0.0 dB BPSK**,
 reconciled all 216 configured packetisation cells, with all 144 headline obligations feasible and
 the one preregistered smoke infeasibility classified explicitly. Evidence lives under
 `results/baseline/g2/` and verifies with `tools/verify_g2_adjudication.py`. No image sweep, training,
-G-8 selection or test access occurred.
+G-8 selection or test access occurred. That verification binds the *implementation* as well as the
+results: `execution_source_manifest.json` records the Git blob id and byte SHA-256 of all 14 sources
+that participated, and the scientific LDPC runtime under `src/baseline/ldpc/` must still be
+byte-identical to the measurement commit for the gate to verify.
 
 The single next engineering task is **bounded W4 classical-baseline integration required before
 G-8**. G-8 has not started.
@@ -138,6 +141,7 @@ under a second with no GPU and no network. The repository's checks are meant to 
 .venv/bin/python tools/verify_g7_profile.py             # offline: clean commit, CUDA profile, caps, limits and training-only scope
 .venv/bin/python tools/verify_transparency_bitrate_probe.py
 .venv/bin/python tools/fetch_ldpc_golden_vectors.py     # materialize the ignored rung-2 fixture; required before pytest
+.venv/bin/python tools/gen_g2_source_manifest.py --check # G-2's execution sources still match the measurement commit
 .venv/bin/python tools/verify_g2_adjudication.py
 .venv/bin/python -m pytest
 ```
