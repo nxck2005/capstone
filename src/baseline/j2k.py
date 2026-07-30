@@ -321,20 +321,36 @@ class J2KCodec:
         self._write_cache(cache_path, cache_identity, result)
         return result
 
+    def decode_codestream(self, codestream: bytes) -> np.ndarray:
+        """Decode raw codestream bytes that arrived over the channel.
+
+        The receiver must decode what it actually received, not the encoder's
+        cached image, so this exposes the same validated decode path publicly.
+        """
+
+        assert_j2k_runtime()
+        return self._decode_codestream(codestream)
+
     def _encode_once(self, image: np.ndarray, compression_ratio: float) -> bytes:
         with tempfile.TemporaryDirectory(prefix="j2k-encode-") as temporary:
             path = Path(temporary) / "image.j2k"
             height, width = image.shape[:2]
-            glymur.Jp2k(
-                path,
-                data=image,
-                cratios=(compression_ratio,),
-                irreversible=True,
-                prog=str(self.snapshot["baseline"]["j2k_progression_order"]),
-                numres=int(self.snapshot["baseline"]["j2k_resolutions"]),
-                cbsize=tuple(self.snapshot["baseline"]["j2k_code_block_size"]),
-                tilesize=(height, width),
-            )
+            try:
+                glymur.Jp2k(
+                    path,
+                    data=image,
+                    cratios=(compression_ratio,),
+                    irreversible=True,
+                    prog=str(self.snapshot["baseline"]["j2k_progression_order"]),
+                    numres=int(self.snapshot["baseline"]["j2k_resolutions"]),
+                    cbsize=tuple(self.snapshot["baseline"]["j2k_code_block_size"]),
+                    tilesize=(height, width),
+                )
+            except Exception as exc:
+                raise J2KCodecError(
+                    f"JPEG 2000 encoder failed at {height}x{width} "
+                    f"cratio={compression_ratio}: {exc}"
+                ) from exc
             codestream = path.read_bytes()
         self._validate_raw_codestream(codestream)
         return codestream

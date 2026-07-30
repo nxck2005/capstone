@@ -44,11 +44,14 @@ Then:
 
 ## Status
 
-**Current phase:** PB_1 — in progress (B1.1 landed)
+**Current phase:** PB_1 — in progress (B1.1–B1.4 landed)
 **Last green commit:** `dcf84a865b3249f9842e8755ebcaaee74b6aa805` (`docs(handoff): record the PA green commit SHA`)
-**Next action:** run `instructions/PB_1.txt` step B1.2 — write `src/baseline/classical/pipeline.py`
-wiring canonical image → downsample → J2K budget search → `transport_round_trip` → J2K decode →
-upsample, with the three-way verdict. `channel_transport.py` is done and green in isolation.
+**Next action:** run `instructions/PB_1.txt` step B1.5 — add `tests/test_classical_mutations.py`
+covering the nine mutation classes (LLR sign reversal, disabled 16-QAM interleaver, wrong k,
+dropped filler, unaccounted CRC, codec size above budget, silently skipped infeasibility, a
+substituted channel implementation, sequential rather than keyed noise). Then B1.6 bounded
+executions, then B1.7. Note: PB_1 commits are `--no-gpg-sign` (the user chose this; pinentry
+timed out).
 
 ---
 
@@ -70,9 +73,9 @@ upsample, with the three-way verdict. `channel_transport.py` is done and green i
 |---|---|---|
 | B1.0 confirm PA green | done | clean worktree, HEAD = origin/main = `dcf84a8`, `verify_g2_adjudication.py` PASS (`measurement=968e907237bb, rows=24, test_split_access=0, sources=14`), LDPC fixture present |
 | B1.1 `channel_transport.py` | done | `src/baseline/classical/{__init__,channel_transport}.py` + `tests/test_classical_transport.py` (22 tests, all pass). **Defect found and fixed in `src/baseline/ldpc/transport.py`:** `transmit_transport` built the Sionna encoder with `K` (systematic length *including* our explicit filler); Sionna re-derives `K_b`/`Z` from the information length it is given, so it selected a different lifting size and the pre-existing `lifting_size` guard raised on real plans. Passing `K'` reproduces the TS 38.212 §5.2.2 lifting size — verified over **all 232 (configuration, `E_r`) pairs of the committed packetisation record: 0 mismatches with `K'`, 46 mismatches/errors with `K`.** Sionna owns filler insertion; `segment()`'s contract is unchanged and the block is sliced to `K'` at the seam. Also added `receive_transport_verified` → `ReceivedTransport` (CRC verdicts reported, not raised) so decode failure stays classifiable; `receive_transport` delegates and keeps its old raising behaviour. These paths were never exercised before — G-2 measured through the adapter directly. |
-| B1.2 `pipeline.py` | not-started | |
-| B1.3 accounting + failure taxonomy | not-started | |
-| B1.4 required tests | not-started | |
+| B1.2 `pipeline.py` | done | `src/baseline/classical/pipeline.py` + `tests/test_classical_pipeline.py` (13 tests). Full segment wired: `codec_input` → `codec_downsample` → `J2KCodec.encode_to_budget` → zero-filler padding to A → `transmit_transport` → `transport_round_trip` → CRC → EOC-truncated payload → `J2KCodec.decode_codestream` → `codec_upsample`. Receiver recovers the codestream with **no signalled length**: filler is zero bytes so the *last* `ff d9` EOC in the padded payload is the real one (`control_plane_policy` stays honest). Added public `J2KCodec.decode_codestream` so the receiver decodes what it received, not the encoder's cached image. |
+| B1.3 accounting + failure taxonomy | done | Four verdicts, all observed and mutually exclusive: `structural_infeasibility` (before any encoding, `accounting`/`source_coding`/`transport`/`noise_id` all `None`), `codec_infeasibility` (`packet_feasible=True`, accounting present, per-axis reasons recorded), `decode_failure` (transmission happened; measurements survive), `delivered`. **Per-axis sub-reasons** `budget_exceeded` / `codec_configuration_error` are recorded inside `codec_infeasibility` — see the open issue below. |
+| B1.4 required tests | done | **All 14 required areas covered** across `tests/test_classical_transport.py` (22 tests) + `tests/test_classical_pipeline.py` (13 tests): exact channel uses (215 feasible × ratio × modulation × rate), exact bit reconciliation (every committed packetisation row, both identities), shared channel object (registry factory spy), keyed noise for one identity (unchanged by intervening draws), three modulations, four LDPC rates, partial final code block (`E=(8532,8532,8536)`), structural-vs-codec distinction, decode-failure classification, J2K emitted-byte authority, J2K cache identity, no per-packet rescaling, realised symbol energy, PAPR, validation-only loading with test access sealed. |
 | B1.5 mutation tests | not-started | |
 | B1.6 bounded executions | not-started | |
 | B1.7 green commit + push | not-started | |
@@ -140,6 +143,9 @@ upsample, with the three-way verdict. `channel_transport.py` is done and green i
 | G-2 runtime vs adjudicated implementation | all 8 `src/baseline/ldpc/` files byte-identical to `968e907…`; HOLD condition **not** triggered | A5 | yes |
 | G-2 manifest cross-checks | 4/4 agree with hashes the campaign recorded independently (`config_sha256`, `params_sha256`, `solver_record_sha256`, `script_sha256`) | A5 | yes |
 | suite timing note | 501 tests in ~129 s, up from 60 s at A3. The new G-2 tests account for 2.6 s; the rest is pre-existing `test_transparency_bitrate_probe.py` (~97 s alone), which reads many blobs through git. `git count-objects -v` shows 810 loose objects / 47.9 MiB against 84 in-pack — a repack would likely recover most of it. Not done here: repacking is repo-wide and outside PA's scope | A5 | observed, not acted on |
+| **OPEN ISSUE — `j2k_resolutions` vs CIFAR-10 axes** | `baseline.j2k_resolutions = 6` requires every tile dimension ≥ `2^5 = 32`, but `baseline.downsample_axis_px.cifar10 = [32, 24, 16]`. OpenJPEG hard-errors at 24 px and 16 px (*"Number of resolutions is too high in comparison to the size of tiles"*) for **every** image, so two of CIFAR-10's three configured axes cannot encode at all. Never caught before because the transparency probe ran Imagenette only (160/128/96/64). B1 records it per axis as `codec_configuration_error` rather than silently skipping. **Needs a spec decision (probably an AM): either clamp `j2k_resolutions` per axis to `min(6, log2(axis)+1)`, or drop 24/16 from the CIFAR-10 axis list.** Not decided in PB_1 — it changes a frozen codec parameter and therefore the codec configuration hash and every J2K cache key. | B1.2 | yes |
+| **OPEN ISSUE — cache-key field spelling** | `baseline.j2k_cache_key` names `j2k_impl_version`; `J2KCodec._cache_identity` spells the same value `openjpeg_version`. Values agree, names do not. **Deliberately not renamed** — the committed transparency-probe evidence records cache keys produced under the current spelling, so a rename would invalidate them. Tested by value. | B1.2 | yes |
+| B1 J2K payload framing | no length is signalled; filler is zero bytes, so the receiver truncates at the **last** `ff d9` EOC in the padded payload. Verified byte-identical recovery on every delivered case. | B1.2 | yes |
 | selected outage class | — | — | |
 | outage class measured val accuracy | — | — | |
 | W4 implementation commits | — | — | |
