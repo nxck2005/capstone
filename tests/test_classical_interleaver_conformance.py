@@ -401,3 +401,88 @@ def test_mutation_incorrect_llr_block_splitting():
     assert not np.array_equal(mutated[0], correct[0][: mutated[0].size]) or (
         mutated[0].size != correct[0].size
     )
+
+
+# --- the fixture must fail under every intended mutation ----------------------
+
+
+def _mutated_mapper_input(kind: str, packet, payload: np.ndarray) -> np.ndarray:
+    """Rebuild the transmit path with exactly one defect injected."""
+
+    from baseline.ldpc.segmentation import segment
+
+    layout = packet.segmentation
+    assert layout is not None
+    blocks = segment(payload, layout)
+    q_m = packet.q_m
+    encoded = []
+    for block, e_r in zip(blocks, packet.e_r, strict=True):
+        trimmed = block[: layout.k_prime]
+        if kind == "no_num_bits_per_symbol":
+            # the adapter built without it: the sole interleaver never runs
+            encoded.append(
+                _encode_uninterleaved(trimmed, layout.k_prime, e_r, layout.base_graph)
+            )
+            continue
+        if kind == "wrong_qm":
+            adapter_q_m = 2 if q_m != 2 else 4
+        else:
+            adapter_q_m = q_m
+        bits = SionnaLDPCAdapter(
+            layout.k_prime, e_r, adapter_q_m, layout.base_graph, "cpu"
+        ).encode(trimmed[None, :])[0]
+        if kind == "extra_transmit_interleaver":
+            bits = bits[_ts_38212_out_int(e_r, q_m)]
+        encoded.append(bits)
+    if kind == "reversed_concatenation":
+        encoded = list(reversed(encoded))
+    return np.concatenate(encoded)
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "no_num_bits_per_symbol",
+        "wrong_qm",
+        "extra_transmit_interleaver",
+        "reversed_concatenation",
+    ],
+)
+@pytest.mark.parametrize("modulation", ["qpsk", "qam16"])
+def test_independent_fixture_rejects_every_transmitter_mutation(kind, modulation):
+    """The known-answer property — not an eventual CRC failure — is what fires."""
+
+    if kind == "reversed_concatenation":
+        # reversing one block is a no-op, so this mutation needs C > 1
+        k_symbols, rate = (25600, "5/6") if modulation == "qpsk" else (3200, "2/3")
+        packet = build_packet_plan(k_symbols, modulation, rate)
+        assert packet.feasible and packet.segmentation is not None
+        assert packet.segmentation.code_blocks > 1
+    else:
+        packet = _plan(modulation)
+
+    payload = _payload(packet, seed=97)
+    expected = _expected_mapper_input(packet, payload)
+
+    # unmutated, the real transmit path matches the independent reference
+    assert np.array_equal(
+        mapper_input_bits(transmit_transport(payload, packet), modulation), expected
+    )
+    # and every mutation breaks that equality while preserving the bit count,
+    # which is why counting identities alone could never have caught this
+    mutated = _mutated_mapper_input(kind, packet, payload)
+    assert mutated.size == expected.size
+    assert not np.array_equal(mutated, expected), kind
+
+
+def test_bpsk_is_unaffected_by_the_defect_class():
+    """Qm = 1 is the identity permutation, so BPSK was never mis-ordered."""
+
+    packet = _plan("bpsk")
+    payload = _payload(packet, seed=101)
+    expected = _expected_mapper_input(packet, payload)
+    assert np.array_equal(
+        mapper_input_bits(transmit_transport(payload, packet), "bpsk"), expected
+    )
+    doubled = expected[_ts_38212_out_int(packet.e_r[0], 1)]
+    assert np.array_equal(doubled, expected)
