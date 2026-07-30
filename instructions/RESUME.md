@@ -46,7 +46,7 @@ Then:
 
 **Current phase:** PB_2 — in progress
 **Last green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0` (`fix(classical): correct PB_1 modulation interleaver ownership`)
-**Last durable checkpoint:** `b8462316c3c9cc97798934ec2e14347c9eeb71e2`
+**Last durable checkpoint:** `98ea4cb62a0117a546cffdfb7f6f35fb0eff9f07`
 **Next action:** B2.7 — append the W4 worklog, update `NEXT.md`, then run the complete 17-command verification block
 
 **PB_2 executes from `instructions/PB_2D.txt`, not `instructions/PB_2.txt`.** `PB_2D.txt` is the
@@ -240,9 +240,27 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | high-SNR record result | **18 dB, n=24: 24/24 delivered** (`coverage_rate=1.0`), `top1_acc = 18/24 = 0.75`, `acc_given_delivery = 0.75`, `decode_failure_rate=0.0`, `infeasible_rate=0.0`. PSNR mean **27.034 dB**, SSIM mean **0.7736**, both over a **denominator of 24 delivered rows**. PAPR mean 2.693 dB. `bytes_sent=1063 B` = 157 B container + 905 B entropy data + 1 B filler (reconciles exactly). `k=3200 Qm=4 G=12800 A=8504 C=2`. **This is a plumbing observation at n=24, not an experimental result and not an estimate of test performance** | B2.6 | yes |
 | decode-failure/outage result | **-8 dB, n=24: 24/24 real `decode_failure`** (`decode_failure_rate=1.0`, `coverage_rate=0.0`). Every row took the frozen constant outage prediction (class 0); `n_correct=3`, so `top1_acc = 3/24 = 0.125` — the three rows whose true label is class 0. `acc_given_delivery`, `psnr_db` and `ssim` are all **null** under the documented zero-delivery denominator. PAPR is still recorded (2.693 dB) because the packet really was transmitted. Fixtures: `structural_infeasibility_cifar10` -> `structural_infeasibility`; `codec_infeasibility_imagenette160` -> `codec_infeasibility` with all four configured axes reporting `budget_exceeded` against a 64-byte budget | B2.6 | yes |
 | keyed-noise equality result | Every transported row's `noise_id` is built by PB_1's `ChannelIdentity.noise_id` through the one shared `make_noise_id`; `tests/test_classical_records.py::test_noise_identity_agrees_with_the_pb1_channel_identity` asserts the records layer, the PB_1 pipeline and a hand-built `make_noise_id` call all agree on the same digest. Row order and batching change no identity (`test_row_order_and_batching_change_no_identity`) | B2.6 | yes |
-| W4 verifier result | | B2.7 | |
-| full pytest result | | B2.7 | |
-| test-access counters | | B2.7 | |
+| W4 verifier result | **PASS** — `execution=b8462316c3c9, sources=37, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), cifar_transport_only=5 (no task score), imagenette[18.0dB n=24 top1=0.75, -8.0dB n=24 top1=0.125], test_split_access=0` | B2.7 | yes |
+| full pytest result | **757 passed, 0 failed, 0 skipped in 82.22s** (605 before PB_2; +44 `test_classical_outage.py`, +44 `test_classical_records.py`, +39 `test_w4_verification.py`, +25 `test_w4_smoke_runner.py`). 40 test modules plus `conftest.py` | B2.7 | yes |
+| test-access counters | **all zero.** `verify_g2_adjudication` reports `test_split_access=0`; `verify_datasets` reports `test_scan_decoder_calls=0` and `test_scan_canonicalization_calls=0` for all three datasets; `verify_w4_baseline_integration` reports `test_split_access=0`; `tests/test_test_access.py` 4 passed; `load_dataset(..., "test")` still refuses; `RunIdentity` refuses any split outside `{train, val}` | B2.7 | yes |
+| B2.7 cmd 1 `gen_spec_views --check` | ok: 187 requirements (2 retired), 10 generated files up to date | B2.7 | yes |
+| B2.7 cmd 2 `check_doc_consistency -v` | ok: 11 current docs consistent (187 reqs, 79 AMs); NEXT.md current-phase agreement ok (frontier W4, 7 completed subjects, 698 live lines) | B2.7 | yes |
+| B2.7 cmd 3 `check_literals -v` | ok: 42 Python files scanned, 0 findings, 45 reasoned literal-ok annotations | B2.7 | yes |
+| B2.7 cmd 4 `check_packetisation` | 215 feasible, 3 min-rate clamped, **0 failures** | B2.7 | yes |
+| B2.7 cmd 5 `fetch_datasets --check` | all 3 archive pins verified | B2.7 | yes |
+| B2.7 cmd 6 `materialize_manifests --check` | all 3 manifests byte-identical to committed; 45000/5000/10000, 8469/1000/3925, 4500/500/8000 | B2.7 | yes |
+| B2.7 cmd 7 `verify_datasets` | all 3 real train/val smoke pass; test-provenance call counters 0 per dataset | B2.7 | yes |
+| B2.7 cmd 8 `verify_g1_adjudication` | PASS: 100 epochs, best=898/1000, local checkpoint verified | B2.7 | yes |
+| B2.7 cmd 9 `verify_g7_profile` | PASS: commit=26b631ede27a, params=1640957, epoch=48.684s, reserved=1.004 GB, projected=1.352 h | B2.7 | yes |
+| B2.7 cmd 10 `verify_transparency_bitrate_probe` | PASS: A=90007f165f8f, B=7896c7a74414, C=2ebb2cefade2, 68000 cells, 5pp=1330 B, 2pp=3200 B | B2.7 | yes |
+| B2.7 cmd 11 `fetch_ldpc_golden_vectors` | ok, network-free no-op; `fixture_sha256=55754b50…` | B2.7 | yes |
+| B2.7 cmd 12 `gen_g2_source_manifest --check` | ok: manifest matches the measurement commit (14 sources) | B2.7 | yes |
+| B2.7 cmd 13 `verify_g2_adjudication` | PASS: `measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']` — **unchanged by PB_2**, which touched no file under `src/baseline/ldpc/` | B2.7 | yes |
+| B2.7 cmd 14 `gen_w4_source_manifest --check` | ok: matches the execution commit `b8462316c3c9` (37 sources) | B2.7 | yes |
+| B2.7 cmd 16 `git diff --check` | clean | B2.7 | yes |
+| B2.7 cmd 17 `git status --short` | clean (empty) | B2.7 | yes |
+| amendment judgment | **no amendment required.** PB_2 implements outage handling, records, identities and bounded evidence that the spec already specifies; no requirement, gate, decision or frozen parameter moved. The two field meanings resolved (BR-10 `source_bytes = A/8`, `effective_code_rate = K'/max(E_r)`) are readings of existing requirements, and the one that could reasonably be read otherwise — the BR-11 `header_bytes`/`payload_bytes` split — is flagged in the worklog and field-semantics artifact rather than buried | B2.7 | yes |
+| JPEG-2000 issue status | **still unresolved.** PB_2 did not touch it: the CIFAR smoke pins the working 32 px axis explicitly, the conflict stays reproduced by `test_j2k_resolutions_cannot_encode_cifar10s_small_axes`, and `verify_w4_baseline_integration.py` fails closed if any evidence marks it resolved. Blocks PB_3, the full BR-4 sweep and G-8 | B2.7 | yes |
 | final green implementation commit | | B2.7 | |
 | final handoff HEAD | | B2.7 | |
 
