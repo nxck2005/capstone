@@ -1,0 +1,25 @@
+{
+  "complete": true,
+  "completed_rows": 55,
+  "evidence_labels": [
+    "bounded validation/plumbing integration",
+    "not the BR-4 full validation sweep",
+    "not a G-8 operating-point selection",
+    "not test evidence"
+  ],
+  "git_dirty": true,
+  "identity": {
+    "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "config_hash": "ba59d1e7cb8c69eeb5e15c31524f7d650b916080d4ab3a85f079958fca7cfc79",
+    "manifest_sha256": {
+      "cifar10": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537",
+      "imagenette160": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889"
+    },
+    "plan_sha256": "d97712caba2ea7f995b3084f0b5e7cbe2472b8ddf5120c15f705f7e34b463730",
+    "source_commit": "081deeaf7ed69d8bfe93d2fcc560cb04be3c7784",
+    "worklist_sha256": "0a229133d84095535e406959205f6e34e497ee1dbf6f0896207fe65e2c2a15c6"
+  },
+  "schema_version": 1,
+  "timestamp": "2026-07-30T19:11:10+00:00",
+  "total_rows": 55
+}

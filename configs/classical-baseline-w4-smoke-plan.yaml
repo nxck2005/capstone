@@ -1,0 +1,124 @@
+# Bounded W4 classical-baseline integration smoke — the execution plan.
+#
+# Every choice the runner makes lives here rather than in source, so the bounded
+# evidence can be re-derived from committed bytes alone. The companion file
+# `classical-baseline-w4-smoke.yaml` is the strict `load_experiment()` half that
+# produces `config_hash`.
+#
+# This plan is a bounded validation/plumbing integration. It is NOT the BR-4
+# full validation sweep, NOT a G-8 operating-point selection, and NOT test
+# evidence. It compares no candidate configurations and selects nothing.
+
+plan_version: 1
+experiment_config: configs/classical-baseline-w4-smoke.yaml
+
+evidence_labels:
+  - bounded validation/plumbing integration
+  - not the BR-4 full validation sweep
+  - not a G-8 operating-point selection
+  - not test evidence
+
+# Deterministic subset rule. Samples are ordered by stable_sample_id — the
+# SHA-256 of the original source bytes — and never by loader order, so the
+# subset is a property of the manifest rather than of the filesystem.
+sample_selection:
+  rule: lowest_stable_sample_id_first
+  order_by: stable_sample_id
+
+# --------------------------------------------------------------------------
+# CIFAR-10: transport, verdict, accounting, cache and schema plumbing only.
+#
+# The frozen G-1 checkpoint is an Imagenette-160 classifier. CIFAR-10's ten
+# class indices are a different vocabulary, so no classifier inference, no task
+# accuracy and no outage-class accuracy are produced here at any point.
+#
+# The encode axis is pinned to 32 px explicitly: `params.baseline.j2k_resolutions`
+# = 6 cannot encode CIFAR-10's configured 24 px and 16 px axes, and that
+# unresolved conflict is reproduced by a dedicated test rather than allowed to
+# contaminate an ordinary smoke.
+# --------------------------------------------------------------------------
+cifar10_transport_only:
+  dataset: cifar10
+  split: val
+  sample_count: 5
+  bw_ratio: r_1_2
+  modulation: qpsk
+  ldpc_rate: 1/2
+  encode_axis_px: 32
+  snr_db: [12]
+  channel_seed: 0
+  block_index: 0
+  task_scored: false
+  classifier_inference: false
+
+# --------------------------------------------------------------------------
+# Imagenette-160: the real task-scored bounded subset.
+#
+# One fixed plumbing configuration, two configured SNR-grid points. The high
+# point exercises successful delivery through the classifier; the low point
+# forces real decode failures through the frozen outage policy. This is not
+# BR-4 tuning: the two points are not compared and nothing is selected.
+# --------------------------------------------------------------------------
+imagenette160_task_scored:
+  dataset: imagenette160
+  split: val
+  sample_count: 24
+  bw_ratio: r_1_24
+  modulation: qam16
+  ldpc_rate: 2/3
+  encode_axis_px: null        # let the configured axis ladder choose
+  snr_db: [18, -8]            # both members of params.channel.test_snr_grid_db
+  train_seed: 0
+  channel_seed: 0
+  block_index: 0
+  task_scored: true
+  classifier_inference: true
+
+# --------------------------------------------------------------------------
+# Targeted infeasibility fixtures. Labelled as fixtures, kept out of the
+# task-scored aggregate, and each pinned to the verdict it is there to produce.
+#
+# Note recorded deliberately: **no configured (bw_ratio, modulation, ldpc_rate)
+# triple is structurally infeasible on Imagenette-160** — every combination
+# packetises. A structural-infeasibility fixture is therefore only reachable on
+# CIFAR-10, where the 64-symbol r_1_48 budget admits no legal byte-aligned A.
+# The Imagenette structural->outage record path is covered by unit tests instead.
+# --------------------------------------------------------------------------
+fixtures:
+  - name: structural_infeasibility_cifar10
+    dataset: cifar10
+    split: val
+    sample_count: 1
+    bw_ratio: r_1_48
+    modulation: bpsk
+    ldpc_rate: 1/3
+    encode_axis_px: 32
+    snr_db: 12
+    channel_seed: 0
+    expected_verdict: structural_infeasibility
+    task_scored: false
+  - name: codec_infeasibility_imagenette160
+    dataset: imagenette160
+    split: val
+    sample_count: 1
+    bw_ratio: r_1_48
+    modulation: bpsk
+    ldpc_rate: 1/3
+    encode_axis_px: null
+    snr_db: 18
+    channel_seed: 0
+    expected_verdict: codec_infeasibility
+    task_scored: true
+
+cache_dir: data/cache/classical_w4_smoke
+
+outputs:
+  evidence_dir: results/baseline/w4
+  partial_rows: results/baseline/w4/smoke_rows.partial.jsonl
+  progress: results/baseline/w4/smoke_progress.json
+  resolved_config: results/baseline/w4/resolved_config.json
+  summary: results/baseline/w4/smoke_summary.json
+  accounting_examples: results/baseline/w4/accounting_examples.json
+  per_image_csv: results/baseline/w4/per_image.csv
+  aggregate_csv: results/baseline/w4/aggregate.csv
+  outage_policy: results/baseline/w4/outage_policy.json

@@ -1,0 +1,31 @@
+# Bounded W4 classical-baseline integration smoke — the resolved-run half.
+#
+# This is the strict `load_experiment()` file (experiment / choices / sweep_axes
+# only), so it is what produces the versioned RunConfig fingerprint recorded as
+# `config_hash`. The bounded *execution plan* — sample counts, selection rule,
+# SNR points, fixtures, cache and output paths — lives in the companion file
+# `classical-baseline-w4-smoke-plan.yaml`, because `load_experiment()` rejects
+# any key outside the three below and must keep doing so.
+#
+# `system` is `classical_fixed_mcs`: PB_2 runs one explicitly fixed
+# (ratio, modulation, LDPC rate) configuration and implements no per-SNR
+# selection, so `classical_adaptive` would assert an adaptation that PB_3 has
+# not yet built.
+#
+# `classifier_variant` is the clean G-1 variant. The artifact-finetuned variant
+# is gated at G-8 and is not trained here.
+#
+# `split: val` is the manifest and registry vocabulary (`load_dataset(..., "val")`),
+# which is what the emitted records carry.
+experiment: classical_baseline_w4_smoke
+choices:
+  system: classical_fixed_mcs
+  dataset: imagenette160
+  split: val
+  bw_ratio: r_1_24
+  channel: awgn
+  classifier_variant: clean
+sweep_axes:
+  train_seed: train_seeds
+  channel_seed: channel_seeds
+  test_snr_db: test_snr_grid_db

@@ -1,0 +1,214 @@
+{
+  "aggregate_csv_sha256": "05476a5b9cb64a1fd227bcc021c30f9c0f3a18cf67fb7d41703f69febbd9a579",
+  "br4_sweep_completed": false,
+  "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+  "cifar10_transport_only": {
+    "accounting": {
+      "base_graph": 2,
+      "cb_crc_bits_per_block": 0,
+      "cb_crc_bits_total": 0,
+      "channel_bits": 3072,
+      "channel_bits_equal_k_times_qm": true,
+      "channel_reconciles": true,
+      "channel_uses_exact": true,
+      "code_blocks": 1,
+      "k_prime": 1536,
+      "k_symbols": 1536,
+      "ldpc_filler_bits_per_block": 64,
+      "ldpc_filler_bits_total": 64,
+      "lifting_size": 160,
+      "modulation": "qpsk",
+      "nominal_rate": "1/2",
+      "payload_bits": 1520,
+      "payload_bytes": 190,
+      "q_m": 2,
+      "rate_matched_bits": [
+        3072
+      ],
+      "rate_matched_bits_total": 3072,
+      "reconciles": true,
+      "systematic_bits_per_block": 1600,
+      "systematic_bits_total": 1600,
+      "systematic_reconciles": true,
+      "tb_crc_bits": 16,
+      "tb_crc_name": "crc16"
+    },
+    "bw_ratio": "r_1_2",
+    "cache_hits": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "classifier_inference_performed": false,
+    "codestream_exact": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "dataset": "cifar10",
+    "declaration": "transport-only plumbing smoke\nno task accuracy\nno frozen-classifier inference\nnot comparable to Imagenette task labels",
+    "encode_axis_px": 32,
+    "ldpc_rate": "1/2",
+    "modulation": "qpsk",
+    "n_correct": null,
+    "sample_count": 5,
+    "snr_db": [
+      12
+    ],
+    "split": "val",
+    "task_accuracy": null,
+    "top1_acc": null,
+    "verdict_counts": {
+      "delivered": 5
+    }
+  },
+  "classifier_config_hash": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
+  "complete": true,
+  "config_hash": "ba59d1e7cb8c69eeb5e15c31524f7d650b916080d4ab3a85f079958fca7cfc79",
+  "evidence_labels": [
+    "bounded validation/plumbing integration",
+    "not the BR-4 full validation sweep",
+    "not a G-8 operating-point selection",
+    "not test evidence"
+  ],
+  "execution_source_commit": "081deeaf7ed69d8bfe93d2fcc560cb04be3c7784",
+  "fixtures": [
+    {
+      "axis_reasons": [
+        null
+      ],
+      "bw_ratio": "r_1_48",
+      "dataset": "cifar10",
+      "expected_verdict": "structural_infeasibility",
+      "labelled": "targeted infeasibility fixture, not an ordinary smoke row",
+      "ldpc_rate": "1/3",
+      "modulation": "bpsk",
+      "name": "structural_infeasibility_cifar10",
+      "observed_verdict": "structural_infeasibility",
+      "task_scored": false
+    },
+    {
+      "axis_reasons": [
+        [
+          [
+            160,
+            "budget_exceeded"
+          ],
+          [
+            128,
+            "budget_exceeded"
+          ],
+          [
+            96,
+            "budget_exceeded"
+          ],
+          [
+            64,
+            "budget_exceeded"
+          ]
+        ]
+      ],
+      "bw_ratio": "r_1_48",
+      "dataset": "imagenette160",
+      "expected_verdict": "codec_infeasibility",
+      "labelled": "targeted infeasibility fixture, not an ordinary smoke row",
+      "ldpc_rate": "1/3",
+      "modulation": "bpsk",
+      "name": "codec_infeasibility_imagenette160",
+      "observed_verdict": "codec_infeasibility",
+      "task_scored": true
+    }
+  ],
+  "g8_status": "unresolved",
+  "git_dirty": true,
+  "imagenette160_task_scored": {
+    "bw_ratio": "r_1_24",
+    "cached_j2k_repeat": {
+      "distinct_cache_keys": 24,
+      "repeated_cache_keys": 24,
+      "repeats_reproduced_identical_codestreams": true,
+      "repeats_were_cache_hits": true
+    },
+    "cells": [
+      {
+        "acc_given_delivery": 0.75,
+        "bytes_sent": 1063,
+        "coverage_rate": 1.0,
+        "dataset": "imagenette160",
+        "decode_failure_rate": 0.0,
+        "group": "imagenette160_task_scored",
+        "header_bytes_mean": 157.0,
+        "infeasible_rate": 0.0,
+        "n": 24,
+        "n_correct": 18,
+        "papr_db_mean": 2.6932629545529685,
+        "payload_bytes_mean": 892.5416666666666,
+        "psnr_db_mean": 27.03426283004048,
+        "psnr_ssim_denominator": 24,
+        "run_id": "76a904a83fef16dc107e9940fca8cc7eda275819abaeb9fbc0b7df8226202e05",
+        "sample_count": 24,
+        "ssim_mean": 0.773634974254423,
+        "test_snr_db": 18.0,
+        "top1_acc": 0.75
+      },
+      {
+        "acc_given_delivery": null,
+        "bytes_sent": 1063,
+        "coverage_rate": 0.0,
+        "dataset": "imagenette160",
+        "decode_failure_rate": 1.0,
+        "group": "imagenette160_task_scored",
+        "header_bytes_mean": null,
+        "infeasible_rate": 0.0,
+        "n": 24,
+        "n_correct": 3,
+        "papr_db_mean": 2.6932629545529685,
+        "payload_bytes_mean": null,
+        "psnr_db_mean": null,
+        "psnr_ssim_denominator": 0,
+        "run_id": "73fdd7b35119b4619e5b6671acaf2a8f245636b7253a8914d7045ad07555c018",
+        "sample_count": 24,
+        "ssim_mean": null,
+        "test_snr_db": -8.0,
+        "top1_acc": 0.125
+      }
+    ],
+    "dataset": "imagenette160",
+    "declaration": "Task-scored with the frozen G-1 Imagenette-160 classifier and the frozen constant-class outage policy. Sample sizes are stated with every number; these are plumbing observations, not experimental results.",
+    "ldpc_rate": "2/3",
+    "modulation": "qam16",
+    "sample_count": 24,
+    "sample_selection_rule": "lowest_stable_sample_id_first",
+    "sensitivity_labels_are_secondary": true,
+    "snr_db": [
+      18,
+      -8
+    ],
+    "split": "val"
+  },
+  "j2k_resolutions_issue_status": "unresolved",
+  "manifest_sha256": {
+    "cifar10": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537",
+    "imagenette160": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889"
+  },
+  "operating_point_selected": false,
+  "per_image_csv_sha256": "cebc915b13a120ae3c8b82557e8443774cbf2c9ba66052f1ba54342dcc815648",
+  "plan_sha256": "d97712caba2ea7f995b3084f0b5e7cbe2472b8ddf5120c15f705f7e34b463730",
+  "prominent_declaration": "Bounded validation/plumbing integration for the W4 classical baseline. This is not the BR-4 full validation sweep, not a G-8 operating-point selection, and not test evidence. No operating ratio was selected, no candidate configurations were compared, no model was trained or fine-tuned, and the test split was never opened. Accuracy figures here are plumbing observations at the stated sample size, not experimental results and not estimates of test performance.",
+  "schema_version": 1,
+  "status": "COMPLETE",
+  "test_split_access": {
+    "test_accessed": false,
+    "test_accuracy_computed": false,
+    "test_inference": false,
+    "test_split_sealed": true
+  },
+  "timestamp": "2026-07-30T19:11:10+00:00",
+  "training_performed": false,
+  "wall_clock_s": 8.569986675865948e-07,
+  "worklist_sha256": "0a229133d84095535e406959205f6e34e497ee1dbf6f0896207fe65e2c2a15c6"
+}
