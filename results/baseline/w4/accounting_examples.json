@@ -43,10 +43,10 @@
         "channel_bits_G": 3072,
         "channel_uses_k_symbols": 1536,
         "emitted_codestream_bytes": 187,
-        "header_bytes_container": null,
-        "payload_bytes_entropy_data": null,
+        "header_bytes_container": 157,
+        "payload_bytes_entropy_data": 30,
         "payload_filler_bytes": 3,
-        "reconciles": null
+        "reconciles": true
       },
       "codestream_recovered_exactly": true,
       "dataset": "cifar10",
@@ -55,23 +55,25 @@
       "modulation": "qpsk",
       "source_coding": {
         "axis_reasons": [],
-        "cache_hit": false,
+        "cache_hit": true,
         "cache_key": "f387e77455028f1a5fc8e644fec336e85e59d137b3262a76c5955c1efb8f63b6",
         "codestream_sha256": "922cb3b8aff7e06d5f60515a136810d796a974271e6146cdb712abe9f9c660db",
         "emitted_bytes": 187,
         "encode_axis_px": 32,
+        "header_bytes": 157,
+        "payload_bytes": 30,
         "payload_capacity_bytes": 190,
         "payload_filler_bytes": 3
       },
       "stable_sample_id": "0002300efad9c63f",
-      "test_snr_db": 12.0,
+      "test_snr_db": 11.0,
       "transport": {
         "crc_ok": true,
         "interleaver": "ts_38212_5_4_2_2",
         "papr_db": 0.0,
         "per_packet_power_rescaling_applied": false,
         "realised_symbol_energy": 0.9999999403953552,
-        "unit_noise_sha256": "0ab1ff757338c0d6a4a99316f608e52bebe183248aecd9bff2649a1b8b0a0980"
+        "unit_noise_sha256": "3bac1f60e2a8a93b99c1f08435adba73e82b7f37744472f0a71ee4aa8a489eb1"
       },
       "verdict": "delivered"
     },
@@ -125,11 +127,13 @@
       "modulation": "qam16",
       "source_coding": {
         "axis_reasons": [],
-        "cache_hit": false,
+        "cache_hit": true,
         "cache_key": "bb7471c402a5badcf29177e432e83595d4d180a7ee135170c3ec3cde849d9411",
         "codestream_sha256": "3a0b3db87c150fe53277dd9fd818e055a1850e0d57121217e2cf3af244fcda7b",
         "emitted_bytes": 1062,
         "encode_axis_px": 160,
+        "header_bytes": 157,
+        "payload_bytes": 905,
         "payload_capacity_bytes": 1063,
         "payload_filler_bytes": 1
       },
@@ -194,10 +198,10 @@
         "channel_bits_G": 12800,
         "channel_uses_k_symbols": 3200,
         "emitted_codestream_bytes": 1062,
-        "header_bytes_container": null,
-        "payload_bytes_entropy_data": null,
+        "header_bytes_container": 157,
+        "payload_bytes_entropy_data": 905,
         "payload_filler_bytes": 1,
-        "reconciles": null
+        "reconciles": true
       },
       "codestream_recovered_exactly": null,
       "dataset": "imagenette160",
@@ -211,6 +215,8 @@
         "codestream_sha256": "3a0b3db87c150fe53277dd9fd818e055a1850e0d57121217e2cf3af244fcda7b",
         "emitted_bytes": 1062,
         "encode_axis_px": 160,
+        "header_bytes": 157,
+        "payload_bytes": 905,
         "payload_capacity_bytes": 1063,
         "payload_filler_bytes": 1
       },
@@ -247,7 +253,7 @@
       "modulation": "bpsk",
       "source_coding": null,
       "stable_sample_id": "0002300efad9c63f",
-      "test_snr_db": 12.0,
+      "test_snr_db": 11.0,
       "transport": null,
       "verdict": "structural_infeasibility"
     },

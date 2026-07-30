@@ -503,12 +503,22 @@ def check_configuration(resolved: dict[str, Any], summary: dict[str, Any]) -> No
             parameters[root] == get(root),
             f"the recorded params.{root} snapshot differs from the current spec",
         )
+    # Coverage is compared as a set: the artifact is written with sorted JSON
+    # keys for byte determinism, and field *order* is a CSV contract, enforced
+    # against the emitted headers rather than against this annotation map.
     semantics = resolved.get("field_semantics") or {}
-    _require(
-        tuple(semantics.get("aggregate", {})) == aggregate_schema()
-        and tuple(semantics.get("per_image", {})) == per_image_schema(),
-        "the committed field-semantics table does not cover both schemas exactly",
-    )
+    for section, schema in (
+        ("aggregate", aggregate_schema()),
+        ("per_image", per_image_schema()),
+    ):
+        annotated = set(semantics.get(section, {}))
+        missing = sorted(set(schema) - annotated)
+        unexpected = sorted(annotated - set(schema))
+        _require(
+            not missing and not unexpected,
+            f"the committed field-semantics table does not cover {section} "
+            f"exactly: missing={missing}, unexpected={unexpected}",
+        )
 
 
 def check_gates() -> None:

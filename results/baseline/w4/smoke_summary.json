@@ -1,5 +1,5 @@
 {
-  "aggregate_csv_sha256": "05476a5b9cb64a1fd227bcc021c30f9c0f3a18cf67fb7d41703f69febbd9a579",
+  "aggregate_csv_sha256": "ac4057051d6bea1bd36e5d78ad1d5d7ce659a33f2cf55db3c2361328d2aac855",
   "br4_sweep_completed": false,
   "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
   "cifar10_transport_only": {
@@ -35,11 +35,11 @@
     },
     "bw_ratio": "r_1_2",
     "cache_hits": [
-      false,
-      false,
-      false,
-      false,
-      false
+      true,
+      true,
+      true,
+      true,
+      true
     ],
     "classifier_inference_performed": false,
     "codestream_exact": [
@@ -52,12 +52,26 @@
     "dataset": "cifar10",
     "declaration": "transport-only plumbing smoke\nno task accuracy\nno frozen-classifier inference\nnot comparable to Imagenette task labels",
     "encode_axis_px": 32,
+    "header_bytes": [
+      157,
+      157,
+      157,
+      157,
+      157
+    ],
     "ldpc_rate": "1/2",
     "modulation": "qpsk",
     "n_correct": null,
+    "payload_bytes": [
+      30,
+      27,
+      30,
+      28,
+      27
+    ],
     "sample_count": 5,
     "snr_db": [
-      12
+      11
     ],
     "split": "val",
     "task_accuracy": null,
@@ -75,7 +89,7 @@
     "not a G-8 operating-point selection",
     "not test evidence"
   ],
-  "execution_source_commit": "081deeaf7ed69d8bfe93d2fcc560cb04be3c7784",
+  "execution_source_commit": "83088ed2af4c3d7ee9653a2c7ce7fa3540cde1ad",
   "fixtures": [
     {
       "axis_reasons": [
@@ -197,7 +211,7 @@
   },
   "operating_point_selected": false,
   "per_image_csv_sha256": "cebc915b13a120ae3c8b82557e8443774cbf2c9ba66052f1ba54342dcc815648",
-  "plan_sha256": "d97712caba2ea7f995b3084f0b5e7cbe2472b8ddf5120c15f705f7e34b463730",
+  "plan_sha256": "6a6f6168f8f298bdf6753c5d5c627ed20989cde4800f2fb87a4f0bdbc90221a6",
   "prominent_declaration": "Bounded validation/plumbing integration for the W4 classical baseline. This is not the BR-4 full validation sweep, not a G-8 operating-point selection, and not test evidence. No operating ratio was selected, no candidate configurations were compared, no model was trained or fine-tuned, and the test split was never opened. Accuracy figures here are plumbing observations at the stated sample size, not experimental results and not estimates of test performance.",
   "schema_version": 1,
   "status": "COMPLETE",
@@ -207,8 +221,8 @@
     "test_inference": false,
     "test_split_sealed": true
   },
-  "timestamp": "2026-07-30T19:11:10+00:00",
+  "timestamp": "2026-07-30T19:32:12+00:00",
   "training_performed": false,
-  "wall_clock_s": 8.569986675865948e-07,
-  "worklist_sha256": "0a229133d84095535e406959205f6e34e497ee1dbf6f0896207fe65e2c2a15c6"
+  "wall_clock_s": 41.40092854500108,
+  "worklist_sha256": "5445385a67fa8411b1fa4d8e6e55b150157360d29984b62650743a1e98dbcaa5"
 }

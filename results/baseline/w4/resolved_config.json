@@ -7,7 +7,7 @@
     "not a G-8 operating-point selection",
     "not test evidence"
   ],
-  "execution_source_commit": "081deeaf7ed69d8bfe93d2fcc560cb04be3c7784",
+  "execution_source_commit": "83088ed2af4c3d7ee9653a2c7ce7fa3540cde1ad",
   "experiment_config": "configs/classical-baseline-w4-smoke.yaml",
   "field_semantics": {
     "aggregate": {
@@ -1795,7 +1795,7 @@
     }
   },
   "plan_config": "configs/classical-baseline-w4-smoke-plan.yaml",
-  "plan_sha256": "d97712caba2ea7f995b3084f0b5e7cbe2472b8ddf5120c15f705f7e34b463730",
+  "plan_sha256": "6a6f6168f8f298bdf6753c5d5c627ed20989cde4800f2fb87a4f0bdbc90221a6",
   "prominent_declaration": "Bounded validation/plumbing integration for the W4 classical baseline. This is not the BR-4 full validation sweep, not a G-8 operating-point selection, and not test evidence. No operating ratio was selected, no candidate configurations were compared, no model was trained or fine-tuned, and the test split was never opened. Accuracy figures here are plumbing observations at the stated sample size, not experimental results and not estimates of test performance.",
   "resolved": {
     "analysis_version": 1,

@@ -59,6 +59,7 @@ from baseline.classical.pipeline import (  # noqa: E402
 from baseline.classical.records import (  # noqa: E402
     FROZEN_CLASSIFIER_DATASET,
     AggregateContext,
+    codestream_byte_split,
     RunIdentity,
     aggregate_row,
     aggregate_schema,
@@ -351,6 +352,14 @@ def run_row(
             "cache_hit": result.source_coding.cache_hit,
             "axis_reasons": [list(pair) for pair in result.source_coding.axis_reasons],
         }
+        # The container/data split is a property of the emitted codestream, not
+        # of the task, so it is recorded for CIFAR-10 transport-only rows too:
+        # BR-11's overhead fraction is exactly what that smoke exists to expose.
+        codestream = result.source_coding.emitted_codestream
+        if isinstance(codestream, bytes):
+            container, data = codestream_byte_split(codestream)
+            record["source_coding"]["header_bytes"] = container
+            record["source_coding"]["payload_bytes"] = data
     if result.transport is not None:
         record["transport"] = {
             "realised_symbol_energy": result.transport.realised_symbol_energy,
@@ -574,14 +583,14 @@ def finalise(
                 row["transport"]["papr_db"] for row in group_rows if row.get("transport")
             ),
             header_bytes_values=tuple(
-                row["task"]["header_bytes"]
+                row["source_coding"]["header_bytes"]
                 for row in delivered
-                if row["task"] and row["task"]["header_bytes"] is not None
+                if (row.get("source_coding") or {}).get("header_bytes") is not None
             ),
             payload_bytes_values=tuple(
-                row["task"]["payload_bytes"]
+                row["source_coding"]["payload_bytes"]
                 for row in delivered
-                if row["task"] and row["task"]["payload_bytes"] is not None
+                if (row.get("source_coding") or {}).get("payload_bytes") is not None
             ),
         )
         aggregate = aggregate_row(
@@ -662,6 +671,12 @@ def _cifar_summary(rows: list[dict[str, Any]], plan: dict[str, Any]) -> dict[str
         "codestream_exact": [row["codestream_recovered_exactly"] for row in rows],
         "cache_hits": [
             (row.get("source_coding") or {}).get("cache_hit") for row in rows
+        ],
+        "header_bytes": [
+            (row.get("source_coding") or {}).get("header_bytes") for row in rows
+        ],
+        "payload_bytes": [
+            (row.get("source_coding") or {}).get("payload_bytes") for row in rows
         ],
         "accounting": next(
             (row["summary"]["accounting"] for row in rows if row["summary"]["accounting"]),
@@ -816,9 +831,8 @@ def build_accounting_examples(
             "codestream_recovered_exactly": row["codestream_recovered_exactly"],
         }
         if accounting and source_coding.get("emitted_bytes") is not None:
-            task = row.get("task") or {}
-            header = task.get("header_bytes")
-            payload = task.get("payload_bytes")
+            header = source_coding.get("header_bytes")
+            payload = source_coding.get("payload_bytes")
             example["byte_reconciliation"] = {
                 "bytes_sent_A_over_8": accounting["payload_bytes"],
                 "emitted_codestream_bytes": source_coding["emitted_bytes"],
