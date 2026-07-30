@@ -312,3 +312,153 @@ axis reports `budget_exceeded` while 24 px and 16 px report `codec_configuration
 the distinction is not a budget artefact, since 32 px succeeds outright at a generous budget. Keeping
 the two reasons separate is the point: a configuration fault reported as "the codestream did not
 fit" would read as a channel result.
+
+## C1.2–C1.3 — independent evidence and the repair
+
+### Why the PB_1 tests could not have caught it
+
+Every PB_1 transport test was a *round trip*. The extra transmit permutation was undone by the extra
+receive permutation, so CRC passed, the codestream came back byte-exact, and every accounting
+identity held — bit **counts** are permutation-invariant. Nothing compared the sequence entering the
+mapper against a reference derived independently of the code producing it. That is the only check
+that can see a paired error, and PB_1 had none.
+
+### Independent pre-fix failing evidence
+
+`tests/test_classical_interleaver_conformance.py` builds its reference two ways, neither of which
+touches the project's interleaver:
+
+* `_ts_38212_out_int(E, Qm)` — the §5.4.2.2 permutation written as
+  `np.arange(E).reshape(Qm, E // Qm).T.reshape(-1)`, deliberately a different spelling from
+  `modulation.interleaver_indices`'s index generator, so a shared formula mistake cannot hide behind
+  an identically shaped copy of itself;
+* `_encode_uninterleaved(...)` — a raw `LDPC5GEncoder` built *without* `num_bits_per_symbol`, which
+  therefore rate-matches and stops.
+
+Their composition is the standards-conformant rate-matched, once-interleaved sequence.
+
+Against the pre-correction tree the module reported **`12 failed, 14 passed in 5.21s`**. The two
+tests that validate the reference itself (`out_int` / `out_int_inv` agreement for Qm ∈ {1, 2, 4};
+identity only at Qm = 1) both **passed**, so the failures could not be blamed on a wrong reference.
+The primary failing assertion was `assert np.array_equal(observed, expected)` with `observed` and
+`expected` of **identical length** — 3072 for QPSK, 6144 for 16-QAM, 12800 for the two-block
+Imagenette case — differing only in order. A permutation defect, not a count defect. The `[bpsk]`
+parametrisation passed throughout, confirming the Qm = 1 identity conclusion.
+
+### The repair
+
+Entirely inside `src/baseline/classical/channel_transport.py`. No file under `src/baseline/ldpc/`
+was touched, so the existing G-2 `off_measurement_path` re-adjudication for `transport.py` is
+preserved exactly and no new one was added.
+
+* `mapper_input_bits()` — new seam, now the body of `modulate()`. It concatenates the adapter's
+  already-interleaved code blocks and does nothing else. The per-block `interleave()` is gone.
+* `demodulate()` — max-log demaps the packet and returns `split_llr_blocks()` at exact `E_r`
+  boundaries. The per-block `deinterleave()` is gone; the paired Sionna decoder's `out_int_inv` is
+  now the only inverse.
+* `split_llr_blocks()` — new, exact `E_r` cutting, raises on a total mismatch.
+* Unused `interleave` / `deinterleave` imports dropped; the module docstring's interleaver clause
+  rewritten to name Sionna as the single owner.
+
+`_require_interleaver()` and `_require_fixed_normalisation()` are still called: they are what make
+the adapter's `Qm` argument mandatory rather than optional. Preserved unchanged: exact `k × Qm`
+accounting, partial final code blocks, fixed mapping and normalisation, no per-packet rescaling,
+realised energy and PAPR, the shared AWGN, keyed noise identity, the four verdicts, exact codestream
+recovery. The standalone utilities in `src/baseline/ldpc/modulation.py` were left in place — they
+are G-2 known-answer material and are now also the conformance test's cross-check.
+
+### Four PB_1 tests updated, not deleted
+
+They asserted the defect, so they had to move rather than be weakened:
+
+* `test_modulation_applies_only_the_fixed_constellation_normalisation` — its `expected` re-interleaved
+  the blocks by hand;
+* `test_qam16_bit_interleaver_is_required_and_actually_changes_the_symbols` and
+  `test_qam16_interleaver_is_not_a_no_op` — both asserted `modulate() != map_bits(concat(blocks))`,
+  which was true only *because* of the duplicate. Both now make the same claim at the seam that owns
+  it (`adapter.encoder.num_bits_per_symbol == Qm`, `out_int != arange`) **and** additionally assert
+  that the project adds nothing on top;
+* `test_disabled_qam16_interleaver_is_rejected_and_corrupts_the_link` part (b) — patched the removed
+  `channel_transport.interleave`. It now injects a *second* application (the PB_1C defect itself) and
+  asserts the link dies at 20 dB.
+
+### Conformance tests and mutation coverage
+
+`tests/test_classical_interleaver_conformance.py`, 35 tests. All seven required mutation classes are
+caught by an independent seam or known-answer property rather than by an eventual CRC failure:
+adapter built without `num_bits_per_symbol`; wrong `Qm` to the adapter; an additional transmitter
+interleaver; an additional receiver inverse interleaver; bypassing the sole required interleaver;
+incorrect code-block concatenation; incorrect LLR block splitting.
+`test_independent_fixture_rejects_every_transmitter_mutation` rebuilds the transmit path with exactly
+one defect injected and asserts the known-answer equality breaks **while the bit count is
+preserved** — the explicit demonstration that counting identities alone could never have caught this.
+
+Targeted regression at C1.6: **97 passed** — conformance 35, transport 22, mutations 18, pipeline 18,
+test-access 4.
+
+### Explicit-axis correction (C1.4)
+
+`_encode_source` in `src/baseline/classical/pipeline.py` previously accepted any explicit
+`encode_axis_px` that did not upscale, so an unconfigured axis (28 px for CIFAR-10, say) could reach
+OpenJPEG and mint cache keys and evidence for a configuration the spec never authorised. An explicit
+axis is now a *selection* from `configured_axes(dataset, canonical_shorter_side)`; membership is
+required, and both that check and the upscale check run **before** `codec_downsample` or
+`encode_to_budget`. No second configuration source was introduced. Four tests added
+(`tests/test_classical_pipeline.py` 13 → 18 including the C1.5 reproduction), one of which
+monkeypatches both codec entry points to raise, proving rejection precedes codec execution.
+
+### Corrected bounded observations (C1.7)
+
+All ten bounded PB_1 executions were rerun against real validation data; the full per-execution
+record is in the `instructions/RESUME.md` C1.7 fact rows. Summary of the comparison against B1.6:
+
+**Invariant** — ratio, modulation, Qm, nominal rate, verdict, `k`, `G = k × Qm`, `A`, payload bytes,
+TB/CB CRC names and widths, code-block count, LDPC filler, `E` and `ΣE`, selected axis, capacity,
+emitted bytes, `codestream_sha256`, cache key and cache-hit behaviour, exact codestream recovery,
+CRC outcome, delivery outcome. Bit counts are permutation-invariant and source coding is upstream of
+the defect, so none of this could have moved.
+
+**Changed** — symbol ordering, which is the repair. The two order-dependent measurements therefore
+moved on the non-constant-modulus modulation:
+
+| case | B1.6 (superseded) | C1.7 (corrected) |
+|---|---|---|
+| CIFAR-10 `r_1_2`/`qam16`/`1/2` @ 18 dB | Es 0.926562, PAPR 2.8840 dB | Es 0.985417, PAPR 2.6165 dB |
+| Imagenette-160 `r_1_24`/`qam16`/`2/3` @ 18 dB | Es 0.989500, PAPR 2.5986 dB | Es 0.994000, PAPR 2.5789 dB |
+
+Expected: realised symbol energy and PAPR are measurements over the realised symbol *sequence*, and
+PB_1 grouped bits into 16-QAM symbols under the permutation squared. **BPSK and QPSK are unchanged**
+— BPSK because Qm = 1 is the identity, QPSK because its constellation is constant-modulus, so Es ≡ 1
+and PAPR ≡ 0 dB whatever the bit order.
+
+**The B1.6 QPSK/16-QAM `Es` and `PAPR` figures recorded earlier in this worklog are superseded**:
+they describe a non-conformant transmit order. Every other B1.6 observation stands. `noise_id` and
+`unit_noise_sha256` also differ, for the unrelated reason that C1.7 used a different
+`ChannelIdentity` fixture.
+
+### G-2 impact
+
+None. `git diff --name-only` across the whole correction shows no file under `src/baseline/ldpc/`.
+`tools/verify_g2_adjudication.py` passes unchanged at every checkpoint:
+`measurement=968e907237bb, rows=24, test_split_access=0, sources=14,
+runtime_readjudicated=['src/baseline/ldpc/transport.py']`. No manifest was regenerated, no evidence
+recreated, no BLER campaign re-run, and no second re-adjudication added.
+
+### Amendment judgment — no amendment required
+
+Removing an accidentally duplicated interleaver **restores** the behaviour the specification already
+requires. `params.baseline.modulation_bit_interleaver` is still `ts_38212_5_4_2_2` and
+`modulation_bit_interleaver_required` is still true; BR-1's chain is unchanged; no requirement, gate,
+decision or frozen parameter is modified. It is an implementation bug fix, and §17's convention does
+not treat those as amendments. The C1.4 explicit-axis guard is likewise a bug fix: it *enforces*
+`params.baseline.downsample_axis_px` rather than changing it. C1.5 deliberately changed no normative
+behaviour, so no `AM` entry arises from it either.
+
+### Remaining open issues
+
+* **`j2k_resolutions` vs CIFAR-10's 24/16 px axes** — unresolved by decision; blocks PB_3, the full
+  BR-4 sweep and G-8; does not block PB_2. See the C1.5 section above.
+* **Cache-key field spelling** — `baseline.j2k_cache_key` names `j2k_impl_version`,
+  `J2KCodec._cache_identity` spells it `openjpeg_version`. Values agree; deliberately not renamed
+  because the committed transparency-probe evidence records keys produced under the current
+  spelling. Tested by value. Unchanged by PB_1C.

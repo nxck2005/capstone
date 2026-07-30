@@ -20,8 +20,13 @@ does not, it is wrong and this block is right.**
 | G-2 | PASS |
 | transparency-bitrate probe | complete |
 | bounded W4 integration | **next — this is the single live engineering task** |
+| W4 · PA | complete |
+| W4 · PB_1 (incl. the PB_1C correction) | complete |
+| W4 · PB_2 | **next engineering phase** |
+| W4 · PB_3 | not started |
 | full BR-4 sweep | not started |
 | G-8 | unresolved |
+| `j2k_resolutions` vs CIFAR-10 24/16 px | undecided — blocks PB_3, the BR-4 sweep and G-8 |
 | test split | sealed until G-12 at W11 |
 
 Begin only the bounded **W4 classical-baseline integration required before G-8**. G-8 has not
@@ -29,13 +34,26 @@ started. Do not run the full BR-4 validation sweep, select ratios, calibrate λ,
 models, implement ER-9, or access the test split until their scheduled gates.
 
 **Where bounded W4 stands.** `instructions/RESUME.md` is the operational cursor for the four-phase
-sequence and wins on progress. PA and **PB_1 are complete**: the classical arm now runs end to end
-from a canonical image to a decoded image plus one of four verdicts
-(`structural_infeasibility` / `codec_infeasibility` / `decode_failure` / `delivered`), over the
-shared AWGN under keyed noise, with exact bit accounting. **The next task is
+sequence and wins on progress. PA and **PB_1 are complete, PB_1 including its PB_1C correction**:
+the classical arm runs end to end from a canonical image to a decoded image plus one of four
+verdicts (`structural_infeasibility` / `codec_infeasibility` / `decode_failure` / `delivered`), over
+the shared AWGN under keyed noise, with exact bit accounting. **The next task is
 `instructions/PB_2.txt`** — outage policy, record emission and smoke evidence. PB_3 (BR-4 selection
-infrastructure) follows. PR-1, PR-2 and PR-9 remain outstanding programme deliverables and are
-unblocked by all of this.
+infrastructure) follows and is **not started**. PR-1, PR-2 and PR-9 remain outstanding programme
+deliverables and are unblocked by all of this.
+
+**What PB_1C corrected.** An external audit flagged, and independent inspection of the installed
+Sionna 2.0.1 source confirmed, that the TS 38.212 §5.4.2.2 modulation bit interleaver was being
+applied **twice** on the transmit path and undone twice on the receive path. Sionna owns it — the
+adapter builds `LDPC5GEncoder` with `num_bits_per_symbol=q_m`, so the encoder permutes after rate
+matching and the paired decoder inverts before rate recovery — and `channel_transport.modulate()`
+applied the same permutation again. QPSK and 16-QAM transmitted the permutation *squared*; BPSK was
+unaffected (Qm = 1 is the identity). PB_1's round-trip tests could not catch it: the paired errors
+cancel, so CRC passed, the codestream returned byte-exact, and every count identity held. The repair
+lives entirely in `src/baseline/classical/`, touched **no** `src/baseline/ldpc/` file, and needed no
+spec amendment — it restores behaviour the spec already required. Bit accounting, emitted bytes and
+codestream hashes are unchanged; only 16-QAM realised symbol energy and PAPR moved, as expected.
+Details: `worklogs/w4-classical-baseline-progress.md`; ledger: `instructions/RESUME.md`.
 
 ### Open block — `j2k_resolutions` vs CIFAR-10's small axes
 

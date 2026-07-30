@@ -108,11 +108,20 @@ the one preregistered smoke infeasibility classified explicitly. Evidence lives 
 `results/baseline/g2/` and verifies with `tools/verify_g2_adjudication.py`. No image sweep, training,
 G-8 selection or test access occurred. That verification binds the *implementation* as well as the
 results: `execution_source_manifest.json` records the Git blob id and byte SHA-256 of all 14 sources
-that participated, and the scientific LDPC runtime under `src/baseline/ldpc/` must still be
-byte-identical to the measurement commit for the gate to verify.
+that participated, and the scientific LDPC runtime under `src/baseline/ldpc/` is asserted against the
+measurement commit for the gate to verify. **Runtime drift fails closed**: a changed
+`src/baseline/ldpc/` file raises a HOLD rather than being accepted, because the recorded BLER numbers
+would then describe a different implementation. One exception exists today —
+`src/baseline/ldpc/transport.py`, recorded as `off_measurement_path` because the G-2 measurement code
+imports only `build_packet_plan` from it and that function is byte-identical. The exception is
+**pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
+prints `runtime_readjudicated=[...]` so it is never silent.
 
 The single next engineering task is **bounded W4 classical-baseline integration required before
-G-8**. G-8 has not started.
+G-8**. G-8 has not started. W4's PB_1 phase is complete **including its PB_1C correction**, which
+removed a duplicated TS 38.212 §5.4.2.2 modulation bit interleaver from the classical transmit path
+— Sionna already applies it after rate matching, so the project layer must not. No `src/baseline/ldpc/`
+file changed, so G-2 is unaffected. See `worklogs/w4-classical-baseline-progress.md`.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
