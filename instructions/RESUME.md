@@ -115,6 +115,17 @@ Then:
 | adjudicated fixture SHA-256 (local, matches `results/baseline/g2/golden_vector_summary.json`) | `55754b508ab1b6eb6625eae301d2d0a3fefcdf7b03e98038264b76b71e26aae0` | A2 | yes |
 | fixture regeneration reproducibility | re-materializing from the pinned asset reproduces all 6 arrays and the same `.npz` SHA-256 | A2 | yes |
 | A1 divergence from PA.txt expected HEAD | none material — `174cf19` is docs-only (`chore: add instructions for post W3`, adds `instructions/` only, 5 files / +1443 lines); last code commit is still `82f6c56` | A1 | yes |
+| A3 cmd 1 `gen_spec_views --check` | ok: 187 requirements (2 retired), 10 generated files up to date | A3 | yes |
+| A3 cmd 2 `check_doc_consistency -v` | ok: 11 current docs consistent; 1 valid historical plan excluded; 23 stale rules; 187 reqs / 79 AMs | A3 | yes |
+| A3 cmd 3 `check_literals -v` | ok: 37 Python files scanned, 0 findings, 43 reasoned literal-ok annotations | A3 | yes |
+| A3 cmd 4 `check_packetisation` | 215 feasible (144 obligation), 215/215 byte-aligned, 215/215 `B' % C == 0`, 215/215 zero-slack E sum, 3 min-rate clamped, **0 failures** | A3 | yes |
+| A3 cmd 5 `fetch_datasets --check` | all 3 archive pins verified (cifar10 / imagenette160 / stl10) | A3 | yes |
+| A3 cmd 6 `materialize_manifests --check` | all 3 manifests byte-identical to committed; 45000/5000/10000, 8469/1000/3925, 4500/500/8000 | A3 | yes |
+| A3 cmd 7 `verify_datasets` | all 3 real train/val smoke pass; `test_scan_decoder_calls=0`, `test_scan_canonicalization_calls=0` per dataset | A3 | yes |
+| A3 cmd 8 `verify_g1_adjudication` | PASS: 100 epochs, best=898/1000, local checkpoint verified | A3 | yes |
+| A3 cmd 9 `verify_g7_profile` | PASS: commit=26b631ede27a, params=1640957, epoch=48.684s, reserved=1.004 GB, projected=1.352 h | A3 | yes |
+| A3 cmd 10 `verify_transparency_bitrate_probe` | PASS: A=90007f165f8f, B=7896c7a74414, C=2ebb2cefade2, 68000 cells, 5pp=1330 B, 2pp=3200 B | A3 | yes |
+| A3 cmd 11 `verify_g2_adjudication` | PASS: measurement=968e907237bb, rows=24, test_split_access=0 | A3 | yes |
 | total tests | — | — | |
 | `tests/test_test_access.py` count | — | — | |
 | CUDA available | — | — | |
