@@ -210,43 +210,93 @@ unnecessary amendment. State which way you judged it and why.
     .venv/bin/python tools/verify_g1_adjudication.py
     .venv/bin/python tools/verify_g7_profile.py
     .venv/bin/python tools/verify_transparency_bitrate_probe.py
+    .venv/bin/python tools/fetch_ldpc_golden_vectors.py
+    .venv/bin/python tools/gen_g2_source_manifest.py --check
     .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python tools/gen_w4_source_manifest.py --check
     .venv/bin/python tools/verify_w4_baseline_integration.py
     .venv/bin/python -m pytest
     .venv/bin/python tools/verify_cpu_lock.py --clean-install
     git diff --check
     git status --short
 
-Everything must pass. Then land the final green commit:
+`fetch_ldpc_golden_vectors.py` must run before `pytest`: the rung-2 fixture is git-ignored by design
+(AM-25) and the srsRAN fixture test hard-asserts it rather than skipping, so a fresh clone otherwise
+fails the suite for a provenance reason that reads like a scientific one. It is a network-free no-op
+once the fixture exists. The two `--check` manifest lines sit beside the verifier each one feeds.
 
-    feat(classical): add BR-4 selection infrastructure and W4 adjudication
+Everything must pass.
 
-Leave any `wip(classical)` commits in history — do not rebase or force-push.
+## B3.9 — finalization order
 
-Push and confirm local HEAD = origin/main = remote main, clean worktree.
+**The tree that is verified must be the tree that is committed.** Do not commit first and then edit
+the hand-off documents: that leaves HEAD different from the tree the verification block actually
+passed against. In this exact order:
 
->>> CHECKPOINT B3.9 — the green commit.
+    1. Complete all implementation, tests, evidence, worklog, NEXT.md, RESUME.md, README.md and
+       AGENTS.md changes.
 
-Rewrite `NEXT.md`'s current-state sections so the single next engineering task is the G-8 work, with
-G-8 clearly marked unresolved and the test split still sealed. Keep PR-1 literature review, PR-2
-Gantt and PR-9 author/guide acknowledgement visible as outstanding programme deliverables. Do not
-fabricate literature-review or supervisor evidence.
+    2. Ensure every tracked handoff and status file already describes the intended post-PB_3 state.
 
-Finally, close out `instructions/RESUME.md`: every step in all four phases `done`, **Current phase**
-set to `W4 complete — G-8 not started`, **Last green commit** set to this SHA, **Next action** set
-to the single next engineering task. The facts table should carry forward everything G-8 will need.
-Push it.
+    3. Run the complete final verification block above against that exact complete tree.
+
+    4. If verification passes, commit the verified tree:
+       feat(classical): add BR-4 selection infrastructure and W4 adjudication
+
+    5. Push and confirm local HEAD = origin/main = remote main, clean worktree.
+
+    6. Treat that commit as the PB_3 implementation/evidence green SHA.
+
+    7. Do not make further tracked changes after the verified green commit.
+
+    8. If a genuinely necessary documentation-only correction is discovered after the green commit:
+       - make a separate documentation commit;
+       - rerun all documentation, generated-view, literal and static checks;
+       - record the implementation green SHA and the final handoff HEAD separately;
+       - do not call the earlier SHA the final HEAD;
+       - do not create an empty commit.
+
+What step 1 must contain, written **before** verification, not after it:
+
+* `NEXT.md`'s current-state sections rewritten so the single next engineering task is the G-8 work,
+  with G-8 clearly marked unresolved and the test split still sealed. Keep PR-1 literature review,
+  PR-2 Gantt and PR-9 author/guide acknowledgement visible as outstanding programme deliverables. Do
+  not fabricate literature-review or supervisor evidence.
+* `instructions/RESUME.md` closed out: every step in all four phases `done`, **Current phase** set to
+  `W4 complete — G-8 not started`, **Next action** set to the single next engineering task, and the
+  facts table carrying forward everything G-8 will need.
+* **Last green commit** written in the repository's non-self-referential form — a commit cannot
+  contain its own SHA:
+
+      **Last green commit:** this `feat(classical): add BR-4 selection infrastructure and W4 adjudication` commit
+
+  The exact SHA may be recorded later, but only in the separate handoff-only documentation commit of
+  step 8, explicitly distinguished from the implementation green commit. Never manufacture a
+  self-referential hash and never leave a placeholder for one.
+* The evidence-commit resolution policy unchanged: no null `evidence_commit`, no guessed future SHA,
+  no circular hash dependency, and no weakening of the source/evidence binding rules.
+
+Leave any `wip(classical)` commits in history — do not amend, squash, rebase or force-push.
+
+>>> CHECKPOINT B3.9 — the verified green commit.
 
 ---
 
 ## If you are running out of usage mid-phase
 
-Do not attempt one last big push. In this order:
+Do not attempt one last big push, and **never spend the remaining capacity on a long report before
+the repository is preserved.** In this order:
 
-1. Commit whatever works, as `wip(classical): <what landed>`.
-2. Update `RESUME.md` with exact step states, a concrete **Next action** line, and observed facts.
-3. Push.
-4. Report what you completed and what remains, then stop.
+1. Preserve state first: the current B3.x ledger row, the exact changed files, the tests known to
+   pass and known to fail, and the exact next command.
+2. Commit whatever works, as `wip(classical): <what landed>`.
+3. Update `RESUME.md` with exact step states, a concrete **Next action** line, and observed facts.
+4. Push.
+5. Only then report what you completed and what remains, briefly, and stop.
+
+**Never start the B3.9 final verification block unless enough session capacity remains to record its
+result and preserve the repository state afterwards.** A verification run whose outcome is lost is
+worse than one not started: the next session cannot tell whether the tree was green.
 
 Never leave the worktree dirty and unpushed as a way of "saving your place". It is not saved.
 

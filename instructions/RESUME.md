@@ -51,9 +51,10 @@ Then:
 regenerated at `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`. **PB_2C remains the most recent scientific-evidence
 green; PRE_B3 produces a repository-process green only.**
-**Last durable checkpoint:** this `wip(pre-b3): open handoff hardening ledger` commit
-**Next action:** H3.1 — edit `instructions/PB_3.txt` so the B3.9 finalization order completes every
-tracked handoff file *before* the verification block and the green commit
+**Last durable checkpoint:** `4f25c0c40f3438db03a190c5852084d0b56095cc` (H3.0)
+**Next action:** H3.2 — rewrite `NEXT.md`'s live "Current engineering order" (item 5 still names
+`instructions/PB_2.txt` as the next step) and reconcile the pre-PB_2C paragraphs in this file's
+Status block
 
 **PB_2 is complete, including its PB_2C correction.** `instructions/PB_2C.txt` is the durable
 instruction for that repair and its §18 addendum carries two normative decisions and four
@@ -443,7 +444,7 @@ measurement, and adds no amendment. PB_2C remains the most recent scientific-evi
 | Step | State | Notes |
 |---|---|---|
 | H3.0 establish state and open ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `3324393a3e1692478bba8cf1020708bf52947f6d`; **892 passed, 0 failed, 0 skipped in 96.52s**; `check_doc_consistency -v` ok (11 current docs, 1 historical plan excluded, 190 reqs / 82 AMs, NEXT.md phase agreement "frontier W4, 8 completed subjects, 727 live lines" — **this is exactly the blind spot**: the frontier token is the coarse `W4`, so PB_3-vs-PB_2 contradictions are invisible); `gen_spec_views --check` ok (190 requirements, 2 retired, 10 generated files up to date); `verify_w4_baseline_integration` **PASS** (`execution=76e789c9f3d0, sources=40, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), raw_rows=55 (emitted=53), openjpeg=2.5.4, overhead_cells=3, test_split_access=0`); **PB_3 has not started** (`src/baseline/classical/composition.py` absent; all ten B3.x rows `not-started`); no CI/status checks exist (`check-runs` total_count 0); `instructions/PRE_B3.txt` created with the approved §11 addendum |
-| H3.1 correct PB_3 finalization order | not-started | |
+| H3.1 correct PB_3 finalization order | done | `instructions/PB_3.txt` only. **Unsafe wording removed:** the post-commit tail "Rewrite `NEXT.md`'s current-state sections…" and "Finally, close out `instructions/RESUME.md`… Push it." — both instructed handoff edits *after* the green commit, so HEAD would differ from the verified tree. **Replaced by** a new `## B3.9 — finalization order` section carrying the eight-step order (complete every tracked handoff file → verify that exact tree → commit → push → that SHA is the implementation/evidence green → no further tracked changes → any later docs-only fix is a separate commit that reruns the docs/view/literal/static checks and is recorded distinctly, never an empty commit). Their *content* requirements (G-8 next and unresolved, test split sealed, PR-1/PR-2/PR-9 visible, all four phases `done`, facts carried forward) were folded into step 1, before verification. **Self-reference:** "**Last green commit** set to this SHA" → the repository's non-self-referential form, ``this `feat(classical): add BR-4 selection infrastructure and W4 adjudication` commit``, with the exact SHA permitted only in the later handoff-only commit. Evidence-commit resolution policy preserved verbatim. Usage-exhaustion section strengthened: preserve ledger row / changed files / known passing-failing tests / exact next command *before* any report, and never start B3.9 without capacity to record its result. Verification block gained the three missing commands in logical order — `fetch_ldpc_golden_vectors.py` before pytest (AM-25 fresh-clone rule) and `gen_g2_source_manifest.py --check` / `gen_w4_source_manifest.py --check` beside the verifiers they feed. `check_doc_consistency -v` ok; `git diff --check` clean |
 | H3.2 reconcile stale live status text | not-started | |
 | H3.3 harden document-consistency checks | not-started | |
 | H3.4 verify, commit and hand off to PB_3 | not-started | |
