@@ -47,8 +47,8 @@ Then:
 **Current phase:** PB_2C — corrective repair in progress
 **Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
 **Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
-**Last durable checkpoint:** `e0155c36686d9221098609c07197d3c2e5e5fbec`
-**Next action:** run `.venv/bin/python tools/gen_spec_views.py` after editing `spec/SPEC.md` §17 with AM-80/81/82 (C2.1)
+**Last durable checkpoint:** `720918f7bf3e944a5cdaa44f4efad174b9aaef93`
+**Next action:** C2.1 — edit `spec/SPEC.md` (AM-80/81/82, `downsample_axis_px.cifar10 = [32]`, `analysis_version: 2`, BR-11 body + verify clause), then `.venv/bin/python tools/gen_spec_views.py`
 
 **PB_2 is under corrective repair.** `instructions/PB_2C.txt` is the durable superseding instruction
 for this phase and includes an approved addendum (§18) carrying two normative decisions and four
@@ -314,7 +314,7 @@ runner-ready and final green SHAs). Read §18 before C2.1.
 | Step | State | Notes |
 |---|---|---|
 | C2.0 establish state and open corrective ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `e0155c3`; all six C2.0 commands re-run and pass (see facts); **757 passed, 0 failed, 0 skipped**; `instructions/PB_2C.txt` created with the approved §18 addendum; no CI/status checks exist (`check-runs` total_count 0); old PB_2 evidence and green judgment marked superseded without deletion |
-| C2.1 record the two normative amendments | not-started | three amendments, not two: AM-80 CIFAR axes, AM-81 BR-11 byte semantics + `analysis_version` → 2, AM-82 transparency-probe codec-configuration binding |
+| C2.1 record the two normative amendments | in-progress | three amendments, not two: AM-80 CIFAR axes, AM-81 BR-11 byte semantics + `analysis_version` → 2, AM-82 transparency-probe codec-configuration binding. Editing `spec/SPEC.md` (params `:296-308`, `:639`, BR-11 `:838`, §17 round 16), then regenerating all 10 views and fixing the three CIFAR-axis consumers (`tests/test_classical_pipeline.py:150`, `tests/test_w4_smoke_runner.py:85`, `tools/verify_w4_baseline_integration.py:413`) |
 | C2.2 repair per-cell RunConfig provenance | not-started | |
 | C2.3 repair scheduled noise and pair identities | not-started | |
 | C2.4 repair JPEG-2000 accounting and runner timing | not-started | |
