@@ -83,6 +83,17 @@ __all__ = [
     "CHARACTERIZED",
     "UNCHARACTERIZED",
     "g2_bler_table",
+    "Candidate",
+    "Feasibility",
+    "FeasibilityCache",
+    "CandidateEvaluation",
+    "Selection",
+    "select_best",
+    "FEASIBILITY_KEY_FIELDS",
+    "FEASIBILITY_KEY_EXCLUSIONS",
+    "TIE_BREAK_ORDER",
+    "ELIGIBLE",
+    "INFEASIBLE",
 ]
 
 
@@ -722,3 +733,281 @@ def g2_bler_table() -> BlerTable:
             f"no {_MEASUREMENT_SYSTEM} rows in {_BLER_RESULTS.name}"
         )
     return BlerTable(curves, provenance=f"results/baseline/g2/{_BLER_RESULTS.name}")
+
+
+# ==========================================================================
+# Candidate feasibility caching and deterministic tie-breaking
+# ==========================================================================
+#
+# BR-4 requires the sweep to be "a cached feasibility table plus per-(rate, SNR,
+# blocklength) block-error characterisation composed analytically".  Structural
+# feasibility — does a legal TS 38.212 packetisation exist, and can the codec
+# emit inside the resulting payload budget — is expensive and deterministic, so
+# it is computed once per configuration and reused.
+#
+# The whole risk of a cache is that two configurations share a key.  The key
+# here is therefore the candidate's *complete* configuration identity minus one
+# explicitly named, tested exclusion.
+
+#: The candidate fields the feasibility result may depend on.  Anything added
+#: to :class:`Candidate` must be classified into this tuple or into
+#: :data:`FEASIBILITY_KEY_EXCLUSIONS`, or building a key raises.
+FEASIBILITY_KEY_FIELDS: tuple[str, ...] = (
+    "dataset",
+    "ratio",
+    "modulation",
+    "ldpc_rate",
+    "encode_axis_px",
+)
+
+#: Excluded, with a reason rather than by omission.  Structural feasibility is
+#: a packetisation and codec-budget question: it reads the transport-block
+#: geometry and the payload budget, neither of which is a function of the
+#: channel SNR.  The SNR enters the *composition*, through the BLER lookup,
+#: never through feasibility — and there is a test that asserts exactly this
+#: rather than trusting the comment.
+FEASIBILITY_KEY_EXCLUSIONS: dict[str, str] = {
+    "snr_db": (
+        "structural feasibility is SNR-independent: it depends only on the "
+        "transport-block geometry and the codec payload budget"
+    ),
+}
+
+ELIGIBLE = "eligible"
+INFEASIBLE = "infeasible"
+
+#: The documented tie-breaking order, applied left to right, only among
+#: candidates whose expected accuracy is *exactly* equal.  A tolerance would be
+#: an unpreregistered free parameter, so equality is exact.
+#:
+#: After expected accuracy the order prefers, in turn: the more reliable link
+#: (higher ``P(TB success)``); then the more robust modulation (lower ``Qm``);
+#: then the stronger channel code (lower LDPC rate); then the more source
+#: information (larger encode axis); and finally the candidate's canonical
+#: identity string, which makes the order total.  The last key is what
+#: guarantees the result cannot depend on the order candidates were enumerated
+#: in — every earlier key can tie, that one cannot.
+TIE_BREAK_ORDER: tuple[str, ...] = (
+    "expected_accuracy_descending",
+    "success_probability_descending",
+    "modulation_bits_per_symbol_ascending",
+    "ldpc_rate_ascending",
+    "encode_axis_px_descending",
+    "candidate_id_ascending",
+)
+
+
+@dataclass(frozen=True)
+class Candidate:
+    """One BR-4 sweep cell: a codec/channel configuration at one SNR."""
+
+    dataset: str
+    ratio: str
+    modulation: str
+    ldpc_rate: str
+    encode_axis_px: int
+    snr_db: float
+
+    def __post_init__(self) -> None:
+        classified = set(FEASIBILITY_KEY_FIELDS) | set(FEASIBILITY_KEY_EXCLUSIONS)
+        declared = set(self.__dataclass_fields__)
+        if declared != classified:
+            raise CompositionError(
+                "every Candidate field must be either part of the feasibility "
+                "cache key or explicitly excluded with a reason; unclassified: "
+                f"{sorted(declared - classified)}"
+            )
+
+    def feasibility_key(self) -> tuple[Any, ...]:
+        """The complete structural identity, in a fixed field order."""
+
+        return tuple(getattr(self, name) for name in FEASIBILITY_KEY_FIELDS)
+
+    @property
+    def candidate_id(self) -> str:
+        """A canonical, sortable string identity covering *every* field."""
+
+        return json.dumps(
+            {name: getattr(self, name) for name in sorted(self.__dataclass_fields__)},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+
+
+@dataclass(frozen=True)
+class Feasibility:
+    """The cached structural verdict for one configuration."""
+
+    feasible: bool
+    reason: str | None = None
+    code_blocks: int | None = None
+    payload_bytes: int | None = None
+
+
+class FeasibilityCache:
+    """A deterministic memo over :meth:`Candidate.feasibility_key`.
+
+    The computation is injected rather than imported so this stays unit-testable
+    without running a codec: G-8 will pass the real packetisation-plus-codec
+    probe, and the tests here pass a counting stub that proves the cache is
+    consulted, that a hit returns exactly what a miss returned, and that no two
+    distinct configurations can share an entry.
+    """
+
+    def __init__(self) -> None:
+        self._entries: dict[tuple[Any, ...], Feasibility] = {}
+        self.hits = 0
+        self.misses = 0
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    @property
+    def keys(self) -> tuple[tuple[Any, ...], ...]:
+        return tuple(sorted(self._entries, key=repr))
+
+    def feasibility(self, candidate: Candidate, compute: Any) -> Feasibility:
+        if not isinstance(candidate, Candidate):
+            raise CompositionError(
+                f"feasibility takes a Candidate, not {type(candidate).__name__}"
+            )
+        key = candidate.feasibility_key()
+        cached = self._entries.get(key)
+        if cached is not None:
+            self.hits += 1
+            return cached
+        self.misses += 1
+        result = compute(candidate)
+        if not isinstance(result, Feasibility):
+            raise CompositionError(
+                "the feasibility probe must return a Feasibility, not "
+                f"{type(result).__name__}"
+            )
+        self._entries[key] = result
+        return result
+
+
+@dataclass(frozen=True)
+class CandidateEvaluation:
+    """A scored candidate, or an explicit statement of why it is not one.
+
+    ``status`` is one of :data:`ELIGIBLE`, :data:`INFEASIBLE` or
+    :data:`UNCHARACTERIZED`.  The third is deliberately *not* a low score:
+    a candidate whose BLER was never measured is ineligible, because scoring it
+    at all would mean inventing the evidence that would justify it.
+    """
+
+    candidate: Candidate
+    status: str
+    composition: CompositionResult | None = None
+    reason: str | None = None
+
+    @property
+    def expected_accuracy(self) -> float | None:
+        return None if self.composition is None else self.composition.expected_accuracy
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "candidate": json.loads(self.candidate.candidate_id),
+            "status": self.status,
+            "reason": self.reason,
+            "composition": (
+                None if self.composition is None else self.composition.as_record()
+            ),
+        }
+
+
+def _tie_break_key(evaluation: CandidateEvaluation) -> tuple[Any, ...]:
+    """The documented total order, as a sort key (all keys ascending)."""
+
+    from baseline.ldpc.modulation import bits_per_symbol
+
+    composition = evaluation.composition
+    if composition is None:  # pragma: no cover - callers filter first
+        raise CompositionError("cannot rank a candidate with no composition")
+    candidate = evaluation.candidate
+    return (
+        -composition.expected_accuracy,
+        -composition.success_probability,
+        bits_per_symbol(candidate.modulation),
+        _rate_value(candidate.ldpc_rate),
+        -candidate.encode_axis_px,
+        candidate.candidate_id,
+    )
+
+
+def _rate_value(rate: str) -> float:
+    """``"1/3"`` and ``"0.3333..."`` are the same rate; order them numerically."""
+
+    text = str(rate)
+    if "/" in text:
+        numerator, _, denominator = text.partition("/")
+        return float(numerator) / float(denominator)
+    return float(text)
+
+
+@dataclass(frozen=True)
+class Selection:
+    """The outcome of ranking one SNR's candidates."""
+
+    selected: CandidateEvaluation | None
+    tied: tuple[CandidateEvaluation, ...]
+    tie_break_applied: bool
+    evaluations: tuple[CandidateEvaluation, ...]
+    reason: str | None = None
+
+    @property
+    def eligible(self) -> tuple[CandidateEvaluation, ...]:
+        return tuple(e for e in self.evaluations if e.status == ELIGIBLE)
+
+    def counts(self) -> dict[str, int]:
+        counts = {ELIGIBLE: 0, INFEASIBLE: 0, UNCHARACTERIZED: 0}
+        for evaluation in self.evaluations:
+            counts[evaluation.status] = counts.get(evaluation.status, 0) + 1
+        return counts
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "selected": None if self.selected is None else self.selected.as_record(),
+            "tied_candidates": [
+                json.loads(e.candidate.candidate_id) for e in self.tied
+            ],
+            "tie_break_applied": self.tie_break_applied,
+            "tie_break_order": list(TIE_BREAK_ORDER),
+            "counts": self.counts(),
+            "reason": self.reason,
+        }
+
+
+def select_best(evaluations: Sequence[CandidateEvaluation]) -> Selection:
+    """Rank candidates by :data:`TIE_BREAK_ORDER`.  Order-independent.
+
+    Only :data:`ELIGIBLE` candidates compete.  Infeasible and uncharacterized
+    candidates are carried into the record so the selection can be audited, and
+    are never ranked — an uncharacterized cell has no score to rank *with*.
+    """
+
+    ordered = tuple(evaluations)
+    eligible = [e for e in ordered if e.status == ELIGIBLE]
+    if not eligible:
+        return Selection(
+            selected=None,
+            tied=(),
+            tie_break_applied=False,
+            evaluations=ordered,
+            reason="no_eligible_candidate",
+        )
+    ranked = sorted(eligible, key=_tie_break_key)
+    best = ranked[0]
+    top = best.composition.expected_accuracy  # type: ignore[union-attr]
+    tied = tuple(
+        e
+        for e in ranked
+        if e.composition is not None and e.composition.expected_accuracy == top
+    )
+    return Selection(
+        selected=best,
+        tied=tied,
+        tie_break_applied=len(tied) > 1,
+        evaluations=ordered,
+    )

@@ -13,16 +13,27 @@ accuracy from an assumed value rather than passing the measured one through.
 
 from __future__ import annotations
 
+import itertools
 import json
 import math
+
 import pytest
 
 from baseline.classical.composition import (
     BLER_IDENTITY_FIELDS,
     BLER_REQUIRED_FIELDS,
+    ELIGIBLE,
+    FEASIBILITY_KEY_EXCLUSIONS,
+    FEASIBILITY_KEY_FIELDS,
+    INFEASIBLE,
+    TIE_BREAK_ORDER,
     UNCHARACTERIZED,
     BlerLookupError,
+    Candidate,
+    CandidateEvaluation,
     CompositionError,
+    Feasibility,
+    FeasibilityCache,
     MeasuredCodecAccuracy,
     MeasuredOutageAccuracy,
     compose,
@@ -30,6 +41,7 @@ from baseline.classical.composition import (
     measured_outage_accuracy_from_record,
     UncharacterizedBlerError,
     g2_bler_table,
+    select_best,
     transport_block_success_probability,
 )
 from config.params import REPO_ROOT, get
@@ -500,3 +512,271 @@ def test_lookup_results_are_machine_readable() -> None:
     assert record["bler"] is None
     assert record["identity"]["modulation"] == "qpsk"
     assert json.dumps(record)  # must survive serialization into evidence
+
+
+# --------------------------------------------------------------------------
+# Feasibility caching and deterministic tie-breaking
+# --------------------------------------------------------------------------
+
+
+def _candidate(**overrides: object) -> Candidate:
+    base = {
+        "dataset": "imagenette160",
+        "ratio": "r_1_6",
+        "modulation": "qpsk",
+        "ldpc_rate": "1/2",
+        "encode_axis_px": 160,
+        "snr_db": 12.0,
+    }
+    base.update(overrides)
+    return Candidate(**base)  # type: ignore[arg-type]
+
+
+class _CountingProbe:
+    """A stand-in for G-8's real packetisation/codec feasibility computation."""
+
+    def __init__(self, feasible: bool = True) -> None:
+        self.calls: list[Candidate] = []
+        self._feasible = feasible
+
+    def __call__(self, candidate: Candidate) -> Feasibility:
+        self.calls.append(candidate)
+        return Feasibility(
+            feasible=self._feasible,
+            reason=None if self._feasible else "structural_infeasibility",
+            code_blocks=len(self.calls),  # deliberately call-order dependent
+            payload_bytes=candidate.encode_axis_px,
+        )
+
+
+def test_every_candidate_field_is_classified_into_or_out_of_the_cache_key() -> None:
+    declared = set(Candidate.__dataclass_fields__)
+    assert declared == set(FEASIBILITY_KEY_FIELDS) | set(FEASIBILITY_KEY_EXCLUSIONS)
+    for name, reason in FEASIBILITY_KEY_EXCLUSIONS.items():
+        assert reason.strip(), f"{name} is excluded without a reason"
+
+
+def test_the_cache_key_covers_every_configuration_field() -> None:
+    """Changing any keyed field must change the key."""
+
+    base = _candidate()
+    for field_name, changed in [
+        ("dataset", "stl10"),
+        ("ratio", "r_1_12"),
+        ("modulation", "qam16"),
+        ("ldpc_rate", "2/3"),
+        ("encode_axis_px", 128),
+    ]:
+        other = _candidate(**{field_name: changed})
+        assert other.feasibility_key() != base.feasibility_key(), field_name
+
+
+def test_the_snr_exclusion_is_real_and_not_merely_documented() -> None:
+    """The one excluded field must genuinely not move the key."""
+
+    assert _candidate(snr_db=-8.0).feasibility_key() == _candidate(
+        snr_db=18.0
+    ).feasibility_key()
+    assert set(FEASIBILITY_KEY_EXCLUSIONS) == {"snr_db"}
+
+
+def test_cached_and_uncached_paths_return_identical_results() -> None:
+    cache = FeasibilityCache()
+    probe = _CountingProbe()
+    first = cache.feasibility(_candidate(), probe)
+    second = cache.feasibility(_candidate(), probe)
+    assert first == second
+    assert len(probe.calls) == 1, "the second call must be served from the cache"
+    assert (cache.misses, cache.hits) == (1, 1)
+
+
+def test_the_cache_is_keyed_on_configuration_not_on_snr() -> None:
+    cache = FeasibilityCache()
+    probe = _CountingProbe()
+    cache.feasibility(_candidate(snr_db=-8.0), probe)
+    cache.feasibility(_candidate(snr_db=18.0), probe)
+    assert len(probe.calls) == 1
+    assert len(cache) == 1
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("dataset", "stl10"),
+        ("ratio", "r_1_12"),
+        ("modulation", "qam16"),
+        ("ldpc_rate", "2/3"),
+        ("encode_axis_px", 128),
+    ],
+)
+def test_no_cross_configuration_cache_collision(field: str, value: object) -> None:
+    """A different configuration must never reuse another's cached verdict."""
+
+    cache = FeasibilityCache()
+    probe = _CountingProbe()
+    first = cache.feasibility(_candidate(), probe)
+    second = cache.feasibility(_candidate(**{field: value}), probe)
+    assert len(probe.calls) == 2, f"{field} collided with the base configuration"
+    assert len(cache) == 2
+    assert first.code_blocks != second.code_blocks
+
+
+def test_the_cache_refuses_a_probe_that_does_not_return_a_feasibility() -> None:
+    cache = FeasibilityCache()
+    with pytest.raises(CompositionError, match="must return a Feasibility"):
+        cache.feasibility(_candidate(), lambda candidate: True)
+
+
+def test_the_cache_refuses_anything_that_is_not_a_candidate() -> None:
+    cache = FeasibilityCache()
+    with pytest.raises(CompositionError, match="takes a Candidate"):
+        cache.feasibility(("imagenette160", "r_1_6"), _CountingProbe())
+
+
+def _evaluation(
+    accuracy_correct: int, blers: list[float], **overrides: object
+) -> CandidateEvaluation:
+    return CandidateEvaluation(
+        candidate=_candidate(**overrides),
+        status=ELIGIBLE,
+        composition=compose(
+            blers,
+            codec_accuracy=_codec(correct=accuracy_correct),
+            outage_accuracy=_outage(),
+        ),
+    )
+
+
+def test_selection_takes_the_highest_expected_accuracy() -> None:
+    worse = _evaluation(800, [0.01], modulation="bpsk")
+    better = _evaluation(900, [0.01], modulation="qam16")
+    selection = select_best([worse, better])
+    assert selection.selected is better
+    assert selection.tie_break_applied is False
+    assert selection.counts()[ELIGIBLE] == 2
+
+
+def test_selection_is_independent_of_enumeration_order() -> None:
+    evaluations = [
+        _evaluation(870, [0.01], modulation="bpsk"),
+        _evaluation(870, [0.01], modulation="qpsk"),
+        _evaluation(870, [0.01], modulation="qam16"),
+        _evaluation(870, [0.02], modulation="qpsk", encode_axis_px=128),
+    ]
+    chosen = {
+        select_best(list(order)).selected.candidate  # type: ignore[union-attr]
+        for order in itertools.permutations(evaluations)
+    }
+    assert len(chosen) == 1
+
+
+def test_tie_breaking_follows_the_documented_order() -> None:
+    """Exactly-equal expected accuracies resolve by the published key."""
+
+    assert TIE_BREAK_ORDER[0] == "expected_accuracy_descending"
+    # Identical composition, three modulations: lower Qm wins (more robust).
+    tied = [
+        _evaluation(870, [0.01], modulation="qam16"),
+        _evaluation(870, [0.01], modulation="qpsk"),
+        _evaluation(870, [0.01], modulation="bpsk"),
+    ]
+    selection = select_best(tied)
+    assert selection.selected.candidate.modulation == "bpsk"  # type: ignore[union-attr]
+    assert selection.tie_break_applied is True
+    assert len(selection.tied) == 3
+
+
+def test_tie_breaking_prefers_the_stronger_channel_code_then_the_larger_axis() -> None:
+    tied_rate = [
+        _evaluation(870, [0.01], ldpc_rate="5/6"),
+        _evaluation(870, [0.01], ldpc_rate="1/3"),
+    ]
+    assert select_best(tied_rate).selected.candidate.ldpc_rate == "1/3"  # type: ignore[union-attr]
+
+    tied_axis = [
+        _evaluation(870, [0.01], encode_axis_px=96),
+        _evaluation(870, [0.01], encode_axis_px=160),
+    ]
+    assert select_best(tied_axis).selected.candidate.encode_axis_px == 160  # type: ignore[union-attr]
+
+
+def test_tie_breaking_is_total_and_therefore_deterministic() -> None:
+    """Two candidates differing only in the last key still resolve."""
+
+    tied = [
+        _evaluation(870, [0.01], dataset="stl10"),
+        _evaluation(870, [0.01], dataset="imagenette160"),
+    ]
+    first = select_best(tied).selected
+    second = select_best(list(reversed(tied))).selected
+    assert first is not None and second is not None
+    assert first.candidate == second.candidate
+    assert first.candidate.dataset == "imagenette160"  # canonical-id order
+
+
+def test_tie_breaking_prefers_the_more_reliable_link_before_the_configuration() -> None:
+    """Equal expected accuracy, different P(TB success): the reliable one wins."""
+
+    # acc_clean = acc_outage makes expected accuracy independent of P.
+    flat = MeasuredCodecAccuracy(
+        correct=100, total=1000, split="val", source="flat fixture"
+    )
+    reliable = CandidateEvaluation(
+        candidate=_candidate(modulation="qam16"),
+        status=ELIGIBLE,
+        composition=compose([0.0], codec_accuracy=flat, outage_accuracy=_outage()),
+    )
+    fragile = CandidateEvaluation(
+        candidate=_candidate(modulation="bpsk"),
+        status=ELIGIBLE,
+        composition=compose([0.5], codec_accuracy=flat, outage_accuracy=_outage()),
+    )
+    selection = select_best([fragile, reliable])
+    assert selection.selected is reliable
+    assert selection.selected.composition.success_probability == 1.0  # type: ignore[union-attr]
+
+
+def test_an_uncharacterized_candidate_is_ineligible_not_low_scoring() -> None:
+    eligible = _evaluation(500, [0.5])
+    unknown = CandidateEvaluation(
+        candidate=_candidate(modulation="qam16"),
+        status=UNCHARACTERIZED,
+        reason="identity_not_characterized",
+    )
+    selection = select_best([unknown, eligible])
+    assert selection.selected is eligible
+    assert selection.counts()[UNCHARACTERIZED] == 1
+    assert unknown not in selection.eligible
+    assert unknown.expected_accuracy is None
+
+
+def test_an_infeasible_candidate_is_ineligible_and_recorded() -> None:
+    infeasible = CandidateEvaluation(
+        candidate=_candidate(ratio="r_1_48"),
+        status=INFEASIBLE,
+        reason="structural_infeasibility",
+    )
+    selection = select_best([infeasible, _evaluation(870, [0.01])])
+    assert selection.counts()[INFEASIBLE] == 1
+    assert selection.selected is not None
+    assert selection.selected.status == ELIGIBLE
+
+
+def test_no_eligible_candidate_is_stated_explicitly_never_guessed() -> None:
+    selection = select_best(
+        [
+            CandidateEvaluation(_candidate(), UNCHARACTERIZED, reason="x"),
+            CandidateEvaluation(_candidate(ratio="r_1_48"), INFEASIBLE, reason="y"),
+        ]
+    )
+    assert selection.selected is None
+    assert selection.reason == "no_eligible_candidate"
+    assert selection.tie_break_applied is False
+
+
+def test_selection_records_are_machine_readable_and_carry_the_tie_rule() -> None:
+    selection = select_best([_evaluation(870, [0.01])])
+    record = selection.as_record()
+    assert record["tie_break_order"] == list(TIE_BREAK_ORDER)
+    assert record["counts"][ELIGIBLE] == 1
+    assert json.dumps(record)
