@@ -47,7 +47,7 @@ Then:
 **Current phase:** PB_2C — corrective repair in progress
 **Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
 **Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
-**Last durable checkpoint:** `<the C2.4 commit>`
+**Last durable checkpoint:** `48a3973377c06037606e9387b85dc9994727cc90`
 **Next action:** C2.5 — finalise `smoke_rows.jsonl` atomically, add verifier identity/byte/timing/preflight recomputation, and complete the 26 mutation classes
 
 **PB_2 is under corrective repair.** `instructions/PB_2C.txt` is the durable superseding instruction
@@ -319,7 +319,7 @@ runner-ready and final green SHAs). Read §18 before C2.1.
 | C2.2 repair per-cell RunConfig provenance | done | Four per-group strict experiment files replace the single `classical-baseline-w4-smoke.yaml`; `modulation`, `ldpc_rate` and `encode_axis_px` moved from plan-only keys into `choices`, so they land inside the fingerprint. `_validate_named_choices` narrowly extended to reject an unconfigured modulation, LDPC rate or encode axis. Runner resolves one `RunConfig` per cell via the ordinary `load_experiment`/`config_hash` pair, cross-checks each resolved selection against its plan row, archives `results/baseline/w4/run_configs/<config_hash>.json` and writes `resolved_config.json` as a schema-2 execution index. `_identity_for` now reads the row's own `train_seed` instead of the Imagenette group's. **829 passed** |
 | C2.3 repair scheduled noise and pair identities | done | `per_image_row` now takes a required `scheduled_noise_id` and carries it in both `noise_id` and `pair_id` for all four verdicts; `RunIdentity.pair_id` refuses a null identity outright. A transmitted row's realised `ChannelIdentity.noise_id` is **asserted equal** to the schedule rather than assumed. Raw rows carry `scheduled_noise_id`, `actual_noise_id` and `noise_consumed` as three separate fields per §18.3. Field semantics for `noise_id` rewritten: it is no longer nullable. **848 passed** |
 | C2.4 repair JPEG-2000 accounting and runner timing | done | `_PSOT_OFFSET` 4 → 6 with SOT-segment-length, Psot-range and boundary validation; six known-answer parser fixtures; BR-11 columns aggregated over every emitted codestream; the row timer now wraps the whole row path and is stamped last; the summary total is the sum of durable row timings; `assert_j2k_runtime()` runs before `evidence_dir.mkdir`. **863 passed** |
-| C2.5 harden the W4 verifier and mutation coverage | not-started | |
+| C2.5 harden the W4 verifier and mutation coverage | in-progress | Atomic `smoke_rows.jsonl` finalisation in worklist order; verifier recomputation of scheduled `noise_id`, `pair_id`, `analysis_cell_id` and `run_id` per row; byte/denominator recomputation from the raw rows; timing and preflight checks; all 26 mutation classes |
 | C2.6 create the clean runner-ready source checkpoint | not-started | |
 | C2.7 regenerate bounded PB_2 evidence | not-started | |
 | C2.8 documentation and complete verification | not-started | |
