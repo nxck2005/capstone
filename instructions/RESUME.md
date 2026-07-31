@@ -47,7 +47,7 @@ Then:
 **Current phase:** PB_2C — corrective repair in progress
 **Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
 **Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
-**Last durable checkpoint:** `<the C2.7 evidence commit>`
+**Last durable checkpoint:** `4c1642c9cf15d681a8de65d13a9fc1414c188b66`
 **Next action:** C2.8 — append the PB_2C worklog section, reconcile `NEXT.md`/`AGENTS.md`/`README.md`, then run all 17 verification commands separately
 
 **PB_2 is under corrective repair.** `instructions/PB_2C.txt` is the durable superseding instruction
@@ -322,7 +322,7 @@ runner-ready and final green SHAs). Read §18 before C2.1.
 | C2.5 harden the W4 verifier and mutation coverage | done | Runner finalises `smoke_rows.jsonl` atomically in worklist order and removes the partial; the verifier gained `check_raw_rows`, `check_identities` and `check_byte_accounting`, recomputing `noise_id`, `pair_id`, `analysis_cell_id` and `run_id` per row, the BR-11 means and denominators from the raw codestreams, and the timing/preflight facts. `per_image.csv` is now the independent witness that no raw row was dropped. **All 26 required mutation classes covered; 885 passed** |
 | C2.6 create the clean runner-ready source checkpoint | done | All amendments, spec views, implementation, tests, verifier changes, configs and the execution plan complete and pushed; `git diff --check` and `git status --short` clean. **Two designations:** `f510cd7268356918c52ee0230b6d410e635bfae5` was designated first, then superseded once BR-11's long-outstanding archived overhead table — required by BR-11's verify clause and absent since the requirement was written — was implemented as `results/baseline/w4/overhead_table.json` with its scope declarations and seven verifier mutations. Per the §18.6 addendum no empty commit was made; the runner-ready SHA is the later commit, recorded in the C2.7 rows. **892 passed** |
 | C2.7 regenerate bounded PB_2 evidence | done | 55 rows in 50.0 s from a clean tree at `76e789c9f3d036427d5c1fe83bd95a61d655c5f0`, fresh cache namespace. Crash-resume drill passed first. `gen_w4_source_manifest.py --check` ok (**40 sources**) and `verify_w4_baseline_integration.py` **PASS**. **Every scientific outcome is unchanged**; only provenance, identity, the decode-failure byte columns and the now-complete timings moved. One rerun was needed and the tooling was right to force it: the first attempt ran from a tree the resume drill had dirtied, and the verifier refused the evidence for `git_dirty` rather than accepting it |
-| C2.8 documentation and complete verification | not-started | |
+| C2.8 documentation and complete verification | in-progress | Worklog PB_2C section; `NEXT.md`/`AGENTS.md`/`README.md` reconciled to PB_2 corrected and PB_3 ready; then all 17 verification commands run separately |
 | C2.9 final corrective green handoff | not-started | |
 
 ### PB_2C observed facts
