@@ -13,7 +13,7 @@ import torch
 import baseline.classical.records as records
 from artifacts.ids import make_noise_id
 from baseline.classical.channel_transport import build_accounting
-from baseline.classical.outage import load_outage_policy
+from baseline.classical.outage import NOT_APPLICABLE, load_outage_policy
 from baseline.classical.pipeline import (
     CODEC_INFEASIBILITY,
     DECODE_FAILURE,
@@ -121,6 +121,22 @@ def _canonical() -> np.ndarray:
         ),
         axis=-1,
     )
+
+
+def _scheduled(sample_id: str = "0" * 16, **overrides) -> str:
+    """The cell's scheduled channel realisation, drawn from nothing."""
+
+    values = {
+        "dataset_version": get(f"datasets.{DATASET}.archive_sha256"),
+        "split_manifest_hash": get(f"datasets.{DATASET}.manifest_sha256"),
+        "stable_sample_id": sample_id,
+        "test_snr_db": SNR_DB,
+        "channel_seed": get("evaluation.channel_seeds")[0],
+        "k": K_SYMBOLS,
+        "block_index": 0,
+    }
+    values.update(overrides)
+    return noise_identity(**values)
 
 
 def _result(
@@ -247,6 +263,7 @@ def test_per_image_schema_mutations_are_rejected(mutate, policy, accounting) -> 
         identity=_identity(),
         true_label=0,
         run_id="r" * 64,
+        scheduled_noise_id=_scheduled(),
     )
     with pytest.raises(RecordError):
         validate_row(mutate(row), per_image_schema())
@@ -381,6 +398,7 @@ def test_row_order_and_batching_change_no_identity(policy, accounting) -> None:
                 identity=identity,
                 true_label=0,
                 run_id="r" * 64,
+                scheduled_noise_id=_scheduled(sample),
             )
             for sample in order
         }
@@ -546,7 +564,12 @@ def _rows_and_context(policy, accounting, verdicts, labels, run_id="r" * 64):
             ssim.append(1.0)
         rows.append(
             per_image_row(
-                result, outcome, identity=identity, true_label=label, run_id=run_id
+                result,
+                outcome,
+                identity=identity,
+                true_label=label,
+                run_id=run_id,
+                scheduled_noise_id=_scheduled(result.stable_sample_id),
             )
         )
     context = AggregateContext(
@@ -703,3 +726,151 @@ def test_a_delivered_row_may_not_carry_an_outage_reason(policy, accounting) -> N
     bad = [dict(rows[0]) | {"outage_reason": DECODE_FAILURE}]
     with pytest.raises(RecordError, match="delivered row carries an outage reason"):
         aggregate_row(bad, context, run_id="r" * 64, psnr_values=[1.0], ssim_values=[1.0])
+
+
+# ---------------------------------------------------------------------------
+# Scheduled noise and cross-system pairing (PB_2C/C2.3)
+#
+# A row's channel realisation is scheduled by the evaluation cell, not by
+# whether that system got as far as transmitting. PB_2 recorded a null
+# `noise_id` on infeasible rows and built `pair_id` from it, so an infeasible
+# classical row could never pair with a transmitting comparison arm — which
+# silently removes exactly the images where the two systems differ most.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "verdict",
+    [DELIVERED, DECODE_FAILURE, CODEC_INFEASIBILITY, STRUCTURAL_INFEASIBILITY],
+)
+def test_every_verdict_carries_the_scheduled_noise_identity(
+    verdict: str, policy, accounting
+) -> None:
+    result = _result(verdict, accounting=accounting)
+    row = per_image_row(
+        result,
+        TaskOutcome(0, True, verdict != DELIVERED,
+                    NOT_APPLICABLE if verdict == DELIVERED else verdict,
+                    None, None, None, None),
+        identity=_identity(),
+        true_label=0,
+        run_id="r" * 64,
+        scheduled_noise_id=_scheduled(),
+    )
+    assert row["noise_id"] == _scheduled()
+    assert row["noise_id"] is not None
+
+
+@pytest.mark.parametrize(
+    "classical_verdict", [STRUCTURAL_INFEASIBILITY, CODEC_INFEASIBILITY]
+)
+def test_an_infeasible_row_pairs_with_a_transmitting_comparison_arm(
+    classical_verdict: str, policy, accounting
+) -> None:
+    """The point of the repair, stated as the comparison it makes possible."""
+
+    scheduled = _scheduled()
+    classical = per_image_row(
+        _result(classical_verdict, accounting=accounting),
+        TaskOutcome(0, True, True, classical_verdict, None, None, None, None),
+        identity=_identity(system="classical_fixed_mcs"),
+        true_label=0,
+        run_id="c" * 64,
+        scheduled_noise_id=scheduled,
+    )
+    # The other arm transmitted on the same image, ratio, SNR and realisation.
+    learned = per_image_row(
+        _result(DELIVERED, accounting=accounting),
+        TaskOutcome(0, True, False, NOT_APPLICABLE, 30.0, 0.9, 157, 900),
+        identity=_identity(system="learned"),
+        true_label=0,
+        run_id="l" * 64,
+        scheduled_noise_id=scheduled,
+    )
+    assert classical["pair_id"] == learned["pair_id"]
+    assert classical["noise_id"] == learned["noise_id"] == scheduled
+    assert classical["run_id"] != learned["run_id"]
+
+
+def test_an_infeasible_row_consumes_no_random_draw(policy, accounting) -> None:
+    """The identity is a content address, so scheduling it draws nothing."""
+
+    result = _result(STRUCTURAL_INFEASIBILITY, accounting=accounting)
+    assert result.noise_id is None
+    row = per_image_row(
+        result,
+        TaskOutcome(0, True, True, STRUCTURAL_INFEASIBILITY, None, None, None, None),
+        identity=_identity(),
+        true_label=0,
+        run_id="r" * 64,
+        scheduled_noise_id=_scheduled(),
+    )
+    assert row["noise_id"] == _scheduled()
+
+
+def test_a_transmitted_row_reconciles_its_realised_and_scheduled_identity(
+    policy, accounting
+) -> None:
+    result = _result(DELIVERED, accounting=accounting)
+    assert result.noise_id == _scheduled()
+    row = per_image_row(
+        result,
+        TaskOutcome(0, True, False, NOT_APPLICABLE, 30.0, 0.9, 157, 900),
+        identity=_identity(),
+        true_label=0,
+        run_id="r" * 64,
+        scheduled_noise_id=_scheduled(),
+    )
+    assert row["noise_id"] == result.noise_id
+
+
+def test_a_realised_identity_that_differs_from_the_schedule_is_rejected(
+    policy, accounting
+) -> None:
+    """A divergence would mean the pairing describes a draw that never happened."""
+
+    with pytest.raises(RecordError, match="does not match the scheduled one"):
+        per_image_row(
+            _result(DELIVERED, accounting=accounting),
+            TaskOutcome(0, True, False, NOT_APPLICABLE, 30.0, 0.9, 157, 900),
+            identity=_identity(),
+            true_label=0,
+            run_id="r" * 64,
+            scheduled_noise_id=_scheduled(sample_id="f" * 16),
+        )
+
+
+@pytest.mark.parametrize("missing", [None, ""])
+def test_a_missing_scheduled_identity_is_rejected(missing, policy, accounting) -> None:
+    with pytest.raises(RecordError, match="needs its scheduled noise identity"):
+        per_image_row(
+            _result(STRUCTURAL_INFEASIBILITY, accounting=accounting),
+            TaskOutcome(0, True, True, STRUCTURAL_INFEASIBILITY, None, None, None, None),
+            identity=_identity(),
+            true_label=0,
+            run_id="r" * 64,
+            scheduled_noise_id=missing,
+        )
+
+
+def test_a_pair_id_built_from_a_null_noise_identity_is_rejected() -> None:
+    """The PB_2 mutation, refused at the seam that used to allow it."""
+
+    with pytest.raises(RecordError, match="scheduled noise identity"):
+        _identity().pair_id(stable_sample_id="0" * 16, noise_id=None)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("k", K_SYMBOLS + 1),
+        ("test_snr_db", SNR_DB + 1.0),
+        ("stable_sample_id", "f" * 16),
+        ("channel_seed", get("evaluation.channel_seeds")[1]),
+        ("split_manifest_hash", "0" * 64),
+        ("block_index", 1),
+        ("dataset_version", "0" * 64),
+    ],
+)
+def test_the_scheduled_identity_moves_with_every_keyed_field(field, value) -> None:
+    assert _scheduled(**{field: value}) != _scheduled()

@@ -61,6 +61,7 @@ from baseline.classical.records import (  # noqa: E402
     AggregateContext,
     codestream_byte_split,
     RunIdentity,
+    noise_identity,
     aggregate_row,
     aggregate_schema,
     field_semantics,
@@ -438,6 +439,18 @@ def run_row(
         channel_seed=item["channel_seed"],
     )
     k_symbols = get(f"bandwidth.k_symbols.{dataset}.{item['bw_ratio']}")
+    # Scheduled by the evaluation cell, not by whether the row got to transmit.
+    # Computing it draws nothing: it is a content address over the cell, so an
+    # infeasible row and a transmitting comparison arm agree on it.
+    scheduled_noise_id = noise_identity(
+        dataset_version=identity.dataset_version,
+        split_manifest_hash=identity.split_manifest_hash,
+        stable_sample_id=item["stable_sample_id"],
+        test_snr_db=item["test_snr_db"],
+        channel_seed=item["channel_seed"],
+        k=k_symbols,
+        block_index=item["block_index"],
+    )
     started = time.perf_counter()
     result = run_classical_pipeline(
         product,
@@ -463,6 +476,13 @@ def run_row(
         "summary": result.summary(),
         "k_symbols": k_symbols,
         "config_hash": run_config_hash,
+        # Three separate facts, deliberately not collapsed into one field: what
+        # the cell scheduled, what the channel actually drew, and whether a draw
+        # happened at all. An infeasible row keeps the first and honestly
+        # reports the other two as absent.
+        "scheduled_noise_id": scheduled_noise_id,
+        "actual_noise_id": result.noise_id,
+        "noise_consumed": result.noise_id is not None,
     }
     if result.source_coding is not None:
         record["source_coding"] = {
@@ -521,6 +541,7 @@ def run_row(
         identity=identity,
         true_label=item["true_label"],
         run_id=identity.run_id(),
+        scheduled_noise_id=scheduled_noise_id,
     )
     record["per_image"] = row
     record["task"] = {

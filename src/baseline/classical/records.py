@@ -248,7 +248,7 @@ AGGREGATE_FIELD_SEMANTICS: dict[str, dict[str, Any]] = {
 PER_IMAGE_FIELD_SEMANTICS: dict[str, dict[str, Any]] = {
     "run_id": _semantics("identical to the aggregate run_id", "sha256 hex", None),
     "pair_id": _semantics("make_pair_id; excludes system and comparison", "sha256 hex", None),
-    "noise_id": _semantics("ChannelIdentity.noise_id from PB_1; null when nothing was transmitted", "sha256 hex", None, nullable=True, na=_NULL),
+    "noise_id": _semantics("the scheduled channel realisation for this evaluation cell, from make_noise_id; present on every row including outages, and equal to PB_1's realised ChannelIdentity.noise_id whenever the row transmitted", "sha256 hex", None),
     "analysis_cell_id": _semantics("make_analysis_cell_id over [train_seed, channel_seed]", "sha256 hex", None),
     "dataset": _semantics("configured dataset name", "enum", None),
     "dataset_version": _semantics("params.datasets[dataset].archive_sha256", "sha256 hex", None),
@@ -463,8 +463,14 @@ class RunIdentity:
             {"train_seed": self.train_seed, "channel_seed": self.channel_seed}
         )
 
-    def pair_id(self, *, stable_sample_id: str, noise_id: str | None) -> str:
+    def pair_id(self, *, stable_sample_id: str, noise_id: str) -> str:
         """System-independent pairing identity.
+
+        ``noise_id`` here is the **scheduled** channel realisation for the cell,
+        never the optional transport result.  A row that never transmitted still
+        has a scheduled realisation, and if it paired on ``None`` it could not
+        share a ``pair_id`` with a comparison arm that did transmit — which is
+        exactly the paired comparison ER-10 exists to make.
 
         ``params.artifacts.pair_id_excludes`` names ``system`` and
         ``comparison``, and ``make_pair_id`` asserts neither appears in the key,
@@ -472,6 +478,11 @@ class RunIdentity:
         joins across arms.
         """
 
+        if not isinstance(noise_id, str) or not noise_id:
+            raise RecordError(
+                "pair_id needs the scheduled noise identity; a row that did not "
+                "transmit still has one"
+            )
         return make_pair_id(
             {
                 "analysis_cell_id": self.analysis_cell_id(),
@@ -643,9 +654,26 @@ def per_image_row(
     identity: RunIdentity,
     true_label: int,
     run_id: str,
+    scheduled_noise_id: str,
 ) -> dict[str, Any]:
-    """Build one schema-exact per-image row."""
+    """Build one schema-exact per-image row.
 
+    ``scheduled_noise_id`` is the channel realisation the *evaluation cell*
+    schedules for this row, computed without drawing anything.  It is required,
+    and it is what both ``noise_id`` and ``pair_id`` carry, for all four
+    verdicts.  When the row really did transmit, PB_1's realised identity must
+    equal it — asserted here rather than assumed, because a silent divergence
+    would mean the recorded pairing describes a different draw than the one the
+    channel actually made.
+    """
+
+    if not isinstance(scheduled_noise_id, str) or not scheduled_noise_id:
+        raise RecordError("every row needs its scheduled noise identity")
+    if result.noise_id is not None and result.noise_id != scheduled_noise_id:
+        raise RecordError(
+            "the realised noise identity does not match the scheduled one: "
+            f"{result.noise_id} != {scheduled_noise_id}"
+        )
     if result.accounting is None:
         source_bytes = None
     else:
@@ -653,9 +681,10 @@ def per_image_row(
     row = {
         "run_id": run_id,
         "pair_id": identity.pair_id(
-            stable_sample_id=result.stable_sample_id, noise_id=result.noise_id
+            stable_sample_id=result.stable_sample_id,
+            noise_id=scheduled_noise_id,
         ),
-        "noise_id": result.noise_id,
+        "noise_id": scheduled_noise_id,
         "analysis_cell_id": identity.analysis_cell_id(),
         "dataset": identity.dataset,
         "dataset_version": identity.dataset_version,
