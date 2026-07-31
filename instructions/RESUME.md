@@ -1,4 +1,4 @@
-# Resume ledger — PA / PB_1 / PB_2 / PB_3
+# Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3
 
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
@@ -44,10 +44,16 @@ Then:
 
 ## Status
 
-**Current phase:** PB_3 — not started
-**Last green commit:** this `fix(classical): close PB_2 provenance and accounting corrections` commit — the PB_2C corrective green. The provisional PB_2 green `50de80364c2546463918387a8f335ea36107bde0` is **invalidated**; the corrected bounded evidence was regenerated at `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at `4c1642c9cf15d681a8de65d13a9fc1414c188b66`
-**Last durable checkpoint:** this commit
-**Next action:** run `instructions/PB_3.txt` from B3.0
+**Current phase:** PRE_B3 — handoff hardening in progress
+**Last green commit:** `3324393a3e1692478bba8cf1020708bf52947f6d` — the PB_2C corrective green
+(`fix(classical): close PB_2 provenance and accounting corrections`). The provisional PB_2 green
+`50de80364c2546463918387a8f335ea36107bde0` is **invalidated**; the corrected bounded evidence was
+regenerated at `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
+`4c1642c9cf15d681a8de65d13a9fc1414c188b66`. **PB_2C remains the most recent scientific-evidence
+green; PRE_B3 produces a repository-process green only.**
+**Last durable checkpoint:** this `wip(pre-b3): open handoff hardening ledger` commit
+**Next action:** H3.1 — edit `instructions/PB_3.txt` so the B3.9 finalization order completes every
+tracked handoff file *before* the verification block and the green commit
 
 **PB_2 is complete, including its PB_2C correction.** `instructions/PB_2C.txt` is the durable
 instruction for that repair and its §18 addendum carries two normative decisions and four
@@ -425,6 +431,24 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | final handoff HEAD | this commit; local HEAD = `origin/main` = remote main, worktree clean. No pushed WIP commit was amended, rebased, squashed or force-pushed | C2.9 | yes |
 | CI / status checks (final) | **still none** — `check-runs` `total_count: 0`. No commit in this repository has been CI-validated; the 17-command verification block was run locally at C2.8 | C2.9 | yes |
 | prohibited work confirmed not done | no PB_3 implementation, no BR-4 composition, no full validation sweep, no configuration or ratio selection, no G-8 resolution, no training or fine-tuning, no λ calibration, no ER-9, no test-split access, the frozen G-1 checkpoint untouched, G-7 not rerun, the transparency campaign not rerun, the G-2 BLER campaign not rerun, no manifest regenerated to conceal drift, no stale pre-amendment evidence retained as current, no mutation test weakened and no result hash hardcoded | C2.9 | yes |
+
+## PRE_B3 — PB_3 handoff and consistency hardening
+
+Driven by `instructions/PRE_B3.txt` (committed at H3.0 — resume from that file plus this ledger, never
+from chat context). A **repository-process** patch only: it corrects `instructions/PB_3.txt`'s
+finalization order, reconciles stale live status wording, and hardens
+`tools/check_doc_consistency.py`. It changes no requirement, parameter, evidence, identity or
+measurement, and adds no amendment. PB_2C remains the most recent scientific-evidence green.
+
+| Step | State | Notes |
+|---|---|---|
+| H3.0 establish state and open ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `3324393a3e1692478bba8cf1020708bf52947f6d`; **892 passed, 0 failed, 0 skipped in 96.52s**; `check_doc_consistency -v` ok (11 current docs, 1 historical plan excluded, 190 reqs / 82 AMs, NEXT.md phase agreement "frontier W4, 8 completed subjects, 727 live lines" — **this is exactly the blind spot**: the frontier token is the coarse `W4`, so PB_3-vs-PB_2 contradictions are invisible); `gen_spec_views --check` ok (190 requirements, 2 retired, 10 generated files up to date); `verify_w4_baseline_integration` **PASS** (`execution=76e789c9f3d0, sources=40, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), raw_rows=55 (emitted=53), openjpeg=2.5.4, overhead_cells=3, test_split_access=0`); **PB_3 has not started** (`src/baseline/classical/composition.py` absent; all ten B3.x rows `not-started`); no CI/status checks exist (`check-runs` total_count 0); `instructions/PRE_B3.txt` created with the approved §11 addendum |
+| H3.1 correct PB_3 finalization order | not-started | |
+| H3.2 reconcile stale live status text | not-started | |
+| H3.3 harden document-consistency checks | not-started | |
+| H3.4 verify, commit and hand off to PB_3 | not-started | |
+
+---
 
 ## PB_3 — BR-4 selection infrastructure + W4 adjudication
 

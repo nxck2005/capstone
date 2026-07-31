@@ -1,0 +1,773 @@
+# PRE_B3 — Harden PB_3 Finalization and Repository Handoff Consistency
+
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
+Interpreter: always `.venv/bin/python`
+
+Expected starting HEAD:
+
+```text
+3324393a3e1692478bba8cf1020708bf52947f6d
+```
+
+Current accepted status:
+
+```text
+PB_2 CORRECTED AND GREEN — PB_3 NOT STARTED
+```
+
+This is a small repository-consistency patch before the larger PB_3 phase.
+
+Do not begin PB_3 implementation.
+
+Do not create `src/baseline/classical/composition.py`.
+
+Do not run the BR-4 sweep, open G-8, select operating points, train models, calibrate lambda, implement ER-9, access the test split, or regenerate PB_2 evidence.
+
+---
+
+# 1. Objective
+
+Correct three pre-PB_3 issues:
+
+1. `instructions/PB_3.txt` currently places some handoff-document edits after the final verification and green commit, which can leave HEAD different from the tree that was actually verified.
+
+2. `NEXT.md` contains stale lower-page live wording that still says PB_2 is next even though its authoritative top section correctly says PB_3 is next.
+
+3. `tools/check_doc_consistency.py` does not currently reject that exact contradiction.
+
+This phase changes process instructions and consistency verification only.
+
+It does not change scientific requirements, parameters, evidence, identities, or measurements.
+
+No specification amendment is expected.
+
+---
+
+# 2. Durable execution and exit hardening
+
+Assume the session may end abruptly.
+
+## 2.1 Save this instruction
+
+Create:
+
+```text
+instructions/PRE_B3.txt
+```
+
+containing this full instruction.
+
+Commit and push it before substantial edits.
+
+## 2.2 Add a durable ledger section
+
+Append to `instructions/RESUME.md`:
+
+```markdown
+## PRE_B3 — PB_3 handoff and consistency hardening
+
+| Step | State | Notes |
+|---|---|---|
+| H3.0 establish state and open ledger | not-started | |
+| H3.1 correct PB_3 finalization order | not-started | |
+| H3.2 reconcile stale live status text | not-started | |
+| H3.3 harden document-consistency checks | not-started | |
+| H3.4 verify, commit and hand off to PB_3 | not-started | |
+```
+
+Allowed states:
+
+```text
+not-started
+in-progress
+done
+```
+
+Update the status header during this patch to:
+
+```markdown
+**Current phase:** PRE_B3 — handoff hardening in progress
+**Last green commit:** `3324393a3e1692478bba8cf1020708bf52947f6d`
+**Last durable checkpoint:** `<latest pushed PRE_B3 SHA>`
+**Next action:** `<one exact next command or edit>`
+```
+
+Do not invalidate PB_2C. It remains green.
+
+## 2.3 Checkpoint discipline
+
+Before each H3.x step:
+
+1. mark it `in-progress`;
+2. record the exact next action;
+3. commit and push the ledger marker if the step is multi-file.
+
+After each step:
+
+1. run its targeted tests;
+2. mark it `done`;
+3. record files and results;
+4. commit and push.
+
+Do not amend, squash, rebase, or force-push.
+
+Do not leave a dirty unpushed worktree as the only continuation state.
+
+Suggested commits:
+
+```text
+wip(pre-b3): open handoff hardening ledger
+wip(pre-b3): correct PB_3 finalization sequence
+wip(pre-b3): reconcile live repository status
+test(pre-b3): reject stale engineering frontier text
+docs(handoff): mark PB_3 ready after preflight hardening
+```
+
+---
+
+# 3. Cold-start protocol
+
+On every fresh or resumed session, read:
+
+1. `instructions/RESUME.md`
+2. `instructions/PRE_B3.txt`
+3. `AGENTS.md`
+4. `NEXT.md`
+5. `instructions/PB_3.txt`
+6. `worklogs/w4-classical-baseline-progress.md`
+7. `spec/SPEC.md`
+
+Then run:
+
+```bash
+cd /home/nick/projects/capstone
+
+git status --short
+git log -12 --oneline
+git rev-parse HEAD
+git fetch origin
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Rules:
+
+* Expected clean starting HEAD is `3324393a3e1692478bba8cf1020708bf52947f6d`.
+* If HEAD has advanced, inspect the new commits before proceeding.
+* If the worktree is dirty, inspect all changes and resume the `in-progress` row.
+* Do not discard unknown work.
+* Do not begin PB_3 merely because a previous row appears complete; finish this patch first.
+
+---
+
+# 4. H3.0 — Establish state and open the ledger
+
+Run:
+
+```bash
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/verify_w4_baseline_integration.py
+.venv/bin/python -m pytest
+```
+
+Record:
+
+* local, origin and remote SHAs;
+* worktree state;
+* test count;
+* current document-consistency result;
+* current W4 verifier result;
+* confirmation that PB_3 has not started;
+* confirmation that no CI/status checks exist, if still true.
+
+Create `instructions/PRE_B3.txt`.
+
+Open the PRE_B3 ledger.
+
+## CHECKPOINT H3.0
+
+Commit and push:
+
+```text
+wip(pre-b3): open handoff hardening ledger
+```
+
+---
+
+# 5. H3.1 — Correct `instructions/PB_3.txt`
+
+Edit `instructions/PB_3.txt` so the finalization sequence cannot produce an unverified HEAD.
+
+## 5.1 Required B3.9 order
+
+The final PB_3 sequence must be:
+
+```text
+1. Complete all implementation, tests, evidence, worklog, NEXT.md,
+   RESUME.md, README.md and AGENTS.md changes.
+
+2. Ensure every tracked handoff and status file already describes the
+   intended post-PB_3 state.
+
+3. Run the complete final verification block against that exact complete tree.
+
+4. If verification passes, commit the verified tree:
+   feat(classical): add BR-4 selection infrastructure and W4 adjudication
+
+5. Push and confirm local HEAD = origin/main = remote main.
+
+6. Treat that commit as the PB_3 implementation/evidence green SHA.
+
+7. Do not make further tracked changes after the verified green commit.
+
+8. If a genuinely necessary documentation-only correction is discovered
+   after the green commit:
+   - make a separate documentation commit;
+   - rerun all documentation, generated-view, literal and static checks;
+   - record the implementation green SHA and final handoff HEAD separately;
+   - do not call the earlier SHA the final HEAD;
+   - do not create an empty commit.
+```
+
+## 5.2 Remove unsafe wording
+
+Remove or rewrite instructions that say, in effect:
+
+* create the green commit first;
+* then rewrite `NEXT.md`;
+* then close `RESUME.md`;
+* then push those later changes.
+
+All tracked files that define the handoff must be complete before the full verification and green commit.
+
+## 5.3 Self-reference rule
+
+Do not instruct the PB_3 agent to place the yet-unknown SHA literally inside the commit that creates that SHA.
+
+Use the repository's established non-self-referential convention:
+
+```text
+**Last green commit:** this `feat(classical): add BR-4 selection infrastructure and W4 adjudication` commit
+```
+
+or record the exact SHA in a later handoff-only commit that is explicitly distinguished from the implementation green commit.
+
+The instruction must never require manufacturing a self-referential commit hash.
+
+## 5.4 Evidence commit policy
+
+Preserve the existing evidence-commit resolution policy.
+
+Do not:
+
+* insert a null evidence commit;
+* guess a future SHA;
+* create a circular hash dependency;
+* weaken the established source/evidence binding rules.
+
+## 5.5 Usage-exhaustion wording
+
+Strengthen the PB_3 usage-exhaustion protocol:
+
+```text
+When usage is low, preserve the current B3.x ledger, exact changed files,
+known passing/failing tests and exact next command before writing a long report.
+
+Commit and push coherent WIP work.
+
+Never start B3.9 final verification unless enough session capacity remains
+to record its result and preserve the repository state.
+```
+
+## CHECKPOINT H3.1
+
+Run:
+
+```bash
+.venv/bin/python tools/check_doc_consistency.py -v
+git diff --check
+```
+
+Mark H3.1 `done`.
+
+Commit and push:
+
+```text
+wip(pre-b3): correct PB_3 finalization sequence
+```
+
+---
+
+# 6. H3.2 — Reconcile stale `NEXT.md` status
+
+The top authoritative section of `NEXT.md` correctly says PB_3 is next.
+
+A lower live section still says PB_1 is complete and `instructions/PB_2.txt` is the next step.
+
+Correct all such stale live wording.
+
+## 6.1 Required current order
+
+The active engineering order must state:
+
+```text
+1. Evidence hardening — complete.
+2. W2 through G-7 — complete.
+3. Transparency-bitrate probe — complete.
+4. W3 through G-2 — complete.
+5. W4 PA — complete.
+6. W4 PB_1 including PB_1C — complete.
+7. W4 PB_2 including PB_2C — complete.
+8. W4 PB_3 — next, not started.
+9. Full BR-4 sweep / G-8 — not started.
+```
+
+The single next task remains:
+
+```text
+Run instructions/PB_3.txt from B3.0.
+```
+
+## 6.2 Historical versus live text
+
+For old historical descriptions:
+
+* preserve useful history;
+* either move them under a clearly historical heading;
+* or mark them as completed snapshots;
+* do not leave them written as current commands.
+
+Do not rewrite historical facts merely to make the document shorter.
+
+## 6.3 Cross-file agreement
+
+Check all live status language in:
+
+```text
+NEXT.md
+AGENTS.md
+README.md
+instructions/RESUME.md
+worklogs/w4-classical-baseline-progress.md
+instructions/PB_3.txt
+```
+
+They must agree that:
+
+* PB_2/PB_2C are complete;
+* PB_3 is not started;
+* PB_3 is next and unblocked;
+* G-8 remains unresolved;
+* the full sweep has not run;
+* the test split remains sealed.
+
+Do not change scientific history.
+
+## CHECKPOINT H3.2
+
+Run:
+
+```bash
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+git diff --check
+```
+
+Mark H3.2 `done`.
+
+Commit and push:
+
+```text
+wip(pre-b3): reconcile live repository status
+```
+
+---
+
+# 7. H3.3 — Harden `tools/check_doc_consistency.py`
+
+The checker passed even though `NEXT.md` simultaneously said PB_3 was next and PB_2 was next.
+
+Add a regression check so this cannot recur.
+
+## 7.1 Required detection
+
+When the declared frontier is PB_3, reject live text that instructs any of the following as the next action:
+
+```text
+instructions/PB_1.txt
+instructions/PB_1C.txt
+instructions/PB_2.txt
+instructions/PB_2D.txt
+instructions/PB_2C.txt
+PB_1 is the next step
+PB_2 is the next step
+bounded W4 integration is the live task
+```
+
+Apply equivalent logic for future frontiers where practical.
+
+Do not implement this as one fragile exact-string assertion if the checker already has structured frontier logic.
+
+Prefer:
+
+* canonical current frontier extraction;
+* a small set of completed-phase aliases;
+* scanning only live sections;
+* explicit historical-section exemptions.
+
+## 7.2 Historical exemption must be narrow
+
+Historical text may be exempt only when clearly enclosed by an accepted historical marker, such as:
+
+```text
+historical
+completed snapshot
+session log
+DONE
+Complete
+PASS
+```
+
+Do not exempt an entire document merely because one nearby heading says "complete."
+
+Do not allow stale imperative language in an otherwise live section.
+
+## 7.3 Required tests
+
+Add tests covering:
+
+1. PB_3 declared next and a lower live section says PB_2 is next → fail.
+2. PB_3 declared next and a historical completed snapshot says PB_2 was next → pass.
+3. PB_3 declared next and the active section says PB_3 is next → pass.
+4. Contradictory "bounded W4 integration is the live task" text → fail.
+5. A stale instruction path written as current next action → fail.
+6. The same path inside a clearly historical section → pass.
+7. The checker reports the conflicting section and wording clearly.
+8. Existing valid repository documentation still passes.
+
+The failure should identify:
+
+* declared frontier;
+* conflicting file;
+* conflicting section or line;
+* stale phase/instruction detected.
+
+## 7.4 Scope
+
+Do not turn the checker into a general prose linter.
+
+This patch is specifically about preventing contradictory live frontier instructions.
+
+Do not alter generated specification views.
+
+Do not create a specification amendment.
+
+## CHECKPOINT H3.3
+
+Run targeted tests, for example:
+
+```bash
+.venv/bin/python -m pytest tests/test_doc_consistency.py -q
+```
+
+Use the actual test path if different.
+
+Then run:
+
+```bash
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+git diff --check
+```
+
+Mark H3.3 `done`.
+
+Commit and push:
+
+```text
+test(pre-b3): reject stale engineering frontier text
+```
+
+---
+
+# 8. H3.4 — Complete verification and handoff
+
+Before final verification, ensure:
+
+* H3.0–H3.3 are done;
+* no PB_3 implementation exists;
+* no scientific evidence changed;
+* no parameter changed;
+* no specification amendment was added;
+* no test data was accessed;
+* the worktree contains only the intended patch.
+
+Run each command separately and record each result:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+.venv/bin/python spec/evidence/check_packetisation.py
+.venv/bin/python tools/fetch_datasets.py --check
+.venv/bin/python tools/materialize_manifests.py --check
+.venv/bin/python tools/verify_datasets.py
+.venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python tools/verify_g7_profile.py
+.venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py
+.venv/bin/python tools/gen_g2_source_manifest.py --check
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python tools/gen_w4_source_manifest.py --check
+.venv/bin/python tools/verify_w4_baseline_integration.py
+.venv/bin/python -m pytest
+git diff --check
+git status --short
+```
+
+PB_2 evidence should not need regeneration.
+
+If `gen_w4_source_manifest.py --check` fails only because this patch legitimately changed a source file that the historical PB_2 evidence binds, do not regenerate PB_2 evidence reflexively.
+
+First determine whether the changed file belongs to the PB_2 execution measurement path.
+
+Expected outcome:
+
+* `instructions/PB_3.txt`, `NEXT.md`, the consistency checker and its tests are outside PB_2's scientific execution path;
+* therefore the W4 historical evidence should remain valid;
+* use the repository's existing source-binding policy rather than inventing a new exception.
+
+If the current W4 source manifest intentionally includes a changed generic documentation/checker file, record the exact behavior and use the narrowest existing adjudication mechanism. Do not rerun bounded evidence solely because a future-phase instruction changed.
+
+## 8.1 Final status
+
+Set:
+
+```markdown
+**Current phase:** PB_3 — not started
+**Last green commit:** `<final PRE_B3 patch SHA>`
+**Last durable checkpoint:** `<final PRE_B3 patch SHA or repository-convention wording>`
+**Next action:** run `instructions/PB_3.txt` from B3.0
+```
+
+PB_2C remains the most recent scientific evidence green.
+
+The PRE_B3 commit is a repository-process green.
+
+Keep those concepts distinct in the ledger.
+
+## 8.2 Final commit
+
+Commit actual tracked changes:
+
+```text
+docs(handoff): harden PB_3 preflight and frontier consistency
+```
+
+Do not make an empty commit.
+
+Push.
+
+Confirm:
+
+```bash
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Requirements:
+
+* clean worktree;
+* local HEAD equals `origin/main`;
+* local HEAD equals remote main;
+* PB_3 has not started;
+* no full sweep;
+* no G-8 selection;
+* no training;
+* no test access.
+
+---
+
+# 9. Emergency usage-exhaustion protocol
+
+When usage becomes low:
+
+1. Stop starting new work.
+
+2. Safely finish or interrupt the current command.
+
+3. Run:
+
+   ```bash
+   git status --short
+   git diff --stat
+   ```
+
+4. Update `instructions/RESUME.md` with:
+
+   * current H3.x row;
+   * files changed;
+   * completed commands;
+   * unrun commands;
+   * known passing tests;
+   * known failures;
+   * exact next command;
+   * whether PB_3 has remained untouched.
+
+5. Commit coherent work:
+
+   ```text
+   wip(pre-b3): preserve <precise unfinished work>
+   ```
+
+6. Push.
+
+7. Confirm local, origin and remote SHAs.
+
+8. Stop.
+
+Never use the remaining session capacity for a long report before preserving the repository.
+
+End an interrupted run with:
+
+```text
+PRE_B3 INCOMPLETE — RESUME AT H3.<n>
+```
+
+Use:
+
+```text
+PRE_B3 HOLD — <precise blocking condition>
+```
+
+only for a real technical, provenance or durability blocker.
+
+---
+
+# 10. Final report
+
+Report:
+
+1. Starting local, origin and remote SHAs.
+2. Starting worktree state.
+3. Starting test count.
+4. Every H3.x checkpoint SHA.
+5. Exact unsafe PB_3 finalization wording removed.
+6. Corrected B3.9 ordering.
+7. Self-referential SHA handling.
+8. Stale `NEXT.md` sections corrected.
+9. Files checked for live-frontier agreement.
+10. New document-consistency rule.
+11. Historical-section exemption rule.
+12. New regression tests.
+13. Final test count.
+14. All verification-command results.
+15. Whether any specification file changed.
+16. Whether any scientific evidence changed.
+17. Whether any W4 evidence rerun occurred.
+18. Whether any `src/baseline/ldpc/` file changed.
+19. Test-access counters.
+20. Confirmation PB_3 did not start.
+21. Final patch SHA.
+22. Final local, origin and remote SHAs.
+23. Clean-worktree confirmation.
+24. Single next action.
+
+End with exactly one:
+
+```text
+PRE_B3 GREEN — PB_3 READY AND NOT STARTED
+PRE_B3 INCOMPLETE — RESUME AT H3.<n>
+PRE_B3 HOLD — <precise blocking condition>
+```
+
+---
+
+# 11. Approved addendum — checker implementation corrections
+
+This addendum was approved with the PRE_B3 plan and is binding on §7.
+
+## 11.1 Preserve `declared_phase()` compatibility
+
+Do not change `declared_phase()` from its current three-value return shape while claiming existing
+callers remain unaffected. Existing code and tests unpack exactly:
+
+```python
+frontier, token, done = declared_phase(body)
+```
+
+Use a separate helper for the subphase:
+
+```python
+PHASE_RE = re.compile(r"\bPB[_\- ]?(\d+)([A-D]?)\b", re.I)
+
+def declared_subphase(body: str) -> str | None:
+    frontier, _, _ = declared_phase(body)
+    if frontier is None:
+        return None
+    match = PHASE_RE.search(frontier)
+    if match is None:
+        return None
+    suffix = match.group(2).lower()
+    return f"pb_{match.group(1)}{suffix}"
+```
+
+A structured declaration object is acceptable only if every caller and test is deliberately updated.
+For PRE_B3, the separate helper is the safer change.
+
+## 11.2 Do not classify the whole bounded-W4 parent phase as completed
+
+The declaration says PA, PB_1 and PB_2 are complete, while PB_3 remains. Therefore
+`bounded W4 integration` is a **partially completed parent phase**, not a completed alias.
+
+The stale sentence `bounded W4 integration is the live task` must be rejected as an
+**imprecise/coarse frontier nomination**, not reported as directing completed work.
+
+The semantic rule is: when live text uses a next-action, next-phase or live-task nomination cue, it
+must name the declared subphase `PB_3`. Naming only the parent milestone `W4` or the parent phrase
+"bounded W4 integration" is insufficient. The finding must explain that the declared frontier is
+`W4 · PB_3` but the live sentence nominates only its coarse parent.
+
+Descriptive mentions of W4 or bounded W4 that do not claim to be the next/live task remain allowed.
+
+## 11.3 Keep completed aliases narrowly derived
+
+Completed aliases may include only rows explicitly declared complete — PB_1 and its correction phase,
+PB_2 and PB_2C, and their corresponding instruction paths. Do not infer that every parent phrase
+containing completed descendants is itself complete.
+
+The check distinguishes four cases:
+
+1. **Backward directive** — tells the reader to begin/run an explicitly completed phase or
+   instruction.
+2. **Stale nomination** — names a completed phase as next/live.
+3. **Coarse nomination** — claims only W4/bounded W4 is next/live when the declaration requires PB_3.
+4. **Valid frontier** — explicitly names PB_3 as next/live.
+
+## 11.4 Historical-section handling
+
+Reuse the existing historical logic rather than creating broader exemptions. `live_lines()` must
+continue returning its existing `(line_number, line)` shape by delegating to the new
+`live_lines_with_sections()` helper, which may return `(line_number, line, section_heading)`.
+
+The existing historical rules remain authoritative: struck-through headings; headings carrying DONE,
+Complete or PASS; `## Session log`; struck-through lines; existing history-record lines. Do not exempt
+arbitrary prose merely because it contains words such as "historical" or "previously."
+
+## 11.5 Mutation proof must not edit tracked `NEXT.md`
+
+Do not temporarily modify the real repository `NEXT.md` to demonstrate that the checker fails. Prove
+the rule through the synthetic unit-test fixture and/or a temporary tree used by the test helper.
+
+The required test must assert that the checker exits 1 and that its output names the declared
+frontier (`PB_3` or `W4 · PB_3`), the file, the line, the enclosing section, and the stale or coarse
+phase wording.
