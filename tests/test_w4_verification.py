@@ -18,6 +18,7 @@ from typing import Any
 
 import pytest
 
+import run_classical_baseline_w4_smoke as runner
 import verify_w4_baseline_integration as verifier
 from baseline.classical.outage import EVIDENCE_LABELS, OutagePolicyError
 from baseline.classical.pipeline import (
@@ -27,6 +28,7 @@ from baseline.classical.pipeline import (
 )
 from baseline.classical.records import aggregate_schema, per_image_schema
 from config.params import REPO_ROOT, get
+from config.run_config import config_hash, load_experiment
 from models.frozen_reference_classifier import (
     EXPECTED_CHECKPOINT_SHA256,
     EXPECTED_CONFIG_HASH,
@@ -134,7 +136,7 @@ def _aggregate_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "timestamp": "2026-07-31T00:00:00+00:00",
         "git_commit": "b" * 40,
         "git_dirty": "false",
-        "config_hash": "cfg" + "0" * 61,
+        "config_hash": FIXTURE_CONFIG_HASH,
         "checkpoint_id": EXPECTED_CHECKPOINT_SHA256,
         "system": "classical_fixed_mcs",
         "dataset": DATASET,
@@ -186,11 +188,33 @@ def _aggregate_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return values
 
 
+#: A real resolved configuration for the fixture cell, so the verifier's
+#: reconstruct-and-rehash path is exercised rather than stubbed.
+FIXTURE_RUN_CONFIG = load_experiment(
+    "configs/classical-baseline-w4-imagenette.yaml",
+    train_seed=0,
+    channel_seed=0,
+    test_snr_db=18,
+)
+FIXTURE_CONFIG_HASH = config_hash(FIXTURE_RUN_CONFIG)
+
+
+def _write_run_configs(directory: Path) -> tuple[list[dict[str, Any]], str]:
+    """Archive the fixture configuration exactly as the runner would."""
+
+    configs = {("fixture", 0, 0, 18.0): (FIXTURE_RUN_CONFIG, FIXTURE_CONFIG_HASH)}
+    index = runner.write_run_config_artifacts(
+        configs, directory / "run_configs", relative_to=directory
+    )
+    return index, runner.config_hash_root(configs)
+
+
 @pytest.fixture
 def evidence(tmp_path: Path, head_commit: str, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(verifier, "EXPECTED_SOURCES", FIXTURE_SOURCES)
     directory = tmp_path / "w4"
     directory.mkdir()
+    run_config_index, config_root = _write_run_configs(directory)
 
     outage = _outage_record()
     rows = _per_image_rows(int(outage["selected_class"]))
@@ -206,13 +230,15 @@ def evidence(tmp_path: Path, head_commit: str, monkeypatch: pytest.MonkeyPatch) 
         "evidence_labels": list(EVIDENCE_LABELS),
         "git_dirty": False,
         "execution_source_commit": head_commit,
-        "config_hash": aggregate["config_hash"],
+        "config_hash_root": config_root,
+        "config_hashes": {"imagenette160_task_scored/18.0": FIXTURE_CONFIG_HASH},
+        "plan_sha256": "p" * 64,
         "checkpoint_id": EXPECTED_CHECKPOINT_SHA256,
         "classifier_config_hash": EXPECTED_CONFIG_HASH,
         "br4_sweep_completed": False,
         "operating_point_selected": False,
         "g8_status": "unresolved",
-        "j2k_resolutions_issue_status": "unresolved",
+        "j2k_resolutions_issue_status": "resolved_by_am80",
         "training_performed": False,
         "test_split_access": {
             "test_accessed": False,
@@ -250,8 +276,9 @@ def evidence(tmp_path: Path, head_commit: str, monkeypatch: pytest.MonkeyPatch) 
     resolved = {
         "complete": True,
         "evidence_labels": list(EVIDENCE_LABELS),
-        "config_hash": aggregate["config_hash"],
-        "parameters": {root: get(root) for root in get("config.fingerprint_parameter_roots")},
+        "config_hash_root": config_root,
+        "plan_sha256": "p" * 64,
+        "run_configs": run_config_index,
         "field_semantics": {
             "aggregate": dict.fromkeys(aggregate_schema(), {}),
             "per_image": dict.fromkeys(per_image_schema(), {}),
@@ -294,7 +321,7 @@ def _run_all(evidence: Path) -> None:
     policy = verifier.check_outage_policy(payloads["outage"])
     verifier.check_records(evidence, policy, payloads["summary"])
     verifier.check_cifar_separation(payloads["summary"])
-    verifier.check_configuration(payloads["resolved"], payloads["summary"])
+    verifier.check_configuration(evidence, payloads["resolved"], payloads["summary"])
     verifier.check_sources(evidence, payloads["summary"])
 
 
@@ -368,7 +395,7 @@ def test_a_dirty_worktree_fails(evidence: Path) -> None:
         ("br4_sweep_completed", True, "BR-4 or G-8 completion"),
         ("operating_point_selected", True, "BR-4 or G-8 completion"),
         ("g8_status", "resolved", "BR-4 or G-8 completion"),
-        ("j2k_resolutions_issue_status", "resolved", "marked resolved"),
+        ("j2k_resolutions_issue_status", "unresolved", "AM-80 resolution"),
         ("training_performed", True, "records training"),
     ],
 )
@@ -651,20 +678,29 @@ def test_a_delivered_row_with_an_outage_reason_is_caught(evidence: Path) -> None
         _run_all(evidence)
 
 
-def test_a_config_hash_mismatch_is_caught(evidence: Path) -> None:
+def test_a_config_hash_root_mismatch_is_caught(evidence: Path) -> None:
     _rewrite(
-        evidence, "resolved_config.json", lambda p: p.__setitem__("config_hash", "0" * 64)
+        evidence,
+        "resolved_config.json",
+        lambda p: p.__setitem__("config_hash_root", "0" * 64),
     )
-    with pytest.raises(verifier.VerificationError, match="disagree on config_hash"):
+    with pytest.raises(
+        verifier.VerificationError, match="disagree on config_hash_root"
+    ):
         _run_all(evidence)
 
 
 def test_a_params_snapshot_mismatch_is_caught(evidence: Path) -> None:
-    def mutate(payload):
-        payload["parameters"]["bandwidth"] = {"tampered": True}
+    """The snapshot now lives inside each archived RunConfig, not beside it."""
 
-    _rewrite(evidence, "resolved_config.json", mutate)
-    with pytest.raises(verifier.VerificationError, match="snapshot differs"):
+    entry = json.loads(
+        (evidence / "resolved_config.json").read_text(encoding="utf-8")
+    )["run_configs"][0]
+    path = evidence / entry["relative_path"]
+    body = json.loads(path.read_text(encoding="utf-8"))
+    body["parameters"]["bandwidth"] = {"tampered": True}
+    path.write_text(json.dumps(body, indent=2), encoding="utf-8")
+    with pytest.raises(verifier.VerificationError, match="does not match its"):
         _run_all(evidence)
 
 
@@ -684,4 +720,156 @@ def test_an_incomplete_field_semantics_table_is_caught(evidence: Path) -> None:
 
     _rewrite(evidence, "resolved_config.json", mutate)
     with pytest.raises(verifier.VerificationError, match="field-semantics"):
+        _run_all(evidence)
+
+
+# ---------------------------------------------------------------------------
+# Per-cell RunConfig provenance (PB_2C/C2.2)
+#
+# The old verifier compared `resolved_config.json`'s config_hash against
+# `smoke_summary.json`'s. Both carried the same wrong hash, so the check passed
+# while one 18 dB fingerprint stood in for every cell. These mutations attack
+# the property that check could not see: that the hash *comes out of* a concrete
+# configuration describing the cell that actually ran.
+# ---------------------------------------------------------------------------
+
+
+def _index_entry(evidence: Path) -> dict[str, Any]:
+    return json.loads(
+        (evidence / "resolved_config.json").read_text(encoding="utf-8")
+    )["run_configs"][0]
+
+
+def test_one_config_hash_reused_for_two_snr_points_is_caught(evidence: Path) -> None:
+    """The exact PB_2 defect: 18 dB and -8 dB sharing one fingerprint."""
+
+    def mutate(payload):
+        digest = payload["config_hashes"]["imagenette160_task_scored/18.0"]
+        payload["config_hashes"]["imagenette160_task_scored/-8.0"] = digest
+
+    _rewrite(evidence, "smoke_summary.json", mutate)
+    with pytest.raises(verifier.VerificationError, match="share one config hash"):
+        _run_all(evidence)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("test_snr_db", -8.0),
+        ("bw_ratio", "r_1_48"),
+        ("modulation", "bpsk"),
+        ("ldpc_rate", "1/3"),
+        ("dataset", "cifar10"),
+        ("encode_axis_px", 64),
+        ("train_seed", 1),
+        ("channel_seed", 2),
+    ],
+)
+def test_an_index_entry_that_misdescribes_its_configuration_is_caught(
+    evidence: Path, field: str, value: Any
+) -> None:
+    def mutate(payload):
+        payload["run_configs"][0][field] = value
+
+    _rewrite(evidence, "resolved_config.json", mutate)
+    with pytest.raises(verifier.VerificationError, match="but the configuration resolves"):
+        _run_all(evidence)
+
+
+def test_a_missing_run_config_artifact_is_caught(evidence: Path) -> None:
+    (evidence / _index_entry(evidence)["relative_path"]).unlink()
+    with pytest.raises(verifier.VerificationError, match="archived run config .* is missing"):
+        _run_all(evidence)
+
+
+def test_run_config_file_hash_drift_is_caught(evidence: Path) -> None:
+    path = evidence / _index_entry(evidence)["relative_path"]
+    path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    with pytest.raises(verifier.VerificationError, match="recorded file hash"):
+        _run_all(evidence)
+
+
+def test_a_config_hash_that_does_not_reproduce_is_caught(evidence: Path) -> None:
+    """Recording a hash beside a configuration is not the same as deriving it."""
+
+    entry = _index_entry(evidence)
+    path = evidence / entry["relative_path"]
+    body = json.loads(path.read_text(encoding="utf-8"))
+    body["resolved"]["test_snr_db"] = -8
+    payload = json.dumps(body, indent=2)
+    path.write_text(payload, encoding="utf-8")
+
+    def mutate(index):
+        index["run_configs"][0]["file_sha256"] = hashlib.sha256(
+            payload.encode("utf-8")
+        ).hexdigest()
+        index["run_configs"][0]["test_snr_db"] = -8
+
+    _rewrite(evidence, "resolved_config.json", mutate)
+    with pytest.raises(
+        verifier.VerificationError, match="does not reproduce its own config hash"
+    ):
+        _run_all(evidence)
+
+
+def test_an_artifact_not_stored_under_its_own_hash_is_caught(evidence: Path) -> None:
+    entry = _index_entry(evidence)
+    source = evidence / entry["relative_path"]
+    renamed = source.with_name("some-other-name.json")
+    source.rename(renamed)
+
+    def mutate(index):
+        index["run_configs"][0]["relative_path"] = str(
+            renamed.relative_to(evidence)
+        )
+
+    _rewrite(evidence, "resolved_config.json", mutate)
+    with pytest.raises(verifier.VerificationError, match="not stored under its own"):
+        _run_all(evidence)
+
+
+def test_the_execution_plan_hash_substituted_for_a_config_hash_is_caught(
+    evidence: Path,
+) -> None:
+    digest = _index_entry(evidence)["config_hash"]
+    _rewrite(evidence, "smoke_summary.json", lambda p: p.__setitem__("plan_sha256", digest))
+    _rewrite(evidence, "resolved_config.json", lambda p: p.__setitem__("plan_sha256", digest))
+    with pytest.raises(
+        verifier.VerificationError, match="execution-plan hash is being used"
+    ):
+        _run_all(evidence)
+
+
+def test_the_root_digest_substituted_for_a_cell_config_hash_is_caught(
+    evidence: Path,
+) -> None:
+    root = json.loads(
+        (evidence / "resolved_config.json").read_text(encoding="utf-8")
+    )["config_hash_root"]
+
+    def mutate(payload):
+        payload["config_hashes"] = {"imagenette160_task_scored/18.0": root}
+
+    _rewrite(evidence, "smoke_summary.json", mutate)
+    with pytest.raises(verifier.VerificationError, match="disagree on the cell config"):
+        _run_all(evidence)
+
+
+def test_an_empty_run_config_index_is_caught(evidence: Path) -> None:
+    _rewrite(evidence, "resolved_config.json", lambda p: p.__setitem__("run_configs", []))
+    with pytest.raises(verifier.VerificationError, match="no run-config index"):
+        _run_all(evidence)
+
+
+def test_a_config_hash_root_that_does_not_reproduce_is_caught(evidence: Path) -> None:
+    """The root must follow from the cell hashes, not merely agree between files."""
+
+    forged = "f" * 64
+
+    def mutate(payload):
+        payload["config_hash_root"] = forged
+
+    _rewrite(evidence, "resolved_config.json", mutate)
+    _rewrite(evidence, "smoke_summary.json", mutate)
+    with pytest.raises(verifier.VerificationError, match="does not reproduce from"):
         _run_all(evidence)

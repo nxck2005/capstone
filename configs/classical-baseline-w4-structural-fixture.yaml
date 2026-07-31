@@ -1,0 +1,23 @@
+# Bounded W4 classical-baseline integration — the structural-infeasibility fixture.
+#
+# CIFAR-10 at r_1_48/bpsk/(1/3) admits no legal byte-aligned A within the nominal
+# budget, so the row is refused before any encoding happens. Recorded deliberately:
+# **no configured (bw_ratio, modulation, ldpc_rate) triple is structurally
+# infeasible on Imagenette-160** — all 72 packetise — so this verdict is only
+# reachable on CIFAR-10, and the Imagenette structural->outage record path is
+# covered by unit tests instead.
+experiment: classical_baseline_w4_structural_fixture
+choices:
+  system: classical_fixed_mcs
+  dataset: cifar10
+  split: val
+  bw_ratio: r_1_48
+  channel: awgn
+  classifier_variant: clean
+  modulation: bpsk
+  ldpc_rate: 1/3
+  encode_axis_px: 32
+sweep_axes:
+  train_seed: train_seeds
+  channel_seed: channel_seeds
+  test_snr_db: test_snr_grid_db

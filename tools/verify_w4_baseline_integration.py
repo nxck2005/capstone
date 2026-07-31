@@ -52,6 +52,7 @@ from baseline.classical.records import (  # noqa: E402
     per_image_schema,
 )
 from config.params import get  # noqa: E402
+from config.run_config import RunConfig, canonical_sha256, config_hash  # noqa: E402
 from models.frozen_reference_classifier import (  # noqa: E402
     EXPECTED_CHECKPOINT_SHA256,
     EXPECTED_CONFIG_HASH,
@@ -191,8 +192,9 @@ def check_presence_and_labels(evidence: Path) -> dict[str, Any]:
         "smoke_summary.json claims BR-4 or G-8 completion",
     )
     _require(
-        summary.get("j2k_resolutions_issue_status") == "unresolved",
-        "the JPEG-2000 resolution issue is marked resolved without a spec decision",
+        summary.get("j2k_resolutions_issue_status") == "resolved_by_am80",
+        "the evidence does not record the AM-80 resolution of the JPEG-2000 "
+        "resolution issue",
     )
     _require(
         summary.get("training_performed") is False,
@@ -479,11 +481,35 @@ def check_sources(evidence: Path, summary: dict[str, Any]) -> dict[str, Any]:
     return manifest
 
 
-def check_configuration(resolved: dict[str, Any], summary: dict[str, Any]) -> None:
-    _require(
-        resolved.get("config_hash") == summary.get("config_hash"),
-        "resolved_config.json and smoke_summary.json disagree on config_hash",
-    )
+_RUN_CONFIG_INDEX_FIELDS = (
+    "config_hash",
+    "relative_path",
+    "file_sha256",
+    "run_config",
+    "dataset",
+    "bw_ratio",
+    "test_snr_db",
+    "train_seed",
+    "channel_seed",
+    "modulation",
+    "ldpc_rate",
+    "encode_axis_px",
+)
+
+
+def check_configuration(
+    evidence: Path, resolved: dict[str, Any], summary: dict[str, Any]
+) -> dict[str, str]:
+    """Every emitted cell must have a concrete, reproducible `RunConfig`.
+
+    PB_2 resolved one configuration at 18 dB and reused its hash for the -8 dB
+    cell, both fixtures and the CIFAR-10 rows.  The old check could not see it,
+    because it compared two files that both carried the same wrong hash.  This
+    instead reconstructs each archived configuration through the ordinary
+    `RunConfig.from_dict`/`config_hash` pair and requires the hash to *come out*
+    of the configuration rather than to be recorded next to it.
+    """
+
     _require(
         summary.get("checkpoint_id") == EXPECTED_CHECKPOINT_SHA256,
         "the evidence records a checkpoint other than the frozen G-1 one",
@@ -492,17 +518,125 @@ def check_configuration(resolved: dict[str, Any], summary: dict[str, Any]) -> No
         summary.get("classifier_config_hash") == EXPECTED_CONFIG_HASH,
         "the evidence records a classifier config hash other than the frozen one",
     )
-    parameters = resolved.get("parameters") or {}
-    roots = get("config.fingerprint_parameter_roots")
+
+    index = resolved.get("run_configs")
     _require(
-        set(parameters) == set(roots),
-        "the recorded parameter snapshot does not cover the fingerprint roots",
+        isinstance(index, list) and index,
+        "resolved_config.json carries no run-config index",
     )
-    for root in roots:
+    roots = get("config.fingerprint_parameter_roots")
+    hashes: dict[str, str] = {}
+    for entry in index:
         _require(
-            parameters[root] == get(root),
-            f"the recorded params.{root} snapshot differs from the current spec",
+            isinstance(entry, dict)
+            and set(entry) == set(_RUN_CONFIG_INDEX_FIELDS),
+            f"a run-config index entry does not carry exactly "
+            f"{sorted(_RUN_CONFIG_INDEX_FIELDS)}",
         )
+        digest = entry["config_hash"]
+        path = evidence / entry["relative_path"]
+        _require(
+            path.is_file(),
+            f"the archived run config {entry['relative_path']} is missing",
+        )
+        body = path.read_bytes()
+        _require(
+            hashlib.sha256(body).hexdigest() == entry["file_sha256"],
+            f"the archived run config {entry['relative_path']} does not match its "
+            "recorded file hash",
+        )
+        try:
+            run_config = RunConfig.from_dict(json.loads(body))
+        except (ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise VerificationError(
+                f"{entry['relative_path']} does not reconstruct as a RunConfig: {exc}"
+            ) from None
+        _require(
+            config_hash(run_config) == digest,
+            f"{entry['relative_path']} does not reproduce its own config hash",
+        )
+        _require(
+            path.name == f"{digest}.json",
+            "an archived run config is not stored under its own config hash",
+        )
+        for field in (
+            "dataset",
+            "bw_ratio",
+            "test_snr_db",
+            "train_seed",
+            "channel_seed",
+            "modulation",
+            "ldpc_rate",
+            "encode_axis_px",
+        ):
+            _require(
+                run_config.resolved[field] == entry[field],
+                f"{entry['relative_path']}: the index records {field}={entry[field]!r} "
+                f"but the configuration resolves {run_config.resolved[field]!r}",
+            )
+        snapshot = run_config.to_dict()["parameters"]
+        _require(
+            set(snapshot) == set(roots),
+            f"{entry['relative_path']}: the parameter snapshot does not cover the "
+            "fingerprint roots",
+        )
+        for root in roots:
+            _require(
+                snapshot[root] == get(root),
+                f"{entry['relative_path']}: the recorded params.{root} snapshot "
+                "differs from the current spec",
+            )
+        _require(
+            digest not in hashes,
+            f"config hash {digest[:12]} is archived twice",
+        )
+        hashes[digest] = entry["relative_path"]
+
+    recorded = summary.get("config_hashes")
+    _require(
+        isinstance(recorded, dict) and set(recorded.values()) == set(hashes),
+        "smoke_summary.json and resolved_config.json disagree on the cell config hashes",
+    )
+    _require(
+        len(set(recorded.values())) == len(recorded),
+        "two bounded cells share one config hash",
+    )
+    root_digest = summary.get("config_hash_root")
+    _require(
+        root_digest == resolved.get("config_hash_root"),
+        "resolved_config.json and smoke_summary.json disagree on config_hash_root",
+    )
+    _require(
+        canonical_sha256(sorted(hashes)) == root_digest,
+        "config_hash_root does not reproduce from the archived cell config hashes",
+    )
+    _require(
+        root_digest not in hashes,
+        "the execution-level config_hash_root is being used as a cell config hash",
+    )
+    _require(
+        summary.get("plan_sha256") == resolved.get("plan_sha256")
+        and summary["plan_sha256"] not in hashes,
+        "the execution-plan hash is being used as a run-config hash",
+    )
+
+    # Coverage is compared as a set: the artifact is written with sorted JSON
+    # keys for byte determinism, and field *order* is a CSV contract, enforced
+    # against the emitted headers rather than against this annotation map.
+    semantics = resolved.get("field_semantics") or {}
+    for section, schema in (
+        ("aggregate", aggregate_schema()),
+        ("per_image", per_image_schema()),
+    ):
+        annotated = set(semantics.get(section, {}))
+        missing = sorted(set(schema) - annotated)
+        unexpected = sorted(annotated - set(schema))
+        _require(
+            not missing and not unexpected,
+            f"the committed field-semantics table does not cover {section} "
+            f"exactly: missing={missing}, unexpected={unexpected}",
+        )
+    return hashes
     # Coverage is compared as a set: the artifact is written with sorted JSON
     # keys for byte determinism, and field *order* is a CSV contract, enforced
     # against the emitted headers rather than against this annotation map.
@@ -549,7 +683,7 @@ def main() -> int:
         policy = check_outage_policy(payloads["outage"])
         records = check_records(evidence, policy, payloads["summary"])
         cifar_samples = check_cifar_separation(payloads["summary"])
-        check_configuration(payloads["resolved"], payloads["summary"])
+        check_configuration(evidence, payloads["resolved"], payloads["summary"])
         manifest = check_sources(evidence, payloads["summary"])
         if not arguments.skip_gates:
             check_gates()

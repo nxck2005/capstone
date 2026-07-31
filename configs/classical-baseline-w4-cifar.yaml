@@ -1,0 +1,27 @@
+# Bounded W4 classical-baseline integration — the CIFAR-10 transport-only group.
+#
+# Transport, verdict, accounting, cache and schema plumbing only. The frozen G-1
+# checkpoint is an Imagenette-160 classifier; CIFAR-10's ten class indices are a
+# different vocabulary, so no classifier inference and no task accuracy are
+# produced for this group at any point. That prohibition lives in the execution
+# plan and in `records.score_result`, not here — this file's job is to fingerprint
+# the configuration.
+#
+# `encode_axis_px: 32` is CIFAR-10's sole configured axis after AM-80, which
+# dropped the 24 px and 16 px rungs because a flat `j2k_resolutions` of 6
+# requires every tile dimension to be at least 32 px.
+experiment: classical_baseline_w4_cifar
+choices:
+  system: classical_fixed_mcs
+  dataset: cifar10
+  split: val
+  bw_ratio: r_1_2
+  channel: awgn
+  classifier_variant: clean
+  modulation: qpsk
+  ldpc_rate: 1/2
+  encode_axis_px: 32
+sweep_axes:
+  train_seed: train_seeds
+  channel_seed: channel_seeds
+  test_snr_db: test_snr_grid_db

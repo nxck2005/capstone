@@ -18,6 +18,7 @@ from baseline.classical.outage import (
 )
 from baseline.classical.records import FROZEN_CLASSIFIER_DATASET
 from config.params import REPO_ROOT, get
+from config.run_config import RunConfig, config_hash
 from models.frozen_reference_classifier import (
     EXPECTED_CHECKPOINT_BYTES,
     EXPECTED_CHECKPOINT_SHA256,
@@ -25,7 +26,12 @@ from models.frozen_reference_classifier import (
 )
 
 PLAN_PATH = REPO_ROOT / "configs/classical-baseline-w4-smoke-plan.yaml"
-EXPERIMENT_PATH = REPO_ROOT / "configs/classical-baseline-w4-smoke.yaml"
+#: One strict experiment file per configuration group (PB_2C/C2.2). PB_2 had a
+#: single file and reused one hash resolved at 18 dB for every row.
+EXPERIMENT_PATHS = tuple(
+    REPO_ROOT / f"configs/classical-baseline-w4-{name}.yaml"
+    for name in ("imagenette", "cifar", "structural-fixture", "codec-fixture")
+)
 
 
 @pytest.fixture(scope="module")
@@ -56,13 +62,18 @@ def test_every_smoke_choice_lives_in_committed_yaml(plan: dict) -> None:
             "modulation",
             "ldpc_rate",
             "snr_db",
+            "train_seed",
             "channel_seed",
+            "experiment_config",
         ):
             assert field in spec, field
     assert plan["sample_selection"]["rule"] == "lowest_stable_sample_id_first"
     assert plan["cache_dir"]
     assert set(plan["outputs"]) >= {
         "partial_rows",
+        "final_rows",
+        "run_configs_dir",
+        "overhead_table",
         "progress",
         "resolved_config",
         "summary",
@@ -79,17 +90,16 @@ def test_the_bounded_run_uses_configured_snr_grid_points(plan: dict) -> None:
     assert set(plan["cifar10_transport_only"]["snr_db"]) <= grid
 
 
-def test_the_cifar_axis_is_configured_and_avoids_the_open_j2k_conflict(plan: dict) -> None:
-    """32 px works; 24 and 16 px are the unresolved `j2k_resolutions` conflict."""
-
+def test_the_cifar_axis_is_the_sole_configured_axis_after_am80(plan: dict) -> None:
     axes = get("baseline.downsample_axis_px")["cifar10"]
     axis = plan["cifar10_transport_only"]["encode_axis_px"]
+    assert axes == [32]
     assert axis in axes
-    assert axis == max(axes)
 
 
-def test_the_experiment_config_declares_the_fixed_mcs_system() -> None:
-    body = yaml.safe_load(EXPERIMENT_PATH.read_text(encoding="utf-8"))
+@pytest.mark.parametrize("path", EXPERIMENT_PATHS, ids=lambda p: p.stem)
+def test_every_experiment_config_declares_the_fixed_mcs_system(path) -> None:
+    body = yaml.safe_load(path.read_text(encoding="utf-8"))
     assert set(body) == {"experiment", "choices", "sweep_axes"}
     assert body["choices"]["system"] == "classical_fixed_mcs"
     assert body["choices"]["system"] in get("artifacts.system_values")
@@ -97,6 +107,24 @@ def test_the_experiment_config_declares_the_fixed_mcs_system() -> None:
         "reference_classifier.clean_variant_name"
     )
     assert body["choices"]["split"] != "test"
+    # The three selections PB_2 left out of the fingerprint entirely.
+    assert body["choices"]["modulation"] in get("baseline.modulations")
+    assert body["choices"]["ldpc_rate"] in get("baseline.ldpc_rates")
+    assert "encode_axis_px" in body["choices"]
+    assert set(body["sweep_axes"]) == {"train_seed", "channel_seed", "test_snr_db"}
+
+
+def test_each_plan_group_names_a_committed_experiment_config(plan: dict) -> None:
+    """A group whose config lived only in the plan could not be fingerprinted."""
+
+    declared = {
+        plan["cifar10_transport_only"]["experiment_config"],
+        plan["imagenette160_task_scored"]["experiment_config"],
+        *(fixture["experiment_config"] for fixture in plan["fixtures"]),
+    }
+    assert declared == {str(path.relative_to(REPO_ROOT)) for path in EXPERIMENT_PATHS}
+    for source in declared:
+        assert (REPO_ROOT / source).is_file()
 
 
 def test_cifar_is_never_task_scored_in_the_plan(plan: dict) -> None:
@@ -329,3 +357,144 @@ def test_the_sensitivity_variant_is_never_written_into_the_per_image_record() ->
         expected_dataset=FROZEN_CLASSIFIER_DATASET,
     )
     assert policy.predict() == policy.selected_class
+
+
+# ---------------------------------------------------------------------------
+# Per-cell RunConfig provenance (PB_2C/C2.2)
+#
+# PB_2 resolved one configuration at 18 dB and reused its hash for the -8 dB
+# cell, the CIFAR-10 rows and both fixtures, so `config_hash` named a cell most
+# rows were not in. These assert the repair at the seam that owns it.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def cell_configs(plan: dict):
+    return runner.resolve_cell_configs(runner.build_worklist(plan))
+
+
+def _hash_for(cell_configs, *, group_source: str, snr: float) -> str:
+    (key,) = [
+        key
+        for key in cell_configs
+        if key[0].endswith(group_source) and key[3] == snr
+    ]
+    return cell_configs[key][1]
+
+
+def test_every_distinct_cell_has_its_own_config_hash(plan: dict, cell_configs) -> None:
+    digests = [digest for _config, digest in cell_configs.values()]
+    assert len(digests) == len(set(digests)) == len(cell_configs)
+    assert len(cell_configs) == 5, "4 groups, with Imagenette at two SNR points"
+
+
+def test_the_two_snr_points_do_not_share_a_config_hash(cell_configs) -> None:
+    """The defect, stated directly: 18 dB and -8 dB had one hash."""
+
+    high = _hash_for(cell_configs, group_source="w4-imagenette.yaml", snr=18.0)
+    low = _hash_for(cell_configs, group_source="w4-imagenette.yaml", snr=-8.0)
+    assert high != low
+
+
+@pytest.mark.parametrize(
+    ("left", "right"),
+    [
+        ("w4-imagenette.yaml", "w4-cifar.yaml"),
+        ("w4-imagenette.yaml", "w4-codec-fixture.yaml"),
+        ("w4-cifar.yaml", "w4-structural-fixture.yaml"),
+    ],
+)
+def test_groups_differing_in_dataset_ratio_modulation_or_rate_differ(
+    cell_configs, left: str, right: str
+) -> None:
+    left_hashes = {
+        digest for key, (_c, digest) in cell_configs.items() if key[0].endswith(left)
+    }
+    right_hashes = {
+        digest for key, (_c, digest) in cell_configs.items() if key[0].endswith(right)
+    }
+    assert left_hashes and right_hashes and not (left_hashes & right_hashes)
+
+
+def test_every_row_of_one_cell_shares_that_cell_s_hash(plan: dict, cell_configs) -> None:
+    work = runner.build_worklist(plan)
+    by_cell: dict[tuple, set[str]] = {}
+    for item in work:
+        key = runner.cell_key(item)
+        by_cell.setdefault(key, set()).add(cell_configs[key][1])
+    assert all(len(digests) == 1 for digests in by_cell.values())
+    assert set(by_cell) == set(cell_configs)
+
+
+def test_resolved_selections_must_agree_with_the_plan_row(plan: dict) -> None:
+    """A config describing a different cell than the row it runs is refused."""
+
+    work = runner.build_worklist(plan)
+    for field, wrong in (
+        ("modulation", "bpsk"),
+        ("ldpc_rate", "1/3"),
+        ("bw_ratio", "r_1_48"),
+        ("encode_axis_px", 64),
+    ):
+        mutated = [dict(item) for item in work]
+        for item in mutated:
+            if item["group"] == "imagenette160_task_scored":
+                item[field] = wrong
+        with pytest.raises(runner.SmokeError, match="but the plan"):
+            runner.resolve_cell_configs(mutated)
+
+
+def test_archived_run_configs_round_trip_and_reproduce_their_own_hash(
+    tmp_path, cell_configs
+) -> None:
+    index = runner.write_run_config_artifacts(
+        cell_configs, tmp_path, relative_to=tmp_path.parent
+    )
+    assert len(index) == len(cell_configs)
+    assert all(
+        entry["relative_path"] == f"{tmp_path.name}/{entry['config_hash']}.json"
+        for entry in index
+    )
+    for entry in index:
+        path = tmp_path / Path(entry["relative_path"]).name
+        assert path.name == f"{entry['config_hash']}.json"
+        body = json.loads(path.read_bytes())
+        rebuilt = RunConfig.from_dict(body)
+        assert config_hash(rebuilt) == entry["config_hash"]
+        assert (
+            hashlib.sha256(path.read_bytes()).hexdigest() == entry["file_sha256"]
+        )
+        for field in (
+            "dataset",
+            "bw_ratio",
+            "test_snr_db",
+            "train_seed",
+            "channel_seed",
+            "modulation",
+            "ldpc_rate",
+            "encode_axis_px",
+        ):
+            assert entry[field] == rebuilt.resolved[field]
+
+
+def test_the_index_covers_every_cell_and_names_no_duplicate_hash(
+    tmp_path, cell_configs
+) -> None:
+    index = runner.write_run_config_artifacts(cell_configs, tmp_path)
+    digests = [entry["config_hash"] for entry in index]
+    assert digests == sorted(digests), "index order must be deterministic"
+    assert len(set(digests)) == len(digests)
+    assert set(digests) == {digest for _c, digest in cell_configs.values()}
+
+
+def test_the_root_digest_is_not_usable_as_a_cell_config_hash(cell_configs) -> None:
+    """Substituting the execution-level digest for a concrete one must be visible."""
+
+    root = runner.config_hash_root(cell_configs)
+    assert root not in {digest for _c, digest in cell_configs.values()}
+
+
+def test_the_root_digest_changes_when_any_cell_changes(plan: dict, cell_configs) -> None:
+    root = runner.config_hash_root(cell_configs)
+    reduced = dict(list(cell_configs.items())[:-1])
+    assert runner.config_hash_root(reduced) != root

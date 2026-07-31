@@ -77,7 +77,10 @@ EXPECTED_SOURCES: dict[str, str] = {
     "tools/run_classical_baseline_w4_smoke.py": "measurement_runner",
     "tools/gen_w4_outage_policy.py": "measurement_runner",
     # Committed configuration.
-    "configs/classical-baseline-w4-smoke.yaml": "configuration",
+    "configs/classical-baseline-w4-imagenette.yaml": "configuration",
+    "configs/classical-baseline-w4-cifar.yaml": "configuration",
+    "configs/classical-baseline-w4-structural-fixture.yaml": "configuration",
+    "configs/classical-baseline-w4-codec-fixture.yaml": "configuration",
     "configs/classical-baseline-w4-smoke-plan.yaml": "configuration",
     "spec/params.generated.yaml": "configuration",
     "data/manifests/imagenette160.csv": "configuration",

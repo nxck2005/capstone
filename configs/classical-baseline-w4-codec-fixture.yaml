@@ -1,0 +1,21 @@
+# Bounded W4 classical-baseline integration — the codec-infeasibility fixture.
+#
+# Imagenette-160 at r_1_48/bpsk/(1/3) packetises, so the transport plan is legal,
+# but the resulting payload budget is far too small for any configured encode
+# axis to produce a codestream. That distinction is the point: a codec
+# infeasibility is not a structural one, and neither is a channel result.
+experiment: classical_baseline_w4_codec_fixture
+choices:
+  system: classical_fixed_mcs
+  dataset: imagenette160
+  split: val
+  bw_ratio: r_1_48
+  channel: awgn
+  classifier_variant: clean
+  modulation: bpsk
+  ldpc_rate: 1/3
+  encode_axis_px: null
+sweep_axes:
+  train_seed: train_seeds
+  channel_seed: channel_seeds
+  test_snr_db: test_snr_grid_db

@@ -345,3 +345,94 @@ def test_classical_choice_file_resolves_without_learned_only_fields():
     assert cfg.resolved["system"] == "classical_adaptive"
     assert "lambda" not in cfg.resolved
     assert "train_seed" not in cfg.resolved
+
+
+# ---------------------------------------------------------------------------
+# Classical per-cell selections (PB_2C/C2.2)
+#
+# `modulation`, `ldpc_rate` and `encode_axis_px` change the row, so they belong
+# in the configuration fingerprint rather than only in an execution plan. A
+# present-but-unconfigured value must be an error, not a silently distinct
+# fingerprint.
+# ---------------------------------------------------------------------------
+
+_W4_GROUPS = (
+    "configs/classical-baseline-w4-imagenette.yaml",
+    "configs/classical-baseline-w4-cifar.yaml",
+    "configs/classical-baseline-w4-structural-fixture.yaml",
+    "configs/classical-baseline-w4-codec-fixture.yaml",
+)
+
+
+def _w4(source: str, **overrides):
+    base = {"train_seed": 0, "channel_seed": 0, "test_snr_db": 18}
+    return load_experiment(source, **{**base, **overrides})
+
+
+@pytest.mark.parametrize("source", _W4_GROUPS)
+def test_classical_selections_are_inside_the_fingerprint(source: str) -> None:
+    config = _w4(source)
+    for field in ("modulation", "ldpc_rate", "encode_axis_px"):
+        assert field in config.resolved
+    assert config.resolved["analysis_version"] == get("config.analysis_version")
+
+
+def test_every_w4_group_has_a_distinct_fingerprint() -> None:
+    digests = {source: config_hash(_w4(source)) for source in _W4_GROUPS}
+    assert len(set(digests.values())) == len(_W4_GROUPS)
+
+
+def test_changing_the_test_snr_changes_the_fingerprint() -> None:
+    source = _W4_GROUPS[0]
+    assert config_hash(_w4(source, test_snr_db=18)) != config_hash(
+        _w4(source, test_snr_db=-8)
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("modulation", "qam64"),
+        ("ldpc_rate", "9/10"),
+        ("encode_axis_px", 24),
+    ],
+)
+def test_an_unconfigured_classical_selection_is_rejected(
+    tmp_path: Path, field: str, value
+) -> None:
+    body = yaml.safe_load(
+        (REPO_ROOT / "configs/classical-baseline-w4-cifar.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    body["choices"][field] = value
+    source = REPO_ROOT / "configs" / f"pb2c-invalid-{field}.yaml"
+    source.write_text(yaml.safe_dump(body, sort_keys=True), encoding="utf-8")
+    try:
+        with pytest.raises(ValueError):
+            load_experiment(str(source.relative_to(REPO_ROOT)), train_seed=0,
+                            channel_seed=0, test_snr_db=18)
+    finally:
+        source.unlink()
+
+
+def test_a_null_encode_axis_is_a_distinct_selection_from_a_pinned_one() -> None:
+    """"Let the ladder choose" must not fingerprint the same as a fixed axis."""
+
+    body = yaml.safe_load(
+        (REPO_ROOT / "configs/classical-baseline-w4-codec-fixture.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert body["choices"]["encode_axis_px"] is None
+    pinned = dict(body["choices"], encode_axis_px=160)
+    source = REPO_ROOT / "configs/pb2c-pinned-axis.yaml"
+    source.write_text(
+        yaml.safe_dump({**body, "choices": pinned}, sort_keys=True), encoding="utf-8"
+    )
+    try:
+        assert config_hash(
+            _w4("configs/classical-baseline-w4-codec-fixture.yaml")
+        ) != config_hash(_w4("configs/pb2c-pinned-axis.yaml"))
+    finally:
+        source.unlink()

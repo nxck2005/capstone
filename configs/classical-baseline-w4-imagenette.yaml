@@ -1,0 +1,38 @@
+# Bounded W4 classical-baseline integration — the Imagenette-160 task-scored group.
+#
+# One of four strict `load_experiment()` files, one per distinct configuration
+# group of the bounded run. Each produces an ordinary versioned `RunConfig`
+# through the central implementation, so every emitted cell has a `config_hash`
+# whose resolved fields describe *that* cell.
+#
+# PB_2 used a single file for all four groups and reused one hash resolved at
+# 18 dB for every row, including the -8 dB cell, the CIFAR-10 rows and both
+# fixtures. Splitting the groups is what makes the fingerprint honest, and it is
+# preferred over widening the global configuration API (PB_2C §5.2).
+#
+# `modulation`, `ldpc_rate` and `encode_axis_px` are choices here rather than
+# execution-plan keys, because they change the row and must therefore be inside
+# the configuration fingerprint.
+#
+# `encode_axis_px: null` is a real selection meaning "let the configured axis
+# ladder choose", and is distinguishable from a pinned axis in the fingerprint.
+#
+# `system` is `classical_fixed_mcs`: PB_2 runs one explicitly fixed
+# (ratio, modulation, LDPC rate) configuration and implements no per-SNR
+# selection, so `classical_adaptive` would assert an adaptation PB_3 has not
+# yet built.
+experiment: classical_baseline_w4_imagenette
+choices:
+  system: classical_fixed_mcs
+  dataset: imagenette160
+  split: val
+  bw_ratio: r_1_24
+  channel: awgn
+  classifier_variant: clean
+  modulation: qam16
+  ldpc_rate: 2/3
+  encode_axis_px: null
+sweep_axes:
+  train_seed: train_seeds
+  channel_seed: channel_seeds
+  test_snr_db: test_snr_grid_db

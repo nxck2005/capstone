@@ -227,9 +227,11 @@ def build_worklist(plan: dict[str, Any]) -> list[dict[str, Any]]:
                         "ldpc_rate": spec["ldpc_rate"],
                         "encode_axis_px": spec.get("encode_axis_px"),
                         "test_snr_db": float(snr),
+                        "train_seed": int(spec["train_seed"]),
                         "channel_seed": int(spec["channel_seed"]),
                         "block_index": int(spec.get("block_index", 0)),
                         "task_scored": task_scored,
+                        "experiment_config": spec["experiment_config"],
                     }
                 )
 
@@ -258,6 +260,125 @@ def worklist_hash(work: list[dict[str, Any]]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Per-cell configuration
+# ---------------------------------------------------------------------------
+
+
+def cell_key(item: dict[str, Any]) -> tuple[str, int, int, float]:
+    """The identity of the configuration a row runs under.
+
+    A cell is one experiment file plus one point on each declared sweep axis.
+    Everything else that changes the row — dataset, ratio, modulation, LDPC
+    rate, encode axis — is fixed *inside* the experiment file, so two rows
+    sharing this key genuinely share a resolved configuration.
+    """
+
+    return (
+        item["experiment_config"],
+        int(item["train_seed"]),
+        int(item["channel_seed"]),
+        float(item["test_snr_db"]),
+    )
+
+
+def resolve_cell_configs(work: list[dict[str, Any]]) -> dict[tuple, tuple[Any, str]]:
+    """One concrete ``RunConfig`` per distinct cell, hashed centrally.
+
+    PB_2 resolved a single configuration at 18 dB and reused its hash for the
+    −8 dB cell, both fixtures and the CIFAR-10 rows, so `config_hash` named a
+    cell most rows were not in.  Resolving per cell is the repair, and it goes
+    through the ordinary `load_experiment`/`config_hash` pair rather than any
+    private formula.
+    """
+
+    configs: dict[tuple, tuple[Any, str]] = {}
+    for item in work:
+        key = cell_key(item)
+        if key in configs:
+            continue
+        source, train_seed, channel_seed, test_snr_db = key
+        run_config = load_experiment(
+            source,
+            train_seed=train_seed,
+            channel_seed=channel_seed,
+            test_snr_db=int(test_snr_db) if test_snr_db.is_integer() else test_snr_db,
+        )
+        resolved = run_config.resolved
+        # The fingerprint must agree with the work item it will be attached to,
+        # or the archive would describe a different cell than the one that ran.
+        for field, expected in (
+            ("dataset", item["dataset"]),
+            ("split", item["split"]),
+            ("bw_ratio", item["bw_ratio"]),
+            ("modulation", item["modulation"]),
+            ("ldpc_rate", item["ldpc_rate"]),
+            ("encode_axis_px", item["encode_axis_px"]),
+        ):
+            if resolved[field] != expected:
+                raise SmokeError(
+                    f"{source}: resolved {field}={resolved[field]!r} but the plan "
+                    f"row for {item['group']} says {expected!r}"
+                )
+        if float(resolved["test_snr_db"]) != float(item["test_snr_db"]):
+            raise SmokeError(f"{source}: resolved test_snr_db disagrees with the plan")
+        configs[key] = (run_config, config_hash(run_config))
+    return configs
+
+
+def config_hash_root(configs: dict[tuple, tuple[Any, str]]) -> str:
+    """One digest over every cell hash, for the resume binding.
+
+    Deliberately not a substitute for the per-cell hashes: it exists so an
+    interrupted run cannot resume against a differently-configured worklist.
+    """
+
+    return canonical_sha256(
+        sorted(digest for _config, digest in configs.values())
+    )
+
+
+def write_run_config_artifacts(
+    configs: dict[tuple, tuple[Any, str]],
+    directory: Path,
+    *,
+    relative_to: Path | None = None,
+) -> list[dict[str, Any]]:
+    """Archive each concrete configuration under its own hash, and index them.
+
+    Index paths are relative to the evidence directory, so the bundle describes
+    itself and can be verified wherever it is unpacked.
+    """
+
+    directory.mkdir(parents=True, exist_ok=True)
+    base = relative_to or directory.parent
+    index: list[dict[str, Any]] = []
+    for key in sorted(configs, key=lambda item: configs[item][1]):
+        run_config, digest = configs[key]
+        path = directory / f"{digest}.json"
+        write_json_atomically(path, run_config.to_dict())
+        resolved = run_config.resolved
+        index.append(
+            {
+                "config_hash": digest,
+                "relative_path": str(
+                    path.relative_to(base) if path.is_relative_to(base) else path.name
+                ),
+                "file_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                "run_config": run_config.experiment,
+                "dataset": resolved["dataset"],
+                "bw_ratio": resolved["bw_ratio"],
+                "test_snr_db": resolved["test_snr_db"],
+                "train_seed": resolved["train_seed"],
+                "channel_seed": resolved["channel_seed"],
+                "modulation": resolved["modulation"],
+                "ldpc_rate": resolved["ldpc_rate"],
+                "encode_axis_px": resolved["encode_axis_px"],
+            }
+        )
+    return index
+
+
+# ---------------------------------------------------------------------------
 # Execution
 # ---------------------------------------------------------------------------
 
@@ -273,7 +394,8 @@ def _identity_for(item: dict[str, Any], *, plan: dict[str, Any], run_config_hash
         split_manifest_hash=manifest_sha256(dataset),
         bw_ratio=item["bw_ratio"],
         test_snr_db=item["test_snr_db"],
-        train_seed=int(plan["imagenette160_task_scored"]["train_seed"]),
+        # Per row, not per run: PB_2 read one group's train seed for every row.
+        train_seed=int(item["train_seed"]),
         channel_seed=item["channel_seed"],
         config_hash=run_config_hash,
         checkpoint_id=checkpoint_id,
@@ -340,6 +462,7 @@ def run_row(
         "wall_clock_s": elapsed,
         "summary": result.summary(),
         "k_symbols": k_symbols,
+        "config_hash": run_config_hash,
     }
     if result.source_coding is not None:
         record["source_coding"] = {
@@ -424,7 +547,7 @@ def run_row(
 def _progress_identity(
     *,
     source_commit: str,
-    run_config_hash: str,
+    config_hash_root: str,
     checkpoint_id: str,
     manifest_hashes: dict[str, str],
     work_hash: str,
@@ -432,7 +555,7 @@ def _progress_identity(
 ) -> dict[str, Any]:
     return {
         "source_commit": source_commit,
-        "config_hash": run_config_hash,
+        "config_hash_root": config_hash_root,
         "checkpoint_id": checkpoint_id,
         "manifest_sha256": manifest_hashes,
         "worklist_sha256": work_hash,
@@ -510,7 +633,7 @@ def finalise(
     rows: dict[str, dict[str, Any]],
     identity_binding: dict[str, Any],
     timestamp: str,
-    run_config,
+    cell_configs: dict[tuple, tuple[Any, str]],
     wall_clock_s: float,
     evidence_dir: Path,
     git_dirty: bool,
@@ -550,7 +673,7 @@ def finalise(
         identity = _identity_for(
             first_item,
             plan=plan,
-            run_config_hash=identity_binding["config_hash"],
+            run_config_hash=cell_configs[cell_key(first_item)][1],
             checkpoint_id=identity_binding["checkpoint_id"],
         )
         delivered = [row for row in group_rows if row["verdict"] == DELIVERED]
@@ -620,7 +743,13 @@ def finalise(
         "wall_clock_s": wall_clock_s,
         "execution_source_commit": identity_binding["source_commit"],
         "git_dirty": git_dirty,
-        "config_hash": identity_binding["config_hash"],
+        "config_hash_root": identity_binding["config_hash_root"],
+        "config_hashes": {
+            "/".join(str(part) for part in key): digest
+            for key, (_config, digest) in sorted(
+                cell_configs.items(), key=lambda kv: kv[1][1]
+            )
+        },
         "checkpoint_id": identity_binding["checkpoint_id"],
         "classifier_config_hash": EXPECTED_CONFIG_HASH,
         "manifest_sha256": identity_binding["manifest_sha256"],
@@ -630,7 +759,7 @@ def finalise(
         "aggregate_csv_sha256": aggregate_hash,
         "br4_sweep_completed": False,
         "g8_status": "unresolved",
-        "j2k_resolutions_issue_status": "unresolved",
+        "j2k_resolutions_issue_status": "resolved_by_am80",
         "operating_point_selected": False,
         "training_performed": False,
         "test_split_access": {
@@ -891,13 +1020,6 @@ def main() -> int:
 
     source_commit = _git("rev-parse", "HEAD")
     dirty = _git("status", "--porcelain", "--untracked-files=normal")
-    run_config = load_experiment(
-        plan["experiment_config"],
-        train_seed=int(plan["imagenette160_task_scored"]["train_seed"]),
-        channel_seed=int(plan["imagenette160_task_scored"]["channel_seed"]),
-        test_snr_db=int(plan["imagenette160_task_scored"]["snr_db"][0]),
-    )
-    run_config_hash = config_hash(run_config)
     plan_sha256 = hashlib.sha256((REPO / PLAN_PATH).read_bytes()).hexdigest()
 
     policy = load_outage_policy(
@@ -906,13 +1028,19 @@ def main() -> int:
         expected_manifest_sha256=manifest_sha256(FROZEN_CLASSIFIER_DATASET),
     )
     work = build_worklist(plan)
+    cell_configs = resolve_cell_configs(work)
+    run_config_index = write_run_config_artifacts(
+        cell_configs,
+        REPO / plan["outputs"]["run_configs_dir"],
+        relative_to=evidence_dir,
+    )
     manifest_hashes = {
         dataset: manifest_sha256(dataset)
         for dataset in sorted({item["dataset"] for item in work})
     }
     identity_binding = _progress_identity(
         source_commit=source_commit,
-        run_config_hash=run_config_hash,
+        config_hash_root=config_hash_root(cell_configs),
         checkpoint_id=EXPECTED_CHECKPOINT_SHA256,
         manifest_hashes=manifest_hashes,
         work_hash=worklist_hash(work),
@@ -946,7 +1074,7 @@ def main() -> int:
             codec=codec,
             policy=policy,
             classifier=classifier,
-            run_config_hash=run_config_hash,
+            run_config_hash=cell_configs[cell_key(item)][1],
             checkpoint_id=EXPECTED_CHECKPOINT_SHA256,
             device=arguments.device,
         )
@@ -995,7 +1123,7 @@ def main() -> int:
         rows=rows,
         identity_binding=identity_binding,
         timestamp=timestamp,
-        run_config=run_config,
+        cell_configs=cell_configs,
         wall_clock_s=wall_clock,
         evidence_dir=evidence_dir,
         git_dirty=bool(dirty),
@@ -1008,16 +1136,17 @@ def main() -> int:
     write_json_atomically(
         REPO / plan["outputs"]["resolved_config"],
         {
-            "schema_version": 1,
+            "schema_version": 2,
             "complete": True,
             "evidence_labels": list(EVIDENCE_LABELS),
             "prominent_declaration": PROMINENT_DECLARATION,
-            "experiment_config": plan["experiment_config"],
             "plan_config": str(PLAN_PATH),
             "plan_sha256": plan_sha256,
-            "config_hash": run_config_hash,
-            "resolved": run_config.to_dict()["resolved"],
-            "parameters": run_config.to_dict()["parameters"],
+            "config_hash_root": identity_binding["config_hash_root"],
+            # An execution-level *index*, not one configuration pretending to
+            # describe every cell. Each entry points at the archived concrete
+            # RunConfig that produced its rows.
+            "run_configs": run_config_index,
             "field_semantics": field_semantics(),
             "execution_source_commit": source_commit,
             "git_dirty": bool(dirty),

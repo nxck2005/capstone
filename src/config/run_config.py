@@ -219,6 +219,31 @@ def _validate_named_choices(resolved: Mapping[str, Any]) -> None:
     if bw_ratio not in get("bandwidth.ratios"):
         raise ValueError(f"unknown bandwidth-ratio choice: {bw_ratio}")
 
+    # The classical arm's per-cell selections. These are optional because the
+    # learned arm does not carry them, but a *present* one must name a
+    # configured value: a typo would otherwise become a silently distinct run
+    # fingerprint rather than an error, which is exactly the class of defect
+    # PB_2C exists to close.
+    if "modulation" in resolved:
+        modulation = resolved["modulation"]
+        if modulation not in get("baseline.modulations"):
+            raise ValueError(f"unknown modulation choice: {modulation}")
+    if "ldpc_rate" in resolved:
+        ldpc_rate = resolved["ldpc_rate"]
+        if ldpc_rate not in get("baseline.ldpc_rates"):
+            raise ValueError(f"unknown LDPC-rate choice: {ldpc_rate}")
+    if "encode_axis_px" in resolved:
+        axis = resolved["encode_axis_px"]
+        # `None` means "let the configured ladder choose", which is a real
+        # selection and must stay distinguishable from a pinned axis.
+        if axis is not None:
+            configured = get("baseline.downsample_axis_px").get(dataset, ())
+            if axis not in {int(value) for value in configured}:
+                raise ValueError(
+                    f"encode_axis_px {axis!r} is not a configured axis for "
+                    f"{dataset}: {list(configured)}"
+                )
+
 
 def load_experiment(path: str | Path, **overrides: Any) -> RunConfig:
     """Resolve a committed experiment-choice file into one concrete run.
