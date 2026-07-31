@@ -44,7 +44,7 @@ Then:
 
 ## Status
 
-**Current phase:** PB_3 — in progress (B3.0 done)
+**Current phase:** PB_3 — in progress (B3.0, B3.1 done)
 **Last green commit:** `81372a5f1139bbfa9e086d229bf807c7cf6a8bce`
 (`docs(handoff): harden PB_3 preflight and frontier consistency`) — the **PRE_B3
 repository-process green**, and the PB_3 starting SHA.
@@ -55,10 +55,11 @@ measurement.** The provisional PB_2 green `50de80364c2546463918387a8f335ea36107b
 **invalidated**; the corrected bounded evidence was regenerated at
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** this `wip(classical): record the B3.0 baseline` commit
-**Next action:** implement B3.1 — create `src/baseline/classical/composition.py` with the
-BR-4 analytic composition and `tests/test_classical_composition.py`, then run
-`.venv/bin/python -m pytest tests/test_classical_composition.py -q`
+**Last durable checkpoint:** this `wip(classical): land the BR-4 composition arithmetic` commit
+**Next action:** implement B3.2 — add the complete-identity BLER lookup and the
+no-extrapolation guard to `src/baseline/classical/composition.py`, reading the committed
+G-2 curves from `results/baseline/g2/bler_results.csv`, then run
+`.venv/bin/python -m pytest tests/test_classical_composition.py -k bler -q`
 
 **PB_2 is complete, including its PB_2C correction.** `instructions/PB_2C.txt` is the durable
 instruction for that repair and its §18 addendum carries two normative decisions and four
@@ -481,7 +482,7 @@ measurement, and adds no amendment. PB_2C remains the most recent scientific-evi
 | Step | State | Notes |
 |---|---|---|
 | B3.0 confirm PB_2 green | done | Fresh run, no resumption. Clean worktree; local HEAD = `origin/main` = remote main = `81372a5f1139bbfa9e086d229bf807c7cf6a8bce` (the PRE_B3 green). PB_2C `3324393a3e1692478bba8cf1020708bf52947f6d` remains the latest scientific-evidence green. **PB_3 confirmed not started:** `src/baseline/classical/composition.py` absent, all ten B3.x rows `not-started`, no G-8 sweep or operating-point selection has occurred, test split sealed. All six inherited files present (`pipeline.py`, `channel_transport.py`, `outage.py`, `records.py`, `tools/verify_w4_baseline_integration.py`, `results/baseline/w4/outage_policy.json`). Carried outage facts populated and read from the ledger, not recomputed: class **0**, measured **100/1000 = 0.1**. **Baseline checks, each run separately:** `fetch_ldpc_golden_vectors` fixture already present `55754b508ab1…` · `gen_spec_views --check` 190 requirements (2 retired), 10 views current · `check_doc_consistency -v` ok, 11 current docs, frontier PB_3 · `check_literals -v` 42 files, 0 findings, 46 annotations · `check_packetisation` 215 feasible, 3 clamped, **0 failures** · `gen_g2_source_manifest --check` ok (14 sources) · `verify_g2_adjudication` **PASS** (`measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']`) · `gen_w4_source_manifest --check` ok (40 sources, execution `76e789c9f3d0`) · `verify_w4_baseline_integration` **PASS** (`sources=40, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), cifar_transport_only=5, imagenette[18.0dB n=24 top1=0.75, -8.0dB n=24 top1=0.125], raw_rows=55 (emitted=53), openjpeg=2.5.4, overhead_cells=3, test_split_access=0`) · **`pytest` 902 passed, 0 failed, 0 skipped in 100.90 s** (matches the PRE_B3 H3.4 baseline exactly). Next action: implement B3.1. |
-| B3.1 `composition.py` arithmetic | not-started | |
+| B3.1 `composition.py` arithmetic | done | **Files:** `src/baseline/classical/composition.py` (new), `tests/test_classical_composition.py` (new). `transport_block_success_probability()` is the product over code blocks of `1 - BLER_r`; `expected_accuracy()` is AM-51's mixture, keyword-only and **typed so a bare float cannot be passed for either accuracy term**; `compose()` returns a `CompositionResult` whose `as_record()` carries both measured inputs forward. `MeasuredCodecAccuracy` and `MeasuredOutageAccuracy` take **counts plus provenance**, never a ratio, so an assumed value has nowhere to enter; `MeasuredCodecAccuracy` additionally refuses any split but `val` (SR-22). `measured_outage_accuracy_from_record()` reads PB_2's committed `outage_policy.json` by its **counts**, cross-checks the recorded float against them, and refuses a record under another `baseline.outage_policy`. An empty code-block sequence raises rather than returning a vacuous `P = 1.0`. **Tests: `.venv/bin/python -m pytest tests/test_classical_composition.py -q` → 31 passed.** Covers 1/2/many blocks, mixed BLERs, `P` exactly 0 and exactly 1, invalid probabilities (negative, >1, NaN, str, None, bool), the empty-product defect, both worked examples hand-checked off-implementation, the measured-not-reconstructed property using a deliberately non-stratified 137/1000 outage measurement, and the wrong-outage-score mutation. `check_literals` 0 findings (43 files). Next action: implement B3.2. |
 | B3.2 BLER lookup + support guard | not-started | |
 | B3.3 candidate cache + tie-break | not-started | |
 | B3.4 system modes + two-pass limit | not-started | |
