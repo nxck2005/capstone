@@ -1,0 +1,68 @@
+{
+  "byte_semantics": "BR-11 as amended by AM-81, which defines these columns arithmetically rather than leaving them to interpretation. bytes_sent = source_bytes = A/8, the complete byte-aligned transport payload capacity placed on the channel (identical to the per-image source_bytes fixed by BR-10). header_bytes = all structural codestream bytes: SOC, every main-header marker segment, every SOT marker segment, every tile-part header through and including SOD, EOC, and the equivalent structural bytes of every tile-part, counted inside bytes_sent per params.baseline.container_policy. payload_bytes = all tile-part data bytes after SOD and before the next tile-part boundary. This is deliberately NOT described as pure entropy-coded sample data: JPEG 2000 tile-part data may also carry packet-header information, so the narrower wording would be false. emitted_codestream_bytes = header_bytes + payload_bytes exactly. payload_filler_bytes = bytes_sent - emitted_codestream_bytes is the zero filler padding the codestream out to A/8; it has no schema column and is reported in accounting_examples.json instead of being folded into either column, so no denominator is silently mixed. Aggregate denominator: both columns are means over every row that emitted a codestream, which includes delivered AND decode_failure rows and excludes structural_infeasibility and codec_infeasibility, where no codestream exists; they are null only when the aggregate contains no emitted codestream at all. LDPC/channel bits (G = k x Qm) and the channel-use count (k symbols) are separate quantities and are never reported as bytes here.",
+  "cells": [
+    {
+      "bw_ratio": "r_1_2",
+      "bytes_sent": 190.0,
+      "config_hash": "137d084df9ac9f56c83e71b3145bcf0543f1a7f9767ab24cd3013dc0be7b3aa9",
+      "dataset": "cifar10",
+      "emitted_rows": 5,
+      "encode_axis_px": 32,
+      "ldpc_rate": "1/2",
+      "mean_emitted_codestream_bytes": 185.4,
+      "mean_header_bytes": 157.0,
+      "mean_payload_bytes": 28.4,
+      "mean_payload_filler_bytes": 4.6,
+      "modulation": "qpsk",
+      "overhead_fraction_of_budget": 0.8263157894736842,
+      "overhead_fraction_of_emitted": 0.8468176914778857,
+      "test_snr_db": 11.0
+    },
+    {
+      "bw_ratio": "r_1_24",
+      "bytes_sent": 1063.0,
+      "config_hash": "cec413d8d819c2a3fc6540de1778bf284560de84d86e02647526b617752b8c92",
+      "dataset": "imagenette160",
+      "emitted_rows": 24,
+      "encode_axis_px": 160,
+      "ldpc_rate": "2/3",
+      "mean_emitted_codestream_bytes": 1049.5416666666665,
+      "mean_header_bytes": 157.0,
+      "mean_payload_bytes": 892.5416666666666,
+      "mean_payload_filler_bytes": 13.458333333333334,
+      "modulation": "qam16",
+      "overhead_fraction_of_budget": 0.14769520225776106,
+      "overhead_fraction_of_emitted": 0.14958910635594905,
+      "test_snr_db": -8.0
+    },
+    {
+      "bw_ratio": "r_1_24",
+      "bytes_sent": 1063.0,
+      "config_hash": "676f031107864d9e77192cae27c96b8de26451f95119f34d909e7a1cde94d350",
+      "dataset": "imagenette160",
+      "emitted_rows": 24,
+      "encode_axis_px": 160,
+      "ldpc_rate": "2/3",
+      "mean_emitted_codestream_bytes": 1049.5416666666665,
+      "mean_header_bytes": 157.0,
+      "mean_payload_bytes": 892.5416666666666,
+      "mean_payload_filler_bytes": 13.458333333333334,
+      "modulation": "qam16",
+      "overhead_fraction_of_budget": 0.14769520225776106,
+      "overhead_fraction_of_emitted": 0.14958910635594905,
+      "test_snr_db": 18.0
+    }
+  ],
+  "complete_for_full_validation_grid": false,
+  "denominator": "means over every row that emitted a codestream, which includes delivered and decode_failure rows and excludes both infeasibility verdicts, where no codestream exists (BR-11/AM-81)",
+  "evidence_labels": [
+    "bounded validation/plumbing integration",
+    "not the BR-4 full validation sweep",
+    "not a G-8 operating-point selection",
+    "not test evidence"
+  ],
+  "evidence_scope": "bounded_integration",
+  "executed_cells": 3,
+  "prominent_declaration": "Bounded validation/plumbing integration for the W4 classical baseline. This is not the BR-4 full validation sweep, not a G-8 operating-point selection, and not test evidence. No operating ratio was selected, no candidate configurations were compared, no model was trained or fine-tuned, and the test split was never opened. Accuracy figures here are plumbing observations at the stated sample size, not experimental results and not estimates of test performance.",
+  "schema_version": 1
+}

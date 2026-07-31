@@ -1,5 +1,5 @@
 {
-  "execution_source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2",
+  "execution_source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0",
   "generated_by": "tools/gen_w4_source_manifest.py",
   "git_object_format": "sha1",
   "kind": "w4_execution_source_manifest",
@@ -15,20 +15,44 @@
   "schema_version": 1,
   "sources": [
     {
-      "bytes": 4898,
-      "git_blob_sha": "76564ab474efa873723a23b888fc61b71c375d17",
-      "path": "configs/classical-baseline-w4-smoke-plan.yaml",
+      "bytes": 1046,
+      "git_blob_sha": "1ecbcef1cb32ddb0c9667ee9d6a68d9f48186c01",
+      "path": "configs/classical-baseline-w4-cifar.yaml",
       "role": "configuration",
-      "sha256": "6a6f6168f8f298bdf6753c5d5c627ed20989cde4800f2fb87a4f0bdbc90221a6",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "sha256": "f19b4f5d6e711fa2e1a34678e73a5daaf519585f9dcb301b11d9c7fdab88d975",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
-      "bytes": 1310,
-      "git_blob_sha": "96d6e2a7a817501db9e9e588ca9c1125a8c9e072",
-      "path": "configs/classical-baseline-w4-smoke.yaml",
+      "bytes": 735,
+      "git_blob_sha": "b3e3ceb8a0c8b213cc2d2272a43e0ec1034222cd",
+      "path": "configs/classical-baseline-w4-codec-fixture.yaml",
       "role": "configuration",
-      "sha256": "354e1021ed7269f3f4193125789b006eac166c14d81719b883c8ac3bc18ec220",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "sha256": "4f9d11f74eaec2208e870a8a4d1de65a2aa85cbf45642fee17307da81e501b2b",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
+    },
+    {
+      "bytes": 1607,
+      "git_blob_sha": "e23a3d63fe3da2d9308d2445961d866d1a22a0ad",
+      "path": "configs/classical-baseline-w4-imagenette.yaml",
+      "role": "configuration",
+      "sha256": "46157e05ec0a8bb2d89256d7e29bb841ac52788445d293ace4da38ec8d144184",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
+    },
+    {
+      "bytes": 5779,
+      "git_blob_sha": "08aa8b7ce61c4f2c61fa2ebfb5747c0e149a7f6f",
+      "path": "configs/classical-baseline-w4-smoke-plan.yaml",
+      "role": "configuration",
+      "sha256": "03aa1f14be04fd41e686ee0764003db120e8a212c76187e779f3de0818c6b9f3",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
+    },
+    {
+      "bytes": 866,
+      "git_blob_sha": "e9d79618dd1378278606ab07348c80131021dc87",
+      "path": "configs/classical-baseline-w4-structural-fixture.yaml",
+      "role": "configuration",
+      "sha256": "7e6ef7a39a351729d69ddcaf9cbe62df6b679b8759d2e7d4f8f3a2552aa14357",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 1480029,
@@ -36,7 +60,7 @@
       "path": "data/manifests/cifar10.csv",
       "role": "configuration",
       "sha256": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 328954,
@@ -44,15 +68,15 @@
       "path": "data/manifests/imagenette160.csv",
       "role": "configuration",
       "sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 2212,
-      "git_blob_sha": "6f33fa55f6ad50e56528cc3b8cf5fa9316b8e90f",
+      "git_blob_sha": "7047b44aba02e7da9ac68b855ff99fcfb0bc83af",
       "path": "results/baseline/w4/outage_policy.json",
       "role": "record",
-      "sha256": "aa6486d8b6bb3f543d825515d472496513eccfb9f0fa227afb5c3354e1faaf82",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "sha256": "ebcc34133f7a1e38635e8a958cb41a4b8f019b02fd97bd2f0ad606a0a1396121",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 3184,
@@ -60,15 +84,15 @@
       "path": "results/reference_classifier/g1_adjudication.json",
       "role": "record",
       "sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
-      "bytes": 35156,
-      "git_blob_sha": "7f795d76b7fc63fcf0f9fc991fffa6cfa2743489",
+      "bytes": 35138,
+      "git_blob_sha": "ca17e478fd51a81f4bb92aeb52cf68189e103e63",
       "path": "spec/params.generated.yaml",
       "role": "configuration",
-      "sha256": "255bb5eaa04cdadbce324ade3cea9c54192cef3ae7c3447f3dcafa5eec63062b",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "sha256": "1b094107b7ef3162d8ed9d433e1793c656d6886e21916580f8a8ffe3f022dbaf",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 3469,
@@ -76,7 +100,7 @@
       "path": "src/artifacts/ids.py",
       "role": "runtime",
       "sha256": "4c5df664858489cbc698e43b7fb98b80eb5c37dd0b2359f497eccfdb52dc40fb",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 3254,
@@ -84,7 +108,7 @@
       "path": "src/artifacts/rng.py",
       "role": "runtime",
       "sha256": "d886c0ec6a8e980b878dd4dbc69d14439dbc4c61f215fa37c49886a1a5efdad5",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 925,
@@ -92,7 +116,7 @@
       "path": "src/baseline/classical/__init__.py",
       "role": "runtime",
       "sha256": "51fea8f04d8ea46d66bac7d99df72f3af92d1d8fefca933b10b8fb94f0beef53",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 12977,
@@ -100,7 +124,7 @@
       "path": "src/baseline/classical/channel_transport.py",
       "role": "runtime",
       "sha256": "c1822b8a8d0b78609d62228496aac8c19279033c5c55ca39c3e522986e6c23ca",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 22262,
@@ -108,7 +132,7 @@
       "path": "src/baseline/classical/outage.py",
       "role": "runtime",
       "sha256": "54bd239d5d3ecfac8dd335453a68945a205e5b9574baa7144708141013b7dc0d",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 16962,
@@ -116,15 +140,15 @@
       "path": "src/baseline/classical/pipeline.py",
       "role": "runtime",
       "sha256": "2eac20ae0ee1af19fe1b6e5d6a853b8fc2d514d99b0ff997b1763477673d7ea3",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
-      "bytes": 36470,
-      "git_blob_sha": "9c8d6dcbe431b577bdcc6f4ca6afbc78652763cb",
+      "bytes": 40977,
+      "git_blob_sha": "2ee8b2a468e5c3249c959a1d6a6d07bb29ff50da",
       "path": "src/baseline/classical/records.py",
       "role": "runtime",
-      "sha256": "ed845bfbc5b861af27470cd9c39bbaa47437823bad12b73d7e22f0b973358afe",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "sha256": "62dfaed5d05941a412c186c1d2b2929ff2c5e73fbe9351f3127eb7f3dc9a3bce",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 20595,
@@ -132,7 +156,7 @@
       "path": "src/baseline/j2k.py",
       "role": "runtime",
       "sha256": "90a0dc1bfdbf37fcb1cd36a539f4623d0d247c20cfc04246da00cad4cc377b7e",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 2546,
@@ -140,7 +164,7 @@
       "path": "src/baseline/ldpc/adapter.py",
       "role": "runtime",
       "sha256": "1bc62ba6c5936c9095a97e0e9f989eb1f25efc2f29b2268f651d7a58fbd15de9",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 2036,
@@ -148,7 +172,7 @@
       "path": "src/baseline/ldpc/crc.py",
       "role": "runtime",
       "sha256": "8f389a34510b6b3614e471c3ac648dd7ac8d8d9422ee4beaf7c591a012922c63",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 3790,
@@ -156,7 +180,7 @@
       "path": "src/baseline/ldpc/modulation.py",
       "role": "runtime",
       "sha256": "eb3e7f05e453ea74ba099cfe5de5494ca9926f1333db16ee3d3dcc461ae011ad",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 765,
@@ -164,7 +188,7 @@
       "path": "src/baseline/ldpc/rate_matching.py",
       "role": "runtime",
       "sha256": "a24aea4057b555f335b4b8d930523b3e13ee5f6dbe717618461eb4abc01250f1",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 3941,
@@ -172,7 +196,7 @@
       "path": "src/baseline/ldpc/segmentation.py",
       "role": "runtime",
       "sha256": "44f160a0db476e38a0dbac80c1eb6872c4a102d71c8e4ad84ed60672f7ff57cf",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 8673,
@@ -180,7 +204,7 @@
       "path": "src/baseline/ldpc/transport.py",
       "role": "runtime",
       "sha256": "f06a78104073ee9d8aa87e388d3389b43b94609830e5d0593555bb4bf768644c",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 5011,
@@ -188,7 +212,7 @@
       "path": "src/channels/awgn.py",
       "role": "runtime",
       "sha256": "ac8c356484cd6a99a705a3fef6036ca97871ddc6f562be0ae80f06721200a59c",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 5196,
@@ -196,7 +220,7 @@
       "path": "src/channels/power.py",
       "role": "runtime",
       "sha256": "788ef8a5343154add5102c5fd18060eea6284c9dadd4638163adafb7b3bb63f9",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 2118,
@@ -204,7 +228,7 @@
       "path": "src/channels/registry.py",
       "role": "runtime",
       "sha256": "e6c8c2ea044e7e0d71be807e9c8ea7cda4259899da461f6079f24b16a3556815",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 1550,
@@ -212,15 +236,15 @@
       "path": "src/config/params.py",
       "role": "runtime",
       "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
-      "bytes": 14973,
-      "git_blob_sha": "3f86faa314ccd8b6ca5eaba2c051eeb9b90e9096",
+      "bytes": 16293,
+      "git_blob_sha": "4fbf90e72289f6d6b01b8b9eac5920c31bc83aa8",
       "path": "src/config/run_config.py",
       "role": "runtime",
-      "sha256": "3fe4968662d70e6a7a71e9078a7cce2e6b2747dc99868f724188ef2d465c83e3",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "sha256": "e18af6b2930cf0a1d2208860edc208cf0af7c24c63b87119e5e737efc350e505",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 14579,
@@ -228,7 +252,7 @@
       "path": "src/data/adapters.py",
       "role": "runtime",
       "sha256": "97f36eb4a226bedc8579a000b048119e15915495382c759b79fe0582209bcfca",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 3215,
@@ -236,7 +260,7 @@
       "path": "src/data/classifier.py",
       "role": "runtime",
       "sha256": "1108ad155e2d0dd1fc2658ef27757b0a4249926316cae5cebb9081471c92f64b",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 1056,
@@ -244,7 +268,7 @@
       "path": "src/data/identity.py",
       "role": "runtime",
       "sha256": "e03e0033d6d0174584c2818fb4b6968d9e33c133527a8fbab1644f6a5850f249",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 11468,
@@ -252,7 +276,7 @@
       "path": "src/data/manifests.py",
       "role": "runtime",
       "sha256": "28cb6de265b7f2cf5eff65e0da9bba3a35a592371924bb52a991b6682353bfdd",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 20537,
@@ -260,7 +284,7 @@
       "path": "src/data/preprocessing.py",
       "role": "runtime",
       "sha256": "1aa5eafc8d02be5e79ee10b342cb8fb901e2600ba7a77224ecaf29dbcbcbacdf",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 13608,
@@ -268,7 +292,7 @@
       "path": "src/data/provenance.py",
       "role": "runtime",
       "sha256": "24a74828fda74e337aaf865ff06974cd25e9ce11a8e014bef7d9a2cf1a961b33",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 6295,
@@ -276,7 +300,7 @@
       "path": "src/data/registry.py",
       "role": "runtime",
       "sha256": "da790dcee14835f756302a360defa9158f63a56eded87605fe383ade6297b8ae",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 12283,
@@ -284,7 +308,7 @@
       "path": "src/models/frozen_reference_classifier.py",
       "role": "runtime",
       "sha256": "6df88447c1afbcf7c7d5f9484d18a20637085a2552c326bc0ee2a33f2ab90fce",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 3788,
@@ -292,7 +316,7 @@
       "path": "src/models/reference_classifier.py",
       "role": "runtime",
       "sha256": "d2f52ee616a582657e895a9b1c56250ee83d172b963cd00bb55bb0c8942eb703",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
       "bytes": 5015,
@@ -300,15 +324,15 @@
       "path": "tools/gen_w4_outage_policy.py",
       "role": "measurement_runner",
       "sha256": "2c8ca75e0f09010fa47ffe00a75b1716c8c67faa65f5cdeaeaf6933bb53468d2",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     },
     {
-      "bytes": 40308,
-      "git_blob_sha": "a6257d253bd61875179931576fc2f0d551c408c6",
+      "bytes": 53262,
+      "git_blob_sha": "513604ff953273d6dac29cfa4386b5bd35f12d63",
       "path": "tools/run_classical_baseline_w4_smoke.py",
       "role": "measurement_runner",
-      "sha256": "c72506ceacd12f37923dbfdc09fe95ead54f69cecc05e97a2df00dc7ff90754d",
-      "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2"
+      "sha256": "c1d39f156f9310a8714751d907653a7b9c4cd55ce3c5f2de08b0e23644da4c12",
+      "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"
     }
   ]
 }

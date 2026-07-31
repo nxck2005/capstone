@@ -55,8 +55,8 @@
       "modulation": "qpsk",
       "source_coding": {
         "axis_reasons": [],
-        "cache_hit": true,
-        "cache_key": "f387e77455028f1a5fc8e644fec336e85e59d137b3262a76c5955c1efb8f63b6",
+        "cache_hit": false,
+        "cache_key": "545131bb8c8521ead1b33e7b588e3dd47f5c6529f4f3e08135240e960bf7d39a",
         "codestream_sha256": "922cb3b8aff7e06d5f60515a136810d796a974271e6146cdb712abe9f9c660db",
         "emitted_bytes": 187,
         "encode_axis_px": 32,
@@ -127,8 +127,8 @@
       "modulation": "qam16",
       "source_coding": {
         "axis_reasons": [],
-        "cache_hit": true,
-        "cache_key": "bb7471c402a5badcf29177e432e83595d4d180a7ee135170c3ec3cde849d9411",
+        "cache_hit": false,
+        "cache_key": "6e5166ec1a9dfc1b0e1c4156dfd1279d143cffe235619311372a88f3ff78e98a",
         "codestream_sha256": "3a0b3db87c150fe53277dd9fd818e055a1850e0d57121217e2cf3af244fcda7b",
         "emitted_bytes": 1062,
         "encode_axis_px": 160,
@@ -211,7 +211,7 @@
       "source_coding": {
         "axis_reasons": [],
         "cache_hit": true,
-        "cache_key": "bb7471c402a5badcf29177e432e83595d4d180a7ee135170c3ec3cde849d9411",
+        "cache_key": "6e5166ec1a9dfc1b0e1c4156dfd1279d143cffe235619311372a88f3ff78e98a",
         "codestream_sha256": "3a0b3db87c150fe53277dd9fd818e055a1850e0d57121217e2cf3af244fcda7b",
         "emitted_bytes": 1062,
         "encode_axis_px": 160,

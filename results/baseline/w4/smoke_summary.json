@@ -1,5 +1,5 @@
 {
-  "aggregate_csv_sha256": "6969b0c7080665e341d267a35f8d2579d8ec890b696f8763314ae292ed911c35",
+  "aggregate_csv_sha256": "1394447702ae8f9b46a14d00ed954f24b832fb88822a114474523d90624d4709",
   "br4_sweep_completed": false,
   "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
   "cifar10_transport_only": {
@@ -35,11 +35,11 @@
     },
     "bw_ratio": "r_1_2",
     "cache_hits": [
-      true,
-      true,
-      true,
-      true,
-      true
+      false,
+      false,
+      false,
+      false,
+      false
     ],
     "classifier_inference_performed": false,
     "codestream_exact": [
@@ -82,14 +82,21 @@
   },
   "classifier_config_hash": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
   "complete": true,
-  "config_hash": "ba59d1e7cb8c69eeb5e15c31524f7d650b916080d4ab3a85f079958fca7cfc79",
+  "config_hash_root": "8df2a5de1068adf2aaf91284e70aeea9c9b15056b62647c2ba660f7319376c04",
+  "config_hashes": {
+    "configs/classical-baseline-w4-cifar.yaml/0/0/11.0": "137d084df9ac9f56c83e71b3145bcf0543f1a7f9767ab24cd3013dc0be7b3aa9",
+    "configs/classical-baseline-w4-codec-fixture.yaml/0/0/18.0": "18cbd93386d780d4655f81d360206ff7df6f40fdce45aa48e8bb5713096c63df",
+    "configs/classical-baseline-w4-imagenette.yaml/0/0/-8.0": "cec413d8d819c2a3fc6540de1778bf284560de84d86e02647526b617752b8c92",
+    "configs/classical-baseline-w4-imagenette.yaml/0/0/18.0": "676f031107864d9e77192cae27c96b8de26451f95119f34d909e7a1cde94d350",
+    "configs/classical-baseline-w4-structural-fixture.yaml/0/0/11.0": "31fdfdacd54546caf2d31f844115e9fd76336daaed20d7e6e4d6d7900f6da4ab"
+  },
   "evidence_labels": [
     "bounded validation/plumbing integration",
     "not the BR-4 full validation sweep",
     "not a G-8 operating-point selection",
     "not test evidence"
   ],
-  "execution_source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2",
+  "execution_source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0",
   "fixtures": [
     {
       "axis_reasons": [
@@ -163,7 +170,7 @@
         "payload_bytes_mean": 892.5416666666666,
         "psnr_db_mean": 27.03426283004048,
         "psnr_ssim_denominator": 24,
-        "run_id": "76a904a83fef16dc107e9940fca8cc7eda275819abaeb9fbc0b7df8226202e05",
+        "run_id": "d626e5b58f6defb06170ad57aeb07daf887042953f7139315527df8e5d9bb969",
         "sample_count": 24,
         "ssim_mean": 0.773634974254423,
         "test_snr_db": 18.0,
@@ -176,15 +183,15 @@
         "dataset": "imagenette160",
         "decode_failure_rate": 1.0,
         "group": "imagenette160_task_scored",
-        "header_bytes_mean": null,
+        "header_bytes_mean": 157.0,
         "infeasible_rate": 0.0,
         "n": 24,
         "n_correct": 3,
         "papr_db_mean": 2.6932629545529685,
-        "payload_bytes_mean": null,
+        "payload_bytes_mean": 892.5416666666666,
         "psnr_db_mean": null,
         "psnr_ssim_denominator": 0,
-        "run_id": "73fdd7b35119b4619e5b6671acaf2a8f245636b7253a8914d7045ad07555c018",
+        "run_id": "22fe8339103ec281c820a391afaef01802f1261143a9fd0e932cbe7d5116562a",
         "sample_count": 24,
         "ssim_mean": null,
         "test_snr_db": -8.0,
@@ -204,15 +211,19 @@
     ],
     "split": "val"
   },
-  "j2k_resolutions_issue_status": "unresolved",
+  "j2k_resolutions_issue_status": "resolved_by_am80",
   "manifest_sha256": {
     "cifar10": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537",
     "imagenette160": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889"
   },
+  "openjpeg_preflight_preceded_artifacts": true,
+  "openjpeg_version": "2.5.4",
   "operating_point_selected": false,
-  "per_image_csv_sha256": "cebc915b13a120ae3c8b82557e8443774cbf2c9ba66052f1ba54342dcc815648",
-  "plan_sha256": "6a6f6168f8f298bdf6753c5d5c627ed20989cde4800f2fb87a4f0bdbc90221a6",
+  "per_image_csv_sha256": "2e5abd094ff30b58037b23c0e8206b9d89a5683eb3181cea7257ddf8f409b56c",
+  "plan_sha256": "03aa1f14be04fd41e686ee0764003db120e8a212c76187e779f3de0818c6b9f3",
   "prominent_declaration": "Bounded validation/plumbing integration for the W4 classical baseline. This is not the BR-4 full validation sweep, not a G-8 operating-point selection, and not test evidence. No operating ratio was selected, no candidate configurations were compared, no model was trained or fine-tuned, and the test split was never opened. Accuracy figures here are plumbing observations at the stated sample size, not experimental results and not estimates of test performance.",
+  "raw_rows_count": 55,
+  "raw_rows_sha256": "81a7a0ef9927042f1127f1dacf0aa254c983b44f8af6b3fc7581bc669bf770a4",
   "schema_version": 1,
   "status": "COMPLETE",
   "test_split_access": {
@@ -221,8 +232,8 @@
     "test_inference": false,
     "test_split_sealed": true
   },
-  "timestamp": "2026-07-30T19:33:14+00:00",
+  "timestamp": "2026-07-31T15:21:17+00:00",
   "training_performed": false,
-  "wall_clock_s": 44.29721015299947,
-  "worklist_sha256": "5445385a67fa8411b1fa4d8e6e55b150157360d29984b62650743a1e98dbcaa5"
+  "wall_clock_s": 50.007964267001626,
+  "worklist_sha256": "b9deda2a274161d8d0755c6ef7a5562cc80ee71315041832b82294ae61211db8"
 }

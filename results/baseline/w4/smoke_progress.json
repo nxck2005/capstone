@@ -10,16 +10,16 @@
   "git_dirty": false,
   "identity": {
     "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
-    "config_hash": "ba59d1e7cb8c69eeb5e15c31524f7d650b916080d4ab3a85f079958fca7cfc79",
+    "config_hash_root": "8df2a5de1068adf2aaf91284e70aeea9c9b15056b62647c2ba660f7319376c04",
     "manifest_sha256": {
       "cifar10": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537",
       "imagenette160": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889"
     },
-    "plan_sha256": "6a6f6168f8f298bdf6753c5d5c627ed20989cde4800f2fb87a4f0bdbc90221a6",
-    "source_commit": "b8462316c3c9cc97798934ec2e14347c9eeb71e2",
-    "worklist_sha256": "5445385a67fa8411b1fa4d8e6e55b150157360d29984b62650743a1e98dbcaa5"
+    "plan_sha256": "03aa1f14be04fd41e686ee0764003db120e8a212c76187e779f3de0818c6b9f3",
+    "source_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0",
+    "worklist_sha256": "b9deda2a274161d8d0755c6ef7a5562cc80ee71315041832b82294ae61211db8"
   },
   "schema_version": 1,
-  "timestamp": "2026-07-30T19:33:14+00:00",
+  "timestamp": "2026-07-31T15:21:17+00:00",
   "total_rows": 55
 }
