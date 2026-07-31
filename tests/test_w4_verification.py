@@ -411,12 +411,34 @@ def evidence(tmp_path: Path, head_commit: str, monkeypatch: pytest.MonkeyPatch) 
         ],
     }
     accounting = {"evidence_labels": list(EVIDENCE_LABELS), "examples": []}
+    overhead = {
+        "evidence_labels": list(EVIDENCE_LABELS),
+        "evidence_scope": "bounded_integration",
+        "complete_for_full_validation_grid": False,
+        "executed_cells": 1,
+        "cells": [
+            {
+                "dataset": DATASET,
+                "bw_ratio": "r_1_24",
+                "ldpc_rate": "2/3",
+                "modulation": "qam16",
+                "test_snr_db": 18.0,
+                "config_hash": FIXTURE_CONFIG_HASH,
+                "emitted_rows": len(raw_rows),
+                "mean_header_bytes": 157.0,
+                "mean_payload_bytes": 905.0,
+                "mean_emitted_codestream_bytes": 1062.0,
+                "overhead_fraction_of_emitted": 157.0 / 1062.0,
+            }
+        ],
+    }
 
     for name, payload in (
         ("smoke_summary.json", summary),
         ("resolved_config.json", resolved),
         ("outage_policy.json", outage),
         ("accounting_examples.json", accounting),
+        ("overhead_table.json", overhead),
         ("execution_source_manifest.json", manifest),
     ):
         (directory / name).write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -440,6 +462,7 @@ def _run_all(evidence: Path) -> None:
         records["per_image"],
     )
     verifier.check_byte_accounting(evidence, raw_rows, records["aggregates"])
+    verifier.check_overhead_table(evidence, raw_rows)
     verifier.check_sources(evidence, payloads["summary"])
 
 
@@ -1265,4 +1288,44 @@ def test_raw_rows_out_of_worklist_order_are_caught(evidence: Path) -> None:
 def test_a_raw_row_naming_an_unarchived_config_hash_is_caught(evidence: Path) -> None:
     _rewrite_raw(evidence, lambda rows: rows[0].update(config_hash="7" * 64))
     with pytest.raises(verifier.VerificationError, match="not archived"):
+        _run_all(evidence)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda p: p.update(evidence_scope="full_validation_sweep"), "bounded scope"),
+        (
+            lambda p: p.update(complete_for_full_validation_grid=True),
+            "full validation grid",
+        ),
+        (lambda p: p.update(cells=[]), "no executed cells"),
+        (lambda p: p.update(executed_cells=99), "miscounts"),
+        (
+            lambda p: p["cells"][0].update(mean_header_bytes=1.0),
+            "recomputes to",
+        ),
+        (
+            lambda p: p["cells"][0].update(emitted_rows=99),
+            "claims 99 emitted rows",
+        ),
+    ],
+)
+def test_overhead_table_mutations_are_caught(evidence: Path, mutate, message: str) -> None:
+    _rewrite(evidence, "overhead_table.json", mutate)
+    with pytest.raises(verifier.VerificationError, match=message):
+        _run_all(evidence)
+
+
+def test_a_synthesised_unexecuted_overhead_cell_is_caught(evidence: Path) -> None:
+    """BR-11's table must describe what ran, not the grid it would like to."""
+
+    def mutate(payload):
+        payload["cells"].append(
+            dict(payload["cells"][0], config_hash="a" * 64, bw_ratio="r_1_48")
+        )
+        payload["executed_cells"] = 2
+
+    _rewrite(evidence, "overhead_table.json", mutate)
+    with pytest.raises(verifier.VerificationError, match="no row executed"):
         _run_all(evidence)

@@ -82,6 +82,7 @@ REQUIRED_FILES = (
     "per_image.csv",
     "aggregate.csv",
     "smoke_rows.jsonl",
+    "overhead_table.json",
 )
 
 #: Phrases that would claim the bounded run did something it did not.
@@ -984,6 +985,87 @@ def check_identities(
             )
 
 
+def check_overhead_table(
+    evidence: Path, raw_rows: list[dict[str, Any]]
+) -> int:
+    """BR-11's archived overhead table, recomputed and scope-checked.
+
+    BR-11 has always required this artifact. It is bounded evidence, so it must
+    say so: a table that silently looked like the full validation grid would be
+    the BR-4 sweep claim PB_2C forbids.
+    """
+
+    table = _json(evidence / "overhead_table.json")
+    _require(_labels_ok(table), "overhead_table.json carries the wrong evidence labels")
+    _require(
+        table.get("evidence_scope") == "bounded_integration",
+        "overhead_table.json does not declare its bounded scope",
+    )
+    _require(
+        table.get("complete_for_full_validation_grid") is False,
+        "overhead_table.json claims to cover the full validation grid",
+    )
+    cells = table.get("cells")
+    _require(
+        isinstance(cells, list) and cells,
+        "overhead_table.json lists no executed cells",
+    )
+    _require(
+        table.get("executed_cells") == len(cells),
+        "overhead_table.json miscounts its own cells",
+    )
+
+    observed: dict[tuple, list[dict[str, Any]]] = {}
+    for row in raw_rows:
+        source_coding = row.get("source_coding") or {}
+        if source_coding.get("emitted_bytes") is None:
+            continue
+        per = row.get("per_image") or {}
+        key = (
+            row["config_hash"],
+            per.get("stable_sample_id"),
+        )
+        observed.setdefault(row["config_hash"], []).append(source_coding)
+
+    declared = {cell["config_hash"] for cell in cells}
+    _require(
+        declared <= set(observed),
+        "overhead_table.json names a cell no row executed; unexecuted "
+        f"combinations must not be synthesised: {sorted(declared - set(observed))}",
+    )
+    _require(
+        set(observed) <= declared,
+        "overhead_table.json omits an executed cell: "
+        f"{sorted(set(observed) - declared)}",
+    )
+
+    for cell in cells:
+        rows = observed[cell["config_hash"]]
+        _require(
+            cell["emitted_rows"] == len(rows),
+            f"overhead cell {cell['config_hash'][:12]} claims "
+            f"{cell['emitted_rows']} emitted rows, {len(rows)} were emitted",
+        )
+        for column, field in (
+            ("mean_header_bytes", "header_bytes"),
+            ("mean_payload_bytes", "payload_bytes"),
+        ):
+            expected = sum(row[field] for row in rows) / len(rows)
+            _require(
+                abs(cell[column] - expected) <= 1e-9,
+                f"overhead cell {cell['config_hash'][:12]}: {column} is "
+                f"{cell[column]}, recomputes to {expected}",
+            )
+        total = cell["mean_header_bytes"] + cell["mean_payload_bytes"]
+        _require(
+            abs(cell["mean_emitted_codestream_bytes"] - total) <= 1e-9
+            and abs(cell["overhead_fraction_of_emitted"]
+                    - cell["mean_header_bytes"] / total) <= 1e-9,
+            f"overhead cell {cell['config_hash'][:12]} does not reconcile",
+        )
+    return len(cells)
+
+
 def check_gates() -> None:
     for tool in ("tools/verify_g1_adjudication.py", "tools/verify_g2_adjudication.py"):
         result = subprocess.run(
@@ -1025,6 +1107,7 @@ def main() -> int:
         byte_totals = check_byte_accounting(
             evidence, raw_rows, records["aggregates"]
         )
+        overhead_cells = check_overhead_table(evidence, raw_rows)
         manifest = check_sources(evidence, payloads["summary"])
         if not arguments.skip_gates:
             check_gates()
@@ -1048,7 +1131,8 @@ def main() -> int:
         f"cifar_transport_only={cifar_samples} (no task score), "
         f"imagenette[{cells}], raw_rows={len(raw_rows)} "
         f"(emitted={byte_totals['emitted_rows']}), "
-        f"openjpeg={payloads['summary']['openjpeg_version']}, test_split_access=0"
+        f"openjpeg={payloads['summary']['openjpeg_version']}, "
+        f"overhead_cells={overhead_cells}, test_split_access=0"
     )
     return 0
 

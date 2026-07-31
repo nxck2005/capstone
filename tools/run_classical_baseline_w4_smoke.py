@@ -59,6 +59,7 @@ from baseline.classical.pipeline import (  # noqa: E402
 from baseline.classical.records import (  # noqa: E402
     FROZEN_CLASSIFIER_DATASET,
     AggregateContext,
+    BYTE_ACCOUNTING_NOTE,
     codestream_byte_split,
     RunIdentity,
     noise_identity,
@@ -993,6 +994,94 @@ def _fixture_summary(
     return summaries
 
 
+def build_overhead_table(
+    work: list[dict[str, Any]],
+    rows: dict[str, dict[str, Any]],
+    cell_configs: dict[tuple, tuple[Any, str]],
+) -> dict[str, Any]:
+    """The BR-11 archived overhead-fraction table, per dataset x ratio x rate.
+
+    BR-11 has always required this artifact and it did not exist. It is
+    **bounded** evidence: it lists exactly the cells this run executed and
+    declares that it does not cover the full validation grid, so it can never be
+    mistaken for the BR-4 sweep. No unexecuted combination is synthesised.
+    """
+
+    cells: dict[tuple, dict[str, Any]] = {}
+    for item in work:
+        row = rows[item["work_id"]]
+        source_coding = row.get("source_coding") or {}
+        if source_coding.get("emitted_bytes") is None:
+            continue
+        key = (
+            item["dataset"],
+            item["bw_ratio"],
+            item["ldpc_rate"],
+            item["modulation"],
+            item["test_snr_db"],
+        )
+        cell = cells.setdefault(
+            key,
+            {
+                "dataset": item["dataset"],
+                "bw_ratio": item["bw_ratio"],
+                "ldpc_rate": item["ldpc_rate"],
+                "modulation": item["modulation"],
+                "test_snr_db": item["test_snr_db"],
+                "encode_axis_px": source_coding.get("encode_axis_px"),
+                "config_hash": cell_configs[cell_key(item)][1],
+                "emitted_rows": 0,
+                "_header": [],
+                "_payload": [],
+                "_filler": [],
+                "_sent": [],
+            },
+        )
+        cell["emitted_rows"] += 1
+        cell["_header"].append(source_coding["header_bytes"])
+        cell["_payload"].append(source_coding["payload_bytes"])
+        cell["_filler"].append(source_coding["payload_filler_bytes"])
+        cell["_sent"].append((row["summary"]["accounting"] or {}).get("payload_bytes"))
+
+    table = []
+    for key in sorted(cells):
+        cell = cells[key]
+        header = sum(cell.pop("_header")) / cell["emitted_rows"]
+        payload = sum(cell.pop("_payload")) / cell["emitted_rows"]
+        filler = sum(cell.pop("_filler")) / cell["emitted_rows"]
+        sent = [value for value in cell.pop("_sent") if value is not None]
+        bytes_sent = sum(sent) / len(sent) if sent else None
+        cell.update(
+            mean_header_bytes=header,
+            mean_payload_bytes=payload,
+            mean_payload_filler_bytes=filler,
+            mean_emitted_codestream_bytes=header + payload,
+            bytes_sent=bytes_sent,
+            # The number BR-11 exists to make visible.
+            overhead_fraction_of_emitted=header / (header + payload),
+            overhead_fraction_of_budget=(
+                header / bytes_sent if bytes_sent else None
+            ),
+        )
+        table.append(cell)
+
+    return {
+        "schema_version": 1,
+        "evidence_scope": "bounded_integration",
+        "complete_for_full_validation_grid": False,
+        "evidence_labels": list(EVIDENCE_LABELS),
+        "prominent_declaration": PROMINENT_DECLARATION,
+        "byte_semantics": BYTE_ACCOUNTING_NOTE,
+        "denominator": (
+            "means over every row that emitted a codestream, which includes "
+            "delivered and decode_failure rows and excludes both infeasibility "
+            "verdicts, where no codestream exists (BR-11/AM-81)"
+        ),
+        "executed_cells": len(table),
+        "cells": table,
+    }
+
+
 def build_accounting_examples(
     work: list[dict[str, Any]], rows: dict[str, dict[str, Any]]
 ) -> dict[str, Any]:
@@ -1213,6 +1302,10 @@ def main() -> int:
     write_json_atomically(
         REPO / plan["outputs"]["accounting_examples"],
         build_accounting_examples(work, rows),
+    )
+    write_json_atomically(
+        REPO / plan["outputs"]["overhead_table"],
+        build_overhead_table(work, rows, cell_configs),
     )
     write_json_atomically(
         REPO / plan["outputs"]["resolved_config"],
