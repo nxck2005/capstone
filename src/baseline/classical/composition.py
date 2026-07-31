@@ -109,6 +109,16 @@ __all__ = [
     "selection_passes",
     "CurveSelection",
     "resolve_curve",
+    "SweepBudgetError",
+    "SweepBudget",
+    "G8Authorization",
+    "G8_GATE",
+    "MAX_UNAUTHORIZED_CANDIDATES",
+    "MAX_UNAUTHORIZED_SAMPLES",
+    "MAX_UNAUTHORIZED_WORKLOAD",
+    "sweep_budget",
+    "check_sweep_budget",
+    "select_operating_points",
 ]
 
 
@@ -1482,3 +1492,188 @@ def resolve_curve(
             "packet_count": get("baseline.fixed_mcs_packet_count"),
         },
     )
+
+
+# ==========================================================================
+# Full-sweep guard
+# ==========================================================================
+#
+# This is the one mechanism standing between an ordinary PB_3 call and an
+# accidental G-8 campaign.  The BR-4 validation sweep is a scientific event: it
+# selects the operating points the whole experiment is then reported at, and it
+# must happen once, deliberately, at its gate.  So the entry point refuses any
+# workload above a bounded budget unless an explicit authorization object is
+# handed to it.
+#
+# Deliberately absent, and each absence is tested:
+#
+#   * no environment variable is read here.  A variable exported once in a
+#     shell profile is exactly how a guard gets disarmed and stays disarmed;
+#   * no default-true flag and no CLI option.  The authorization is a typed
+#     object a caller must construct on purpose;
+#   * no authorization is constructed anywhere in this repository outside the
+#     tests that prove the refusals fire.
+
+#: The bounded PB_3 budget.  These are unit-test scale on purpose: they are
+#: large enough for the fixtures this phase exercises and far too small for any
+#: real validation campaign, so a confused successor session hits the refusal
+#: rather than a long run.
+MAX_UNAUTHORIZED_CANDIDATES = 64  # literal-ok: bounded PB_3 test budget, not a spec parameter
+MAX_UNAUTHORIZED_SAMPLES = 25  # literal-ok: bounded PB_3 test budget, not a spec parameter
+MAX_UNAUTHORIZED_WORKLOAD = 512  # literal-ok: bounded PB_3 test budget, not a spec parameter
+
+#: The gate an authorization must name.  Anything else is malformed.
+G8_GATE = "G-8"
+
+
+class SweepBudgetError(CompositionError):
+    """A workload above the bounded budget, with no valid G-8 authorization."""
+
+
+@dataclass(frozen=True)
+class G8Authorization:
+    """Explicit, typed permission to run the BR-4 validation sweep.
+
+    Constructing one is a deliberate act with a named authoriser and a reason,
+    and it carries its own limits so an authorization for one campaign cannot
+    silently permit a larger one.  **Nothing in this repository constructs one
+    outside the tests that prove the refusals work.**
+    """
+
+    gate: str
+    authorized_by: str
+    reason: str
+    max_candidates: int
+    max_samples: int
+
+    def __post_init__(self) -> None:
+        _validate_authorization(self)
+
+
+def _validate_authorization(authorization: G8Authorization) -> None:
+    """Every field checked, on construction *and* on use.
+
+    Checked twice on purpose: ``__post_init__`` can be skipped entirely by
+    ``object.__new__`` or by unpickling, so the guard re-validates whatever it
+    is handed rather than trusting that it was built through the constructor.
+    """
+
+    if authorization.gate != G8_GATE:
+        raise SweepBudgetError(
+            f"a sweep authorization must name gate {G8_GATE!r}, "
+            f"not {authorization.gate!r}"
+        )
+    for name in ("authorized_by", "reason"):
+        if not str(getattr(authorization, name)).strip():
+            raise SweepBudgetError(f"sweep authorization has no {name}")
+    for name in ("max_candidates", "max_samples"):
+        value = getattr(authorization, name)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise SweepBudgetError(
+                f"sweep authorization {name} is not a positive count: {value!r}"
+            )
+
+
+@dataclass(frozen=True)
+class SweepBudget:
+    """The limits in force for one call, and where they came from."""
+
+    max_candidates: int
+    max_samples: int
+    max_workload: int | None
+    authorized: bool
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "max_candidates": self.max_candidates,
+            "max_samples": self.max_samples,
+            "max_workload": self.max_workload,
+            "authorized": self.authorized,
+            "gate": G8_GATE,
+        }
+
+
+def sweep_budget(authorization: G8Authorization | None) -> SweepBudget:
+    """Resolve the limits.  A malformed authorization is a refusal, not a pass."""
+
+    if authorization is None:
+        return SweepBudget(
+            max_candidates=MAX_UNAUTHORIZED_CANDIDATES,
+            max_samples=MAX_UNAUTHORIZED_SAMPLES,
+            max_workload=MAX_UNAUTHORIZED_WORKLOAD,
+            authorized=False,
+        )
+    if not isinstance(authorization, G8Authorization):
+        raise SweepBudgetError(
+            "sweep authorization must be a G8Authorization, not "
+            f"{type(authorization).__name__}"
+        )
+    _validate_authorization(authorization)
+    return SweepBudget(
+        max_candidates=authorization.max_candidates,
+        max_samples=authorization.max_samples,
+        max_workload=None,
+        authorized=True,
+    )
+
+
+def check_sweep_budget(
+    *,
+    candidates: int,
+    samples: int,
+    authorization: G8Authorization | None = None,
+) -> SweepBudget:
+    """Refuse a workload the caller is not authorized to run.
+
+    Three separate limits, because a sweep can be too large in three ways: too
+    many configurations, too many images per configuration, or a product of two
+    individually-modest numbers.  Each is checked on its own so the refusal
+    message names the one that fired.
+    """
+
+    for name, value in (("candidates", candidates), ("samples", samples)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise SweepBudgetError(f"{name} is not a count: {value!r}")
+    budget = sweep_budget(authorization)
+    if candidates > budget.max_candidates:
+        raise SweepBudgetError(
+            f"{candidates} candidates exceeds the bounded limit of "
+            f"{budget.max_candidates}; the BR-4 validation sweep runs at G-8 "
+            "under an explicit authorization, not here"
+        )
+    if samples > budget.max_samples:
+        raise SweepBudgetError(
+            f"{samples} samples per cell exceeds the bounded limit of "
+            f"{budget.max_samples}; the BR-4 validation sweep runs at G-8 "
+            "under an explicit authorization, not here"
+        )
+    workload = candidates * samples
+    if budget.max_workload is not None and workload > budget.max_workload:
+        raise SweepBudgetError(
+            f"a combined workload of {workload} cells exceeds the bounded limit "
+            f"of {budget.max_workload}; the BR-4 validation sweep runs at G-8 "
+            "under an explicit authorization, not here"
+        )
+    return budget
+
+
+def select_operating_points(
+    mode: str,
+    evaluations_by_snr: Mapping[float, Sequence[CandidateEvaluation]],
+    *,
+    samples_per_cell: int,
+    authorization: G8Authorization | None = None,
+) -> CurveSelection:
+    """The ordinary BR-4 selection entry point, behind the sweep guard.
+
+    The guard runs *before* any work, so an over-budget call costs nothing and
+    fails immediately rather than part way through a campaign.
+    """
+
+    candidates = sum(len(tuple(group)) for group in evaluations_by_snr.values())
+    check_sweep_budget(
+        candidates=candidates,
+        samples=samples_per_cell,
+        authorization=authorization,
+    )
+    return resolve_curve(mode, evaluations_by_snr)

@@ -16,6 +16,7 @@ from __future__ import annotations
 import itertools
 import json
 import math
+import subprocess
 
 import pytest
 
@@ -29,6 +30,9 @@ from baseline.classical.composition import (
     FEASIBILITY_KEY_EXCLUSIONS,
     FEASIBILITY_KEY_FIELDS,
     INFEASIBLE,
+    MAX_UNAUTHORIZED_CANDIDATES,
+    MAX_UNAUTHORIZED_SAMPLES,
+    MAX_UNAUTHORIZED_WORKLOAD,
     PASS_ONE,
     PASS_TWO,
     SYSTEM_MODES,
@@ -42,8 +46,10 @@ from baseline.classical.composition import (
     FeasibilityCache,
     PassContext,
     PassResult,
+    G8Authorization,
     SelectionCampaign,
     SelectionPassError,
+    SweepBudgetError,
     MeasuredCodecAccuracy,
     MeasuredOutageAccuracy,
     compose,
@@ -51,8 +57,10 @@ from baseline.classical.composition import (
     measured_outage_accuracy_from_record,
     UncharacterizedBlerError,
     g2_bler_table,
+    check_sweep_budget,
     mode_policy,
     resolve_curve,
+    select_operating_points,
     select_best,
     selection_passes,
     transport_block_success_probability,
@@ -1119,3 +1127,225 @@ def test_pb3_does_not_train_the_artifact_finetuned_classifier() -> None:
     record = campaign.as_record()
     assert record["completed_passes"] == []
     assert record["exhausted"] is False
+
+
+# --------------------------------------------------------------------------
+# The full-sweep guard
+# --------------------------------------------------------------------------
+
+_TEST_AUTHORIZATION = dict(
+    gate="G-8",
+    authorized_by="tests/test_classical_composition.py",
+    reason="prove the guard permits an authorized workload; never used for a real sweep",
+)
+
+
+def _tiny_grid(count: int) -> dict[float, list[CandidateEvaluation]]:
+    """A bounded fixture.  Deliberately nothing like a validation campaign."""
+
+    return {0.0: [_evaluation(870, [0.01], encode_axis_px=n) for n in range(count)]}
+
+
+def test_a_bounded_fixture_is_accepted_without_any_authorization() -> None:
+    budget = check_sweep_budget(candidates=4, samples=2)
+    assert budget.authorized is False
+    assert budget.max_candidates == MAX_UNAUTHORIZED_CANDIDATES
+    curve = select_operating_points(
+        CLASSICAL_ADAPTIVE, _tiny_grid(3), samples_per_cell=2
+    )
+    assert curve.selection_at(0.0).selected is not None
+
+
+def test_a_candidate_count_above_the_limit_is_refused() -> None:
+    with pytest.raises(SweepBudgetError, match="candidates exceeds"):
+        check_sweep_budget(candidates=MAX_UNAUTHORIZED_CANDIDATES + 1, samples=1)
+
+
+def test_a_sample_count_above_the_limit_is_refused() -> None:
+    with pytest.raises(SweepBudgetError, match="samples per cell exceeds"):
+        check_sweep_budget(candidates=1, samples=MAX_UNAUTHORIZED_SAMPLES + 1)
+
+
+def test_a_combined_workload_above_the_limit_is_refused() -> None:
+    """Two individually-legal numbers whose product is not."""
+
+    candidates = MAX_UNAUTHORIZED_CANDIDATES
+    samples = MAX_UNAUTHORIZED_SAMPLES
+    assert candidates <= MAX_UNAUTHORIZED_CANDIDATES
+    assert samples <= MAX_UNAUTHORIZED_SAMPLES
+    assert candidates * samples > MAX_UNAUTHORIZED_WORKLOAD
+    with pytest.raises(SweepBudgetError, match="combined workload"):
+        check_sweep_budget(candidates=candidates, samples=samples)
+
+
+def test_the_guard_comparison_is_exact_at_every_boundary() -> None:
+    """A mutation from ``>`` to ``>=`` (or back) must fail here.
+
+    Each limit is probed at exactly the limit — which must pass — and at one
+    above it — which must not.
+    """
+
+    check_sweep_budget(candidates=MAX_UNAUTHORIZED_CANDIDATES, samples=1)
+    with pytest.raises(SweepBudgetError):
+        check_sweep_budget(candidates=MAX_UNAUTHORIZED_CANDIDATES + 1, samples=1)
+
+    check_sweep_budget(candidates=1, samples=MAX_UNAUTHORIZED_SAMPLES)
+    with pytest.raises(SweepBudgetError):
+        check_sweep_budget(candidates=1, samples=MAX_UNAUTHORIZED_SAMPLES + 1)
+
+    # Exactly the workload limit, from factors that are themselves legal --
+    # so the refusal one step above it can only come from the product check.
+    samples = 16
+    candidates = MAX_UNAUTHORIZED_WORKLOAD // samples
+    assert candidates <= MAX_UNAUTHORIZED_CANDIDATES
+    assert samples <= MAX_UNAUTHORIZED_SAMPLES
+    check_sweep_budget(candidates=candidates, samples=samples)
+    assert candidates + 1 <= MAX_UNAUTHORIZED_CANDIDATES
+    with pytest.raises(SweepBudgetError, match="combined workload"):
+        check_sweep_budget(candidates=candidates + 1, samples=samples)
+
+
+def test_the_entry_point_refuses_an_over_budget_workload_before_doing_work() -> None:
+    grid = _tiny_grid(MAX_UNAUTHORIZED_CANDIDATES + 1)
+    with pytest.raises(SweepBudgetError, match="candidates exceeds"):
+        select_operating_points(CLASSICAL_ADAPTIVE, grid, samples_per_cell=1)
+    with pytest.raises(SweepBudgetError, match="samples per cell exceeds"):
+        select_operating_points(
+            CLASSICAL_ADAPTIVE,
+            _tiny_grid(2),
+            samples_per_cell=MAX_UNAUTHORIZED_SAMPLES + 1,
+        )
+
+
+def test_absent_authorization_is_refused_for_a_sweep_scale_workload() -> None:
+    """The default path is the refusing path."""
+
+    with pytest.raises(SweepBudgetError, match="runs at G-8"):
+        check_sweep_budget(candidates=1000, samples=1000, authorization=None)
+    with pytest.raises(SweepBudgetError):
+        check_sweep_budget(candidates=1000, samples=1000)
+
+
+def test_an_explicit_authorization_permits_its_own_declared_limits() -> None:
+    authorization = G8Authorization(
+        **_TEST_AUTHORIZATION, max_candidates=1000, max_samples=1000
+    )
+    budget = check_sweep_budget(
+        candidates=1000, samples=1000, authorization=authorization
+    )
+    assert budget.authorized is True
+    assert budget.max_workload is None
+    # And it does not permit more than it declares.
+    with pytest.raises(SweepBudgetError, match="candidates exceeds"):
+        check_sweep_budget(
+            candidates=1001, samples=1, authorization=authorization
+        )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        ("gate", "G-2", "must name gate"),
+        ("gate", "", "must name gate"),
+        ("authorized_by", "  ", "no authorized_by"),
+        ("reason", "", "no reason"),
+        ("max_candidates", 0, "not a positive count"),
+        ("max_samples", -1, "not a positive count"),
+        ("max_samples", True, "not a positive count"),
+        ("max_candidates", 1.5, "not a positive count"),
+    ],
+)
+def test_a_malformed_authorization_is_refused(
+    field: str, value: object, match: str
+) -> None:
+    kwargs: dict[str, object] = dict(
+        _TEST_AUTHORIZATION, max_candidates=10, max_samples=10
+    )
+    kwargs[field] = value
+    with pytest.raises(SweepBudgetError, match=match):
+        G8Authorization(**kwargs)  # type: ignore[arg-type]
+
+
+def test_an_object_merely_shaped_like_an_authorization_is_refused() -> None:
+    """Duck typing must not open the gate."""
+
+    class _LooksRight:
+        gate = "G-8"
+        authorized_by = "someone"
+        reason = "because"
+        max_candidates = 100000
+        max_samples = 100000
+
+    with pytest.raises(SweepBudgetError, match="must be a G8Authorization"):
+        check_sweep_budget(
+            candidates=1000, samples=1000, authorization=_LooksRight()  # type: ignore[arg-type]
+        )
+
+
+def test_an_authorization_bypassing_its_own_validation_is_still_refused() -> None:
+    """``object.__new__`` skips ``__post_init__``; ``sweep_budget`` re-checks."""
+
+    forged = object.__new__(G8Authorization)
+    object.__setattr__(forged, "gate", "G-2")
+    object.__setattr__(forged, "authorized_by", "x")
+    object.__setattr__(forged, "reason", "y")
+    object.__setattr__(forged, "max_candidates", 100000)
+    object.__setattr__(forged, "max_samples", 100000)
+    with pytest.raises(SweepBudgetError, match="must name gate"):
+        check_sweep_budget(candidates=1000, samples=1000, authorization=forged)
+
+
+def test_the_guard_rejects_non_counts() -> None:
+    with pytest.raises(SweepBudgetError, match="not a count"):
+        check_sweep_budget(candidates=-1, samples=1)
+    with pytest.raises(SweepBudgetError, match="not a count"):
+        check_sweep_budget(candidates=1, samples="many")  # type: ignore[arg-type]
+
+
+def test_the_guard_reads_no_environment_variable() -> None:
+    """No shell profile may disarm this."""
+
+    source = (
+        REPO_ROOT / "src" / "baseline" / "classical" / "composition.py"
+    ).read_text()
+    for hatch in ("os.environ", "getenv", "environ[", "putenv"):
+        assert hatch not in source, f"composition.py consults {hatch}"
+
+
+def test_the_repository_default_is_unauthorized() -> None:
+    """No tracked non-test file may construct a G-8 authorization.
+
+    This is the check that a successor session's convenience flag would fail.
+    """
+
+    tracked = subprocess.run(
+        ["git", "ls-files"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    offenders = []
+    for name in tracked:
+        path = REPO_ROOT / name
+        if path.suffix not in {".py", ".json", ".yaml", ".yml", ".toml"}:
+            continue
+        if name.startswith("tests/"):
+            continue
+        try:
+            text = path.read_text()
+        except (UnicodeDecodeError, OSError):  # pragma: no cover - binary blobs
+            continue
+        if "G8Authorization(" in text:
+            offenders.append(name)
+    assert offenders == [], f"a G-8 authorization is constructed in {offenders}"
+
+
+def test_no_default_true_authorization_flag_exists() -> None:
+    """The authorization parameter defaults to None, on every entry point."""
+
+    import inspect
+
+    for function in (check_sweep_budget, select_operating_points):
+        parameter = inspect.signature(function).parameters["authorization"]
+        assert parameter.default is None, function.__name__
