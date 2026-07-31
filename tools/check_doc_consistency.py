@@ -354,8 +354,13 @@ def subphase_findings(doc: str, body: str, declaration: str) -> list[str]:
     """
     frontier, token, _ = declared_phase(declaration)
     sub = declared_subphase(declaration)
-    if frontier is None or token is None or sub is None:
+    if frontier is None or token is None:
         return []
+    # A frontier may legitimately stop being a `PB_n` sub-phase -- once W4 closed,
+    # the frontier became the gate `G-8`, which names none. The check must not go
+    # silent at exactly that moment: a live section may still nominate a completed
+    # sub-phase, and that is still the defect this was written for. Only the
+    # coarse-parent branch needs a sub-phase to compare against.
     completed = completed_subphases(declaration)
     parents = parent_phrases(declaration)
     lines = live_lines_with_sections(body)
@@ -363,7 +368,8 @@ def subphase_findings(doc: str, body: str, declaration: str) -> list[str]:
 
     def where(number: int, section: str) -> str:
         place = f"section {section!r}" if section else "no enclosing section"
-        return (f"{doc}:{number}: {place}, declared frontier {frontier!r} ({sub.upper()})")
+        label = sub.upper() if sub else token.upper()
+        return (f"{doc}:{number}: {place}, declared frontier {frontier!r} ({label})")
 
     for index, (number, line, section) in enumerate(lines):
         # Table rows are status matrices, not instructions; check 6 owns the
@@ -379,14 +385,14 @@ def subphase_findings(doc: str, body: str, declaration: str) -> list[str]:
                 if NEGATION_RE.search(sentence):
                     continue
                 target = _subphases(match.group("object")) & completed
-                if target and sub not in _subphases(match.group("object")):
+                if target and (sub is None or sub not in _subphases(match.group("object"))):
                     findings.append(
                         f"{where(number, section)}: live directive sends the reader back to "
                         f"{'/'.join(sorted(t.upper() for t in target))}, which the declaration "
                         f"records as complete: {sentence.strip()[:100]}")
             if not NOMINATION_RE.search(sentence):
                 continue
-            if sub in named or sub in _subphases(following):
+            if sub is not None and (sub in named or sub in _subphases(following)):
                 continue
             stale = named & completed
             if stale:
@@ -394,7 +400,7 @@ def subphase_findings(doc: str, body: str, declaration: str) -> list[str]:
                     f"{where(number, section)}: names completed "
                     f"{'/'.join(sorted(s.upper() for s in stale))} as the next or live task: "
                     f"{sentence.strip()[:100]}")
-            elif not named and (parent := next(
+            elif sub is not None and not named and (parent := next(
                     (p for p in parents if p in _norm(sentence)), None)):
                 findings.append(
                     f"{where(number, section)}: nominates only the coarse parent phase "

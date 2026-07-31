@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-31 · **Phase:** **W4 PB_2 corrected (PB_2C complete); PB_3 is next and ready.**
+**Last updated:** 2026-08-01 · **Phase:** **W4 complete (PB_3 landed). G-8 classical validation work is next and has not started.**
 
 ## Single next task
 
@@ -19,32 +19,69 @@ does not, it is wrong and this block is right.**
 | W3 | complete |
 | G-2 | PASS |
 | transparency-bitrate probe | complete |
-| bounded W4 integration | PA, PB_1 (incl. PB_1C) and PB_2 (incl. PB_2C) complete; PB_3 remains |
+| W4 | complete |
+| bounded W4 integration | PA, PB_1 (incl. PB_1C), PB_2 (incl. PB_2C) and PB_3 all complete |
 | W4 · PA | complete |
 | W4 · PB_1 (incl. the PB_1C correction) | complete |
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
-| W4 · PB_3 | **next engineering phase — not started, and now unblocked** |
-| full BR-4 sweep | not started |
+| W4 · PB_3 | complete |
+| G-8 classical validation work | **next engineering task — not started** |
+| full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-Run `instructions/PB_3.txt` from B3.0. G-8 has not started. Do not run the full BR-4 validation
-sweep, select ratios, calibrate λ, train learned models, implement ER-9, or access the test split
-until their scheduled gates.
+**G-8 classical validation work is the single next engineering task**, and it has not started. It
+has two parts: execute the full BR-4 validation sweep using the selection machinery PB_3 built, then
+decide the operating points. Everything else stays behind its own gate — do not calibrate λ, train
+learned models, implement ER-9, or access the test split until theirs.
 
-**Where bounded W4 stands.** `instructions/RESUME.md` is the operational cursor for the four-phase
-sequence and wins on progress. PA and **PB_1 are complete, PB_1 including its PB_1C correction**:
-the classical arm runs end to end from a canonical image to a decoded image plus one of four
-verdicts (`structural_infeasibility` / `codec_infeasibility` / `decode_failure` / `delivered`), over
-the shared AWGN under keyed noise, with exact bit accounting. **PB_2 is now complete too**: the frozen constant-class outage policy, schema-exact per-image and
-aggregate records, a crash-resumable bounded runner, committed bounded evidence and the first W4
-integration verifier — **including its PB_2C correction**, which repaired the provenance, pairing
-and byte accounting under it. PB_3 (BR-4 selection infrastructure) is **not started** and is now
-**unblocked**: both questions PB_2 left open are settled below. PR-1, PR-2 and PR-9 remain
+**Where W4 landed.** `instructions/RESUME.md` is the operational cursor for the four-phase sequence
+and wins on progress; every step in all four phases is now `done`. PA recovered and hardened the
+post-G-2 state. **PB_1, including its PB_1C correction**, made the classical arm run end to end from
+a canonical image to a decoded image plus one of four verdicts (`structural_infeasibility` /
+`codec_infeasibility` / `decode_failure` / `delivered`), over the shared AWGN under keyed noise, with
+exact bit accounting. **PB_2, including its PB_2C correction**, added the frozen constant-class
+outage policy, schema-exact per-image and aggregate records, a crash-resumable bounded runner,
+committed bounded evidence and the W4 integration verifier. **PB_3 built the BR-4 selection
+machinery and deliberately did not run it** — see the section below. What remains after W4 is G-8:
+the full BR-4 validation sweep and the operating-point decision. PR-1, PR-2 and PR-9 remain
 outstanding programme deliverables and are unblocked by all of this.
+
+**What PB_3 landed, and what it refused to do.** `src/baseline/classical/composition.py` implements
+AM-51's analytic composition — `P(TB success)` as the product over code blocks of `1 - BLER_r`, and
+expected accuracy as `P × acc_clean + (1 - P) × acc_outage` — with **both** accuracy terms supplied
+as types carrying counts and provenance rather than floats, so AM-58's ban on assuming
+`1 / n_classes` is enforced structurally rather than trusted. That matters here specifically because
+the committed measurement *is* `100/1000 = 0.1 = 1/10`: the substitution would produce the right
+number today and a wrong one the moment the split stopped being exactly stratified.
+
+The BLER lookup is keyed on the **complete** physical-layer identity — the eight fields of
+`params.baseline.ldpc_bler_reference_must_match` plus the code rate the committed evidence fixes —
+and fails closed in every direction. The committed G-2 evidence characterises exactly one
+configuration (`K=128, N=256, BG2, Z=22, rate 1/2, offset-min-sum, offset 0.5, 50 iterations`) at
+four SNR points per modulation; anything else returns an explicit `uncharacterized` verdict whose
+BLER is `None`, never `0.0`, and an uncharacterized candidate is **ineligible rather than
+low-scoring**. Interpolation happens only strictly inside the measured span and only in the
+representation `bler_reference.json` declares. Alongside that: a feasibility cache whose key
+completeness is asserted at construction, a documented total tie-break order that makes selection
+independent of enumeration order, the three system modes (`classical_adaptive`,
+`classical_fixed_mod`, `classical_fixed_mcs`) as genuinely different curves, and AM-54's two-pass
+maximum enforced by a state machine that also counts the passes a resumed campaign inherited.
+
+**The full-sweep guard is the part to know about before touching any of this.**
+`select_operating_points()` refuses more than 64 candidates, 25 samples per cell or a combined 512
+cells unless an explicit typed `G8Authorization` is passed. There is no environment variable, no
+default-true flag, and **no tracked non-test file in this repository constructs one** — each of
+those absences is asserted by a test, not claimed in a comment. Doing the G-8 sweep means
+constructing that authorization deliberately, at the gate.
+
+`results/baseline/w4/integration_adjudication.json` closes W4 and states, in machine-readable fields
+and in prose, that this is bounded validation/plumbing integration, not the BR-4 full validation
+sweep, not a G-8 operating-point selection and not test evidence. PB_3 needed **no amendment**: it
+implemented and verified existing specification semantics without changing them.
 
 **What PB_2 landed.** The outage class is selected by counting labels across the *entire* committed
 Imagenette-160 validation manifest: the split is exactly stratified, so all ten classes tie at 100
@@ -203,8 +240,9 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 6. ~~**W4 PB_1, including the PB_1C correction — the classical transport path.**~~ **Complete.**
 7. ~~**W4 PB_2, including the PB_2C correction — outage policy, records and bounded evidence.**~~
    **Complete.**
-8. **W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication. Next, not started.**
-9. **Full BR-4 validation sweep / G-8 — not started.**
+8. ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication.**~~ **Complete.**
+9. **G-8 classical validation work — the full BR-4 validation sweep and the operating-point
+   decision. Next, not started.**
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
@@ -216,9 +254,10 @@ OpenJPEG 2.5.4 through Glymur 0.14.3 produced zero infeasible cells and zero dec
 selection-aware paired bootstrap forecasts the 5 pp threshold at 1,330 bytes (axis 128, mean
 0.408654 bpp, 0.870 accuracy, LCB −0.041) and the 2 pp threshold at 3,200 bytes (axis 160, mean
 0.987788 bpp, 0.886 accuracy, LCB −0.018); neither is censored. These are probe forecasts only:
-G-8 remains unresolved. No training ran and the test split stayed sealed. Do not select a G-8
-operating point from those forecasts, open G-8, or start the reference-classifier fallback ladder —
-W4 PB_3 is the live task, as stated in the block at the top of this file.
+G-8 remains unresolved. No training ran and the test split stayed sealed. **Those forecasts are not
+a substitute for the sweep**: a G-8 operating point must come out of the BR-4 validation sweep run
+through the PB_3 selection machinery, never out of the probe's bootstrap. The reference-classifier
+fallback ladder stays closed.
 
 ---
 
@@ -420,15 +459,17 @@ Review criterion** — it first appears at the Second — so these marks are for
 
 ### Cold-start: the first thing to do in a fresh session
 
-**W1, W2 and W3, G-1, G-2, G-7 and the validation-only transparency-bitrate probe are complete.** Do not
-reopen the reference-classifier recipe, start its fallback ladder, implement the G-7 width fallback,
-select a G-8 operating point from the probe, or open another full-spec audit round without new
-evidence. **W4 PA, PB_1 (with PB_1C) and PB_2 (with PB_2C) are complete; the single next engineering
-task is W4 PB_3, the BR-4 selection infrastructure required before G-8** — run
-`instructions/PB_3.txt` from B3.0, with `instructions/RESUME.md` as the operational cursor.
-Registration remains confirmed (AM-63), and
-PR-9's author-owned hardware-alternative acknowledgement remains
-non-blocking.
+**W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only
+transparency-bitrate probe.** Do not reopen the reference-classifier recipe, start its fallback
+ladder, implement the G-7 width fallback, select an operating point from the probe's forecasts, or
+open another full-spec audit round without new evidence. **The single next engineering task is the
+G-8 classical validation work** — the full BR-4 validation sweep, executed through the selection
+machinery `src/baseline/classical/composition.py` already provides, followed by the operating-point
+decision. `instructions/RESUME.md` carries the facts that work needs. Note before starting it: the
+sweep entry point refuses any workload above 64 candidates / 25 samples / 512 cells unless an
+explicit `G8Authorization` is constructed, which nothing in this repository does today.
+Registration remains confirmed (AM-63), and PR-9's author-owned hardware-alternative acknowledgement
+remains non-blocking.
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
 produced from that exact clean commit. `results/reference_classifier/` holds the four original
@@ -440,7 +481,7 @@ preserved in the named GitHub Release. The best/final validation result is 898/1
 RTX 4060 Laptop 8 GB · driver 592.82 · Torch CUDA 13.0. The three dataset archives/extractions and
 srsRAN vectors remain locally available and ignored as designed.
 
-Confirm nothing drifted, then begin W4 PB_3 only:
+Confirm nothing drifted before starting the G-8 work:
 
 ```bash
 .venv/bin/python tools/gen_spec_views.py --check           # expect: 190 requirements (2 retired)
@@ -455,8 +496,9 @@ Confirm nothing drifted, then begin W4 PB_3 only:
 .venv/bin/python tools/verify_transparency_bitrate_probe.py
 .venv/bin/python tools/fetch_ldpc_golden_vectors.py         # materialize the ignored rung-2 fixture BEFORE pytest
 .venv/bin/python tools/verify_g2_adjudication.py            # expect: rows=24, test_split_access=0, runtime_readjudicated=[transport.py]
-.venv/bin/python tools/verify_w4_baseline_integration.py    # expect: PASS, outage_class=0 (100/1000), test_split_access=0
-.venv/bin/python -m pytest                                  # expect: all tests pass with CUDA access; the PB_2C baseline was 892 passed
+.venv/bin/python tools/gen_w4_integration_adjudication.py --check  # expect: ok, 9 evidence files, 2 selection sources
+.venv/bin/python tools/verify_w4_baseline_integration.py    # expect: PASS, outage_class=0 (100/1000), passes_executed=0, g8=unresolved, test_split_access=0
+.venv/bin/python -m pytest                                  # expect: all tests pass with CUDA access; the PB_3 baseline was 1119 passed
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
 git status --short                                          # expect: clean
 ```
@@ -703,10 +745,11 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-W1, W2 and W3, G-1, G-2, G-7 and the validation-only transparency-bitrate probe are complete, and so
-are W4's PA, PB_1 (with PB_1C) and PB_2 (with PB_2C). The single next engineering task is **W4 PB_3**,
-the BR-4 selection infrastructure required before G-8. PR-1 and PR-2 remain parallel First Review
-work, and the author-owned PR-9 acknowledgement remains open.
+W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
+probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The single next engineering
+task is the **G-8 classical validation work**: the full BR-4 validation sweep and the
+operating-point decision. PR-1 and PR-2 remain parallel First Review work, and the author-owned
+PR-9 acknowledgement remains open.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
@@ -719,7 +762,8 @@ work, and the author-owned PR-9 acknowledgement remains open.
 | ~~5a~~ | ~~**Transparency-bitrate probe with the frozen classifier**~~ **DONE 2026-07-30** — 68,000 validation cells, 0 infeasible, 0 decode failures | — | Frozen classifier reproduced 898/1000; forecasts only, G-8 unresolved | ~~W3/W4~~ |
 | ~~5b~~ | ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2**~~ **DONE 2026-07-30 — G-2 PASS** | — | Golden, known-answer, BLER and packetisation evidence verified | ~~W4+~~ |
 | ~~5c~~ | ~~**W4 PA / PB_1 / PB_2 bounded classical-baseline integration**~~ **DONE 2026-07-31 — including the PB_1C and PB_2C corrections** | — | Validated physical layer integrated; no sweep started | ~~PB_3~~ |
-| 5d | **W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication** | agent | PB_2C closed; build the selection machinery G-8 will later execute, without running it at scale | G-8 |
+| ~~5d~~ | ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication**~~ **DONE 2026-08-01** | — | Selection machinery built and verified; nothing run at scale, no amendment needed | ~~G-8~~ |
+| 5e | **G-8 classical validation work — the full BR-4 validation sweep, then the operating-point decision** | agent | W4 closed; the machinery exists and the sweep is the next scientific event | ER-1, H1–H4, the learned arms |
 | 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 

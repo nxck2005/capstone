@@ -561,3 +561,60 @@ def test_preflight_block_must_fetch_the_ignored_fixture_first(
     else:
         assert len(findings) == 1
         assert expected in findings[0]
+
+
+# ---------------------------------------------------------------------------
+# Check 8 must survive the frontier ceasing to be a PB_n sub-phase (PB_3)
+# ---------------------------------------------------------------------------
+
+_GATE_DECLARATION = """# Very Next Steps
+
+## Single next task
+
+| | |
+|---|---|
+| W4 · PB_2 | complete |
+| W4 · PB_3 | complete |
+| G-8 classical validation work | **next engineering task — not started** |
+
+The single next engineering task is the G-8 classical validation work.
+"""
+
+
+def test_a_gate_frontier_declares_no_sub_phase() -> None:
+    assert cdc.declared_subphase(_GATE_DECLARATION) is None
+    frontier, token, _ = cdc.declared_phase(_GATE_DECLARATION)
+    assert token == "g-8"
+    assert "g-8" in frontier
+
+
+def test_completed_sub_phases_survive_a_gate_frontier() -> None:
+    """Nothing is discarded as "the frontier's own number" when there is none."""
+
+    completed = cdc.completed_subphases(_GATE_DECLARATION)
+    assert "pb_2" in completed
+    assert "pb_3" in completed
+
+
+def test_a_gate_frontier_still_catches_a_stale_sub_phase_nomination() -> None:
+    """The check must not go silent the moment W4 closes.
+
+    Before PB_3 this returned no findings whenever the frontier named no
+    `PB_n` -- which is exactly the handoff where a live section is most likely
+    to still nominate the sub-phase that just finished.
+    """
+
+    body = _GATE_DECLARATION + "\nThe single next engineering task is W4 PB_3.\n"
+    findings = cdc.subphase_findings("NEXT.md", body, _GATE_DECLARATION)
+    assert any("names completed PB_3" in finding for finding in findings)
+
+
+def test_a_gate_frontier_still_catches_a_backward_directive() -> None:
+    body = _GATE_DECLARATION + "\nConfirm nothing drifted, then run instructions/PB_3.txt.\n"
+    findings = cdc.subphase_findings("NEXT.md", body, _GATE_DECLARATION)
+    assert any("sends the reader back to PB_3" in finding for finding in findings)
+
+
+def test_a_gate_frontier_stays_silent_on_a_correct_nomination() -> None:
+    body = _GATE_DECLARATION + "\nPB_3 is complete; see the worklog for what it built.\n"
+    assert cdc.subphase_findings("NEXT.md", body, _GATE_DECLARATION) == []

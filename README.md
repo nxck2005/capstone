@@ -117,8 +117,12 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-The single next engineering task is **W4 PB_3, the BR-4 selection infrastructure, required before
-G-8**. G-8 has not started. W4's PB_1 phase is complete **including its PB_1C correction**, which
+**W4 is complete.** The single next engineering task is the **G-8 classical validation work** — the
+full BR-4 validation sweep, run through the selection machinery `src/baseline/classical/composition.py`
+provides, and then the operating-point decision. G-8 has not started, and neither has the sweep: the
+selection entry point refuses any workload above its bounded budget unless an explicit
+`G8Authorization` is constructed, and nothing in this repository constructs one. W4's PB_1 phase is
+complete **including its PB_1C correction**, which
 removed a duplicated TS 38.212 §5.4.2.2 modulation bit interleaver from the classical transmit path
 — Sionna already applies it after rate matching, so the project layer must not. No `src/baseline/ldpc/`
 file changed, so G-2 is unaffected. See `worklogs/w4-classical-baseline-progress.md`.
