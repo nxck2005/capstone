@@ -44,19 +44,17 @@ Then:
 
 ## Status
 
-**Current phase:** PB_2C — corrective repair in progress
-**Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
-**Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
-**Last durable checkpoint:** `<the C2.8 commit>`
-**Next action:** C2.9 — final corrective green handoff
+**Current phase:** PB_3 — not started
+**Last green commit:** this `fix(classical): close PB_2 provenance and accounting corrections` commit — the PB_2C corrective green. The provisional PB_2 green `50de80364c2546463918387a8f335ea36107bde0` is **invalidated**; the corrected bounded evidence was regenerated at `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at `4c1642c9cf15d681a8de65d13a9fc1414c188b66`
+**Last durable checkpoint:** this commit
+**Next action:** run `instructions/PB_3.txt` from B3.0
 
-**PB_2 is under corrective repair.** `instructions/PB_2C.txt` is the durable superseding instruction
-for this phase and includes an approved addendum (§18) carrying two normative decisions and four
-clarifications that are binding. Read it plus this ledger; never resume from chat context.
-The provisional PB_2 bounded evidence and its green judgment are **superseded pending PB_2C
-correction** — the implementation is retained and is not discarded, but neither the evidence nor the
-completion judgment may be treated as current. `50de803` must not be described as scientifically
-green while PB_2C is open.
+**PB_2 is complete, including its PB_2C correction.** `instructions/PB_2C.txt` is the durable
+instruction for that repair and its §18 addendum carries two normative decisions and four
+clarifications that remain binding. The provisional PB_2 bounded evidence and green judgment
+(`50de803`) are **invalidated and superseded**; the implementation was retained, corrected and
+re-evidenced. Every scientific outcome survived the repair unchanged — what moved was provenance,
+pairing identity, the decode-failure byte columns and the now-complete timings.
 
 **PB_2 executes from `instructions/PB_2D.txt`, not `instructions/PB_2.txt`.** `PB_2D.txt` is the
 durable superseding instruction committed at B2.0; the original `PB_2.txt` is retained as historical
@@ -323,7 +321,7 @@ runner-ready and final green SHAs). Read §18 before C2.1.
 | C2.6 create the clean runner-ready source checkpoint | done | All amendments, spec views, implementation, tests, verifier changes, configs and the execution plan complete and pushed; `git diff --check` and `git status --short` clean. **Two designations:** `f510cd7268356918c52ee0230b6d410e635bfae5` was designated first, then superseded once BR-11's long-outstanding archived overhead table — required by BR-11's verify clause and absent since the requirement was written — was implemented as `results/baseline/w4/overhead_table.json` with its scope declarations and seven verifier mutations. Per the §18.6 addendum no empty commit was made; the runner-ready SHA is the later commit, recorded in the C2.7 rows. **892 passed** |
 | C2.7 regenerate bounded PB_2 evidence | done | 55 rows in 50.0 s from a clean tree at `76e789c9f3d036427d5c1fe83bd95a61d655c5f0`, fresh cache namespace. Crash-resume drill passed first. `gen_w4_source_manifest.py --check` ok (**40 sources**) and `verify_w4_baseline_integration.py` **PASS**. **Every scientific outcome is unchanged**; only provenance, identity, the decode-failure byte columns and the now-complete timings moved. One rerun was needed and the tooling was right to force it: the first attempt ran from a tree the resume drill had dirtied, and the verifier refused the evidence for `git_dirty` rather than accepting it |
 | C2.8 documentation and complete verification | done | `worklogs/w4-classical-baseline-progress.md` gained the PB_2C corrective section (audit findings, why the old verifier passed, the `Psot`-by-luck analysis, old-vs-corrected provenance table, exact BR-11 semantics, the three amendments including the AM-82 adjudication, corrected evidence, unchanged scientific outcomes, remaining frontier) without rewriting prior history. `NEXT.md`, `AGENTS.md` and `README.md` reconciled: PB_2 and PB_2C complete, PB_3 next and unblocked, the axis and BR-11 questions recorded as settled. **All 17 verification commands run separately and all pass; 892 tests** |
-| C2.9 final corrective green handoff | not-started | |
+| C2.9 final corrective green handoff | done | C2.0–C2.8 all `done`. Per the §18.6 addendum **no empty commit was created**: this single commit carries the real ledger changes and serves as the corrective green commit. No pushed WIP commit was amended, rebased, squashed or force-pushed. **No CI or status checks exist on this repository** (`check-runs` total_count 0), so nothing here was CI-validated; the 17-command block was run locally at C2.8 |
 
 ### PB_2C observed facts
 
@@ -422,8 +420,11 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | C2.8 cmd 16-17 git | `git diff --check` clean; `git status --short` clean after the documentation commit | C2.8 | yes |
 | test-access counters (final) | **all zero.** `verify_g2_adjudication` `test_split_access=0`; `verify_w4_baseline_integration` `test_split_access=0`; `verify_datasets` `test_scan_decoder_calls=0` and `test_scan_canonicalization_calls=0` for all three datasets; `tests/test_test_access.py` passes; `load_dataset(..., "test")` still refuses; `RunIdentity` still whitelists `{train, val}` | C2.8 | yes |
 | files changed under `src/baseline/ldpc/` | **none.** PB_2C touched `src/baseline/classical/records.py`, `src/config/run_config.py`, the four new `configs/classical-baseline-w4-*.yaml`, the execution plan, `tools/run_classical_baseline_w4_smoke.py`, `tools/verify_w4_baseline_integration.py`, `tools/gen_w4_source_manifest.py`, `tools/verify_transparency_bitrate_probe.py`, `spec/SPEC.md` plus its 10 generated views, the tests and the documentation. The G-2 HOLD condition was never triggered and no manifest was regenerated to conceal drift | C2.8 | yes |
-| final corrective green commit | | C2.9 | |
-| final handoff HEAD | | C2.9 | |
+| PB_2C checkpoint commits | `720918f` C2.0 open ledger · `6d3d279` C2.1 marker · `f29297a` C2.1 **AM-80/81/82** · `4eb8317` C2.2 marker · `20d7ea2` C2.2 per-cell RunConfig · `f6ab163` C2.3 marker · `6d63b1f` C2.3 scheduled noise · `87fb50b` C2.4 marker · `48a3973` C2.4 JPEG-2000 and timing · `bd69264` C2.5 marker · `e6816f1` C2.5 verifier hardening · `f510cd7` C2.6 first runner-ready designation · `9a31d47` C2.6 BR-11 overhead table (second designation) · `0c7141d` C2.7 marker · `76e789c` **execution source commit** (outage policy regenerated) · `4c1642c` C2.7 corrected bounded evidence · `0171243` C2.8 marker · `6b522e3` C2.8 full verification · this commit **corrective green** | C2.9 | yes |
+| final corrective green commit | this `fix(classical): close PB_2 provenance and accounting corrections` commit. Repository convention followed as for PB_1C: the corrective phase records its own green commit rather than the earlier provisional one | C2.9 | yes |
+| final handoff HEAD | this commit; local HEAD = `origin/main` = remote main, worktree clean. No pushed WIP commit was amended, rebased, squashed or force-pushed | C2.9 | yes |
+| CI / status checks (final) | **still none** — `check-runs` `total_count: 0`. No commit in this repository has been CI-validated; the 17-command verification block was run locally at C2.8 | C2.9 | yes |
+| prohibited work confirmed not done | no PB_3 implementation, no BR-4 composition, no full validation sweep, no configuration or ratio selection, no G-8 resolution, no training or fine-tuning, no λ calibration, no ER-9, no test-split access, the frozen G-1 checkpoint untouched, G-7 not rerun, the transparency campaign not rerun, the G-2 BLER campaign not rerun, no manifest regenerated to conceal drift, no stale pre-amendment evidence retained as current, no mutation test weakened and no result hash hardcoded | C2.9 | yes |
 
 ## PB_3 — BR-4 selection infrastructure + W4 adjudication
 
