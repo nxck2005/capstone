@@ -47,7 +47,7 @@ Then:
 **Current phase:** PB_2C — corrective repair in progress
 **Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
 **Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
-**Last durable checkpoint:** `<the C2.2 commit>`
+**Last durable checkpoint:** `20d7ea26d62b79732183b7d14457cdd7c19603c2`
 **Next action:** C2.3 — compute a scheduled `noise_id` for every row through `records.noise_identity()`, carry it on infeasible rows, and build `pair_id` from it
 
 **PB_2 is under corrective repair.** `instructions/PB_2C.txt` is the durable superseding instruction
@@ -317,7 +317,7 @@ runner-ready and final green SHAs). Read §18 before C2.1.
 | C2.0 establish state and open corrective ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `e0155c3`; all six C2.0 commands re-run and pass (see facts); **757 passed, 0 failed, 0 skipped**; `instructions/PB_2C.txt` created with the approved §18 addendum; no CI/status checks exist (`check-runs` total_count 0); old PB_2 evidence and green judgment marked superseded without deletion |
 | C2.1 record the two normative amendments | done | **Three amendments, not two.** AM-80 CIFAR axes `[32, 24, 16]` → `[32]`; AM-81 BR-11 byte semantics + `analysis_version` 1 → 2; AM-82 transparency-probe codec-configuration binding. `spec/SPEC.md` edited and all 10 views regenerated atomically; 187 → 190 requirements, 79 → 82 AMs, amendment round 16 opened. AM-82's implementation landed here rather than at C2.5 because it is the direct consequence of AM-80 and the amendment is incoherent without it. **787 passed** (757 + 30 new AM-82 mutation tests). The W4 verifier now **fails closed** on the old evidence (`the recorded params.baseline snapshot differs from the current spec`) — correct, and regenerated at C2.7 |
 | C2.2 repair per-cell RunConfig provenance | done | Four per-group strict experiment files replace the single `classical-baseline-w4-smoke.yaml`; `modulation`, `ldpc_rate` and `encode_axis_px` moved from plan-only keys into `choices`, so they land inside the fingerprint. `_validate_named_choices` narrowly extended to reject an unconfigured modulation, LDPC rate or encode axis. Runner resolves one `RunConfig` per cell via the ordinary `load_experiment`/`config_hash` pair, cross-checks each resolved selection against its plan row, archives `results/baseline/w4/run_configs/<config_hash>.json` and writes `resolved_config.json` as a schema-2 execution index. `_identity_for` now reads the row's own `train_seed` instead of the Imagenette group's. **829 passed** |
-| C2.3 repair scheduled noise and pair identities | not-started | |
+| C2.3 repair scheduled noise and pair identities | in-progress | Computing the scheduled `noise_id` for every row through the existing `records.noise_identity()`/`make_noise_id`, carrying it on all four verdicts, building `pair_id` from it, and recording `scheduled_noise_id`/`actual_noise_id`/`noise_consumed` separately on the raw rows per the §18.3 addendum |
 | C2.4 repair JPEG-2000 accounting and runner timing | not-started | |
 | C2.5 harden the W4 verifier and mutation coverage | not-started | |
 | C2.6 create the clean runner-ready source checkpoint | not-started | |
