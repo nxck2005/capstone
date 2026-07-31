@@ -28,7 +28,14 @@ from baseline.classical.pipeline import (
 )
 from baseline.classical.records import aggregate_schema, per_image_schema
 from config.params import REPO_ROOT, get
-from config.run_config import config_hash, load_experiment
+from artifacts.ids import (
+    make_analysis_cell_id,
+    make_noise_id,
+    make_pair_id,
+    make_run_id,
+)
+from config.run_config import canonical_sha256, config_hash, load_experiment
+from data.registry import manifest_sha256
 from models.frozen_reference_classifier import (
     EXPECTED_CHECKPOINT_SHA256,
     EXPECTED_CONFIG_HASH,
@@ -75,12 +82,46 @@ def _outage_record() -> dict[str, Any]:
     )
 
 
+def _scheduled_noise(sample_id: str) -> str:
+    """The real scheduled identity, so the verifier's recomputation agrees."""
+
+    return make_noise_id(
+        {
+            "dataset_version": get(f"datasets.{DATASET}.archive_sha256"),
+            "split_manifest_hash": manifest_sha256(DATASET),
+            "stable_sample_id": sample_id,
+            "test_snr_db": 18.0,
+            "channel_seed": 0,
+            "channel": "awgn",
+            "k": 3200,
+            "block_index": 0,
+            "rng_purpose": "channel_noise",
+        }
+    )
+
+
+def _cell_id() -> str:
+    return make_analysis_cell_id({"train_seed": 0, "channel_seed": 0})
+
+
+def _pair(sample_id: str) -> str:
+    return make_pair_id(
+        {
+            "analysis_cell_id": _cell_id(),
+            "stable_sample_id": sample_id,
+            "bw_ratio": "r_1_24",
+            "test_snr_db": 18.0,
+            "noise_id": _scheduled_noise(sample_id),
+        }
+    )
+
+
 def _per_image_rows(selected_class: int) -> list[dict[str, Any]]:
     """Three rows: one delivered-correct, one delivered-wrong, one outage."""
 
     base = {
-        "run_id": "a" * 64,
-        "analysis_cell_id": "c" * 64,
+        "run_id": FIXTURE_RUN_ID,
+        "analysis_cell_id": _cell_id(),
         "dataset": DATASET,
         "dataset_version": get(f"datasets.{DATASET}.archive_sha256"),
         "split": "val",
@@ -91,8 +132,8 @@ def _per_image_rows(selected_class: int) -> list[dict[str, Any]]:
     return [
         base
         | {
-            "pair_id": "p1" + "0" * 62,
-            "noise_id": "n1" + "0" * 62,
+            "pair_id": _pair("0" * 16),
+            "noise_id": _scheduled_noise("0" * 16),
             "stable_sample_id": "0" * 16,
             "true_label": 4,
             "pred_label": 4,
@@ -102,8 +143,8 @@ def _per_image_rows(selected_class: int) -> list[dict[str, Any]]:
         },
         base
         | {
-            "pair_id": "p2" + "0" * 62,
-            "noise_id": "n2" + "0" * 62,
+            "pair_id": _pair("1" * 16),
+            "noise_id": _scheduled_noise("1" * 16),
             "stable_sample_id": "1" * 16,
             "true_label": 5,
             "pred_label": 6,
@@ -113,8 +154,8 @@ def _per_image_rows(selected_class: int) -> list[dict[str, Any]]:
         },
         base
         | {
-            "pair_id": "p3" + "0" * 62,
-            "noise_id": "n3" + "0" * 62,
+            "pair_id": _pair("2" * 16),
+            "noise_id": _scheduled_noise("2" * 16),
             "stable_sample_id": "2" * 16,
             "true_label": selected_class,
             "pred_label": selected_class,
@@ -132,7 +173,7 @@ def _aggregate_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
     delivered_correct = sum(1 for row in delivered if row["correct"] == "true")
     decode = sum(1 for row in rows if row["outage_reason"] == DECODE_FAILURE)
     values = {
-        "run_id": "a" * 64,
+        "run_id": FIXTURE_RUN_ID,
         "timestamp": "2026-07-31T00:00:00+00:00",
         "git_commit": "b" * 40,
         "git_dirty": "false",
@@ -162,7 +203,7 @@ def _aggregate_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "ssim": 0.77,
         "bytes_sent": 1063,
         "header_bytes": 157.0,
-        "payload_bytes": 892.0,
+        "payload_bytes": 905.0,
         "papr_db": 2.69,
         "decode_failure_rate": decode / n,
         "infeasible_rate": 0.0,
@@ -197,6 +238,60 @@ FIXTURE_RUN_CONFIG = load_experiment(
     test_snr_db=18,
 )
 FIXTURE_CONFIG_HASH = config_hash(FIXTURE_RUN_CONFIG)
+FIXTURE_RUN_ID = make_run_id(
+    {
+        "system": "classical_fixed_mcs",
+        "dataset": DATASET,
+        "dataset_version": get(f"datasets.{DATASET}.archive_sha256"),
+        "split": "val",
+        "split_manifest_hash": manifest_sha256(DATASET),
+        "bw_ratio": "r_1_24",
+        "test_snr_db": 18.0,
+        "train_seed": 0,
+        "channel_seed": 0,
+        "config_hash": FIXTURE_CONFIG_HASH,
+        "checkpoint_id": EXPECTED_CHECKPOINT_SHA256,
+        "classifier_variant": "clean",
+        "ldpc_rate": "2/3",
+        "modulation": "qam16",
+        "quantiser_bits": None,
+        "transmit_dim": None,
+        "lambda": None,
+        "analysis_version": get("config.analysis_version"),
+    }
+)
+
+
+def _raw_rows(per_image: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The final raw-row artifact the verifier recomputes byte and timing facts from."""
+
+    rows = []
+    for index, row in enumerate(per_image):
+        outage = row["outage"] == "true"
+        verdict = DECODE_FAILURE if outage else "delivered"
+        rows.append(
+            {
+                "work_id": f"{index:064x}",
+                "group": "imagenette160_task_scored",
+                "task_scored": True,
+                "verdict": verdict,
+                "wall_clock_s": 0.25,
+                "k_symbols": 3200,
+                "config_hash": FIXTURE_CONFIG_HASH,
+                "scheduled_noise_id": row["noise_id"],
+                "actual_noise_id": row["noise_id"],
+                "noise_consumed": True,
+                "summary": {"accounting": {"payload_bytes": 1063}},
+                "source_coding": {
+                    "emitted_bytes": 1062,
+                    "header_bytes": 157,
+                    "payload_bytes": 905,
+                    "payload_filler_bytes": 1,
+                },
+                "per_image": row,
+            }
+        )
+    return rows
 
 
 def _write_run_configs(directory: Path) -> tuple[list[dict[str, Any]], str]:
@@ -219,6 +314,12 @@ def evidence(tmp_path: Path, head_commit: str, monkeypatch: pytest.MonkeyPatch) 
     outage = _outage_record()
     rows = _per_image_rows(int(outage["selected_class"]))
     aggregate = _aggregate_row(rows)
+
+    raw_rows = _raw_rows(rows)
+    raw_body = "".join(
+        json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in raw_rows
+    ).encode("utf-8")
+    (directory / "smoke_rows.jsonl").write_bytes(raw_body)
 
     per_image_bytes = _csv_bytes(per_image_schema(), rows)
     aggregate_bytes = _csv_bytes(aggregate_schema(), [aggregate])
@@ -248,6 +349,12 @@ def evidence(tmp_path: Path, head_commit: str, monkeypatch: pytest.MonkeyPatch) 
         },
         "per_image_csv_sha256": hashlib.sha256(per_image_bytes).hexdigest(),
         "aggregate_csv_sha256": hashlib.sha256(aggregate_bytes).hexdigest(),
+        "raw_rows_sha256": hashlib.sha256(raw_body).hexdigest(),
+        "raw_rows_count": len(raw_rows),
+        "worklist_sha256": canonical_sha256([row["work_id"] for row in raw_rows]),
+        "wall_clock_s": sum(row["wall_clock_s"] for row in raw_rows),
+        "openjpeg_version": get("environment.openjpeg"),
+        "openjpeg_preflight_preceded_artifacts": True,
         "cifar10_transport_only": {
             "declaration": (
                 "transport-only plumbing smoke\nno task accuracy\n"
@@ -321,7 +428,18 @@ def _run_all(evidence: Path) -> None:
     policy = verifier.check_outage_policy(payloads["outage"])
     verifier.check_records(evidence, policy, payloads["summary"])
     verifier.check_cifar_separation(payloads["summary"])
-    verifier.check_configuration(evidence, payloads["resolved"], payloads["summary"])
+    records = verifier.check_records(evidence, policy, payloads["summary"])
+    cell_hashes = verifier.check_configuration(
+        evidence, payloads["resolved"], payloads["summary"]
+    )
+    raw_rows = verifier.check_raw_rows(evidence, payloads["summary"], cell_hashes)
+    verifier.check_identities(
+        raw_rows,
+        payloads["resolved"]["run_configs"],
+        records["aggregates"],
+        records["per_image"],
+    )
+    verifier.check_byte_accounting(evidence, raw_rows, records["aggregates"])
     verifier.check_sources(evidence, payloads["summary"])
 
 
@@ -872,4 +990,279 @@ def test_a_config_hash_root_that_does_not_reproduce_is_caught(evidence: Path) ->
     _rewrite(evidence, "resolved_config.json", mutate)
     _rewrite(evidence, "smoke_summary.json", mutate)
     with pytest.raises(verifier.VerificationError, match="does not reproduce from"):
+        _run_all(evidence)
+
+
+# ---------------------------------------------------------------------------
+# Identity, byte, timing and preflight verification (PB_2C/C2.5)
+#
+# The old verifier recomputed aggregate *rates* but never rebuilt an identity,
+# never parsed a codestream, never read a row timing and never opened a raw-row
+# file. These mutations attack exactly those blind spots.
+# ---------------------------------------------------------------------------
+
+
+def _raw(evidence: Path) -> list[dict[str, Any]]:
+    return [
+        json.loads(line)
+        for line in (evidence / "smoke_rows.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
+def _rewrite_raw(evidence: Path, mutate) -> None:
+    rows = _raw(evidence)
+    rows = mutate(rows) or rows
+    body = "".join(
+        json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in rows
+    ).encode("utf-8")
+    (evidence / "smoke_rows.jsonl").write_bytes(body)
+    _rewrite(
+        evidence,
+        "smoke_summary.json",
+        lambda payload: payload.update(
+            raw_rows_sha256=hashlib.sha256(body).hexdigest(),
+            raw_rows_count=len(rows),
+            worklist_sha256=canonical_sha256([row["work_id"] for row in rows]),
+            wall_clock_s=sum(row["wall_clock_s"] for row in rows),
+        ),
+    )
+
+
+def test_a_missing_final_raw_row_artifact_is_caught(evidence: Path) -> None:
+    (evidence / "smoke_rows.jsonl").unlink()
+    with pytest.raises(verifier.VerificationError, match="missing W4 evidence file"):
+        _run_all(evidence)
+
+
+def test_partial_raw_rows_relabelled_complete_are_caught(evidence: Path) -> None:
+    """A truncated run must never pass as a finished one."""
+
+    rows = _raw(evidence)
+    body = "".join(
+        json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in rows[:-1]
+    ).encode("utf-8")
+    (evidence / "smoke_rows.jsonl").write_bytes(body)
+    with pytest.raises(verifier.VerificationError, match="does not match the hash"):
+        _run_all(evidence)
+
+
+def test_a_deleted_final_raw_row_is_caught(evidence: Path) -> None:
+    _rewrite_raw(evidence, lambda rows: rows[:-1])
+    with pytest.raises(verifier.VerificationError, match="describe different rows"):
+        _run_all(evidence)
+
+
+def test_a_duplicated_final_raw_row_is_caught(evidence: Path) -> None:
+    _rewrite_raw(evidence, lambda rows: rows + [rows[0]])
+    with pytest.raises(verifier.VerificationError, match="duplicated work item"):
+        _run_all(evidence)
+
+
+def test_a_null_noise_identity_on_an_infeasible_row_is_caught(evidence: Path) -> None:
+    """The PB_2 defect: an infeasible row that cannot pair with anything."""
+
+    def mutate(rows):
+        rows[-1].update(
+            verdict=CODEC_INFEASIBILITY,
+            scheduled_noise_id=None,
+            actual_noise_id=None,
+            noise_consumed=False,
+        )
+
+    _rewrite_raw(evidence, mutate)
+    with pytest.raises(
+        verifier.VerificationError, match="carries no scheduled noise identity"
+    ):
+        _run_all(evidence)
+
+
+def test_an_infeasible_row_claiming_noise_was_consumed_is_caught(evidence: Path) -> None:
+    def mutate(rows):
+        rows[-1].update(verdict=STRUCTURAL_INFEASIBILITY, noise_consumed=True)
+
+    _rewrite_raw(evidence, mutate)
+    with pytest.raises(verifier.VerificationError, match="claims a channel realisation"):
+        _run_all(evidence)
+
+
+def test_transmitted_noise_differing_from_the_schedule_is_caught(evidence: Path) -> None:
+    _rewrite_raw(evidence, lambda rows: rows[0].update(actual_noise_id="f" * 64))
+    with pytest.raises(verifier.VerificationError, match="does not reconcile"):
+        _run_all(evidence)
+
+
+def test_a_per_image_row_not_carrying_the_scheduled_identity_is_caught(
+    evidence: Path,
+) -> None:
+    def mutate(rows):
+        rows[0]["per_image"]["noise_id"] = "e" * 64
+
+    _rewrite_raw(evidence, mutate)
+    with pytest.raises(verifier.VerificationError, match="scheduled noise identity"):
+        _run_all(evidence)
+
+
+def test_a_pair_id_that_does_not_recompute_is_caught(evidence: Path) -> None:
+    def mutate(rows):
+        rows[0]["per_image"]["pair_id"] = "d" * 64
+
+    _rewrite_raw(evidence, mutate)
+    with pytest.raises(verifier.VerificationError, match="pair_id does not recompute"):
+        _run_all(evidence)
+
+
+def test_an_analysis_cell_id_that_does_not_recompute_is_caught(evidence: Path) -> None:
+    def mutate(rows):
+        rows[0]["per_image"]["analysis_cell_id"] = "9" * 64
+
+    _rewrite_raw(evidence, mutate)
+    with pytest.raises(
+        verifier.VerificationError, match="analysis_cell_id does not recompute"
+    ):
+        _run_all(evidence)
+
+
+def test_a_run_id_that_does_not_recompute_is_caught(evidence: Path) -> None:
+    """Changing a keyed selection must move run_id; a stale one is a mismatch."""
+
+    _rewrite_csv(evidence, "aggregate.csv", aggregate_schema(),
+                 lambda rows: [dict(row, train_seed=1) for row in rows])
+    with pytest.raises(verifier.VerificationError, match="run_id does not recompute"):
+        _run_all(evidence)
+
+
+def test_a_decode_failure_aggregate_with_null_header_bytes_is_caught(
+    evidence: Path,
+) -> None:
+    """AM-81: overhead is measurable whenever a codestream was emitted."""
+
+    _rewrite_csv(evidence, "aggregate.csv", aggregate_schema(),
+                 lambda rows: [dict(row, header_bytes="") for row in rows])
+    with pytest.raises(verifier.VerificationError, match="leaves header_bytes blank"):
+        _run_all(evidence)
+
+
+def test_a_decode_failure_aggregate_with_null_payload_bytes_is_caught(
+    evidence: Path,
+) -> None:
+    _rewrite_csv(evidence, "aggregate.csv", aggregate_schema(),
+                 lambda rows: [dict(row, payload_bytes="") for row in rows])
+    with pytest.raises(verifier.VerificationError, match="leaves payload_bytes blank"):
+        _run_all(evidence)
+
+
+def test_a_wrong_aggregation_denominator_is_caught(evidence: Path) -> None:
+    """Averaging delivered rows only -- the PB_2 behaviour -- must now fail."""
+
+    rows = _raw(evidence)
+    delivered = [row for row in rows if row["verdict"] != DECODE_FAILURE]
+    wrong = sum(row["source_coding"]["payload_bytes"] for row in delivered) / len(
+        delivered
+    )
+    # The fixture's rows all carry the same split, so shift one to make the
+    # delivered-only and all-emitted denominators disagree.
+    rows[-1]["source_coding"].update(
+        payload_bytes=800, emitted_bytes=957, payload_filler_bytes=106
+    )
+    body = "".join(
+        json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in rows
+    ).encode("utf-8")
+    (evidence / "smoke_rows.jsonl").write_bytes(body)
+    _rewrite(
+        evidence,
+        "smoke_summary.json",
+        lambda p: p.update(raw_rows_sha256=hashlib.sha256(body).hexdigest()),
+    )
+    _rewrite_csv(evidence, "aggregate.csv", aggregate_schema(),
+                 lambda csv_rows: [dict(row, payload_bytes=wrong) for row in csv_rows])
+    with pytest.raises(verifier.VerificationError, match="recomputes to"):
+        _run_all(evidence)
+
+
+def test_payload_filler_folded_into_the_payload_column_is_caught(
+    evidence: Path,
+) -> None:
+    def mutate(rows):
+        for row in rows:
+            source = row["source_coding"]
+            source["payload_bytes"] = source["payload_bytes"] + source[
+                "payload_filler_bytes"
+            ]
+
+    _rewrite_raw(evidence, mutate)
+    with pytest.raises(verifier.VerificationError, match="!= emitted bytes"):
+        _run_all(evidence)
+
+
+def test_a_row_reporting_bytes_without_a_codestream_is_caught(evidence: Path) -> None:
+    def mutate(rows):
+        rows[-1]["source_coding"]["emitted_bytes"] = None
+
+    _rewrite_raw(evidence, mutate)
+    with pytest.raises(verifier.VerificationError, match="without a codestream"):
+        _run_all(evidence)
+
+
+def test_a_negative_row_timing_is_caught(evidence: Path) -> None:
+    _rewrite_raw(evidence, lambda rows: rows[0].update(wall_clock_s=-1.0))
+    with pytest.raises(verifier.VerificationError, match="non-negative elapsed time"):
+        _run_all(evidence)
+
+
+def test_a_wall_clock_excluding_resumed_rows_is_caught(evidence: Path) -> None:
+    """Reporting only the resumed session's elapsed time -- the PB_2 behaviour."""
+
+    rows = _raw(evidence)
+    resumed_only = rows[-1]["wall_clock_s"]
+    _rewrite(
+        evidence, "smoke_summary.json", lambda p: p.update(wall_clock_s=resumed_only)
+    )
+    with pytest.raises(
+        verifier.VerificationError, match="not the sum of the durable row timings"
+    ):
+        _run_all(evidence)
+
+
+def test_a_wrong_actual_openjpeg_version_is_caught(evidence: Path) -> None:
+    _rewrite(
+        evidence, "smoke_summary.json", lambda p: p.update(openjpeg_version="2.4.0")
+    )
+    with pytest.raises(
+        verifier.VerificationError, match="OpenJPEG version other than the configured"
+    ):
+        _run_all(evidence)
+
+
+def test_evidence_not_declaring_preflight_ordering_is_caught(evidence: Path) -> None:
+    _rewrite(
+        evidence,
+        "smoke_summary.json",
+        lambda p: p.update(openjpeg_preflight_preceded_artifacts=False),
+    )
+    with pytest.raises(
+        verifier.VerificationError, match="preflight preceded artifact creation"
+    ):
+        _run_all(evidence)
+
+
+def test_raw_rows_out_of_worklist_order_are_caught(evidence: Path) -> None:
+    rows = _raw(evidence)
+    reordered = list(reversed(rows))
+    body = "".join(
+        json.dumps(row, sort_keys=True, ensure_ascii=False) + "\n" for row in reordered
+    ).encode("utf-8")
+    (evidence / "smoke_rows.jsonl").write_bytes(body)
+    _rewrite(
+        evidence,
+        "smoke_summary.json",
+        lambda p: p.update(raw_rows_sha256=hashlib.sha256(body).hexdigest()),
+    )
+    with pytest.raises(verifier.VerificationError, match="deterministic order"):
+        _run_all(evidence)
+
+
+def test_a_raw_row_naming_an_unarchived_config_hash_is_caught(evidence: Path) -> None:
+    _rewrite_raw(evidence, lambda rows: rows[0].update(config_hash="7" * 64))
+    with pytest.raises(verifier.VerificationError, match="not archived"):
         _run_all(evidence)

@@ -52,6 +52,13 @@ from baseline.classical.records import (  # noqa: E402
     per_image_schema,
 )
 from config.params import get  # noqa: E402
+from artifacts.ids import (  # noqa: E402
+    make_analysis_cell_id,
+    make_noise_id,
+    make_pair_id,
+    make_run_id,
+)
+from data.registry import manifest_sha256  # noqa: E402
 from config.run_config import RunConfig, canonical_sha256, config_hash  # noqa: E402
 from models.frozen_reference_classifier import (  # noqa: E402
     EXPECTED_CHECKPOINT_SHA256,
@@ -74,6 +81,7 @@ REQUIRED_FILES = (
     "execution_source_manifest.json",
     "per_image.csv",
     "aggregate.csv",
+    "smoke_rows.jsonl",
 )
 
 #: Phrases that would claim the bounded run did something it did not.
@@ -655,6 +663,327 @@ def check_configuration(
         )
 
 
+def check_raw_rows(
+    evidence: Path, summary: dict[str, Any], cell_hashes: dict[str, str]
+) -> list[dict[str, Any]]:
+    """Read the final raw rows and recompute what the CSVs only assert.
+
+    The partial file is execution state. Accepting it as evidence would let a
+    truncated run pass as a finished one, so the *final* artifact is required
+    and is re-hashed against the summary before anything is derived from it.
+    """
+
+    path = evidence / "smoke_rows.jsonl"
+    _require(path.is_file(), "missing final raw-row artifact: smoke_rows.jsonl")
+    body = path.read_bytes()
+    _require(
+        hashlib.sha256(body).hexdigest() == summary.get("raw_rows_sha256"),
+        "smoke_rows.jsonl does not match the hash recorded in smoke_summary.json",
+    )
+    try:
+        rows = [
+            json.loads(line)
+            for line in body.decode("utf-8").splitlines()
+            if line.strip()
+        ]
+    except json.JSONDecodeError as exc:
+        raise VerificationError(f"smoke_rows.jsonl is not valid JSONL: {exc}") from None
+    _require(
+        len(rows) == summary.get("raw_rows_count"),
+        f"smoke_rows.jsonl holds {len(rows)} rows, the summary declares "
+        f"{summary.get('raw_rows_count')}",
+    )
+    work_ids = [row["work_id"] for row in rows]
+    _require(
+        len(set(work_ids)) == len(work_ids),
+        "smoke_rows.jsonl contains a duplicated work item",
+    )
+    _require(
+        summary.get("worklist_sha256")
+        == canonical_sha256(work_ids),
+        "smoke_rows.jsonl is not the committed worklist in its deterministic order",
+    )
+
+    for row in rows:
+        _require(
+            row.get("config_hash") in cell_hashes,
+            f"raw row {row['work_id'][:12]} names a config hash that is not archived",
+        )
+        elapsed = row.get("wall_clock_s")
+        _require(
+            isinstance(elapsed, int | float) and elapsed >= 0,
+            f"raw row {row['work_id'][:12]} has no non-negative elapsed time",
+        )
+        # Three separate facts. An infeasible row keeps its schedule and is
+        # honest that nothing was drawn; a transmitted row must reconcile.
+        scheduled = row.get("scheduled_noise_id")
+        _require(
+            isinstance(scheduled, str) and len(scheduled) == 64,
+            f"raw row {row['work_id'][:12]} carries no scheduled noise identity",
+        )
+        consumed = row.get("noise_consumed")
+        _require(
+            consumed is True or consumed is False,
+            f"raw row {row['work_id'][:12]} does not state whether noise was consumed",
+        )
+        actual = row.get("actual_noise_id")
+        if row["verdict"] in (STRUCTURAL_INFEASIBILITY, CODEC_INFEASIBILITY):
+            _require(
+                actual is None and consumed is False,
+                f"raw row {row['work_id'][:12]} is {row['verdict']} but claims a "
+                "channel realisation was drawn",
+            )
+        else:
+            _require(
+                consumed is True and actual == scheduled,
+                f"raw row {row['work_id'][:12]} transmitted but its realised "
+                "identity does not reconcile with the scheduled one",
+            )
+
+    total = sum(row["wall_clock_s"] for row in rows)
+    _require(
+        abs(total - float(summary.get("wall_clock_s", -1))) <= 1e-9,
+        "the summary wall clock is not the sum of the durable row timings; a "
+        "resumed session's elapsed time is not the bounded run's total",
+    )
+    _require(
+        summary.get("openjpeg_version") == get("environment.openjpeg"),
+        "the evidence records an OpenJPEG version other than the configured one",
+    )
+    _require(
+        summary.get("openjpeg_preflight_preceded_artifacts") is True,
+        "the evidence does not record that the OpenJPEG preflight preceded "
+        "artifact creation",
+    )
+    return rows
+
+
+def check_byte_accounting(
+    evidence: Path, raw_rows: list[dict[str, Any]], aggregates: list[dict[str, str]]
+) -> dict[str, int]:
+    """Independently recompute the BR-11 columns from the raw codestreams.
+
+    BR-11/AM-81 aggregates over every row that emitted a codestream, delivered
+    and decode-failure alike. PB_2 averaged delivered rows only, so a cell whose
+    rows all failed to decode reported no overhead at all.
+    """
+
+    emitted = 0
+    for row in raw_rows:
+        source_coding = row.get("source_coding") or {}
+        header = source_coding.get("header_bytes")
+        payload = source_coding.get("payload_bytes")
+        if source_coding.get("emitted_bytes") is None:
+            _require(
+                header is None and payload is None,
+                f"raw row {row['work_id'][:12]} reports byte columns without a "
+                "codestream",
+            )
+            continue
+        emitted += 1
+        _require(
+            isinstance(header, int) and isinstance(payload, int),
+            f"raw row {row['work_id'][:12]} emitted a codestream but carries no "
+            "header/payload split",
+        )
+        _require(
+            header + payload == source_coding["emitted_bytes"],
+            f"raw row {row['work_id'][:12]}: header + payload != emitted bytes",
+        )
+        filler = source_coding.get("payload_filler_bytes")
+        accounting = (row.get("summary") or {}).get("accounting") or {}
+        bytes_sent = accounting.get("payload_bytes")
+        if filler is not None and bytes_sent is not None:
+            _require(
+                header + payload + filler == bytes_sent,
+                f"raw row {row['work_id'][:12]}: header + payload + filler != "
+                "bytes_sent",
+            )
+            _require(
+                filler == 0 or payload != bytes_sent,
+                f"raw row {row['work_id'][:12]}: payload filler is folded into "
+                "the BR-11 payload column",
+            )
+
+    # And the aggregate means must follow from those rows, per cell.
+    by_hash: dict[str, list[dict[str, Any]]] = {}
+    for row in raw_rows:
+        by_hash.setdefault(row["config_hash"], []).append(row)
+    for aggregate in aggregates:
+        rows = by_hash.get(aggregate["config_hash"], [])
+        values = [
+            (row["source_coding"]["header_bytes"], row["source_coding"]["payload_bytes"])
+            for row in rows
+            if (row.get("source_coding") or {}).get("header_bytes") is not None
+        ]
+        for column, index in (("header_bytes", 0), ("payload_bytes", 1)):
+            recorded = _optional_float(aggregate[column])
+            if not values:
+                _require(
+                    recorded is None,
+                    f"aggregate {aggregate['config_hash'][:12]} reports "
+                    f"{column} with no emitted codestream behind it",
+                )
+                continue
+            _require(
+                recorded is not None,
+                f"aggregate {aggregate['config_hash'][:12]} leaves {column} blank "
+                f"while {len(values)} of its rows emitted a codestream",
+            )
+            expected = sum(value[index] for value in values) / len(values)
+            _require(
+                abs(recorded - expected) <= 1e-9,
+                f"aggregate {aggregate['config_hash'][:12]}: {column} is "
+                f"{recorded}, recomputes to {expected} over {len(values)} "
+                "emitted-codestream rows",
+            )
+    return {"emitted_rows": emitted}
+
+
+def check_identities(
+    raw_rows: list[dict[str, Any]],
+    index: list[dict[str, Any]],
+    aggregates: list[dict[str, str]],
+    per_image_rows: list[dict[str, str]],
+) -> None:
+    """Recompute every identity rather than trusting the row that carries it.
+
+    PB_2's verifier never rebuilt `noise_id`, `pair_id`, `analysis_cell_id` or
+    `run_id`, so a null realisation on an infeasible row -- which silently
+    removes that image from the paired comparison ER-10 exists to make -- was
+    invisible to it.
+    """
+
+    by_hash = {entry["config_hash"]: entry for entry in index}
+
+    for row in raw_rows:
+        per = row.get("per_image")
+        if per is None:
+            continue
+        entry = by_hash[row["config_hash"]]
+        scheduled = row["scheduled_noise_id"]
+
+        _require(
+            per["noise_id"] == scheduled,
+            f"raw row {row['work_id'][:12]}: the emitted per-image row does not "
+            "carry the scheduled noise identity",
+        )
+        _require(
+            len(per["noise_id"]) == 64,
+            f"per-image row {per['stable_sample_id']} carries no noise identity; "
+            "a row that did not transmit still has a scheduled one",
+        )
+        expected_noise = make_noise_id(
+            {
+                "dataset_version": per["dataset_version"],
+                "split_manifest_hash": manifest_sha256(per["dataset"]),
+                "stable_sample_id": per["stable_sample_id"],
+                "test_snr_db": float(per["test_snr_db"]),
+                "channel_seed": int(entry["channel_seed"]),
+                "channel": "awgn",
+                "k": int(row["k_symbols"]),
+                "block_index": 0,
+                "rng_purpose": "channel_noise",
+            }
+        )
+        _require(
+            per["noise_id"] == expected_noise,
+            f"per-image row {per['stable_sample_id']}: noise_id does not recompute "
+            "from the scheduled evaluation cell",
+        )
+        expected_cell = make_analysis_cell_id(
+            {
+                "train_seed": int(entry["train_seed"]),
+                "channel_seed": int(entry["channel_seed"]),
+            }
+        )
+        _require(
+            per["analysis_cell_id"] == expected_cell,
+            f"per-image row {per['stable_sample_id']}: analysis_cell_id does not "
+            "recompute from the archived configuration",
+        )
+        expected_pair = make_pair_id(
+            {
+                "analysis_cell_id": expected_cell,
+                "stable_sample_id": per["stable_sample_id"],
+                "bw_ratio": per["bw_ratio"],
+                "test_snr_db": float(per["test_snr_db"]),
+                "noise_id": per["noise_id"],
+            }
+        )
+        _require(
+            per["pair_id"] == expected_pair,
+            f"per-image row {per['stable_sample_id']}: pair_id does not recompute "
+            "from its own scheduled noise identity",
+        )
+
+    # A raw file that dropped a row would otherwise be self-consistent, because
+    # its own count and worklist digest are recomputed from what remains. The
+    # per-image CSV is the independent witness.
+    raw_samples = {
+        (row["per_image"]["run_id"], row["per_image"]["stable_sample_id"])
+        for row in raw_rows
+        if row.get("per_image") is not None
+    }
+    csv_samples = {
+        (row["run_id"], row["stable_sample_id"]) for row in per_image_rows
+    }
+    _require(
+        raw_samples == csv_samples,
+        "per_image.csv and smoke_rows.jsonl describe different rows: "
+        f"only in the CSV={sorted(sample for sample in csv_samples - raw_samples)}, "
+        f"only in the raw rows={sorted(sample for sample in raw_samples - csv_samples)}",
+    )
+
+    for aggregate in aggregates:
+        entry = by_hash.get(aggregate["config_hash"])
+        _require(
+            entry is not None,
+            f"aggregate row names config hash {aggregate['config_hash'][:12]}, "
+            "which is not archived",
+        )
+        expected_run = make_run_id(
+            {
+                "system": aggregate["system"],
+                "dataset": aggregate["dataset"],
+                "dataset_version": get(
+                    f"datasets.{aggregate['dataset']}."
+                    f"{get('config.dataset_version_rule')}"
+                ),
+                "split": aggregate["split"],
+                "split_manifest_hash": manifest_sha256(aggregate["dataset"]),
+                "bw_ratio": aggregate["bw_ratio"],
+                "test_snr_db": float(aggregate["test_snr_db"]),
+                "train_seed": int(aggregate["train_seed"]),
+                "channel_seed": int(aggregate["channel_seed"]),
+                "config_hash": aggregate["config_hash"],
+                "checkpoint_id": aggregate["checkpoint_id"],
+                "classifier_variant": aggregate["classifier_variant"],
+                "ldpc_rate": aggregate["ldpc_rate"],
+                "modulation": aggregate["modulation"],
+                "quantiser_bits": None,
+                "transmit_dim": None,
+                "lambda": None,
+                "analysis_version": get("config.analysis_version"),
+            }
+        )
+        _require(
+            aggregate["run_id"] == expected_run,
+            f"aggregate {aggregate['config_hash'][:12]}: run_id does not recompute "
+            "from its own recorded selections",
+        )
+        for field in ("test_snr_db", "bw_ratio", "modulation", "ldpc_rate"):
+            recorded = aggregate[field]
+            expected = entry[field]
+            if field == "test_snr_db":
+                recorded, expected = float(recorded), float(expected)
+            _require(
+                recorded == expected,
+                f"aggregate {aggregate['config_hash'][:12]}: {field} is {recorded!r} "
+                f"but its configuration resolves {expected!r}",
+            )
+
+
 def check_gates() -> None:
     for tool in ("tools/verify_g1_adjudication.py", "tools/verify_g2_adjudication.py"):
         result = subprocess.run(
@@ -683,7 +1012,19 @@ def main() -> int:
         policy = check_outage_policy(payloads["outage"])
         records = check_records(evidence, policy, payloads["summary"])
         cifar_samples = check_cifar_separation(payloads["summary"])
-        check_configuration(evidence, payloads["resolved"], payloads["summary"])
+        cell_hashes = check_configuration(
+            evidence, payloads["resolved"], payloads["summary"]
+        )
+        raw_rows = check_raw_rows(evidence, payloads["summary"], cell_hashes)
+        check_identities(
+            raw_rows,
+            payloads["resolved"]["run_configs"],
+            records["aggregates"],
+            records["per_image"],
+        )
+        byte_totals = check_byte_accounting(
+            evidence, raw_rows, records["aggregates"]
+        )
         manifest = check_sources(evidence, payloads["summary"])
         if not arguments.skip_gates:
             check_gates()
@@ -705,7 +1046,9 @@ def main() -> int:
         f"outage_class={policy.selected_class} "
         f"({policy.selected_count}/{policy.validation_count}), "
         f"cifar_transport_only={cifar_samples} (no task score), "
-        f"imagenette[{cells}], test_split_access=0"
+        f"imagenette[{cells}], raw_rows={len(raw_rows)} "
+        f"(emitted={byte_totals['emitted_rows']}), "
+        f"openjpeg={payloads['summary']['openjpeg_version']}, test_split_access=0"
     )
     return 0
 

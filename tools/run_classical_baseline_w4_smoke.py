@@ -152,6 +152,22 @@ def _write_csv_atomically(path: Path, schema: tuple[str, ...], rows: list[dict])
     return hashlib.sha256(body).hexdigest()
 
 
+def _write_bytes_atomically(path: Path, body: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".partial", dir=path.parent
+    )
+    temporary = Path(name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(body)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _csv_value(value: Any) -> Any:
     """The documented not-applicable representation is an empty CSV cell."""
 
@@ -759,6 +775,17 @@ def finalise(
         aggregate["_cell"] = {"group": group, "dataset": dataset, "test_snr_db": snr}
         aggregates.append(aggregate)
 
+    # The final, immutable raw-row artifact. The partial file is execution
+    # state; verification must read a complete file in deterministic worklist
+    # order, so a truncated run can never be mistaken for a finished one.
+    final_rows_path = REPO / plan["outputs"]["final_rows"]
+    raw_body = "".join(
+        json.dumps(row, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n"
+        for row in ordered
+    ).encode("utf-8")
+    _write_bytes_atomically(final_rows_path, raw_body)
+    raw_rows_hash = hashlib.sha256(raw_body).hexdigest()
+
     aggregate_hash = _write_csv_atomically(
         evidence_dir / "aggregate.csv",
         aggregate_schema(),
@@ -791,6 +818,8 @@ def finalise(
         "plan_sha256": identity_binding["plan_sha256"],
         "per_image_csv_sha256": per_image_hash,
         "aggregate_csv_sha256": aggregate_hash,
+        "raw_rows_sha256": raw_rows_hash,
+        "raw_rows_count": len(ordered),
         "br4_sweep_completed": False,
         "g8_status": "unresolved",
         "j2k_resolutions_issue_status": "resolved_by_am80",
@@ -1177,6 +1206,9 @@ def main() -> int:
         evidence_dir=evidence_dir,
         git_dirty=bool(dirty),
     )
+    # The partial file is execution state and has now been superseded by the
+    # immutable final one; leaving it behind invites it being read as evidence.
+    partial_path.unlink(missing_ok=True)
     write_json_atomically(REPO / plan["outputs"]["summary"], summary)
     write_json_atomically(
         REPO / plan["outputs"]["accounting_examples"],
