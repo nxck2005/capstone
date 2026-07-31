@@ -1,0 +1,399 @@
+{
+  "bler_characterization": {
+    "absent_evidence_treated_as_zero_bler": false,
+    "additional_required_fields": [
+      "rate"
+    ],
+    "characterized": [
+      {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          128,
+          256
+        ],
+        "lifting_size": 22,
+        "measured_points": 4,
+        "modulation": "bpsk",
+        "rate": "0.5",
+        "snr_convention": "eb_n0_per_information_bit",
+        "support_db": [
+          1.5,
+          2.75
+        ],
+        "trials_per_point": 5000
+      },
+      {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          128,
+          256
+        ],
+        "lifting_size": 22,
+        "measured_points": 4,
+        "modulation": "bpsk",
+        "rate": "0.5",
+        "snr_convention": "es_n0_per_symbol",
+        "support_db": [
+          -1.510299956639812,
+          -0.2602999566398121
+        ],
+        "trials_per_point": 5000
+      },
+      {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          128,
+          256
+        ],
+        "lifting_size": 22,
+        "measured_points": 4,
+        "modulation": "qam16",
+        "rate": "0.5",
+        "snr_convention": "eb_n0_per_information_bit",
+        "support_db": [
+          4.0,
+          5.25
+        ],
+        "trials_per_point": 5000
+      },
+      {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          128,
+          256
+        ],
+        "lifting_size": 22,
+        "measured_points": 4,
+        "modulation": "qam16",
+        "rate": "0.5",
+        "snr_convention": "es_n0_per_symbol",
+        "support_db": [
+          7.0102999566398125,
+          8.260299956639813
+        ],
+        "trials_per_point": 5000
+      },
+      {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          128,
+          256
+        ],
+        "lifting_size": 22,
+        "measured_points": 4,
+        "modulation": "qpsk",
+        "rate": "0.5",
+        "snr_convention": "eb_n0_per_information_bit",
+        "support_db": [
+          1.5,
+          2.75
+        ],
+        "trials_per_point": 5000
+      },
+      {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          128,
+          256
+        ],
+        "lifting_size": 22,
+        "measured_points": 4,
+        "modulation": "qpsk",
+        "rate": "0.5",
+        "snr_convention": "es_n0_per_symbol",
+        "support_db": [
+          1.5,
+          2.75
+        ],
+        "trials_per_point": 5000
+      }
+    ],
+    "extrapolation_permitted": false,
+    "interpolation": "linear_in_snr_vs_log10_bler",
+    "measurement_arm": "sionna",
+    "required_identity_fields": [
+      "k_and_n",
+      "base_graph",
+      "lifting_size",
+      "modulation",
+      "decoder_algorithm",
+      "decoder_offset",
+      "iterations",
+      "snr_convention",
+      "rate"
+    ],
+    "source": "results/baseline/g2/bler_results.csv",
+    "spec_required_identity_fields": [
+      "k_and_n",
+      "base_graph",
+      "lifting_size",
+      "modulation",
+      "decoder_algorithm",
+      "decoder_offset",
+      "iterations",
+      "snr_convention"
+    ],
+    "uncharacterized_examples": [
+      {
+        "example": "base_graph 1 at the otherwise-committed QPSK identity",
+        "reason": "identity_not_characterized"
+      },
+      {
+        "example": "any (K, N) other than (128, 256)",
+        "reason": "identity_not_characterized"
+      },
+      {
+        "example": "any LDPC rate other than 1/2",
+        "reason": "identity_not_characterized"
+      },
+      {
+        "example": "the committed QPSK curve at 18 dB, above its 2.75 dB span",
+        "reason": "snr_outside_characterized_support"
+      },
+      {
+        "example": "16-QAM at 2.5 dB Eb/N0, below its 4.0 dB span",
+        "reason": "snr_outside_characterized_support"
+      }
+    ]
+  },
+  "bounded_evidence_execution_commit": "76e789c9f3d036427d5c1fe83bd95a61d655c5f0",
+  "bounded_executions": [
+    {
+      "detail": "5 CIFAR-10 transport-only samples with no classifier inference and no task score, 24 Imagenette-160 validation images at 18 dB and 24 at -8 dB, plus structural- and codec-infeasibility fixtures",
+      "kind": "bounded classical-baseline smoke over real validation data",
+      "phase": "PB_2C",
+      "rows": 55,
+      "split": "val",
+      "wall_time_s": 50.007964267001626
+    },
+    {
+      "detail": "no dataset was loaded, no image was encoded, no channel was run and no classifier was evaluated; the selection machinery was exercised only over synthetic candidates and the committed G-2 curves, under the bounded sweep budget",
+      "kind": "unit-scale exercises of the BR-4 selection machinery",
+      "phase": "PB_3",
+      "rows": 0,
+      "split": "none: synthetic and fixture inputs only",
+      "wall_time_s": null
+    }
+  ],
+  "claims": {
+    "artifact_finetuning_performed": false,
+    "bounded_validation_plumbing_integration": true,
+    "br4_full_validation_sweep": false,
+    "er9_implemented": false,
+    "g8_operating_point_selection": false,
+    "g8_status": "unresolved",
+    "lambda_calibration_performed": false,
+    "test_evidence": false,
+    "test_split_sealed": true,
+    "training_performed": false
+  },
+  "composition": {
+    "worked_example": {
+      "block_bler": 0.0112,
+      "code_blocks": 2,
+      "codec_accuracy": {
+        "correct": 870,
+        "split": "val",
+        "total": 1000,
+        "value": 0.87
+      },
+      "expected_accuracy": 0.8528485888,
+      "identity": {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          128,
+          256
+        ],
+        "lifting_size": 22,
+        "modulation": "qpsk",
+        "rate": "0.5",
+        "snr_convention": "eb_n0_per_information_bit"
+      },
+      "outage_accuracy": {
+        "denominator": 1000,
+        "numerator": 100,
+        "selected_class": 0,
+        "value": 0.1
+      },
+      "snr_db": 2.5,
+      "success_probability": 0.9777254400000001
+    }
+  },
+  "evidence_commit_resolution": "resolved, never recorded: the commit that introduced this file is `git log -1 --format=%H -- results/baseline/w4/integration_adjudication.json`. A file cannot contain the hash of the commit that adds it, so a stored evidence_commit would be either null, a guess or circular. The verifier rejects any stored value.",
+  "evidence_files": {
+    "accounting_examples.json": "97105d079ce7ae001f4c1663d37cd1f0ae946698c669c77aedb07ab16aaf4076",
+    "aggregate.csv": "1394447702ae8f9b46a14d00ed954f24b832fb88822a114474523d90624d4709",
+    "execution_source_manifest.json": "1c8ca1762362b59b19cd07ac5d02a57299cdc7d80451bc4a9b2a2329cb473529",
+    "outage_policy.json": "ebcc34133f7a1e38635e8a958cb41a4b8f019b02fd97bd2f0ad606a0a1396121",
+    "overhead_table.json": "b02d46a7c1bd06dc143e59cf06218fe11fa38fc5ed4aea60fc24109df9bbb8b3",
+    "per_image.csv": "2e5abd094ff30b58037b23c0e8206b9d89a5683eb3181cea7257ddf8f409b56c",
+    "resolved_config.json": "6d55583f96c944a08d20207dfc84540a2ad34f293aa33dff2b240f0319c4a3dc",
+    "smoke_rows.jsonl": "81a7a0ef9927042f1127f1dacf0aa254c983b44f8af6b3fc7581bc669bf770a4",
+    "smoke_summary.json": "f417fec13dca5629d0d8d8cda91fa63026539962de312bb710b66690c3b00506"
+  },
+  "evidence_labels": [
+    "bounded validation/plumbing integration",
+    "not the BR-4 full validation sweep",
+    "not a G-8 operating-point selection",
+    "not test evidence"
+  ],
+  "frozen_classifier": {
+    "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "config_hash": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
+    "dataset": "imagenette160",
+    "gate": "G-1",
+    "retrained_by_w4": false
+  },
+  "gate": "W4 bounded classical-baseline integration",
+  "head_at_generation": "cb2dad906e871c342a36f462838c7715b1deda3a",
+  "outage": {
+    "assumed_uniform_accuracy_rejected": true,
+    "denominator": 1000,
+    "derivation": "selected_count / validation_count over the committed validation manifest; equals 1/n_classes only because the split is exactly stratified",
+    "measured_validation_accuracy": 0.1,
+    "numerator": 100,
+    "selected_class": 0,
+    "selection_policy": "frozen_constant_class_selected_on_validation"
+  },
+  "prominent_declaration": "Bounded validation/plumbing integration. This is not the BR-4 full validation sweep, not a G-8 operating-point selection, and not test evidence. W4 built the classical transport path, the frozen outage policy, the record layer, the bounded evidence and the BR-4 selection machinery; it executed only bounded, unit-scale workloads. G-8 remains unresolved, no operating ratio was chosen, no model was trained or fine-tuned, and the test split stayed sealed.",
+  "provisional_operating_points": {
+    "crossover_ratio": {
+      "selected_by_w4": false,
+      "status": "provisional_until_G-8",
+      "value": "r_1_3"
+    },
+    "efficiency_ratio": {
+      "selected_by_w4": false,
+      "status": "provisional_until_G-8",
+      "value": "r_1_6"
+    },
+    "low_ratio_operating_point": {
+      "selected_by_w4": false,
+      "status": "provisional_until_G-8",
+      "value": "r_1_12"
+    }
+  },
+  "remaining": {
+    "full_br4_sweep_started": false,
+    "g8_started": false,
+    "next_engineering_task": "G-8 classical validation work: the full BR-4 validation sweep and the operating-point decision"
+  },
+  "schema_version": 1,
+  "selection_machinery": {
+    "composition_formula": {
+      "assumed_uniform_outage_accuracy_rejected": true,
+      "both_inputs_measured": true,
+      "expected_accuracy": "P(TB success) * measured codec accuracy + (1 - P(TB success)) * measured outage accuracy",
+      "tb_success": "product over code blocks of (1 - BLER_r)"
+    },
+    "feasibility_cache": {
+      "excluded_fields": {
+        "snr_db": "structural feasibility is SNR-independent: it depends only on the transport-block geometry and the codec payload budget"
+      },
+      "key_fields": [
+        "dataset",
+        "ratio",
+        "modulation",
+        "ldpc_rate",
+        "encode_axis_px"
+      ]
+    },
+    "module": "src/baseline/classical/composition.py",
+    "passes_executed": 0,
+    "selection_passes": {
+      "artifact_finetune_gate": "G-8",
+      "artifact_finetuned_classifier_trained": false,
+      "enforcement": "structural: SelectionCampaign state machine",
+      "permitted": [
+        1,
+        2
+      ],
+      "terminates_after_pass": 2
+    },
+    "system_modes": [
+      "classical_adaptive",
+      "classical_fixed_mod",
+      "classical_fixed_mcs"
+    ],
+    "tie_break_order": [
+      "expected_accuracy_descending",
+      "success_probability_descending",
+      "modulation_bits_per_symbol_ascending",
+      "ldpc_rate_ascending",
+      "encode_axis_px_descending",
+      "candidate_id_ascending"
+    ],
+    "tie_equality": "exact float equality; no tolerance parameter",
+    "uncharacterized_candidates_are": "ineligible, not low-scoring"
+  },
+  "selection_sources": [
+    {
+      "bound_at": "HEAD",
+      "bytes": 66219,
+      "path": "src/baseline/classical/composition.py",
+      "role": "selection_implementation",
+      "sha256": "613c8a291facfcbc38a9033b3b3aee56d9d44eb1c5a6b8ca0b31e1b25652a8bf"
+    },
+    {
+      "bound_at": "HEAD",
+      "bytes": 57059,
+      "path": "tests/test_classical_composition.py",
+      "role": "selection_test",
+      "sha256": "513f947149e640ee74cfb5e246fa36e50b69293b8610badcb9b7202f8f128bef"
+    }
+  ],
+  "sweep_guard": {
+    "authorization_default": null,
+    "authorization_gate": "G-8",
+    "authorization_type": "G8Authorization",
+    "authorizations_in_repository": 0,
+    "entry_point": "select_operating_points",
+    "environment_variable_bypass": false,
+    "max_candidates": 64,
+    "max_samples": 25,
+    "max_workload": 512,
+    "repository_default_authorized": false
+  },
+  "test_split_access": {
+    "accuracy_calls": 0,
+    "canonicalization_calls": 0,
+    "decoder_calls": 0,
+    "inference_calls": 0,
+    "release_gate": "G-12",
+    "test_accessed": false,
+    "test_accuracy_computed": false,
+    "test_inference": false,
+    "test_split_sealed": true
+  },
+  "verdict": "bounded_integration_complete",
+  "w4_implementation_commits": {
+    "note": "the PB_3 implementation/evidence green is the commit this file is introduced in, resolved from Git path history rather than recorded here",
+    "pa_green": "031becc",
+    "pb_1_green": "e47913c52e9117179691b70b29a289880b22dbdd",
+    "pb_1c_green": "4eda158145595de0f2e9aa92456ee4a052db74b0",
+    "pb_2_green_invalidated": "50de80364c2546463918387a8f335ea36107bde0",
+    "pb_2c_green": "3324393a3e1692478bba8cf1020708bf52947f6d",
+    "pre_b3_green": "81372a5f1139bbfa9e086d229bf807c7cf6a8bce"
+  }
+}

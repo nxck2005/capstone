@@ -36,6 +36,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
+from baseline.classical import composition  # noqa: E402
 from baseline.classical.outage import (  # noqa: E402
     EVIDENCE_LABELS,
     count_validation_labels,
@@ -71,6 +72,16 @@ from gen_w4_source_manifest import (  # noqa: E402
     git_bytes,
     sha256_bytes,
 )
+from gen_w4_integration_adjudication import (  # noqa: E402
+    ADJUDICATION_SCHEMA_VERSION,
+    BOUND_EVIDENCE_FILES,
+    PROVISIONAL_OPERATING_POINTS,
+    SELECTION_SOURCES,
+    bler_characterization,
+    selection_machinery,
+    sweep_guard,
+    worked_composition_example,
+)
 
 EVIDENCE_DIR = Path("results/baseline/w4")
 REQUIRED_FILES = (
@@ -84,6 +95,8 @@ REQUIRED_FILES = (
     "smoke_rows.jsonl",
     "overhead_table.json",
 )
+
+ADJUDICATION_FILE = "integration_adjudication.json"
 
 #: Phrases that would claim the bounded run did something it did not.
 FORBIDDEN_CLAIMS = (
@@ -1066,6 +1079,380 @@ def check_overhead_table(
     return len(cells)
 
 
+def check_integration_adjudication(evidence: Path) -> dict[str, Any]:
+    """Verify the W4 closing adjudication by recomputing what it claims.
+
+    Everything structural is re-derived: the bound evidence hashes from the
+    files on disk, the selection-machinery description from the module itself,
+    the worked composition example from the real composition function, and the
+    characterised BLER identities from the committed G-2 curves. A field that
+    merely states a number is never accepted as evidence of it.
+    """
+
+    path = evidence / ADJUDICATION_FILE
+    _require(path.is_file(), f"missing W4 evidence file: {ADJUDICATION_FILE}")
+    payload = _json(path)
+
+    _require(
+        payload.get("schema_version") == ADJUDICATION_SCHEMA_VERSION,
+        f"{ADJUDICATION_FILE} has an unexpected schema_version",
+    )
+    _require(
+        _labels_ok(payload), f"{ADJUDICATION_FILE} carries the wrong evidence labels"
+    )
+    declaration = str(payload.get("prominent_declaration", "")).lower()
+    for phrase in (
+        "bounded validation/plumbing integration",
+        "not the br-4 full validation sweep",
+        "not a g-8 operating-point selection",
+        "not test evidence",
+    ):
+        _require(
+            phrase in declaration,
+            f"{ADJUDICATION_FILE} does not state {phrase!r} in prose",
+        )
+
+    claims = payload.get("claims") or {}
+    _require(
+        claims.get("bounded_validation_plumbing_integration") is True,
+        f"{ADJUDICATION_FILE} does not declare itself bounded integration",
+    )
+    for field in (
+        "br4_full_validation_sweep",
+        "g8_operating_point_selection",
+        "test_evidence",
+        "training_performed",
+        "artifact_finetuning_performed",
+        "lambda_calibration_performed",
+        "er9_implemented",
+    ):
+        _require(
+            claims.get(field) is False,
+            f"{ADJUDICATION_FILE} claims {field}",
+        )
+    _require(
+        claims.get("g8_status") == "unresolved",
+        f"{ADJUDICATION_FILE} does not record G-8 as unresolved",
+    )
+    _require(
+        claims.get("test_split_sealed") is True,
+        f"{ADJUDICATION_FILE} does not declare the test split sealed",
+    )
+    remaining = payload.get("remaining") or {}
+    _require(
+        remaining.get("full_br4_sweep_started") is False
+        and remaining.get("g8_started") is False,
+        f"{ADJUDICATION_FILE} claims the BR-4 sweep or G-8 has started",
+    )
+
+    blob = json.dumps(payload, sort_keys=True).lower()
+    for claim in FORBIDDEN_CLAIMS:
+        _require(claim not in blob, f"{ADJUDICATION_FILE} claims {claim!r}")
+
+    _require(
+        "evidence_commit" not in payload,
+        "the adjudication records an evidence_commit; a file cannot contain the "
+        "hash of the commit that adds it, so the commit is resolved from Git "
+        "path history and never stored",
+    )
+    _require(
+        bool(str(payload.get("evidence_commit_resolution", "")).strip()),
+        f"{ADJUDICATION_FILE} states no evidence-commit resolution policy",
+    )
+
+    # Bound evidence hashes, recomputed from disk.
+    recorded_files = payload.get("evidence_files") or {}
+    missing = sorted(set(BOUND_EVIDENCE_FILES) - set(recorded_files))
+    unexpected = sorted(set(recorded_files) - set(BOUND_EVIDENCE_FILES))
+    _require(
+        not missing and not unexpected,
+        f"bound evidence set differs: missing={missing}, unexpected={unexpected}",
+    )
+    for name, digest in sorted(recorded_files.items()):
+        actual = sha256_bytes((evidence / name).read_bytes())
+        _require(
+            actual == digest,
+            f"{name} does not match the hash bound by {ADJUDICATION_FILE}",
+        )
+
+    # Selection sources, re-hashed at HEAD.
+    sources = {entry["path"]: entry for entry in payload.get("selection_sources", ())}
+    missing = sorted(set(SELECTION_SOURCES) - set(sources))
+    unexpected = sorted(set(sources) - set(SELECTION_SOURCES))
+    _require(
+        not missing and not unexpected,
+        f"bound selection sources differ: missing={missing}, unexpected={unexpected}",
+    )
+    for source_path, role in sorted(SELECTION_SOURCES.items()):
+        entry = sources[source_path]
+        _require(
+            entry.get("role") == role,
+            f"{source_path} is bound with role {entry.get('role')!r}",
+        )
+        current = (REPO / source_path).read_bytes()
+        _require(
+            sha256_bytes(current) == entry.get("sha256")
+            and len(current) == entry.get("bytes"),
+            f"{source_path} has drifted since the adjudication was written; "
+            f"regenerate it with tools/gen_w4_integration_adjudication.py",
+        )
+    _require(
+        "src/baseline/classical/composition.py" not in EXPECTED_SOURCES,
+        "the selection module must not be bound into the bounded run's "
+        "execution manifest: it postdates that measurement",
+    )
+
+    # The worked example, recomputed by the real composition function.
+    recorded_example = (payload.get("composition") or {}).get("worked_example")
+    _require(
+        recorded_example == worked_composition_example(),
+        "the adjudication's worked composition example does not reproduce; the "
+        "composition arithmetic or a measured input has changed",
+    )
+
+    # The BLER characterisation, re-derived from the committed curves.
+    _require(
+        payload.get("bler_characterization") == bler_characterization(),
+        "the adjudication's BLER characterisation does not match the committed "
+        "G-2 curves",
+    )
+    characterization = payload["bler_characterization"]
+    _require(
+        characterization.get("extrapolation_permitted") is False
+        and characterization.get("absent_evidence_treated_as_zero_bler") is False,
+        "the adjudication permits extrapolation or zero-BLER defaults",
+    )
+
+    # The selection machinery and sweep guard, read back out of the module.
+    _require(
+        payload.get("selection_machinery") == selection_machinery(),
+        "the adjudication's selection-machinery description does not match "
+        "src/baseline/classical/composition.py",
+    )
+    _require(
+        payload["selection_machinery"]["passes_executed"] == 0,
+        "the adjudication records selection passes as executed",
+    )
+    _require(
+        payload.get("sweep_guard") == sweep_guard(),
+        "the adjudication's sweep-guard limits do not match the module",
+    )
+
+    # The three provisional operating points must be exactly where G-8 left them.
+    provisional = payload.get("provisional_operating_points") or {}
+    _require(
+        sorted(provisional) == sorted(PROVISIONAL_OPERATING_POINTS),
+        f"{ADJUDICATION_FILE} does not record all three provisional operating "
+        "points",
+    )
+    for name in PROVISIONAL_OPERATING_POINTS:
+        entry = provisional[name]
+        _require(
+            entry.get("value") == get(f"bandwidth.{name}"),
+            f"the provisional {name} has moved: recorded {entry.get('value')!r}, "
+            f"params says {get(f'bandwidth.{name}')!r}",
+        )
+        _require(
+            entry.get("status") == get(f"bandwidth.{name}_status")
+            == "provisional_until_G-8",
+            f"{name} is no longer provisional_until_G-8",
+        )
+        _require(
+            entry.get("selected_by_w4") is False,
+            f"the adjudication claims W4 selected {name}",
+        )
+
+    # The outage measurement, cross-checked against the frozen artifact.
+    outage = payload.get("outage") or {}
+    frozen = _json(evidence / "outage_policy.json")
+    for field in ("selected_class", "numerator", "denominator"):
+        _require(
+            outage.get(field) == frozen.get(field),
+            f"the adjudication's outage {field} disagrees with outage_policy.json",
+        )
+    _require(
+        outage.get("measured_validation_accuracy")
+        == outage["numerator"] / outage["denominator"],
+        "the adjudication's outage accuracy is not its own numerator/denominator",
+    )
+    _require(
+        outage.get("assumed_uniform_accuracy_rejected") is True,
+        "the adjudication does not reject the assumed 1/n_classes outage accuracy",
+    )
+
+    # Test-split counters, all zero.
+    access = payload.get("test_split_access") or {}
+    _require(
+        access.get("test_split_sealed") is True
+        and access.get("test_accessed") is False
+        and access.get("test_inference") is False
+        and access.get("test_accuracy_computed") is False,
+        f"{ADJUDICATION_FILE} does not declare the test split sealed",
+    )
+    for counter in (
+        "decoder_calls",
+        "canonicalization_calls",
+        "inference_calls",
+        "accuracy_calls",
+    ):
+        _require(
+            access.get(counter) == 0,
+            f"{ADJUDICATION_FILE} records a non-zero {counter}",
+        )
+    _require(
+        access.get("release_gate") == get("evaluation.test_access_gate"),
+        "the adjudication names the wrong test-access gate",
+    )
+
+    _require(
+        payload.get("bounded_evidence_execution_commit")
+        == _json(evidence / "smoke_summary.json").get("execution_source_commit"),
+        "the adjudication names a different bounded-run execution commit",
+    )
+    return payload
+
+
+def check_selection_machinery_behaviour() -> None:
+    """Exercise the selection module's fail-closed behaviours, live.
+
+    The adjudication describes them; this proves they still hold at HEAD.  Each
+    probe is unit-scale — no dataset, no codec, no channel — and the sweep-guard
+    probe is deliberately the *refusing* path, so running the verifier can never
+    start a sweep.
+    """
+
+    table = composition.g2_bler_table()
+    identity = {
+        "k_and_n": (128, 256),
+        "base_graph": 2,
+        "lifting_size": 22,
+        "modulation": "qpsk",
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "snr_convention": "eb_n0_per_information_bit",
+        "rate": "0.5",
+    }
+
+    partial = dict(identity)
+    partial.pop("lifting_size")
+    try:
+        table.lookup(partial, 2.5)
+    except composition.BlerLookupError:
+        pass
+    else:
+        raise VerificationError("an incomplete BLER lookup key was accepted")
+
+    wrong = dict(identity, base_graph=1)
+    _require(
+        not table.lookup(wrong, 2.5).characterized,
+        "an uncharacterized BLER identity was treated as characterized",
+    )
+    outside = table.lookup(identity, 18.0)
+    _require(
+        not outside.characterized and outside.bler is None,
+        "a BLER was extrapolated beyond the characterized support",
+    )
+
+    # No cross-configuration cache collision.
+    base = composition.Candidate("imagenette160", "r_1_6", "qpsk", "1/2", 160, 12.0)
+    for field, value in (
+        ("dataset", "stl10"),
+        ("ratio", "r_1_12"),
+        ("modulation", "qam16"),
+        ("ldpc_rate", "2/3"),
+        ("encode_axis_px", 128),
+    ):
+        other = composition.Candidate(
+            **{**{f: getattr(base, f) for f in base.__dataclass_fields__}, field: value}
+        )
+        _require(
+            other.feasibility_key() != base.feasibility_key(),
+            f"the feasibility cache key collides on {field}",
+        )
+
+    # Deterministic tie-breaking, independent of enumeration order.
+    outage = composition.measured_outage_accuracy_from_record(
+        _json(REPO / EVIDENCE_DIR / "outage_policy.json")
+    )
+    codec = composition.MeasuredCodecAccuracy(
+        correct=870,
+        total=1000,
+        split=composition.SELECTION_SPLIT,
+        source="verifier tie-break probe",
+    )
+    tied = [
+        composition.CandidateEvaluation(
+            candidate=composition.Candidate(
+                "imagenette160", "r_1_6", modulation, "1/2", 160, 12.0
+            ),
+            status=composition.ELIGIBLE,
+            composition=composition.compose(
+                [0.01], codec_accuracy=codec, outage_accuracy=outage
+            ),
+        )
+        for modulation in ("bpsk", "qpsk", "qam16")
+    ]
+    chosen = {
+        composition.select_best(list(order)).selected.candidate
+        for order in (tied, list(reversed(tied)), [tied[1], tied[2], tied[0]])
+    }
+    _require(len(chosen) == 1, "tie-breaking is not order-independent")
+
+    # Two passes and then stop, and no pass-state leak.
+    campaign = composition.SelectionCampaign(composition.CLASSICAL_ADAPTIVE)
+
+    def _probe(context: Any) -> tuple[()]:
+        try:
+            context.result_of(context.pass_id)
+        except composition.SelectionPassError:
+            return ()
+        raise VerificationError("a selection pass can read its own or a later pass")
+
+    campaign.run_pass(1, _probe, scorer="clean")
+    campaign.run_pass(2, _probe, scorer="artifact_finetuned")
+    for third in (3, 1, 2):
+        try:
+            campaign.run_pass(third, _probe, scorer=f"extra-{third}")
+        except composition.SelectionPassError:
+            continue
+        raise VerificationError(f"a further selection pass {third} was permitted")
+
+    # The sweep guard refuses an unauthorized sweep-scale workload.
+    budget = composition.sweep_budget(None)
+    try:
+        composition.check_sweep_budget(
+            candidates=budget.max_candidates + 1, samples=1
+        )
+    except composition.SweepBudgetError:
+        pass
+    else:
+        raise VerificationError("the full-sweep guard permitted an over-budget run")
+
+    source = (REPO / "src/baseline/classical/composition.py").read_text()
+    for hatch in ("os.environ", "getenv", "environ[", "putenv"):
+        _require(
+            hatch not in source,
+            f"the selection module consults {hatch}: an environment variable "
+            "must not be able to disarm the sweep guard",
+        )
+
+    # Assembled at runtime so this scanner does not match its own source.
+    needle = "G8" + "Authorization" + "("
+    tracked = _git("ls-files").split()
+    offenders = [
+        name
+        for name in tracked
+        if not name.startswith("tests/")
+        and Path(name).suffix in {".py", ".json", ".yaml", ".yml", ".toml"}
+        and needle in (REPO / name).read_text(errors="ignore")
+    ]
+    _require(
+        not offenders,
+        f"a G-8 sweep authorization is constructed in {offenders}",
+    )
+
+
 def check_gates() -> None:
     for tool in ("tools/verify_g1_adjudication.py", "tools/verify_g2_adjudication.py"):
         result = subprocess.run(
@@ -1109,9 +1496,11 @@ def main() -> int:
         )
         overhead_cells = check_overhead_table(evidence, raw_rows)
         manifest = check_sources(evidence, payloads["summary"])
+        adjudication = check_integration_adjudication(evidence)
+        check_selection_machinery_behaviour()
         if not arguments.skip_gates:
             check_gates()
-    except VerificationError as exc:
+    except (VerificationError, composition.CompositionError) as exc:
         print(f"W4 baseline integration verification FAIL: {exc}", file=sys.stderr)
         return 1
 
@@ -1132,7 +1521,14 @@ def main() -> int:
         f"imagenette[{cells}], raw_rows={len(raw_rows)} "
         f"(emitted={byte_totals['emitted_rows']}), "
         f"openjpeg={payloads['summary']['openjpeg_version']}, "
-        f"overhead_cells={overhead_cells}, test_split_access=0"
+        f"overhead_cells={overhead_cells}, "
+        f"bler_curves={len(adjudication['bler_characterization']['characterized'])}, "
+        f"selection_sources={len(adjudication['selection_sources'])}, "
+        f"sweep_guard=<={adjudication['sweep_guard']['max_candidates']}"
+        f"x{adjudication['sweep_guard']['max_samples']}"
+        f"/{adjudication['sweep_guard']['max_workload']} unauthorized, "
+        f"passes_executed=0, g8={adjudication['claims']['g8_status']}, "
+        "test_split_access=0"
     )
     return 0
 

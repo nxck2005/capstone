@@ -881,3 +881,258 @@ question is settled by AM-80 and the BR-11 semantics by AM-81. The full BR-4 val
 run, G-8 is unresolved, no ratio or operating point has been selected, no model has been trained or
 fine-tuned, λ is uncalibrated, ER-9 is unimplemented and the test split is sealed until G-12 at W11.
 The cache-key field-spelling issue recorded at PB_1 is unchanged and remains deliberately untouched.
+
+---
+
+# PB_3 — BR-4 selection infrastructure, built and not executed
+
+**This closes W4.** PB_3 implements the analytic validation-selection machinery that BR-4 requires
+and G-8 will later run, adds the W4 integration adjudication, and extends the verifier to cover both.
+It ran no sweep, opened no gate, selected no operating point, trained nothing and never touched the
+test split. Starting point: the PRE_B3 green `81372a5f1139bbfa9e086d229bf807c7cf6a8bce`, with
+`3324393a3e1692478bba8cf1020708bf52947f6d` (PB_2C) still the latest scientific-evidence green.
+
+## The composition, and why both of its inputs are types rather than floats
+
+AM-51 writes the arithmetic into the specification because every selection in the project flows
+through it:
+
+    P(TB success)     = product over code blocks of (1 - BLER_r)
+    expected accuracy = P(TB success) * acc_clean + (1 - P(TB success)) * acc_outage
+
+Under a transport-block CRC one failed code block kills the transport block, so the blocks compose
+multiplicatively. That much is uncontroversial. The interesting part is AM-58's requirement that
+`acc_outage` be the **measured** validation accuracy of the frozen constant class rather than
+`1 / classes` — and the reason the requirement needed writing down at all is that on this project's
+committed manifest the two are numerically identical. `data/manifests.py` enforces an exactly
+stratified validation split, all ten Imagenette-160 classes tie at 100 of 1000, and the configured
+lowest-index tie-break selects class 0 at `100/1000 = 0.1 = 1/10`.
+
+So a substitution of the assumption for the measurement would produce **the same number today** and
+a wrong one the moment the split stopped being exactly stratified. A test comparing floats could
+never see it. `MeasuredOutageAccuracy` therefore takes a numerator, a denominator, the selected class
+and a provenance string — never a ratio — and `expected_accuracy()` is keyword-only and typed, so a
+bare float cannot be passed for either accuracy term at all. `MeasuredCodecAccuracy` is the same
+shape for `acc_clean`, which BR-4 calls "a required measured input ... which is a real artifact and
+MUST be produced rather than assumed"; it additionally refuses any split but `val`, because BR-4
+selection is a validation-split activity and the test split is sealed until G-12 (SR-22).
+`measured_outage_accuracy_from_record()` reads PB_2's committed artifact by its **counts**, refuses a
+record whose recorded float disagrees with them, and refuses a record written under a different
+`baseline.outage_policy`.
+
+The test that carries this is deliberately not run at the committed value:
+`test_measured_inputs_are_passed_through_not_reconstructed` composes against a **137/1000** outage
+measurement, so any implementation that quietly rebuilt the term from the class count disagrees.
+
+One smaller decision worth recording: an empty code-block sequence **raises** rather than returning
+the vacuous product `1.0`. A transport block always has at least one code block, and "no blocks were
+characterised" reporting as "certain success" is exactly the silent-optimism failure this phase
+exists to prevent.
+
+## The BLER evidence characterises one configuration, and the lookup says so
+
+This is the part of PB_3 with the largest capacity to manufacture a result quietly. The committed
+G-2 evidence — `results/baseline/g2/bler_results.csv`, 24 rows — characterises **one** physical-layer
+configuration: `K=128, N=256, BG2, Z=22, rate 1/2, flooding offset-min-sum, offset 0.5, 50
+iterations, 5000 blocks per point`, at four Eb/N0 points for each of BPSK, QPSK and 16-QAM. That is
+the entire measured support. BR-4's sweep, by contrast, ranges over six bandwidth ratios, three
+modulations, four LDPC rates and four codec axes per dataset — thousands of cells, almost none of
+which that evidence describes.
+
+The lookup is therefore keyed on the **complete** identity: all eight fields of
+`params.baseline.ldpc_bler_reference_must_match` (`k_and_n`, `base_graph`, `lifting_size`,
+`modulation`, `decoder_algorithm`, `decoder_offset`, `iterations`, `snr_convention`) **plus `rate`**,
+which the committed evidence fixes and the spec's must-match list does not name. Requiring more than
+the spec does is the safe direction: a curve measured at rate 1/2 says nothing about rate 5/6 at the
+same (K, N). A key missing any required field raises `BlerLookupError`; a key carrying an
+unrecognised field raises too, rather than being trimmed to fit.
+
+An identity that is not an exact match returns `uncharacterized`. An SNR outside the curve's measured
+span returns `uncharacterized`. In both cases `bler` is `None` — **never `0.0`** — and `.require()`
+raises `UncharacterizedBlerError`. The distinction between that exception and `BlerLookupError`
+matters: a partial key is a caller bug, whereas an uncharacterized cell is a legitimate answer the
+selection must act on by treating the candidate as **ineligible**.
+
+That last point is the one worth being explicit about. An uncharacterized candidate is *not* a
+low-scoring candidate. Scoring it at all — at any value, including a pessimistic one — means
+inventing the evidence that would justify the score. `select_best()` never ranks it, and
+`evaluate_candidate()` marks the whole transport block uncharacterized if **one** of its code blocks
+is, rather than composing over the blocks that happened to resolve.
+
+Interpolation is permitted only strictly inside the span and only in the representation
+`bler_reference.json` itself declares (`waterfall_interpolation: linear_in_snr_vs_log10_bler`); the
+module raises `NotImplementedError` if that declaration ever changes, and refuses to interpolate
+through a non-positive measured BLER. The test checks the midpoint against `sqrt(a*b)` — the
+geometric mean — rather than against the implementation's own weighted log-average, so it is a
+genuine cross-check and not the code restated.
+
+Both declared SNR conventions are carried: the reference platform's own `eb_n0_per_information_bit`
+and the `es_n0_per_symbol` column derived from it by the per-modulation conversion
+`g2_adjudication.json` records. They are **distinct identities**, so reading an Es/N0 number under
+the Eb/N0 convention does not resolve — which is a real confusion the guard catches, since 16-QAM's
+Es/N0 waterfall at ~7.9 dB sits far above its Eb/N0 span of 4.0–5.25 dB.
+
+Finally, the table is **hash-bound**: it is built from `bler_results.csv` only if the file's SHA-256
+still matches the value `g2_adjudication.json` records for it. Composing a selection against curve
+bytes the G-2 gate never adjudicated would be a provenance failure that no downstream number would
+reveal.
+
+## Caching, and the field that is excluded on purpose
+
+BR-4 requires the sweep to be a cached feasibility table rather than a per-image simulation.
+Structural feasibility — does a legal TS 38.212 packetisation exist, and can the codec emit inside
+the resulting payload budget — is expensive and deterministic, so it is computed once per
+configuration.
+
+The entire risk of a cache is a shared key. `Candidate.__post_init__` therefore asserts that every
+declared field is classified either into `FEASIBILITY_KEY_FIELDS` or into
+`FEASIBILITY_KEY_EXCLUSIONS` **with a written reason**; a field added to the candidate later cannot
+silently fall out of the key, because construction fails until someone classifies it. There is one
+exclusion, `snr_db`, and its reason is that structural feasibility reads the transport-block geometry
+and the codec payload budget, neither of which is a function of the channel SNR — the SNR enters the
+composition through the BLER lookup instead. A test asserts the exclusion behaves that way rather
+than trusting the comment, and five more assert that changing any keyed field forces a fresh
+computation.
+
+## Tie-breaking, stated rather than emergent
+
+`TIE_BREAK_ORDER` is applied left to right and only among candidates whose expected accuracy is
+**exactly** equal: expected accuracy descending, then `P(TB success)` descending, then `Qm`
+ascending, then LDPC rate ascending, then encode axis descending, then the candidate's canonical
+identity string ascending. After accuracy the order prefers the more reliable link, then the more
+robust modulation, then the stronger channel code, then more source information — and the final key
+makes the order **total**, which is the property that makes the selection independent of the order
+candidates were enumerated in. A test checks all 24 permutations of a four-candidate set.
+
+Equality is exact float equality, not equality within a tolerance. A tolerance would be an
+unpreregistered free parameter sitting directly on the selection, which is the kind of knob DEC-16's
+governing rule exists to keep out. The spec fixes the objective function and says nothing about
+ties, so any deterministic total order satisfies it; what is not acceptable is an order that emerges
+from dictionary iteration and changes between runs.
+
+## Three modes, and two passes
+
+`params.artifacts.system_values` carries `classical_adaptive`, `classical_fixed_mod` and
+`classical_fixed_mcs`, and they are three different experiments rather than three labels. They are
+represented as policies over *what may move between SNR points* — `(adapts_modulation,
+adapts_ldpc_rate, adapts_encode_axis)` = `(T,T,T)`, `(F,T,T)`, `(F,F,F)` — and `resolve_curve()`
+makes them behave differently on the same candidates: adaptive re-selects per SNR, fixed-modulation
+picks the one modulation whose per-SNR bests sum highest and adapts underneath it, and fixed-MCS
+selects once at `baseline.fixed_mcs_design_snr_db` (7 dB) and holds the whole configuration. If the
+design SNR is not a point on the supplied grid, fixed-MCS **refuses to snap** to a neighbour: letting
+it would make the fixed arm's design depend on grid spacing. PB_2's bounded run was
+`classical_fixed_mcs` precisely because it fixed one configuration and built no adaptation; PB_3
+builds the adaptation but does not run it.
+
+AM-54 caps selection at two passes: pass one under BR-8's clean-trained classifier, then BR-12 trains
+on the corpus those selections define and re-scores the cached sweep once, and iteration terminates
+there. The rationale is preregistration — a loop that may be re-run can be run until it flatters a
+result — so the cap is enforced by `SelectionCampaign`'s state machine rather than by documentation.
+A third pass raises; so does a repeated pass, an out-of-order pass, a non-integer or unknown
+identifier, a pass reusing an earlier pass's scorer, and a **resumed** state that repeats a pass,
+carries an unknown pass or ran under another mode. `PassContext.result_of()` refuses any pass
+identifier at or above the current one, so pass one cannot read pass two even through a context
+retained past its own pass, and `PassResult` is frozen, so pass two cannot edit pass one.
+
+PB_3 does not train the artifact-finetuned classifier. `reference_classifier.artifact_finetune_gate`
+is G-8; the second-pass scorer is an argument the caller supplies, and this repository supplies none.
+
+## The sweep guard
+
+This is the single mechanism standing between an ordinary call and an accidental G-8 campaign, so it
+is worth stating what it does and, more importantly, what is deliberately missing from it.
+
+`select_operating_points()` runs `check_sweep_budget()` **before any work**. Unauthorized limits are
+64 candidates, 25 samples per cell and a combined workload of 512 cells — three separate checks,
+because a sweep can be too large in three ways, including as the product of two individually-modest
+numbers. Above any of them the call raises `SweepBudgetError` unless a typed `G8Authorization` naming
+gate `G-8`, an authoriser and a reason is passed explicitly, and an authorization permits only the
+limits it declares.
+
+Deliberately absent, each asserted by a test rather than left as a claim: **no environment variable**
+is read anywhere in the module (a variable exported once in a shell profile is how a guard gets
+disarmed and stays disarmed); **no default-true flag** — `authorization` defaults to `None` on every
+entry point, checked through `inspect.signature`; and **no tracked non-test file in this repository
+constructs an authorization**, checked by scanning `git ls-files`. The validation runs both at
+construction and at use, so an instance built through `object.__new__` — which skips
+`__post_init__` — is still refused, as is any duck-typed look-alike. The boundary probes sit at
+exactly the limit (accepted) and one above it (refused), which is what makes a mutation from `>` to
+`>=` fail rather than pass.
+
+## The adjudication, and what the verifier now recomputes
+
+`results/baseline/w4/integration_adjudication.json` is generated by
+`tools/gen_w4_integration_adjudication.py`, not hand-written: every hash is computed from the files
+on disk, the selection-machinery description is read out of the module itself, the worked composition
+example is computed by the real `compose()`, and the characterised BLER identities are enumerated
+from the committed curves. It states, in machine-readable fields and in prose, that this is bounded
+validation/plumbing integration, **not** the BR-4 full validation sweep, **not** a G-8
+operating-point selection and **not** test evidence, that G-8 remains unresolved and that the test
+split stayed sealed.
+
+Two binding decisions are worth recording:
+
+* it carries **no** `evidence_commit`, null or otherwise. A file cannot contain the hash of the
+  commit that adds it, so the commit is resolved from Git path history the way G-2's is
+  (`git log -1 --format=%H -- results/baseline/w4/integration_adjudication.json`), and the verifier
+  *rejects* any stored value;
+* `src/baseline/classical/composition.py` is **not** added to
+  `results/baseline/w4/execution_source_manifest.json`. That manifest binds the 40 sources that
+  participated in the bounded measurement at `76e789c9f3d0`, where this module did not exist —
+  adding it would claim it participated in a measurement it postdates. It is bound instead under its
+  own `selection_sources` role, at HEAD, alongside its test module.
+
+`tools/verify_w4_baseline_integration.py` gained two checks. `check_integration_adjudication()`
+recomputes rather than reads: bound evidence hashes from disk, selection-source hashes and byte
+lengths at HEAD, the worked composition example through the real composition function, the BLER
+characterisation from the committed curves, and the selection-machinery and sweep-guard descriptions
+from the module. It cross-checks the outage counts against `outage_policy.json`, requires the outage
+accuracy to be its own numerator over its own denominator, requires all four test-access counters to
+be zero and the release gate to be the configured one, and requires all three provisional bandwidth
+values — `efficiency_ratio`, `crossover_ratio`, `low_ratio_operating_point` — to still hold their
+committed values and their `provisional_until_G-8` status.
+
+`check_selection_machinery_behaviour()` then exercises the module live, so the adjudication describes
+behaviour that still holds at HEAD rather than behaviour that once did: an incomplete BLER key must
+raise, a wrong identity and an out-of-support SNR must both come back uncharacterized, no two
+distinct configurations may share a feasibility key, tie-breaking must be order-independent, a third
+pass and a pass reading its own or a later pass must both raise, and the sweep guard must refuse an
+over-budget unauthorized workload. Every probe is unit-scale — no dataset, no codec, no channel — and
+the guard probe is deliberately the *refusing* path, so running the verifier can never start a sweep.
+
+`tests/test_w4_integration_adjudication.py` (59 tests) mutates one property at a time and asserts the
+failure comes from that property: altered arithmetic, an incomplete BLER key, an uncharacterized
+candidate reported as characterized, silent extrapolation, an altered outage measurement, a cache
+collision, a nondeterministic tie, a third pass, leaked pass state, a bypassed sweep guard, an
+environment-variable bypass, an adjudication falsely claiming a full sweep or G-8 resolution, each of
+the three provisional ratios changed or declared settled, each test-access counter drifting, and a
+stale evidence hash, selection-source hash or byte length.
+
+## Amendment judgment — no amendment required
+
+PB_3 implemented and verified existing specification semantics without changing them. The composition
+is AM-51's, transcribed; the measured-outage requirement is AM-58's, enforced structurally; the
+complete-identity BLER key is `params.baseline.ldpc_bler_reference_must_match`, read at runtime; the
+two-pass cap is AM-54 and `reference_classifier.br4_selection_terminates_after_pass`, both read at
+runtime; the three modes are `params.artifacts.system_values` entries and
+`baseline.modulation_tuning`; the fixed-MCS design point is `baseline.fixed_mcs_design_snr_db`. No
+requirement, gate, decision or frozen parameter moved, and the three provisional bandwidth values are
+byte-identical and still `provisional_until_G-8`.
+
+Three choices are stricter than the specification and none of them is a change to it: requiring
+`rate` in the BLER identity (the spec's must-match list omits it; the committed evidence fixes it),
+the documented tie-break order (the spec fixes the objective and is silent on exact ties), and the
+sweep budget (an implementation safety boundary with no scientific content). Recording any of these
+as an amendment would use the amendment record to dignify an implementation detail, which §17's
+preamble is explicitly against.
+
+## Remaining frontier
+
+W4 is complete. The single next engineering task is **G-8 classical validation work** — the full BR-4
+validation sweep and the operating-point decision. As of this entry: the full BR-4 sweep has not
+started, G-8 is unresolved, no bandwidth ratio or operating point has been selected, no model has
+been trained or fine-tuned, the artifact-finetuned classifier does not exist, λ is uncalibrated, ER-9
+is unimplemented, and the test split is sealed until G-12 at W11. PR-1 (literature review), PR-2
+(Gantt chart) and PR-9 (deployment dossier and author/guide acknowledgement) remain outstanding
+programme deliverables. The PB_1 cache-key field-spelling issue is unchanged and remains deliberately
+untouched.
