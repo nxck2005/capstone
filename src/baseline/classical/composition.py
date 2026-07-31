@@ -94,6 +94,21 @@ __all__ = [
     "TIE_BREAK_ORDER",
     "ELIGIBLE",
     "INFEASIBLE",
+    "CLASSICAL_ADAPTIVE",
+    "CLASSICAL_FIXED_MOD",
+    "CLASSICAL_FIXED_MCS",
+    "SYSTEM_MODES",
+    "SystemModePolicy",
+    "mode_policy",
+    "PASS_ONE",
+    "PASS_TWO",
+    "SelectionPassError",
+    "SelectionCampaign",
+    "PassResult",
+    "PassContext",
+    "selection_passes",
+    "CurveSelection",
+    "resolve_curve",
 ]
 
 
@@ -1010,4 +1025,460 @@ def select_best(evaluations: Sequence[CandidateEvaluation]) -> Selection:
         tied=tied,
         tie_break_applied=len(tied) > 1,
         evaluations=ordered,
+    )
+
+
+# ==========================================================================
+# System modes
+# ==========================================================================
+#
+# ``params.artifacts.system_values`` carries three classical selection systems,
+# and they are genuinely different experiments rather than three labels for one
+# curve.  DEC-16 makes modulation an adaptive axis; the two fixed modes exist so
+# the adaptation itself can be reported as a controlled variable rather than
+# assumed to be free.
+
+#: Full per-SNR adaptation: modulation, LDPC rate and codec axis all re-selected
+#: at every SNR, per ``params.baseline.modulation_tuning = adaptive_per_snr``.
+CLASSICAL_ADAPTIVE = "classical_adaptive"
+
+#: One modulation for the whole curve, chosen for the grid as a whole; the LDPC
+#: rate and codec axis still adapt per SNR.
+CLASSICAL_FIXED_MOD = "classical_fixed_mod"
+
+#: One complete MCS — modulation *and* LDPC rate — chosen once at
+#: ``params.baseline.fixed_mcs_design_snr_db`` and held at every SNR.  This is
+#: the mode PB_2's bounded evidence ran under, because it fixed one
+#: configuration and built no adaptation.
+CLASSICAL_FIXED_MCS = "classical_fixed_mcs"
+
+SYSTEM_MODES: tuple[str, ...] = (
+    CLASSICAL_ADAPTIVE,
+    CLASSICAL_FIXED_MOD,
+    CLASSICAL_FIXED_MCS,
+)
+
+
+@dataclass(frozen=True)
+class SystemModePolicy:
+    """What a mode is allowed to re-select as the SNR changes."""
+
+    mode: str
+    adapts_modulation: bool
+    adapts_ldpc_rate: bool
+    adapts_encode_axis: bool
+
+    @property
+    def design_snr_db(self) -> float | None:
+        """The SNR a fixed MCS is designed at, or ``None`` when it adapts."""
+
+        if self.mode != CLASSICAL_FIXED_MCS:
+            return None
+        return float(get("baseline.fixed_mcs_design_snr_db"))
+
+
+_MODE_POLICIES: dict[str, SystemModePolicy] = {
+    CLASSICAL_ADAPTIVE: SystemModePolicy(
+        CLASSICAL_ADAPTIVE,
+        adapts_modulation=True,
+        adapts_ldpc_rate=True,
+        adapts_encode_axis=True,
+    ),
+    CLASSICAL_FIXED_MOD: SystemModePolicy(
+        CLASSICAL_FIXED_MOD,
+        adapts_modulation=False,
+        adapts_ldpc_rate=True,
+        adapts_encode_axis=True,
+    ),
+    CLASSICAL_FIXED_MCS: SystemModePolicy(
+        CLASSICAL_FIXED_MCS,
+        adapts_modulation=False,
+        adapts_ldpc_rate=False,
+        adapts_encode_axis=False,
+    ),
+}
+
+
+def mode_policy(mode: str) -> SystemModePolicy:
+    """The policy for a declared system value, or a refusal.
+
+    The three modes are checked against ``params.artifacts.system_values`` at
+    call time, so a spec change that renames or drops one breaks here rather
+    than producing evidence under a system label the schema does not know.
+    """
+
+    declared = tuple(get("artifacts.system_values"))
+    missing = [name for name in SYSTEM_MODES if name not in declared]
+    if missing:
+        raise NotImplementedError(
+            f"params.artifacts.system_values no longer declares {missing}"
+        )
+    if get("baseline.modulation_tuning") != "adaptive_per_snr":
+        raise NotImplementedError(
+            "params.baseline.modulation_tuning is no longer adaptive_per_snr; "
+            "the three classical modes are defined relative to it"
+        )
+    try:
+        return _MODE_POLICIES[mode]
+    except KeyError:
+        raise CompositionError(
+            f"unknown classical system mode {mode!r}; expected one of {SYSTEM_MODES}"
+        ) from None
+
+
+# ==========================================================================
+# Two-pass selection — structurally, not by convention
+# ==========================================================================
+#
+# AM-54: pass one selects under BR-8's clean-trained classifier, BR-12 then
+# trains on the corpus those selections define and re-scores the *cached* sweep
+# once, and iteration terminates there
+# (``params.reference_classifier.br4_selection_terminates_after_pass``).  The
+# rationale is preregistration: a loop that may be re-run cannot be run until it
+# flatters a result.  So the limit is enforced by the object's own state machine
+# and survives serialization — a resumed campaign counts the passes it
+# inherited.
+#
+# PB_3 builds this machinery and does not train the artifact-finetuned
+# classifier: ``params.reference_classifier.artifact_finetune_gate`` is G-8.
+
+PASS_ONE = 1
+PASS_TWO = 2
+
+
+class SelectionPassError(CompositionError):
+    """A violation of the two-pass selection contract."""
+
+
+def selection_passes() -> tuple[int, ...]:
+    """The permitted pass identifiers, read from the spec."""
+
+    total = get("reference_classifier.br4_selection_passes")
+    terminates = get("reference_classifier.br4_selection_terminates_after_pass")
+    if total != terminates:
+        raise NotImplementedError(
+            "params.reference_classifier.br4_selection_passes and "
+            "br4_selection_terminates_after_pass disagree: "
+            f"{total} != {terminates}"
+        )
+    if not isinstance(total, int) or isinstance(total, bool) or total < 1:
+        raise NotImplementedError(
+            f"params.reference_classifier.br4_selection_passes is not a count: {total!r}"
+        )
+    return tuple(range(1, total + 1))
+
+
+@dataclass(frozen=True)
+class PassResult:
+    """One completed selection pass.  Frozen: a later pass cannot edit it."""
+
+    pass_id: int
+    mode: str
+    scorer: str
+    selections: tuple[Selection, ...]
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "pass_id": self.pass_id,
+            "mode": self.mode,
+            "scorer": self.scorer,
+            "selections": [selection.as_record() for selection in self.selections],
+        }
+
+
+class PassContext:
+    """What a pass is allowed to see: strictly the passes before it.
+
+    Pass one cannot read pass two because pass two does not exist yet *and*
+    because the accessor refuses any pass identifier at or above the current
+    one — so a context accidentally retained across passes still cannot leak
+    forwards.
+    """
+
+    def __init__(self, pass_id: int, completed: Mapping[int, PassResult]):
+        self._pass_id = pass_id
+        self._completed = dict(completed)
+
+    @property
+    def pass_id(self) -> int:
+        return self._pass_id
+
+    def result_of(self, pass_id: int) -> PassResult:
+        if pass_id >= self._pass_id:
+            raise SelectionPassError(
+                f"pass {self._pass_id} may not read pass {pass_id}: a selection "
+                "pass sees only the passes that completed before it"
+            )
+        try:
+            return self._completed[pass_id]
+        except KeyError:
+            raise SelectionPassError(f"pass {pass_id} has not run") from None
+
+    def previous(self) -> PassResult | None:
+        """Pass one has no predecessor; pass two has exactly one."""
+
+        return self._completed.get(self._pass_id - 1)
+
+
+class SelectionCampaign:
+    """A BR-4 selection run: at most two passes, in order, once each.
+
+    The state machine is the enforcement.  Every refusal below is a separate
+    test, because "documented as two passes" is exactly the kind of constraint
+    that survives right up until someone loops it.
+    """
+
+    def __init__(self, mode: str, *, completed: Sequence[PassResult] = ()):
+        self.policy = mode_policy(mode)
+        self.mode = self.policy.mode
+        self._allowed = selection_passes()
+        self._completed: dict[int, PassResult] = {}
+        for result in completed:
+            self._admit_resumed(result)
+
+    def _admit_resumed(self, result: PassResult) -> None:
+        if not isinstance(result, PassResult):
+            raise SelectionPassError(
+                f"resumed state must be PassResults, not {type(result).__name__}"
+            )
+        if result.pass_id not in self._allowed:
+            raise SelectionPassError(
+                f"resumed state carries unknown pass {result.pass_id!r}; "
+                f"permitted passes are {self._allowed}"
+            )
+        if result.pass_id in self._completed:
+            raise SelectionPassError(
+                f"resumed state repeats pass {result.pass_id}"
+            )
+        if result.mode != self.mode:
+            raise SelectionPassError(
+                f"resumed pass {result.pass_id} ran under mode {result.mode!r}, "
+                f"not {self.mode!r}"
+            )
+        self._completed[result.pass_id] = result
+
+    @property
+    def completed_passes(self) -> tuple[int, ...]:
+        return tuple(sorted(self._completed))
+
+    @property
+    def exhausted(self) -> bool:
+        return set(self._completed) == set(self._allowed)
+
+    def result_of(self, pass_id: int) -> PassResult:
+        try:
+            return self._completed[pass_id]
+        except KeyError:
+            raise SelectionPassError(f"pass {pass_id} has not run") from None
+
+    def run_pass(self, pass_id: Any, selector: Any, *, scorer: str) -> PassResult:
+        """Run one pass.  Out of order, twice, or a third time: all refused."""
+
+        if isinstance(pass_id, bool) or not isinstance(pass_id, int):
+            raise SelectionPassError(f"pass identifier is not an integer: {pass_id!r}")
+        if pass_id not in self._allowed:
+            raise SelectionPassError(
+                f"unknown selection pass {pass_id}; BR-4 selection runs passes "
+                f"{self._allowed} and then stops (AM-54)"
+            )
+        if pass_id in self._completed:
+            raise SelectionPassError(f"selection pass {pass_id} has already run")
+        if self.exhausted:
+            raise SelectionPassError(
+                f"selection is exhausted after pass {max(self._allowed)}; "
+                "iteration terminates there (AM-54)"
+            )
+        expected = len(self._completed) + 1
+        if pass_id != expected:
+            raise SelectionPassError(
+                f"selection pass {pass_id} cannot run before pass {expected}"
+            )
+        if not str(scorer).strip():
+            raise SelectionPassError("a selection pass must name its scorer")
+        if any(done.scorer == scorer for done in self._completed.values()):
+            raise SelectionPassError(
+                f"pass {pass_id} reuses the scorer {scorer!r} of an earlier pass; "
+                "the second pass exists precisely because the scorer changed"
+            )
+        context = PassContext(pass_id, dict(self._completed))
+        selections = selector(context)
+        if isinstance(selections, Selection):
+            selections = (selections,)
+        selections = tuple(selections)
+        for selection in selections:
+            if not isinstance(selection, Selection):
+                raise SelectionPassError(
+                    "a selection pass must return Selections, not "
+                    f"{type(selection).__name__}"
+                )
+        result = PassResult(
+            pass_id=pass_id,
+            mode=self.mode,
+            scorer=str(scorer),
+            selections=selections,
+        )
+        self._completed[pass_id] = result
+        return result
+
+    def state(self) -> tuple[PassResult, ...]:
+        """Serializable completed state, for a resumed campaign."""
+
+        return tuple(self._completed[pass_id] for pass_id in self.completed_passes)
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "mode": self.mode,
+            "permitted_passes": list(self._allowed),
+            "completed_passes": list(self.completed_passes),
+            "exhausted": self.exhausted,
+            "passes": [result.as_record() for result in self.state()],
+        }
+
+
+@dataclass(frozen=True)
+class CurveSelection:
+    """A whole SNR curve selected under one mode."""
+
+    mode: str
+    per_snr: tuple[tuple[float, Selection], ...]
+    held_fixed: dict[str, Any]
+
+    def selection_at(self, snr_db: float) -> Selection:
+        for snr, selection in self.per_snr:
+            if snr == snr_db:
+                return selection
+        raise CompositionError(f"no selection at {snr_db} dB")
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "mode": self.mode,
+            "held_fixed": dict(self.held_fixed),
+            "per_snr": [
+                {"snr_db": snr, "selection": selection.as_record()}
+                for snr, selection in self.per_snr
+            ],
+        }
+
+
+def resolve_curve(
+    mode: str, evaluations_by_snr: Mapping[float, Sequence[CandidateEvaluation]]
+) -> CurveSelection:
+    """Select one configuration per SNR under the constraints of ``mode``.
+
+    The three modes differ in *what may move between SNR points*, which is the
+    only thing that distinguishes them:
+
+    * ``classical_adaptive`` — everything re-selects, independently per SNR;
+    * ``classical_fixed_mod`` — one modulation is chosen for the whole grid
+      (the one whose per-SNR bests sum highest), and the LDPC rate and codec
+      axis then adapt underneath it;
+    * ``classical_fixed_mcs`` — the complete configuration is chosen once at
+      ``params.baseline.fixed_mcs_design_snr_db`` and held everywhere.
+
+    The design SNR must be a point on the supplied grid: silently snapping to a
+    nearby point would make the fixed arm's design depend on grid spacing.
+    """
+
+    policy = mode_policy(mode)
+    grid = tuple(sorted(evaluations_by_snr))
+    if not grid:
+        raise CompositionError("no SNR points supplied")
+
+    if policy.mode == CLASSICAL_ADAPTIVE:
+        per_snr = tuple(
+            (snr, select_best(evaluations_by_snr[snr])) for snr in grid
+        )
+        return CurveSelection(policy.mode, per_snr, held_fixed={})
+
+    if policy.mode == CLASSICAL_FIXED_MOD:
+        from baseline.ldpc.modulation import bits_per_symbol
+
+        totals: dict[str, tuple[float, int, str]] = {}
+        for modulation in sorted(
+            {
+                evaluation.candidate.modulation
+                for evaluations in evaluations_by_snr.values()
+                for evaluation in evaluations
+            }
+        ):
+            best_per_snr = [
+                select_best(
+                    [
+                        evaluation
+                        for evaluation in evaluations_by_snr[snr]
+                        if evaluation.candidate.modulation == modulation
+                    ]
+                )
+                for snr in grid
+            ]
+            if any(selection.selected is None for selection in best_per_snr):
+                continue
+            total = sum(
+                selection.selected.composition.expected_accuracy  # type: ignore[union-attr]
+                for selection in best_per_snr
+            )
+            totals[modulation] = (
+                -total,
+                bits_per_symbol(modulation),
+                modulation,
+            )
+        if not totals:
+            raise CompositionError(
+                "no modulation is eligible at every SNR on the grid; a fixed "
+                "modulation cannot be held across it"
+            )
+        chosen = min(totals, key=lambda name: totals[name])
+        per_snr = tuple(
+            (
+                snr,
+                select_best(
+                    [
+                        evaluation
+                        for evaluation in evaluations_by_snr[snr]
+                        if evaluation.candidate.modulation == chosen
+                    ]
+                ),
+            )
+            for snr in grid
+        )
+        return CurveSelection(
+            policy.mode, per_snr, held_fixed={"modulation": chosen}
+        )
+
+    design_snr = policy.design_snr_db
+    if design_snr not in evaluations_by_snr:
+        raise CompositionError(
+            f"the fixed-MCS design SNR {design_snr} dB is not on the supplied "
+            f"grid {list(grid)}; refusing to snap to a neighbouring point"
+        )
+    design = select_best(evaluations_by_snr[design_snr])
+    if design.selected is None:
+        raise CompositionError(
+            f"no eligible candidate at the fixed-MCS design SNR {design_snr} dB"
+        )
+    held = design.selected.candidate
+    per_snr = tuple(
+        (
+            snr,
+            select_best(
+                [
+                    evaluation
+                    for evaluation in evaluations_by_snr[snr]
+                    if evaluation.candidate.feasibility_key()
+                    == held.feasibility_key()
+                ]
+            ),
+        )
+        for snr in grid
+    )
+    return CurveSelection(
+        policy.mode,
+        per_snr,
+        held_fixed={
+            "design_snr_db": design_snr,
+            "modulation": held.modulation,
+            "ldpc_rate": held.ldpc_rate,
+            "encode_axis_px": held.encode_axis_px,
+            "packet_count": get("baseline.fixed_mcs_packet_count"),
+        },
     )

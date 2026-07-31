@@ -22,10 +22,16 @@ import pytest
 from baseline.classical.composition import (
     BLER_IDENTITY_FIELDS,
     BLER_REQUIRED_FIELDS,
+    CLASSICAL_ADAPTIVE,
+    CLASSICAL_FIXED_MCS,
+    CLASSICAL_FIXED_MOD,
     ELIGIBLE,
     FEASIBILITY_KEY_EXCLUSIONS,
     FEASIBILITY_KEY_FIELDS,
     INFEASIBLE,
+    PASS_ONE,
+    PASS_TWO,
+    SYSTEM_MODES,
     TIE_BREAK_ORDER,
     UNCHARACTERIZED,
     BlerLookupError,
@@ -34,6 +40,10 @@ from baseline.classical.composition import (
     CompositionError,
     Feasibility,
     FeasibilityCache,
+    PassContext,
+    PassResult,
+    SelectionCampaign,
+    SelectionPassError,
     MeasuredCodecAccuracy,
     MeasuredOutageAccuracy,
     compose,
@@ -41,7 +51,10 @@ from baseline.classical.composition import (
     measured_outage_accuracy_from_record,
     UncharacterizedBlerError,
     g2_bler_table,
+    mode_policy,
+    resolve_curve,
     select_best,
+    selection_passes,
     transport_block_success_probability,
 )
 from config.params import REPO_ROOT, get
@@ -780,3 +793,329 @@ def test_selection_records_are_machine_readable_and_carry_the_tie_rule() -> None
     assert record["tie_break_order"] == list(TIE_BREAK_ORDER)
     assert record["counts"][ELIGIBLE] == 1
     assert json.dumps(record)
+
+
+# --------------------------------------------------------------------------
+# The three system modes
+# --------------------------------------------------------------------------
+
+
+def test_the_three_modes_are_declared_system_values() -> None:
+    declared = get("artifacts.system_values")
+    for mode in SYSTEM_MODES:
+        assert mode in declared
+    assert SYSTEM_MODES == (
+        "classical_adaptive",
+        "classical_fixed_mod",
+        "classical_fixed_mcs",
+    )
+
+
+def test_the_three_modes_are_distinct_policies() -> None:
+    policies = [mode_policy(mode) for mode in SYSTEM_MODES]
+    signatures = {
+        (p.adapts_modulation, p.adapts_ldpc_rate, p.adapts_encode_axis)
+        for p in policies
+    }
+    assert len(signatures) == 3
+    assert mode_policy(CLASSICAL_ADAPTIVE).adapts_modulation is True
+    assert mode_policy(CLASSICAL_FIXED_MOD).adapts_modulation is False
+    assert mode_policy(CLASSICAL_FIXED_MOD).adapts_ldpc_rate is True
+    assert mode_policy(CLASSICAL_FIXED_MCS).adapts_ldpc_rate is False
+
+
+def test_only_the_fixed_mcs_mode_has_a_design_snr() -> None:
+    assert mode_policy(CLASSICAL_ADAPTIVE).design_snr_db is None
+    assert mode_policy(CLASSICAL_FIXED_MOD).design_snr_db is None
+    assert mode_policy(CLASSICAL_FIXED_MCS).design_snr_db == float(
+        get("baseline.fixed_mcs_design_snr_db")
+    )
+
+
+def test_an_unknown_mode_is_refused() -> None:
+    with pytest.raises(CompositionError, match="unknown classical system mode"):
+        mode_policy("classical_magic")
+    with pytest.raises(CompositionError, match="unknown classical system mode"):
+        mode_policy("learned")
+
+
+def _grid() -> dict[float, list[CandidateEvaluation]]:
+    """A three-point grid where each mode must land somewhere different.
+
+    BPSK is best when the link is bad, 16-QAM when it is clean, and the design
+    SNR sits in the middle — so an adaptive curve switches, a fixed-modulation
+    curve cannot, and a fixed-MCS curve is pinned to the middle point's choice.
+    """
+
+    def evaluation(
+        modulation: str, correct: int, bler: float, **rest: object
+    ) -> CandidateEvaluation:
+        return _evaluation(correct, [bler], modulation=modulation, **rest)
+
+    design = float(get("baseline.fixed_mcs_design_snr_db"))
+    return {
+        -6.0: [
+            evaluation("bpsk", 700, 0.01),
+            evaluation("qam16", 950, 0.99),
+        ],
+        design: [
+            evaluation("bpsk", 700, 0.01),
+            evaluation("qam16", 950, 0.50),
+        ],
+        18.0: [
+            evaluation("bpsk", 700, 0.01),
+            evaluation("qam16", 950, 0.01),
+        ],
+    }
+
+
+def test_adaptive_mode_reselects_the_modulation_per_snr() -> None:
+    curve = resolve_curve(CLASSICAL_ADAPTIVE, _grid())
+    chosen = [
+        selection.selected.candidate.modulation  # type: ignore[union-attr]
+        for _, selection in curve.per_snr
+    ]
+    assert chosen[0] == "bpsk"  # noisy end
+    assert chosen[-1] == "qam16"  # clean end
+    assert len(set(chosen)) > 1
+    assert curve.held_fixed == {}
+
+
+def test_fixed_modulation_mode_holds_one_modulation_across_the_grid() -> None:
+    curve = resolve_curve(CLASSICAL_FIXED_MOD, _grid())
+    chosen = {
+        selection.selected.candidate.modulation  # type: ignore[union-attr]
+        for _, selection in curve.per_snr
+    }
+    assert len(chosen) == 1
+    assert curve.held_fixed["modulation"] in chosen
+
+
+def test_fixed_mcs_mode_holds_the_whole_configuration_from_the_design_snr() -> None:
+    curve = resolve_curve(CLASSICAL_FIXED_MCS, _grid())
+    design = float(get("baseline.fixed_mcs_design_snr_db"))
+    assert curve.held_fixed["design_snr_db"] == design
+    assert curve.held_fixed["packet_count"] == get("baseline.fixed_mcs_packet_count")
+    configurations = {
+        selection.selected.candidate.feasibility_key()  # type: ignore[union-attr]
+        for _, selection in curve.per_snr
+    }
+    assert len(configurations) == 1
+    # And it is the design point's choice, not the noisy or clean end's.
+    assert (
+        curve.selection_at(design).selected.candidate.modulation  # type: ignore[union-attr]
+        == curve.held_fixed["modulation"]
+    )
+
+
+def test_the_three_modes_produce_different_curves_on_the_same_candidates() -> None:
+    grid = _grid()
+    records = {
+        mode: json.dumps(resolve_curve(mode, grid).as_record(), sort_keys=True)
+        for mode in SYSTEM_MODES
+    }
+    assert len(set(records.values())) == 3
+
+
+def test_fixed_mcs_refuses_to_snap_to_a_neighbouring_design_snr() -> None:
+    grid = _grid()
+    design = float(get("baseline.fixed_mcs_design_snr_db"))
+    del grid[design]
+    with pytest.raises(CompositionError, match="refusing to snap"):
+        resolve_curve(CLASSICAL_FIXED_MCS, grid)
+
+
+def test_resolving_an_empty_grid_is_refused() -> None:
+    with pytest.raises(CompositionError, match="no SNR points"):
+        resolve_curve(CLASSICAL_ADAPTIVE, {})
+
+
+# --------------------------------------------------------------------------
+# Two passes, then stop — structurally
+# --------------------------------------------------------------------------
+
+
+def _selector(context: PassContext):
+    return select_best([_evaluation(870, [0.01])])
+
+
+def test_the_permitted_passes_come_from_the_spec() -> None:
+    assert selection_passes() == (PASS_ONE, PASS_TWO)
+    assert get("reference_classifier.br4_selection_terminates_after_pass") == 2
+
+
+def test_pass_one_then_pass_two_is_the_whole_permitted_sequence() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    campaign.run_pass(PASS_ONE, _selector, scorer="clean")
+    assert campaign.exhausted is False
+    campaign.run_pass(PASS_TWO, _selector, scorer="artifact_finetuned")
+    assert campaign.exhausted is True
+    assert campaign.completed_passes == (1, 2)
+
+
+def test_a_third_pass_raises() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    campaign.run_pass(PASS_ONE, _selector, scorer="clean")
+    campaign.run_pass(PASS_TWO, _selector, scorer="artifact_finetuned")
+    with pytest.raises(SelectionPassError, match="unknown selection pass 3"):
+        campaign.run_pass(3, _selector, scorer="third")
+
+
+def test_pass_one_may_run_only_once() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    campaign.run_pass(PASS_ONE, _selector, scorer="clean")
+    with pytest.raises(SelectionPassError, match="pass 1 has already run"):
+        campaign.run_pass(PASS_ONE, _selector, scorer="clean_again")
+
+
+def test_pass_two_may_run_only_once() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    campaign.run_pass(PASS_ONE, _selector, scorer="clean")
+    campaign.run_pass(PASS_TWO, _selector, scorer="artifact_finetuned")
+    with pytest.raises(SelectionPassError, match="pass 2 has already run"):
+        campaign.run_pass(PASS_TWO, _selector, scorer="finetuned_again")
+
+
+def test_pass_two_cannot_run_before_pass_one() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    with pytest.raises(SelectionPassError, match="cannot run before pass 1"):
+        campaign.run_pass(PASS_TWO, _selector, scorer="artifact_finetuned")
+
+
+@pytest.mark.parametrize("pass_id", [0, -1, 3, 99])
+def test_unknown_pass_identifiers_raise(pass_id: int) -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    with pytest.raises(SelectionPassError, match="unknown selection pass"):
+        campaign.run_pass(pass_id, _selector, scorer="whatever")
+
+
+@pytest.mark.parametrize("pass_id", ["1", 1.0, None, True])
+def test_non_integer_pass_identifiers_raise(pass_id: object) -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    with pytest.raises(SelectionPassError, match="not an integer"):
+        campaign.run_pass(pass_id, _selector, scorer="whatever")
+
+
+def test_the_two_passes_must_use_different_scorers() -> None:
+    """The second pass exists because BR-12 replaced the scorer (AM-54)."""
+
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    campaign.run_pass(PASS_ONE, _selector, scorer="clean")
+    with pytest.raises(SelectionPassError, match="reuses the scorer"):
+        campaign.run_pass(PASS_TWO, _selector, scorer="clean")
+
+
+def test_a_pass_must_name_its_scorer() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    with pytest.raises(SelectionPassError, match="must name its scorer"):
+        campaign.run_pass(PASS_ONE, _selector, scorer="   ")
+
+
+def test_pass_two_state_cannot_alter_pass_one_results() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    first = campaign.run_pass(
+        PASS_ONE, lambda ctx: select_best([_evaluation(800, [0.01])]), scorer="clean"
+    )
+    before = json.dumps(first.as_record(), sort_keys=True)
+    campaign.run_pass(
+        PASS_TWO,
+        lambda ctx: select_best([_evaluation(950, [0.5], modulation="qam16")]),
+        scorer="artifact_finetuned",
+    )
+    assert json.dumps(campaign.result_of(PASS_ONE).as_record(), sort_keys=True) == before
+    assert campaign.result_of(PASS_ONE) is first
+    with pytest.raises(Exception):
+        first.selections = ()  # type: ignore[misc]  # frozen dataclass
+
+
+def test_pass_one_cannot_read_pass_two_results() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    leaked: list[object] = []
+
+    def peeking(context: PassContext):
+        assert context.previous() is None
+        with pytest.raises(SelectionPassError, match="may not read pass 2"):
+            context.result_of(PASS_TWO)
+        with pytest.raises(SelectionPassError, match="may not read pass 1"):
+            context.result_of(PASS_ONE)  # not even itself
+        leaked.append(context)
+        return select_best([_evaluation(870, [0.01])])
+
+    campaign.run_pass(PASS_ONE, peeking, scorer="clean")
+    # A context retained past its pass still cannot look forwards.
+    with pytest.raises(SelectionPassError, match="may not read pass 2"):
+        leaked[0].result_of(PASS_TWO)  # type: ignore[attr-defined]
+
+
+def test_pass_two_reads_exactly_pass_one() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    first = campaign.run_pass(PASS_ONE, _selector, scorer="clean")
+    seen: list[PassResult] = []
+
+    def reading(context: PassContext):
+        seen.append(context.result_of(PASS_ONE))
+        assert context.previous() is first
+        return select_best([_evaluation(870, [0.01])])
+
+    campaign.run_pass(PASS_TWO, reading, scorer="artifact_finetuned")
+    assert seen == [first]
+
+
+def test_a_resumed_campaign_counts_the_passes_it_inherited() -> None:
+    original = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    original.run_pass(PASS_ONE, _selector, scorer="clean")
+    original.run_pass(PASS_TWO, _selector, scorer="artifact_finetuned")
+
+    resumed = SelectionCampaign(CLASSICAL_ADAPTIVE, completed=original.state())
+    assert resumed.exhausted is True
+    with pytest.raises(SelectionPassError, match="already run"):
+        resumed.run_pass(PASS_ONE, _selector, scorer="fresh")
+    with pytest.raises(SelectionPassError, match="unknown selection pass 3"):
+        resumed.run_pass(3, _selector, scorer="third")
+
+
+def test_a_resumed_campaign_after_one_pass_may_run_exactly_the_second() -> None:
+    original = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    original.run_pass(PASS_ONE, _selector, scorer="clean")
+    resumed = SelectionCampaign(CLASSICAL_ADAPTIVE, completed=original.state())
+    assert resumed.completed_passes == (1,)
+    resumed.run_pass(PASS_TWO, _selector, scorer="artifact_finetuned")
+    assert resumed.exhausted is True
+
+
+def test_resumed_state_is_validated_rather_than_trusted() -> None:
+    good = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    good.run_pass(PASS_ONE, _selector, scorer="clean")
+    [first] = good.state()
+
+    with pytest.raises(SelectionPassError, match="repeats pass 1"):
+        SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(first, first))
+    with pytest.raises(SelectionPassError, match="unknown pass"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE,
+            completed=(
+                PassResult(
+                    pass_id=3, mode=CLASSICAL_ADAPTIVE, scorer="x", selections=()
+                ),
+            ),
+        )
+    with pytest.raises(SelectionPassError, match="ran under mode"):
+        SelectionCampaign(CLASSICAL_FIXED_MCS, completed=(first,))
+    with pytest.raises(SelectionPassError, match="must be PassResults"):
+        SelectionCampaign(CLASSICAL_ADAPTIVE, completed=({"pass_id": 1},))
+
+
+def test_a_pass_must_return_selections() -> None:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    with pytest.raises(SelectionPassError, match="must return Selections"):
+        campaign.run_pass(PASS_ONE, lambda ctx: ["not a selection"], scorer="clean")
+
+
+def test_pb3_does_not_train_the_artifact_finetuned_classifier() -> None:
+    """The gate for that classifier is G-8, which PB_3 does not open."""
+
+    assert get("reference_classifier.artifact_finetune_gate") == "G-8"
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    record = campaign.as_record()
+    assert record["completed_passes"] == []
+    assert record["exhausted"] is False
