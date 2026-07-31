@@ -46,8 +46,14 @@ the test split.
 
 from __future__ import annotations
 
+import csv
+import functools
+import hashlib
+import json
+import math
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 # ``EVIDENCE_LABELS`` is repeated verbatim by every W4 evidence artifact, in a
@@ -55,7 +61,7 @@ from typing import Any
 # there is exactly one copy.  ``SELECTION_SPLIT`` is the only split BR-4
 # selection may read.
 from baseline.classical.outage import EVIDENCE_LABELS, SELECTION_SPLIT
-from config.params import get
+from config.params import REPO_ROOT, get
 
 __all__ = [
     "EVIDENCE_LABELS",
@@ -68,6 +74,15 @@ __all__ = [
     "expected_accuracy",
     "compose",
     "measured_outage_accuracy_from_record",
+    "BlerLookupError",
+    "UncharacterizedBlerError",
+    "BlerIdentity",
+    "BlerLookup",
+    "BlerTable",
+    "BLER_IDENTITY_FIELDS",
+    "CHARACTERIZED",
+    "UNCHARACTERIZED",
+    "g2_bler_table",
 ]
 
 
@@ -332,3 +347,378 @@ def compose(
         codec_accuracy=codec_accuracy,
         outage_accuracy=outage_accuracy,
     )
+
+
+# ==========================================================================
+# BLER lookup — complete identity required, fails closed outside support
+# ==========================================================================
+#
+# The committed G-2 evidence characterises *one* physical-layer configuration
+# — K=128, N=256, BG2, Z=22, rate 1/2, flooding offset-min-sum with offset 0.5
+# and 50 iterations — at four Eb/N0 points for each of BPSK, QPSK and 16-QAM.
+# That is the whole of the measured support.  Everything below exists to stop
+# that narrow evidence being quietly generalised to configurations nobody
+# measured, which is the failure mode that would manufacture a BR-4 result
+# rather than compute one.
+
+#: ``params.baseline.ldpc_bler_reference_must_match``.  Read at runtime so a
+#: spec change that adds a required field breaks this module rather than
+#: silently leaving a hole in the key.
+BLER_IDENTITY_FIELDS: tuple[str, ...] = tuple(
+    get("baseline.ldpc_bler_reference_must_match")
+)
+
+#: The committed evidence also fixes the code rate, which the spec's must-match
+#: list does not name.  A curve measured at rate 1/2 says nothing about rate
+#: 5/6 at the same (K, N), so ``rate`` is required here too: this is strictly
+#: narrower than the spec demands, which is the safe direction.
+BLER_EXTRA_IDENTITY_FIELDS: tuple[str, ...] = ("rate",)
+
+#: Every field a lookup key must carry.  A key missing any of them is a defect,
+#: not a near miss.
+BLER_REQUIRED_FIELDS: tuple[str, ...] = (
+    *BLER_IDENTITY_FIELDS,
+    *BLER_EXTRA_IDENTITY_FIELDS,
+)
+
+CHARACTERIZED = "characterized"
+UNCHARACTERIZED = "uncharacterized"
+
+#: The two SNR conventions the committed evidence carries.  ``bler_results.csv``
+#: records Eb/N0 (the reference platform's own convention, declared as
+#: ``source_snr_convention``) and the Es/N0 column derived from it by the
+#: per-modulation conversion recorded in ``g2_adjudication.json``.  Anything
+#: else is a convention nobody measured in.
+_EBN0 = "eb_n0_per_information_bit"
+_ESN0 = "es_n0_per_symbol"
+_SNR_COLUMN = {_EBN0: "ebn0_db", _ESN0: "esn0_db"}
+
+#: ``bler_reference.json`` declares how the committed points may be joined up.
+#: Interpolation is permitted only in the representation the reference itself
+#: names; a change there must break this module rather than be reinterpreted.
+_INTERPOLATION = "linear_in_snr_vs_log10_bler"
+
+#: The measurement arm whose curves the project's own selection uses.  The
+#: ``reference`` rows are the independent cross-check that G-2 compared against,
+#: not a second usable curve.
+_MEASUREMENT_SYSTEM = "sionna"
+
+_G2_DIR = REPO_ROOT / "results" / "baseline" / "g2"
+_BLER_RESULTS = _G2_DIR / "bler_results.csv"
+_BLER_REFERENCE = _G2_DIR / "bler_reference.json"
+_G2_ADJUDICATION = _G2_DIR / "g2_adjudication.json"
+
+
+class BlerLookupError(CompositionError):
+    """A malformed or incomplete BLER lookup key."""
+
+
+class UncharacterizedBlerError(CompositionError):
+    """The requested identity or SNR was never measured.
+
+    Distinct from :class:`BlerLookupError` on purpose: a partial key is a bug in
+    the caller, whereas an uncharacterized cell is a legitimate answer that the
+    selection must treat as *ineligible* — never as a low-scoring candidate and
+    never as zero BLER.
+    """
+
+
+@dataclass(frozen=True)
+class BlerIdentity:
+    """The complete physical-layer identity of one characterised BLER curve.
+
+    Frozen and hashable so it can be a cache key, and constructed only through
+    :meth:`from_mapping`, which refuses a partial or over-specified key.
+    """
+
+    k_and_n: tuple[int, int]
+    base_graph: int
+    lifting_size: int
+    modulation: str
+    decoder_algorithm: str
+    decoder_offset: float
+    iterations: int
+    snr_convention: str
+    rate: str
+
+    @classmethod
+    def from_mapping(cls, key: Mapping[str, Any]) -> BlerIdentity:
+        if not isinstance(key, Mapping):
+            raise BlerLookupError(f"BLER lookup key is not a mapping: {key!r}")
+        missing = [name for name in BLER_REQUIRED_FIELDS if name not in key]
+        if missing:
+            raise BlerLookupError(
+                "incomplete BLER lookup key; the committed evidence is only "
+                f"valid for a complete physical-layer identity, missing {missing}"
+            )
+        unexpected = [name for name in key if name not in BLER_REQUIRED_FIELDS]
+        if unexpected:
+            raise BlerLookupError(
+                f"unrecognised BLER lookup key fields: {sorted(unexpected)}"
+            )
+        k_and_n = key["k_and_n"]
+        if (
+            isinstance(k_and_n, str)
+            or not isinstance(k_and_n, Sequence)
+            or len(k_and_n) != 2
+        ):
+            raise BlerLookupError(f"k_and_n is not a (K, N) pair: {k_and_n!r}")
+        return cls(
+            k_and_n=(int(k_and_n[0]), int(k_and_n[1])),
+            base_graph=int(key["base_graph"]),
+            lifting_size=int(key["lifting_size"]),
+            modulation=str(key["modulation"]),
+            decoder_algorithm=str(key["decoder_algorithm"]),
+            decoder_offset=float(key["decoder_offset"]),
+            iterations=int(key["iterations"]),
+            snr_convention=str(key["snr_convention"]),
+            rate=str(key["rate"]),
+        )
+
+    def as_key(self) -> dict[str, Any]:
+        return {
+            "k_and_n": list(self.k_and_n),
+            "base_graph": self.base_graph,
+            "lifting_size": self.lifting_size,
+            "modulation": self.modulation,
+            "decoder_algorithm": self.decoder_algorithm,
+            "decoder_offset": self.decoder_offset,
+            "iterations": self.iterations,
+            "snr_convention": self.snr_convention,
+            "rate": self.rate,
+        }
+
+
+@dataclass(frozen=True)
+class BlerLookup:
+    """The result of one lookup: a number, or an explicit refusal to guess."""
+
+    status: str
+    identity: BlerIdentity
+    snr_db: float
+    bler: float | None = None
+    interpolated: bool = False
+    reason: str | None = None
+    support_db: tuple[float, float] | None = None
+    trials_per_point: int | None = None
+
+    @property
+    def characterized(self) -> bool:
+        return self.status == CHARACTERIZED
+
+    def require(self) -> float:
+        """The BLER, or :class:`UncharacterizedBlerError` — never a guess."""
+
+        if not self.characterized or self.bler is None:
+            raise UncharacterizedBlerError(
+                f"no committed BLER evidence for {self.identity.as_key()} at "
+                f"{self.snr_db} dB: {self.reason}"
+            )
+        return self.bler
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "status": self.status,
+            "identity": self.identity.as_key(),
+            "snr_db": self.snr_db,
+            "bler": self.bler,
+            "interpolated": self.interpolated,
+            "reason": self.reason,
+            "support_db": list(self.support_db) if self.support_db else None,
+            "trials_per_point": self.trials_per_point,
+        }
+
+
+@dataclass(frozen=True)
+class _Curve:
+    """One characterised curve: its measured points, in SNR order."""
+
+    snr_db: tuple[float, ...]
+    bler: tuple[float, ...]
+    trials: int
+
+    @property
+    def support(self) -> tuple[float, float]:
+        return self.snr_db[0], self.snr_db[-1]
+
+
+class BlerTable:
+    """The committed BLER curves, indexed by complete physical-layer identity.
+
+    Lookups fail closed in every direction that could invent evidence:
+
+    * an identity that is not an exact match returns ``uncharacterized`` —
+      never the nearest curve, never the same (K, N) under another modulation,
+      never a partial-key match;
+    * an SNR outside the measured span of that curve returns
+      ``uncharacterized`` — no extrapolation in either direction, and in
+      particular no "BLER is 0 well above the waterfall";
+    * inside the span the value is interpolated only in the representation the
+      committed reference declares (``linear_in_snr_vs_log10_bler``).
+    """
+
+    def __init__(self, curves: Mapping[BlerIdentity, _Curve], provenance: str):
+        self._curves = dict(curves)
+        self.provenance = provenance
+
+    @property
+    def identities(self) -> tuple[BlerIdentity, ...]:
+        return tuple(
+            sorted(self._curves, key=lambda identity: json.dumps(identity.as_key()))
+        )
+
+    def lookup(self, key: Mapping[str, Any] | BlerIdentity, snr_db: Any) -> BlerLookup:
+        identity = (
+            key if isinstance(key, BlerIdentity) else BlerIdentity.from_mapping(key)
+        )
+        if isinstance(snr_db, bool) or not isinstance(snr_db, int | float):
+            raise BlerLookupError(f"SNR is not a number: {snr_db!r}")
+        snr = float(snr_db)
+        if snr != snr:
+            raise BlerLookupError("SNR is NaN")
+        curve = self._curves.get(identity)
+        if curve is None:
+            return BlerLookup(
+                status=UNCHARACTERIZED,
+                identity=identity,
+                snr_db=snr,
+                reason="identity_not_characterized",
+            )
+        low, high = curve.support
+        if not low <= snr <= high:
+            return BlerLookup(
+                status=UNCHARACTERIZED,
+                identity=identity,
+                snr_db=snr,
+                reason="snr_outside_characterized_support",
+                support_db=(low, high),
+                trials_per_point=curve.trials,
+            )
+        value, interpolated = _interpolate(curve, snr)
+        return BlerLookup(
+            status=CHARACTERIZED,
+            identity=identity,
+            snr_db=snr,
+            bler=value,
+            interpolated=interpolated,
+            support_db=(low, high),
+            trials_per_point=curve.trials,
+        )
+
+    def require(self, key: Mapping[str, Any] | BlerIdentity, snr_db: Any) -> float:
+        return self.lookup(key, snr_db).require()
+
+
+def _interpolate(curve: _Curve, snr: float) -> tuple[float, bool]:
+    """Linear in SNR against log10(BLER), strictly inside the measured span."""
+
+    if _INTERPOLATION != get_reference_settings()["waterfall_interpolation"]:
+        raise NotImplementedError(
+            "the committed BLER reference no longer declares "
+            f"{_INTERPOLATION!r} as its interpolation representation"
+        )
+    for point_snr, point_bler in zip(curve.snr_db, curve.bler, strict=True):
+        if point_snr == snr:
+            return point_bler, False
+    for index in range(len(curve.snr_db) - 1):
+        low, high = curve.snr_db[index], curve.snr_db[index + 1]
+        if low < snr < high:
+            low_bler, high_bler = curve.bler[index], curve.bler[index + 1]
+            if low_bler <= 0.0 or high_bler <= 0.0:
+                raise UncharacterizedBlerError(
+                    "cannot interpolate through a non-positive measured BLER at "
+                    f"{low} dB / {high} dB; the declared representation is "
+                    f"{_INTERPOLATION}"
+                )
+            weight = (snr - low) / (high - low)
+            log_value = (1.0 - weight) * math.log10(low_bler) + weight * math.log10(
+                high_bler
+            )
+            return math.pow(10.0, log_value), True  # literal-ok: base of log10
+    raise UncharacterizedBlerError(  # pragma: no cover - guarded by the caller
+        f"{snr} dB is not inside the characterized support {curve.support}"
+    )
+
+
+@functools.cache
+def get_reference_settings() -> dict[str, Any]:
+    """``bler_reference.json``'s declared simulation settings."""
+
+    return dict(json.loads(_BLER_REFERENCE.read_text())["settings"])
+
+
+def _bound_evidence_bytes(path: Path, name: str) -> str:
+    """Read a G-2 evidence file and check it against the adjudicated hash.
+
+    The G-2 adjudication records the SHA-256 of every evidence file it stands
+    on.  Building a selection table from bytes that no longer match those
+    hashes would mean composing against numbers the gate never adjudicated, so
+    it fails closed here rather than being noticed later by the verifier.
+    """
+
+    payload = path.read_bytes()
+    digest = hashlib.sha256(payload).hexdigest()
+    expected = json.loads(_G2_ADJUDICATION.read_text())["evidence_files"][name]
+    if digest != expected:
+        raise CompositionError(
+            f"{name} does not match the hash bound by g2_adjudication.json: "
+            f"{digest} != {expected}"
+        )
+    return payload.decode()
+
+
+@functools.cache
+def g2_bler_table() -> BlerTable:
+    """Build the lookup table from the committed, hash-bound G-2 evidence.
+
+    Every row contributes to two identities — one per SNR convention — because
+    the CSV carries both the reference platform's Eb/N0 column and the Es/N0
+    column derived from it by the conversion ``g2_adjudication.json`` records.
+    Both are measured points of the same curve expressed in a declared
+    convention; no third convention exists.
+    """
+
+    text = _bound_evidence_bytes(_BLER_RESULTS, _BLER_RESULTS.name)
+    settings = get_reference_settings()
+    if settings["source_snr_convention"] != _EBN0:
+        raise NotImplementedError(
+            "the committed BLER reference no longer records "
+            f"{_EBN0!r} as its source SNR convention"
+        )
+    points: dict[BlerIdentity, list[tuple[float, float, int]]] = {}
+    for row in csv.DictReader(text.splitlines()):
+        if row["system"] != _MEASUREMENT_SYSTEM:
+            continue
+        for convention, column in _SNR_COLUMN.items():
+            identity = BlerIdentity(
+                k_and_n=(int(row["k"]), int(row["n"])),
+                base_graph=int(row["base_graph"]),
+                lifting_size=int(row["lifting_size"]),
+                modulation=row["modulation"],
+                decoder_algorithm=row["decoder"],
+                decoder_offset=float(row["offset"]),
+                iterations=int(row["iterations"]),
+                snr_convention=convention,
+                rate=row["rate"],
+            )
+            points.setdefault(identity, []).append(
+                (float(row[column]), float(row["bler"]), int(row["blocks"]))
+            )
+    curves: dict[BlerIdentity, _Curve] = {}
+    for identity, measured in points.items():
+        measured.sort()
+        trials = {trial for _, _, trial in measured}
+        if len(trials) != 1:
+            raise CompositionError(
+                f"inconsistent trial counts for {identity.as_key()}: {sorted(trials)}"
+            )
+        curves[identity] = _Curve(
+            snr_db=tuple(snr for snr, _, _ in measured),
+            bler=tuple(bler for _, bler, _ in measured),
+            trials=trials.pop(),
+        )
+    if not curves:
+        raise CompositionError(
+            f"no {_MEASUREMENT_SYSTEM} rows in {_BLER_RESULTS.name}"
+        )
+    return BlerTable(curves, provenance=f"results/baseline/g2/{_BLER_RESULTS.name}")

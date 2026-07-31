@@ -18,15 +18,21 @@ import math
 import pytest
 
 from baseline.classical.composition import (
+    BLER_IDENTITY_FIELDS,
+    BLER_REQUIRED_FIELDS,
+    UNCHARACTERIZED,
+    BlerLookupError,
     CompositionError,
     MeasuredCodecAccuracy,
     MeasuredOutageAccuracy,
     compose,
     expected_accuracy,
     measured_outage_accuracy_from_record,
+    UncharacterizedBlerError,
+    g2_bler_table,
     transport_block_success_probability,
 )
-from config.params import REPO_ROOT
+from config.params import REPO_ROOT, get
 
 OUTAGE_POLICY_PATH = REPO_ROOT / "results" / "baseline" / "w4" / "outage_policy.json"
 
@@ -296,3 +302,201 @@ def test_composition_record_carries_both_measured_inputs_forward() -> None:
         (0.98**2) * 0.87 + (1 - 0.98**2) * 0.1,
         rel_tol=1e-12,
     )
+
+
+# --------------------------------------------------------------------------
+# BLER lookup — complete identity, no extrapolation, fails closed
+# --------------------------------------------------------------------------
+
+CHARACTERIZED_KEY = {
+    "k_and_n": (128, 256),
+    "base_graph": 2,
+    "lifting_size": 22,
+    "modulation": "qpsk",
+    "decoder_algorithm": "offset_min_sum",
+    "decoder_offset": 0.5,
+    "iterations": 50,
+    "snr_convention": "eb_n0_per_information_bit",
+    "rate": "0.5",
+}
+
+
+def _key(**overrides: object) -> dict[str, object]:
+    key = dict(CHARACTERIZED_KEY)
+    key.update(overrides)
+    return key
+
+
+def test_the_required_identity_fields_are_the_spec_s_plus_the_code_rate() -> None:
+    assert set(BLER_IDENTITY_FIELDS) == set(get("baseline.ldpc_bler_reference_must_match"))
+    assert set(BLER_REQUIRED_FIELDS) == set(BLER_IDENTITY_FIELDS) | {"rate"}
+
+
+def test_the_committed_evidence_characterizes_exactly_three_configurations() -> None:
+    table = g2_bler_table()
+    modulations = {identity.modulation for identity in table.identities}
+    assert modulations == {"bpsk", "qpsk", "qam16"}
+    # One curve per modulation per declared SNR convention, and nothing else.
+    assert len(table.identities) == 6
+    for identity in table.identities:
+        assert identity.k_and_n == (128, 256)
+        assert (identity.base_graph, identity.lifting_size) == (2, 22)
+        assert identity.rate == "0.5"
+        assert identity.iterations == 50
+        assert identity.decoder_algorithm == "offset_min_sum"
+        assert identity.decoder_offset == 0.5
+
+
+def test_an_exact_measured_point_returns_the_committed_value() -> None:
+    result = g2_bler_table().lookup(CHARACTERIZED_KEY, 2.5)
+    assert result.characterized
+    assert result.bler == 0.0112  # the committed QPSK row at Eb/N0 2.5 dB
+    assert result.interpolated is False
+    assert result.trials_per_point == 5000
+    assert result.require() == 0.0112
+
+
+def test_interpolation_inside_support_is_log_linear_in_bler() -> None:
+    """At the midpoint the declared representation is the geometric mean.
+
+    Written as ``sqrt(a*b)`` rather than as the implementation's weighted
+    log-average, so the test is not the code restated.
+    """
+
+    result = g2_bler_table().lookup(CHARACTERIZED_KEY, 2.25)
+    assert result.characterized
+    assert result.interpolated is True
+    assert result.bler == pytest.approx(math.sqrt(0.0708 * 0.0112), rel=1e-12)
+
+
+@pytest.mark.parametrize("snr", [1.4999, 1.0, -5.0, 2.7501, 3.0, 18.0])
+def test_no_silent_extrapolation_outside_characterized_support(snr: float) -> None:
+    result = g2_bler_table().lookup(CHARACTERIZED_KEY, snr)
+    assert result.status == UNCHARACTERIZED
+    assert result.reason == "snr_outside_characterized_support"
+    assert result.bler is None
+    assert result.support_db == (1.5, 2.75)
+    with pytest.raises(UncharacterizedBlerError):
+        result.require()
+
+
+def test_absent_evidence_is_never_reported_as_zero_bler() -> None:
+    """High SNR is exactly where a silent extrapolation would read as BLER 0."""
+
+    result = g2_bler_table().lookup(CHARACTERIZED_KEY, 18.0)
+    assert result.bler is None
+    assert result.bler != 0.0
+    with pytest.raises(UncharacterizedBlerError):
+        result.require()
+
+
+@pytest.mark.parametrize("field", sorted(BLER_REQUIRED_FIELDS))
+def test_a_partial_key_missing_any_required_field_raises(field: str) -> None:
+    key = _key()
+    del key[field]
+    with pytest.raises(BlerLookupError, match="incomplete BLER lookup key"):
+        g2_bler_table().lookup(key, 2.5)
+
+
+def test_an_over_specified_key_raises_rather_than_being_trimmed() -> None:
+    with pytest.raises(BlerLookupError, match="unrecognised"):
+        g2_bler_table().lookup(_key(channel="awgn"), 2.5)
+
+
+def test_a_malformed_k_and_n_raises() -> None:
+    with pytest.raises(BlerLookupError, match=r"\(K, N\) pair"):
+        g2_bler_table().lookup(_key(k_and_n=128), 2.5)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("k_and_n", (256, 512)),
+        ("k_and_n", (128, 384)),
+        ("base_graph", 1),
+        ("lifting_size", 24),
+        ("modulation", "qam64"),
+        ("modulation", "bpsk_pi_over_2"),
+        ("decoder_algorithm", "belief_propagation"),
+        ("decoder_offset", 0.75),
+        ("iterations", 25),
+        ("snr_convention", "es_n0_per_information_bit"),
+        ("rate", "0.6666666666666666"),
+    ],
+)
+def test_mutation_every_identity_component_fails_closed_on_its_own(
+    field: str, value: object
+) -> None:
+    """One component wrong at a time, everything else exactly right.
+
+    The failure mode this rules out is a lookup that matches on a *subset* of
+    the identity and returns a curve measured under different physics.
+    """
+
+    result = g2_bler_table().lookup(_key(**{field: value}), 2.5)
+    assert result.status == UNCHARACTERIZED, f"{field}={value!r} was not rejected"
+    assert result.reason == "identity_not_characterized"
+    assert result.bler is None
+    with pytest.raises(UncharacterizedBlerError):
+        result.require()
+
+
+def test_a_wrong_modulation_does_not_silently_reuse_the_same_k_and_n() -> None:
+    """16-QAM at QPSK's SNR points is measured, but not at these SNRs."""
+
+    qpsk = g2_bler_table().lookup(CHARACTERIZED_KEY, 2.5)
+    qam16 = g2_bler_table().lookup(_key(modulation="qam16"), 2.5)
+    assert qpsk.characterized
+    assert qam16.status == UNCHARACTERIZED
+    assert qam16.reason == "snr_outside_characterized_support"
+    assert qam16.support_db == (4.0, 5.25)
+
+
+def test_lookup_rejects_a_non_numeric_snr() -> None:
+    with pytest.raises(BlerLookupError, match="not a number"):
+        g2_bler_table().lookup(CHARACTERIZED_KEY, "2.5")
+    with pytest.raises(BlerLookupError, match="NaN"):
+        g2_bler_table().lookup(CHARACTERIZED_KEY, float("nan"))
+
+
+def test_both_declared_snr_conventions_are_characterized_and_distinct() -> None:
+    table = g2_bler_table()
+    ebn0 = table.lookup(CHARACTERIZED_KEY, 2.5)
+    esn0 = table.lookup(
+        _key(modulation="qam16", snr_convention="es_n0_per_symbol"), 8.010299956639813
+    )
+    assert ebn0.characterized and esn0.characterized
+    assert esn0.bler == 0.0068
+    # 16-QAM at Eb/N0 8.01 dB is far outside its measured Eb/N0 span: reading
+    # an Es/N0 number under the Eb/N0 convention must not resolve.
+    assert (
+        table.lookup(_key(modulation="qam16"), 8.010299956639813).status
+        == UNCHARACTERIZED
+    )
+
+
+def test_the_table_is_bound_to_the_adjudicated_g2_evidence_bytes(
+    tmp_path, monkeypatch
+) -> None:
+    """A tampered curve file must fail closed rather than feed the selection."""
+
+    from baseline.classical import composition
+
+    tampered = tmp_path / "bler_results.csv"
+    original = composition._BLER_RESULTS.read_text()
+    tampered.write_text(original.replace("0.0112", "0.0001"))
+    monkeypatch.setattr(composition, "_BLER_RESULTS", tampered)
+    composition.g2_bler_table.cache_clear()
+    try:
+        with pytest.raises(CompositionError, match="g2_adjudication.json"):
+            composition.g2_bler_table()
+    finally:
+        composition.g2_bler_table.cache_clear()
+
+
+def test_lookup_results_are_machine_readable() -> None:
+    record = g2_bler_table().lookup(CHARACTERIZED_KEY, 18.0).as_record()
+    assert record["status"] == UNCHARACTERIZED
+    assert record["bler"] is None
+    assert record["identity"]["modulation"] == "qpsk"
+    assert json.dumps(record)  # must survive serialization into evidence
