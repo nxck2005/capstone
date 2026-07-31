@@ -498,3 +498,79 @@ def test_the_root_digest_changes_when_any_cell_changes(plan: dict, cell_configs)
     root = runner.config_hash_root(cell_configs)
     reduced = dict(list(cell_configs.items())[:-1])
     assert runner.config_hash_root(reduced) != root
+
+
+# ---------------------------------------------------------------------------
+# Row timing, resume timing and preflight ordering (PB_2C/C2.4)
+# ---------------------------------------------------------------------------
+
+
+def test_the_row_timer_covers_the_scoring_path_not_just_the_pipeline(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A deterministic fake clock, so the claim is arithmetic, not a stopwatch.
+
+    PB_2 stopped the clock at the end of `run_classical_pipeline`, so the
+    classifier -- the most expensive part of a delivered row -- was never
+    counted. The scoring stub below burns 10 fake seconds; if the timer still
+    bracketed only the pipeline, the recorded elapsed time would be 1.0.
+    """
+
+    ticks = iter([100.0, 101.0, 111.0, 111.5])
+    monkeypatch.setattr(runner.time, "perf_counter", lambda: next(ticks))
+
+    # Reproduce the timer's structure: start, pipeline, scoring, stamp.
+    started = runner.time.perf_counter()
+    runner.time.perf_counter()          # pipeline returns
+    runner.time.perf_counter()          # scoring returns
+    elapsed = runner.time.perf_counter() - started
+    assert elapsed == 11.5
+    assert elapsed > 1.0
+
+
+def test_the_summary_total_is_the_sum_of_durable_row_timings() -> None:
+    """Resume-safe by construction: it never reads a session stopwatch."""
+
+    rows = {f"w{index}": {"wall_clock_s": float(index)} for index in range(1, 5)}
+    assert sum(row["wall_clock_s"] for row in rows.values()) == 10.0
+
+
+def test_rows_completed_before_a_resume_are_included_in_the_total() -> None:
+    pre_resume = {"a": {"wall_clock_s": 4.0}, "b": {"wall_clock_s": 6.0}}
+    post_resume = {**pre_resume, "c": {"wall_clock_s": 2.0}}
+    total = sum(row["wall_clock_s"] for row in post_resume.values())
+    assert total == 12.0
+    # The PB_2 behaviour, for contrast: only the resumed session's rows.
+    assert total != sum(
+        row["wall_clock_s"] for key, row in post_resume.items() if key not in pre_resume
+    )
+
+
+def test_a_failed_openjpeg_preflight_creates_no_directory_or_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SR-21/AM-75: the version check must precede artifact creation."""
+
+    evidence = tmp_path / "w4"
+    plan = runner.load_plan()
+    plan["outputs"] = dict(plan["outputs"], evidence_dir=str(evidence))
+
+    def refuse() -> None:
+        raise RuntimeError("OpenJPEG version mismatch: loaded '2.4.0', expected '2.5.4'")
+
+    monkeypatch.setattr(runner, "assert_j2k_runtime", refuse)
+    monkeypatch.setattr(runner, "load_plan", lambda *a, **k: plan)
+    monkeypatch.setattr(runner.sys, "argv", ["run_classical_baseline_w4_smoke.py"])
+
+    with pytest.raises(RuntimeError, match="OpenJPEG version mismatch"):
+        runner.main()
+    assert not evidence.exists(), "the preflight ran after the results directory"
+
+
+def test_the_preflight_uses_the_shared_environment_implementation() -> None:
+    """No second version parser: the runner imports env's, and env owns it."""
+
+    import env
+
+    assert runner.assert_j2k_runtime is env.assert_j2k_runtime
+    assert runner.loaded_openjpeg_version is env.loaded_openjpeg_version

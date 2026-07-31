@@ -77,8 +77,16 @@ _J2K_EOC = 0xFFD9
 _J2K_DELIMITERS = frozenset({_J2K_SOC, _J2K_SOD, _J2K_EOC})
 _MARKER_BYTES = 2
 _LENGTH_BYTES = 2
-_PSOT_OFFSET = 4  # literal-ok: Psot begins four bytes into an SOT segment
+#: SOT segment layout (ISO/IEC 15444-1 A.4.2):
+#:     SOT 2 | Lsot 2 | Isot 2 | Psot 4 | TPsot 1 | TNsot 1
+#: so Psot begins **six** bytes into the segment, not four. PB_2 read at 4,
+#: which is `Isot || high16(Psot)`; for these small single-tile-part
+#: codestreams that reads as zero, silently taking the `Psot = 0` last-tile
+#: fallback and landing on the right boundary by luck. A multi-tile-part or
+#: large codestream would have been mis-split with no error (AM-81).
+_PSOT_OFFSET = 6  # literal-ok: SOT(2) + Lsot(2) + Isot(2) precede Psot
 _PSOT_BYTES = 4  # literal-ok: Psot is a 32-bit tile-part length
+_SOT_SEGMENT_LENGTH = 10  # literal-ok: Lsot(2)+Isot(2)+Psot(4)+TPsot(1)+TNsot(1)
 
 #: The only splits a record may describe.  Deliberately a whitelist: the sealed
 #: split is refused by *not appearing here*, so this module contains no bare
@@ -175,19 +183,31 @@ _NULL = "JSON null / empty CSV cell"
 #: inside it; the remainder is payload filler, which has no schema column and is
 #: therefore recorded in the evidence rather than folded into either column.
 BYTE_ACCOUNTING_NOTE = (
-    "bytes_sent = A/8, the complete transport-block payload placed on the "
-    "channel (identical to the per-image source_bytes fixed by BR-10). "
-    "header_bytes = JPEG 2000 raw-codestream container bytes: every byte that is "
-    "not entropy-coded packet data (SOC, main-header marker segments, tile-part "
-    "headers through SOD, and EOC), counted inside bytes_sent per "
-    "params.baseline.container_policy. payload_bytes = emitted_bytes - "
-    "header_bytes, the entropy-coded image data. The residual "
-    "bytes_sent - header_bytes - payload_bytes is the zero payload filler that "
-    "pads the codestream out to A/8; it has no schema column and is reported in "
-    "accounting_examples.json instead of being folded into either column, so no "
-    "denominator is silently mixed. LDPC/channel bits (G = k x Qm) and the "
-    "channel-use count (k symbols) are separate quantities and are never "
-    "reported as bytes here."
+    "BR-11 as amended by AM-81, which defines these columns arithmetically "
+    "rather than leaving them to interpretation. "
+    "bytes_sent = source_bytes = A/8, the complete byte-aligned transport "
+    "payload capacity placed on the channel (identical to the per-image "
+    "source_bytes fixed by BR-10). "
+    "header_bytes = all structural codestream bytes: SOC, every main-header "
+    "marker segment, every SOT marker segment, every tile-part header through "
+    "and including SOD, EOC, and the equivalent structural bytes of every "
+    "tile-part, counted inside bytes_sent per params.baseline.container_policy. "
+    "payload_bytes = all tile-part data bytes after SOD and before the next "
+    "tile-part boundary. This is deliberately NOT described as pure "
+    "entropy-coded sample data: JPEG 2000 tile-part data may also carry "
+    "packet-header information, so the narrower wording would be false. "
+    "emitted_codestream_bytes = header_bytes + payload_bytes exactly. "
+    "payload_filler_bytes = bytes_sent - emitted_codestream_bytes is the zero "
+    "filler padding the codestream out to A/8; it has no schema column and is "
+    "reported in accounting_examples.json instead of being folded into either "
+    "column, so no denominator is silently mixed. "
+    "Aggregate denominator: both columns are means over every row that emitted "
+    "a codestream, which includes delivered AND decode_failure rows and "
+    "excludes structural_infeasibility and codec_infeasibility, where no "
+    "codestream exists; they are null only when the aggregate contains no "
+    "emitted codestream at all. "
+    "LDPC/channel bits (G = k x Qm) and the channel-use count (k symbols) are "
+    "separate quantities and are never reported as bytes here."
 )
 
 AGGREGATE_FIELD_SEMANTICS: dict[str, dict[str, Any]] = {
@@ -220,8 +240,8 @@ AGGREGATE_FIELD_SEMANTICS: dict[str, dict[str, Any]] = {
     "psnr_db": _semantics("mean reconstruction PSNR", "float", "dB", nullable=True, na=_NULL, denominator="delivered rows only"),
     "ssim": _semantics("mean reconstruction SSIM", "float", None, nullable=True, na=_NULL, denominator="delivered rows only"),
     "bytes_sent": _semantics("A/8, the complete transport-block payload; see BYTE_ACCOUNTING_NOTE", "int", "bytes", denominator="fixed per configuration"),
-    "header_bytes": _semantics("mean JPEG 2000 container bytes; see BYTE_ACCOUNTING_NOTE", "float", "bytes", nullable=True, na=_NULL, denominator="delivered rows only"),
-    "payload_bytes": _semantics("mean entropy-coded data bytes; see BYTE_ACCOUNTING_NOTE", "float", "bytes", nullable=True, na=_NULL, denominator="delivered rows only"),
+    "header_bytes": _semantics("mean structural JPEG 2000 codestream bytes per BR-11/AM-81; see BYTE_ACCOUNTING_NOTE", "float", "bytes", nullable=True, na=_NULL, denominator="rows that emitted a codestream (delivered and decode_failure); null only when none did"),
+    "payload_bytes": _semantics("mean tile-part data bytes per BR-11/AM-81; see BYTE_ACCOUNTING_NOTE", "float", "bytes", nullable=True, na=_NULL, denominator="rows that emitted a codestream (delivered and decode_failure); null only when none did"),
     "papr_db": _semantics("mean realised peak-to-average power ratio", "float", "dB", nullable=True, na=_NULL, denominator="transmitted rows only (delivered + decode_failure)"),
     "decode_failure_rate": _semantics("decode_failure count / n", "float", None, denominator="n"),
     "infeasible_rate": _semantics("(structural + codec infeasible) / n", "float", None, denominator="n"),
@@ -356,15 +376,26 @@ def codestream_byte_split(codestream: bytes) -> tuple[int, int]:
         if length < _LENGTH_BYTES:
             raise RecordError("invalid marker segment length")
         if marker == _J2K_SOT:
+            if length != _SOT_SEGMENT_LENGTH:
+                raise RecordError(
+                    f"SOT segment length is {length}, expected {_SOT_SEGMENT_LENGTH}"
+                )
+            psot_start = segment_start + _PSOT_OFFSET
+            if psot_start + _PSOT_BYTES > total:
+                raise RecordError("truncated SOT segment: Psot runs past the end")
             tile_part_start = segment_start
             tile_part_length = int.from_bytes(
-                codestream[
-                    segment_start + _PSOT_OFFSET : segment_start
-                    + _PSOT_OFFSET
-                    + _PSOT_BYTES
-                ],
-                "big",
+                codestream[psot_start : psot_start + _PSOT_BYTES], "big"
             )
+            if tile_part_length:
+                # Psot counts from the first byte of SOT to the end of the
+                # tile-part, so it must at least cover the segment it sits in.
+                if tile_part_length < _MARKER_BYTES + length:
+                    raise RecordError(
+                        f"Psot {tile_part_length} is smaller than its own SOT segment"
+                    )
+                if tile_part_start + tile_part_length > total:
+                    raise RecordError("Psot runs past the end of the codestream")
         container += _MARKER_BYTES + length
         position = position + length
         if position > total:
@@ -580,6 +611,14 @@ def score_result(
     if result.verdict != DELIVERED:
         # No reconstruction exists.  The frozen constant prediction is applied
         # and the classifier is never consulted; no substitute pixels are made.
+        #
+        # The *byte* columns are a different matter (AM-81).  A decode failure
+        # still put a real codestream on the channel, so its container overhead
+        # is measurable and belongs in the aggregate; only the two
+        # infeasibility verdicts, where no codestream exists, are null here.
+        # PB_2 blanked all three, so an all-decode-failure cell reported no
+        # overhead at all — the regime where overhead dominates the budget.
+        header, payload = _emitted_byte_split(result)
         pred_label = policy.predict()
         return TaskOutcome(
             pred_label=pred_label,
@@ -588,8 +627,8 @@ def score_result(
             outage_reason=OUTAGE_REASONS[result.verdict],
             psnr_db=None,
             ssim=None,
-            header_bytes=None,
-            payload_bytes=None,
+            header_bytes=header,
+            payload_bytes=payload,
         )
 
     if result.dataset != classifier_dataset:
@@ -614,9 +653,7 @@ def score_result(
         reconstruction_input(canonical_image),
         reconstruction_input(result.decoded_image),
     )
-    header, payload = (None, None)
-    if result.source_coding is not None and result.source_coding.emitted_bytes is not None:
-        header, payload = _delivered_byte_split(result)
+    header, payload = _emitted_byte_split(result)
     return TaskOutcome(
         pred_label=pred_label,
         correct=pred_label == int(true_label),
@@ -629,9 +666,11 @@ def score_result(
     )
 
 
-def _delivered_byte_split(result: ClassicalResult) -> tuple[int | None, int | None]:
+def _emitted_byte_split(result: ClassicalResult) -> tuple[int | None, int | None]:
+    """The BR-11 split for any row that emitted a codestream, delivered or not."""
+
     source_coding = result.source_coding
-    if source_coding is None:
+    if source_coding is None or source_coding.emitted_bytes is None:
         return None, None
     codestream = source_coding.emitted_codestream
     if not isinstance(codestream, bytes):

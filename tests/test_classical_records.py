@@ -874,3 +874,141 @@ def test_a_pair_id_built_from_a_null_noise_identity_is_rejected() -> None:
 )
 def test_the_scheduled_identity_moves_with_every_keyed_field(field, value) -> None:
     assert _scheduled(**{field: value}) != _scheduled()
+
+
+# ---------------------------------------------------------------------------
+# Known-answer JPEG 2000 container parsing (PB_2C/C2.4)
+#
+# `header + payload == len(codestream)` is satisfied by *any* split, so it
+# cannot detect a wrong boundary. PB_2 read Psot six bytes early, which on
+# these small single-tile-part codestreams reads as zero, takes the "Psot = 0"
+# last-tile fallback and lands on the right boundary by luck. These fixtures
+# assert the two counts individually against hand-computed values.
+# ---------------------------------------------------------------------------
+
+_SOC = b"\xff\x4f"
+_SOD = b"\xff\x93"
+_EOC = b"\xff\xd9"
+
+
+def _segment(marker: bytes, body: bytes) -> bytes:
+    """An ordinary length-carrying marker segment; Lsat covers itself."""
+
+    return marker + (len(body) + 2).to_bytes(2, "big") + body
+
+
+def _sot(*, isot: int, psot: int, tpsot: int = 0, tnsot: int = 1) -> bytes:
+    return _segment(
+        b"\xff\x90",
+        isot.to_bytes(2, "big")
+        + psot.to_bytes(4, "big")
+        + bytes([tpsot, tnsot]),
+    )
+
+
+def test_known_answer_single_tile_part_with_a_non_zero_psot() -> None:
+    """The case a wrong Psot offset cannot survive: Psot is really used."""
+
+    siz = _segment(b"\xff\x51", b"\x00" * 12)          # 2 + 2 + 12 = 16 bytes
+    data = bytes(range(64)) * 3                         # 192 tile-part data bytes
+    psot = 12 + len(_SOD) + len(data)                   # SOT segment + SOD + data
+    tile = _sot(isot=0, psot=psot) + _SOD + data
+    codestream = _SOC + siz + tile + _EOC
+
+    header, payload = codestream_byte_split(codestream)
+    assert payload == 192
+    assert header == 2 + 16 + 12 + 2 + 2              # SOC, SIZ, SOT, SOD, EOC
+    assert header == 34
+    assert header + payload == len(codestream) == 226
+
+
+def test_known_answer_multi_tile_part() -> None:
+    first = bytes(range(32))          # 32 data bytes
+    second = bytes(range(50))         # 50 data bytes
+    tile_one = _sot(isot=0, psot=12 + 2 + len(first), tpsot=0, tnsot=2) + _SOD + first
+    tile_two = _sot(isot=0, psot=12 + 2 + len(second), tpsot=1, tnsot=2) + _SOD + second
+    codestream = _SOC + tile_one + tile_two + _EOC
+
+    header, payload = codestream_byte_split(codestream)
+    assert payload == 82                               # 32 + 50, data only
+    assert header == 2 + (12 + 2) * 2 + 2              # SOC, two tile-part headers, EOC
+    assert header == 32
+    assert header + payload == len(codestream)
+
+
+def test_known_answer_last_tile_part_with_psot_zero() -> None:
+    """Psot may legally be 0 on the last tile-part, meaning "to EOC"."""
+
+    data = b"\x01\x02\x03\x04" * 9                     # 36 bytes, no false markers
+    codestream = _SOC + _sot(isot=0, psot=0) + _SOD + data + _EOC
+
+    header, payload = codestream_byte_split(codestream)
+    assert payload == 36
+    assert header == 2 + 12 + 2 + 2
+    assert header + payload == len(codestream)
+
+
+def test_the_parser_rejects_a_wrong_known_answer_boundary() -> None:
+    """Proof the fixtures discriminate: shifting the boundary changes a count."""
+
+    data = bytes(range(64))
+    psot = 12 + 2 + len(data)
+    codestream = _SOC + _sot(isot=0, psot=psot) + _SOD + data + _EOC
+    header, payload = codestream_byte_split(codestream)
+
+    # A parser reading Psot at the PB_2 offset of 4 sees Isot || high16(Psot).
+    mis_read = int.from_bytes(codestream[2 + 4 : 2 + 8], "big")
+    assert mis_read != psot, "the fixture must actually exercise the offset"
+    assert (header, payload) == (18, 64)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda body: body[:-1], "truncated|does not reconcile|past the end"),
+        (lambda body: body[2:], "does not start with SOC"),
+        (
+            lambda body: body.replace(b"\xff\x90\x00\x0a", b"\xff\x90\x00\x0e", 1),
+            "SOT segment length",
+        ),
+    ],
+)
+def test_malformed_codestreams_are_rejected(mutate, message: str) -> None:
+    data = bytes(range(48))
+    codestream = (
+        _SOC + _sot(isot=0, psot=12 + 2 + len(data)) + _SOD + data + _EOC
+    )
+    with pytest.raises(RecordError, match=message):
+        codestream_byte_split(mutate(codestream))
+
+
+@pytest.mark.parametrize("psot", [4, 1_000_000])
+def test_an_out_of_range_psot_is_rejected(psot: int) -> None:
+    data = bytes(range(48))
+    codestream = _SOC + _sot(isot=0, psot=psot) + _SOD + data + _EOC
+    with pytest.raises(RecordError, match="Psot"):
+        codestream_byte_split(codestream)
+
+
+def test_a_real_openjpeg_encode_reconciles_exactly(tmp_path) -> None:
+    """The hand-built fixtures above must agree with a real codestream."""
+
+    from baseline.j2k import J2KCodec
+
+    codec = J2KCodec(tmp_path / "cache")
+    image = np.stack(
+        [
+            (np.indices((64, 64))[0] * 3 + np.indices((64, 64))[1] * 5) % 256
+            for _ in range(3)
+        ],
+        axis=-1,
+    ).astype(np.uint8)
+    result = codec.encode_to_budget(
+        image,
+        canonical_pixels_sha256=hashlib.sha256(image.tobytes()).hexdigest(),
+        budget_bytes=2000,
+        encode_axis_px=64,
+    )
+    header, payload = codestream_byte_split(result.codestream)
+    assert header > 0 and payload > 0
+    assert header + payload == len(result.codestream) == result.emitted_byte_count

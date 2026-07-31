@@ -71,6 +71,7 @@ from baseline.classical.records import (  # noqa: E402
     score_result,
 )
 from baseline.j2k import J2KCodec  # noqa: E402
+from env import assert_j2k_runtime, loaded_openjpeg_version  # noqa: E402
 from config.params import get  # noqa: E402
 from config.run_config import canonical_sha256, config_hash, load_experiment  # noqa: E402
 from data.preprocessing import codec_input  # noqa: E402
@@ -423,6 +424,7 @@ def run_row(
 ) -> dict[str, Any]:
     """Execute one worklist row and return its durable record."""
 
+    started = time.perf_counter()
     dataset = item["dataset"]
     data = _dataset(dataset, item["split"])
     index = _SAMPLE_INDEX[(dataset, item["split"])].get(item["stable_sample_id"])
@@ -451,7 +453,6 @@ def run_row(
         k=k_symbols,
         block_index=item["block_index"],
     )
-    started = time.perf_counter()
     result = run_classical_pipeline(
         product,
         dataset=dataset,
@@ -465,14 +466,13 @@ def run_row(
         block_index=item["block_index"],
         device=device,
     )
-    elapsed = time.perf_counter() - started
 
     record: dict[str, Any] = {
         "work_id": item["work_id"],
         "group": item["group"],
         "task_scored": item["task_scored"],
         "verdict": result.verdict,
-        "wall_clock_s": elapsed,
+        "wall_clock_s": None,  # set once the whole row path has been walked
         "summary": result.summary(),
         "k_symbols": k_symbols,
         "config_hash": run_config_hash,
@@ -519,6 +519,7 @@ def run_row(
     if not item["task_scored"]:
         # CIFAR-10 and the transport-only fixture: no classifier, no task score.
         record["task"] = None
+        record["wall_clock_s"] = time.perf_counter() - started
         return record
 
     if dataset != FROZEN_CLASSIFIER_DATASET:
@@ -557,6 +558,12 @@ def run_row(
             n_classes=policy.class_count,
         ),
     }
+    # Stamped last, deliberately: the row's cost includes source coding,
+    # transport, classifier inference, reconstruction metrics, outage scoring
+    # and record construction. PB_2 stopped the clock at the end of
+    # `run_classical_pipeline`, so the classifier -- the most expensive part of
+    # a delivered row -- was never counted.
+    record["wall_clock_s"] = time.perf_counter() - started
     return record
 
 
@@ -655,6 +662,7 @@ def finalise(
     identity_binding: dict[str, Any],
     timestamp: str,
     cell_configs: dict[tuple, tuple[Any, str]],
+    openjpeg_version: str,
     wall_clock_s: float,
     evidence_dir: Path,
     git_dirty: bool,
@@ -726,14 +734,17 @@ def finalise(
             papr_db_values=tuple(
                 row["transport"]["papr_db"] for row in group_rows if row.get("transport")
             ),
+            # BR-11/AM-81: every row that emitted a codestream, which includes
+            # decode failures. Restricting these to delivered rows made an
+            # all-decode-failure cell report no overhead at all.
             header_bytes_values=tuple(
                 row["source_coding"]["header_bytes"]
-                for row in delivered
+                for row in group_rows
                 if (row.get("source_coding") or {}).get("header_bytes") is not None
             ),
             payload_bytes_values=tuple(
                 row["source_coding"]["payload_bytes"]
-                for row in delivered
+                for row in group_rows
                 if (row.get("source_coding") or {}).get("payload_bytes") is not None
             ),
         )
@@ -762,6 +773,8 @@ def finalise(
         "prominent_declaration": PROMINENT_DECLARATION,
         "timestamp": timestamp,
         "wall_clock_s": wall_clock_s,
+        "openjpeg_version": openjpeg_version,
+        "openjpeg_preflight_preceded_artifacts": True,
         "execution_source_commit": identity_binding["source_commit"],
         "git_dirty": git_dirty,
         "config_hash_root": identity_binding["config_hash_root"],
@@ -1034,6 +1047,16 @@ def main() -> int:
     arguments = parser.parse_args()
 
     plan = load_plan()
+
+    # Before *anything* is created. `assert_j2k_runtime` used to fire on the
+    # first encode, which is after the results directory, the outage policy and
+    # the frozen classifier had already been touched -- so a wrong OpenJPEG
+    # left a half-built evidence directory behind. SR-21/AM-75 require the
+    # check to precede artifact creation; this is the one implementation, not a
+    # second version parser.
+    assert_j2k_runtime()
+    openjpeg_version = loaded_openjpeg_version(required=True)
+
     evidence_dir = REPO / plan["outputs"]["evidence_dir"]
     evidence_dir.mkdir(parents=True, exist_ok=True)
     partial_path = REPO / plan["outputs"]["partial_rows"]
@@ -1137,7 +1160,11 @@ def main() -> int:
         print(f"incomplete: {len(rows)}/{len(work)} rows durable, complete=false")
         return 0
 
-    wall_clock = time.perf_counter() - started
+    # Derived from every durable row, not from this session's elapsed time.
+    # PB_2 measured `perf_counter()` from *after* the resume load, so a run
+    # resumed once reported a total smaller than the sum of its own aggregate
+    # rows.
+    wall_clock = sum(row["wall_clock_s"] for row in rows.values())
     summary = finalise(
         plan=plan,
         work=work,
@@ -1145,6 +1172,7 @@ def main() -> int:
         identity_binding=identity_binding,
         timestamp=timestamp,
         cell_configs=cell_configs,
+        openjpeg_version=openjpeg_version,
         wall_clock_s=wall_clock,
         evidence_dir=evidence_dir,
         git_dirty=bool(dirty),
