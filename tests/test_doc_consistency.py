@@ -350,6 +350,178 @@ def test_missing_declaration_is_reported(run_next_checker):
     assert "no declared next task" in out
 
 
+# --- sub-phase agreement, one level below the milestone ---------------------------
+#
+# The defect check 6 could not see: NEXT.md declared `W4 · PB_3` next, and a lower
+# live section still read "PB_1 ... is complete; `instructions/PB_2.txt` is the next
+# step", with a third saying "bounded W4 integration is the live task". All three
+# contain "W4", so the frontier-naming rule passed; "is the next step" has none of
+# `DIRECTIVE_RE`'s verbs, so the directive rule never looked. It survived a full
+# corrective phase.
+#
+# The template below declares PB_3 next with PB_1/PB_2 complete, and carries the two
+# stale sentences twice on purpose -- once under a struck `**DONE**` heading and once
+# in the session log. Both must stay silent, exactly as in the check-6 block above:
+# the exemption is the marker, not the wording.
+
+NEXT_PB_TEMPLATE = """# Very Next Steps
+
+**Last updated:** 2026-08-01 · **Phase:** **W4 PB_2 corrected; PB_3 next.**
+
+## Single next task
+
+| | |
+|---|---|
+| W3 | complete |
+| bounded W4 integration | PA, PB_1 (incl. PB_1C) and PB_2 (incl. PB_2C) complete; PB_3 remains |
+| W4 · PB_1 (incl. the PB_1C correction) | complete |
+| W4 · PB_2 (incl. the PB_2C correction) | complete |
+| W4 · PB_3 | **next engineering phase — not started** |
+| G-8 | unresolved |
+
+Run `instructions/PB_3.txt` from B3.0. Do not open G-8.
+
+### Cold-start: the first thing to do in a fresh session
+
+The single next engineering task is W4 PB_3, the BR-4 selection infrastructure.
+{live}
+
+### The short version, in order
+
+W4 PB_3 is the single next engineering task.
+
+#### ~~Batch 1 — the old plan~~ **DONE 2026-07-29**
+
+Run `instructions/PB_2.txt` from B2.0. PB_2 is the next step.
+
+## Session log
+
+- **2026-07-30** — Landed PB_1. Next: bounded W4 integration is the live task.
+
+Then confirm nothing drifted and begin bounded W4 integration.
+"""
+
+
+@pytest.fixture
+def run_pb_checker(run_next_checker):
+    """`run_next_checker`, bound to the PB_3-frontier template."""
+
+    def _run(live: str, template: str = NEXT_PB_TEMPLATE) -> tuple[int, str]:
+        return run_next_checker(live, template)
+
+    return _run
+
+
+def test_live_section_naming_a_completed_subphase_as_next_fails(run_pb_checker):
+    """Case 1: the exact NEXT.md:203 defect, one level below the milestone."""
+    code, out = run_pb_checker("`instructions/PB_2.txt` is the next step.")
+    assert code == 1
+    assert "names completed PB_2 as the next or live task" in out
+
+
+def test_historical_snapshot_may_still_say_pb_2_was_next(run_pb_checker):
+    """Case 2 and 6: the same two sentences, behind the markers, stay silent.
+
+    The template already carries "PB_2 is the next step" under a struck `**DONE**`
+    heading and "bounded W4 integration is the live task" in the session log, so
+    this passing is the whole historical exemption, tested on both markers at once
+    rather than asserted in a comment.
+    """
+    code, out = run_pb_checker("Nothing further.")
+    assert code == 0, out
+
+
+def test_active_section_naming_the_frontier_passes(run_pb_checker):
+    """Case 3: the correct wording must not fire, or the rule is unusable."""
+    code, out = run_pb_checker(
+        "The single next engineering task is W4 PB_3, run from B3.0."
+    )
+    assert code == 0, out
+
+
+def test_coarse_parent_nomination_fails(run_pb_checker):
+    """Case 4: "bounded W4 integration is the live task".
+
+    Reported as *imprecise*, not as backwards. The parent phase is partially
+    complete -- PA, PB_1 and PB_2 are done and PB_3 remains -- so calling it the
+    live task is not directing finished work, it is failing to say which part.
+    Asserting on the reason keeps the two apart.
+    """
+    code, out = run_pb_checker("Right now, bounded W4 integration is the live task.")
+    assert code == 1
+    assert "nominates only the coarse parent phase 'bounded w4 integration'" in out
+    assert "names completed" not in out
+
+
+def test_stale_instruction_path_as_the_next_action_fails(run_pb_checker):
+    """Case 5: a completed phase's instruction file, written as a live command."""
+    code, out = run_pb_checker("Run `instructions/PB_2.txt` from B2.0.")
+    assert code == 1
+    assert "sends the reader back to PB_2" in out
+
+
+def test_prohibiting_a_completed_phase_is_not_a_directive(run_pb_checker):
+    """The negation guard: "do not run PB_2C again" is advice, not a next action."""
+    code, out = run_pb_checker("Do not run `instructions/PB_2C.txt` again.")
+    assert code == 0, out
+
+
+def test_descriptive_mention_of_a_completed_phase_passes(run_pb_checker):
+    """Without a nomination cue this is prose, and prose is not the tool's business.
+
+    `AGENTS.md` really does need to say what `PB_2.txt` got wrong. A rule that
+    fired on every mention of a finished phase would be deleted within a week.
+    """
+    code, out = run_pb_checker(
+        "Note that `instructions/PB_2.txt` calls these `analysis.*`, which is stale."
+    )
+    assert code == 0, out
+
+
+def test_finding_names_frontier_file_section_and_wording(run_pb_checker):
+    """Case 7: a finding must be actionable without opening the file first."""
+    code, out = run_pb_checker("`instructions/PB_2.txt` is the next step.")
+    assert code == 1
+    assert "NEXT.md:" in out                                  # file and line
+    assert "Cold-start: the first thing to do in a fresh session" in out  # section
+    assert "PB_3" in out                                      # declared frontier
+    assert "PB_2" in out                                      # stale phase
+
+
+def test_subphase_rule_reaches_documents_beyond_next_md(tmp_path, monkeypatch, capsys):
+    """One declaration, every document. README.md must not contradict it either."""
+    (tmp_path / "NEXT.md").write_text(NEXT_PB_TEMPLATE.format(live="Nothing further."))
+    (tmp_path / "README.md").write_text(
+        "# Project\n\nThe single next engineering task is W4 PB_2.\n"
+    )
+    monkeypatch.setattr(cdc, "REPO", tmp_path)
+    monkeypatch.setattr(cdc, "DOCS", ["NEXT.md", "README.md"])
+    monkeypatch.setattr(cdc, "PACKET_RECORD", tmp_path / "missing.json")
+    monkeypatch.setattr(sys, "argv", ["check_doc_consistency.py"])
+
+    code = cdc.main()
+    out = capsys.readouterr().out
+
+    assert code == 1
+    assert "README.md:3" in out
+    assert "names completed PB_2" in out
+
+
+def test_declared_phase_signature_is_unchanged():
+    """The addendum's compatibility rule, pinned.
+
+    `declared_subphase` is a separate reader precisely so this three-value unpack
+    keeps working for every existing caller and test.
+    """
+    frontier, token, done = cdc.declared_phase(
+        NEXT_PB_TEMPLATE.format(live="Nothing further.")
+    )
+    assert token == "w4"
+    assert "pb3" in frontier
+    assert cdc.declared_subphase(NEXT_PB_TEMPLATE.format(live="x")) == "pb_3"
+    assert "w3" in done
+
+
 # --- preflight ordering -----------------------------------------------------------
 
 

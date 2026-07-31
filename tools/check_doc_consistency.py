@@ -106,6 +106,43 @@ FRONTIER_SECTIONS = (
     "### Cold-start: the first thing to do in a fresh session",
     "### The short version, in order",
 )
+# --- sub-phase agreement, one level below the milestone --------------------------
+#
+# Check 6 reduces the declared frontier to a milestone token: `W4`. That is one
+# level too coarse to see the defect it was written for. NEXT.md declared
+# `W4 · PB_3` next while a lower live section still read "PB_1 ... is complete;
+# `instructions/PB_2.txt` is the next step", and a third said "bounded W4
+# integration is the live task". Every one of those sentences contains "W4", so
+# the frontier-naming rule was satisfied, and "is the next step" carries none of
+# `DIRECTIVE_RE`'s verbs, so nothing fired. The whole contradiction was invisible.
+#
+# What is checked: a live sentence that *nominates* a next or live task must name
+# the declared sub-phase. Four cases fall out, and the distinction between the
+# last two is the reason this is not one string match:
+#
+#   1. backward directive  -- "run `instructions/PB_2.txt`" when PB_2 is complete;
+#   2. stale nomination    -- "PB_2 is the next step";
+#   3. coarse nomination   -- "bounded W4 integration is the live task", which is
+#      not *completed* work (PB_3 remains) but is the parent phase, so it does not
+#      tell a cold start what to do. Reported as imprecise, not as backwards;
+#   4. valid              -- names PB_3. Silent.
+#
+# Deliberately NOT flagged: descriptive mentions. "Where bounded W4 stands" and
+# "`PB_2.txt` calls these `analysis.*`" carry no nomination cue and must stay
+# silent, or the rule becomes a prose linter. Table rows are skipped for the same
+# reason: the declaration is a status matrix, and check 6 already owns it.
+PHASE_RE = re.compile(r"\bPB[_\- ]?(\d+)([A-D]?)\b", re.I)
+PHASE_LETTERS = ("", "a", "b", "c", "d")
+# Both word orders, because the repository writes it both ways: "PB_2 is the next
+# step" and "the single next engineering task is PB_3".
+NOMINATION_RE = re.compile(
+    r"(?:is|are|remains?)\s+the\s+(?:single\s+)?(?:next|live|current)\b[^.;:]{0,40}?"
+    r"\b(?:step|task|action|phase|work)\b"
+    r"|the\s+(?:single\s+)?(?:next|live|current)\s+(?:\w+\s+){0,3}?"
+    r"(?:step|task|action|phase|work)\s+(?:is|are|remains?)\b",
+    re.I,
+)
+
 # A fenced block that runs the whole preflight must materialize the git-ignored
 # rung-2 LDPC fixture before pytest, or a fresh clone fails the suite for a
 # provenance reason that reads like a scientific one.
@@ -153,16 +190,16 @@ def declared_phase(body: str) -> tuple[str | None, str | None, list[str]]:
     return frontier, _milestone(frontier) if frontier else None, done
 
 
-def live_lines(body: str) -> list[tuple[int, str]]:
-    """Lines of NEXT.md that read as current instructions.
+def live_lines_with_sections(body: str) -> list[tuple[int, str, str]]:
+    """`live_lines`, plus the heading each live line sits under.
 
-    A heading is historical if it is struck through, carries a DONE/Complete/PASS
-    marker, or is the session log; everything under it stays historical until a
-    heading at the same or a higher level takes over. Struck lines are dropped
-    wherever they appear, which covers the completed rows of the task table.
+    The section is carried so a finding can say *where* the contradiction is. A
+    line number alone sends a reader to a thousand-line file with no idea which
+    of its accreted sections went stale.
     """
-    out: list[tuple[int, str]] = []
+    out: list[tuple[int, str, str]] = []
     historical_at: int | None = None
+    section = ""
     for number, line in enumerate(body.splitlines(), 1):
         heading = HEADING_RE.match(line)
         if heading:
@@ -173,11 +210,23 @@ def live_lines(body: str) -> list[tuple[int, str]]:
             if (HISTORICAL_HEADING_RE.search(title)
                     or any(marker in title.lower() for marker in HISTORICAL_HEADINGS)):
                 historical_at = level
+            section = title.strip()
             continue
         if historical_at is not None or "~~" in line or HISTORY_LINE_RE.match(line):
             continue
-        out.append((number, line))
+        out.append((number, line, section))
     return out
+
+
+def live_lines(body: str) -> list[tuple[int, str]]:
+    """Lines of NEXT.md that read as current instructions.
+
+    A heading is historical if it is struck through, carries a DONE/Complete/PASS
+    marker, or is the session log; everything under it stays historical until a
+    heading at the same or a higher level takes over. Struck lines are dropped
+    wherever they appear, which covers the completed rows of the task table.
+    """
+    return [(number, line) for number, line, _ in live_lines_with_sections(body)]
 
 
 def _objects(text: str) -> list[str]:
@@ -242,6 +291,115 @@ def next_phase_findings(body: str) -> list[str]:
         findings.append(
             f"{NEXT_DOC}:1: the declared frontier {token.upper()} is named only inside "
             f"'{DECLARATION_HEADING}', so no live section tells a cold start to do it")
+    return findings
+
+
+def _subphases(text: str) -> set[str]:
+    """Every `PB_n[X]` sub-phase named in a fragment, normalised to `pb_2c` form."""
+    return {f"pb_{m.group(1)}{m.group(2).lower()}" for m in PHASE_RE.finditer(text)}
+
+
+def declared_subphase(body: str) -> str | None:
+    """The sub-phase of the declared frontier, e.g. `pb_3`, or None if it has none.
+
+    Deliberately a separate reader rather than a fourth return value from
+    `declared_phase`: every caller and test unpacks that function's three values,
+    and a signature change would be a silent breakage for a cosmetic gain.
+    """
+    frontier, _, _ = declared_phase(body)
+    if frontier is None:
+        return None
+    match = PHASE_RE.search(frontier)
+    if match is None:
+        return None
+    return f"pb_{match.group(1)}{match.group(2).lower()}"
+
+
+def completed_subphases(body: str) -> set[str]:
+    """Sub-phases the declaration marks complete, with their correction letters.
+
+    Narrow on purpose. Only phase *numbers* that a declaration row explicitly
+    calls complete are included, and the frontier's own number never is. A parent
+    row such as "bounded W4 integration" names no `PB_n`, so it contributes
+    nothing here -- it is a partially completed parent, not a completed phase, and
+    treating it as one would report a coarse nomination as a backwards one.
+    """
+    frontier_sub = declared_subphase(body)
+    frontier_number = frontier_sub.removeprefix("pb_").rstrip("abcd") if frontier_sub else None
+    _, _, done = declared_phase(body)
+    numbers = {p.removeprefix("pb_").rstrip("abcd")
+               for subject in done for p in _subphases(subject)}
+    numbers.discard(frontier_number)
+    return {f"pb_{n}{letter}" for n in numbers for letter in PHASE_LETTERS}
+
+
+def parent_phrases(body: str) -> set[str]:
+    """Declaration subjects that name the milestone but no sub-phase.
+
+    "bounded W4 integration" is the real one: the phrase a live section reached
+    for when it meant PB_3 and said something one level too vague.
+    """
+    frontier, token, done = declared_phase(body)
+    if token is None:
+        return set()
+    subjects = [s for s in done + ([frontier] if frontier else []) if s]
+    return {s for s in subjects if token in s and not _subphases(s)}
+
+
+def subphase_findings(doc: str, body: str, declaration: str) -> list[str]:
+    """Findings where live text nominates the wrong -- or too vague -- next phase.
+
+    `declaration` is NEXT.md's body; `body` is the document being scanned, so the
+    same rule reaches README.md and AGENTS.md while one file stays authoritative.
+    """
+    frontier, token, _ = declared_phase(declaration)
+    sub = declared_subphase(declaration)
+    if frontier is None or token is None or sub is None:
+        return []
+    completed = completed_subphases(declaration)
+    parents = parent_phrases(declaration)
+    lines = live_lines_with_sections(body)
+    findings: list[str] = []
+
+    def where(number: int, section: str) -> str:
+        place = f"section {section!r}" if section else "no enclosing section"
+        return (f"{doc}:{number}: {place}, declared frontier {frontier!r} ({sub.upper()})")
+
+    for index, (number, line, section) in enumerate(lines):
+        # Table rows are status matrices, not instructions; check 6 owns the
+        # declaration table itself.
+        if line.lstrip().startswith("|"):
+            continue
+        # A nomination routinely wraps onto the next line, so the frontier may be
+        # named just below its cue. Read the continuation before calling it vague.
+        following = lines[index + 1][1] if index + 1 < len(lines) else ""
+        for sentence in re.split(r"(?<=[.:;])\s+", line):
+            named = _subphases(sentence)
+            for match in DIRECTIVE_RE.finditer(sentence):
+                if NEGATION_RE.search(sentence):
+                    continue
+                target = _subphases(match.group("object")) & completed
+                if target and sub not in _subphases(match.group("object")):
+                    findings.append(
+                        f"{where(number, section)}: live directive sends the reader back to "
+                        f"{'/'.join(sorted(t.upper() for t in target))}, which the declaration "
+                        f"records as complete: {sentence.strip()[:100]}")
+            if not NOMINATION_RE.search(sentence):
+                continue
+            if sub in named or sub in _subphases(following):
+                continue
+            stale = named & completed
+            if stale:
+                findings.append(
+                    f"{where(number, section)}: names completed "
+                    f"{'/'.join(sorted(s.upper() for s in stale))} as the next or live task: "
+                    f"{sentence.strip()[:100]}")
+            elif not named and (parent := next(
+                    (p for p in parents if p in _norm(sentence)), None)):
+                findings.append(
+                    f"{where(number, section)}: nominates only the coarse parent phase "
+                    f"{parent!r}, which is partially complete, so a cold start is not told to "
+                    f"do {sub.upper()}: {sentence.strip()[:100]}")
     return findings
 
 
@@ -532,6 +690,18 @@ def main() -> int:
         passed.append(
             f"NEXT.md current-phase agreement (frontier {token.upper() if token else '?'}, "
             f"{len(done)} completed subjects, {len(live_lines(text[NEXT_DOC]))} live lines)"
+        )
+
+    # --- 8. No live section nominates a completed or coarse phase -------------
+    # Runs over every scanned document, with NEXT.md as the one declaration, so a
+    # README paragraph cannot quietly contradict the hand-off either.
+    if NEXT_DOC in text:
+        for doc, body in text.items():
+            findings.extend(subphase_findings(doc, body, text[NEXT_DOC]))
+        sub = declared_subphase(text[NEXT_DOC])
+        passed.append(
+            f"live sub-phase nominations (frontier {sub.upper() if sub else 'none declared'}, "
+            f"completed {', '.join(sorted(p.upper() for p in completed_subphases(text[NEXT_DOC]))) or 'none'})"
         )
 
     # --- 7. Full-preflight blocks materialize the fixture before pytest -------
