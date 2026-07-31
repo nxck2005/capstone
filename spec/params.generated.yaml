@@ -347,8 +347,6 @@ baseline:
     - 48
     cifar10:
     - 32
-    - 24
-    - 16
   downsample_axis_never_upscales: true
   downsample_selection: best_feasible_per_snr_on_validation_split
   packet_count_grid:
@@ -932,7 +930,7 @@ config:
   - hardware_tier23
   - deliverables
   run_config_hash_form: sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json
-  analysis_version: 1
+  analysis_version: 2
   analysis_version_bump_rule: bump_on_inference_estimand_or_analysis_implementation_change
   dataset_version_rule: archive_sha256
   literal_lint_scope:

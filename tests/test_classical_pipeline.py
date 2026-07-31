@@ -148,26 +148,28 @@ def test_codec_infeasibility_is_distinct_from_structural_infeasibility(
 
 
 def test_j2k_resolutions_cannot_encode_cifar10s_small_axes(product, codec, identity):
-    """Executable reproduction of the open `j2k_resolutions` issue (PB_1C/C1.5).
+    """The `j2k_resolutions`/CIFAR-10 conflict, as **resolved** by AM-80.
 
     `params.baseline.j2k_resolutions = 6` needs every tile dimension to be at
-    least 2**5 = 32 px, but `params.baseline.downsample_axis_px.cifar10` is
-    [32, 24, 16].  Two of CIFAR-10's three configured axes therefore cannot
-    encode *at all*, for any image and any budget.
+    least 2**5 = 32 px.  CIFAR-10's ladder used to be [32, 24, 16], so two of its
+    three rungs could not encode *at all*, for any image and any budget — which
+    PB_1C/C1.5 recorded as an open spec question rather than a bug.  AM-80
+    resolved it by dropping the two invalid rungs, so the ladder is now [32].
 
-    This is deliberately **not** fixed here: it changes a frozen codec parameter
-    and so every J2K cache key, which needs a spec decision rather than a bug
-    fix.  The test exists so the incompatibility stays visible and so the two
-    failure modes stay distinguishable — a configuration error must never be
-    reported as "the codestream did not fit", which would read as a channel
-    result rather than a setup fault.
+    This test therefore asserts three things at once: the configured ladder is
+    the single native rung; 24 px and 16 px are now rejected as *unconfigured*
+    before the codec runs; and the removal was a real codec constraint rather
+    than an arbitrary choice, because the codec still refuses a 24 px tile at
+    `j2k_resolutions = 6` when called directly.  The last assertion is what
+    stops a future session from "restoring" the rungs.
     """
 
     assert get("baseline.j2k_resolutions") == 6
-    assert [int(axis) for axis in get("baseline.downsample_axis_px")["cifar10"]] == [
-        32, 24, 16,
-    ]
+    assert [int(axis) for axis in get("baseline.downsample_axis_px")["cifar10"]] == [32]
+    assert configured_axes("cifar10", 32) == (32,)
 
+    # The budget outcome at the sole configured rung is a real channel-side
+    # result: 32 px encodes fine and fails on size alone.
     result = _run(
         product, codec, identity, k_symbols=CIFAR10_K["r_1_48"], modulation="qpsk",
         ldpc_rate="1/2",
@@ -175,16 +177,32 @@ def test_j2k_resolutions_cannot_encode_cifar10s_small_axes(product, codec, ident
     assert result.verdict == CODEC_INFEASIBILITY
     assert result.source_coding is not None
     reasons = dict(result.source_coding.axis_reasons)
-
-    # 32 px encodes fine and fails on size alone — a real budget outcome
+    assert set(reasons) == {32}
     assert reasons[32] == BUDGET_EXCEEDED
-    # 24 px and 16 px never produce a codestream, whatever the budget
-    for axis in (24, 16):
-        assert reasons[axis].startswith(CODEC_CONFIGURATION_ERROR), axis
-        assert reasons[axis] != BUDGET_EXCEEDED
 
-    # and the distinction is not an artefact of this budget: at a generous one,
-    # 32 px succeeds while the two small axes still cannot be configured
+    # The removed rungs can no longer reach the codec at all: the C1.4 guard
+    # rejects them as unconfigured, so they can never produce a cache key or a
+    # `codec_configuration_error` row again.
+    for axis in (24, 16):
+        with pytest.raises(ClassicalPipelineError, match="is not configured"):
+            _run(product, codec, identity, encode_axis_px=axis)
+
+    # ...and the rungs were dropped because the codec genuinely cannot be
+    # configured at them, not to make the ladder tidy.  Called directly, below
+    # the pipeline's guard, a 24 px encode still fails on configuration rather
+    # than on budget.
+    small = preprocessing.codec_downsample(codec_input(product), 24)
+    with pytest.raises(Exception) as excinfo:  # noqa: PT011 - glymur/OpenJPEG error type
+        codec.encode_to_budget(
+            small,
+            canonical_pixels_sha256=hashlib.sha256(small.tobytes()).hexdigest(),
+            budget_bytes=100_000,
+            encode_axis_px=24,
+        )
+    assert "resolution" in str(excinfo.value).lower()
+
+    # and 32 px still succeeds at a generous budget, so the split above is not
+    # an artefact of this particular budget
     generous = _run(product, codec, identity, encode_axis_px=32)
     assert generous.source_coding is not None and generous.source_coding.feasible
 

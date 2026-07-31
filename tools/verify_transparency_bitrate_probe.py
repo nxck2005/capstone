@@ -639,6 +639,203 @@ def _verify_cache_manifest(
     }
 
 
+#: The one file that may permit the archived codec configuration to differ from
+#: the current one (AM-82).  Deliberately a single pinned record rather than an
+#: allowlist: see its ``scope_limits``.
+READJUDICATION = (
+    REPO / "results/probes/transparency_bitrate/codec_configuration_readjudication.json"
+)
+_READJUDICATION_FIELDS = {
+    "schema_version",
+    "kind",
+    "amendment",
+    "readjudicated_at",
+    "readjudicated_during",
+    "probe_evidence_commit",
+    "probe_implementation_commit",
+    "probe_measurement_commit",
+    "superseded_codec_configuration_hash",
+    "current_codec_configuration_hash",
+    "changed_parameter_paths",
+    "old_values",
+    "new_values",
+    "probe_datasets",
+    "probe_encode_axes_px",
+    "reachability_argument",
+    "justification",
+    "scope_limits",
+    "unchanged",
+}
+
+
+def _flatten(value: Any, prefix: str = "") -> dict[str, Any]:
+    """Flatten a snapshot to dotted leaf paths, so a diff names what moved."""
+
+    if isinstance(value, dict):
+        flat: dict[str, Any] = {}
+        for key, item in value.items():
+            flat.update(_flatten(item, f"{prefix}.{key}" if prefix else str(key)))
+        return flat
+    return {prefix: value}
+
+
+def _snapshot_difference(archived: Any, current: Any) -> list[str]:
+    left, right = _flatten(archived), _flatten(current)
+    return sorted(
+        {path for path in set(left) | set(right) if left.get(path) != right.get(path)}
+    )
+
+
+def _configured_ladder(snapshot: dict[str, Any], dataset: str) -> tuple[int, ...]:
+    """The descending axis ladder ``configured_axes`` would select for a dataset.
+
+    Mirrors ``src/baseline/classical/pipeline.py::configured_axes`` deliberately
+    at the *snapshot* level, so the reachability claim can be evaluated against
+    the archived bytes as well as against HEAD.
+    """
+
+    axes = snapshot["baseline"]["downsample_axis_px"].get(dataset, [])
+    return tuple(sorted({int(axis) for axis in axes}, reverse=True))
+
+
+def _verify_codec_configuration_binding(summary: dict[str, Any], codec: Any) -> None:
+    """Bind the probe's codec configuration as history, not as a HEAD re-derivation.
+
+    The probe is a completed campaign, so its codec configuration is evidence of
+    what ran, not a prediction about what the parameter tree says today.  This
+    first proves the archive is internally consistent — the recorded snapshot
+    must reproduce its own recorded hash — and then permits a difference from
+    HEAD only through the single pinned AM-82 record, which must name every
+    parameter that moved.  Any undeclared drift fails, because the difference
+    set is compared against the declaration rather than merely inspected.
+    """
+
+    archived = summary["codec_configuration"]
+    archived_hash = summary["codec_configuration_hash"]
+    _require(
+        isinstance(archived, dict) and archived,
+        "the archived codec configuration snapshot is missing or empty",
+    )
+    _require(
+        hashlib.sha256(canonical_json(archived)).hexdigest() == archived_hash,
+        "the archived codec configuration does not reproduce its own recorded hash",
+    )
+    _require(
+        codec.configuration_hash
+        == hashlib.sha256(canonical_json(codec.snapshot)).hexdigest(),
+        "the current codec configuration does not reproduce its own hash",
+    )
+
+    drifted = _snapshot_difference(archived, codec.snapshot)
+    if not drifted:
+        _require(
+            archived_hash == codec.configuration_hash,
+            "codec configuration matches but its hash does not",
+        )
+        _require(
+            not READJUDICATION.exists(),
+            "a codec-configuration readjudication is recorded but nothing has drifted; "
+            "remove the stale record rather than leaving it to cover a future change",
+        )
+        return
+
+    _require(
+        READJUDICATION.exists(),
+        "the archived codec configuration differs from the current one at "
+        f"{drifted} and no readjudication is recorded; rerun the probe or record "
+        "a real readjudication — do not regenerate the evidence",
+    )
+    record = _json(READJUDICATION, _READJUDICATION_FIELDS)
+    _require(
+        record["schema_version"] == 1
+        and record["kind"] == "transparency_probe_codec_configuration_readjudication",
+        "the readjudication record is not a recognised codec-configuration record",
+    )
+    _require(
+        isinstance(record["amendment"], str) and record["amendment"].startswith("AM-"),
+        "the readjudication record names no amendment",
+    )
+    _require(
+        isinstance(record["justification"], str)
+        and len(record["justification"]) >= 200,
+        "the readjudication record carries no substantive justification",
+    )
+    _require(
+        isinstance(record["scope_limits"], list) and record["scope_limits"],
+        "the readjudication record declares no scope limits",
+    )
+
+    # Every parameter that moved must be declared, with its exact old and new
+    # value.  This is what makes additional drift fail rather than ride along.
+    declared = record["changed_parameter_paths"]
+    _require(
+        isinstance(declared, list) and declared and sorted(declared) == drifted,
+        "the readjudication declares "
+        f"{sorted(declared) if isinstance(declared, list) else declared} but the "
+        f"archived and current codec configurations differ at {drifted}",
+    )
+    archived_flat, current_flat = _flatten(archived), _flatten(codec.snapshot)
+    for path in drifted:
+        _require(
+            record["old_values"].get(path) == archived_flat.get(path),
+            f"the readjudication records the wrong superseded value for {path}",
+        )
+        _require(
+            record["new_values"].get(path) == current_flat.get(path),
+            f"the readjudication records the wrong current value for {path}",
+        )
+
+    # The reachability claim, evaluated rather than trusted: the probe's own
+    # dataset ladder must be identical under both snapshots, and no declared
+    # path may touch the probe's dataset.
+    datasets = record["probe_datasets"]
+    _require(
+        isinstance(datasets, list) and datasets == [summary["dataset"]],
+        "the readjudication names datasets other than the one the probe encoded",
+    )
+    for dataset in datasets:
+        _require(
+            _configured_ladder(archived, dataset)
+            == _configured_ladder(codec.snapshot, dataset)
+            == tuple(sorted(summary["encode_axis_order"], reverse=True)),
+            f"the configured encode-axis ladder for {dataset} is not identical "
+            "under the archived and current codec configurations",
+        )
+        _require(
+            not any(
+                path.startswith(f"baseline.downsample_axis_px.{dataset}")
+                for path in drifted
+            ),
+            f"the drift touches {dataset}, the dataset the probe actually encoded",
+        )
+    argument = record["reachability_argument"]
+    _require(
+        isinstance(argument, dict)
+        and argument.get("probe_dataset_ladder_unchanged") is True
+        and isinstance(argument.get("selector"), str)
+        and "configured_axes" in argument["selector"],
+        "the readjudication carries no code-backed reachability argument",
+    )
+    _require(
+        record["unchanged"].get("campaign_rerun") is False,
+        "the readjudication claims the campaign was rerun; then it needs new evidence, "
+        "not a readjudication",
+    )
+
+    # Finally, the byte-exact pin.  This is last only so that a failure names
+    # *what* moved rather than just "a hash differs"; it is the gate that makes
+    # the record cover these exact bytes and nothing else, so the next codec
+    # change re-raises the failure instead of inheriting this justification.
+    _require(
+        record["superseded_codec_configuration_hash"] == archived_hash,
+        "the readjudication supersedes a codec hash the evidence does not record",
+    )
+    _require(
+        record["current_codec_configuration_hash"] == codec.configuration_hash,
+        "the readjudication does not cover the current codec configuration hash",
+    )
+
+
 def _verify_no_tracked_cache_or_codestream(design: dict[str, Any]) -> None:
     result = subprocess.run(
         ["git", "ls-files"],
@@ -750,11 +947,7 @@ def verify(
         "summary grid or axis order differs",
     )
     codec = J2KCodec(REPO / design["cache_root"])
-    _require(
-        summary["codec_configuration"] == codec.snapshot
-        and summary["codec_configuration_hash"] == codec.configuration_hash,
-        "codec configuration or hash differs",
-    )
+    _verify_codec_configuration_binding(summary, codec)
     _require(
         summary["openjpeg_version"] == get("environment.openjpeg")
         and summary["glymur_version"] == get("environment.glymur"),

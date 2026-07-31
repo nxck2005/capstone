@@ -536,3 +536,238 @@ def test_tracked_cache_or_codestream_is_rejected(
     )
     with pytest.raises(VerificationError, match="cache or codestream"):
         verifier._verify_no_tracked_cache_or_codestream(design)
+
+
+# ---------------------------------------------------------------------------
+# AM-82 — the codec configuration is bound as history, and the single pinned
+# readjudication is the only thing permitting it to differ from HEAD.
+#
+# These exercise `_verify_codec_configuration_binding` directly against a fake
+# codec, so each mutation fails for its own independent property rather than
+# because some unrelated aggregate hash moved.
+# ---------------------------------------------------------------------------
+
+
+class _FakeCodec:
+    """Just enough of `J2KCodec` to stand in for HEAD's codec configuration."""
+
+    def __init__(self, snapshot: dict) -> None:
+        self.snapshot = snapshot
+        self.configuration_hash = hashlib.sha256(
+            verifier.canonical_json(snapshot)
+        ).hexdigest()
+
+
+def _archived_summary() -> dict:
+    summary = json.loads((SOURCE / "summary.json").read_text(encoding="utf-8"))
+    return {
+        "codec_configuration": summary["codec_configuration"],
+        "codec_configuration_hash": summary["codec_configuration_hash"],
+        "dataset": summary["dataset"],
+        "encode_axis_order": summary["encode_axis_order"],
+    }
+
+
+def _current_snapshot() -> dict:
+    """The archived snapshot with exactly the AM-80 change applied."""
+
+    snapshot = json.loads(
+        json.dumps(_archived_summary()["codec_configuration"])
+    )
+    snapshot["baseline"]["downsample_axis_px"]["cifar10"] = [32]
+    return snapshot
+
+
+def _record(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation=None) -> None:
+    value = json.loads(
+        (SOURCE / "codec_configuration_readjudication.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    if mutation is not None:
+        mutation(value)
+    path = tmp_path / "readjudication.json"
+    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setattr(verifier, "READJUDICATION", path)
+
+
+def test_codec_binding_accepts_the_declared_am80_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _record(tmp_path, monkeypatch)
+    verifier._verify_codec_configuration_binding(
+        _archived_summary(), _FakeCodec(_current_snapshot())
+    )
+
+
+def test_codec_binding_accepts_no_drift_without_a_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(verifier, "READJUDICATION", tmp_path / "absent.json")
+    summary = _archived_summary()
+    verifier._verify_codec_configuration_binding(
+        summary, _FakeCodec(summary["codec_configuration"])
+    )
+
+
+def test_codec_binding_rejects_a_stale_record_when_nothing_drifted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """A record left behind must not sit ready to cover the next change."""
+
+    _record(tmp_path, monkeypatch)
+    summary = _archived_summary()
+    with pytest.raises(VerificationError, match="nothing has drifted"):
+        verifier._verify_codec_configuration_binding(
+            summary, _FakeCodec(summary["codec_configuration"])
+        )
+
+
+def test_codec_binding_rejects_undeclared_drift_without_a_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(verifier, "READJUDICATION", tmp_path / "absent.json")
+    with pytest.raises(VerificationError, match="no readjudication is recorded"):
+        verifier._verify_codec_configuration_binding(
+            _archived_summary(), _FakeCodec(_current_snapshot())
+        )
+
+
+def test_codec_binding_rejects_an_archive_that_fails_its_own_hash(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    _record(tmp_path, monkeypatch)
+    summary = _archived_summary()
+    summary["codec_configuration_hash"] = "0" * 64
+    with pytest.raises(VerificationError, match="reproduce its own recorded hash"):
+        verifier._verify_codec_configuration_binding(
+            summary, _FakeCodec(_current_snapshot())
+        )
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("baseline", "j2k_resolutions"), 5),
+        (("baseline", "j2k_wavelet"), "reversible_5_3"),
+        (("baseline", "j2k_progression_order"), "LRCP"),
+        (("baseline", "j2k_code_block_size"), [32, 32]),
+        (("baseline", "j2k_tile_size"), "fixed_512"),
+        (("baseline", "j2k_rate_control"), "fixed_compression_ratio"),
+        (("baseline", "j2k_rate_control_method"), "single_shot"),
+        (("baseline", "j2k_search_tolerance_bytes"), 32),
+        (("baseline", "j2k_cache_key"), ["canonical_pixels_sha256"]),
+        (("baseline", "j2k_impl_version"), "2.5.3"),
+        (("preprocessing", "codec_downsample_interpolation"), "nearest"),
+        (("environment", "openjpeg"), "2.5.3"),
+    ],
+)
+def test_codec_binding_rejects_any_additional_codec_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, path: tuple[str, ...], value
+):
+    """The AM-82 record covers one parameter. Anything else must still fail."""
+
+    _record(tmp_path, monkeypatch)
+    snapshot = _current_snapshot()
+    snapshot[path[0]][path[1]] = value
+    with pytest.raises(VerificationError, match="but the archived and current"):
+        verifier._verify_codec_configuration_binding(
+            _archived_summary(), _FakeCodec(snapshot)
+        )
+
+
+def test_codec_binding_rejects_a_change_to_the_probes_own_axis_ladder(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    """The reachability argument dies the moment Imagenette's ladder moves."""
+
+    snapshot = _current_snapshot()
+    snapshot["baseline"]["downsample_axis_px"]["imagenette160"] = [160, 128, 96]
+    _record(
+        tmp_path,
+        monkeypatch,
+        lambda value: value.update(
+            changed_parameter_paths=[
+                "baseline.downsample_axis_px.cifar10",
+                "baseline.downsample_axis_px.imagenette160",
+            ],
+            old_values={
+                "baseline.downsample_axis_px.cifar10": [32, 24, 16],
+                "baseline.downsample_axis_px.imagenette160": [160, 128, 96, 64],
+            },
+            new_values={
+                "baseline.downsample_axis_px.cifar10": [32],
+                "baseline.downsample_axis_px.imagenette160": [160, 128, 96],
+            },
+        ),
+    )
+    with pytest.raises(VerificationError, match="not identical"):
+        verifier._verify_codec_configuration_binding(
+            _archived_summary(), _FakeCodec(snapshot)
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (
+            lambda value: value.update(superseded_codec_configuration_hash="0" * 64),
+            "supersedes a codec hash",
+        ),
+        (
+            lambda value: value.update(current_codec_configuration_hash="0" * 64),
+            "does not cover the current",
+        ),
+        (
+            lambda value: value.update(
+                old_values={"baseline.downsample_axis_px.cifar10": [32]}
+            ),
+            "wrong superseded value",
+        ),
+        (
+            lambda value: value.update(
+                new_values={"baseline.downsample_axis_px.cifar10": [32, 24, 16]}
+            ),
+            "wrong current value",
+        ),
+        (
+            lambda value: value.update(probe_datasets=["cifar10"]),
+            "datasets other than the one",
+        ),
+        (
+            lambda value: value.update(unchanged={"campaign_rerun": True}),
+            "claims the campaign was rerun",
+        ),
+        (
+            lambda value: value.update(justification="because"),
+            "no substantive justification",
+        ),
+        (lambda value: value.update(scope_limits=[]), "no scope limits"),
+        (
+            lambda value: value.update(reachability_argument={"selector": "nothing"}),
+            "no code-backed reachability argument",
+        ),
+        (
+            lambda value: value.update(
+                reachability_argument={
+                    "selector": "configured_axes",
+                    "probe_dataset_ladder_unchanged": False,
+                }
+            ),
+            "no code-backed reachability argument",
+        ),
+        (lambda value: value.update(amendment="none"), "names no amendment"),
+        (
+            lambda value: value.update(kind="something_else"),
+            "not a recognised codec-configuration record",
+        ),
+    ],
+)
+def test_codec_binding_rejects_a_defective_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation, message: str
+):
+    _record(tmp_path, monkeypatch, mutation)
+    with pytest.raises(VerificationError, match=message):
+        verifier._verify_codec_configuration_binding(
+            _archived_summary(), _FakeCodec(_current_snapshot())
+        )

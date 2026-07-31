@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "transparency_probe_codec_configuration_readjudication",
+  "amendment": "AM-82",
+  "readjudicated_at": "2026-07-31",
+  "readjudicated_during": "W4 PB_2C corrective provenance and accounting repair",
+  "probe_evidence_commit": "2ebb2cefade25add5f65c3ce0efa40bb747aba16",
+  "probe_implementation_commit": "90007f165f8f669a54127bdd6539472cb2d3f534",
+  "probe_measurement_commit": "7896c7a744149cfa1e51948a86cff05f16a346b5",
+  "superseded_codec_configuration_hash": "1a0b0d74bef1caed33b8cff8f866dee967ff202493a0a8e2993619e0b1e2a064",
+  "current_codec_configuration_hash": "2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa",
+  "changed_parameter_paths": [
+    "baseline.downsample_axis_px.cifar10"
+  ],
+  "old_values": {
+    "baseline.downsample_axis_px.cifar10": [32, 24, 16]
+  },
+  "new_values": {
+    "baseline.downsample_axis_px.cifar10": [32]
+  },
+  "probe_datasets": ["imagenette160"],
+  "probe_encode_axes_px": [160, 128, 96, 64],
+  "reachability_argument": {
+    "claim": "The changed parameter is unreachable from this probe's execution.",
+    "selector": "src/baseline/classical/pipeline.py::configured_axes",
+    "selector_behaviour": "configured_axes(dataset, canonical_shorter_side) reads params.baseline.downsample_axis_px[dataset] and no other dataset's ladder, so a change confined to a dataset key other than the probe's cannot alter which axes the probe encoded.",
+    "probe_dataset_ladder_unchanged": true,
+    "changed_dataset_keys": ["cifar10"],
+    "probe_dataset_keys": ["imagenette160"],
+    "executable_check": "The verifier recomputes the configured axis ladder for the probe's dataset under both the archived and the current snapshot and requires them equal; it also requires that the archived-vs-current snapshot difference is exactly the declared parameter paths and no others."
+  },
+  "justification": "AM-80 removed CIFAR-10's 24 px and 16 px JPEG 2000 encode axes because a flat params.baseline.j2k_resolutions of 6 requires every tile dimension to be at least 2**5 = 32 px, so OpenJPEG rejects those rungs before rate control for every image and every budget. params.baseline.downsample_axis_px participates in the content-addressed codec configuration hash as a whole mapping, so removing CIFAR-10 rungs changes that hash for every dataset even though no Imagenette-160 rung moved. This probe is a completed validation-only campaign over 68,000 Imagenette-160 cells; its encodes could not have depended on a CIFAR-10 rung. Re-running it would spend real compute to reproduce identical numbers while destroying the evidence that a parameter moved, so the drift is recorded and byte-pinned instead, following the G-2 precedent. This record is deliberately singular: it is not a drift allowlist, it does not make codec configuration hash changes acceptable in general, and it is pinned to exactly the two hashes and the one parameter path above so that any further codec drift re-raises the failure rather than inheriting this justification.",
+  "scope_limits": [
+    "Permits exactly the declared parameter paths and no others.",
+    "Pinned to the declared superseded and current codec configuration hashes; HEAD must still reproduce the current hash.",
+    "Does not permit any change to the probe dataset's encode axes.",
+    "Does not permit any change to j2k_resolutions, the wavelet, the progression order, the code-block size, the tile size, the rate-control settings, the search settings, the cache-key definition, the codec implementation or binding versions, or the preprocessing keys.",
+    "Does not permit a missing or altered archived codec snapshot.",
+    "No scientific result, cell count, budget, cache key, bitrate or transparency conclusion of the probe changes."
+  ],
+  "unchanged": {
+    "completed_validation_cells": true,
+    "cache_keys": true,
+    "recorded_bitrates_and_accuracies": true,
+    "probe_conclusions": true,
+    "campaign_rerun": false
+  }
+}

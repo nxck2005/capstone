@@ -125,7 +125,7 @@ file changed, so G-2 is unaffected. See `worklogs/w4-classical-baseline-progress
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **sixteen amendment rounds** across 79 `AM` entries, and is the file to read before
+records **sixteen amendment rounds** across 82 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -137,7 +137,7 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 187 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 190 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures

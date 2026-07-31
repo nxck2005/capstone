@@ -262,7 +262,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.j2k_binding` | glymur | AM-51, BR-1 |
 | `baseline.j2k_wavelet` | irreversible_9_7 | AM-51, BR-1 |
 | `baseline.j2k_progression_order` | RPCL | AM-51, BR-1 |
-| `baseline.j2k_resolutions` | 6 | AM-51, BR-1 |
+| `baseline.j2k_resolutions` | 6 | AM-51, AM-80, BR-1 |
 | `baseline.j2k_code_block_size` | 64, 64 | AM-51, BR-1 |
 | `baseline.j2k_tile_size` | whole_image | AM-51, BR-1 |
 | `baseline.j2k_search_method` | bisection_on_compression_ratio | AM-51, BR-1 |
@@ -271,9 +271,9 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.j2k_search_max_iters` | 24 | AM-51, BR-1 |
 | `baseline.j2k_cache_key` | canonical_pixels_sha256, budget_bytes, encode_axis_px, codec_config_hash, j2k_impl_version | AM-51, AM-54, AM-58, BR-1, BR-4 |
 | `baseline.j2k_nonmonotone_policy` | keep_largest_codestream_at_or_below_budget | AM-51, BR-1 |
-| `baseline.downsample_axis_px.imagenette160` | 160, 128, 96, 64 | AM-51, AM-58, BR-1 |
-| `baseline.downsample_axis_px.stl10` | 96, 80, 64, 48 | AM-51, AM-58, BR-1 |
-| `baseline.downsample_axis_px.cifar10` | 32, 24, 16 | AM-51, AM-58, BR-1 |
+| `baseline.downsample_axis_px.imagenette160` | 160, 128, 96, 64 | AM-51, AM-58, AM-80, AM-82, BR-1 |
+| `baseline.downsample_axis_px.stl10` | 96, 80, 64, 48 | AM-51, AM-58, AM-80, AM-82, BR-1 |
+| `baseline.downsample_axis_px.cifar10` | 32 | AM-51, AM-58, AM-80, AM-82, BR-1 |
 | `baseline.downsample_axis_never_upscales` | true | AM-51, BR-1 |
 | `baseline.downsample_selection` | best_feasible_per_snr_on_validation_split | AM-51, BR-1 |
 | `baseline.packet_count_grid` | 1, 2, 4 | AM-51, BR-16 |
@@ -286,7 +286,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.jpeg_quality_grid` | 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95 | AM-51, BR-4 |
 | `baseline.bler_characterisation_trials` | 5000 | AM-51, BR-4 |
 | `baseline.fixed_mcs_design_snr_db` | 7 | AM-51, AM-53, BR-16 |
-| `baseline.container_policy` | all emitted container bytes count against payload_bits; shared-table or stripped-header variants MAY be reported as a labelled sensitivity, never as the headline | AM-51, BR-11 |
+| `baseline.container_policy` | all emitted container bytes count against payload_bits; shared-table or stripped-header variants MAY be reported as a labelled sensitivity, never as the headline | AM-51, AM-81, BR-11 |
 | `baseline.channel_code` | 5g_nr_ldpc | AM-51, BR-1, ER-9, ER-12 |
 | `baseline.ldpc_standard` | 3gpp_ts_38_212 | AM-51, BR-2, G-9 |
 | `baseline.ldpc_standard_release` | rel_17 | AM-51, G-9 |
@@ -624,8 +624,8 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `config.fingerprint_parameter_roots` | project, datasets, preprocessing, bandwidth, channel, learned_system, baseline, reference_classifier, digital_semantic_control, evaluation, compute, artifacts, environment | AM-68, SR-1, SR-18 |
 | `config.fingerprint_excluded_roots` | config, demo, hardware_tier23, deliverables | AM-68, SR-1, SR-18 |
 | `config.run_config_hash_form` | sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json | AM-68, SR-1, SR-18 |
-| `config.analysis_version` | 1 | AM-68, AM-69, SR-1, SR-18 |
-| `config.analysis_version_bump_rule` | bump_on_inference_estimand_or_analysis_implementation_change | AM-68, SR-1, SR-18 |
+| `config.analysis_version` | 2 | AM-68, AM-69, AM-81, SR-1, SR-18 |
+| `config.analysis_version_bump_rule` | bump_on_inference_estimand_or_analysis_implementation_change | AM-68, AM-81, SR-1, SR-18 |
 | `config.dataset_version_rule` | archive_sha256 | AM-68, AM-69, SR-1, SR-18 |
 | `config.literal_lint_scope` | src/ | AM-68, SR-1, SR-18 |
 | `config.literal_lint_excluded_paths` | src/config/ | AM-68, SR-1, SR-18 |

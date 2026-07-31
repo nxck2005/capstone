@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-07-31 · **Phase:** **W4 PB_2 complete; PB_3 blocked on a codec decision.**
+**Last updated:** 2026-07-31 · **Phase:** **W4 PB_2C — corrective repair of PB_2 in progress.**
 
 ## Single next task
 
@@ -19,20 +19,21 @@ does not, it is wrong and this block is right.**
 | W3 | complete |
 | G-2 | PASS |
 | transparency-bitrate probe | complete |
-| bounded W4 integration | PA, PB_1 (incl. PB_1C) and PB_2 complete; PB_3 remains |
+| bounded W4 integration | PA and PB_1 (incl. PB_1C) complete; PB_2 under corrective repair as PB_2C; PB_3 remains |
 | W4 · PA | complete |
 | W4 · PB_1 (incl. the PB_1C correction) | complete |
-| W4 · PB_2 | complete |
-| W4 · PB_3 | **next engineering phase — blocked by the `j2k_resolutions` decision below** |
+| W4 · PB_2 | implementation landed; **its bounded evidence and green judgment are superseded pending PB_2C** |
+| W4 · PB_2C | **next engineering phase — corrective provenance and accounting repair** |
+| W4 · PB_3 | not started; blocked by PB_2C |
 | full BR-4 sweep | not started |
 | G-8 | unresolved |
-| `j2k_resolutions` vs CIFAR-10 24/16 px | undecided — blocks PB_3, the BR-4 sweep and G-8 |
+| `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
+| BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-Resolve the `j2k_resolutions` versus CIFAR-10 axis conflict through a recorded spec
-decision/amendment, then run `instructions/PB_3.txt` from B3.0. G-8 has not started. Do not run the
-full BR-4 validation sweep, select ratios, calibrate λ, train learned models, implement ER-9, or
-access the test split until their scheduled gates.
+Complete W4 PB_2C from `instructions/PB_2C.txt`, then run `instructions/PB_3.txt` from B3.0. G-8 has
+not started. Do not run the full BR-4 validation sweep, select ratios, calibrate λ, train learned
+models, implement ER-9, or access the test split until their scheduled gates.
 
 **Where bounded W4 stands.** `instructions/RESUME.md` is the operational cursor for the four-phase
 sequence and wins on progress. PA and **PB_1 are complete, PB_1 including its PB_1C correction**:
@@ -73,32 +74,45 @@ spec amendment — it restores behaviour the spec already required. Bit accounti
 codestream hashes are unchanged; only 16-QAM realised symbol energy and PAPR moved, as expected.
 Details: `worklogs/w4-classical-baseline-progress.md`; ledger: `instructions/RESUME.md`.
 
-### Open block — `j2k_resolutions` vs CIFAR-10's small axes
+### Settled — `j2k_resolutions` vs CIFAR-10's small axes (AM-80)
 
-**Undecided, and it blocks PB_3, the full BR-4 sweep and G-8. It did not block PB_2, which is now
-complete — so this is the single thing standing between the project and PB_3.**
+**Decided. Do not reopen.** `params.baseline.downsample_axis_px.cifar10` is now `[32]`: the 24 px
+and 16 px rungs are gone. `params.baseline.j2k_resolutions = 6` requires every tile dimension to be
+at least `2^5 = 32` px, so OpenJPEG hard-errored at those two rungs for *every* image and *every*
+budget — they were invalid codec configurations, not low-rate candidates. The rejected alternative
+was making `j2k_resolutions` axis-dependent or clamped to `min(6, floor(log2(axis)) + 1)`; that
+would have added a new codec rule and more cache-identity complexity without helping either
+headline dataset, and CIFAR-10 is a DEC-1 plumbing smoke path whose 32 px rung works.
 
-`params.baseline.j2k_resolutions = 6` requires every tile dimension to be at least `2^5 = 32` px,
-but `params.baseline.downsample_axis_px.cifar10` is `[32, 24, 16]`. OpenJPEG hard-errors at 24 px
-and 16 px for *every* image and *every* budget, so two of CIFAR-10's three configured axes cannot
-encode at all. Nothing in `spec/SPEC.md` resolves this — BR-1/AM-51 freeze `j2k_resolutions` flat,
-and no clamping rule exists — so it needs a decision, not a bug fix.
+The consequence was known and accepted: `downsample_axis_px` participates in the content-addressed
+codec configuration hash, so **every J2K cache key changed**. The one completed campaign this
+touches is the transparency-bitrate probe, which encoded Imagenette-160 exclusively and therefore
+cannot have depended on a CIFAR-10 rung. **AM-82** binds that probe's codec configuration as
+history and permits the difference only through a single byte-pinned off-measurement-path record
+(`results/probes/transparency_bitrate/codec_configuration_readjudication.json`) that names the
+superseded and current hashes and the exact parameter that moved. It is not a drift allowlist: any
+further codec drift, any change to an Imagenette axis or a shared J2K setting, or a failed
+reachability check fails the verifier. The probe was **not** re-run.
 
-Two candidates, both requiring an `AM` entry because either changes the codec configuration hash
-and therefore **every J2K cache key**:
-
-1. drop 24 and 16 from `params.baseline.downsample_axis_px.cifar10`;
-2. make `j2k_resolutions` axis-dependent or deterministically clamped to
-   `min(6, floor(log2(axis)) + 1)`.
-
-Deliberately left unresolved by PB_1C, which had no need to change a frozen parameter to correct an
-implementation defect. Until it is decided, the pipeline reports the two axes per-axis as
-`codec_configuration_error`, kept distinct from `budget_exceeded` so a setup fault can never be
-read as a channel result. Reproduction:
+The pipeline now rejects 24 px and 16 px as *unconfigured* before the codec runs. Reproduction of
+the resolved state, including a direct codec call proving the rungs were removed for a real
+constraint rather than for tidiness:
 `tests/test_classical_pipeline.py::test_j2k_resolutions_cannot_encode_cifar10s_small_axes`.
 
-CIFAR-10 is a plumbing smoke path only (DEC-1) and its 32 px axis works, so this costs nothing
-before the sweep.
+### Settled — BR-11 `header_bytes` / `payload_bytes` (AM-81)
+
+**Decided. Do not reopen.** `bytes_sent = source_bytes = A/8`. `header_bytes` is *all* structural
+codestream bytes (SOC, every main-header marker segment, every SOT marker segment, every tile-part
+header through and including SOD, EOC, and each tile-part's equivalent structural bytes);
+`payload_bytes` is *all* tile-part data bytes after SOD and before the next tile-part boundary —
+**not** "entropy-coded sample data", because that region may also carry packet headers.
+`emitted_codestream_bytes = header_bytes + payload_bytes`, and
+`payload_filler_bytes = bytes_sent − emitted_codestream_bytes` is reported separately, never folded
+into either column. Both columns are means over **every row that emitted a codestream** — delivered
+*and* decode-failure — and are null only when no codestream was emitted at all. The old
+delivered-only denominator meant an all-decode-failure cell reported no overhead, which is exactly
+the regime BR-11 exists to expose. `params.config.analysis_version` is bumped to **2** because
+redefining an aggregate column's meaning and denominator is an analysis-implementation change.
 
 `tools/check_doc_consistency.py` mechanically enforces that this block is not contradicted
 elsewhere in this file: a live section may not prohibit the declared next task, may not direct
@@ -407,7 +421,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted, then begin bounded W4 classical-baseline integration only:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 187 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 190 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: 11 current docs, 1 historical excluded
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
