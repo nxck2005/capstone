@@ -44,10 +44,10 @@ Then:
 
 ## Status
 
-**Current phase:** PB_3 — not started
-**Last green commit:** this `docs(handoff): harden PB_3 preflight and frontier consistency` commit —
-the **PRE_B3 repository-process green**. Written in the repository's non-self-referential form
-because a commit cannot contain its own SHA.
+**Current phase:** PB_3 — in progress (B3.0 done)
+**Last green commit:** `81372a5f1139bbfa9e086d229bf807c7cf6a8bce`
+(`docs(handoff): harden PB_3 preflight and frontier consistency`) — the **PRE_B3
+repository-process green**, and the PB_3 starting SHA.
 **Last scientific-evidence green:** `3324393a3e1692478bba8cf1020708bf52947f6d` — the PB_2C corrective
 green (`fix(classical): close PB_2 provenance and accounting corrections`). **PB_2C remains the most
 recent scientific evidence green; PRE_B3 changed no requirement, parameter, evidence, identity or
@@ -55,8 +55,10 @@ measurement.** The provisional PB_2 green `50de80364c2546463918387a8f335ea36107b
 **invalidated**; the corrected bounded evidence was regenerated at
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** this commit
-**Next action:** run `instructions/PB_3.txt` from B3.0
+**Last durable checkpoint:** this `wip(classical): record the B3.0 baseline` commit
+**Next action:** implement B3.1 — create `src/baseline/classical/composition.py` with the
+BR-4 analytic composition and `tests/test_classical_composition.py`, then run
+`.venv/bin/python -m pytest tests/test_classical_composition.py -q`
 
 **PB_2 is complete, including its PB_2C correction.** `instructions/PB_2C.txt` is the durable
 instruction for that repair and its §18 addendum carries two normative decisions and four
@@ -478,7 +480,7 @@ measurement, and adds no amendment. PB_2C remains the most recent scientific-evi
 
 | Step | State | Notes |
 |---|---|---|
-| B3.0 confirm PB_2 green | not-started | |
+| B3.0 confirm PB_2 green | done | Fresh run, no resumption. Clean worktree; local HEAD = `origin/main` = remote main = `81372a5f1139bbfa9e086d229bf807c7cf6a8bce` (the PRE_B3 green). PB_2C `3324393a3e1692478bba8cf1020708bf52947f6d` remains the latest scientific-evidence green. **PB_3 confirmed not started:** `src/baseline/classical/composition.py` absent, all ten B3.x rows `not-started`, no G-8 sweep or operating-point selection has occurred, test split sealed. All six inherited files present (`pipeline.py`, `channel_transport.py`, `outage.py`, `records.py`, `tools/verify_w4_baseline_integration.py`, `results/baseline/w4/outage_policy.json`). Carried outage facts populated and read from the ledger, not recomputed: class **0**, measured **100/1000 = 0.1**. **Baseline checks, each run separately:** `fetch_ldpc_golden_vectors` fixture already present `55754b508ab1…` · `gen_spec_views --check` 190 requirements (2 retired), 10 views current · `check_doc_consistency -v` ok, 11 current docs, frontier PB_3 · `check_literals -v` 42 files, 0 findings, 46 annotations · `check_packetisation` 215 feasible, 3 clamped, **0 failures** · `gen_g2_source_manifest --check` ok (14 sources) · `verify_g2_adjudication` **PASS** (`measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']`) · `gen_w4_source_manifest --check` ok (40 sources, execution `76e789c9f3d0`) · `verify_w4_baseline_integration` **PASS** (`sources=40, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), cifar_transport_only=5, imagenette[18.0dB n=24 top1=0.75, -8.0dB n=24 top1=0.125], raw_rows=55 (emitted=53), openjpeg=2.5.4, overhead_cells=3, test_split_access=0`) · **`pytest` 902 passed, 0 failed, 0 skipped in 100.90 s** (matches the PRE_B3 H3.4 baseline exactly). Next action: implement B3.1. |
 | B3.1 `composition.py` arithmetic | not-started | |
 | B3.2 BLER lookup + support guard | not-started | |
 | B3.3 candidate cache + tie-break | not-started | |
@@ -490,6 +492,23 @@ measurement, and adds no amendment. PB_2C remains the most recent scientific-evi
 | B3.9 green commit + push | not-started | |
 
 ---
+
+### PB_3 observed facts
+
+Append-only. A superseded observation is *marked* superseded, never deleted.
+
+| Fact | Value | Observed at | Verified |
+|---|---|---|---|
+| run kind | **fresh run**, no resumption. Ledger showed every B3.x row `not-started` and the worktree clean | B3.0 | yes |
+| starting local HEAD | `81372a5f1139bbfa9e086d229bf807c7cf6a8bce` | B3.0 | yes |
+| starting origin/main | `81372a5f1139bbfa9e086d229bf807c7cf6a8bce` | B3.0 | yes |
+| starting remote main | `81372a5f1139bbfa9e086d229bf807c7cf6a8bce` (`git ls-remote origin refs/heads/main`) — all three agree | B3.0 | yes |
+| starting worktree | clean (`git status --short` empty) | B3.0 | yes |
+| PB_3 not-started proof | `src/baseline/classical/composition.py` absent; all ten B3.x rows `not-started`; no G-8 sweep, no operating-point selection, no ratio selection; `bandwidth.efficiency_ratio` / `crossover_ratio` / `low_ratio_operating_point` all still `provisional_until_G-8` | B3.0 | yes |
+| B3.0 pytest baseline | **902 passed, 0 failed, 0 skipped in 100.90 s** — identical to the PRE_B3 H3.4 baseline | B3.0 | yes |
+| B3.0 verifier baseline | `verify_w4_baseline_integration` PASS: `execution=76e789c9f3d0, sources=40, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), cifar_transport_only=5 (no task score), imagenette[18.0dB n=24 top1=0.75, -8.0dB n=24 top1=0.125], raw_rows=55 (emitted=53), openjpeg=2.5.4, overhead_cells=3, test_split_access=0` | B3.0 | yes |
+| composition inputs carried forward | outage class **0**, measured outage accuracy **100/1000 = 0.1** (numerator/denominator/count vector in `results/baseline/w4/outage_policy.json`). Read from the ledger rows below; **not recomputed** and never replaced by `1/n_classes` | B3.0 | yes |
+| characterized BLER support (committed G-2 evidence) | Exactly **one** physical-layer identity per modulation, from `results/baseline/g2/bler_results.csv` (24 rows, 12 `sionna` points): `k=128, n=256, base_graph=2, lifting_size=22, rate=1/2, decoder=offset_min_sum, offset=0.5, iterations=50`. Modulations **bpsk, qpsk, qam16**. Source SNR convention `eb_n0_per_information_bit` with the derived `esn0_db` column; `bler_reference.json` declares `waterfall_interpolation: linear_in_snr_vs_log10_bler`. Eb/N0 support: bpsk/qpsk `[1.5, 2.75]`, qam16 `[4.0, 5.25]` | B3.0 | yes |
 
 ## Observed facts (carry forward; re-verify anything marked stale)
 
