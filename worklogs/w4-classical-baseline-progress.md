@@ -456,8 +456,9 @@ behaviour, so no `AM` entry arises from it either.
 
 ### Remaining open issues
 
-* **`j2k_resolutions` vs CIFAR-10's 24/16 px axes** — unresolved by decision; blocks PB_3, the full
-  BR-4 sweep and G-8; does not block PB_2. See the C1.5 section above.
+* **`j2k_resolutions` vs CIFAR-10's 24/16 px axes** — ~~unresolved by decision; blocks PB_3, the full
+  BR-4 sweep and G-8; does not block PB_2.~~ **Resolved at PB_2C/C2.1 by AM-80**; recorded here as it
+  stood at PB_1C. See the C1.5 section above and the PB_2C section below.
 * **Cache-key field spelling** — `baseline.j2k_cache_key` names `j2k_impl_version`,
   `J2KCodec._cache_identity` spells it `openjpeg_version`. Values agree; deliberately not renamed
   because the committed transparency-probe evidence records keys produced under the current
@@ -696,7 +697,10 @@ as written; the frozen G-1 checkpoint is unchanged. The two field meanings resol
 otherwise is flagged rather than buried. §17's convention does not treat implementation of an
 existing requirement as an amendment.
 
-## Remaining block before PB_3
+## ~~Remaining block before PB_3~~ — **SUPERSEDED at PB_2C/C2.1 by AM-80. Completed snapshot as written at PB_2.**
+
+> `baseline.downsample_axis_px.cifar10` is now the single native `[32]` rung, so nothing below still
+> blocks PB_3. Retained unedited as the PB_2-era record; see the PB_2C section for the resolution.
 
 **`j2k_resolutions` vs CIFAR-10's 24/16 px axes remains unresolved by decision.** PB_2 did not touch
 it: the CIFAR smoke pins the working 32 px axis explicitly so the conflict cannot contaminate

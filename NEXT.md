@@ -199,8 +199,12 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 3. ~~**Transparency-bitrate probe using the frozen reference classifier.**~~ **Complete.**
 4. ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting
    through G-2.**~~ **Complete — G-2 PASS.**
-5. **W4: bounded classical-baseline integration required before G-8.** PB_1 (the classical
-   transport path) is complete; `instructions/PB_2.txt` is the next step.
+5. ~~**W4 PA — recover and harden post-G-2 state.**~~ **Complete.**
+6. ~~**W4 PB_1, including the PB_1C correction — the classical transport path.**~~ **Complete.**
+7. ~~**W4 PB_2, including the PB_2C correction — outage policy, records and bounded evidence.**~~
+   **Complete.**
+8. **W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication. Next, not started.**
+9. **Full BR-4 validation sweep / G-8 — not started.**
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
@@ -214,7 +218,7 @@ selection-aware paired bootstrap forecasts the 5 pp threshold at 1,330 bytes (ax
 0.987788 bpp, 0.886 accuracy, LCB −0.018); neither is censored. These are probe forecasts only:
 G-8 remains unresolved. No training ran and the test split stayed sealed. Do not select a G-8
 operating point from those forecasts, open G-8, or start the reference-classifier fallback ladder —
-bounded W4 integration is the live task, as stated in the block at the top of this file.
+W4 PB_3 is the live task, as stated in the block at the top of this file.
 
 ---
 
@@ -419,8 +423,10 @@ Review criterion** — it first appears at the Second — so these marks are for
 **W1, W2 and W3, G-1, G-2, G-7 and the validation-only transparency-bitrate probe are complete.** Do not
 reopen the reference-classifier recipe, start its fallback ladder, implement the G-7 width fallback,
 select a G-8 operating point from the probe, or open another full-spec audit round without new
-evidence. The single next engineering task is bounded W4 classical-baseline integration before
-G-8. Registration remains confirmed (AM-63), and
+evidence. **W4 PA, PB_1 (with PB_1C) and PB_2 (with PB_2C) are complete; the single next engineering
+task is W4 PB_3, the BR-4 selection infrastructure required before G-8** — run
+`instructions/PB_3.txt` from B3.0, with `instructions/RESUME.md` as the operational cursor.
+Registration remains confirmed (AM-63), and
 PR-9's author-owned hardware-alternative acknowledgement remains
 non-blocking.
 
@@ -434,11 +440,11 @@ preserved in the named GitHub Release. The best/final validation result is 898/1
 RTX 4060 Laptop 8 GB · driver 592.82 · Torch CUDA 13.0. The three dataset archives/extractions and
 srsRAN vectors remain locally available and ignored as designed.
 
-Confirm nothing drifted, then begin bounded W4 classical-baseline integration only:
+Confirm nothing drifted, then begin W4 PB_3 only:
 
 ```bash
 .venv/bin/python tools/gen_spec_views.py --check           # expect: 190 requirements (2 retired)
-.venv/bin/python tools/check_doc_consistency.py            # expect: 11 current docs, 1 historical excluded
+.venv/bin/python tools/check_doc_consistency.py            # expect: exit 0; the current-document count is whatever the checker reports
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
 .venv/bin/python tools/fetch_datasets.py --check
@@ -449,7 +455,8 @@ Confirm nothing drifted, then begin bounded W4 classical-baseline integration on
 .venv/bin/python tools/verify_transparency_bitrate_probe.py
 .venv/bin/python tools/fetch_ldpc_golden_vectors.py         # materialize the ignored rung-2 fixture BEFORE pytest
 .venv/bin/python tools/verify_g2_adjudication.py            # expect: rows=24, test_split_access=0, runtime_readjudicated=[transport.py]
-.venv/bin/python -m pytest                                  # expect: 565 passed with CUDA access
+.venv/bin/python tools/verify_w4_baseline_integration.py    # expect: PASS, outage_class=0 (100/1000), test_split_access=0
+.venv/bin/python -m pytest                                  # expect: all tests pass with CUDA access; the PB_2C baseline was 892 passed
 .venv/bin/python tools/verify_cpu_lock.py --clean-install
 git status --short                                          # expect: clean
 ```
@@ -696,10 +703,10 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-W1, W2 and W3, G-1, G-2, G-7 and the validation-only transparency-bitrate probe are complete. The
-single next engineering task is bounded W4 classical-baseline integration before G-8. PR-1 and
-PR-2 remain parallel First Review work, and the
-author-owned PR-9 acknowledgement remains open.
+W1, W2 and W3, G-1, G-2, G-7 and the validation-only transparency-bitrate probe are complete, and so
+are W4's PA, PB_1 (with PB_1C) and PB_2 (with PB_2C). The single next engineering task is **W4 PB_3**,
+the BR-4 selection infrastructure required before G-8. PR-1 and PR-2 remain parallel First Review
+work, and the author-owned PR-9 acknowledgement remains open.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
@@ -711,7 +718,8 @@ author-owned PR-9 acknowledgement remains open.
 | ~~5~~ | ~~**Build W2 through G-7**~~ **DONE 2026-07-29** — primary model, batch 32, G-7 PASS | — | Corrected implementation-bound full training-only CUDA epoch; 48.684 s, 1.004 GiB reserved, 1.352 h projected | ~~W3+~~ |
 | ~~5a~~ | ~~**Transparency-bitrate probe with the frozen classifier**~~ **DONE 2026-07-30** — 68,000 validation cells, 0 infeasible, 0 decode failures | — | Frozen classifier reproduced 898/1000; forecasts only, G-8 unresolved | ~~W3/W4~~ |
 | ~~5b~~ | ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2**~~ **DONE 2026-07-30 — G-2 PASS** | — | Golden, known-answer, BLER and packetisation evidence verified | ~~W4+~~ |
-| 5c | **W4 bounded classical-baseline integration before G-8** | agent | G-2 passed; integrate the validated physical layer without starting the full BR-4 sweep | G-8 |
+| ~~5c~~ | ~~**W4 PA / PB_1 / PB_2 bounded classical-baseline integration**~~ **DONE 2026-07-31 — including the PB_1C and PB_2C corrections** | — | Validated physical layer integrated; no sweep started | ~~PB_3~~ |
+| 5d | **W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication** | agent | PB_2C closed; build the selection machinery G-8 will later execute, without running it at scale | G-8 |
 | 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
