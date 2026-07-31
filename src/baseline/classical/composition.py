@@ -119,6 +119,7 @@ __all__ = [
     "sweep_budget",
     "check_sweep_budget",
     "select_operating_points",
+    "evaluate_candidate",
 ]
 
 
@@ -1677,3 +1678,68 @@ def select_operating_points(
         authorization=authorization,
     )
     return resolve_curve(mode, evaluations_by_snr)
+
+
+def evaluate_candidate(
+    candidate: Candidate,
+    *,
+    feasibility: Feasibility,
+    block_identities: Sequence[Mapping[str, Any] | BlerIdentity],
+    bler_table: BlerTable,
+    codec_accuracy: MeasuredCodecAccuracy,
+    outage_accuracy: MeasuredOutageAccuracy,
+) -> CandidateEvaluation:
+    """Turn one candidate into a scored evaluation, or into a stated refusal.
+
+    This is where the three fail-closed behaviours meet.  A structurally
+    infeasible candidate never reaches the BLER table.  A candidate whose code
+    blocks are not *all* characterised at this SNR is
+    :data:`UNCHARACTERIZED` — not partially scored, not scored on the blocks
+    that happened to resolve, and not scored with the missing blocks treated as
+    error-free.  Only a candidate with a measured BLER for every block is
+    composed and made eligible.
+    """
+
+    if not isinstance(feasibility, Feasibility):
+        raise CompositionError(
+            f"feasibility must be a Feasibility, not {type(feasibility).__name__}"
+        )
+    if not feasibility.feasible:
+        return CandidateEvaluation(
+            candidate=candidate,
+            status=INFEASIBLE,
+            reason=feasibility.reason or "infeasible",
+        )
+    identities = tuple(block_identities)
+    if not identities:
+        raise CompositionError(
+            "a feasible candidate has at least one code block; refusing to "
+            "compose an empty transport block"
+        )
+    if (
+        feasibility.code_blocks is not None
+        and feasibility.code_blocks != len(identities)
+    ):
+        raise CompositionError(
+            f"{len(identities)} block identities supplied for a transport block "
+            f"of {feasibility.code_blocks} code blocks"
+        )
+    blers: list[float] = []
+    for index, identity in enumerate(identities):
+        lookup = bler_table.lookup(identity, candidate.snr_db)
+        if not lookup.characterized:
+            return CandidateEvaluation(
+                candidate=candidate,
+                status=UNCHARACTERIZED,
+                reason=f"code_block_{index}:{lookup.reason}",
+            )
+        blers.append(lookup.require())
+    return CandidateEvaluation(
+        candidate=candidate,
+        status=ELIGIBLE,
+        composition=compose(
+            blers,
+            codec_accuracy=codec_accuracy,
+            outage_accuracy=outage_accuracy,
+        ),
+    )

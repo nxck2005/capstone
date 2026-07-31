@@ -58,6 +58,7 @@ from baseline.classical.composition import (
     UncharacterizedBlerError,
     g2_bler_table,
     check_sweep_budget,
+    evaluate_candidate,
     mode_policy,
     resolve_curve,
     select_operating_points,
@@ -1349,3 +1350,138 @@ def test_no_default_true_authorization_flag_exists() -> None:
     for function in (check_sweep_budget, select_operating_points):
         parameter = inspect.signature(function).parameters["authorization"]
         assert parameter.default is None, function.__name__
+
+
+# --------------------------------------------------------------------------
+# End to end: lookup -> composition -> evaluation, all three refusals wired
+# --------------------------------------------------------------------------
+
+
+def test_a_feasible_characterized_candidate_is_evaluated_from_measured_bler() -> None:
+    candidate = _candidate(snr_db=2.5)
+    evaluation = evaluate_candidate(
+        candidate,
+        feasibility=Feasibility(feasible=True, code_blocks=2),
+        block_identities=[CHARACTERIZED_KEY, CHARACTERIZED_KEY],
+        bler_table=g2_bler_table(),
+        codec_accuracy=_codec(),
+        outage_accuracy=_outage(),
+    )
+    assert evaluation.status == ELIGIBLE
+    assert evaluation.composition is not None
+    assert evaluation.composition.block_blers == (0.0112, 0.0112)
+    # Hand-checked: P = 0.9888^2; 0.87 and 0.1 are the two measured terms.
+    expected = (0.9888**2) * 0.87 + (1 - 0.9888**2) * 0.1
+    assert evaluation.expected_accuracy == pytest.approx(expected, rel=1e-12)
+
+
+def test_an_infeasible_candidate_never_reaches_the_bler_table() -> None:
+    class _Exploding:
+        def lookup(self, *args: object, **kwargs: object) -> None:
+            raise AssertionError("the BLER table must not be consulted")
+
+    evaluation = evaluate_candidate(
+        _candidate(),
+        feasibility=Feasibility(feasible=False, reason="structural_infeasibility"),
+        block_identities=[CHARACTERIZED_KEY],
+        bler_table=_Exploding(),  # type: ignore[arg-type]
+        codec_accuracy=_codec(),
+        outage_accuracy=_outage(),
+    )
+    assert evaluation.status == INFEASIBLE
+    assert evaluation.reason == "structural_infeasibility"
+    assert evaluation.composition is None
+
+
+def test_one_uncharacterized_block_makes_the_whole_candidate_ineligible() -> None:
+    """Not partially scored, and not scored as if the missing block were clean."""
+
+    evaluation = evaluate_candidate(
+        _candidate(snr_db=2.5),
+        feasibility=Feasibility(feasible=True, code_blocks=2),
+        block_identities=[CHARACTERIZED_KEY, _key(base_graph=1)],
+        bler_table=g2_bler_table(),
+        codec_accuracy=_codec(),
+        outage_accuracy=_outage(),
+    )
+    assert evaluation.status == UNCHARACTERIZED
+    assert evaluation.reason == "code_block_1:identity_not_characterized"
+    assert evaluation.composition is None
+    assert evaluation.expected_accuracy is None
+
+
+def test_an_out_of_support_snr_makes_the_candidate_ineligible_not_perfect() -> None:
+    """18 dB is where a silent extrapolation would score a perfect link."""
+
+    evaluation = evaluate_candidate(
+        _candidate(snr_db=18.0),
+        feasibility=Feasibility(feasible=True, code_blocks=1),
+        block_identities=[CHARACTERIZED_KEY],
+        bler_table=g2_bler_table(),
+        codec_accuracy=_codec(),
+        outage_accuracy=_outage(),
+    )
+    assert evaluation.status == UNCHARACTERIZED
+    assert evaluation.reason == "code_block_0:snr_outside_characterized_support"
+    assert evaluation.expected_accuracy is None
+
+
+def test_evaluation_refuses_a_block_count_that_contradicts_feasibility() -> None:
+    with pytest.raises(CompositionError, match="block identities supplied"):
+        evaluate_candidate(
+            _candidate(snr_db=2.5),
+            feasibility=Feasibility(feasible=True, code_blocks=3),
+            block_identities=[CHARACTERIZED_KEY],
+            bler_table=g2_bler_table(),
+            codec_accuracy=_codec(),
+            outage_accuracy=_outage(),
+        )
+    with pytest.raises(CompositionError, match="at least one code block"):
+        evaluate_candidate(
+            _candidate(snr_db=2.5),
+            feasibility=Feasibility(feasible=True, code_blocks=None),
+            block_identities=[],
+            bler_table=g2_bler_table(),
+            codec_accuracy=_codec(),
+            outage_accuracy=_outage(),
+        )
+
+
+def test_a_full_selection_runs_end_to_end_within_the_bounded_budget() -> None:
+    """The whole machinery on a deliberately tiny fixture, no authorization."""
+
+    table = g2_bler_table()
+    cache = FeasibilityCache()
+    calls: list[Candidate] = []
+
+    def probe(candidate: Candidate) -> Feasibility:
+        calls.append(candidate)
+        return Feasibility(feasible=True, code_blocks=1, payload_bytes=190)
+
+    grid: dict[float, list[CandidateEvaluation]] = {}
+    for snr in (1.5, 2.0, 2.5):
+        evaluations = []
+        for axis in (160, 128):
+            candidate = _candidate(snr_db=snr, encode_axis_px=axis)
+            evaluations.append(
+                evaluate_candidate(
+                    candidate,
+                    feasibility=cache.feasibility(candidate, probe),
+                    block_identities=[CHARACTERIZED_KEY],
+                    bler_table=table,
+                    codec_accuracy=_codec(correct=800 + axis),
+                    outage_accuracy=_outage(),
+                )
+            )
+        grid[snr] = evaluations
+    curve = select_operating_points(
+        CLASSICAL_ADAPTIVE, grid, samples_per_cell=2
+    )
+    assert len(curve.per_snr) == 3
+    for _, selection in curve.per_snr:
+        assert selection.selected is not None
+        assert selection.selected.candidate.encode_axis_px == 160
+    # Two configurations, three SNRs: feasibility was computed twice, not six times.
+    assert len(calls) == 2
+    assert cache.hits == 4
+    assert json.dumps(curve.as_record())
