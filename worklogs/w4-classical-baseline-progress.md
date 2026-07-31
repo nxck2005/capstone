@@ -706,3 +706,174 @@ verifier fails closed if any evidence marks the issue resolved. It still blocks 
 sweep and G-8.
 
 The cache-key field-spelling issue recorded at PB_1 is likewise unchanged.
+
+---
+
+## PB_2C — corrective provenance, pairing and JPEG-2000 accounting repair
+
+Driven by `instructions/PB_2C.txt`. This section is append-only and does not rewrite anything above:
+PB_2's implementation happened and stands. What PB_2C corrects is its **completion judgment and its
+bounded evidence**, both of which were accepted on the strength of a verifier that could not see the
+defects.
+
+### What the audit found
+
+Eight defects, all confirmed directly against the tree at `e0155c3` before any change was made.
+
+1. **One `RunConfig` for every cell.** The runner resolved a single configuration from `snr_db[0]`
+   (18 dB) and threaded its hash into every row and every aggregate. So `config_hash` `ba59d1e7…`
+   was attached to CIFAR-10 `r_1_2`/qpsk/(1/2) rows while its `resolved` block described
+   Imagenette-160 `r_1_24`/qam16/(2/3). Worse, **modulation, LDPC rate and encode axis were not in
+   the fingerprint at all** — they lived only in the execution plan, so two genuinely different
+   configurations could have shared a run fingerprint.
+2. **Infeasible rows could not pair.** `per_image_row` took `noise_id` straight off the pipeline
+   result, which is `None` when nothing was transmitted, and fed that same `None` into `pair_id`. An
+   infeasible classical row therefore could never share a `pair_id` with a transmitting comparison
+   arm — silently removing from the paired comparison exactly the images where two systems differ
+   most.
+3. **Byte columns were delivered-only.** `score_result` returned `(None, None)` for every
+   non-delivered verdict, so a cell whose rows all failed to decode reported **no overhead at all** —
+   the regime where format overhead dominates the budget, and the one BR-11 exists to expose.
+4. **`Psot` was read at the wrong offset.** `_PSOT_OFFSET` was 4; the SOT segment is
+   `SOT(2) | Lsot(2) | Isot(2) | Psot(4) | TPsot(1) | TNsot(1)`, so Psot begins at **6**.
+5. **The row timer excluded scoring.** It bracketed `run_classical_pipeline()` only, so classifier
+   inference — the most expensive part of a delivered row — was never counted.
+6. **The summary wall clock ignored pre-resume rows.** It measured `perf_counter()` from *after* the
+   resume load, so a resumed run reported a total smaller than the sum of its own aggregate rows.
+7. **OpenJPEG preflight ran too late.** The first `assert_j2k_runtime()` fired inside
+   `encode_to_budget` on the first encode — after the results directory, the outage policy and the
+   frozen classifier had been touched — contradicting the docstring on `src/env.py:119` and SR-21.
+8. **Two normative questions were still open**: the CIFAR-10 axis conflict, and the arithmetic
+   meaning of `header_bytes`/`payload_bytes`.
+
+### Why the old verifier passed
+
+`tools/verify_w4_baseline_integration.py` verified **consistency between committed artifacts**, not
+**whether each artifact describes the cell it claims to describe**. It re-hashed the CSVs,
+re-derived the outage class from the manifest and recomputed every aggregate *rate* from the
+per-image rows — all genuinely useful, and all blind here. It never loaded a `RunConfig`, never
+recomputed `noise_id`, `pair_id`, `analysis_cell_id` or `run_id`, never parsed a codestream, never
+read a row timing, and never opened a raw-row file at all. Its one configuration check compared
+`resolved_config.json`'s `config_hash` against `smoke_summary.json`'s — and both carried the same
+wrong hash, so the check passed by construction.
+
+The `Psot` defect deserves a note of its own, because it is the clearest example of why counting
+identities are not enough. At offset 4 the parser reads `Isot || high16(Psot)`. For these small
+single-tile-part codestreams `Isot = 0` and `Psot < 65536`, so the read yields **zero**, which routes
+into the legitimate `Psot = 0` last-tile fallback and lands on the correct boundary *by luck*. The
+committed PB_2 overhead numbers were therefore not wrong — but `header + payload == len(codestream)`
+held for a reason unrelated to the parser being right, and a multi-tile-part or large codestream
+would have been mis-split with no error. This is why C2.4 added known-answer fixtures asserting the
+two counts **individually** rather than only that they sum.
+
+### The three amendments
+
+**AM-80 — CIFAR-10 codec axes.** `params.baseline.downsample_axis_px.cifar10` becomes `[32]`. A flat
+`j2k_resolutions = 6` requires every tile dimension to be at least `2**5 = 32` px, so OpenJPEG
+hard-errored at the 24 px and 16 px rungs for every image and every budget. They were invalid codec
+configurations, not low-rate candidates. The rejected alternative — an axis-dependent or clamped
+resolution rule — would have added a new codec rule and more cache-identity complexity without
+helping either headline dataset, and CIFAR-10 is a DEC-1 plumbing smoke path whose 32 px rung works.
+
+**AM-81 — BR-11 byte semantics, and `analysis_version` 1 → 2.** `bytes_sent = source_bytes = A/8`.
+`header_bytes` is **all** structural codestream bytes — SOC, every main-header marker segment, every
+SOT marker segment, every tile-part header through and including SOD, EOC, and each tile-part's
+equivalent structural bytes. `payload_bytes` is **all** tile-part data bytes after SOD and before the
+next tile-part boundary; it is deliberately *not* described as pure entropy-coded sample data,
+because that region may also carry packet-header information and the narrower wording would be
+false. `emitted_codestream_bytes = header_bytes + payload_bytes` exactly, and
+`payload_filler_bytes = bytes_sent − emitted_codestream_bytes` is reported separately, never folded
+into either column. Both columns are means over every row that **emitted a codestream** — delivered
+*and* decode-failure — excluding the two infeasibility verdicts, and are null only when nothing was
+emitted. Redefining an aggregate column's meaning and denominator is an analysis-implementation
+change under `params.config.analysis_version_bump_rule`, so the version bump is required rather than
+optional; it intentionally re-namespaces every `run_id` and `config_hash`.
+
+**AM-82 — the transparency-probe codec-configuration binding.** This one was not anticipated by the
+instruction and was adjudicated with the user before any spec edit. `downsample_axis_px` sits inside
+the content-addressed JPEG 2000 codec-configuration snapshot (`src/baseline/j2k.py:107`), so AM-80
+moves that hash from `1a0b0d74bef1caed…` to `2daf597fd914f56e…` — **for every dataset**, and with it
+every J2K cache key. `tools/verify_transparency_bitrate_probe.py:754-755` compared the probe's
+recorded hash against a **live** `J2KCodec` built from HEAD, so AM-80 alone would have failed a
+verifier that PB_2C §11.5 requires to pass, while §15 forbids re-running that 68,000-cell campaign.
+G-1 and G-7 were unaffected because they hash the *archived* configuration; G-2 was unaffected
+because it binds `spec/params.generated.yaml` as history.
+
+The resolution follows the G-2 precedent exactly: the probe's codec configuration is now bound as
+**history**, verified by reproducing the archived snapshot's own recorded hash, and the difference
+from HEAD is permitted only by a single byte-pinned off-measurement-path record
+(`results/probes/transparency_bitrate/codec_configuration_readjudication.json`). That record names
+the amendment, the archived evidence commit, both hashes, the exact changed parameter path with its
+old and new values, the probe's exclusive `imagenette160` dataset, and a reachability argument. The
+verifier does not take the argument on trust: it computes the archived-vs-current difference set and
+requires it to **equal** the declared paths, recomputes the probe dataset's configured axis ladder
+under both snapshots and requires them identical, refuses any drift touching the probe's own dataset,
+refuses a stale record when nothing has drifted, and pins both hashes. Thirty mutation tests show
+that changing `j2k_resolutions`, the wavelet, the progression order, the code-block size, the tile
+size, the rate control, the search settings, the cache key, the implementation version, the
+preprocessing interpolation or the OpenJPEG version **still invalidates the probe**. It is a single
+record, not an allowlist. The probe was not re-run.
+
+### Old versus corrected provenance
+
+| | PB_2 | PB_2C |
+|---|---|---|
+| configurations resolved | 1, at 18 dB | 5, one per cell |
+| in the fingerprint | dataset, ratio, SNR, seeds, system, variant | + modulation, LDPC rate, encode axis |
+| 18 dB vs −8 dB | same hash `ba59d1e7…` | `676f0311…` vs `cec413d8…` |
+| archived configurations | none | `run_configs/<config_hash>.json`, each reproducing its own hash |
+| `resolved_config.json` | one configuration | schema-2 execution index over all five |
+| infeasible-row `noise_id` | empty | the scheduled identity |
+| decode-failure overhead | blank | 157.0 / 892.54 bytes |
+| `analysis_version` | 1 | 2 |
+
+### Corrected bounded evidence
+
+55 rows in 50.0 s from the clean commit `76e789c9f3d0`, fresh cache namespace. Crash-resume drill
+first: three rows, stop, resume, no recomputation, no duplication, per-cell identities intact, and
+cumulative timing rising from 1.387 s to 4.218 s across the resume — the pre-resume rows really are
+counted now.
+
+**The scientific outcomes did not move.** `n`, `top1_acc`, `n_correct`, `coverage_rate`,
+`decode_failure_rate`, `infeasible_rate`, `acc_given_delivery`, `psnr_db`, `ssim`, `papr_db`,
+`bytes_sent`, and every per-image `true_label`/`pred_label`/`correct` are identical to B2.6.
+CIFAR-10 is 5/5 delivered with no task score; Imagenette-160 is 24/24 delivered at 18 dB with
+`top1 = 18/24 = 0.75` and PSNR 27.034 dB, and 24/24 real decode failures at −8 dB with
+`top1 = 3/24 = 0.125` through the frozen class-0 outage prediction. **None of these accuracies is an
+experimental result**; they are plumbing observations at n = 24.
+
+Exactly four families moved, each one a defect being corrected: the −8 dB cell's byte columns
+(blank → 157.0 / 892.54), `config_hash` (one → five), `run_id` (which follows, because `config_hash`
+and `analysis_version` are both keyed), and `wall_clock_s` (18 dB 19.41 → 25.21 s), which rose
+because the timer now covers scoring. The codec-infeasibility per-image row's `noise_id` went from
+empty to `7f9a9850e506…`, and its `pair_id` with it — that single row is the whole point of the
+pairing repair.
+
+`results/baseline/w4/overhead_table.json` now exists. BR-11's verify clause has always required an
+archived overhead-fraction table and none had ever been produced. It is declared bounded —
+`evidence_scope: bounded_integration`, `complete_for_full_validation_grid: false` — and lists exactly
+the three executed cells with no synthesised combination. CIFAR-10 at `r_1_2` spends **82.6%** of its
+transport block on container bytes; Imagenette-160 at `r_1_24` spends **14.8%**. That contrast is
+precisely the first-order effect BR-11 exists to make visible, and it was invisible at −8 dB before
+this repair.
+
+### What the verifier can now see
+
+`smoke_rows.jsonl` is finalised atomically in worklist order and the partial file is removed, so a
+truncated run cannot be read as evidence. The verifier reconstructs every archived `RunConfig` and
+requires its hash to *come out of* it; recomputes `noise_id`, `pair_id`, `analysis_cell_id` and
+`run_id` per row; requires `per_image.csv` and `smoke_rows.jsonl` to describe the same rows;
+recomputes both byte identities per row and every aggregate mean over the emitted-codestream
+denominator; and checks the timing, the OpenJPEG version and the preflight ordering. All 26 required
+mutation classes fail for their own independent property rather than because some downstream hash
+moved. One gap surfaced while writing them and was closed: a *deleted* raw row was initially
+self-consistent, because the row count and worklist digest are recomputed from what remains — the
+per-image CSV is now the independent witness.
+
+### Remaining frontier
+
+PB_3 (BR-4 selection infrastructure) is not started and is now **unblocked**: the CIFAR-10 axis
+question is settled by AM-80 and the BR-11 semantics by AM-81. The full BR-4 validation sweep has not
+run, G-8 is unresolved, no ratio or operating point has been selected, no model has been trained or
+fine-tuned, λ is uncalibrated, ER-9 is unimplemented and the test split is sealed until G-12 at W11.
+The cache-key field-spelling issue recorded at PB_1 is unchanged and remains deliberately untouched.

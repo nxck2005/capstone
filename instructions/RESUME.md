@@ -47,8 +47,8 @@ Then:
 **Current phase:** PB_2C — corrective repair in progress
 **Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
 **Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
-**Last durable checkpoint:** `4c1642c9cf15d681a8de65d13a9fc1414c188b66`
-**Next action:** C2.8 — append the PB_2C worklog section, reconcile `NEXT.md`/`AGENTS.md`/`README.md`, then run all 17 verification commands separately
+**Last durable checkpoint:** `<the C2.8 commit>`
+**Next action:** C2.9 — final corrective green handoff
 
 **PB_2 is under corrective repair.** `instructions/PB_2C.txt` is the durable superseding instruction
 for this phase and includes an approved addendum (§18) carrying two normative decisions and four
@@ -322,7 +322,7 @@ runner-ready and final green SHAs). Read §18 before C2.1.
 | C2.5 harden the W4 verifier and mutation coverage | done | Runner finalises `smoke_rows.jsonl` atomically in worklist order and removes the partial; the verifier gained `check_raw_rows`, `check_identities` and `check_byte_accounting`, recomputing `noise_id`, `pair_id`, `analysis_cell_id` and `run_id` per row, the BR-11 means and denominators from the raw codestreams, and the timing/preflight facts. `per_image.csv` is now the independent witness that no raw row was dropped. **All 26 required mutation classes covered; 885 passed** |
 | C2.6 create the clean runner-ready source checkpoint | done | All amendments, spec views, implementation, tests, verifier changes, configs and the execution plan complete and pushed; `git diff --check` and `git status --short` clean. **Two designations:** `f510cd7268356918c52ee0230b6d410e635bfae5` was designated first, then superseded once BR-11's long-outstanding archived overhead table — required by BR-11's verify clause and absent since the requirement was written — was implemented as `results/baseline/w4/overhead_table.json` with its scope declarations and seven verifier mutations. Per the §18.6 addendum no empty commit was made; the runner-ready SHA is the later commit, recorded in the C2.7 rows. **892 passed** |
 | C2.7 regenerate bounded PB_2 evidence | done | 55 rows in 50.0 s from a clean tree at `76e789c9f3d036427d5c1fe83bd95a61d655c5f0`, fresh cache namespace. Crash-resume drill passed first. `gen_w4_source_manifest.py --check` ok (**40 sources**) and `verify_w4_baseline_integration.py` **PASS**. **Every scientific outcome is unchanged**; only provenance, identity, the decode-failure byte columns and the now-complete timings moved. One rerun was needed and the tooling was right to force it: the first attempt ran from a tree the resume drill had dirtied, and the verifier refused the evidence for `git_dirty` rather than accepting it |
-| C2.8 documentation and complete verification | in-progress | Worklog PB_2C section; `NEXT.md`/`AGENTS.md`/`README.md` reconciled to PB_2 corrected and PB_3 ready; then all 17 verification commands run separately |
+| C2.8 documentation and complete verification | done | `worklogs/w4-classical-baseline-progress.md` gained the PB_2C corrective section (audit findings, why the old verifier passed, the `Psot`-by-luck analysis, old-vs-corrected provenance table, exact BR-11 semantics, the three amendments including the AM-82 adjudication, corrected evidence, unchanged scientific outcomes, remaining frontier) without rewriting prior history. `NEXT.md`, `AGENTS.md` and `README.md` reconciled: PB_2 and PB_2C complete, PB_3 next and unblocked, the axis and BR-11 questions recorded as settled. **All 17 verification commands run separately and all pass; 892 tests** |
 | C2.9 final corrective green handoff | not-started | |
 
 ### PB_2C observed facts
@@ -409,6 +409,19 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | G-1 result | | C2.8 | |
 | G-2 result | | C2.8 | |
 | test-access counters (final) | | C2.8 | |
+| W4 verifier result | **PASS** — `execution=76e789c9f3d0, sources=40, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), cifar_transport_only=5 (no task score), imagenette[18.0dB n=24 top1=0.75, -8.0dB n=24 top1=0.125], raw_rows=55 (emitted=53), openjpeg=2.5.4, overhead_cells=3, test_split_access=0` | C2.8 | yes |
+| full pytest result | **892 passed, 0 failed, 0 skipped in 106.69s**, exit 0 (757 before PB_2C: +30 AM-82 probe mutations, +11 runner/config provenance, +13 C2.2 verifier mutations, +19 scheduled-noise/pairing, +9 known-answer parser, +6 timing/preflight, +22 C2.5 verifier mutations, +7 overhead-table mutations, +18 misc). 40 test modules plus `conftest.py` | C2.8 | yes |
+| G-1 result | PASS: 100 epochs, best=898/1000, local checkpoint verified | C2.8 | yes |
+| G-2 result | PASS: `measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']` — **unchanged by PB_2C, which touched no file under `src/baseline/ldpc/`** | C2.8 | yes |
+| C2.8 cmd 3 `check_literals -v` | ok: 42 Python files scanned, 0 findings, **46** reasoned literal-ok annotations (45 before; the new one is `_SOT_SEGMENT_LENGTH`) | C2.8 | yes |
+| C2.8 cmd 4 `check_packetisation` | 215 feasible, 3 min-rate clamped, **0 failures** | C2.8 | yes |
+| C2.8 cmd 5-7 datasets | `fetch_datasets --check` all 3 archive pins verified; `materialize_manifests --check` all 3 byte-identical (45000/5000/10000, 8469/1000/3925, 4500/500/8000); `verify_datasets` all 3 real train/val smoke pass with `test_scan_decoder_calls=0` and `test_scan_canonicalization_calls=0` per dataset | C2.8 | yes |
+| C2.8 cmd 9 `verify_g7_profile` | PASS: commit=26b631ede27a, params=1640957, epoch=48.684s, reserved=1.004 GB, projected=1.352 h — **not rerun**, only verified | C2.8 | yes |
+| C2.8 cmd 10 `verify_transparency_bitrate_probe` | **PASS** under the AM-82 binding: `A=90007f165f8f, B=7896c7a74414, C=2ebb2cefade2, cells=68000, 5pp=1330 B, 2pp=3200 B, cache=local+portable`. Identical to every previous run — the campaign was **not rerun** and none of its numbers moved | C2.8 | yes |
+| C2.8 cmd 11-12 G-2 provenance | `fetch_ldpc_golden_vectors` network-free no-op, `fixture_sha256=55754b508ab1b6eb…`; `gen_g2_source_manifest --check` ok (14 sources) | C2.8 | yes |
+| C2.8 cmd 16-17 git | `git diff --check` clean; `git status --short` clean after the documentation commit | C2.8 | yes |
+| test-access counters (final) | **all zero.** `verify_g2_adjudication` `test_split_access=0`; `verify_w4_baseline_integration` `test_split_access=0`; `verify_datasets` `test_scan_decoder_calls=0` and `test_scan_canonicalization_calls=0` for all three datasets; `tests/test_test_access.py` passes; `load_dataset(..., "test")` still refuses; `RunIdentity` still whitelists `{train, val}` | C2.8 | yes |
+| files changed under `src/baseline/ldpc/` | **none.** PB_2C touched `src/baseline/classical/records.py`, `src/config/run_config.py`, the four new `configs/classical-baseline-w4-*.yaml`, the execution plan, `tools/run_classical_baseline_w4_smoke.py`, `tools/verify_w4_baseline_integration.py`, `tools/gen_w4_source_manifest.py`, `tools/verify_transparency_bitrate_probe.py`, `spec/SPEC.md` plus its 10 generated views, the tests and the documentation. The G-2 HOLD condition was never triggered and no manifest was regenerated to conceal drift | C2.8 | yes |
 | final corrective green commit | | C2.9 | |
 | final handoff HEAD | | C2.9 | |
 
