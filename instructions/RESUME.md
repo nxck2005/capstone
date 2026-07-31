@@ -44,10 +44,19 @@ Then:
 
 ## Status
 
-**Current phase:** PB_3 — blocked pending JPEG-2000 parameter decision
-**Last green commit:** `50de80364c2546463918387a8f335ea36107bde0` (`feat(classical): add W4 outage records and bounded evidence`) — the PB_1C green commit `4eda158145595de0f2e9aa92456ee4a052db74b0` is superseded
-**Last durable checkpoint:** `50de80364c2546463918387a8f335ea36107bde0`
-**Next action:** resolve the `j2k_resolutions`/CIFAR-axis conflict through a recorded spec amendment, then run `instructions/PB_3.txt` from B3.0
+**Current phase:** PB_2C — corrective repair in progress
+**Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
+**Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
+**Last durable checkpoint:** `e0155c36686d9221098609c07197d3c2e5e5fbec`
+**Next action:** run `.venv/bin/python tools/gen_spec_views.py` after editing `spec/SPEC.md` §17 with AM-80/81/82 (C2.1)
+
+**PB_2 is under corrective repair.** `instructions/PB_2C.txt` is the durable superseding instruction
+for this phase and includes an approved addendum (§18) carrying two normative decisions and four
+clarifications that are binding. Read it plus this ledger; never resume from chat context.
+The provisional PB_2 bounded evidence and its green judgment are **superseded pending PB_2C
+correction** — the implementation is retained and is not discarded, but neither the evidence nor the
+completion judgment may be treated as current. `50de803` must not be described as scientifically
+green while PB_2C is open.
 
 **PB_2 executes from `instructions/PB_2D.txt`, not `instructions/PB_2.txt`.** `PB_2D.txt` is the
 durable superseding instruction committed at B2.0; the original `PB_2.txt` is retained as historical
@@ -56,12 +65,14 @@ parameters as `analysis.csv_schema` / `analysis.per_image_schema`, which is stal
 parameter section is **`artifacts.*`** (`artifacts.csv_schema`, `artifacts.per_image_schema`,
 `artifacts.system_values`, `artifacts.run_id_key`, …), as `PB_2D.txt` §6.1 states.
 
-**PB_2 is complete.** The classical arm now runs from a canonical image all the way to
+**PB_2 is SUPERSEDED PENDING PB_2C CORRECTION.** The paragraph below describes what PB_2 built and
+remains accurate about the implementation; its *completion judgment* and its bounded evidence are
+invalidated. The classical arm runs from a canonical image all the way to
 schema-exact per-image and aggregate records: frozen constant-class outage policy (class 0,
 measured 100/1000), frozen-G-1 inference on delivered Imagenette-160 reconstructions, reconstruction
 and communications metrics, a crash-resumable bounded runner, committed bounded evidence and the
-first W4 integration verifier. **PB_3 is blocked** by the unresolved `j2k_resolutions` decision —
-that decision, not PB_3 itself, is the next action.
+first W4 integration verifier. **PB_3 is blocked** by PB_2C, which also resolves the
+`j2k_resolutions` decision as AM-80 rather than leaving it open.
 
 **PB_1 is complete, including its PB_1C correction.** The pre-correction PB_1 green commit was
 `e47913c52e9117179691b70b29a289880b22dbdd`; it is superseded as "last green" by the corrective
@@ -179,6 +190,14 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 
 ## PB_2 — outage, records, smoke evidence
 
+**SUPERSEDED PENDING PB_2C CORRECTION.** Every row below happened and is retained as history. The
+B2.6 bounded evidence and the B2.7 completion judgment are invalidated by the PB_2C audit: the
+runner reused one 18 dB `config_hash` for all 55 rows, infeasible rows recorded a null `noise_id`
+and so could not pair with a transmitting arm, the BR-11 byte columns were delivered-only, `Psot`
+was read at the wrong offset, the row timer excluded scoring, the summary wall clock ignored
+pre-resume rows, and the OpenJPEG preflight ran after the results directory was created. See the
+PB_2C section below.
+
 | Step | State | Notes |
 |---|---|---|
 | B2.0 confirm PB_1/PB_1C green + open durable ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `8b8aa86`; all seven B2.0 commands re-run and pass (see facts); `instructions/PB_2D.txt` created as the durable superseding instruction; no CI/status checks exist (`check-runs` total_count 0); `NEXT.md` and this ledger agree PB_2 is next; the `j2k_resolutions` block is still recorded as blocking PB_3, not PB_2 |
@@ -193,6 +212,11 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 ### PB_2 observed facts
 
 Append-only. A superseded observation is *marked* superseded, never deleted.
+
+**Every B2.6 evidence-derived row in this table is SUPERSEDED by PB_2C's C2.7 regeneration** — the
+bounded results, the resolved config hash, the evidence file SHA-256 line and the B2.7 W4 verifier
+result. The B2.0–B2.5 method observations (schema field counts, outage selection, class counts,
+frozen checkpoint identity, `source_bytes = A/8`, `effective_code_rate = K'/max(E_r)`) stand.
 
 | Fact | Value | Observed at | Verified |
 |---|---|---|---|
@@ -273,6 +297,81 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 
 | evidence file SHA-256 | `outage_policy.json` `aa6486d8b6bb3f543d825515d472496513eccfb9f0fa227afb5c3354e1faaf82` · `smoke_summary.json` `50d7523bfd76ee711028d4c31ab740398275e7d7ee37ca6111d47974815f5f54` · `execution_source_manifest.json` `659d040a89da44163838ab4ee2d3aea6526c698b9fc0d64773d80452d1016a48` · `per_image.csv` `cebc915b13a120ae3c8b82557e8443774cbf2c9ba66052f1ba54342dcc815648` · `aggregate.csv` `6969b0c7080665e341d267a35f8d2579d8ec890b696f8763314ae292ed911c35` · `resolved_config.json` `9c4826c198705cd1f7fc39879b3a007e25080697eba4bbdcde88d026dc7b9a09` · `accounting_examples.json` `97ecbf536606e633a76f3c60edd960f90919bfb323ebec3e6a3db4c4e5a5257e` | B2.6 | yes |
 | PB_2 checkpoint commits | `68bb759` B2.0 open ledger · `7bbcb8f` B2.1 freeze outage policy · `081deea` B2.2 records and identities · `ae90039` B2.3 resumable runner · `1ac452a` B2.4 source-bound verifier · `51e2d8e` B2.5 mutation coverage (runner-ready) · `83088ed` B2.6 in-progress marker · `b8462316` container split on transport-only rows (**execution commit**) · `ff56242` B2.6 bounded evidence · `98ea4cb` B2.7 documentation · `28bd3d4` B2.7 full verification · `50de803` **green** · handoff commit follows | B2.x | yes |
+
+## PB_2C — corrective provenance and accounting repair
+
+Driven by `instructions/PB_2C.txt` (committed at C2.0 — resume from that file plus this ledger,
+never from chat context). Append-only, and it does **not** erase the PB_2 rows above: PB_2's
+implementation happened, and PB_2C records that its *completion judgment and bounded evidence* are
+being corrected.
+
+`instructions/PB_2C.txt` §18 carries an **approved addendum** that is binding: two normative
+decisions (the transparency-probe codec-configuration drift record; `analysis_version` 1 → 2) and
+four clarifications (three separate raw noise fields; what preserving analysis-version-1 evidence
+means; the bounded scope of `overhead_table.json`; and no empty commits when designating the
+runner-ready and final green SHAs). Read §18 before C2.1.
+
+| Step | State | Notes |
+|---|---|---|
+| C2.0 establish state and open corrective ledger | done | fresh run; clean worktree, local HEAD = origin/main = remote main = `e0155c3`; all six C2.0 commands re-run and pass (see facts); **757 passed, 0 failed, 0 skipped**; `instructions/PB_2C.txt` created with the approved §18 addendum; no CI/status checks exist (`check-runs` total_count 0); old PB_2 evidence and green judgment marked superseded without deletion |
+| C2.1 record the two normative amendments | not-started | three amendments, not two: AM-80 CIFAR axes, AM-81 BR-11 byte semantics + `analysis_version` → 2, AM-82 transparency-probe codec-configuration binding |
+| C2.2 repair per-cell RunConfig provenance | not-started | |
+| C2.3 repair scheduled noise and pair identities | not-started | |
+| C2.4 repair JPEG-2000 accounting and runner timing | not-started | |
+| C2.5 harden the W4 verifier and mutation coverage | not-started | |
+| C2.6 create the clean runner-ready source checkpoint | not-started | |
+| C2.7 regenerate bounded PB_2 evidence | not-started | |
+| C2.8 documentation and complete verification | not-started | |
+| C2.9 final corrective green handoff | not-started | |
+
+### PB_2C observed facts
+
+Append-only. A superseded observation is *marked* superseded, never deleted.
+
+| Fact | Value | Observed at | Verified |
+|---|---|---|---|
+| starting local HEAD | `e0155c36686d9221098609c07197d3c2e5e5fbec` | C2.0 | yes |
+| starting origin/main | `e0155c36686d9221098609c07197d3c2e5e5fbec` | C2.0 | yes |
+| starting remote main | `e0155c36686d9221098609c07197d3c2e5e5fbec` (`git ls-remote`) — all three agree | C2.0 | yes |
+| starting worktree state | clean (`git status --short` empty) | C2.0 | yes |
+| starting test result | **757 passed, 0 failed, 0 skipped in 90.28s**, exit 0 | C2.0 | yes |
+| C2.0 cmd `gen_spec_views --check` | ok: 187 requirements (2 retired), 10 generated files up to date | C2.0 | yes |
+| C2.0 cmd `check_doc_consistency -v` | ok: 11 current docs consistent (187 reqs, 79 AMs); NEXT.md current-phase agreement ok (frontier W4, 7 completed subjects, 698 live lines) | C2.0 | yes |
+| C2.0 cmd `verify_g1_adjudication` | PASS: 100 epochs, best=898/1000, local checkpoint verified | C2.0 | yes |
+| C2.0 cmd `verify_g2_adjudication` | PASS: `measurement=968e907237bb, rows=24, test_split_access=0, sources=14, runtime_readjudicated=['src/baseline/ldpc/transport.py']` | C2.0 | yes |
+| existing W4 verifier result | **PASS** — `execution=b8462316c3c9, sources=37, per_image_rows=49, aggregate_rows=3, outage_class=0 (100/1000), cifar_transport_only=5 (no task score), imagenette[18.0dB n=24 top1=0.75, -8.0dB n=24 top1=0.125], test_split_access=0`. **It passes and tests none of the eight PB_2C defects**: it checks consistency *between committed artifacts* (CSV hashes, recomputed rates, bound source bytes) rather than whether each artifact describes the cell it claims to describe. It never loads a `RunConfig`, never recomputes `noise_id`/`pair_id`/`run_id`, never parses a codestream, never reads row timings, and reads no raw-row file at all | C2.0 | yes |
+| CI / status checks | **none** — `repos/nxck2005/capstone/commits/e0155c3/check-runs` returns `total_count: 0`. Nothing in PB_2C will be CI-validated either | C2.0 | yes |
+| existing PB_2 evidence hashes (superseded at C2.7) | `accounting_examples.json` `97ecbf536606e633a76f3c60edd960f90919bfb323ebec3e6a3db4c4e5a5257e` · `execution_source_manifest.json` `659d040a89da44163838ab4ee2d3aea6526c698b9fc0d64773d80452d1016a48` · `outage_policy.json` `aa6486d8b6bb3f543d825515d472496513eccfb9f0fa227afb5c3354e1faaf82` · `resolved_config.json` `9c4826c198705cd1f7fc39879b3a007e25080697eba4bbdcde88d026dc7b9a09` · `smoke_progress.json` `54382008e19242bd7a96432ce7b7a29a237419a1ab24a8ec04baba16bc0a8d4d` · `smoke_summary.json` `50d7523bfd76ee711028d4c31ab740398275e7d7ee37ca6111d47974815f5f54` · `aggregate.csv` `6969b0c7080665e341d267a35f8d2579d8ec890b696f8763314ae292ed911c35` · `per_image.csv` `cebc915b13a120ae3c8b82557e8443774cbf2c9ba66052f1ba54342dcc815648` | C2.0 | yes |
+| old bounded evidence config hash | `ba59d1e7cb8c69eeb5e15c31524f7d650b916080d4ab3a85f079958fca7cfc79` — **one hash reused for all 55 rows and all 3 aggregate cells**, resolved once at 18 dB from `snr_db[0]` (`tools/run_classical_baseline_w4_smoke.py:894-900`) and threaded into `_identity_for` (`:277`) and `finalise` (`:552`) | C2.0 | yes |
+| existing `analysis_version` | **1** (`params.config.analysis_version`; recorded in the old `resolved_config.json` `resolved` block). Bump rule is `bump_on_inference_estimand_or_analysis_implementation_change` | C2.0 | yes |
+| current latest amendment number | **AM-79** (`spec/SPEC.md:1140`, amendment round 15). Next free is AM-80; PB_2C opens round 16 | C2.0 | yes |
+| test-access counters | all zero: `verify_g2_adjudication` reports `test_split_access=0`; `verify_w4_baseline_integration` reports `test_split_access=0`; full suite green with `tests/test_test_access.py` passing | C2.0 | yes |
+| **DECISION — transparency-probe codec drift** | `params.baseline.downsample_axis_px` is inside the J2K codec-configuration snapshot (`src/baseline/j2k.py:107`), so AM-80 moves the codec configuration hash `1a0b0d74bef1caed33b8cff8f866dee967ff202493a0a8e2993619e0b1e2a064` → `2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa` (computed live at C2.0). `tools/verify_transparency_bitrate_probe.py:754-755` compares the probe's recorded hash against a **live** `J2KCodec` read from HEAD, so AM-80 as written fails it — while PB_2C §11.5 requires it to pass and §15 forbids rerunning the 68,000-cell probe. G-1 (`verify_g1_adjudication.py:267`) and G-7 (`verify_g7_profile.py:333`) hash the *archived* config and are unaffected; G-2 binds `spec/params.generated.yaml` as history and is unaffected. **Approved resolution: AM-82 plus exactly one byte-pinned off-measurement-path drift record.** Do not rerun the probe; do not abandon AM-80; no generic allowlist. Full terms in `instructions/PB_2C.txt` §18.1 | C2.0 | yes |
+| **DECISION — `analysis_version`** | **bump 1 → 2** under AM-81. Changing the executable meaning and aggregation denominators of `header_bytes`/`payload_bytes` is an analysis implementation change. Every corrected PB_2 `config_hash` and `run_id` carries version 2; the old evidence is preserved as superseded under version 1 and is never rewritten into version 2. `instructions/PB_2C.txt` §18.2 | C2.0 | yes |
+| latest existing amendment number | | C2.1 | |
+| CIFAR axis amendment number | | C2.1 | |
+| BR-11 byte-semantics amendment number | | C2.1 | |
+| resulting analysis_version | | C2.1 | |
+| number of corrected concrete run configs | | C2.2 | |
+| corrected config hashes by cell | | C2.2 | |
+| scheduled-noise identity rule | | C2.3 | |
+| infeasible-row pairing result | | C2.3 | |
+| Psot byte offset | | C2.4 | |
+| known-answer codestream split | | C2.4 | |
+| decode-failure byte aggregation result | | C2.4 | |
+| OpenJPEG preflight result | | C2.4 | |
+| actual OpenJPEG version | | C2.4/C2.7 | |
+| runner-ready clean source commit | | C2.6 | |
+| regenerated evidence source commit | | C2.7 | |
+| regenerated evidence hashes | | C2.7 | |
+| regenerated bounded results | | C2.7 | |
+| W4 verifier result | | C2.8 | |
+| full pytest result | | C2.8 | |
+| G-1 result | | C2.8 | |
+| G-2 result | | C2.8 | |
+| test-access counters (final) | | C2.8 | |
+| final corrective green commit | | C2.9 | |
+| final handoff HEAD | | C2.9 | |
 
 ## PB_3 — BR-4 selection infrastructure + W4 adjudication
 

@@ -1,0 +1,1649 @@
+# PB_2C — Correct PB_2 Provenance, Pairing, and JPEG-2000 Accounting
+
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
+Interpreter: always `.venv/bin/python`
+Normative source: `spec/SPEC.md`
+
+Expected starting remote HEAD:
+
+```text
+e0155c36686d9221098609c07197d3c2e5e5fbec
+```
+
+Provisional PB_2 implementation commit now under corrective review:
+
+```text
+50de80364c2546463918387a8f335ea36107bde0
+```
+
+Last accepted pre-PB_2 green implementation:
+
+```text
+4eda158145595de0f2e9aa92456ee4a052db74b0
+```
+
+PB_2 was previously marked complete, but a fresh audit found defects in:
+
+1. per-cell `RunConfig` and `config_hash` provenance;
+2. scheduled noise and cross-system pairing identities for infeasible rows;
+3. BR-11 header/payload aggregation on decode failures;
+4. JPEG-2000 `Psot` parsing;
+5. row wall-clock measurement;
+6. OpenJPEG preflight ordering;
+7. the unresolved CIFAR-10 axis versus `j2k_resolutions` conflict;
+8. the normative definition of `header_bytes` and `payload_bytes`.
+
+Correct PB_2 before beginning PB_3.
+
+Do not begin PB_3, BR-4 composition, the full validation sweep, G-8, training, lambda calibration,
+ER-9, or test-split work.
+
+---
+
+# 1. Durable execution requirements
+
+Assume the session can terminate abruptly during any command.
+
+The repository—not chat context or terminal history—must contain everything needed for another
+agent to continue.
+
+## 1.1 Durable instruction copy
+
+During C2.0, save this complete instruction as:
+
+```text
+instructions/PB_2C.txt
+```
+
+Commit and push it before implementation begins.
+
+After that checkpoint, all resumed sessions must read:
+
+```text
+instructions/PB_2C.txt
+instructions/RESUME.md
+```
+
+and must not depend on remembered chat context.
+
+## 1.2 Corrective ledger
+
+Append a new section to `instructions/RESUME.md`:
+
+```markdown
+## PB_2C — corrective provenance and accounting repair
+```
+
+Use these rows:
+
+```markdown
+| Step | State | Notes |
+|---|---|---|
+| C2.0 establish state and open corrective ledger | not-started | |
+| C2.1 record the two normative amendments | not-started | |
+| C2.2 repair per-cell RunConfig provenance | not-started | |
+| C2.3 repair scheduled noise and pair identities | not-started | |
+| C2.4 repair JPEG-2000 accounting and runner timing | not-started | |
+| C2.5 harden the W4 verifier and mutation coverage | not-started | |
+| C2.6 create the clean runner-ready source checkpoint | not-started | |
+| C2.7 regenerate bounded PB_2 evidence | not-started | |
+| C2.8 documentation and complete verification | not-started | |
+| C2.9 final corrective green handoff | not-started | |
+```
+
+Allowed states:
+
+```text
+not-started
+in-progress
+done
+```
+
+A real blocker belongs in Notes and in the final `HOLD` result. Do not invent another state.
+
+## 1.3 Status header during repair
+
+Once C2.0 begins, update the status header to:
+
+```markdown
+**Current phase:** PB_2C — corrective repair in progress
+**Last accepted green commit:** `4eda158145595de0f2e9aa92456ee4a052db74b0`
+**Invalidated provisional PB_2 green:** `50de80364c2546463918387a8f335ea36107bde0`
+**Last durable checkpoint:** `<latest pushed PB_2C SHA, or e0155c3 before the first>`
+**Next action:** `<one concrete command or edit>`
+```
+
+Do not describe the old PB_2 commit as scientifically green after opening PB_2C.
+
+The old implementation remains useful and must not be discarded. Its completion judgment and
+evidence are what are invalidated.
+
+## 1.4 Observed-facts ledger
+
+Add:
+
+```markdown
+### PB_2C observed facts
+
+| Fact | Value | Observed at | Verified |
+|---|---|---|---|
+| starting local HEAD | | C2.0 | |
+| starting origin/main | | C2.0 | |
+| starting remote main | | C2.0 | |
+| starting worktree state | | C2.0 | |
+| starting test result | | C2.0 | |
+| latest existing amendment number | | C2.1 | |
+| CIFAR axis amendment number | | C2.1 | |
+| BR-11 byte-semantics amendment number | | C2.1 | |
+| resulting analysis_version | | C2.1 | |
+| old bounded evidence config hash | | C2.2 | |
+| number of corrected concrete run configs | | C2.2 | |
+| corrected config hashes by cell | | C2.2 | |
+| scheduled-noise identity rule | | C2.3 | |
+| infeasible-row pairing result | | C2.3 | |
+| Psot byte offset | | C2.4 | |
+| known-answer codestream split | | C2.4 | |
+| decode-failure byte aggregation result | | C2.4 | |
+| OpenJPEG preflight result | | C2.4 | |
+| actual OpenJPEG version | | C2.4/C2.7 | |
+| runner-ready clean source commit | | C2.6 | |
+| regenerated evidence source commit | | C2.7 | |
+| regenerated evidence hashes | | C2.7 | |
+| regenerated bounded results | | C2.7 | |
+| W4 verifier result | | C2.8 | |
+| full pytest result | | C2.8 | |
+| G-1 result | | C2.8 | |
+| G-2 result | | C2.8 | |
+| test-access counters | | C2.8 | |
+| final corrective green commit | | C2.9 | |
+| final handoff HEAD | | C2.9 | |
+```
+
+Never remove old observations. Mark superseded values explicitly.
+
+## 1.5 Checkpoint rules
+
+For every C2.x step:
+
+1. Before starting a long, expensive, or multi-file operation:
+
+   * set the row to `in-progress`;
+   * write the exact next action;
+   * commit and push the ledger marker.
+
+2. During work:
+
+   * do not leave more than one checkpoint of coherent work uncommitted;
+   * record expensive command results immediately;
+   * record failures before attempting the next fix;
+   * preserve partial evidence as `complete: false`.
+
+3. At completion:
+
+   * run targeted tests;
+   * set the row to `done`;
+   * record files, commands, counts, and results;
+   * update **Last durable checkpoint** and **Next action**;
+   * commit and push.
+
+Use commits such as:
+
+```text
+wip(pb2c): <what became durable>
+```
+
+Do not rebase, squash, amend pushed commits, or force-push.
+
+---
+
+# 2. Cold-start and resumption protocol
+
+On every fresh or resumed session, read in this order:
+
+1. `instructions/RESUME.md`
+2. `instructions/PB_2C.txt`, once present
+3. `AGENTS.md`
+4. `NEXT.md`
+5. `worklogs/w4-classical-baseline-progress.md`
+6. `instructions/PB_2D.txt`
+7. `instructions/PB_1C.txt`
+8. `spec/SPEC.md`
+
+Then run:
+
+```bash
+cd /home/nick/projects/capstone
+
+git status --short
+git log -15 --oneline
+git rev-parse HEAD
+git fetch origin
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Rules:
+
+* Treat a dirty worktree as unfinished work belonging to the row marked `in-progress`.
+* Inspect all diffs before editing.
+* Do not discard, reset, restore, clean, or stash unknown work.
+* If local HEAD is ahead of `origin/main`, push the durable checkpoint.
+* If histories diverge, inspect before integrating.
+* Resume at the first PB_2C row not marked `done`.
+* Re-verify an `in-progress` row.
+* Do not rerun expensive completed evidence merely to recover context.
+* Never use destructive Git cleanup as a resumption mechanism.
+
+---
+
+# 3. C2.0 — Establish state and invalidate the provisional handoff
+
+Run:
+
+```bash
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python tools/verify_w4_baseline_integration.py
+.venv/bin/python -m pytest
+```
+
+Record:
+
+* exact SHAs;
+* worktree state;
+* current test total;
+* existing W4 verifier result;
+* absence or presence of CI/status checks;
+* existing PB_2 evidence hashes;
+* existing `analysis_version`;
+* current latest amendment number;
+* current test-access counters.
+
+The existing W4 verifier may pass. Record that fact, but also record that it does not test the
+defects PB_2C is correcting.
+
+Create `instructions/PB_2C.txt`.
+
+Update the status and corrective ledger.
+
+Mark the old PB_2 evidence and green judgment:
+
+```text
+superseded pending PB_2C correction
+```
+
+Do not delete it or rewrite history.
+
+## CHECKPOINT C2.0
+
+Commit and push:
+
+```text
+wip(pb2c): open corrective provenance ledger
+```
+
+Do not continue until the ledger and instruction are remote.
+
+---
+
+# 4. C2.1 — Record two normative amendments
+
+This repair includes two deliberate specification decisions.
+
+Determine the latest committed `AM` number and append the next two sequential amendments. Do not
+assume the number written below if the repository has moved.
+
+Regenerate all generated specification views atomically.
+
+## 4.1 Amendment A — resolve CIFAR-10 JPEG-2000 axes
+
+Adopt this decision:
+
+```text
+params.baseline.downsample_axis_px.cifar10 = [32]
+```
+
+Remove 24 px and 16 px as configured CIFAR-10 JPEG-2000 axes.
+
+Rationale to record:
+
+* flat `j2k_resolutions = 6` requires a minimum 32 px tile dimension;
+* OpenJPEG rejects 24 px and 16 px before rate control;
+* these are invalid codec configurations, not useful low-rate candidates;
+* CIFAR-10 is a plumbing smoke dataset;
+* retaining only the native 32 px axis is simpler and less error-prone than introducing an
+  axis-dependent wavelet-resolution rule;
+* dynamic clamping would create a new codec rule and more cache-identity complexity without helping
+  the headline dataset;
+* the change prevents setup errors from entering the future BR-4 candidate table.
+
+Update:
+
+* normative parameters;
+* BR-1 wording if needed;
+* verification language;
+* schedule/gate text;
+* amendment ledger;
+* generated YAML/views;
+* documentation that currently calls the issue unresolved.
+
+Verify that no live text still says the axis decision is open.
+
+## 4.2 Amendment B — define BR-11 byte semantics exactly
+
+Amend BR-11 and the relevant artifact semantics to define:
+
+```text
+bytes_sent = source_bytes = A / 8
+```
+
+This is the complete byte-aligned transport payload capacity placed on the channel.
+
+For a successfully emitted raw JPEG-2000 codestream:
+
+```text
+header_bytes
+```
+
+means all structural codestream bytes:
+
+* SOC;
+* every main-header marker segment;
+* every SOT marker segment;
+* every tile-part header through and including SOD;
+* EOC;
+* equivalent structural bytes for every tile-part.
+
+```text
+payload_bytes
+```
+
+means all tile-part data bytes after SOD and before the next tile-part boundary.
+
+Do not describe this more narrowly as pure entropy-coded sample data. JPEG-2000 tile-part data may
+also contain packet-header information.
+
+The required identity is:
+
+```text
+emitted_codestream_bytes = header_bytes + payload_bytes
+```
+
+Transport filler is:
+
+```text
+payload_filler_bytes =
+    bytes_sent - emitted_codestream_bytes
+```
+
+and remains reported separately rather than folded into either BR-11 column.
+
+Aggregate semantics:
+
+* `header_bytes` and `payload_bytes` are means over all rows where a codestream was emitted;
+* this includes both `delivered` and `decode_failure`;
+* it excludes `structural_infeasibility` and `codec_infeasibility`, where no codestream exists;
+* the fields are null only when the aggregate contains no emitted codestream.
+
+Update the BR-11 verification language to require:
+
+* a known-answer codestream parser test;
+* a decode-failure-only aggregate retaining both byte columns;
+* an archived overhead table;
+* exact byte reconciliation.
+
+## 4.3 Analysis-version and cache implications
+
+Inspect the normative `analysis_version` bump rule.
+
+If these amendments require an `analysis_version` bump, apply it.
+
+The parameter snapshot and config fingerprints must change.
+
+Verify that the J2K cache identity changes appropriately. Do not preserve or reuse bounded evidence
+under the old parameter/config identity.
+
+Do not regenerate cache manifests merely to hide old identity drift.
+
+## CHECKPOINT C2.1
+
+Run:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+```
+
+Mark C2.1 `done`.
+
+Commit and push:
+
+```text
+wip(pb2c): amend CIFAR codec axes and BR-11 byte semantics
+```
+
+---
+
+# 5. C2.2 — Repair per-cell `RunConfig` provenance
+
+The current bounded runner resolves one configuration at 18 dB and reuses its hash for:
+
+* the −8 dB cell;
+* different ratios;
+* different modulations and LDPC rates;
+* fixtures.
+
+That is invalid.
+
+Every distinct emitted run/cell must have a concrete `RunConfig` whose resolved fields describe that
+exact cell.
+
+## 5.1 Required concrete fields
+
+For each bounded cell, its resolved configuration must include at least:
+
+```text
+system
+dataset
+dataset_version
+split
+bw_ratio
+k
+channel
+test_snr_db
+train_seed
+channel_seed
+classifier_variant
+modulation
+ldpc_rate
+encode_axis_px
+analysis_version
+project_id
+task
+```
+
+Include any other scientific/runtime selection that changes the row.
+
+The `config_hash` must be computed through the existing versioned `RunConfig` hashing
+implementation.
+
+Do not create an independent hash formula.
+
+## 5.2 Preferred implementation
+
+Prefer committed strict experiment files for the distinct fixed configuration groups instead of
+widening the global configuration API unnecessarily.
+
+For example:
+
+```text
+configs/classical-baseline-w4-imagenette.yaml
+configs/classical-baseline-w4-cifar.yaml
+configs/classical-baseline-w4-structural-fixture.yaml
+configs/classical-baseline-w4-codec-fixture.yaml
+```
+
+Each may declare `train_seed`, `channel_seed`, and `test_snr_db` as sweep axes while fixing the
+group's:
+
+* dataset;
+* ratio;
+* modulation;
+* LDPC rate;
+* codec axis;
+* system;
+* classifier variant.
+
+Equivalent designs are acceptable only if they still produce one ordinary `RunConfig` through the
+central implementation for each exact cell.
+
+Do not represent modulation and LDPC rate solely in the execution plan while omitting them from the
+configuration fingerprint.
+
+## 5.3 Archived run configurations
+
+Archive every distinct concrete configuration under a deterministic path such as:
+
+```text
+results/baseline/w4/run_configs/<config_hash>.json
+```
+
+Keep or replace `resolved_config.json` as an execution-level index containing:
+
+```text
+schema_version
+complete
+execution_source_commit
+plan_sha256
+field_semantics
+run_configs
+```
+
+For every run config index entry include:
+
+```text
+config_hash
+relative_path
+file_sha256
+run_config
+dataset
+bw_ratio
+test_snr_db
+train_seed
+channel_seed
+modulation
+ldpc_rate
+encode_axis_px
+```
+
+The file contents must reconstruct through `RunConfig.from_dict()` and reproduce their own
+`config_hash`.
+
+## 5.4 Identity requirements
+
+Each aggregate row must use the hash of its exact concrete config.
+
+Required distinctions:
+
+* 18 dB and −8 dB must have different hashes;
+* `r_1_24` and `r_1_48` must have different hashes;
+* QPSK and 16-QAM must have different hashes;
+* rate 1/3 and rate 2/3 must have different hashes;
+* CIFAR and Imagenette must have different hashes;
+* changing the codec axis must change the hash.
+
+Rows within one exact cell should share the same config hash.
+
+## 5.5 Tests
+
+Add tests that fail on:
+
+* one hash reused across two SNR points;
+* resolved SNR differing from the aggregate;
+* resolved ratio differing from the aggregate;
+* resolved modulation differing from the aggregate;
+* resolved LDPC rate differing from the aggregate;
+* missing run-config artifact;
+* file hash mismatch;
+* config hash not reproducing from `RunConfig`;
+* one execution-plan hash being substituted for a run config hash;
+* config values living only in source code.
+
+## CHECKPOINT C2.2
+
+Run targeted configuration, runner, record, and verifier tests.
+
+Mark C2.2 `done`.
+
+Commit and push:
+
+```text
+wip(pb2c): bind every bounded cell to its concrete RunConfig
+```
+
+---
+
+# 6. C2.3 — Repair scheduled noise and cross-system pairing
+
+A row's channel realization identity is scheduled by the evaluation cell even when one system
+becomes infeasible before drawing noise.
+
+The current infeasible classical rows record null `noise_id`, causing their `pair_id` to differ from
+a transmitting comparison arm.
+
+Correct this.
+
+## 6.1 Scheduled-noise rule
+
+For every evaluation row compute the scheduled `noise_id` from:
+
+```text
+dataset_version
+split_manifest_hash
+stable_sample_id
+test_snr_db
+channel_seed
+channel = awgn
+k
+block_index
+rng_purpose = channel_noise
+```
+
+Use the existing central `make_noise_id` implementation.
+
+Do not draw noise merely to generate the identity.
+
+The per-image `noise_id` field must contain this scheduled identity for:
+
+* delivered;
+* decode failure;
+* codec infeasibility;
+* structural infeasibility.
+
+## 6.2 Actual versus scheduled use
+
+For transmitted rows:
+
+```text
+result.noise_id == scheduled_noise_id
+```
+
+must be asserted.
+
+For infeasible rows:
+
+* no random draw occurs;
+* `result.noise_id` may remain absent at the PB_1 execution layer;
+* the PB_2 record still carries the scheduled identity;
+* the raw execution record should state `noise_consumed: false`.
+
+For transmitted rows it should state:
+
+```text
+noise_consumed: true
+```
+
+## 6.3 Pair identity
+
+Build `pair_id` using the scheduled noise identity, not the optional transport result identity.
+
+Two systems at the same:
+
+* analysis cell;
+* image;
+* ratio;
+* SNR;
+* scheduled noise realization
+
+must share `pair_id` and `noise_id`, even when one system is infeasible.
+
+Their `run_id`s remain different.
+
+## 6.4 Tests
+
+Add:
+
+* cross-system pairing where the classical row is structurally infeasible and the other system
+  transmits;
+* cross-system pairing where the classical row is codec-infeasible;
+* transmitted actual noise equals scheduled noise;
+* infeasible paths consume no RNG draw;
+* missing scheduled noise fails;
+* null-noise pair-ID mutation fails;
+* changing `k`, SNR, sample, seed, manifest, or block index changes scheduled noise;
+* row order and batching change nothing.
+
+Update field semantics so `noise_id` is not described as nullable merely because the classical arm
+did not transmit.
+
+## CHECKPOINT C2.3
+
+Run targeted identity and pairing tests.
+
+Mark C2.3 `done`.
+
+Commit and push:
+
+```text
+wip(pb2c): preserve scheduled noise identity through outages
+```
+
+---
+
+# 7. C2.4 — Repair JPEG-2000 accounting and runner timing
+
+## 7.1 Correct `Psot`
+
+In a JPEG-2000 SOT marker segment, the layout is:
+
+```text
+SOT marker: 2 bytes
+Lsot:       2 bytes
+Isot:       2 bytes
+Psot:       4 bytes
+TPsot:      1 byte
+TNsot:      1 byte
+```
+
+Therefore `Psot` begins six bytes after the beginning of the SOT marker:
+
+```text
+_PSOT_OFFSET = 6
+```
+
+Do not retain offset 4.
+
+Validate:
+
+* minimum SOT segment length;
+* segment boundaries;
+* `Psot` range;
+* multi-tile-part behavior;
+* `Psot = 0` last-tile fallback;
+* EOC handling;
+* exact total reconciliation.
+
+## 7.2 Independent known-answer parser tests
+
+Add a handcrafted raw codestream fixture containing:
+
+* SOC;
+* at least one ordinary marker segment;
+* SOT with a known non-zero `Psot`;
+* SOD;
+* a known number of tile-part data bytes;
+* EOC.
+
+Assert exact known values for:
+
+```text
+header_bytes
+payload_bytes
+total bytes
+```
+
+Also add:
+
+* a multi-tile-part fixture;
+* a `Psot = 0` fixture;
+* malformed/truncated segment tests;
+* an actual OpenJPEG encode reconciliation.
+
+Do not rely only on:
+
+```text
+header + payload == len(codestream)
+```
+
+because a wrong boundary can still satisfy that identity.
+
+## 7.3 Aggregate all emitted codestreams
+
+Aggregate BR-11 byte columns over every row with an emitted codestream:
+
+```text
+delivered
+decode_failure
+```
+
+Do not restrict them to delivered rows.
+
+For an all-decode-failure cell:
+
+* `coverage_rate = 0`;
+* PSNR/SSIM remain null;
+* `header_bytes` remains populated;
+* `payload_bytes` remains populated;
+* PAPR remains populated;
+* byte reconciliation remains exact.
+
+For structural or codec infeasibility, these fields remain null when no codestream exists.
+
+Update field-semantics denominators accordingly.
+
+## 7.4 Preserve exact reconciliation
+
+For every emitted codestream require:
+
+```text
+header_bytes + payload_bytes == emitted_codestream_bytes
+```
+
+and:
+
+```text
+header_bytes
++ payload_bytes
++ payload_filler_bytes
+== bytes_sent
+```
+
+when the transport block exists.
+
+Do not fold payload filler into the BR-11 `payload_bytes` column.
+
+## 7.5 Complete row timing
+
+The per-row timer must include the entire row path:
+
+```text
+source coding
+transport
+classifier inference when applicable
+reconstruction metrics
+outage scoring
+record construction
+```
+
+Do not stop timing immediately after `run_classical_pipeline()`.
+
+Use deterministic fake-clock tests or an instrumented scoring stub to prove classifier/scoring time
+is included.
+
+The aggregate `wall_clock_s` must be derived from all durable row timings, including rows completed
+before a resume.
+
+Do not report only the most recent resumed session's elapsed time as the total bounded-run time.
+
+## 7.6 OpenJPEG preflight ordering
+
+Validate the exact configured OpenJPEG version before creating:
+
+* result directories;
+* result artifacts;
+* partial evidence files;
+* J2K cache entries for this run.
+
+Use the existing J2K environment/preflight implementation rather than creating a second version
+parser.
+
+Record the actual verified OpenJPEG version in the execution metadata.
+
+Add a test that forces preflight failure and asserts no result directory or artifact is created.
+
+## CHECKPOINT C2.4
+
+Run targeted parser, record, runner, timing, and environment tests.
+
+Mark C2.4 `done`.
+
+Commit and push:
+
+```text
+wip(pb2c): correct JPEG-2000 overhead and runner accounting
+```
+
+---
+
+# 8. C2.5 — Harden the W4 verifier and mutation tests
+
+The verifier must independently detect every PB_2C defect.
+
+## 8.1 Final raw-row artifact
+
+During execution, continue using an incremental file such as:
+
+```text
+smoke_rows.partial.jsonl
+```
+
+At successful finalization, atomically produce:
+
+```text
+results/baseline/w4/smoke_rows.jsonl
+```
+
+Requirements:
+
+* final rows are in deterministic worklist order;
+* every work item appears exactly once;
+* final file is complete and immutable for verification;
+* partial state is never accepted as final evidence;
+* partial files may remain only as clearly marked execution state or be removed after successful
+  finalization;
+* the verifier reads the final raw rows when recomputing byte and timing aggregates.
+
+## 8.2 Configuration verification
+
+For each run-config artifact:
+
+* load through `RunConfig.from_dict`;
+* recompute `config_hash`;
+* compare file SHA;
+* verify every exact resolved selection;
+* verify the aggregate's `config_hash`;
+* recompute the expected `run_id`.
+
+Reject:
+
+* reused config hashes across differing cells;
+* missing config files;
+* wrong SNR, ratio, modulation, rate, dataset, axis, or seed;
+* execution-plan hash substituted for a concrete config hash.
+
+## 8.3 Identity verification
+
+For every per-image row:
+
+* recompute scheduled `noise_id`;
+* recompute `pair_id`;
+* recompute `analysis_cell_id`;
+* recompute `run_id`;
+* compare against the row.
+
+For raw transmitted rows:
+
+* verify scheduled identity equals actual PB_1 identity;
+* verify `noise_consumed = true`.
+
+For raw infeasible rows:
+
+* verify scheduled identity is still present;
+* verify no actual noise was consumed;
+* verify the per-image row uses the scheduled identity.
+
+## 8.4 Byte verification
+
+Using `smoke_rows.jsonl`, independently recompute:
+
+* emitted-row count;
+* mean header bytes;
+* mean tile-part data bytes;
+* payload filler;
+* bytes-sent reconciliation;
+* aggregate denominators.
+
+Reject a decode-failure aggregate whose header or payload columns are blank when its source
+codestreams were emitted.
+
+## 8.5 Timing and preflight verification
+
+Verify:
+
+* every row has a non-negative full-path elapsed time;
+* aggregate time reconciles with its raw rows;
+* summary time follows the documented total;
+* actual OpenJPEG version equals the configured version;
+* execution metadata confirms preflight preceded artifact creation.
+
+## 8.6 Required mutation classes
+
+Add mutation tests that fail on:
+
+1. one config hash reused for 18 dB and −8 dB;
+2. wrong resolved SNR;
+3. wrong resolved ratio;
+4. wrong modulation;
+5. wrong LDPC rate;
+6. missing run-config artifact;
+7. run-config file hash drift;
+8. config hash not reproducing;
+9. null noise identity on an infeasible row;
+10. pair ID built from null noise;
+11. transmitted actual noise differing from scheduled noise;
+12. infeasible row claiming noise was consumed;
+13. incorrect `Psot` offset;
+14. parser accepting a wrong known-answer boundary;
+15. decode-failure aggregate with null header bytes;
+16. decode-failure aggregate with null payload bytes;
+17. wrong aggregation denominator;
+18. payload filler folded into payload bytes;
+19. wall-clock excluding scoring;
+20. resumed rows omitted from total timing;
+21. artifact directory created before failed OpenJPEG preflight;
+22. wrong actual OpenJPEG version;
+23. partial raw rows relabelled complete;
+24. deleted or duplicated final raw row;
+25. stale source manifest;
+26. stale pre-amendment config/evidence identity.
+
+Mutation tests must fail for the intended independent property, not merely because an unrelated
+final hash changed.
+
+## CHECKPOINT C2.5
+
+Run all new and affected tests.
+
+Mark C2.5 `done`.
+
+Commit and push:
+
+```text
+wip(pb2c): harden W4 provenance and accounting verification
+```
+
+---
+
+# 9. C2.6 — Create the clean runner-ready checkpoint
+
+Before regenerating evidence:
+
+1. complete all amendments;
+2. regenerate all spec views;
+3. complete implementation and tests;
+4. complete verifier changes;
+5. update configs and execution plan;
+6. ensure no unfinished source changes remain.
+
+Run targeted tests and:
+
+```bash
+git diff --check
+git status --short
+```
+
+Create a clean runner-ready commit such as:
+
+```text
+fix(classical): correct PB_2 provenance and byte accounting
+```
+
+Push it.
+
+Record its full SHA as:
+
+```text
+runner-ready clean source commit
+```
+
+This must be the `execution_source_commit` for the regenerated bounded evidence.
+
+Do not run final evidence from a dirty worktree or from an earlier source commit.
+
+## CHECKPOINT C2.6
+
+Mark C2.6 `done`.
+
+Push and confirm:
+
+```bash
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+---
+
+# 10. C2.7 — Regenerate bounded PB_2 evidence
+
+The old bounded evidence is superseded.
+
+Do not edit its numeric fields manually.
+
+Use the corrected runner from the clean C2.6 source commit.
+
+Use a fresh execution identity and fresh cache namespace where needed so old pre-amendment cache
+entries cannot be mistaken for current evidence.
+
+## 10.1 Required bounded work
+
+Regenerate:
+
+* CIFAR-10 transport-only smoke at the now sole configured 32 px axis;
+* Imagenette bounded task-scored rows at 18 dB;
+* Imagenette bounded task-scored rows at −8 dB;
+* structural-infeasibility fixture;
+* codec-infeasibility fixture;
+* cached repeat;
+* outage sensitivity;
+* accounting examples;
+* raw finalized rows;
+* aggregate and per-image CSVs;
+* run-config artifacts;
+* source manifest;
+* resolved-config index;
+* smoke summary.
+
+This remains:
+
+```text
+bounded validation/plumbing integration
+not the BR-4 full validation sweep
+not a G-8 operating-point selection
+not test evidence
+```
+
+## 10.2 Crash-resume drill
+
+Before the full final run:
+
+1. restart with an empty partial state;
+2. execute a small number of rows;
+3. stop cleanly;
+4. resume;
+5. confirm no rows are recomputed or duplicated;
+6. confirm each cell uses its exact config identity;
+7. confirm cumulative timing includes pre-resume rows.
+
+Then perform or complete the final run.
+
+## 10.3 Required evidence checks
+
+Confirm:
+
+* all aggregate config hashes reproduce;
+* 18 dB and −8 dB hashes differ;
+* fixture hashes describe their actual configurations;
+* all per-image `noise_id`s are non-null;
+* infeasible rows use scheduled identities without consuming noise;
+* delivered and decode-failure rows reconcile scheduled and actual identities;
+* decode-failure aggregate has non-null header and payload means;
+* parser known-answer results are correct;
+* all byte identities reconcile;
+* CIFAR still carries no task score;
+* test-access counters remain zero;
+* actual OpenJPEG version is recorded;
+* evidence binds to the C2.6 clean source commit.
+
+The numerical task outcomes may remain the same or move only where the corrected implementation
+legitimately changes metadata or accounting. Record every change.
+
+## 10.4 Source manifest
+
+Regenerate the W4 source manifest against the C2.6 source commit.
+
+Do not create a re-adjudication exception.
+
+A bounded run is inexpensive enough that runtime source drift must require rerunning it.
+
+## CHECKPOINT C2.7
+
+Run:
+
+```bash
+.venv/bin/python tools/gen_w4_source_manifest.py --check
+.venv/bin/python tools/verify_w4_baseline_integration.py
+```
+
+Record all new artifact hashes.
+
+Mark old evidence hashes as superseded, not deleted from history.
+
+Commit and push:
+
+```text
+wip(pb2c): regenerate corrected bounded W4 evidence
+```
+
+---
+
+# 11. C2.8 — Documentation and complete verification
+
+## 11.1 `instructions/RESUME.md`
+
+Record:
+
+* why provisional PB_2 was invalidated;
+* both amendments;
+* exact amendment numbers;
+* corrected config hashes by cell;
+* scheduled-noise rule;
+* parser fix;
+* decode-failure byte aggregation;
+* timing and preflight changes;
+* runner-ready source SHA;
+* evidence hashes;
+* verifier results;
+* test total;
+* G-1/G-2 results;
+* test counters.
+
+## 11.2 `worklogs/w4-classical-baseline-progress.md`
+
+Append a PB_2C corrective section.
+
+Do not rewrite prior history.
+
+Include:
+
+* audit findings;
+* why the old verifier passed;
+* old versus corrected config provenance;
+* exact BR-11 semantics;
+* `Psot` error;
+* scheduled-noise pairing correction;
+* corrected evidence;
+* amendment rationale;
+* unchanged scientific outcomes;
+* remaining PB_3 frontier.
+
+Mark the prior PB_2 bounded evidence and green judgment as superseded.
+
+## 11.3 `NEXT.md`
+
+After correction, all live sections must agree:
+
+* PB_1/PB_1C complete;
+* PB_2/PB_2C complete;
+* CIFAR axis decision resolved;
+* BR-11 semantics resolved;
+* PB_3 not started;
+* PB_3 is now ready;
+* full BR-4 sweep not started;
+* G-8 unresolved;
+* test split sealed.
+
+The single next task becomes:
+
+```text
+Run instructions/PB_3.txt from B3.0.
+```
+
+Do not start it.
+
+## 11.4 `AGENTS.md` and `README.md`
+
+Update live status and reproducibility guidance where necessary.
+
+Ensure no live documentation still says:
+
+* PB_3 is blocked by the axis decision;
+* PB_2 provisional evidence is current;
+* infeasible rows have no comparison noise identity;
+* BR-11 byte semantics remain undecided.
+
+## 11.5 Complete verification
+
+Run each separately and record each result immediately:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+.venv/bin/python spec/evidence/check_packetisation.py
+.venv/bin/python tools/fetch_datasets.py --check
+.venv/bin/python tools/materialize_manifests.py --check
+.venv/bin/python tools/verify_datasets.py
+.venv/bin/python tools/verify_g1_adjudication.py
+.venv/bin/python tools/verify_g7_profile.py
+.venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py
+.venv/bin/python tools/gen_g2_source_manifest.py --check
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python tools/gen_w4_source_manifest.py --check
+.venv/bin/python tools/verify_w4_baseline_integration.py
+.venv/bin/python -m pytest
+git diff --check
+```
+
+Then:
+
+```bash
+git status --short
+```
+
+Do not infer success from the previous 757-test run.
+
+If any command fails:
+
+* preserve output;
+* keep C2.8 `in-progress`;
+* update the exact next action;
+* commit and push coherent work;
+* do not proceed to C2.9.
+
+## CHECKPOINT C2.8
+
+Mark C2.8 `done`.
+
+Commit and push:
+
+```text
+wip(pb2c): complete corrective full verification
+```
+
+---
+
+# 12. C2.9 — Final corrective green handoff
+
+Confirm C2.0–C2.8 are all `done`.
+
+Create a normal green commit if the runner-ready implementation commit did not already serve that
+role, for example:
+
+```text
+fix(classical): close PB_2 provenance and accounting corrections
+```
+
+Then use a small handoff commit if required:
+
+```text
+docs(handoff): mark PB_2 corrected and PB_3 ready
+```
+
+Do not amend or rewrite pushed history.
+
+Final status:
+
+```markdown
+**Current phase:** PB_3 — not started
+**Last green commit:** `<corrective PB_2 implementation/evidence SHA>`
+**Last durable checkpoint:** `<final handoff HEAD or repository-convention SHA>`
+**Next action:** run `instructions/PB_3.txt` from B3.0
+```
+
+Run:
+
+```bash
+git diff --check
+git status --short
+git rev-parse HEAD
+git rev-parse origin/main
+git ls-remote origin refs/heads/main
+```
+
+Requirements:
+
+* clean worktree;
+* local HEAD equals `origin/main`;
+* local HEAD equals remote main;
+* every checkpoint pushed;
+* no PB_3 implementation;
+* no full sweep;
+* no G-8 selection;
+* no training;
+* no test access.
+
+Report GitHub CI/status-check availability accurately.
+
+---
+
+# 13. G-2 protection
+
+The expected correction belongs outside:
+
+```text
+src/baseline/ldpc/
+```
+
+Avoid modifying that directory.
+
+If any file under it changes:
+
+1. stop;
+2. record the exact reason;
+3. run the G-2 source-binding verifier;
+4. do not regenerate the G-2 manifest to conceal drift;
+5. do not rerun or alter the G-2 scientific campaign without a real measurement-path adjudication.
+
+The JPEG-2000, record, runner, configuration, and verifier fixes should not require LDPC changes.
+
+---
+
+# 14. Emergency usage-exhaustion protocol
+
+When usage appears low, do not start:
+
+* the full test suite;
+* evidence regeneration;
+* a multi-file refactor;
+* amendment regeneration;
+* a new mutation group.
+
+Perform these actions in order:
+
+1. Stop starting new work.
+
+2. Safely finish or interrupt the current command.
+
+3. Run:
+
+   ```bash
+   git status --short
+   git diff --stat
+   ```
+
+4. Update `instructions/RESUME.md` with:
+
+   * current C2.x row = `in-progress`;
+   * exact files changed;
+   * completed commands;
+   * unrun commands;
+   * known passing tests;
+   * known failing tests;
+   * partial evidence row count;
+   * evidence `complete` state;
+   * exact next command;
+   * whether the current tree is green.
+
+5. Ensure unfinished evidence says:
+
+   ```text
+   complete: false
+   ```
+
+6. Commit coherent unfinished work:
+
+   ```text
+   wip(pb2c): preserve <precise unfinished work>
+   ```
+
+7. Push.
+
+8. Confirm:
+
+   ```bash
+   git rev-parse HEAD
+   git rev-parse origin/main
+   git ls-remote origin refs/heads/main
+   ```
+
+9. Report the pushed SHA and stop.
+
+A documented non-green WIP commit is preferable to lost work.
+
+Never leave a dirty unpushed worktree as the only resumption mechanism.
+
+Never spend the final remaining usage polishing a chat report before preserving the ledger and
+commit.
+
+Emergency ending:
+
+```text
+PB_2 CORRECTION INCOMPLETE — RESUME AT C2.<n>
+```
+
+If durable push fails:
+
+```text
+PB_2 HOLD — DURABLE PUSH FAILED: <precise condition>
+```
+
+---
+
+# 15. Prohibitions
+
+Do not:
+
+* begin PB_3;
+* implement BR-4 composition;
+* run the full validation sweep;
+* select a configuration or ratio;
+* resolve G-8;
+* train or fine-tune a model;
+* calibrate lambda;
+* implement ER-9;
+* access the test split;
+* alter the frozen G-1 checkpoint;
+* rerun G-7;
+* rerun the transparency campaign;
+* rerun the G-2 BLER campaign;
+* hide source drift through manifest regeneration;
+* retain stale pre-amendment evidence as current;
+* weaken mutation tests;
+* hardcode result hashes;
+* use one configuration fingerprint for several concrete runs;
+* omit scheduled noise identity because no noise was consumed;
+* treat tile-part data bytes as pure entropy-coded samples;
+* fold transport filler into BR-11 payload bytes;
+* rewrite pushed history;
+* destructively clean the worktree.
+
+---
+
+# 16. Suggested durable commit sequence
+
+```text
+wip(pb2c): open corrective provenance ledger
+wip(pb2c): amend CIFAR codec axes and BR-11 byte semantics
+wip(pb2c): bind every bounded cell to its concrete RunConfig
+wip(pb2c): preserve scheduled noise identity through outages
+wip(pb2c): correct JPEG-2000 overhead and runner accounting
+wip(pb2c): harden W4 provenance and accounting verification
+fix(classical): correct PB_2 provenance and byte accounting
+wip(pb2c): mark corrected bounded execution in progress
+wip(pb2c): preserve partial corrected evidence
+wip(pb2c): regenerate corrected bounded W4 evidence
+wip(pb2c): complete corrective full verification
+fix(classical): close PB_2 provenance and accounting corrections
+docs(handoff): mark PB_2 corrected and PB_3 ready
+```
+
+Do not combine C2.2, C2.3, C2.4, C2.5, or C2.7 into one large checkpoint.
+
+---
+
+# 17. Final report
+
+Report:
+
+0. Fresh run or resumption, and starting C2 row.
+1. Starting local, origin, and remote SHAs.
+2. Starting worktree state.
+3. Every PB_2C checkpoint SHA.
+4. Starting and final test counts.
+5. Exact amendment numbers.
+6. CIFAR axis decision.
+7. Exact BR-11 byte semantics.
+8. Analysis-version result.
+9. Old invalid config-hash behavior.
+10. Corrected concrete run configs.
+11. Corrected config hashes by dataset/ratio/SNR/modulation/rate.
+12. Proof different cells now have different hashes.
+13. Run-config artifact paths and hashes.
+14. Scheduled-noise rule.
+15. Infeasible-row noise and pairing result.
+16. Cross-system pairing test.
+17. Correct `Psot` offset.
+18. Known-answer JPEG-2000 parser results.
+19. Decode-failure header/payload aggregation.
+20. Exact byte reconciliations.
+21. Full-row timing result.
+22. Resume timing result.
+23. OpenJPEG preflight ordering.
+24. Verified OpenJPEG version.
+25. Files changed.
+26. Whether any `src/baseline/ldpc/` file changed.
+27. Verifier mutation classes.
+28. Runner-ready source commit.
+29. Corrected evidence source commit.
+30. Corrected evidence hashes.
+31. CIFAR transport-only bounded result.
+32. Imagenette 18 dB bounded result.
+33. Imagenette −8 dB bounded result.
+34. Structural and codec infeasibility fixtures.
+35. Old versus corrected bounded values.
+36. G-1, G-2, G-7, transparency, and W4 verifier results.
+37. Test-access counters.
+38. Confirmation no PB_3, sweep, selection, training, or test access occurred.
+39. Corrective green commit.
+40. Final handoff HEAD.
+41. Final local, origin, and remote SHAs.
+42. Clean-worktree confirmation.
+43. Single next task.
+
+End with exactly one of:
+
+```text
+PB_2 CORRECTED AND GREEN — PB_3 NOT STARTED
+PB_2 CORRECTION INCOMPLETE — RESUME AT C2.<n>
+PB_2 HOLD — <precise blocking condition>
+```
+
+`INCOMPLETE` means unfinished work is durably pushed and can resume at the named row.
+
+`HOLD` means a real technical, normative, provenance, or durability condition requires human
+judgment.
+
+Do not conflate them.
+
+---
+
+# 18. Approved addendum (recorded at C2.0)
+
+The plan for this instruction was approved with four mandatory clarifications and two normative
+decisions taken with the user. They are binding and are recorded here so a resumed session does not
+depend on chat context.
+
+## 18.1 Decision — transparency-probe codec-configuration drift
+
+`params.baseline.downsample_axis_px` is inside the JPEG-2000 codec-configuration snapshot
+(`src/baseline/j2k.py:107`), so Amendment A moves the codec configuration hash from
+`1a0b0d74bef1caed33b8cff8f866dee967ff202493a0a8e2993619e0b1e2a064` to
+`2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa` (computed at C2.0).
+`tools/verify_transparency_bitrate_probe.py:754-755` compares the probe's recorded hash against a
+**live** `J2KCodec` read from HEAD, so Amendment A as written fails that verifier — which §11.5
+requires to pass while §15 forbids rerunning the 68,000-cell probe. G-1
+(`verify_g1_adjudication.py:267`) and G-7 (`verify_g7_profile.py:333`) hash the *archived* config
+and are unaffected; G-2 binds `spec/params.generated.yaml` as history and is unaffected.
+
+**Decision: record a third amendment and a byte-pinned off-measurement-path drift record.** Do not
+rerun the probe. Do not abandon Amendment A. Specifically:
+
+* Add the third AM entry — changing the probe verifier's acceptance model is itself a durable
+  adjudication decision and must not be introduced as an implementation detail.
+* The archived probe must reproduce its original codec snapshot and hash from archived, byte-pinned
+  inputs.
+* Add exactly one off-measurement-path drift record containing: the amendment ID; the archived probe
+  source/evidence commit; the old codec hash; the current codec hash; the exact changed parameter
+  path with old and new values; the fact that the probe dataset was exclusively `imagenette160`; and
+  a code-backed proof that `configured_axes(dataset)`
+  (`src/baseline/classical/pipeline.py:196-212`) selects only `downsample_axis_px[dataset]`, making
+  the CIFAR-only change unreachable from that execution.
+* Keep checking that HEAD reproduces the declared new hash.
+* Fail closed on any additional codec drift, any change affecting Imagenette's axes or common J2K
+  settings, any missing archived snapshot, or any failure of the reachability proof.
+* **Do not** implement a generic drift allowlist or a blanket "codec hash changes are acceptable"
+  rule.
+* Add mutations showing that changing an Imagenette axis, `j2k_resolutions`, wavelet, progression
+  order, code-block size, tile size, rate-control settings, or parser/runtime configuration still
+  invalidates the probe.
+
+## 18.2 Decision — `analysis_version`
+
+Bump `params.config.analysis_version` from 1 to 2. Amendment B changes the executable meanings and
+aggregation denominators of `header_bytes` and `payload_bytes`, so it meets
+`bump_on_inference_estimand_or_analysis_implementation_change`. Regenerate all generated
+parameter/spec views. Every corrected PB_2 concrete `config_hash` and `run_id` must carry analysis
+version 2. Preserve the old PB_2 evidence as superseded under analysis version 1; do not rewrite it
+into version 2. Regenerate the corrected bounded evidence under version 2.
+
+## 18.3 Clarification — three separate noise fields on raw rows
+
+Raw execution rows must preserve three separate fields:
+
+```text
+scheduled_noise_id
+actual_noise_id
+noise_consumed
+```
+
+For transmitted rows, independently assert `actual_noise_id == scheduled_noise_id`. For infeasible
+rows, retain the scheduled ID, set `actual_noise_id` null, and set `noise_consumed = false`. The
+public per-image `noise_id` column is the **scheduled** identity in every case.
+
+## 18.4 Clarification — what "preserve old analysis-version-1 evidence" means
+
+Preservation is through Git history, prior SHAs, recorded hashes and the corrective worklog. The
+active `results/baseline/w4/` paths may be replaced atomically by version-2 evidence. **Do not mix
+legacy and current artifacts in the active verified evidence set.**
+
+## 18.5 Clarification — scope of `overhead_table.json`
+
+BR-11 already requires an archived overhead-fraction table and no such artifact exists today, so
+C2.7 must produce `results/baseline/w4/overhead_table.json`. It is **bounded PB_2C evidence only**
+and must declare:
+
+```text
+evidence_scope: bounded_integration
+complete_for_full_validation_grid: false
+```
+
+and list exactly the executed cells. Do not synthesize unexecuted combinations and do not widen C2.7
+into the full validation sweep.
+
+## 18.6 Clarification — commit designation at C2.6 and C2.9
+
+At C2.6, designate the latest clean pushed commit containing all source and verifier changes as the
+runner-ready source SHA. Create another commit only when there are actual tracked changes; **do not
+create empty commits**. Apply the same rule to the final green designation at C2.9.
