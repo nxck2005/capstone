@@ -44,7 +44,7 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_B B0 is in progress; G8_A is green and no scientific work has started. G8_C–G8_G remain prohibited.** PB_3C was a narrow corrective
+**Current phase:** **G8_B is active; B0 is complete and B1 is next. G8_A is green and no scientific work has started. G8_C–G8_G remain prohibited.** PB_3C was a narrow corrective
 phase between PB_3 and G-8: it fixed the fixed-modulation reference (BR-9), made resumed campaign
 state an exact ordered prefix of the permitted passes, froze the selection tie-break policy before
 G-8 behind an independently recomputed `selection_policy_sha256`, and corrected this hand-off. Its
@@ -66,7 +66,7 @@ adjudication of existing evidence rather than new measurement. The provisional P
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
 **Last durable checkpoint:** the G8_A green `feat(classical): freeze G-8 campaign contract and preflight` commit, resolved from Git history after this file is committed. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
-**Next action:** **Complete G8_B B0 — verify G8_A and open the phase.**
+**Next action:** **G8_B B1 — freeze runner schemas and seed derivation.**
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
@@ -701,12 +701,12 @@ silently reinterpret earlier artifacts. This file remains the only operational
 cursor.
 
 **Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
-**Current phase:** G8_B active at B0; G8_A is green and G8_C–G8_G remain prohibited.
+**Current phase:** G8_B active; B0 complete; B1 next. G8_A is green and G8_C–G8_G remain prohibited.
 **Current scientific state:** campaign not started; characterization not
 started; validation measurements not started; pass one not executed; training
 not started; pass two not executed; adjudication incomplete; test access zero;
 authorization not issued.
-**Exact next action:** Complete G8_B B0 — verify G8_A and open the phase.
+**Exact next action:** G8_B B1 — freeze runner schemas and seed derivation.
 
 ## G8_A — contract, structural enumeration, state and preflight
 
@@ -742,23 +742,27 @@ observations, unresolved issues, worktree/push status, and exact next command.
   `289e2cd03236fc2b1e660d4c06846fe71abd8973fd5f69b12cc7814f3f77f1ad`.
 * Selection policy SHA-256 observed before A0:
   `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`.
-* G8_A completed without scientific execution. G8_B–G8_G are `not-started`; the exact next action is `instructions/G8_B.txt` from B0.
+* G8_A completed without scientific execution. At the G8_A opening, G8_B–G8_G were `not-started`; B0 has now completed without scientific execution and B1 is next.
 
 ## G8_B — BLER characterization tooling and bounded smoke
 
-G8_B is active at B0. G8_C–G8_G are prohibited until the preceding phase is green. No
-characterization, validation decoding, inference, training, test access, sweep, ratio selection,
-authorization, codec image load, or smoke execution has started.
+G8_B is active; B0 is complete and B1 is next. G8_C–G8_G are prohibited until the preceding phase
+is green. No characterization, validation decoding, inference, training, test access, sweep, ratio
+selection, authorization, codec image load, or smoke execution has started.
 
 | Step | State | Record |
 |---|---|---|
-| B0 verify G8_A and open the phase | in-progress | **Phase-start SHA:** `e9e62595f6a6cbeacb0578828275aaf8bccee37f`. **Marker SHA:** this in-progress marker commit, resolved from Git history after commit. **Ending SHA:** the forthcoming B0 green commit, resolved from Git history after commit. **First B0 command after the marker:** `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`. **Exact B1 restart command:** `rg -n "trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`. **Intended files:** `tools/open_g8_phase.py`, `tools/verify_g8_phase_state.py`, `tests/test_g8_phase_open.py`, `results/baseline/g8/campaign_state.json`, this ledger, and live handoff wording only where needed. **G8_A immutable files:** unchanged and may not be modified. **Opening hashes:** campaign ID `g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a`; campaign manifest SHA-256 `0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1`; required-identity SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`. **Opening state:** `G8_A/preflight_complete`, completed work units `[]`, in-progress work unit `null`, counters `validation_decoding=0`, `inference=0`, `training=0`, `test_access=0`. **Scientific execution:** none. **Exact next action:** verify the untouched G8_A contract, add the phase-opening utility/verifier/tests, transition once to `G8_B/tooling_open`, then complete B0 verification; B1 is next. |
+| B0 verify G8_A and open the phase | done | **Phase-start SHA:** `e9e62595f6a6cbeacb0578828275aaf8bccee37f`. **Marker SHA:** `3f0fc4d945756f22a5a655ce614a3f0b001b4735` (`wip(g8-b): mark B0 in-progress`). **Ending SHA:** this B0 green commit, resolved from Git history after commit. **First B0 command after the marker:** `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`. **Exact B1 restart command:** `rg -n "trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`. **Files added:** `tools/open_g8_phase.py`, `tools/verify_g8_phase_state.py`, `tests/test_g8_phase_open.py`; **files modified:** `results/baseline/g8/campaign_state.json`, this ledger and live handoff wording only. **G8_A immutable files:** unchanged and not regenerated. **Pre-transition verification:** G8_A manifest check, independent G8_A preflight, W4 integration verifier and G2 adjudication verifier all passed; full pytest was **1204 passed, 0 failed, 0 skipped in 121.94 s**. **Transition:** exactly once from `G8_A/preflight_complete` to `G8_B/tooling_open`; state SHA-256 `f7b21df77f812d68ca55bf92dc78a1ec0b003be89189170983f04f093205c7ed`; restart command stored exactly as recorded above. **Unchanged campaign bindings:** campaign ID `g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a`; campaign manifest SHA-256 `0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1`; required-identity SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`. **Current state:** completed work units `[]`, in-progress work unit `null`, counters `validation_decoding=0`, `inference=0`, `training=0`, `test_access=0`. **Added-tool tests:** 24 passed; combined `tests/test_g8_preflight.py tests/test_g8_phase_open.py` passed. **Scientific execution:** none; no characterization, BLER simulation, validation decoding, inference, training, test access, sweep, ratio selection, authorization, codec image load or smoke execution. **Worktree/push:** intended final B0 tree only before this commit; push and local/origin/remote parity are confirmed immediately after the B0 green commit. **Exact next action:** B1 — freeze runner schemas and seed derivation. |
 | B1 freeze runner schemas and seed derivation | not-started | Prohibited during B0. |
 | B2 implement sharding and atomic unit state | not-started | Prohibited during B0. |
 | B3 implement exact resume and merge validation | not-started | Prohibited during B0. |
 | B4 run bounded synthetic/unit-scale smoke only | not-started | Prohibited during B0. |
 | B5 mutation tests | not-started | Prohibited during B0. |
 | B6 full verification, handoff and green commit | not-started | Prohibited during B0. |
+
+The B0 test-harness adjustment in `tests/test_g8_preflight.py` keeps its frozen G8_A contract
+assertion on a temporary `preflight_complete` cursor after the live state advances to G8_B; the
+G8_A verifier itself remains unchanged and G8_A-specific.
 
 The G8_A manifest, required-identity artifact, and all campaign contract sources remain
 byte-bound. The live state must carry the B1 restart command after the one permitted transition;

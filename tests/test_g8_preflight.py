@@ -46,7 +46,15 @@ def _mutated(
     return path
 
 
-def test_committed_campaign_contract_verifies() -> None:
+def test_committed_campaign_contract_verifies(monkeypatch: pytest.MonkeyPatch) -> None:
+    # The live cursor advances to G8_B exactly once during B0. Keep this
+    # G8_A contract test independent of that cursor so the frozen verifier
+    # remains intentionally G8_A-specific.
+    monkeypatch.setattr(
+        verifier,
+        "load_campaign_state",
+        lambda _path: initial_campaign_state(stage="preflight_complete"),
+    )
     payload = verifier.verify()
     assert payload["authorization_issued"] is False
     assert payload["campaign_started"] is False

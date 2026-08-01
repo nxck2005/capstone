@@ -10,7 +10,7 @@
       "validation_decoding": 0
     },
     "in_progress_work_unit_id": null,
-    "phase": "G8_A",
+    "phase": "G8_B",
     "produced_artifacts": [
       {
         "bytes": 6325,
@@ -23,9 +23,9 @@
         "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
       }
     ],
-    "restart_command": ".venv/bin/python tools/verify_g8_preflight.py",
+    "restart_command": "rg -n \"trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2\" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
-    "stage": "preflight_complete"
+    "stage": "tooling_open"
   },
   "metadata": {
     "last_successful_checkpoint_time": null

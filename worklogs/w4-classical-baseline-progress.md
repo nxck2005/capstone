@@ -1240,20 +1240,27 @@ G8_A began from clean local/origin/remote parity at `39c43e327573f33011c561c6de2
 
 The PB_3C terminal handoff provenance is explicit rather than inferred from an intended subject: terminal SHA `39c43e327573f33011c561c6de22bd05ff93c068`, actual subject `fix: fix push failure due to gpg for resume.md`; implementation/adjudication checkpoint `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3 implementation green `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; latest scientific-measurement green `3324393a3e1692478bba8cf1020708bf52947f6d`. History is preserved.
 
-G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. The live next action is: G8_B B0 — verify G8_A and open the phase. G8_B is tooling and bounded smoke only; G8_C and later remain prohibited.
+G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. G8_B B0 is complete; B1 — freeze runner schemas and seed derivation — is next. G8_B is tooling and bounded smoke only; G8_C and later remain prohibited.
 
 ## G8_A green — contract frozen, G8_B released
 
 G8_A enumerated 12,096 structural candidates over the headline and already-specified fallback roles, 144 packet configurations, and 3,213 unique physical-layer BLER work units. Exact G-2 coverage is 0/3,213: all required cells differ in physical identity, 24 measured G-2 convention/point records lie outside the required set, and neither interpolation nor extrapolation was used. This expected insufficiency releases characterization *tooling* work, not scientific execution.
 
-`results/baseline/g8/campaign_manifest.json` binds the W4 adjudication, selection-policy fingerprint, selection sources, normative spec/generated parameters, split-manifest bytes, phase order and G8_A contract sources. `required_bler_identities.json` is generator-owned; `campaign_state.json` is crash-safe, manifest-bound and ends G8_A at `preflight_complete` with no work units and all decoding/inference/training/test counters zero. The next action is exactly `instructions/G8_B.txt` from B0; later phases may not silently reinterpret these artifacts.
+`results/baseline/g8/campaign_manifest.json` binds the W4 adjudication, selection-policy fingerprint, selection sources, normative spec/generated parameters, split-manifest bytes, phase order and G8_A contract sources. `required_bler_identities.json` is generator-owned; `campaign_state.json` is crash-safe and manifest-bound. B0 has now opened it at `G8_B/tooling_open` with no work units and all decoding/inference/training/test counters zero; B1 is next. Later phases may not silently reinterpret these artifacts.
 
-## G8_B B0 — verify G8_A and open the phase (in progress)
+## G8_B B0 — verify G8_A and open the phase (complete)
 
-G8_B is active at B0. The first B0 command after the marker is
+G8_B is active; B0 is complete and B1 is next. The first B0 command after the marker was
 `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; the exact B1 restart command is
 `rg -n "trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`.
 No characterization, sweep, validation decoding, inference, training, test access, ratio
 selection, authorization, codec image load, or smoke execution has started. G8_C–G8_G remain
 prohibited. The G8_A manifest, required-identity artifact, and all immutable G8_A sources remain
 byte-bound and may not be modified.
+
+The marker commit was `3f0fc4d945756f22a5a655ce614a3f0b001b4735`; the phase-opening utility and
+current-phase verifier were added with 24 focused tests. The pre-transition full suite was 1204
+passed, and the exact transition was once from `G8_A/preflight_complete` to
+`G8_B/tooling_open`, producing state SHA-256
+`f7b21df77f812d68ca55bf92dc78a1ec0b003be89189170983f04f093205c7ed`. The campaign ID, manifest
+hash, required-identity hash, produced-artifact bindings, and zero counters are unchanged.

@@ -117,9 +117,9 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: G8_B B0 — verify G8_A and open the phase.** On resumption, follow the single cursor in `instructions/RESUME.md`. G8_C–G8_G remain prohibited and no characterization has started.
+**Current action: G8_B B1 — freeze runner schemas and seed derivation.** On resumption, follow the single cursor in `instructions/RESUME.md`. G8_B is active; B0 is complete; G8_C–G8_G remain prohibited and no characterization has started.
 
-**W4 and G8_A are complete. G8_B is active at B0**, following `instructions/G8_B.txt` and the single cursor in `instructions/RESUME.md`; B1 is next. The full campaign was partitioned before data inspection into G8_A through G8_G under `instructions/`; G8_A froze the contract, policy bindings, 12,096 structural candidates, 3,213 required BLER work units and state primitives only. It started no characterization, validation measurement, sweep, training or adjudication. G8_B may build tooling and run bounded smoke only; no characterization has started. G8_C–G8_G remain prohibited. The committed G-2 BLER evidence
+**W4 and G8_A are complete. G8_B is active; B0 is complete and B1 is next**, following `instructions/G8_B.txt` and the single cursor in `instructions/RESUME.md`. The full campaign was partitioned before data inspection into G8_A through G8_G under `instructions/`; G8_A froze the contract, policy bindings, 12,096 structural candidates, 3,213 required BLER work units and state primitives only. It started no characterization, validation measurement, sweep, training or adjudication. G8_B may build tooling and run bounded smoke only; no characterization has started. G8_C–G8_G remain prohibited. The committed G-2 BLER evidence
 characterises one physical-layer identity at four SNR points per modulation: that is a conformance
 artifact, it stays valid for G-2, and it **must not be extrapolated** into the BR-4 characterization
 table. G-8 has to enumerate the structural candidate/configuration and code-block identity grids,
