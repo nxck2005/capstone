@@ -117,18 +117,18 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**W4 is complete**, including the PB_3C correction. The single next engineering task is the **G-8
-classical validation work**, and it begins with **campaign implementation and preflight** rather
-than with the sweep — the sweep is step eight of twelve. The committed G-2 BLER evidence
+**Live next action while G8_A is active: Execute `instructions/G8_A.txt` from A0.** On resumption, follow the single cursor in `instructions/RESUME.md`.
+
+**W4 is complete**, including the PB_3C correction. **G8_A is active as the only current engineering task**, following `instructions/G8_A.txt` and the single cursor in `instructions/RESUME.md`. The full campaign was partitioned before data inspection into G8_A through G8_G under `instructions/`; G8_A freezes the contract, policy bindings, structural grid, required BLER identities and state primitives only. It starts no characterization, validation measurement, sweep, training or adjudication. The committed G-2 BLER evidence
 characterises one physical-layer identity at four SNR points per modulation: that is a conformance
 artifact, it stays valid for G-2, and it **must not be extrapolated** into the BR-4 characterization
 table. G-8 has to enumerate the structural candidate/configuration and code-block identity grids,
 run and archive full-strength BR-4 physical-layer BLER characterization, build a hash-bound G-8
 `BlerTable` and verify complete coverage, and derive measured codec and clean-classifier accuracies
 from verified artifacts — before pass one, the training-only artifact corpus, the artifact-classifier
-fine-tune, the single pass two and the adjudication. Nothing of that exists yet. G-8 has not started
-and neither has the sweep: the selection entry point refuses any workload above its bounded budget
-unless an explicit `G8Authorization` is constructed, and nothing in this repository constructs one.
+fine-tune, the single pass two and the adjudication. None of those scientific phases has started:
+the selection entry point refuses any workload above its bounded budget unless an explicit
+`G8Authorization` is constructed, and nothing in this repository constructs one.
 **PB_3C** corrected the `classical_fixed_mod` curve to *read* `params.baseline.core_modulation`
 instead of searching for a modulation (BR-9), made resumed campaign state an exact ordered prefix of
 the permitted passes instead of trusting stored results, and froze the selection tie-break order
@@ -137,6 +137,7 @@ complete **including its PB_1C correction**, which
 removed a duplicated TS 38.212 §5.4.2.2 modulation bit interleaver from the classical transmit path
 — Sionna already applies it after rate matching, so the project layer must not. No `src/baseline/ldpc/`
 file changed, so G-2 is unaffected. See `worklogs/w4-classical-baseline-progress.md`.
+PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose actual subject is `fix: fix push failure due to gpg for resume.md`; its implementation/adjudication checkpoint is `08dd358c0f1bd55c70152af900f2932f50d95d19`. PB_3's implementation green is `32edbbb…`, while PB_2C `3324393…` remains the latest scientific-measurement green.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17

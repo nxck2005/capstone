@@ -1233,3 +1233,11 @@ is unimplemented, and the test split is sealed until G-12 at W11. PR-1 (literatu
 (Gantt chart) and PR-9 (deployment dossier and author/guide acknowledgement) remain outstanding
 programme deliverables. The PB_1 cache-key field-spelling issue is unchanged and remains deliberately
 untouched.
+
+## G8_A opening — durable partition and corrected terminal provenance
+
+G8_A began from clean local/origin/remote parity at `39c43e327573f33011c561c6de22bd05ff93c068`. The campaign is partitioned before scientific data inspection under `instructions/G8.txt` and phase instructions G8_A through G8_G: contract/preflight; characterization tooling and bounded smoke; full BLER characterization and table freeze; validation-measurement tooling and bounded smoke; full validation measurement plus pass one; training-only artifact corpus/fine-tune plus the single pass two; and final adjudication. Later phases may not silently reinterpret earlier artifacts.
+
+The PB_3C terminal handoff provenance is explicit rather than inferred from an intended subject: terminal SHA `39c43e327573f33011c561c6de22bd05ff93c068`, actual subject `fix: fix push failure due to gpg for resume.md`; implementation/adjudication checkpoint `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3 implementation green `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; latest scientific-measurement green `3324393a3e1692478bba8cf1020708bf52947f6d`. History is preserved.
+
+Only G8_A is active. It may freeze the pre-data contract, enumerate structural candidates and required physical-layer identities, and add state/preflight verification. It may not run characterization, load validation pixels, measure accuracy, select anything, train, issue authorization, invoke fallback, or access test. The live next action while it is active is: Execute `instructions/G8_A.txt` from A0. On resumption, the ledger identifies the first incomplete checkpoint. After G8_A is green, and only then, the handoff becomes `instructions/G8_B.txt` from B0.

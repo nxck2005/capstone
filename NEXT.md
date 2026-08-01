@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-01 · **Phase:** **W4 complete (PB_3 landed, PB_3C corrected it). G-8 classical validation work is next and has not started — it begins with campaign implementation and preflight, not with the sweep.**
+**Last updated:** 2026-08-01 · **Phase:** **G8_A active — campaign contract and preflight only. G8_B–G8_G have not started.**
 
 ## Single next task
 
@@ -26,14 +26,15 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next engineering task — not started** |
+| G-8 classical validation work | **next engineering task — G8_A active; Execute `instructions/G8_A.txt` from A0.** |
+| G8_B–G8_G | not started; prohibited until the preceding phase is green |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G-8 classical validation work is the single next engineering task**, and it has not started.
+**G8_A is the single current engineering task. Execute `instructions/G8_A.txt` from A0.** On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint. G8_A freezes the campaign contract and structural preflight; it does not run characterization, validation measurement, a selection pass, training or adjudication.
 Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 
@@ -106,6 +107,12 @@ supplied and never sorted, with both paths sharing one set of helpers. (3) The t
 **unchanged** but now frozen before G-8 and fingerprinted as `selection_policy_sha256`. (4) This
 hand-off was corrected. PB_3C needed **no amendment** either: it restores BR-9's existing semantics,
 and the spec defines no BR-4 selection tie-break to contradict.
+
+**PB_3C provenance correction.** The terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, and its actual subject is `fix: fix push failure due to gpg for resume.md`. The PB_3C implementation/adjudication checkpoint is `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3's implementation green is `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; the latest scientific-measurement green remains `3324393a3e1692478bba8cf1020708bf52947f6d`. Do not claim that `39c43e3` has the subject `fix(classical): correct PB_3 selection and resume semantics`.
+
+### Durable G-8 phase partition
+
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight; G8_B characterization tooling plus bounded smoke; G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts. During this session only G8_A may execute.
 
 ### What G-8 actually has to build — read this before starting it
 
