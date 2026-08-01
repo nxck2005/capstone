@@ -1,0 +1,507 @@
+# Phase PB_3C — correct PB_3 selection semantics and interruption-safe resumed state
+
+This is the durable instruction for PB_3C. It is committed so that a session which dies without
+warning leaves behind the complete statement of what this phase is, not a summary of it.
+
+`spec/SPEC.md` is normative. `instructions/RESUME.md` is the operational cursor and wins on
+progress. Where this file and `RESUME.md` disagree about *what was done*, `RESUME.md` is right;
+where they disagree about *what must be done*, this file is right.
+
+## READ FIRST — resumability
+
+Assume the session may terminate without warning, at any point, with no chance to tidy up.
+
+* Before beginning any checkpoint expected to take more than a few minutes: mark it `in-progress`
+  in `RESUME.md`, record the exact first command, commit, push, and confirm local HEAD equals
+  `origin/main`.
+* At the end of every checkpoint: complete the targeted implementation, run the targeted tests,
+  update the ledger row to `done`, record the exact next command, create a non-empty checkpoint
+  commit, push, and confirm local HEAD equals `origin/main`.
+* Never hold more than one coherent checkpoint uncommitted.
+* Do not amend, squash, rebase or force-push. `wip(pb-3c):` commits are expected to be non-green
+  and are pushed anyway — an unpushed commit is not durable.
+* Never `git reset`, `git checkout --`, `git clean` or stash to "tidy up" on cold start.
+  Uncommitted changes are the previous session's unfinished work: read the diff, then finish or
+  commit them.
+
+When capacity becomes uncertain, preserve state *before* writing a long report: update the ledger,
+record changed files, record passing and failing tests, record the exact next command, commit
+coherent work, push, confirm the pushed SHA, and only then report
+
+    PB_3C INCOMPLETE — RESUME AT <exact checkpoint and command>
+
+Do not begin finalization unless there is enough capacity to finish all handoff files, run the
+complete verification block, commit, push and report.
+
+## Phase start
+
+    Expected starting HEAD: 32edbbb58983e54103b2f252c4d8d8f30aa2378e
+    Repository:             https://github.com/nxck2005/capstone
+    Working directory:      /home/nick/projects/capstone
+    Interpreter:            .venv/bin/python
+
+Required starting state: local HEAD = `origin/main` = remote `main` = `32edbbb`; clean worktree;
+PB_3 recorded complete; G-8 recorded not started; the full BR-4 sweep not started; the test split
+sealed; no training or fine-tuning has occurred.
+
+If the starting repository differs materially, stop with
+
+    PB_3C HOLD — <precise starting-state contradiction>
+
+## Objective
+
+PB_3 remains substantially accepted. **Do not reopen its completed work generally.** This is a
+narrow corrective phase between PB_3 and G-8 that fixes four specific things:
+
+1. fixed-modulation reference semantics;
+2. resumed `SelectionCampaign` validation;
+3. pre-G-8 freezing and verification of the selection tie-break order;
+4. the G-8 handoff, so that it accurately states the required characterization and measured-input
+   work.
+
+Intended terminal verdict:
+
+    PB_3 CORRECTED AND GREEN — G-8 READY AND NOT STARTED
+
+"G-8 ready" means precisely: **PB_3's prerequisites are corrected and the project is ready to begin
+G-8 campaign implementation and preflight. The full scientific characterization and sweep are not
+yet executable, authorized or started.** The verdict must never be used to imply that constructing
+a `G8Authorization` is now sufficient to execute the sweep.
+
+## What must NOT happen in this phase
+
+* no BR-4 validation sweep of any size;
+* no real G-8 authorization constructed in tracked non-test code;
+* no operating ratio selected;
+* no full-grid BLER evidence generated;
+* no classifier trained or fine-tuned;
+* no DJSCC built;
+* no λ calibration;
+* no ER-9 implementation;
+* no test-split access;
+* no regeneration of PB_2C bounded measurements;
+* no alteration of any existing scientific outcome;
+* no modification of any file under `src/baseline/ldpc/`;
+* no broadening into a new general audit.
+
+## The two defects
+
+**Defect 1 — the fixed-modulation curve searches instead of referencing.** BR-9
+(`spec/concerns/baseline.md`) states that `params.baseline.core_modulation` *defines* the
+fixed-modulation reference curve. The `CLASSICAL_FIXED_MOD` branch of `resolve_curve()` in
+`src/baseline/classical/composition.py` instead enumerates every modulation present in the supplied
+grid, sums each one's per-SNR best expected accuracies, and keeps whichever total is highest. That
+makes the "fixed" arm a second optimizer rather than a reference, and it can report a BPSK or
+16-QAM curve under the `classical_fixed_mod` label. The configured value is `qpsk`
+(`params.baseline.core_modulation`) and it is characterized by the committed G-2 evidence, so the
+configured value is live and reachable. This is a conformance defect against an existing normative
+requirement, not a change to one.
+
+**Defect 2 — resumed campaign state is trusted rather than validated.** `run_pass()` enforces
+sequence position, non-blank scorer, scorer uniqueness across passes, `Selection` typing and
+exhaustion. `_admit_resumed()` enforces only four things: `PassResult` type, known pass identifier,
+no duplicate identifier, matching mode. A crash-resumed campaign can therefore be handed pass two
+with no pass one, a reversed sequence, a gap, a blank or duplicated scorer, or a `PassResult` whose
+`selections` hold objects that are not `Selection`s — and the state machine accepts all of it. This
+is exactly the interruption path the resumable design exists to survive.
+
+## C3.0 — establish exact state
+
+Run separately and record every result:
+
+    git status --short
+    git rev-parse HEAD
+    git fetch origin
+    git rev-parse origin/main
+    git ls-remote origin refs/heads/main
+    git log --oneline --decorate -15
+
+**Open the durable ledger before paying for the expensive baseline.** Verify only the cheap Git
+state commands first; then create this file, append the C3.0–C3.6 rows to `instructions/RESUME.md`,
+mark C3.0 `in-progress`, record the phase starting SHA, the exact next command and the expected
+scope, and commit and push that opening state as
+
+    wip(pb-3c): open corrective ledger
+
+Only then run
+
+    .venv/bin/python tools/verify_w4_baseline_integration.py
+    .venv/bin/python -m pytest
+
+Record the **exact observed** test count rather than assuming the ledger's 1119. Confirm both
+defects directly from source and tests. When the baseline passes, mark C3.0 `done` and land the
+separate baseline checkpoint commit
+
+    wip(pb-3c): establish corrective baseline
+
+Record both SHAs. The phase-start SHA remains `32edbbb`; the opening ledger commit does not change
+that historical fact.
+
+## C3.1 — correct fixed-modulation semantics
+
+Correct `resolve_curve(CLASSICAL_FIXED_MOD, ...)` so that it:
+
+1. reads `baseline.core_modulation` through the normal configuration interface — **never**
+   hard-code `qpsk` in source;
+2. verifies that the configured value is declared in `baseline.modulations`;
+3. filters every SNR cell to candidates using exactly that modulation;
+4. allows the LDPC rate and source encode axis to continue adapting per SNR;
+5. never optimizes which modulation to hold fixed;
+6. records the configured modulation in `CurveSelection.held_fixed`, with its source;
+7. fails explicitly where a required cell cannot be constructed at all.
+
+Never silently substitute another modulation when the configured one is absent or ineligible.
+
+### The three cases, which are genuinely different
+
+1. **The configured modulation is not declared in `params.baseline.modulations`.** A configuration
+   contradiction. Raise `CompositionError`.
+2. **No candidate using the configured modulation exists at a required SNR.** An incomplete
+   campaign/candidate-grid construction defect. Raise a *distinct* `CompositionError` naming both
+   the SNR and the configured modulation.
+3. **Candidates using the configured modulation exist, but all of them are infeasible or
+   uncharacterized.** **Do not raise, and do not substitute.** Preserve the `Selection` that
+   `select_best()` returns — `selected = None`, `reason = no_eligible_candidate`, `evaluations` =
+   all configured-modulation evaluations at that SNR.
+
+Case 3 is deliberate. Structural infeasibility, codec infeasibility and missing BLER
+characterization must remain **auditable** rather than either terminating the resolve or vanishing
+from the curve. G-8's completeness preflight is what must later refuse to accept an uncharacterized
+cell into a final adjudication; PB_3C's resolver preserves the cell and its reason so that preflight
+has something to refuse.
+
+Also update stale source comments and docstrings — in particular remove any wording that describes
+`CLASSICAL_FIXED_MOD` as "chosen for the grid as a whole". It is the configured
+`baseline.core_modulation` reference.
+
+Required tests:
+
+* the selected fixed modulation equals `get("baseline.core_modulation")` at every SNR and in
+  `held_fixed`;
+* a synthetic grid where BPSK has the best whole-grid total still selects QPSK;
+* a grid where 16-QAM has the best whole-grid total still selects QPSK;
+* rate and encode axis can adapt while modulation remains fixed;
+* the configured modulation being undeclared fails closed;
+* the configured modulation being absent at one SNR fails closed, naming that SNR;
+* the configured modulation present with only infeasible candidates returns a curve point with
+  `selected is None`;
+* the configured modulation present with only uncharacterized candidates returns a curve point with
+  `selected is None`;
+* the preserved point retains its evaluation counts and reason;
+* no other modulation is substituted in any of these cases;
+* valid QPSK cells still select normally;
+* adaptive mode remains adaptive;
+* fixed-MCS mode remains unchanged.
+
+The existing test that merely asserts `len(chosen) == 1` is insufficient — the defective
+implementation satisfies it — and must be strengthened.
+
+## C3.2 — harden resumed selection state
+
+Resumed state must enforce the same invariants `run_pass()` enforces, rather than trusting stored
+`PassResult` objects.
+
+**Derive the permitted order from the configuration, not from arithmetic.** Do not implement resume
+validation with hard-coded assumptions such as `expected = len(completed) + 1`. Take
+
+    allowed = selection_passes()
+
+and require the supplied resumed state to be an **exact ordered prefix** of `allowed`: for each
+supplied result at index `i`, `result.pass_id == allowed[i]`. Therefore `()` is valid,
+`(allowed[0],)` is valid, the complete allowed sequence is valid, and every other sequence is
+invalid. Validate in the order supplied; never sort malformed state into validity.
+
+Resumed-state admission must reject:
+
+* pass two without pass one;
+* a pass sequence beginning anywhere except pass one;
+* gaps in the sequence;
+* reversed pass order;
+* duplicate pass identifiers;
+* unknown pass identifiers;
+* wrong mode;
+* blank scorer names;
+* reuse of the same scorer across pass one and pass two;
+* non-`Selection` objects inside a stored `PassResult`;
+* more completed passes than the configured limit;
+* resumed state that claims a third pass.
+
+Use **one shared validation helper** for the non-blank scorer, scorer uniqueness, `Selection`
+typing, matching mode and permitted pass identifier. Both fresh execution and resumed admission
+must call that helper, so the two paths cannot drift apart.
+
+Ensure that:
+
+* valid pass-one state may resume and execute exactly pass two;
+* valid complete state is exhausted;
+* pass-one results remain immutable;
+* a resumed context cannot expose future state;
+* scorer uniqueness applies identically to fresh and resumed execution.
+
+Add explicit tests for every case above, plus a test proving that a future change to the configured
+pass sequence is respected rather than silently assuming passes always begin at 1 and end at 2.
+
+## C3.3 — freeze the selection tie-break before G-8
+
+The existing order is
+
+    expected_accuracy_descending
+    success_probability_descending
+    modulation_bits_per_symbol_ascending
+    ldpc_rate_ascending
+    encode_axis_px_descending
+    candidate_id_ascending
+
+**Do not change that order.** The issue is not the chosen order; it is that the order must be frozen
+*before* the full validation table is inspected. Exact equality remains the tie definition — do not
+introduce a tolerance parameter.
+
+Prefer extending the existing generated adjudication over creating redundant hand-written truth.
+The minimum acceptable implementation is that the W4 integration adjudication records the exact
+ordered list, records that the order was frozen before G-8, and that the verifier compares the
+recorded order against the implementation so a mutation to either fails verification.
+
+**Recording the order and comparing it to the live module is necessary but not sufficient**, because
+implementation and generator could in principle be changed together after sweep data exists. Add a
+stable machine-readable **selection-policy fingerprint** — `selection_policy_sha256` — derived from
+canonical, deterministic serialization of at least:
+
+    tie_break_order
+    tie_equality
+    fixed_modulation.source
+    fixed_modulation.configured_value
+    selection_passes
+    selection_termination_pass
+
+with a canonical field order. The generator computes it; the verifier **independently recomputes**
+it; a mutation of any covered policy field fails; and the adjudication states it was frozen before
+G-8.
+
+The corrected G-8 handoff must require the future campaign-opening manifest to bind the W4
+integration adjudication file SHA-256, the `selection_policy_sha256`, and the PB_3C green commit or
+resolved source identities — and must state that the future G-8 runner refuses to resume or
+adjudicate if those bindings differ. PB_3C does not implement the G-8 campaign manifest; it records
+this as a mandatory G-8 preflight requirement. That is what makes the preregistration
+machine-enforceable rather than merely historically visible.
+
+### Amendment judgment
+
+Do **not** amend the specification solely because an implementation tie-break is now frozen. Add an
+amendment only if conformance to an existing normative requirement is impossible without changing
+that requirement. Record the judgment explicitly in `RESUME.md` and the worklog.
+
+## C3.4 — correct the G-8 handoff
+
+Update `NEXT.md`, `instructions/RESUME.md`, `AGENTS.md`, `README.md` and
+`worklogs/w4-classical-baseline-progress.md` **only where necessary** so the next task is described
+accurately.
+
+The next task after PB_3C is *not* merely "construct `G8Authorization` and call
+`select_operating_points()`". The current G-2 BLER artifact characterizes only a narrow conformance
+identity and narrow SNR support. It is not the full BR-4 characterization table.
+
+The handoff must say that G-8 begins by implementing and preflighting the campaign:
+
+1. enumerate the complete **structural candidate/configuration grid** and the code-block identity
+   grid;
+2. identify every required `(rate, SNR, block identity, modulation)` characterization;
+3. run and archive **full-strength BR-4 physical-layer BLER characterization** at the configured
+   trial count;
+4. build a separate hash-bound G-8 `BlerTable` artifact and loader;
+5. verify complete coverage before selection;
+6. generate cached codec reconstructions and measured clean-classifier accuracies on validation;
+7. construct measured codec-accuracy objects from verified artifacts rather than arbitrary manual
+   counts;
+8. execute pass one;
+9. build the training-only artifact corpus;
+10. fine-tune the artifact classifier;
+11. execute pass two once;
+12. adjudicate the operating ratios and the other G-8 outputs.
+
+Two terminology rules, and they are not cosmetic. **"Structural candidate/configuration grid"**,
+not "feasible candidate grid": codec feasibility is not known until the codec-search artifacts are
+produced, whereas structural transport identities can be enumerated first. **"BR-4 physical-layer
+BLER characterization"**, not "validation BLER characterization": BLER characterization is a channel
+simulation artifact, not a machine-learning validation-split measurement. Reserve "validation" for
+codec/classifier selection records derived from the validation split.
+
+The handoff must also state explicitly:
+
+> G-8 selects the parameter named `crossover_ratio` using ER-3's learned-blind classical rule. It
+> does not decide whether a learned-versus-classical curve crossover actually exists; that decision
+> remains at G-10 after learned models exist.
+
+The G-8 outputs named in the handoff must explicitly include: `efficiency_ratio`;
+`crossover_ratio`; `low_ratio_operating_point`; classical non-degeneracy; the one-ratio versus
+two-ratio full-strength ER-1 decision; the artifact-finetuned classifier release; the final pass-two
+classical selections; and the frozen H2 validation window.
+
+The handoff must preserve these facts: the G-2 table remains valid for G-2; it must not be
+extrapolated or generalized; PB_3C does not build or execute the G-8 characterization; no real G-8
+authorization exists yet; no sweep has started; no ratios have been selected; no classifier has been
+fine-tuned; test remains sealed; PR-1, PR-2 and PR-9 remain visible. It must state that changing the
+tie-break order after the sweep starts invalidates the campaign.
+
+Use a precise next action such as:
+
+    G-8 campaign implementation and preflight: enumerate the full candidate/BLER identity grid,
+    build artifact-bound validation measurements and the resumable campaign runner, then execute
+    the authorized sweep.
+
+Do not say "G-8 ready" unless all PB_3C corrections pass, and do not say the full scientific
+campaign is already implemented.
+
+## C3.5 — regenerate and verify the W4 adjudication
+
+Because `composition.py`, its tests and the recorded policy change, regenerate
+`results/baseline/w4/integration_adjudication.json` **through its generator**. Do not modify bounded
+PB_2C evidence or its execution-source manifest.
+
+The corrected adjudication must still prominently state:
+
+    bounded validation/plumbing integration
+    not the BR-4 full validation sweep
+    not a G-8 operating-point selection
+    not test evidence
+
+Add these **explicit machine-readable fields** rather than leaving the verifier to infer prose:
+
+    selection_machinery.fixed_modulation.configured_value
+    selection_machinery.fixed_modulation.source
+    selection_machinery.fixed_modulation.searches_modulations = false
+    selection_machinery.tie_break_frozen_before_g8 = true
+    selection_machinery.tie_break_frozen_against_gate = "G-8"
+    selection_machinery.selection_policy_sha256
+    selection_machinery.resumed_state_validation = "exact_ordered_prefix"
+    claims.g8_characterization_started = false
+
+The mutation tests operate on these named fields.
+
+It must additionally verify: the fixed-modulation reference uses `baseline.core_modulation`; the
+configured fixed modulation is recorded; resumed pass state enforces the complete sequence and
+scorer rules; the tie-break order is frozen before G-8; G-8 characterization has not run; passes
+executed remains zero; provisional operating points remain unchanged; and all test-access counters
+remain zero.
+
+**Adjudicate the artifact schema version explicitly.** The verifier now requires fields that schema
+version 1 did not require, so default to bumping `schema_version` 1 → 2. If the repository has an
+established rule that additive mandatory fields do not require a version bump, record that rule and
+the rationale for retaining version 1. Do not silently leave the version unchanged. This is an
+adjudication-schema change only: it does not change PB_2C measurement evidence or the scientific
+specification.
+
+Verifier mutation tests for at least:
+
+* fixed-mod mode selecting a non-core modulation;
+* a changed configured fixed modulation in the adjudication;
+* pass two resumed without pass one;
+* a reversed resumed sequence;
+* a duplicate resumed scorer;
+* a malformed stored selection;
+* a mutated tie-break order;
+* a missing pre-G-8 freeze declaration;
+* a false claim that G-8 characterization has run;
+* a false claim that G-8 is resolved.
+
+Behavioural defects must be caught by a **live probe**, not only by the recorded description.
+
+Run the generator in write and check modes, the W4 verifier, the targeted mutation tests and the
+documentation checks.
+
+## C3.6 — full verification and finalization
+
+Complete every tracked handoff file **before** final verification. The exact tree verified must be
+the exact tree committed.
+
+Run each command separately and record every result. The LDPC fixture fetch must occur before
+pytest:
+
+    .venv/bin/python tools/gen_spec_views.py --check
+    .venv/bin/python tools/check_doc_consistency.py -v
+    .venv/bin/python tools/check_literals.py -v
+    .venv/bin/python spec/evidence/check_packetisation.py
+    .venv/bin/python tools/fetch_datasets.py --check
+    .venv/bin/python tools/materialize_manifests.py --check
+    .venv/bin/python tools/verify_datasets.py
+    .venv/bin/python tools/verify_g1_adjudication.py
+    .venv/bin/python tools/verify_g7_profile.py
+    .venv/bin/python tools/verify_transparency_bitrate_probe.py
+    .venv/bin/python tools/fetch_ldpc_golden_vectors.py
+    .venv/bin/python tools/gen_g2_source_manifest.py --check
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python tools/gen_w4_source_manifest.py --check
+    .venv/bin/python tools/gen_w4_integration_adjudication.py --check
+    .venv/bin/python tools/verify_w4_baseline_integration.py
+    .venv/bin/python -m pytest
+    .venv/bin/python tools/verify_cpu_lock.py --clean-install
+    git diff --check
+    git status --short
+
+### Scope diff — three views before the commit, two after
+
+`git diff --name-only 32edbbb..HEAD` does not include uncommitted finalization changes, so before
+committing inspect all three views:
+
+    git diff --name-status 32edbbb58983e54103b2f252c4d8d8f30aa2378e..HEAD
+    git diff --name-status
+    git diff --cached --name-status
+
+At that stage `git status --short` is *expected* to show the intended uncommitted final tree; it is
+not yet a clean-worktree pass condition. After the final green commit, repeat
+
+    git diff --name-status 32edbbb58983e54103b2f252c4d8d8f30aa2378e..HEAD
+    git status --short
+
+Only the **post-commit** `git status --short` must be empty. Use the post-commit comparison for the
+final changed-file report and for the assertions that no prohibited path or artifact changed.
+
+Confirm explicitly: no file under `src/baseline/ldpc/` changed; no PB_2C measurement artifact
+changed; no W4 bounded execution was rerun; no full-grid BLER artifact exists; no full sweep result
+exists; no G-8 authorization is constructed in tracked non-test code; no operating ratio changed; no
+training occurred; no test data was opened; all test-access counters are zero; all C3.x rows are
+`done`.
+
+Then create the non-empty final corrective commit
+
+    fix(classical): correct PB_3 selection and resume semantics
+
+push it, and confirm
+
+    git rev-parse HEAD
+    git rev-parse origin/main
+    git ls-remote origin refs/heads/main
+    git status --short
+
+Required final state: local HEAD = `origin/main` = remote `main`; clean worktree; no tracked changes
+after verification; PB_3C green recorded separately from PB_2C measurement evidence; G-8 not
+started; test split sealed.
+
+## Checkpoint commit messages
+
+    wip(pb-3c): open corrective ledger
+    wip(pb-3c): establish corrective baseline
+    fix(classical): pin the fixed-modulation reference
+    fix(classical): validate resumed selection campaigns
+    test(classical): freeze the pre-G-8 tie-break policy
+    docs(handoff): clarify G-8 characterization prerequisites
+    test(classical): re-adjudicate corrected PB_3 machinery
+    fix(classical): correct PB_3 selection and resume semantics
+
+## Final report
+
+Include: (1) starting SHA; (2) starting worktree state; (3) starting test count; (4) every C3
+checkpoint SHA; (5) exact changed files; (6) the fixed-modulation defect and its correction;
+(7) proof the fixed curve uses `baseline.core_modulation`; (8) the resumed-state defects and their
+correction; (9) rejected malformed resume cases; (10) valid resume cases; (11) the exact frozen
+tie-break order; (12) how mutation verification protects it; (13) the amendment judgment; (14) the
+adjudication regeneration result; (15) the W4 source-manifest result; (16) proof PB_2C evidence did
+not change; (17) proof no sweep or characterization ran; (18) proof no authorization exists in
+non-test code; (19) proof provisional ratios are unchanged; (20) the final test count; (21) all
+verification-command results; (22) the final green SHA; (23) local/origin/remote parity; (24) clean
+worktree confirmation; (25) the precise next action for G-8 campaign implementation.
+
+End with exactly one of:
+
+    PB_3 CORRECTED AND GREEN — G-8 READY AND NOT STARTED
+    PB_3C INCOMPLETE — RESUME AT <exact checkpoint and command>
+    PB_3C HOLD — <precise blocking condition>

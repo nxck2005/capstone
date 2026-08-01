@@ -1,4 +1,4 @@
-# Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3
+# Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C
 
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
@@ -44,7 +44,10 @@ Then:
 
 ## Status
 
-**Current phase:** W4 complete — G-8 not started
+**Current phase:** **PB_3C in flight** — a narrow corrective phase between PB_3 and G-8. W4 remains
+complete and G-8 remains not started. See the **PB_3C** section at the end of this file, which is
+the live cursor; the PB_3 sections below it are the completed record. Durable instruction:
+`instructions/PB_3C.txt`.
 **Last green commit:** this `feat(classical): add BR-4 selection infrastructure and W4 adjudication`
 commit — the **PB_3 implementation/evidence green**, and therefore the W4 green. Written in the
 repository's non-self-referential form because a commit cannot contain its own SHA. The PB_3
@@ -596,3 +599,45 @@ Append-only. A superseded observation is *marked* superseded, never deleted.
 | selected outage class | **0** — the lowest index among the ten-way tie across the entire committed Imagenette-160 validation manifest. **Carried forward, not recomputed**, from the PB_2 facts row "selected outage class" (B2.1) and the committed `results/baseline/w4/outage_policy.json`, which `tools/verify_w4_baseline_integration.py` re-derives from the manifest counts on every run (last observed at H3.0: `outage_class=0 (100/1000)`). PB_3 consumes this row directly — do not recompute it | B2.1, carried forward at H3.0 | yes |
 | outage class measured val accuracy | **100/1000 = 0.1** — numerator, denominator and the full count vector are recorded in `results/baseline/w4/outage_policy.json`; the split is exactly stratified, so this equals `1 / n_classes` **by coincidence of a stratified split, not by construction**. Never compare the float: compare the counts. Same provenance as the row above | B2.1, carried forward at H3.0 | yes |
 | W4 implementation commits | **PA** green `031becc` (`fix(handoff): harden post-G-2 repository state`), handoff `dcf84a8` · **PB_1** green `e47913c52e9117179691b70b29a289880b22dbdd` (`feat(classical): implement W4 classical transport path`), superseded as "last green" by its correction · **PB_1C** corrective green `4eda158145595de0f2e9aa92456ee4a052db74b0` (`fix(classical): correct PB_1 modulation interleaver ownership`) · **PB_2** provisional green `50de80364c2546463918387a8f335ea36107bde0` (`feat(classical): add W4 outage records and bounded evidence`) — **invalidated by PB_2C** · **PB_2C** runner-ready source checkpoint `9a31d47`, corrected evidence generated from the clean tree `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at `4c1642c9cf15d681a8de65d13a9fc1414c188b66`, corrective green `3324393a3e1692478bba8cf1020708bf52947f6d` — **the current scientific-evidence green**. **PB_3 has produced none.** All SHAs read from this ledger and `git log`; nothing recomputed | carried forward at H3.0 | yes |
+
+---
+
+## PB_3C — correct PB_3 selection semantics and interruption-safe resumed state
+
+**Durable instruction: `instructions/PB_3C.txt`.** A narrow corrective phase between PB_3 and G-8.
+PB_3 remains substantially accepted and is **not** reopened generally. This phase corrects four
+specific things: fixed-modulation reference semantics, resumed `SelectionCampaign` validation,
+pre-G-8 freezing of the selection tie-break order, and the G-8 handoff.
+
+**Phase starting SHA: `32edbbb58983e54103b2f252c4d8d8f30aa2378e`** (the PB_3 green,
+`feat(classical): add BR-4 selection infrastructure and W4 adjudication`). That is a historical
+fact and does not move when the opening ledger commit lands.
+
+**Scope guard — none of this happens in PB_3C:** no BR-4 sweep of any size, no real
+`G8Authorization` in tracked non-test code, no operating ratio selected, no full-grid BLER evidence,
+no training or fine-tuning, no DJSCC, no λ calibration, no ER-9, no test-split access, no
+regeneration of PB_2C bounded measurements, no change to any existing scientific outcome, no change
+to any file under `src/baseline/ldpc/`, and no broadening into a general audit.
+
+| step | state | notes |
+|---|---|---|
+| C3.0 establish exact state | in-progress | Cheap Git state verified first, per the ledger-before-baseline rule. `git status --short` **empty**; `git rev-parse HEAD` = `git rev-parse origin/main` = `git ls-remote origin refs/heads/main` = **`32edbbb58983e54103b2f252c4d8d8f30aa2378e`** — all three agree. PB_3 recorded complete and G-8 recorded not started in this ledger's Status block; full BR-4 sweep not started; test split sealed; no training or fine-tuning has occurred. `instructions/PB_3C.txt` created and this section opened **before** running the expensive baseline, so a crash during pytest leaves the phase visible rather than silent. **Next: `.venv/bin/python tools/verify_w4_baseline_integration.py`, then `.venv/bin/python -m pytest`** — record the *observed* test count, do not assume the ledger's 1119. |
+| C3.1 correct fixed-modulation semantics | not-started | |
+| C3.2 harden resumed selection state | not-started | |
+| C3.3 freeze and verify selection tie-break policy | not-started | |
+| C3.4 correct the G-8 handoff | not-started | |
+| C3.5 regenerate adjudication and run mutation verification | not-started | |
+| C3.6 full verification and finalization | not-started | |
+
+### PB_3C observed facts
+
+| fact | value | checkpoint | pushed |
+|---|---|---|---|
+| run kind | **fresh run**, no resumption. All seven C3.x rows were absent before this commit | C3.0 | pending |
+| phase starting local HEAD | `32edbbb58983e54103b2f252c4d8d8f30aa2378e` | C3.0 | pending |
+| phase starting origin/main | `32edbbb58983e54103b2f252c4d8d8f30aa2378e` | C3.0 | pending |
+| phase starting remote main | `32edbbb58983e54103b2f252c4d8d8f30aa2378e` (`git ls-remote origin refs/heads/main`) — all three agree | C3.0 | pending |
+| phase starting worktree | clean (`git status --short` empty) | C3.0 | pending |
+| defect 1 — fixed-modulation reference | **Confirmed from source.** BR-9 (`spec/concerns/baseline.md`) states that `params.baseline.core_modulation` *defines* the fixed-modulation reference curve. The `CLASSICAL_FIXED_MOD` branch of `resolve_curve()` in `src/baseline/classical/composition.py` instead enumerates every modulation present in the grid, sums each one's per-SNR best expected accuracies, and keeps the highest total — a second optimizer, not a reference. Configured value is `qpsk` (`spec/params.generated.yaml`), which the committed G-2 evidence characterizes, so the configured value is live and reachable | C3.0 | pending |
+| defect 2 — resumed campaign state | **Confirmed from source.** `run_pass()` enforces sequence position, non-blank scorer, scorer uniqueness across passes, `Selection` typing and exhaustion. `_admit_resumed()` enforces only four: `PassResult` type, known pass id, no duplicate id, matching mode. Pass two without pass one, a reversed sequence, a gap, a blank or duplicated scorer, and a `PassResult` holding non-`Selection` objects are all currently accepted | C3.0 | pending |
+| tie-break order (unchanged by this phase) | `expected_accuracy_descending`, `success_probability_descending`, `modulation_bits_per_symbol_ascending`, `ldpc_rate_ascending`, `encode_axis_px_descending`, `candidate_id_ascending`. **The order is not being changed.** What changes is that it becomes machine-verifiably frozen *before* G-8 inspects any data | C3.0 | pending |
