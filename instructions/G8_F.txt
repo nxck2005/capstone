@@ -1,0 +1,71 @@
+# G8_F — artifact classifier and the single pass two
+
+## Purpose and scope
+
+Create the artifact corpus from training data only, fine-tune the configured
+artifact classifier with checkpoint/resume and provenance, score validation
+only after training, and execute pass two exactly once under a scorer identity
+different from pass one.
+
+## Prerequisites and starting assertions
+
+G8_E is green; pass-one state and corpus specification are immutable and
+verify; no training or pass two has occurred; test is sealed; the state is the
+exact expected prefix.
+
+## Exact outputs
+
+A training-only artifact corpus and manifest; resumable training checkpoints,
+logs, provenance and compute accounting; frozen artifact-finetuned checkpoint;
+post-training validation scores; one immutable pass-two result; final pass-two
+artifacts for G8_G.
+
+## Checkpoint sequence
+
+F0 verify/open; F1 materialize and verify training-only corpus; F2 freeze
+training sources/config and preflight; F3 train with checkpoint/resume; F4
+freeze and verify checkpoint/provenance/compute; F5 score validation; F6 run
+pass two once with distinct scorer; F7 freeze pass-two outputs, mutations, full
+verification and handoff.
+
+## Sudden-exit protocol
+
+Before corpus/training/scoring/pass-two work, record exact command, outputs,
+restart command, completed units/epochs and hashes; commit/push. Resume training
+from the exact verified checkpoint. Pass two uses an explicit pre-marker and
+single immutable completion record; never retry it as a new pass.
+
+## Prohibited work
+
+No validation image enters training; no test access; no pass-one mutation; no
+third pass; no ratio adjudication or fallback; no G8_G command. Validation
+scoring begins only after training is frozen. Later phases may not reinterpret
+corpus membership, scorer identity, checkpoint provenance, or pass-two state.
+
+## Frozen-before-data decisions
+
+G8_E corpus spec and pass one; training split/breadth/recipe; checkpoint and
+resume identity; compute accounting; post-training scoring boundary; pass-two
+scorer distinction; exact-once second pass and two-pass termination.
+
+## Verification commands
+
+Verify corpus split and absence of validation/test IDs, checkpoint lineage and
+resume equivalence, compute/accounting records, post-training validation
+ordering, distinct scorers, immutable pass one, exactly one pass two and no
+third pass, mutations, prior gates, full pytest/CPU lock, and clean status.
+
+## Final report requirements
+
+Report checkpoints, corpus counts/hash/split proof, training epochs/resumes/
+compute/checkpoint hashes, scoring counts, pass-one immutability, pass-two
+scorer/hash/selections, no-third-pass/test proof, all checks, parity/cleanliness,
+and G8_G G0 next.
+
+## Terminal verdicts
+
+`G8_F GREEN — ARTIFACT CLASSIFIER AND PASS TWO FROZEN; G8_G READY; NO THIRD PASS`
+
+`G8_F INCOMPLETE — RESUME AT <checkpoint and exact command>`
+
+`G8_F HOLD — <precise blocking condition>`

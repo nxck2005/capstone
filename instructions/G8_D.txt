@@ -1,0 +1,67 @@
+# G8_D — validation-measurement tooling and bounded smoke
+
+## Purpose and scope
+
+Implement codec-search, reconstruction-cache, BR-11 accounting, and clean-
+classifier measurement tooling with atomic resume and bounded smoke only.
+
+## Prerequisites and starting assertions
+
+G8_C's complete hash-bound BLER table and immutable source manifest verify;
+G8_D is next; no validation campaign or selection pass has executed; training
+and test counters are zero.
+
+## Exact outputs
+
+Deterministic codec/reconstruction cache keys; emitted-byte-authoritative
+feasibility; full BR-11 accounting; schema-bound per-candidate measurement
+records; clean-classifier accuracy objects constructed from counts and
+provenance; atomic campaign checkpoints; bounded fixtures/smoke; mutation tests
+and updated handoffs. No full validation table.
+
+## Checkpoint sequence
+
+D0 verify/open; D1 freeze schemas/cache identity; D2 codec search and emitted-
+byte feasibility; D3 reconstruction cache and BR-11 accounting; D4 count-
+derived clean-classifier records; D5 atomic resume; D6 bounded smoke and
+mutations; D7 full verification and handoff.
+
+## Sudden-exit protocol
+
+Record each intended cache/record work unit, outputs, exact first/restart
+commands and counters before work; commit/push. Atomic outputs only; on resume,
+verify hashes and continue the exact suffix.
+
+## Prohibited work
+
+No full validation campaign, pass one, training, artifact corpus, pass two,
+ratio selection, fallback, test access, or later-phase command. Smoke must be
+bounded and explicitly non-scientific. Later phases may not reinterpret cache
+keys, byte semantics, schemas, or measured counts.
+
+## Frozen-before-data decisions
+
+G8_C BLER binding; candidate IDs; codec config/cache-key fields; emitted-byte
+authority; BR-11 numerator/denominator semantics; record schemas; count-derived
+accuracy provenance; work-unit order; and atomic-resume rules.
+
+## Verification commands
+
+Run targeted codec/cache/record/resume tests, bounded smoke verification,
+mutation tests, all G8_A–C and upstream verifiers, docs/literals/spec checks,
+full pytest, CPU-lock verification, and diff/status checks.
+
+## Final report requirements
+
+Report checkpoint SHAs, schemas and cache identity, accounting semantics,
+smoke sample/cell counts, measured-object construction proof, atomicity/resume
+proof, mutations, zero full-campaign/pass/training/test counters, all checks,
+parity/cleanliness, and G8_E E0 as next action.
+
+## Terminal verdicts
+
+`G8_D GREEN — VALIDATION-MEASUREMENT TOOLING READY; G8_E RELEASED; FULL CAMPAIGN NOT STARTED`
+
+`G8_D INCOMPLETE — RESUME AT <checkpoint and exact command>`
+
+`G8_D HOLD — <precise blocking condition>`

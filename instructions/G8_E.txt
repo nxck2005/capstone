@@ -1,0 +1,71 @@
+# G8_E — full validation measurements and pass one
+
+## Purpose and scope
+
+Execute the complete validation-only codec/reconstruction measurement campaign,
+verify measured clean-classifier counts, link every candidate to G8_C, and run
+selection pass one exactly once after every coverage precondition passes.
+
+## Prerequisites and starting assertions
+
+G8_A–D are green; the G8_C table and G8_D tooling verify; campaign state is the
+exact expected prefix; no pass has run; validation access is authorized only
+for this declared measurement; test remains sealed.
+
+## Exact outputs
+
+Complete validation-only codec/reconstruction records and BR-11 tables;
+verified count/provenance-based `MeasuredCodecAccuracy` objects; complete G8_C
+linkage; an explicit authorized full selection issued only after coverage
+checks; immutable pass-one state; and a generator-owned training-only artifact-
+corpus specification. No corpus images or trained classifier yet.
+
+## Checkpoint sequence
+
+E0 verify/open; E1 mark/freeze measurement execution sources; E2 execute
+resumable validation work units; E3 merge and coverage verification; E4 build
+measured accuracy objects; E5 issue scoped authorization and run pass one once;
+E6 freeze pass-one state and corpus specification; E7 mutations/full
+verification/handoff.
+
+## Sudden-exit protocol
+
+Before each multi-minute unit, record exact IDs, commands, intended paths,
+restart command and counters; commit/push. Preserve hashes per unit. Pass one
+must have a pre-execution marker and a single immutable completion record so an
+interruption cannot cause a second execution.
+
+## Prohibited work
+
+No validation image in training; no artifact-classifier training; no pass two
+or third pass; no ratio adjudication; no fallback invocation; no test access;
+no G8_F/G command. Later phases may not alter pass-one selections, measured
+counts, table linkage, authorization scope, or corpus-spec meaning.
+
+## Frozen-before-data decisions
+
+Complete candidate/coverage predicate, validation work-unit/record schemas,
+G8_C linkage, measured-object construction, authorization limits, pass-one
+scorer identity and exact-once transition, and training-only corpus spec schema.
+
+## Verification commands
+
+Verify all validation units/hashes/counts, complete candidate and BLER linkage,
+BR-11 arithmetic, no manual accuracy floats, scoped authorization, exactly one
+pass-one record, immutable state, corpus spec contains training split only,
+mutations, all prior gates, full pytest/CPU lock, and clean scope/status.
+
+## Final report requirements
+
+Report checkpoints, validation candidate/image counts, cache/record hashes,
+clean accuracy counts, coverage proof, authorization record, pass-one scorer/
+state/hash and selections count, corpus-spec hash/scope, zero training/pass-two/
+test counters, all checks, parity/cleanliness, and G8_F F0 next.
+
+## Terminal verdicts
+
+`G8_E GREEN — VALIDATION CAMPAIGN AND PASS ONE FROZEN; G8_F READY; NO TRAINING OR PASS TWO`
+
+`G8_E INCOMPLETE — RESUME AT <checkpoint and exact command>`
+
+`G8_E HOLD — <precise blocking condition>`

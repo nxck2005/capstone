@@ -1,4 +1,4 @@
-# Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C
+# Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C / G8
 
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
@@ -44,7 +44,7 @@ Then:
 
 ## Status
 
-**Current phase:** **W4 complete, PB_3C complete — G-8 not started.** PB_3C was a narrow corrective
+**Current phase:** **G8_A active at A0 — campaign instruction series opening; no scientific work started.** PB_3C was a narrow corrective
 phase between PB_3 and G-8: it fixed the fixed-modulation reference (BR-9), made resumed campaign
 state an exact ordered prefix of the permitted passes, froze the selection tie-break policy before
 G-8 behind an independently recomputed `selection_policy_sha256`, and corrected this hand-off. Its
@@ -65,10 +65,10 @@ adjudication of existing evidence rather than new measurement. The provisional P
 **invalidated**; the corrected bounded evidence was regenerated at
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** this commit
-**Next action:** **G-8 campaign implementation and preflight: enumerate the full candidate/BLER
-identity grid, build artifact-bound validation measurements and the resumable campaign runner, then
-execute the authorized sweep.**
+**Last durable checkpoint:** the PB_3C terminal handoff at
+`39c43e327573f33011c561c6de22bd05ff93c068`; G8_A's opening checkpoint is this
+`wip(g8-a): open campaign instruction series` commit, resolved from Git history.
+**Next action:** **Execute `instructions/G8_A.txt` from A0.**
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
@@ -691,3 +691,56 @@ to any file under `src/baseline/ldpc/`, and no broadening into a general audit.
 | amendment judgment | **No amendment.** The spec defines no BR-4 selection tie-break parameter, so freezing an implementation total order contradicts nothing; and the fixed-modulation repair *restores* BR-9 rather than changing it, as PB_1C restored the interleaver contract. `spec/` is unchanged — 0 files | C3.6 | yes |
 | PB_3C green vs PB_2C measurement green | **Recorded separately.** PB_2C `3324393a3e1692478bba8cf1020708bf52947f6d` remains the most recent *measurement* green. PB_3C changed no measured value, no identity, no campaign result and no parameter; the adjudication it regenerated is an adjudication of existing evidence | C3.6 | yes |
 | tie-break order (unchanged by this phase) | `expected_accuracy_descending`, `success_probability_descending`, `modulation_bits_per_symbol_ascending`, `ldpc_rate_ascending`, `encode_axis_px_descending`, `candidate_id_ascending`. **The order is not being changed.** What changes is that it becomes machine-verifiably frozen *before* G-8 inspects any data | C3.0 | yes |
+
+---
+
+## G8 master campaign — A through G
+
+Durable master instruction: `instructions/G8.txt`. Phase instructions:
+`G8_A.txt`, `G8_B.txt`, `G8_C.txt`, `G8_D.txt`, `G8_E.txt`, `G8_F.txt`, and
+`G8_G.txt`. The exact order is A → B → C → D → E → F → G. Later phases may not
+silently reinterpret earlier artifacts. This file remains the only operational
+cursor.
+
+**Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
+**Current phase:** G8_A.
+**Current scientific state:** campaign not started; characterization not
+started; validation measurements not started; pass one not executed; training
+not started; pass two not executed; adjudication incomplete; test access zero;
+authorization not issued.
+**Exact next command:** `.venv/bin/python tools/verify_w4_baseline_integration.py`
+after the A0 opening commit is pushed.
+
+## G8_A — contract, structural enumeration, state and preflight
+
+Allowed states are `not-started`, `in-progress`, and `done`. Every checkpoint
+record carries the phase-start SHA, marker SHA, ending SHA, files, exact tests,
+observations, unresolved issues, worktree/push status, and exact next command.
+
+| Step | State | Record |
+|---|---|---|
+| A0 establish exact state and open durable instructions | in-progress | **Phase-start SHA:** `39c43e327573f33011c561c6de22bd05ff93c068`. **In-progress marker SHA:** this `wip(g8-a): open campaign instruction series` commit, resolved after commit. **Ending SHA:** pending. **Files changed:** `instructions/G8.txt`, `instructions/G8_A.txt`..`G8_G.txt`, `instructions/RESUME.md`. **Exact tests/results:** cheap Git checks passed before mutation: clean worktree; local/origin/remote all `39c43e3`; remote fetched; observed terminal subject `fix: fix push failure due to gpg for resume.md`. Expensive baseline pending until this opening commit is pushed. **Observations:** PB_3C complete; provenance discrepancy confirmed; no normative gap found in prescribed sources. **Unresolved:** baseline test count not yet observed. **Worktree:** intended opening checkpoint only. **Push:** pending. **First command after push:** `.venv/bin/python tools/verify_w4_baseline_integration.py`. **Intended outputs:** baseline verification record only; no scientific artifacts. **Restart command:** `.venv/bin/python tools/verify_w4_baseline_integration.py`. **Exact next command:** `git add instructions/G8.txt instructions/G8_A.txt instructions/G8_B.txt instructions/G8_C.txt instructions/G8_D.txt instructions/G8_E.txt instructions/G8_F.txt instructions/G8_G.txt instructions/RESUME.md` then commit/push. |
+| A1 partition G-8 and reconcile PB_3C provenance | not-started | **Phase-start SHA:** pending from A0. **Marker/ending SHA:** pending. **Files:** live handoffs listed in G8_A. **Tests:** docs/literals/diff pending. **Observations/unresolved:** none yet. **Worktree/push:** not started. **Exact next command:** recorded when A0 closes. |
+| A2 normalize malformed resumed-selection containers | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A1 completion. |
+| A3 implement campaign-opening manifest and policy bindings | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A2 completion. |
+| A4 enumerate structural candidates and required BLER identities | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A3 completion. |
+| A5 implement crash-safe campaign state and preflight verification | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A4 completion. |
+| A6 mutation tests and bounded behavioural verification | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A5 completion. |
+| A7 full verification and finalization | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A6 completion. |
+
+### G8_A frozen facts at opening
+
+* PB_3C terminal handoff green:
+  `39c43e327573f33011c561c6de22bd05ff93c068`; actual subject:
+  `fix: fix push failure due to gpg for resume.md`.
+* PB_3C implementation/adjudication checkpoint:
+  `08dd358c0f1bd55c70152af900f2932f50d95d19`.
+* PB_3 implementation green:
+  `32edbbb58983e54103b2f252c4d8d8f30aa2378e`.
+* Latest scientific-measurement green:
+  `3324393a3e1692478bba8cf1020708bf52947f6d`.
+* W4 adjudication SHA-256 observed before A0:
+  `289e2cd03236fc2b1e660d4c06846fe71abd8973fd5f69b12cc7814f3f77f1ad`.
+* Selection policy SHA-256 observed before A0:
+  `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`.
+* G8_B–G8_G are `not-started`. No phase after G8_A may run in this session.

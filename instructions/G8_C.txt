@@ -1,0 +1,69 @@
+# G8_C — full-strength physical-layer BLER characterization
+
+## Purpose and scope
+
+Execute and freeze the complete full-strength BLER characterization grid fixed
+by G8_A using the runner proven by G8_B. This phase creates physical-layer
+evidence only.
+
+## Prerequisites and starting assertions
+
+G8_A and G8_B are green; campaign, identities, runner sources, seed policy and
+state bindings verify; no identity or trial count drifted; characterization has
+not started; validation pixels and test remain untouched.
+
+## Exact outputs
+
+Independent atomic work-unit artifacts at configured full-strength trials and
+deterministic seeds; exact resume state; verified merge and complete coverage;
+a separately hash-bound G-8 `BlerTable`; immutable characterization source
+manifest; mutation evidence; updated ledger/handoffs.
+
+## Checkpoint sequence
+
+C0 verify/open; C1 mark and freeze execution sources; C2 execute resumable
+shards; C3 merge independently; C4 verify every required identity and measured
+SNR point; C5 build/freeze the G-8 `BlerTable`; C6 source-manifest and mutation
+verification; C7 full verification and green handoff.
+
+## Sudden-exit protocol
+
+Before every shard or merge, ledger exact command, work-unit IDs, intended
+paths, seed identities and restart command; commit/push the marker. Checkpoint
+each completed unit atomically and record its hash. Resume only the exact
+uncompleted set; never rerun or merge a unit silently.
+
+## Prohibited work
+
+No codec/reconstruction/classifier measurement; no validation pixels; no
+ratio/operating-point selection; no pass one; no training; no G8_D+ command;
+no interpolation outside measured support; no test access. Later phases may not
+reinterpret the frozen table or merge schema.
+
+## Frozen-before-data decisions
+
+The complete identity grid, full-strength trial count, deterministic seeds,
+decoder and SNR convention, work-unit boundaries, confidence/count fields,
+merge order, completeness predicate, and G-8 table schema/source binding.
+
+## Verification commands
+
+Verify every unit hash/seed/trial count, exact resumption, one-to-one required
+coverage, zero duplicates/omissions, no extrapolation, table loader/hash,
+source manifest, mutations, G8_A/B contracts, upstream gates, full pytest,
+CPU lock, and clean scope/status.
+
+## Final report requirements
+
+Report all checkpoint SHAs, work-unit and identity counts, completed IDs,
+trial/error totals, seeds, merge/table/source hashes, complete-coverage proof,
+no-extrapolation proof, zero validation/training/test counters, verification
+results, parity, clean worktree, and G8_D D0 as next action.
+
+## Terminal verdicts
+
+`G8_C GREEN — G-8 BLER TABLE FROZEN; COMPLETE COVERAGE VERIFIED; G8_D READY`
+
+`G8_C INCOMPLETE — RESUME AT <checkpoint and exact command>`
+
+`G8_C HOLD — <precise blocking condition>`

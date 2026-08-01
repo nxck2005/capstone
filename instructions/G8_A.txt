@@ -1,0 +1,175 @@
+# G8_A — campaign contract and preflight
+
+## Purpose and scope
+
+Freeze the G-8 pre-data contract; reconcile PB_3C provenance; normalize one
+malformed resumed-selection path; generate and independently verify the
+campaign-opening manifest; enumerate the complete structural candidate grid
+and required physical-layer BLER identities; add crash-safe state primitives;
+and produce an honest preflight. Execute no characterization, validation
+measurement, selection, training, or adjudication.
+
+## Prerequisites and starting assertions
+
+Start at `39c43e327573f33011c561c6de22bd05ff93c068` with a clean worktree and
+local HEAD = `origin/main` = remote `main`. PB_3C is complete, G-8 has not
+started, test is sealed, tracked non-test code constructs no `G8Authorization`,
+and no G-8 characterization or sweep artifact exists. Inspect and HOLD rather
+than reset if any material assertion differs.
+
+Read, in order: `AGENTS.md`; `NEXT.md`; `instructions/RESUME.md`;
+`worklogs/w4-classical-baseline-progress.md`; `instructions/PB_3.txt`;
+`instructions/PB_3C.txt`; `spec/SPEC.md`; the baseline, experiments and roadmap
+concern views; `spec/params.generated.yaml`; `composition.py`; the W4
+adjudication; its generator; and its verifier.
+
+## Exact outputs
+
+All `instructions/G8*.txt` files; updated live handoffs and the single resume
+ledger; malformed-resume hardening and tests; a generator-owned canonical
+`results/baseline/g8/campaign_manifest.json`; a generator-owned
+`required_bler_identities.json`; a strict loader and independent preflight
+verifier; crash-safe campaign-state primitives and the initial
+`campaign_state.json`; unit, mutation, behavioral, and documentation tests.
+
+No full-strength scientific artifact may exist after this phase.
+
+## Frozen-before-data decisions
+
+The exact W4 adjudication bytes and policy digest; PB_3C terminal and
+implementation provenance; selection-source bytes; spec and generated params;
+relevant split-manifest hashes; ordered phases A–G; structural axis meanings;
+the complete `BlerIdentity`; deterministic IDs and ordering; exact-equality
+tie behavior; the two-pass rule; test sealing; and the rule that incomplete G-2
+coverage is explicit and never extrapolated. Later phases may not silently
+reinterpret any of these artifacts.
+
+## Checkpoint sequence
+
+### A0 — establish state and open instructions
+
+Run separately: `git status --short`; `git rev-parse HEAD`; `git fetch origin`;
+`git rev-parse origin/main`; `git ls-remote origin refs/heads/main`;
+`git log --oneline --decorate -20`. Create all eight instruction files, append
+the G8 ledger, mark A0 `in-progress`, and push
+`wip(g8-a): open campaign instruction series`. Then run
+`tools/verify_w4_baseline_integration.py` and full pytest, record the count, and
+close A0 in a separate pushed checkpoint.
+
+### A1 — partition and provenance
+
+Make the phase split durable across all live handoffs. Record exactly: PB_3C
+terminal handoff `39c43e327573f33011c561c6de22bd05ff93c068`, actual subject
+`fix: fix push failure due to gpg for resume.md`; PB_3C implementation/
+adjudication `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3 implementation
+`32edbbb58983e54103b2f252c4d8d8f30aa2378e`; latest measurement green
+`3324393a3e1692478bba8cf1020708bf52947f6d`. Preserve history. While active,
+the next action is `Execute instructions/G8_A.txt from A0.` After green it is
+`Execute instructions/G8_B.txt from B0.` Run doc consistency, literal lint,
+and `git diff --check`.
+
+### A2 — malformed resumed selections
+
+Make `selections=None` and non-iterable scalars raise `SelectionPassError` with
+a precise not-a-sequence message, preserving the relevant conversion exception
+as cause. Do not weaken element checks or change single-`Selection` convenience.
+Test `None`, scalar, bad iterable element, valid empty tuple, valid tuple, and
+fresh/resumed equivalence. Run composition and directly affected W4 tests.
+
+### A3 — campaign-opening manifest
+
+Implement deterministic generation and independent verification. It is a
+pre-data contract, not a result and not authorization. It records schema,
+campaign/stage, every start/execution/adjudication boolean false, zero test
+access, and `authorization_issued=false`; binds W4 adjudication path/hash and
+its read-and-verified policy digest, PB_3C terminal SHA, selection-source
+hashes, spec/params, relevant split-manifest hashes, G8_A contract and tool
+sources, exact phase order, fixed tie policy, and invalidation-on-policy-change.
+Derive a stable campaign ID from canonical content without timestamps,
+machine paths, or self-reference. Refuse dirty/unidentifiable scientific source
+state. Construct no authorization.
+
+### A4 — structural grid and required BLER identities
+
+Derive every axis from params: primary and permitted fallback role (without
+invocation), ratios, source-codec/encode axes, modulations, rates, SNR grid,
+packetization/code-block identities, decoder, SNR convention, and every field
+of the repository `BlerIdentity`. Enumerate deterministically with stable
+candidate/work-unit IDs, exact deduplication, and unambiguous numeric
+serialization. Generate `required_bler_identities.json`; compare exact G-2
+matches without generalization and report exact, missing, outside-required,
+identity-mismatch, and SNR-support categories. Honest incomplete coverage is
+the expected passing preflight state.
+
+### A5 — crash-safe state and preflight
+
+Implement strict state bound to manifest hash/campaign ID, phase/stage,
+completed and optional in-progress work units, artifact paths/hashes, exact
+restart command, deterministic seed identity, zeroed validation decode,
+inference, training and test counters, and non-identity checkpoint time.
+Atomically write through a same-directory temporary file; flush and fsync;
+replace; sync the directory where supported. Reject corrupt/partial JSON,
+duplicates, wrong campaign, future state, and skipped/reversed transitions;
+never sort corruption into validity. Only after A7 may initial state say
+`phase=G8_A`, `stage=preflight_complete`, no scientific units, counters zero.
+
+### A6 — mutations and bounded behavior
+
+Mutation-test adjudication, policy/source/spec/params/manifest binding; omitted
+axis and duplicate IDs; nondeterministic order; mismatched G-2 identity;
+extrapolation; false coverage/start/authorization claims; state mismatch,
+transition, duplicates and corruption; malformed selections; and any tracked
+non-test `G8Authorization(` construction. Positive controls cover generator
+write/check, independent verification, byte-identical enumeration, exact G-2
+matches, explicit missing identities, zero counters, and consistent docs.
+
+### A7 — finalization
+
+Complete handoffs before verification. Run each command separately in the
+exact block in the initiating instruction: generated-spec check, docs, literals,
+packetization, dataset/manifests checks, dataset/G1/G7/probe/G2/W4 verifiers,
+LDPC fixture fetch before pytest, both G8 generator check and preflight,
+full pytest, CPU lock, diff and status checks. Inspect committed and uncommitted
+scope against the phase-start SHA. Confirm every prohibited action remained
+zero/absent and no protected evidence/runtime path changed. Commit the exact
+verified tree as `feat(classical): freeze G-8 campaign contract and preflight`,
+push, and confirm local/origin/remote parity and clean worktree.
+
+## Sudden-exit protocol
+
+Follow `instructions/G8.txt`. Before long work record the exact first command,
+intended paths, restart command and in-progress marker; commit and push. At
+completion record exact tests and next command; commit and push. If capacity is
+uncertain, preserve state before reporting.
+
+## Prohibited work
+
+No BR-4 BLER simulation; no partial/full G-8 sweep; no real authorization; no
+validation pixel load, codec operation, inference, accuracy, corpus, training,
+pass one/two, ratio selection, fallback, or test access; no scientific
+parameter change; no `src/baseline/ldpc/` edit; no PB_2C regeneration; no G-2
+evidence change; no claim that G-8 is resolved or executable.
+
+## Verification commands
+
+Use the exact A7 command block in the initiating instruction. Targeted commands
+for earlier checkpoints are recorded in `instructions/RESUME.md` with their
+results. The independent preflight must succeed only while incomplete G-2
+coverage is represented honestly and scientific counters remain zero.
+
+## Final report requirements
+
+Report all 27 items in the initiating instruction: start/parity/worktree/test
+count; every checkpoint SHA; instruction set and phase map; provenance and
+resume correction; manifest schema/ID/hash/bindings; observed W4/policy hashes;
+grid dimensions/count; BLER exact/missing counts and no-extrapolation proof;
+state schema/atomicity/transitions; mutations; final suite and all verifiers;
+prohibited-work proof; final parity/cleanliness; and G8_B B0 as next action.
+
+## Terminal verdicts
+
+`G8_A GREEN — CAMPAIGN CONTRACT FROZEN; G8_B READY; NO CHARACTERIZATION OR SWEEP STARTED`
+
+`G8_A INCOMPLETE — RESUME AT <checkpoint and exact command>`
+
+`G8_A HOLD — <precise blocking condition>`

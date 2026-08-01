@@ -1,0 +1,84 @@
+# G8_G — final G-8 adjudication
+
+## Purpose and scope
+
+Adjudicate G-8 from the frozen pass-two classical evidence. Freeze operating
+ratios, non-degeneracy, ER-1 strength, artifact-classifier release, pass-two
+selections, H2 validation window, and the primary/fallback dataset disposition.
+Test remains sealed.
+
+## Prerequisites and starting assertions
+
+G8_A–F are green; all campaign/table/measurement/training/pass artifacts and
+source manifests verify; state is the exact expected prefix with two passes and
+no third; no test access occurred; no policy binding drifted.
+
+## Exact outputs
+
+A generated, independently verified final G-8 adjudication and source manifest
+that freezes: `efficiency_ratio`; the parameter named `crossover_ratio`;
+`low_ratio_operating_point`; classical non-degeneracy; one- versus two-ratio
+full-strength ER-1; artifact-classifier release; final pass-two classical
+selections; H2 validation window and classical threshold finding; and whether
+Imagenette remains viable or the already specified STL-10 fallback gate is
+actually triggered. Updated params/spec only if an existing normative rule
+requires the selected values to be recorded through the amendment convention.
+
+## Required interpretation
+
+> G-8 selects the parameter named `crossover_ratio` using the learned-blind
+> classical rule. It does not decide whether a learned-versus-classical curve
+> crossover exists. That decision remains G-10 after learned models exist.
+
+## Checkpoint sequence
+
+G0 verify/open; G1 freeze adjudication inputs; G2 apply ER-3 threshold and
+fallback/saturation rules; G3 assess non-degeneracy and format overhead; G4
+decide one/two-ratio ER-1 on both configured cost axes; G5 freeze classifier,
+pass-two selections and H2 window; G6 adjudicate dataset viability/fallback;
+G7 generate/mutation-verify final record; G8 full verification, green commit,
+push and handoff.
+
+## Sudden-exit protocol
+
+Before each adjudication checkpoint, record exact inputs/hashes, command,
+intended outputs and restart command; commit/push. A decision is recorded once
+from frozen inputs and never recomputed against changed bytes. Preserve state
+before narrative reporting.
+
+## Prohibited work
+
+No test access, learned model training, learned-versus-classical crossover
+decision, G-10 decision, third pass, new scientific policy, unpreregistered
+fallback, or reinterpretation of earlier artifacts.
+
+## Frozen-before-data decisions
+
+All A–F bindings and artifacts; ER-3 ceiling/rule/thresholds/fallbacks; ladder
+order and saturation/boundary rules; non-degeneracy and overhead criteria;
+cost axes; classifier release criteria; fixed H2 thresholds/window rule; DEC-1
+fallback gate. Observed data may instantiate these rules, not revise them.
+
+## Verification commands
+
+Independently recompute every adjudicated decision from frozen artifacts;
+mutation-test each rule/input/hash; verify no learned row informed ratios, no
+test access, exactly two passes, final source manifest, prior phase contracts,
+generated spec/docs/literals, upstream gates, full pytest/CPU lock, diff/scope,
+parity and clean worktree.
+
+## Final report requirements
+
+Report checkpoints, every input/output hash, threshold evaluations, selected
+ratios and ladder handling, non-degeneracy/overhead result, ER-1 strength and
+cost arithmetic, classifier/pass-two release, H2 window/threshold finding,
+dataset/fallback disposition, no-crossover-decision proof, no-test proof, all
+verification results, final parity/cleanliness, and exact post-G-8 handoff.
+
+## Terminal verdicts
+
+`G8_G GREEN — G-8 ADJUDICATED AND FROZEN; TEST SPLIT REMAINS SEALED`
+
+`G8_G INCOMPLETE — RESUME AT <checkpoint and exact command>`
+
+`G8_G HOLD — <precise blocking condition>`

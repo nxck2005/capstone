@@ -1,0 +1,70 @@
+# G8_B — BLER characterization tooling and bounded smoke
+
+## Purpose and scope
+
+Implement the full-strength physical-layer BLER characterization runner, but
+execute only bounded synthetic or unit-scale smoke. Green means the tooling is
+ready for G8_C; it does not mean BLER evidence exists.
+
+## Prerequisites and starting assertions
+
+G8_A is green; its campaign manifest, required-identity artifact and state
+verify byte-for-byte; G8_B is the next phase in the ordered manifest; scientific
+counters are zero; characterization and authorization remain false; test is
+sealed. HOLD on any mismatch.
+
+## Exact outputs
+
+A runner that consumes exactly the G8_A required identity/work-unit artifact;
+deterministic seed derivation; work-unit sharding; atomic per-unit checkpoints;
+exact resume; merge validation; bounded fixtures and smoke records explicitly
+labelled non-scientific; source and mutation tests; updated single ledger and
+handoffs. No full-strength result table.
+
+## Checkpoint sequence
+
+B0 verify G8_A and open the phase; B1 freeze runner schemas and seed derivation;
+B2 implement sharding and atomic unit state; B3 implement exact resume and
+merge validation; B4 run bounded synthetic/unit-scale smoke only; B5 mutation
+tests; B6 full verification, handoff, green commit and push.
+
+## Sudden-exit protocol
+
+Use the master protocol before each multi-minute checkpoint. Record exact unit
+IDs, seeds, partial artifact hashes, intended/restart commands, then commit and
+push. A resumed run must reproduce the exact remaining work list.
+
+## Prohibited work
+
+No full-strength characterization, validation dataset access, G8 authorization,
+sweep, codec/classifier measurement, inference, training, ratio selection,
+fallback, or test access. No later phase may silently reinterpret G8_A IDs or
+this runner's unit/seed schema.
+
+## Frozen-before-data decisions
+
+G8_A's identity set and ordering, work-unit IDs, complete `BlerIdentity`, trial
+count source, seed-derivation algorithm and domain separator, sharding/merge
+rules, atomic checkpoint schema, decoder/SNR conventions, and strict no-
+extrapolation rule are frozen before any full-strength run.
+
+## Verification commands
+
+Run targeted runner/state tests, mutation tests, bounded smoke verification,
+G8_A preflight, W4/G2 verifiers, generated docs/literals, full pytest, CPU-lock
+verification, diff/status checks. Run no G8_C command.
+
+## Final report requirements
+
+Report start/end parity, checkpoint SHAs, runner/unit schemas, seed derivation,
+shard and resume proof, smoke scope/count, mutation results, zero scientific
+counters, all verification results, clean worktree, and exact next action G8_C
+C0.
+
+## Terminal verdicts
+
+`G8_B GREEN — CHARACTERIZATION TOOLING READY; G8_C RELEASED; NO FULL-STRENGTH CHARACTERIZATION STARTED`
+
+`G8_B INCOMPLETE — RESUME AT <checkpoint and exact command>`
+
+`G8_B HOLD — <precise blocking condition>`

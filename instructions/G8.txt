@@ -1,0 +1,73 @@
+# G-8 classical-validation campaign — master contract
+
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
+Interpreter: `.venv/bin/python`
+
+`spec/SPEC.md` is normative. `instructions/RESUME.md` is the single operational
+cursor. No phase may create another resume ledger. This campaign is deliberately
+partitioned before scientific data is inspected:
+
+| Phase | Purpose | Terminal release |
+|---|---|---|
+| G8_A | Freeze the campaign contract and policy bindings; enumerate the structural grid and required physical-layer identities; add crash-safe state and preflight verification. | G8_B tooling work only |
+| G8_B | Implement the BLER characterization runner and prove it with bounded synthetic/unit-scale smoke. | G8_C full characterization |
+| G8_C | Execute full-strength BLER characterization, verify complete coverage, and freeze a separately hash-bound G-8 `BlerTable`. | G8_D validation-measurement tooling |
+| G8_D | Implement codec/reconstruction and clean-classifier measurement tooling, caching, records, and bounded smoke. | G8_E full validation measurement |
+| G8_E | Measure the complete validation grid and execute pass one exactly once. | G8_F training-only corpus and pass two |
+| G8_F | Build the training-only artifact corpus, fine-tune the artifact classifier, and execute pass two exactly once. | G8_G adjudication |
+| G8_G | Freeze ratios, non-degeneracy, ER-1 strength, classifier release, pass-two selections, H2 window, and fallback disposition. | Post-G-8 work |
+
+## Campaign-wide frozen decisions
+
+Before data, the campaign freezes the W4 adjudication bytes, its independently
+verified `selection_policy_sha256`, the exact selection-source bytes, the
+specification and generated parameters, dataset split-manifest bytes, the
+ordered phase list above, exact-float tie equality, the six-field tie-break
+order, `params.baseline.core_modulation` as the fixed-modulation reference, the
+two-pass sequence and termination rule, the complete `BlerIdentity`, the
+configured structural axes, and validation-only selection with the test split
+sealed. Changing any bound scientific policy after campaign start invalidates
+the campaign.
+
+Later phases may consume and extend earlier artifacts only through their
+declared schemas and hashes. They may not silently reinterpret, regenerate
+away, weaken, broaden, sort into validity, or relabel an earlier artifact. A
+schema or policy contradiction is a HOLD, not permission to infer a convenient
+meaning from observed data.
+
+## Sudden-exit protocol
+
+Before a checkpoint expected to exceed a few minutes, mark it `in-progress` in
+`instructions/RESUME.md`; record the exact first command, intended files and
+outputs, and restart command; commit; push; and confirm local HEAD equals
+`origin/main`. At completion, run targeted verification, record exact results,
+mark it `done`, record the exact next command, create a non-empty checkpoint
+commit, push, and confirm parity. Never hold more than one coherent checkpoint
+uncommitted. Never amend, squash, rebase, or force-push.
+
+If signing fails, preserve the staged tree and intended subject, record the
+failure and exact retry command in the ledger, and retry that subject when
+signing works. Do not replace it with a placeholder subject.
+
+When capacity is uncertain, preserve ledger status, changed files, known tests,
+completed work-unit IDs, artifact hashes, and the exact next command, then
+commit and push before reporting an incomplete verdict.
+
+## Campaign-wide prohibitions
+
+No phase may access test before G-12. No phase may extrapolate G-2 BLER evidence,
+silently treat missing BLER as zero, weaken the baseline, change scientific
+parameters without an amendment, or reinterpret an earlier artifact. Only the
+phase explicitly assigned characterization, validation measurement, training,
+selection, or adjudication may perform it. A later-phase command must never be
+run early.
+
+## Common final report and verdict rules
+
+Every phase reports its start and end SHAs, parity, worktree state, checkpoint
+SHAs, created/changed files, artifact hashes and counts, exact verification
+results, prohibited-work proof, and exact next action. Each child instruction
+defines its terminal `GREEN`, `INCOMPLETE`, and `HOLD` strings. `GREEN` means
+only that phase's outputs exist and verify; it never implies later scientific
+work has happened.
