@@ -44,7 +44,7 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_A active at A0 — campaign instruction series opening; no scientific work started.** PB_3C was a narrow corrective
+**Current phase:** **G8_A active; A0 complete and A1 next — no scientific work started.** PB_3C was a narrow corrective
 phase between PB_3 and G-8: it fixed the fixed-modulation reference (BR-9), made resumed campaign
 state an exact ordered prefix of the permitted passes, froze the selection tie-break policy before
 G-8 behind an independently recomputed `selection_policy_sha256`, and corrected this hand-off. Its
@@ -708,8 +708,9 @@ cursor.
 started; validation measurements not started; pass one not executed; training
 not started; pass two not executed; adjudication incomplete; test access zero;
 authorization not issued.
-**Exact next command:** `.venv/bin/python tools/verify_w4_baseline_integration.py`
-after the A0 opening commit is pushed.
+**Exact next command:** update the A1 row to `in-progress`, recording the
+first command `.venv/bin/python tools/check_doc_consistency.py -v`, then commit
+and push the A1 marker before changing live handoffs.
 
 ## G8_A — contract, structural enumeration, state and preflight
 
@@ -719,7 +720,7 @@ observations, unresolved issues, worktree/push status, and exact next command.
 
 | Step | State | Record |
 |---|---|---|
-| A0 establish exact state and open durable instructions | in-progress | **Phase-start SHA:** `39c43e327573f33011c561c6de22bd05ff93c068`. **In-progress marker SHA:** this `wip(g8-a): open campaign instruction series` commit, resolved after commit. **Ending SHA:** pending. **Files changed:** `instructions/G8.txt`, `instructions/G8_A.txt`..`G8_G.txt`, `instructions/RESUME.md`. **Exact tests/results:** cheap Git checks passed before mutation: clean worktree; local/origin/remote all `39c43e3`; remote fetched; observed terminal subject `fix: fix push failure due to gpg for resume.md`. Expensive baseline pending until this opening commit is pushed. **Observations:** PB_3C complete; provenance discrepancy confirmed; no normative gap found in prescribed sources. **Unresolved:** baseline test count not yet observed. **Worktree:** intended opening checkpoint only. **Push:** pending. **First command after push:** `.venv/bin/python tools/verify_w4_baseline_integration.py`. **Intended outputs:** baseline verification record only; no scientific artifacts. **Restart command:** `.venv/bin/python tools/verify_w4_baseline_integration.py`. **Exact next command:** `git add instructions/G8.txt instructions/G8_A.txt instructions/G8_B.txt instructions/G8_C.txt instructions/G8_D.txt instructions/G8_E.txt instructions/G8_F.txt instructions/G8_G.txt instructions/RESUME.md` then commit/push. |
+| A0 establish exact state and open durable instructions | done | **Phase-start SHA:** `39c43e327573f33011c561c6de22bd05ff93c068`. **In-progress marker SHA:** `1a71e4c68cb835988f5c851c548522a815911504`. **Ending SHA:** this `wip(g8-a): establish campaign baseline` commit, resolved after commit. **Files changed:** opening marker added `instructions/G8.txt`, `instructions/G8_A.txt`..`G8_G.txt` and updated `instructions/RESUME.md`; this closing checkpoint updates only the ledger. **Exact tests/results:** cheap Git checks: clean worktree; local/origin/remote all `39c43e3` before mutation; remote fetched; observed terminal subject `fix: fix push failure due to gpg for resume.md`. After the pushed marker, `.venv/bin/python tools/verify_w4_baseline_integration.py` PASS with `execution=76e789c9f3d0`, `passes_executed=0`, `g8=unresolved`, `test_split_access=0`; `.venv/bin/python -m pytest` → **1161 passed, 0 failed, 0 skipped in 134.59 s**. **Observations:** PB_3C complete; provenance discrepancy confirmed; no normative gap found; no scientific artifact created. **Unresolved:** none. **Worktree:** clean after marker; ledger-only completion change before this commit. **Push:** opening marker pushed and parity confirmed; closing push pending. **Exact next command:** mark A1 `in-progress`, record its intended handoff files and restart command, then commit/push the marker. |
 | A1 partition G-8 and reconcile PB_3C provenance | not-started | **Phase-start SHA:** pending from A0. **Marker/ending SHA:** pending. **Files:** live handoffs listed in G8_A. **Tests:** docs/literals/diff pending. **Observations/unresolved:** none yet. **Worktree/push:** not started. **Exact next command:** recorded when A0 closes. |
 | A2 normalize malformed resumed-selection containers | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A1 completion. |
 | A3 implement campaign-opening manifest and policy bindings | not-started | **Phase-start/marker/ending SHA:** pending. **Files/tests/observations/unresolved/worktree/push:** not started. **Exact next command:** recorded at A2 completion. |
