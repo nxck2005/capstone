@@ -1,0 +1,182 @@
+{
+  "adjudication_complete": false,
+  "authorization_issued": false,
+  "campaign": "G-8",
+  "campaign_id": "g8-d5b99045b2fbf0b6a4dcd7ce711896d6aabb077e775654c964413d0d8cacbef1",
+  "campaign_started": false,
+  "characterization_started": false,
+  "contract_sources": [
+    {
+      "bytes": 4397,
+      "path": "instructions/G8.txt",
+      "role": "g8a_contract_source",
+      "sha256": "df3103d594f0ab4938be9bca24f0fb3f22e866d1d6b24f3da926e20674a7d14f"
+    },
+    {
+      "bytes": 9096,
+      "path": "instructions/G8_A.txt",
+      "role": "g8a_contract_source",
+      "sha256": "3035084dc90325677b4b6aa77ae22e7314468af48fefa401e77cf915a7efa8c0"
+    },
+    {
+      "bytes": 2902,
+      "path": "instructions/G8_B.txt",
+      "role": "g8a_contract_source",
+      "sha256": "93b85a798b6496ffbdd774fe63f44b9c5e421bde429f2f09162a1eeb4e1257ba"
+    },
+    {
+      "bytes": 2820,
+      "path": "instructions/G8_C.txt",
+      "role": "g8a_contract_source",
+      "sha256": "c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815"
+    },
+    {
+      "bytes": 2684,
+      "path": "instructions/G8_D.txt",
+      "role": "g8a_contract_source",
+      "sha256": "57a73fc44a92df2d242d5433ba558e7c37e781621c1631e1a0bb3bd830cea1d1"
+    },
+    {
+      "bytes": 3086,
+      "path": "instructions/G8_E.txt",
+      "role": "g8a_contract_source",
+      "sha256": "681587576435b64fadf20223c03e9f2291db6223c2894e19a7c882b7ac4b2ae0"
+    },
+    {
+      "bytes": 2932,
+      "path": "instructions/G8_F.txt",
+      "role": "g8a_contract_source",
+      "sha256": "e441581871eed0f458dd5e74899b2955b67aba37c934b1fc7d6c67d732fc1d5c"
+    },
+    {
+      "bytes": 3726,
+      "path": "instructions/G8_G.txt",
+      "role": "g8a_contract_source",
+      "sha256": "a65c74f101bc2c86726f02e913026e67f18ba04cb495395f13c1490455cb1499"
+    },
+    {
+      "bytes": 3329,
+      "path": "src/baseline/classical/g8_campaign.py",
+      "role": "g8a_contract_source",
+      "sha256": "b287bd2ef826dd8c513e0b1df8844234335a006bf155b56356b68dde530cfaf4"
+    },
+    {
+      "bytes": 5507,
+      "path": "tools/gen_g8_campaign_manifest.py",
+      "role": "g8a_contract_source",
+      "sha256": "1a0fa4a8583edc6b65c9db9e5fc4ac2e606c0d0a9d48644926577cfb529981e0"
+    },
+    {
+      "bytes": 6917,
+      "path": "tools/verify_g8_preflight.py",
+      "role": "g8a_contract_source",
+      "sha256": "3dee47a7341873421924644df04d42ab3a1b061fe48df8c5ed6024271d95ec9d"
+    }
+  ],
+  "dataset_split_manifests": [
+    {
+      "bytes": 328954,
+      "path": "data/manifests/imagenette160.csv",
+      "role": "split_manifest_bytes_only",
+      "sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889"
+    },
+    {
+      "bytes": 316029,
+      "path": "data/manifests/stl10.csv",
+      "role": "split_manifest_bytes_only",
+      "sha256": "67936da779dc0010160b37b3b40001490304a5873eb978d261e3a57947387b47"
+    },
+    {
+      "bytes": 1480029,
+      "path": "data/manifests/cifar10.csv",
+      "role": "split_manifest_bytes_only",
+      "sha256": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537"
+    }
+  ],
+  "interpretation_rules": {
+    "changed_bound_scientific_policy_invalidates_campaign": true,
+    "later_phases_may_not_silently_reinterpret_earlier_artifacts": true,
+    "pre_data_contract_not_authorization": true
+  },
+  "normative_sources": [
+    {
+      "bytes": 358437,
+      "path": "spec/SPEC.md",
+      "role": "normative_spec",
+      "sha256": "e14f451502f3810ec4f9d45fa3ee43ad5c920ed6a38aa3e93cdc17c4482dc88e"
+    },
+    {
+      "bytes": 35138,
+      "path": "spec/params.generated.yaml",
+      "role": "generated_parameters",
+      "sha256": "1b094107b7ef3162d8ed9d433e1793c656d6886e21916580f8a8ffe3f022dbaf"
+    }
+  ],
+  "pass_one_executed": false,
+  "pass_two_executed": false,
+  "phase_order": [
+    "G8_A",
+    "G8_B",
+    "G8_C",
+    "G8_D",
+    "G8_E",
+    "G8_F",
+    "G8_G"
+  ],
+  "schema_version": 1,
+  "scientific_base": {
+    "actual_subject": "fix: fix push failure due to gpg for resume.md",
+    "commit_sha": "39c43e327573f33011c561c6de22bd05ff93c068",
+    "future_g8a_final_commit_not_part_of_identity": true,
+    "kind": "pb3c_terminal_handoff",
+    "source_state_mode": "content_hashes_with_pb3c_base"
+  },
+  "selection_policy": {
+    "changing_bound_policy_after_campaign_start_invalidates_campaign": true,
+    "fields": [
+      "tie_break_order",
+      "tie_equality",
+      "fixed_modulation.source",
+      "fixed_modulation.configured_value",
+      "selection_passes",
+      "selection_termination_pass"
+    ],
+    "frozen_before_data": true,
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "tie_break_order": [
+      "expected_accuracy_descending",
+      "success_probability_descending",
+      "modulation_bits_per_symbol_ascending",
+      "ldpc_rate_ascending",
+      "encode_axis_px_descending",
+      "candidate_id_ascending"
+    ],
+    "tie_equality": "exact float equality; no tolerance parameter"
+  },
+  "selection_sources": [
+    {
+      "bytes": 72000,
+      "path": "src/baseline/classical/composition.py",
+      "role": "selection_implementation",
+      "sha256": "e3135ecefd612c5505bd1137bbf9a8a8212cf338080dde24bf5b25e07212b744",
+      "w4_bound_at": "HEAD"
+    },
+    {
+      "bytes": 74457,
+      "path": "tests/test_classical_composition.py",
+      "role": "selection_test",
+      "sha256": "237b0c66def0967059e30d196550e24492f75f628eba2d939d5ed343f6e488ad",
+      "w4_bound_at": "HEAD"
+    }
+  ],
+  "stage": "preflight_contract_only",
+  "test_split_access": 0,
+  "training_started": false,
+  "validation_measurements_started": false,
+  "w4_adjudication": {
+    "bytes": 13951,
+    "path": "results/baseline/w4/integration_adjudication.json",
+    "role": "frozen_w4_contract",
+    "sha256": "58827922671e596f038972cf731e3626313a562fbc36ee817eb50d947d6af121"
+  }
+}
