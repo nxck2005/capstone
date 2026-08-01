@@ -12,7 +12,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
-from baseline.classical.g8_campaign import (
+from baseline.g8_campaign import (
     CAMPAIGN,
     CAMPAIGN_MANIFEST,
     PB3C_TERMINAL_SHA,
@@ -38,7 +38,7 @@ CONTRACT_SOURCES = (
     "instructions/G8_E.txt",
     "instructions/G8_F.txt",
     "instructions/G8_G.txt",
-    "src/baseline/classical/g8_campaign.py",
+    "src/baseline/g8_campaign.py",
     "tools/gen_g8_campaign_manifest.py",
     "tools/update_g8_campaign_state.py",
     "tools/verify_g8_preflight.py",

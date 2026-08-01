@@ -1,7 +1,7 @@
 {
   "identity": {
-    "campaign_id": "g8-7d70dd824142ab4c42421378917268393058fa33fa3101d81954db1c0fd7182f",
-    "campaign_manifest_sha256": "f63d149490d0ff604eda2d9883ca54af818d0705a2eafdc0b6e2e59e95b83eed",
+    "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+    "campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
     "completed_work_unit_ids": [],
     "counters": {
       "inference": 0,
@@ -13,9 +13,9 @@
     "phase": "G8_A",
     "produced_artifacts": [
       {
-        "bytes": 6335,
+        "bytes": 6325,
         "path": "results/baseline/g8/campaign_manifest.json",
-        "sha256": "f63d149490d0ff604eda2d9883ca54af818d0705a2eafdc0b6e2e59e95b83eed"
+        "sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1"
       },
       {
         "bytes": 8610156,
@@ -25,7 +25,7 @@
     ],
     "restart_command": ".venv/bin/python tools/verify_g8_preflight.py",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
-    "stage": "contract_open"
+    "stage": "preflight_complete"
   },
   "metadata": {
     "last_successful_checkpoint_time": null

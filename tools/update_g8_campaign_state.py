@@ -11,7 +11,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
-from baseline.classical.g8_campaign import (  # noqa: E402
+from baseline.g8_campaign import (  # noqa: E402
     CAMPAIGN_STATE,
     initial_campaign_state,
     load_campaign_state,

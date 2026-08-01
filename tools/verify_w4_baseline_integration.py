@@ -1631,13 +1631,16 @@ def check_selection_machinery_behaviour() -> None:
     # Assembled at runtime so this scanner does not match its own source.
     needle = "G8" + "Authorization" + "("
     tracked = _git("ls-files").split()
-    offenders = [
-        name
-        for name in tracked
-        if not name.startswith("tests/")
-        and Path(name).suffix in {".py", ".json", ".yaml", ".yml", ".toml"}
-        and needle in (REPO / name).read_text(errors="ignore")
-    ]
+    offenders = []
+    for name in tracked:
+        target = REPO / name
+        if (
+            not name.startswith("tests/")
+            and Path(name).suffix in {".py", ".json", ".yaml", ".yml", ".toml"}
+            and target.is_file()
+            and needle in target.read_text(errors="ignore")
+        ):
+            offenders.append(name)
     _require(
         not offenders,
         f"a G-8 sweep authorization is constructed in {offenders}",

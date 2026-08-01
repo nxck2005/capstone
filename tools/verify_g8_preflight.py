@@ -14,7 +14,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "src"))
 
-from baseline.classical.g8_campaign import (
+from baseline.g8_campaign import (
     CAMPAIGN_MANIFEST,
     PB3C_TERMINAL_SHA,
     PHASE_ORDER,
@@ -47,7 +47,7 @@ EXPECTED_CONTRACT_SOURCES = (
     "instructions/G8_E.txt",
     "instructions/G8_F.txt",
     "instructions/G8_G.txt",
-    "src/baseline/classical/g8_campaign.py",
+    "src/baseline/g8_campaign.py",
     "tools/gen_g8_campaign_manifest.py",
     "tools/update_g8_campaign_state.py",
     "tools/verify_g8_preflight.py",
@@ -162,7 +162,7 @@ def authorization_constructions(source: str, path: str) -> list[str]:
 
 def verify_no_tracked_authorization_construction() -> None:
     result = subprocess.run(
-        ["git", "ls-files", "-z", "--", "*.py"],
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "*.py"],
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,
@@ -170,9 +170,10 @@ def verify_no_tracked_authorization_construction() -> None:
     paths = sorted(path for path in result.stdout.decode().split("\0") if path)
     findings: list[str] = []
     for path in paths:
-        if path.startswith("tests/"):
+        target = REPO_ROOT / path
+        if path.startswith("tests/") or not target.is_file():
             continue
-        findings.extend(authorization_constructions((REPO_ROOT / path).read_text(), path))
+        findings.extend(authorization_constructions(target.read_text(), path))
     _require(not findings, f"tracked non-test G8Authorization construction: {findings}")
 
 

@@ -10,7 +10,7 @@ from typing import Any, Callable
 import pytest
 
 import verify_g8_preflight as verifier
-from baseline.classical.g8_campaign import (
+from baseline.g8_campaign import (
     CAMPAIGN_MANIFEST,
     G8ContractError,
     build_structural_preflight,

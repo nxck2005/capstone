@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-01 · **Phase:** **G8_A active — campaign contract and preflight only. G8_B–G8_G have not started.**
+**Last updated:** 2026-08-01 · **Phase:** **G8_A complete; G8_B is next and has not started. G8_C–G8_G remain prohibited.**
 
 ## Single next task
 
@@ -26,15 +26,15 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next engineering task — G8_A active; Execute `instructions/G8_A.txt` from A0.** |
-| G8_B–G8_G | not started; prohibited until the preceding phase is green |
+| G-8 classical validation work | **G8_A complete; next engineering task — Execute `instructions/G8_B.txt` from B0.** |
+| G8_B–G8_G | not started; G8_C–G8_G prohibited until the preceding phase is green |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_A is the single current engineering task. Execute `instructions/G8_A.txt` from A0.** On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint. G8_A freezes the campaign contract and structural preflight; it does not run characterization, validation measurement, a selection pass, training or adjudication.
+**G8_A is green. Execute `instructions/G8_B.txt` from B0.** G8_B builds characterization tooling and runs bounded synthetic/unit-scale smoke only; it must not run full-strength characterization. On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint.
 Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 
@@ -112,7 +112,7 @@ and the spec defines no BR-4 selection tie-break to contradict.
 
 ### Durable G-8 phase partition
 
-The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight; G8_B characterization tooling plus bounded smoke; G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts. During this session only G8_A may execute.
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**next**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
 ### What G-8 actually has to build — read this before starting it
 
