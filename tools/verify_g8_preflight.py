@@ -17,10 +17,13 @@ from baseline.classical.g8_campaign import (
     PB3C_TERMINAL_SHA,
     PHASE_ORDER,
     PRE_DATA_FLAGS,
+    REQUIRED_BLER_IDENTITIES,
     SELECTION_POLICY_FIELDS,
     G8ContractError,
+    build_structural_preflight,
     campaign_identifier,
     load_campaign_manifest,
+    load_required_bler_identities,
     sha256_bytes,
 )
 from config.params import REPO_ROOT
@@ -142,6 +145,36 @@ def verify(path: Path = CAMPAIGN_MANIFEST) -> dict[str, Any]:
              "later-phase reinterpretation is not prohibited")
     _require(rules.get("changed_bound_scientific_policy_invalidates_campaign") is True,
              "policy drift does not invalidate campaign")
+
+    generated = payload.get("generated_preflight_artifacts")
+    _require(isinstance(generated, list) and len(generated) == 1,
+             "required generated-preflight binding is missing")
+    _require(generated[0].get("path") == "results/baseline/g8/required_bler_identities.json",
+             "required-BLER artifact path changed")
+    _verify_binding(generated[0])
+    required = load_required_bler_identities(REQUIRED_BLER_IDENTITIES)
+    _require(required == build_structural_preflight(), "structural enumeration does not reproduce")
+    candidates = required.get("structural_candidates") or []
+    work_units = required.get("required_bler_work_units") or []
+    candidate_ids = [row.get("candidate_id") for row in candidates]
+    work_unit_ids = [row.get("work_unit_id") for row in work_units]
+    _require(candidate_ids == sorted(candidate_ids), "structural candidate ordering is nondeterministic")
+    _require(len(candidate_ids) == len(set(candidate_ids)), "duplicate candidate ID")
+    _require(work_unit_ids == sorted(work_unit_ids), "BLER work-unit ordering is nondeterministic")
+    _require(len(work_unit_ids) == len(set(work_unit_ids)), "duplicate BLER work-unit ID")
+    counts = required.get("counts") or {}
+    _require(counts.get("structural_candidates") == len(candidates), "candidate count is false")
+    _require(counts.get("required_unique_bler_work_units") == len(work_units), "work-unit count is false")
+    coverage = required.get("g2_comparison") or {}
+    _require(coverage.get("coverage_complete") is False, "G-2 coverage is falsely complete")
+    _require(coverage.get("complete_coverage_claim_permitted") is False,
+             "preflight permits a false complete-coverage claim")
+    _require(coverage.get("interpolation_used") is False, "G-2 interpolation was used")
+    _require(coverage.get("extrapolation_used") is False, "G-2 extrapolation was used")
+    _require(required.get("scientific_execution_performed") is False,
+             "required-BLER artifact claims scientific execution")
+    _require(required.get("dataset_pixels_loaded") == 0, "preflight loaded dataset pixels")
+    _require(required.get("fallback_invoked") is False, "preflight invoked fallback")
     return payload
 
 
@@ -156,7 +189,7 @@ def main() -> int:
     print(
         "G8 preflight contract PASS: "
         f"campaign_id={payload['campaign_id']}, phases={len(payload['phase_order'])}, "
-        "authorization=false, execution=false, test_split_access=0"
+        "authorization=false, execution=false, test_split_access=0, coverage=incomplete-as-required"
     )
     return 0
 

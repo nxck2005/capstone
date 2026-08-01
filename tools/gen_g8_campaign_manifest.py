@@ -18,7 +18,9 @@ from baseline.classical.g8_campaign import (
     PB3C_TERMINAL_SHA,
     PHASE_ORDER,
     PRE_DATA_FLAGS,
+    REQUIRED_BLER_IDENTITIES,
     SELECTION_POLICY_FIELDS,
+    build_structural_preflight,
     campaign_identifier,
     rendered_json,
     sha256_bytes,
@@ -119,6 +121,12 @@ def build() -> dict[str, Any]:
             "later_phases_may_not_silently_reinterpret_earlier_artifacts": True,
             "changed_bound_scientific_policy_invalidates_campaign": True,
         },
+        "generated_preflight_artifacts": [
+            _binding(
+                str(REQUIRED_BLER_IDENTITIES.relative_to(REPO_ROOT)),
+                role="required_bler_structural_grid",
+            )
+        ],
     }
     payload["campaign_id"] = campaign_identifier(payload)
     return payload
@@ -128,8 +136,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    payload = build()
+    required = build_structural_preflight()
     if args.check:
+        if not REQUIRED_BLER_IDENTITIES.exists():
+            raise SystemExit("missing required_bler_identities.json")
+        if REQUIRED_BLER_IDENTITIES.read_bytes() != rendered_json(required):
+            raise SystemExit("required_bler_identities.json is stale")
+        payload = build()
         if not CAMPAIGN_MANIFEST.exists():
             raise SystemExit(f"missing {CAMPAIGN_MANIFEST.relative_to(REPO_ROOT)}")
         expected = rendered_json(payload)
@@ -141,10 +154,15 @@ def main() -> int:
             f"campaign_id={payload['campaign_id']}"
         )
         return 0
+    required_digest = write_json_atomically(REQUIRED_BLER_IDENTITIES, required)
+    payload = build()
     digest = write_json_atomically(CAMPAIGN_MANIFEST, payload)
     print(
         f"wrote {CAMPAIGN_MANIFEST.relative_to(REPO_ROOT)} "
-        f"campaign_id={payload['campaign_id']} sha256={digest}"
+        f"campaign_id={payload['campaign_id']} sha256={digest}; "
+        f"required_bler_sha256={required_digest} "
+        f"candidates={required['counts']['structural_candidates']} "
+        f"work_units={required['counts']['required_unique_bler_work_units']}"
     )
     return 0
 

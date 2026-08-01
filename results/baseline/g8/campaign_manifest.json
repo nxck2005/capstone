@@ -2,7 +2,7 @@
   "adjudication_complete": false,
   "authorization_issued": false,
   "campaign": "G-8",
-  "campaign_id": "g8-d5b99045b2fbf0b6a4dcd7ce711896d6aabb077e775654c964413d0d8cacbef1",
+  "campaign_id": "g8-1ee6eb8093314cdc7ac4da84d72f2009f7970c2dbdb006ead2637d34f0046246",
   "campaign_started": false,
   "characterization_started": false,
   "contract_sources": [
@@ -55,22 +55,22 @@
       "sha256": "a65c74f101bc2c86726f02e913026e67f18ba04cb495395f13c1490455cb1499"
     },
     {
-      "bytes": 3329,
+      "bytes": 17537,
       "path": "src/baseline/classical/g8_campaign.py",
       "role": "g8a_contract_source",
-      "sha256": "b287bd2ef826dd8c513e0b1df8844234335a006bf155b56356b68dde530cfaf4"
+      "sha256": "4658fea4faa00b8f23fe3d8fb707783ca07dd7546285fdc4839bca804f5af9dc"
     },
     {
-      "bytes": 5507,
+      "bytes": 6401,
       "path": "tools/gen_g8_campaign_manifest.py",
       "role": "g8a_contract_source",
-      "sha256": "1a0fa4a8583edc6b65c9db9e5fc4ac2e606c0d0a9d48644926577cfb529981e0"
+      "sha256": "74707a98b3a04dbc679c1075a5cb48505c220cda6597fb0e4bf4aa6704749e06"
     },
     {
-      "bytes": 6917,
+      "bytes": 9254,
       "path": "tools/verify_g8_preflight.py",
       "role": "g8a_contract_source",
-      "sha256": "3dee47a7341873421924644df04d42ab3a1b061fe48df8c5ed6024271d95ec9d"
+      "sha256": "b704381f57737f66b38312e8a20def40363e3088090e8a8c12bc2af723c972a9"
     }
   ],
   "dataset_split_manifests": [
@@ -91,6 +91,14 @@
       "path": "data/manifests/cifar10.csv",
       "role": "split_manifest_bytes_only",
       "sha256": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537"
+    }
+  ],
+  "generated_preflight_artifacts": [
+    {
+      "bytes": 8610156,
+      "path": "results/baseline/g8/required_bler_identities.json",
+      "role": "required_bler_structural_grid",
+      "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
     }
   ],
   "interpretation_rules": {
