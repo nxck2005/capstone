@@ -44,7 +44,7 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_B is active; B0 is complete and B1 is next. G8_A is green and no scientific work has started. G8_C–G8_G remain prohibited.** PB_3C was a narrow corrective
+**Current phase:** **G8_B is active at B1; B0 is complete and B1 is freezing the runner schemas and seed derivation. G8_A is green and no scientific work has started; no simulation or smoke has started. G8_C–G8_G remain prohibited.** PB_3C was a narrow corrective
 phase between PB_3 and G-8: it fixed the fixed-modulation reference (BR-9), made resumed campaign
 state an exact ordered prefix of the permitted passes, froze the selection tie-break policy before
 G-8 behind an independently recomputed `selection_policy_sha256`, and corrected this hand-off. Its
@@ -66,7 +66,7 @@ adjudication of existing evidence rather than new measurement. The provisional P
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
 **Last durable checkpoint:** the G8_A green `feat(classical): freeze G-8 campaign contract and preflight` commit, resolved from Git history after this file is committed. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
-**Next action:** **G8_B B1 — freeze runner schemas and seed derivation.**
+**Next action:** **G8_B B1 is in progress — freeze runner schemas and seed derivation.**
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
@@ -701,12 +701,12 @@ silently reinterpret earlier artifacts. This file remains the only operational
 cursor.
 
 **Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
-**Current phase:** G8_B active; B0 complete; B1 next. G8_A is green and G8_C–G8_G remain prohibited.
+**Current phase:** G8_B active at B1; B0 complete; B1 freezing runner schemas and seed derivation. G8_A is green and G8_C–G8_G remain prohibited. No simulation or smoke started.
 **Current scientific state:** campaign not started; characterization not
 started; validation measurements not started; pass one not executed; training
 not started; pass two not executed; adjudication incomplete; test access zero;
 authorization not issued.
-**Exact next action:** G8_B B1 — freeze runner schemas and seed derivation.
+**Exact next action:** G8_B B1 is in progress — freeze runner schemas and seed derivation.
 
 ## G8_A — contract, structural enumeration, state and preflight
 
@@ -746,19 +746,20 @@ observations, unresolved issues, worktree/push status, and exact next command.
 
 ## G8_B — BLER characterization tooling and bounded smoke
 
-G8_B is active; B0 is complete and B1 is next. G8_C–G8_G are prohibited until the preceding phase
-is green. No characterization, validation decoding, inference, training, test access, sweep, ratio
-selection, authorization, codec image load, or smoke execution has started.
+G8_B is active at B1; B0 is complete and B1 is freezing the runner schemas and seed derivation.
+G8_C–G8_G are prohibited until the preceding phase is green. No simulation or smoke has started:
+no characterization, validation decoding, inference, training, test access, sweep, ratio
+selection, authorization, or codec image load has started.
 
 | Step | State | Record |
 |---|---|---|
 | B0 verify G8_A and open the phase | done | **Phase-start SHA:** `e9e62595f6a6cbeacb0578828275aaf8bccee37f`. **Marker SHA:** `3f0fc4d945756f22a5a655ce614a3f0b001b4735` (`wip(g8-b): mark B0 in-progress`). **Ending SHA:** this B0 green commit, resolved from Git history after commit. **First B0 command after the marker:** `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`. **Exact B1 restart command:** `rg -n "trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`. **Files added:** `tools/open_g8_phase.py`, `tools/verify_g8_phase_state.py`, `tests/test_g8_phase_open.py`; **files modified:** `results/baseline/g8/campaign_state.json`, this ledger and live handoff wording only. **G8_A immutable files:** unchanged and not regenerated. **Pre-transition verification:** G8_A manifest check, independent G8_A preflight, W4 integration verifier and G2 adjudication verifier all passed; full pytest was **1204 passed, 0 failed, 0 skipped in 121.94 s**. **Transition:** exactly once from `G8_A/preflight_complete` to `G8_B/tooling_open`; state SHA-256 `f7b21df77f812d68ca55bf92dc78a1ec0b003be89189170983f04f093205c7ed`; restart command stored exactly as recorded above. **Unchanged campaign bindings:** campaign ID `g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a`; campaign manifest SHA-256 `0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1`; required-identity SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`. **Current state:** completed work units `[]`, in-progress work unit `null`, counters `validation_decoding=0`, `inference=0`, `training=0`, `test_access=0`. **Added-tool tests:** 24 passed; combined `tests/test_g8_preflight.py tests/test_g8_phase_open.py` passed. **Scientific execution:** none; no characterization, BLER simulation, validation decoding, inference, training, test access, sweep, ratio selection, authorization, codec image load or smoke execution. **Worktree/push:** intended final B0 tree only before this commit; push and local/origin/remote parity are confirmed immediately after the B0 green commit. **Exact next action:** B1 — freeze runner schemas and seed derivation. |
-| B1 freeze runner schemas and seed derivation | not-started | Prohibited during B0. |
-| B2 implement sharding and atomic unit state | not-started | Prohibited during B0. |
-| B3 implement exact resume and merge validation | not-started | Prohibited during B0. |
-| B4 run bounded synthetic/unit-scale smoke only | not-started | Prohibited during B0. |
-| B5 mutation tests | not-started | Prohibited during B0. |
-| B6 full verification, handoff and green commit | not-started | Prohibited during B0. |
+| B1 freeze runner schemas and seed derivation | in-progress | **Phase-start SHA:** `0f743de62564abeb6e34d8352eaf8b843b427d0a` (`wip(g8-b): establish tooling phase baseline`, the B0 green). **Marker SHA:** this `wip(g8-b): mark B1 in-progress` commit, resolved from Git history after commit. **Exact first command after the marker:** `rg -n "trials_per_point|bler_trials|bler_characterisation_trials|blocks_per_snr|simulation_seed|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`. **Exact restart command for B1 itself:** the same command. **Intended files added:** `src/baseline/g8_bler_contract.py`, `tools/gen_g8_bler_tooling_contract.py`, `tools/verify_g8_bler_tooling_contract.py`, `tools/register_g8_artifact.py`, `tests/test_g8_bler_contract.py`, generator-owned `results/baseline/g8/bler_tooling_contract.json`. **Intended files modified:** `tools/verify_g8_phase_state.py`, `tests/test_g8_phase_open.py`, `tests/test_g8_preflight.py`, registration-owned `results/baseline/g8/campaign_state.json`, this ledger, and live handoff wording in `NEXT.md`, `AGENTS.md`, `README.md`, `worklogs/w4-classical-baseline-progress.md`. **Frozen and not to be touched:** `instructions/G8*.txt`, `src/baseline/g8_campaign.py`, `tools/gen_g8_campaign_manifest.py`, `tools/update_g8_campaign_state.py`, `tools/verify_g8_preflight.py`, `tools/open_g8_phase.py`, `results/baseline/g8/campaign_manifest.json`, `results/baseline/g8/required_bler_identities.json`, `results/baseline/w4/integration_adjudication.json`, `spec/SPEC.md`, `spec/params.generated.yaml`, `src/baseline/ldpc/**`, `results/baseline/g2/**`, PB_2C artifacts, dataset manifests, W4 selection sources. **Immutable campaign hashes verified before starting:** campaign ID `g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a`; campaign manifest SHA-256 `0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1`; required-identity SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`; selection-policy SHA-256 `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`. **Zero scientific state confirmed at B1 open:** `G8_B/tooling_open`, completed work units `[]`, in-progress work unit `null`, counters `validation_decoding=0`, `inference=0`, `training=0`, `test_access=0`; no characterization artifact exists. **B1.0 verification before the marker:** `git status --short` clean; local HEAD = `origin/main` = remote `refs/heads/main` = `0f743de6…`; `tools/gen_g8_campaign_manifest.py --check` PASS; `tools/verify_g8_phase_state.py --phase G8_B --stage tooling_open --require-zero-science` PASS with `zero_science=true`; `tools/verify_w4_baseline_integration.py` PASS with `passes_executed=0`, `g8=unresolved`, `test_split_access=0`; `tools/verify_g2_adjudication.py` PASS with `test_split_access=0`. **Prohibited during B1:** executing B2 or any later checkpoint; running an LDPC encoder or decoder for characterization; generating information blocks, AWGN or BLER measurements for a scientific work unit; bounded smoke; sharding; per-unit checkpoint files; exact resume; merge logic; `BlerTable`; `G8Authorization`; dataset pixels; codec encode/decode; classifier inference; validation accuracy; training; selection pass one or two; fallback; test access. **Exact next command after this marker:** the recorded `rg` command, then B1.2 seed adjudication. |
+| B2 implement sharding and atomic unit state | not-started | Prohibited during B1. |
+| B3 implement exact resume and merge validation | not-started | Prohibited during B1. |
+| B4 run bounded synthetic/unit-scale smoke only | not-started | Prohibited during B1. |
+| B5 mutation tests | not-started | Prohibited during B1. |
+| B6 full verification, handoff and green commit | not-started | Prohibited during B1. |
 
 The B0 test-harness adjustment in `tests/test_g8_preflight.py` keeps its frozen G8_A contract
 assertion on a temporary `preflight_complete` cursor after the live state advances to G8_B; the
