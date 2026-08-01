@@ -112,6 +112,25 @@ SMOKE_TRIALS = contract.BOUNDED_SMOKE_MAX_TRIALS_PER_UNIT
 # --------------------------------------------------------------------------
 
 
+@pytest.fixture(scope="module", autouse=True)
+def corrected_b1c_contract_artifact(
+    tmp_path_factory: pytest.TempPathFactory, request: pytest.FixtureRequest
+) -> Path:
+    """Exercise v2 builders against an isolated generated artifact.
+
+    C5 installs the artifact into the tracked path.  Until then, the live
+    state must continue to bind the B1 bytes, so these source-level tests use
+    a temporary corrected artifact without touching campaign state.
+    """
+
+    path = tmp_path_factory.mktemp("g8-b1c-contract") / "bler_tooling_contract.json"
+    path.write_bytes(rendered_json(generator.build()))
+    patcher = pytest.MonkeyPatch()
+    patcher.setattr(contract, "TOOLING_CONTRACT_ARTIFACT", path)
+    request.addfinalizer(patcher.undo)
+    return path
+
+
 @pytest.fixture(scope="module")
 def required_unit_id() -> str:
     return sorted(contract.required_work_unit_index())[0]
@@ -590,6 +609,51 @@ def test_unknown_request_fields_are_rejected(full_request: dict[str, Any]) -> No
         contract.validate_work_unit_request(mutated)
 
 
+@pytest.mark.parametrize("field", ["bler_tooling_contract_id", "bler_tooling_contract_sha256"])
+def test_request_contract_binding_fields_are_mandatory(
+    full_request: dict[str, Any], field: str
+) -> None:
+    mutated = copy.deepcopy(full_request)
+    del mutated[field]
+    with pytest.raises(contract.G8BlerContractError, match="missing fields"):
+        contract.validate_work_unit_request(mutated)
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("bler_tooling_contract_id", "g8bler-" + "0" * 64),
+        ("bler_tooling_contract_sha256", "0" * 64),
+    ],
+)
+def test_request_contract_binding_must_match_current_artifact(
+    full_request: dict[str, Any], field: str, value: str
+) -> None:
+    mutated = copy.deepcopy(full_request)
+    mutated[field] = value
+    with pytest.raises(contract.G8BlerContractError, match="tooling contract"):
+        contract.validate_work_unit_request(mutated)
+
+
+def test_schema_v1_request_is_rejected(full_request: dict[str, Any]) -> None:
+    mutated = copy.deepcopy(full_request)
+    mutated["schema_version"] = 1
+    with pytest.raises(contract.G8BlerContractError, match="unsupported work-unit request schema_version"):
+        contract.validate_work_unit_request(mutated)
+
+
+def test_v2_request_and_result_survive_serialization_and_revalidation(
+    full_request: dict[str, Any],
+) -> None:
+    request_copy = json.loads(json.dumps(full_request))
+    assert request_copy["schema_version"] == 2
+    assert contract.validate_work_unit_request(request_copy) == request_copy
+    result = _complete_full_result(full_request, bit_errors=5, block_errors=1)
+    result_copy = json.loads(json.dumps(result))
+    assert result_copy["schema_version"] == 2
+    assert contract.validate_work_unit_result(result_copy, request=request_copy) == result_copy
+
+
 @pytest.mark.parametrize("field", ["trials_requested", "snr_db", "stream_seeds", "bler_identity"])
 def test_omitted_request_fields_never_take_a_default(
     full_request: dict[str, Any], field: str
@@ -1035,6 +1099,75 @@ def test_result_may_never_claim_test_split_access(full_request: dict[str, Any]) 
         contract.validate_work_unit_result(result)
 
 
+@pytest.mark.parametrize("field", ["bler_tooling_contract_id", "bler_tooling_contract_sha256"])
+def test_result_contract_binding_fields_are_mandatory(
+    full_request: dict[str, Any], field: str
+) -> None:
+    result = _complete_full_result(full_request, bit_errors=5, block_errors=1)
+    del result["identity"][field]
+    with pytest.raises(contract.G8BlerContractError, match="identity section"):
+        contract.validate_work_unit_result(result)
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("bler_tooling_contract_id", "g8bler-" + "0" * 64),
+        ("bler_tooling_contract_sha256", "0" * 64),
+    ],
+)
+def test_result_contract_binding_must_match_its_request(
+    full_request: dict[str, Any], field: str, value: str
+) -> None:
+    result = _complete_full_result(full_request, bit_errors=5, block_errors=1)
+    result["identity"][field] = value
+    with pytest.raises(contract.G8BlerContractError, match="tooling contract"):
+        contract.validate_work_unit_result(result)
+
+
+def test_result_copied_from_another_tooling_contract_is_rejected(
+    full_request: dict[str, Any],
+) -> None:
+    result = _complete_full_result(full_request, bit_errors=5, block_errors=1)
+    result["identity"]["bler_tooling_contract_id"] = "g8bler-" + "1" * 64
+    with pytest.raises(contract.G8BlerContractError, match="tooling contract"):
+        contract.validate_work_unit_result(result)
+
+
+def test_recomputed_digest_cannot_hide_a_changed_contract_binding(
+    full_request: dict[str, Any],
+) -> None:
+    result = _complete_full_result(full_request, bit_errors=5, block_errors=1)
+    result["identity"]["bler_tooling_contract_sha256"] = "0" * 64
+    rebuilt = {
+        "schema_version": contract.BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION,
+        "artifact_role": contract.REQUEST_ARTIFACT_ROLE,
+        "execution_class": result["identity"]["execution_class"],
+        "campaign_id": result["identity"]["campaign_id"],
+        "bler_tooling_contract_id": result["identity"]["bler_tooling_contract_id"],
+        "bler_tooling_contract_sha256": result["identity"]["bler_tooling_contract_sha256"],
+        "campaign_manifest_sha256": result["identity"]["campaign_manifest_sha256"],
+        "required_bler_artifact_sha256": result["identity"]["required_bler_artifact_sha256"],
+        "selection_policy_sha256": result["identity"]["selection_policy_sha256"],
+        "work_unit_id": result["identity"]["work_unit_id"],
+        "bler_identity": result["identity"]["bler_identity"],
+        "snr_db": result["identity"]["snr_db"],
+        "source_packet_config_ids": result["identity"]["source_packet_config_ids"],
+        "trials_requested": result["identity"]["trials_requested"],
+        "trial_count_source": result["identity"]["trial_count_source"],
+        "seed_derivation_identity": result["identity"]["seed_derivation_identity"],
+        "seed_domain_separator": result["identity"]["seed_domain_separator"],
+        "stream_seeds": result["identity"]["stream_seeds"],
+        "scientific_evidence": True,
+        "merge_eligible": False,
+        "test_split_access": 0,
+        "label": contract.EXECUTION_CLASS_FULL_STRENGTH,
+    }
+    result["identity"]["request_sha256"] = contract.request_digest(rebuilt)
+    with pytest.raises(contract.G8BlerContractError, match="tooling contract"):
+        contract.validate_work_unit_result(result)
+
+
 def test_result_dependency_binding_must_match(full_request: dict[str, Any]) -> None:
     result = _complete_full_result(full_request, bit_errors=5, block_errors=1)
     result["identity"]["implementation"]["rng_library_version"] = "0.0.0"
@@ -1045,6 +1178,21 @@ def test_result_dependency_binding_must_match(full_request: dict[str, Any]) -> N
 # --------------------------------------------------------------------------
 # 44-56  Generated artifact and independent verifier
 # --------------------------------------------------------------------------
+
+
+def test_corrected_loader_and_independent_verifier_accept_generated_b1c_artifact(
+    corrected_b1c_contract_artifact: Path,
+) -> None:
+    loaded = contract.load_bler_tooling_contract(corrected_b1c_contract_artifact)
+    verified = contract_verifier.verify(corrected_b1c_contract_artifact)
+    assert loaded["schema_version"] == 2
+    assert loaded["checkpoint"] == "B1C"
+    assert verified["contract_id"] == loaded["contract_id"]
+    binding = contract.tooling_contract_binding()
+    assert binding["bler_tooling_contract_id"] == loaded["contract_id"]
+    assert binding["bler_tooling_contract_sha256"] == hashlib.sha256(
+        corrected_b1c_contract_artifact.read_bytes()
+    ).hexdigest()
 
 
 def test_generator_write_then_check_is_byte_identical() -> None:

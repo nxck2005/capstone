@@ -28,16 +28,12 @@ from baseline import g8_bler_contract as contract  # noqa: E402
 from config.params import REPO_ROOT  # noqa: E402
 
 BLER_TOOLING_CONTRACT = REPO_ROOT / "results/baseline/g8/bler_tooling_contract.json"
-PHASE = "G8_B"
-CHECKPOINT = "B1"
+PHASE = contract.TOOLING_CONTRACT_PHASE
+CHECKPOINT = contract.TOOLING_CONTRACT_CHECKPOINT
 
 #: Only sources intended to remain immutable after B1. No runner, shard,
 #: checkpoint or merge file is bound here, because none exists yet.
-CONTRACT_SOURCES = (
-    "src/baseline/g8_bler_contract.py",
-    "tools/gen_g8_bler_tooling_contract.py",
-    "tools/verify_g8_bler_tooling_contract.py",
-)
+CONTRACT_SOURCES = contract.TOOLING_CONTRACT_SOURCE_PATHS
 
 
 def _binding(path: str, *, role: str) -> dict[str, Any]:
@@ -71,6 +67,9 @@ def build() -> dict[str, Any]:
         "artifact_role": contract.TOOLING_CONTRACT_ARTIFACT_ROLE,
         "phase": PHASE,
         "checkpoint": CHECKPOINT,
+        "supersedes_contract_id": contract.SUPERSEDES_CONTRACT_ID,
+        "supersedes_contract_sha256": contract.SUPERSEDES_CONTRACT_SHA256,
+        "supersession_reason": contract.SUPERSESSION_REASON,
         "scientific_execution_performed": False,
         "characterization_started": False,
         "bounded_smoke_started": False,
@@ -180,7 +179,7 @@ def build() -> dict[str, Any]:
             "snr_never_rounded_or_coerced": True,
         },
         "contract_sources": [
-            _binding(path, role="g8b_b1_contract_source") for path in CONTRACT_SOURCES
+            _binding(path, role="g8b_b1c_contract_source") for path in CONTRACT_SOURCES
         ],
     }
     payload["contract_id"] = contract_identifier(payload)
@@ -198,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
         if BLER_TOOLING_CONTRACT.read_bytes() != rendered_json(payload):
             raise SystemExit("bler_tooling_contract.json is stale")
         print(
-            "ok: BLER tooling contract matches the regenerated B1 freeze "
+            "ok: BLER tooling contract matches the regenerated B1C freeze "
             f"contract_id={payload['contract_id']}"
         )
         return 0

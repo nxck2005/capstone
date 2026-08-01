@@ -76,6 +76,8 @@ def _verify_bindings(payload: dict[str, Any]) -> None:
         path = entry["path"]
         _require(not Path(path).is_absolute(), f"contract source path is absolute: {path}")
         _require(path in generator.CONTRACT_SOURCES, f"unexpected bound contract source: {path}")
+        _require(entry["role"] == "g8b_b1c_contract_source",
+                 f"unexpected role for bound contract source: {path}")
         body = (REPO_ROOT / path).read_bytes()
         _require(entry["bytes"] == len(body), f"bound byte length changed: {path}")
         _require(entry["sha256"] == sha256_bytes(body), f"bound SHA-256 changed: {path}")
@@ -196,6 +198,14 @@ def _verify_confidence(payload: dict[str, Any]) -> None:
 def _verify_schemas(payload: dict[str, Any]) -> None:
     request = payload["request_schema"]
     result = payload["result_schema"]
+    _require(
+        request["version"] == contract.BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION == 2,
+        "the request schema version is not v2",
+    )
+    _require(
+        result["version"] == contract.BLER_WORK_UNIT_RESULT_SCHEMA_VERSION == 2,
+        "the result schema version is not v2",
+    )
     _require(request["fields"] == list(contract.REQUEST_FIELDS), "the request schema changed")
     _require(request["unknown_fields_rejected"] is True, "unknown request fields are tolerated")
     _require(request["request_is_never_merge_eligible"] is True,
@@ -316,9 +326,17 @@ def verify(path: Path = generator.BLER_TOOLING_CONTRACT) -> dict[str, Any]:
     _require(isinstance(payload, dict), "BLER tooling contract is not a JSON object")
     _require(raw == rendered_json(payload), "BLER tooling contract is not canonical rendered JSON")
     _require(payload.get("campaign") == CAMPAIGN, "the contract names the wrong campaign")
-    _require(payload.get("schema_version") == 1, "unsupported tooling contract schema_version")
-    _require(payload.get("phase") == "G8_B" and payload.get("checkpoint") == "B1",
+    _require(payload.get("schema_version") == contract.BLER_TOOLING_CONTRACT_SCHEMA_VERSION == 2,
+             "unsupported tooling contract schema_version")
+    _require(payload.get("phase") == contract.TOOLING_CONTRACT_PHASE
+             and payload.get("checkpoint") == contract.TOOLING_CONTRACT_CHECKPOINT,
              "the contract phase or checkpoint changed")
+    _require(payload.get("supersedes_contract_id") == contract.SUPERSEDES_CONTRACT_ID,
+             "the superseded contract ID changed")
+    _require(payload.get("supersedes_contract_sha256") == contract.SUPERSEDES_CONTRACT_SHA256,
+             "the superseded contract SHA-256 changed")
+    _require(payload.get("supersession_reason") == contract.SUPERSESSION_REASON,
+             "the supersession reason changed")
     _require(payload.get("scientific_execution_performed") is False,
              "the tooling contract claims scientific execution")
     _require(payload.get("characterization_started") is False,

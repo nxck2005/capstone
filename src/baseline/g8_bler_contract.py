@@ -21,6 +21,7 @@ import hashlib
 import json
 import math
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 from statistics import NormalDist
 from types import MappingProxyType
 from typing import Any
@@ -29,28 +30,46 @@ import numpy as np
 
 from baseline.classical.composition import BlerIdentity
 from baseline.g8_campaign import (
+    CAMPAIGN,
     CAMPAIGN_MANIFEST,
     REQUIRED_BLER_IDENTITIES,
     canonical_json,
     load_campaign_manifest,
     load_required_bler_identities,
+    rendered_json,
     sha256_bytes,
     sha256_file,
 )
-from config.params import get
+from config.params import REPO_ROOT, get
 
 # --------------------------------------------------------------------------
 # Schema versions
 # --------------------------------------------------------------------------
 
-BLER_TOOLING_CONTRACT_SCHEMA_VERSION = 1
-BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION = 1
-BLER_WORK_UNIT_RESULT_SCHEMA_VERSION = 1
+BLER_TOOLING_CONTRACT_SCHEMA_VERSION = 2
+BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION = 2
+BLER_WORK_UNIT_RESULT_SCHEMA_VERSION = 2
 
 REQUEST_ARTIFACT_ROLE = "g8_bler_work_unit_request"
 RESULT_ARTIFACT_ROLE = "g8_bler_work_unit_result"
 TOOLING_CONTRACT_ARTIFACT_ROLE = "g8_bler_tooling_contract"
 CONTRACT_ID_PREFIX = "g8bler"
+TOOLING_CONTRACT_ARTIFACT = REPO_ROOT / "results/baseline/g8/bler_tooling_contract.json"
+TOOLING_CONTRACT_SOURCE_PATHS = (
+    "src/baseline/g8_bler_contract.py",
+    "tools/gen_g8_bler_tooling_contract.py",
+    "tools/verify_g8_bler_tooling_contract.py",
+)
+TOOLING_CONTRACT_PHASE = "G8_B"
+TOOLING_CONTRACT_CHECKPOINT = "B1C"
+SUPERSEDES_CONTRACT_ID = (
+    "g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd"
+)
+SUPERSEDES_CONTRACT_SHA256 = "dfa1d68775b372037d5ce7d71661935026d1b8674f020114df8568961fca7945"
+SUPERSESSION_REASON = (
+    "mutable cached authority, incomplete error-count semantics, and missing "
+    "per-unit tooling-contract binding corrected before execution"
+)
 
 # --------------------------------------------------------------------------
 # Seed derivation
@@ -237,6 +256,8 @@ REQUEST_FIELDS = (
     "artifact_role",
     "execution_class",
     "campaign_id",
+    "bler_tooling_contract_id",
+    "bler_tooling_contract_sha256",
     "campaign_manifest_sha256",
     "required_bler_artifact_sha256",
     "selection_policy_sha256",
@@ -261,6 +282,8 @@ RESULT_IDENTITY_FIELDS = (
     "execution_class",
     "request_sha256",
     "campaign_id",
+    "bler_tooling_contract_id",
+    "bler_tooling_contract_sha256",
     "campaign_manifest_sha256",
     "required_bler_artifact_sha256",
     "selection_policy_sha256",
@@ -354,6 +377,103 @@ def _identical(left: Any, right: Any) -> bool:
     """Exact structural equality, so ``13`` never matches ``13.0``."""
 
     return canonical_json(left) == canonical_json(right)
+
+
+def _contract_identifier(payload: Mapping[str, Any]) -> str:
+    """Reproduce the tooling-contract ID without importing the generator."""
+
+    basis = dict(payload)
+    basis.pop("contract_id", None)
+    return f"{CONTRACT_ID_PREFIX}-{sha256_bytes(canonical_json(basis))}"
+
+
+def load_bler_tooling_contract(
+    path: Path | None = None,
+) -> dict[str, Any]:
+    """Load and fail closed on the exact corrected B1C tooling artifact.
+
+    The artifact is intentionally not cached.  Every caller receives a fresh
+    parsed dictionary, while request/result identity uses only the scalar ID
+    and current file digest returned by :func:`tooling_contract_binding`.
+    ``path`` is injectable for isolated contract tests; production callers use
+    the tracked artifact path above.
+    """
+
+    artifact = TOOLING_CONTRACT_ARTIFACT if path is None else Path(path)
+    try:
+        raw = artifact.read_bytes()
+        payload = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8BlerContractError(f"cannot read BLER tooling contract {artifact}: {exc}") from exc
+    _require(isinstance(payload, dict), "BLER tooling contract is not a JSON object")
+    _require(raw == rendered_json(payload), "BLER tooling contract is not canonical rendered JSON")
+    current_sha256 = sha256_bytes(raw)
+    _require(sha256_file(artifact) == current_sha256, "current BLER tooling contract SHA-256 cannot be reproduced")
+    _require(payload.get("schema_version") == BLER_TOOLING_CONTRACT_SCHEMA_VERSION,
+             "unsupported BLER tooling contract schema_version")
+    _require(payload.get("campaign") == CAMPAIGN, "BLER tooling contract names the wrong campaign")
+    _require(payload.get("artifact_role") == TOOLING_CONTRACT_ARTIFACT_ROLE,
+             "BLER tooling contract has the wrong artifact role")
+    _require(payload.get("phase") == TOOLING_CONTRACT_PHASE,
+             "BLER tooling contract names the wrong phase")
+    _require(payload.get("checkpoint") == TOOLING_CONTRACT_CHECKPOINT,
+             "BLER tooling contract names the wrong checkpoint")
+    _require(payload.get("contract_id") == _contract_identifier(payload),
+             "BLER tooling contract ID does not reproduce")
+    _require(payload.get("supersedes_contract_id") == SUPERSEDES_CONTRACT_ID,
+             "BLER tooling contract supersession ID changed")
+    _require(payload.get("supersedes_contract_sha256") == SUPERSEDES_CONTRACT_SHA256,
+             "BLER tooling contract supersession SHA-256 changed")
+    _require(payload.get("supersession_reason") == SUPERSESSION_REASON,
+             "BLER tooling contract supersession reason changed")
+
+    bindings = payload.get("campaign_bindings")
+    _require(isinstance(bindings, Mapping), "BLER tooling contract campaign bindings are missing")
+    expected_bindings = campaign_bindings()
+    _require(bindings.get("campaign_id") == expected_bindings["campaign_id"],
+             "BLER tooling contract campaign ID changed")
+    _require(bindings.get("selection_policy_sha256") == expected_bindings["selection_policy_sha256"],
+             "BLER tooling contract selection-policy hash changed")
+    manifest_binding = bindings.get("campaign_manifest")
+    required_binding = bindings.get("required_bler_identities")
+    _require(isinstance(manifest_binding, Mapping), "campaign manifest binding is missing")
+    _require(isinstance(required_binding, Mapping), "required-identity binding is missing")
+    manifest_path = str(CAMPAIGN_MANIFEST.relative_to(REPO_ROOT))
+    required_path = str(REQUIRED_BLER_IDENTITIES.relative_to(REPO_ROOT))
+    _require(manifest_binding.get("path") == manifest_path,
+             "BLER tooling contract campaign-manifest path changed")
+    _require(required_binding.get("path") == required_path,
+             "BLER tooling contract required-identity path changed")
+    _require(manifest_binding.get("sha256") == sha256_file(CAMPAIGN_MANIFEST),
+             "BLER tooling contract campaign-manifest hash changed")
+    _require(required_binding.get("sha256") == sha256_file(REQUIRED_BLER_IDENTITIES),
+             "BLER tooling contract required-identity hash changed")
+    _require(bindings.get("required_work_unit_count") == len(required_work_unit_index()),
+             "BLER tooling contract required work-unit count changed")
+
+    sources = payload.get("contract_sources")
+    _require(isinstance(sources, list), "BLER tooling contract source bindings are missing")
+    _require([entry.get("path") for entry in sources] == list(TOOLING_CONTRACT_SOURCE_PATHS),
+             "BLER tooling contract source path set changed")
+    for entry, expected_path in zip(sources, TOOLING_CONTRACT_SOURCE_PATHS, strict=True):
+        _require(isinstance(entry, Mapping), f"source binding for {expected_path} is not a mapping")
+        _require(entry.get("role") == "g8b_b1c_contract_source",
+                 f"source binding role changed for {expected_path}")
+        source = REPO_ROOT / expected_path
+        body = source.read_bytes()
+        _require(entry.get("bytes") == len(body), f"source byte length changed for {expected_path}")
+        _require(entry.get("sha256") == sha256_bytes(body), f"source SHA-256 changed for {expected_path}")
+    return dict(payload)
+
+
+def tooling_contract_binding() -> dict[str, str]:
+    """Return fresh scalar binding values for request/result identity."""
+
+    payload = load_bler_tooling_contract()
+    return {
+        "bler_tooling_contract_id": str(payload["contract_id"]),
+        "bler_tooling_contract_sha256": sha256_file(TOOLING_CONTRACT_ARTIFACT),
+    }
 
 
 # --------------------------------------------------------------------------
@@ -679,12 +799,14 @@ def build_full_strength_request(work_unit_id: str) -> dict[str, Any]:
 
     unit = required_work_unit(work_unit_id)
     bindings = campaign_bindings()
+    tooling = tooling_contract_binding()
     packet_ids = list(unit["source_packet_config_ids"])
     request = {
         "schema_version": BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION,
         "artifact_role": REQUEST_ARTIFACT_ROLE,
         "execution_class": EXECUTION_CLASS_FULL_STRENGTH,
         **bindings,
+        **tooling,
         "work_unit_id": work_unit_id,
         "bler_identity": dict(unit["identity"]),
         "snr_db": unit["snr_db"],
@@ -713,11 +835,13 @@ def build_bounded_smoke_request(
     """Build a visibly non-scientific bounded-smoke request."""
 
     bindings = campaign_bindings()
+    tooling = tooling_contract_binding()
     request = {
         "schema_version": BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION,
         "artifact_role": REQUEST_ARTIFACT_ROLE,
         "execution_class": EXECUTION_CLASS_BOUNDED_SMOKE,
         **bindings,
+        **tooling,
         "work_unit_id": work_unit_id,
         "bler_identity": dict(bler_identity),
         "snr_db": snr_db,
@@ -762,8 +886,11 @@ def validate_work_unit_request(
         )
 
     bindings = campaign_bindings()
+    tooling = tooling_contract_binding()
     for name, expected in bindings.items():
         _require(request[name] == expected, f"request binding {name} does not match the campaign")
+    for name, expected in tooling.items():
+        _require(request[name] == expected, f"request binding {name} does not match the tooling contract")
 
     work_unit_id = _require_nonblank_str(request["work_unit_id"], "work_unit_id")
     identity = request["bler_identity"]
@@ -902,6 +1029,8 @@ def build_work_unit_result(
             "execution_class": request["execution_class"],
             "request_sha256": request_digest(request),
             "campaign_id": request["campaign_id"],
+            "bler_tooling_contract_id": request["bler_tooling_contract_id"],
+            "bler_tooling_contract_sha256": request["bler_tooling_contract_sha256"],
             "campaign_manifest_sha256": request["campaign_manifest_sha256"],
             "required_bler_artifact_sha256": request["required_bler_artifact_sha256"],
             "selection_policy_sha256": request["selection_policy_sha256"],
@@ -992,6 +1121,8 @@ def validate_work_unit_result(
         "artifact_role": REQUEST_ARTIFACT_ROLE,
         "execution_class": identity["execution_class"],
         "campaign_id": identity["campaign_id"],
+        "bler_tooling_contract_id": identity["bler_tooling_contract_id"],
+        "bler_tooling_contract_sha256": identity["bler_tooling_contract_sha256"],
         "campaign_manifest_sha256": identity["campaign_manifest_sha256"],
         "required_bler_artifact_sha256": identity["required_bler_artifact_sha256"],
         "selection_policy_sha256": identity["selection_policy_sha256"],
