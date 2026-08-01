@@ -469,6 +469,72 @@ def test_unknown_work_unit_id_is_rejected_without_a_nearest_match() -> None:
         contract.build_full_strength_request("bler-does-not-exist")
 
 
+def test_campaign_binding_mutations_do_not_change_later_requests(required_unit_id: str) -> None:
+    first = contract.campaign_bindings()
+    expected = dict(first)
+    first["campaign_id"] = "corrupted-campaign"
+    first["campaign_manifest_sha256"] = "corrupted-manifest"
+    second = contract.campaign_bindings()
+    request = contract.build_full_strength_request(required_unit_id)
+    assert second == expected
+    assert request["campaign_id"] == expected["campaign_id"]
+    assert request["campaign_manifest_sha256"] == expected["campaign_manifest_sha256"]
+
+
+def test_nested_authority_mutations_do_not_change_required_work_unit(
+    required_unit_id: str,
+) -> None:
+    exposed = contract.required_work_unit(required_unit_id)
+    exposed["identity"]["iterations"] = 1
+    exposed["identity"]["k_and_n"][0] = 1
+    exposed["source_packet_config_ids"].append("pkt-corruption")
+
+    fresh = contract.required_work_unit(required_unit_id)
+    request = contract.build_full_strength_request(required_unit_id)
+    assert fresh["identity"]["iterations"] == 50
+    assert fresh["identity"]["k_and_n"] == request["bler_identity"]["k_and_n"]
+    assert fresh["source_packet_config_ids"] == request["source_packet_config_ids"]
+
+
+def test_index_authority_mutations_do_not_change_single_work_unit_lookup(
+    required_unit_id: str,
+) -> None:
+    exposed_index = contract.required_work_unit_index()
+    exposed_index[required_unit_id]["identity"]["iterations"] = 2
+    exposed_index[required_unit_id]["identity"]["k_and_n"].reverse()
+    exposed_index[required_unit_id]["source_packet_config_ids"].reverse()
+    exposed_index["corrupted-unit"] = exposed_index[required_unit_id]
+
+    fresh = contract.required_work_unit(required_unit_id)
+    assert fresh["identity"]["iterations"] == 50
+    assert fresh["identity"]["k_and_n"][0] == 7128
+    assert fresh["source_packet_config_ids"] == sorted(fresh["source_packet_config_ids"])
+    assert "corrupted-unit" not in contract.required_work_unit_index()
+
+
+def test_authority_mutation_cannot_make_corrupted_request_validate(
+    required_unit_id: str,
+) -> None:
+    authority = contract.required_work_unit(required_unit_id)
+    authority["identity"]["iterations"] = 1
+    corrupted = contract.build_full_strength_request(required_unit_id)
+    corrupted["bler_identity"]["iterations"] = 1
+    with pytest.raises(contract.G8BlerContractError, match="identity does not match"):
+        contract.validate_work_unit_request(corrupted)
+
+
+def test_valid_request_still_matches_required_identity_after_mutation_attempt(
+    required_unit_id: str,
+) -> None:
+    index = contract.required_work_unit_index()
+    index[required_unit_id]["identity"]["k_and_n"][0] = 0
+    index[required_unit_id]["source_packet_config_ids"].clear()
+    unit = contract.required_work_unit(required_unit_id)
+    request = contract.build_full_strength_request(required_unit_id)
+    assert request["bler_identity"] == unit["identity"]
+    assert request["source_packet_config_ids"] == unit["source_packet_config_ids"]
+
+
 def test_identity_mismatch_is_rejected(full_request: dict[str, Any]) -> None:
     mutated = copy.deepcopy(full_request)
     mutated["bler_identity"]["iterations"] += 1

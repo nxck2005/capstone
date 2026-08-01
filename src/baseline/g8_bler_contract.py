@@ -554,55 +554,73 @@ def recompute_measurements(
 
 
 @functools.cache
-def campaign_bindings() -> dict[str, str]:
-    """Return the immutable G8_A bindings every request and result carries.
+def _campaign_binding_bytes() -> bytes:
+    """Cache only canonical bytes for the frozen campaign bindings.
 
-    Cached because the G8_A manifest is frozen for the whole campaign; a change
-    to it invalidates the campaign rather than being picked up mid-run.
+    The old implementation cached a mutable dictionary and returned that same
+    object to every caller.  A request builder or validator could therefore
+    observe a caller's later mutation.  Bytes are immutable, and the public
+    lookup below deserializes a fresh record for every call.
     """
 
     manifest = load_campaign_manifest(CAMPAIGN_MANIFEST)
     policy = manifest.get("selection_policy") or {}
-    return {
-        "campaign_id": manifest["campaign_id"],
-        "campaign_manifest_sha256": sha256_file(CAMPAIGN_MANIFEST),
-        "required_bler_artifact_sha256": sha256_file(REQUIRED_BLER_IDENTITIES),
-        "selection_policy_sha256": policy["selection_policy_sha256"],
-    }
+    return canonical_json(
+        {
+            "campaign_id": manifest["campaign_id"],
+            "campaign_manifest_sha256": sha256_file(CAMPAIGN_MANIFEST),
+            "required_bler_artifact_sha256": sha256_file(REQUIRED_BLER_IDENTITIES),
+            "selection_policy_sha256": policy["selection_policy_sha256"],
+        }
+    )
+
+
+def campaign_bindings() -> dict[str, str]:
+    """Return a fresh campaign-binding record on every public lookup."""
+
+    return json.loads(_campaign_binding_bytes())
 
 
 @functools.cache
-def required_work_unit_index() -> Mapping[str, Mapping[str, Any]]:
-    """Return the exact required work units keyed by their frozen IDs.
+def _required_work_unit_bytes() -> Mapping[str, bytes]:
+    """Cache immutable canonical bytes for each required work unit.
 
-    Cached and read-only: the required-identity artifact is a frozen G8_A
-    output, and re-reading 8.6 MB per lookup would dominate the runner.
+    The required-identity artifact is large, so the authority is cached, but
+    no parsed mutable mapping is retained.  Public lookups deserialize fresh
+    records from these bytes instead.
     """
 
     payload = load_required_bler_identities(REQUIRED_BLER_IDENTITIES)
     units = payload.get("required_bler_work_units")
     _require(isinstance(units, list) and units, "required-BLER artifact has no work units")
-    index: dict[str, Mapping[str, Any]] = {}
+    index: dict[str, bytes] = {}
     for unit in units:
+        _require(isinstance(unit, Mapping), "required-BLER work unit is not a mapping")
         unit_id = unit["work_unit_id"]
         _require(unit_id not in index, f"duplicate required work-unit ID {unit_id!r}")
-        index[unit_id] = MappingProxyType(dict(unit))
+        index[unit_id] = canonical_json(dict(unit))
     return MappingProxyType(index)
 
 
-def required_work_unit(work_unit_id: str) -> Mapping[str, Any]:
-    """Return exactly one required entry, or fail closed.
+def required_work_unit_index() -> dict[str, dict[str, Any]]:
+    """Return a fresh parsed index of the exact required work units."""
+
+    return {work_unit_id: json.loads(record) for work_unit_id, record in _required_work_unit_bytes().items()}
+
+
+def required_work_unit(work_unit_id: str) -> dict[str, Any]:
+    """Return a fresh exact required entry, or fail closed.
 
     There is deliberately no nearest match, no SNR rounding and no default.
     """
 
-    index = required_work_unit_index()
+    record = _required_work_unit_bytes().get(work_unit_id)
     _require(
-        work_unit_id in index,
+        record is not None,
         f"work unit {work_unit_id!r} is not an exact required BLER identity; "
         f"{NO_INTERPOLATION_RULE}",
     )
-    return index[work_unit_id]
+    return json.loads(record)
 
 
 # --------------------------------------------------------------------------
