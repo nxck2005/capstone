@@ -17,6 +17,7 @@ from baseline.g8_campaign import (  # noqa: E402
     CAMPAIGN,
     CAMPAIGN_MANIFEST,
     CAMPAIGN_STATE,
+    PB3C_TERMINAL_SHA,
     PHASE_ORDER,
     PRE_DATA_FLAGS,
     REQUIRED_BLER_IDENTITIES,
@@ -52,6 +53,27 @@ def _verify_manifest_and_required_artifact() -> tuple[dict[str, Any], dict[str, 
     for name, expected in PRE_DATA_FLAGS.items():
         _require(manifest.get(name) == expected, f"manifest pre-data flag {name} changed")
     _require(manifest.get("stage") == "preflight_contract_only", "campaign manifest stage changed")
+
+    # The B0 gap: the named verifier checked bindings but never the manifest's
+    # own scientific-base and interpretation clauses, so a later phase could
+    # have rebased the campaign's identity without this verifier noticing.
+    base = manifest.get("scientific_base") or {}
+    _require(base.get("commit_sha") == PB3C_TERMINAL_SHA, "manifest scientific base commit changed")
+    _require(
+        base.get("source_state_mode") == "content_hashes_with_pb3c_base",
+        "manifest scientific source-state mode changed",
+    )
+    _require(
+        base.get("future_g8a_final_commit_not_part_of_identity") is True,
+        "manifest improperly depends on a future G8_A commit",
+    )
+    rules = manifest.get("interpretation_rules") or {}
+    _require(rules.get("pre_data_contract_not_authorization") is True,
+             "manifest contract claims authorization")
+    _require(rules.get("later_phases_may_not_silently_reinterpret_earlier_artifacts") is True,
+             "later-phase reinterpretation is no longer prohibited")
+    _require(rules.get("changed_bound_scientific_policy_invalidates_campaign") is True,
+             "policy drift no longer invalidates the campaign")
 
     for group, expected_paths in {
         "normative_sources": preflight.EXPECTED_NORMATIVE_SOURCES,
@@ -101,6 +123,10 @@ def _verify_manifest_and_required_artifact() -> tuple[dict[str, Any], dict[str, 
             f"selection policy field {field} changed",
         )
     _require(policy.get("frozen_before_data") is True, "selection policy is not frozen before data")
+    _require(
+        policy.get("changing_bound_policy_after_campaign_start_invalidates_campaign") is True,
+        "the selection-policy invalidation rule was weakened",
+    )
 
     sources = manifest.get("selection_sources")
     recorded_sources = adjudication.get("selection_sources") or []
@@ -133,12 +159,42 @@ def _verify_manifest_and_required_artifact() -> tuple[dict[str, Any], dict[str, 
     return manifest, required
 
 
+def _verify_produced_artifacts(
+    identity: dict[str, Any],
+    require_artifacts: tuple[str, ...],
+) -> None:
+    """Require every G8_A base binding and allow later phases to add more.
+
+    Comparing the whole list to the G8_A opening list was correct at B0 but
+    would forbid every legitimate later artifact. The base bindings stay
+    mandatory and byte-identical; additions are permitted and are already
+    hash-validated by the strict campaign-state loader.
+    """
+
+    artifacts = identity["produced_artifacts"]
+    paths = [entry["path"] for entry in artifacts]
+    _require(len(paths) == len(set(paths)), "produced artifact paths are duplicated")
+    _require(paths == sorted(paths), "produced artifact bindings are not canonically sorted")
+
+    by_path = {entry["path"]: entry for entry in artifacts}
+    base = initial_campaign_state(stage="preflight_complete")["identity"]["produced_artifacts"]
+    for expected in base:
+        current = by_path.get(expected["path"])
+        _require(current is not None,
+                 f"base G8_A produced-artifact binding is missing: {expected['path']}")
+        _require(current == expected,
+                 f"base G8_A produced-artifact binding changed: {expected['path']}")
+    for wanted in require_artifacts:
+        _require(wanted in by_path, f"required produced-artifact binding is absent: {wanted}")
+
+
 def verify(
     *,
     phase: str,
     stage: str,
     require_zero_science: bool = False,
     state_path: Path | None = None,
+    require_artifacts: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Verify one requested current phase and return the validated state."""
 
@@ -159,11 +215,7 @@ def verify(
     _require(identity["campaign_manifest_sha256"] == sha256_file(CAMPAIGN_MANIFEST),
              "campaign state manifest hash does not match the manifest")
 
-    expected_opening = initial_campaign_state(stage="preflight_complete")
-    _require(
-        identity["produced_artifacts"] == expected_opening["identity"]["produced_artifacts"],
-        "campaign produced-artifact bindings changed",
-    )
+    _verify_produced_artifacts(identity, require_artifacts)
 
     if require_zero_science:
         _require(identity["completed_work_unit_ids"] == [],
@@ -186,12 +238,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--phase", required=True)
     parser.add_argument("--stage", required=True)
     parser.add_argument("--require-zero-science", action="store_true")
+    parser.add_argument(
+        "--require-artifact",
+        action="append",
+        default=[],
+        metavar="PATH",
+        help="repository-relative produced artifact that must be bound; repeatable",
+    )
     args = parser.parse_args(argv)
     try:
         state = verify(
             phase=args.phase,
             stage=args.stage,
             require_zero_science=args.require_zero_science,
+            require_artifacts=tuple(args.require_artifact),
         )
     except G8PhaseStateError as exc:
         raise SystemExit(f"G8 phase-state verification HOLD: {exc}") from exc
@@ -205,6 +265,7 @@ def main(argv: list[str] | None = None) -> int:
         f"campaign_id={identity['campaign_id']}, "
         f"phase={identity['phase']}, stage={identity['stage']}, "
         f"manifest_sha256={identity['campaign_manifest_sha256']}, "
+        f"produced_artifacts={len(identity['produced_artifacts'])}, "
         f"zero_science={'true' if zero_status else 'false'}"
     )
     return 0

@@ -1,0 +1,356 @@
+{
+  "artifact_role": "g8_bler_tooling_contract",
+  "bounded_smoke_started": false,
+  "campaign": "G-8",
+  "campaign_bindings": {
+    "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+    "campaign_manifest": {
+      "bytes": 6325,
+      "path": "results/baseline/g8/campaign_manifest.json",
+      "role": "g8a_campaign_manifest",
+      "sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1"
+    },
+    "required_bler_identities": {
+      "bytes": 8610156,
+      "path": "results/baseline/g8/required_bler_identities.json",
+      "role": "g8a_required_bler_identities",
+      "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
+    },
+    "required_work_unit_count": 3213,
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e"
+  },
+  "characterization_started": false,
+  "checkpoint": "B1",
+  "confidence": {
+    "adaptive_stopping_permitted": false,
+    "method": "wilson_score",
+    "no_early_stopping_rule": "the full-strength trial count is fixed before execution and never depends on observed errors; no adaptive stopping and no observed-error threshold",
+    "parameter_source": "no general confidence parameter governs G-8; baseline.ldpc_bler_reference.confidence_percent is G-2-specific and is not read here",
+    "percent": 95,
+    "role": "diagnostic only; not used in BR-4 ranking or eligibility; not a stopping rule"
+  },
+  "contract_id": "g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd",
+  "contract_sources": [
+    {
+      "bytes": 46030,
+      "path": "src/baseline/g8_bler_contract.py",
+      "role": "g8b_b1_contract_source",
+      "sha256": "2f5c086a25526f7320ad8e9766dc3edd2c4caac03576fb673aece96afad12279"
+    },
+    {
+      "bytes": 9273,
+      "path": "tools/gen_g8_bler_tooling_contract.py",
+      "role": "g8b_b1_contract_source",
+      "sha256": "34200cb123e968b65f132e582fc912cdd8345bd115774b374cc57fa4f92df02d"
+    },
+    {
+      "bytes": 15968,
+      "path": "tools/verify_g8_bler_tooling_contract.py",
+      "role": "g8b_b1_contract_source",
+      "sha256": "64707e38ad5562271b8c723db95a9415855616cabddef664f617ac6ee394e801"
+    }
+  ],
+  "count_authority": {
+    "all_errors_is_characterized_evidence": true,
+    "authoritative_fields": [
+      "trials_completed",
+      "information_bits",
+      "bit_errors",
+      "block_errors"
+    ],
+    "ber_rule": "bit_errors / information_bits",
+    "bler_rule": "block_errors / trials_completed",
+    "boolean_counts_rejected": true,
+    "completed_evidence_requires_positive_trials": true,
+    "counts_override_stored_floats": true,
+    "information_bits_rule": "trials_completed x K",
+    "nan_and_infinity_rejected": true,
+    "negative_counts_rejected": true,
+    "zero_completed_trials_reports_null_not_zero": true,
+    "zero_errors_is_characterized_evidence": true
+  },
+  "execution_classes": {
+    "bounded_smoke": "bounded_smoke",
+    "bounded_smoke_is_merge_eligible": false,
+    "bounded_smoke_is_scientific_evidence": false,
+    "bounded_smoke_label": "NON-SCIENTIFIC BOUNDED SMOKE",
+    "bounded_smoke_max_trials_per_unit": 16,
+    "bounded_smoke_max_work_units": 3,
+    "bounded_smoke_required_coverage_contribution": 0,
+    "bounded_smoke_selection_rule": "the first canonical required identity for each configured modulation, or an explicitly labelled synthetic fixture identity",
+    "bounded_smoke_trial_count_source": "g8b_bounded_smoke_ceiling_not_a_scientific_parameter",
+    "full_strength": "full_strength"
+  },
+  "merge_rules": {
+    "bounded_smoke_is_merge_eligible": false,
+    "changed_identity_with_copied_counts_rejected": true,
+    "failed_result_is_merge_eligible": false,
+    "full_strength_merge_requires_exact_trial_count": true,
+    "incomplete_result_is_merge_eligible": false,
+    "runtime_metadata_cannot_alter_measurement_identity": true
+  },
+  "phase": "G8_B",
+  "request_schema": {
+    "artifact_role": "g8_bler_work_unit_request",
+    "fields": [
+      "schema_version",
+      "artifact_role",
+      "execution_class",
+      "campaign_id",
+      "campaign_manifest_sha256",
+      "required_bler_artifact_sha256",
+      "selection_policy_sha256",
+      "work_unit_id",
+      "bler_identity",
+      "snr_db",
+      "source_packet_config_ids",
+      "trials_requested",
+      "trial_count_source",
+      "seed_derivation_identity",
+      "seed_domain_separator",
+      "stream_seeds",
+      "scientific_evidence",
+      "merge_eligible",
+      "test_split_access",
+      "label"
+    ],
+    "omitted_field_defaults_permitted": false,
+    "request_is_never_merge_eligible": true,
+    "test_split_access": 0,
+    "unknown_fields_rejected": true,
+    "version": 1
+  },
+  "result_schema": {
+    "artifact_role": "g8_bler_work_unit_result",
+    "disposition_fields": [
+      "scientific_evidence",
+      "merge_eligible",
+      "test_split_access",
+      "required_coverage_contribution"
+    ],
+    "execution_metadata_fields": [
+      "wall_time_s",
+      "hostname",
+      "device",
+      "shard_index",
+      "shard_count",
+      "attempt"
+    ],
+    "identity_fields": [
+      "execution_class",
+      "request_sha256",
+      "campaign_id",
+      "campaign_manifest_sha256",
+      "required_bler_artifact_sha256",
+      "selection_policy_sha256",
+      "work_unit_id",
+      "bler_identity",
+      "snr_db",
+      "source_packet_config_ids",
+      "trials_requested",
+      "trial_count_source",
+      "seed_derivation_identity",
+      "seed_domain_separator",
+      "stream_seeds",
+      "implementation"
+    ],
+    "implementation_fields": [
+      "rng_library",
+      "rng_library_version",
+      "rng_bit_generator",
+      "request_schema_version",
+      "result_schema_version"
+    ],
+    "measurement_fields": [
+      "trials_completed",
+      "information_bits",
+      "bit_errors",
+      "block_errors",
+      "ber",
+      "bler",
+      "confidence_interval_method",
+      "confidence_interval_percent",
+      "bler_confidence_low",
+      "bler_confidence_high",
+      "confidence_interval_role"
+    ],
+    "non_identity_execution_metadata": [
+      "wall_time_s",
+      "hostname",
+      "device",
+      "shard_index",
+      "shard_count",
+      "attempt"
+    ],
+    "sections": [
+      "schema_version",
+      "artifact_role",
+      "status",
+      "identity",
+      "measurement",
+      "execution_metadata",
+      "disposition"
+    ],
+    "statuses": [
+      "incomplete",
+      "complete",
+      "failed"
+    ],
+    "version": 1
+  },
+  "resume": {
+    "granularity": "work_unit_atomic",
+    "mid_work_unit_resume_permitted": false,
+    "policy": "G-8 BLER recovery is work-unit granular. Only a complete, atomically committed work-unit result is resumable evidence. If execution stops partway through a work unit the incomplete temporary output is discarded and that work unit restarts from trial zero using the same seeds. There is no mid-work-unit trial cursor and no seek into a Gaussian stream. Shard assignment and work-unit execution order never affect outputs."
+  },
+  "rng": {
+    "array_order": "C",
+    "bit_generator": "Philox",
+    "bits_per_word": 64,
+    "chunk_boundary_invariant": true,
+    "information_bit_api": "numpy.random.Philox(key=seed).random_raw(words)",
+    "information_bit_dtype": "uint8",
+    "information_bit_extraction": "bit_i = (word[i // 64] >> (i % 64)) & 1",
+    "information_bit_stream_addressable": true,
+    "library": "numpy",
+    "library_version": "2.5.1",
+    "normal_api": "numpy.random.Generator(numpy.random.Philox(key=seed)).standard_normal(count)",
+    "normal_dtype": "float64",
+    "normal_stream_addressable": false,
+    "purposes": [
+      "information_bits",
+      "awgn_real",
+      "awgn_imag"
+    ],
+    "seed_width_bits": 64,
+    "stream_construction": "one Philox(key=derived uint64 seed) per (work_unit_id, purpose)",
+    "trailing_bits_discarded_never_carried": true,
+    "words_per_counter_step": 4
+  },
+  "rules": {
+    "no_interpolation_or_extrapolation": "a work unit matches exactly one required identity entry; no generalization, nearest match, interpolation, extrapolation, SNR rounding or implicit default",
+    "one_work_unit_matches_exactly_one_required_entry": true,
+    "snr_never_rounded_or_coerced": true,
+    "test_split_access": 0
+  },
+  "schema_version": 1,
+  "scientific_execution_performed": false,
+  "seed": {
+    "derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
+    "digest": "sha256",
+    "domain_separator": "capstone:g8:bler-seed:v1",
+    "forbidden_inputs": [
+      "python_hash",
+      "process_id",
+      "worker_id",
+      "shard_number",
+      "enumeration_order",
+      "dictionary_order",
+      "wall_clock_time",
+      "hostname",
+      "device",
+      "absolute_path",
+      "commit_time",
+      "batch_number",
+      "retry_number"
+    ],
+    "input_encoding": "utf8 bytes of compact JSON array [\"<domain>\",\"<campaign_id>\",\"<work_unit_id>\",\"<purpose>\"] with separators (\",\",\":\") and ensure_ascii",
+    "output_rule": "first 8 digest bytes as an unsigned big-endian integer; 0 <= seed < 2**64; no modulo; zero is a valid seed",
+    "purposes": [
+      "information_bits",
+      "awgn_real",
+      "awgn_imag"
+    ],
+    "test_vectors": {
+      "fixture_campaign_id": "g8-fixture-campaign",
+      "fixture_work_unit_id": "bler-fixture-unit",
+      "seeds": {
+        "awgn_imag": {
+          "first_normals": [
+            0.747589359934289,
+            -1.2454842320670447,
+            -0.03364133403329626,
+            -1.7571909989743366
+          ],
+          "first_raw_words": [
+            10331417318171454595,
+            8380918203836260281,
+            6946468110326417903,
+            15346635912537046511
+          ],
+          "material_sha256": "e4bb66584ffdb13901e67281a086e100b1666a732ea3ec80c958e0b6b065c3cb",
+          "seed_uint64": 16481879790777643321
+        },
+        "awgn_real": {
+          "first_normals": [
+            0.9216810155880256,
+            0.5781483793956664,
+            0.1512876155480005,
+            -0.924367554903119
+          ],
+          "first_raw_words": [
+            10330529237113510068,
+            6419582030516705304,
+            2500550259890786980,
+            10491274558385273237
+          ],
+          "material_sha256": "1c7c8fad40e16110e649e7a79f3306c28e029c6dd5b4b42b8897b1be46a50323",
+          "seed_uint64": 2052673504454730000
+        },
+        "information_bits": {
+          "bits_0_to_8": [
+            1,
+            0,
+            1,
+            0,
+            1,
+            0,
+            1,
+            0
+          ],
+          "bits_60_to_68": [
+            1,
+            1,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          "first_raw_words": [
+            3688305290296260437,
+            15804894354361011202,
+            15787647027830899325,
+            3711645746825559366
+          ],
+          "material_sha256": "54ce9ccd70afed9b721b078049cdb876234db196e25e2546ce3941baf5a766e6",
+          "seed_uint64": 6110994150561148315
+        }
+      },
+      "wilson": {
+        "all_errors_16_trials": [
+          0.8063923194655636,
+          1.0
+        ],
+        "one_error_16_trials": [
+          0.011119344764642547,
+          0.28328737570298934
+        ],
+        "zero_errors_16_trials": [
+          0.0,
+          0.19360768053443644
+        ]
+      }
+    },
+    "width_bits": 64
+  },
+  "trial_count": {
+    "adaptive_stopping_permitted": false,
+    "full_strength_trials": 5000,
+    "g2_reference_key_not_used": "params.baseline.ldpc_bler_reference.blocks_per_snr",
+    "no_early_stopping_rule": "the full-strength trial count is fixed before execution and never depends on observed errors; no adaptive stopping and no observed-error threshold",
+    "parameter": "baseline.bler_characterisation_trials",
+    "source": "params.baseline.bler_characterisation_trials"
+  }
+}

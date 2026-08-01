@@ -1240,17 +1240,17 @@ G8_A began from clean local/origin/remote parity at `39c43e327573f33011c561c6de2
 
 The PB_3C terminal handoff provenance is explicit rather than inferred from an intended subject: terminal SHA `39c43e327573f33011c561c6de22bd05ff93c068`, actual subject `fix: fix push failure due to gpg for resume.md`; implementation/adjudication checkpoint `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3 implementation green `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; latest scientific-measurement green `3324393a3e1692478bba8cf1020708bf52947f6d`. History is preserved.
 
-G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. G8_B B0 is complete; B1 — freeze runner schemas and seed derivation — is next. G8_B is tooling and bounded smoke only; G8_C and later remain prohibited.
+G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. G8_B B0 and B1 are complete; B2 — implement sharding and atomic unit state — is next. B1 froze contracts only; the characterization runner does not exist yet. G8_B is tooling and bounded smoke only; G8_C and later remain prohibited.
 
 ## G8_A green — contract frozen, G8_B released
 
 G8_A enumerated 12,096 structural candidates over the headline and already-specified fallback roles, 144 packet configurations, and 3,213 unique physical-layer BLER work units. Exact G-2 coverage is 0/3,213: all required cells differ in physical identity, 24 measured G-2 convention/point records lie outside the required set, and neither interpolation nor extrapolation was used. This expected insufficiency releases characterization *tooling* work, not scientific execution.
 
-`results/baseline/g8/campaign_manifest.json` binds the W4 adjudication, selection-policy fingerprint, selection sources, normative spec/generated parameters, split-manifest bytes, phase order and G8_A contract sources. `required_bler_identities.json` is generator-owned; `campaign_state.json` is crash-safe and manifest-bound. B0 has now opened it at `G8_B/tooling_open` with no work units and all decoding/inference/training/test counters zero; B1 is next. Later phases may not silently reinterpret these artifacts.
+`results/baseline/g8/campaign_manifest.json` binds the W4 adjudication, selection-policy fingerprint, selection sources, normative spec/generated parameters, split-manifest bytes, phase order and G8_A contract sources. `required_bler_identities.json` is generator-owned; `campaign_state.json` is crash-safe and manifest-bound. B0 opened it at `G8_B/tooling_open` with no work units and all decoding/inference/training/test counters zero, and B1 registered one further produced artifact, `bler_tooling_contract.json`, without touching a counter or work unit; B2 is next. Later phases may not silently reinterpret these artifacts.
 
 ## G8_B B0 — verify G8_A and open the phase (complete)
 
-G8_B is active; B0 is complete and B1 is next. The first B0 command after the marker was
+G8_B is active; B0 and B1 are complete and B2 is next. The first B0 command after the marker was
 `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; the exact B1 restart command is
 `rg -n "trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`.
 No characterization, sweep, validation decoding, inference, training, test access, ratio
@@ -1264,3 +1264,65 @@ passed, and the exact transition was once from `G8_A/preflight_complete` to
 `G8_B/tooling_open`, producing state SHA-256
 `f7b21df77f812d68ca55bf92dc78a1ec0b003be89189170983f04f093205c7ed`. The campaign ID, manifest
 hash, required-identity hash, produced-artifact bindings, and zero counters are unchanged.
+
+## G8_B B1 — freeze runner schemas and seed derivation (complete)
+
+B1 froze the scientific and machine-readable contract the later G8_B checkpoints must implement.
+It created contracts, pure validators and seed utilities only: **the characterization runner does
+not exist yet**, no sharding, no per-unit checkpoints, no merge logic, no simulation and no smoke.
+
+The trial count is **5000**, read only through `params.baseline.bler_characterisation_trials`.
+The G-2 reference key `params.baseline.ldpc_bler_reference.blocks_per_snr` currently holds the
+same value but belongs to the narrow G-2 experiment; the contract records it as excluded, and a
+mutation test moves it to 7 while the G-8 count stays at 5000. A second mutation test moves
+`bler_characterisation_trials` and the contract follows it.
+
+Seeds bind `campaign_id`, `work_unit_id`, `purpose` and a domain separator under the identity
+already recorded in the live state, `sha256(campaign_id,work_unit_id,purpose)-v1`, with separator
+`capstone:g8:bler-seed:v1`. The pre-image is the compact UTF-8 JSON *array*
+`["<domain>","<campaign_id>","<work_unit_id>","<purpose>"]`, so no dictionary ordering and no
+whitespace is identity and JSON escaping makes delimiter injection non-colliding; the seed is the
+first eight SHA-256 bytes read big-endian, with no modulo and zero valid. The three scientific
+purposes — `information_bits`, `awgn_real`, `awgn_imag` — are a closed set with separate streams,
+so a change to information-bit generation cannot silently move the noise draws. G-2's
+`_seed(root, modulation, snr)` was deliberately **not** reused: it cannot address a work-unit
+identity or separate purposes. That is an implementation gap, not a normative contradiction, so
+the judgment is **no amendment**.
+
+The RNG contract was measured rather than assumed. `Generator.integers(0, 2, dtype=uint8)` is
+**not** chunk-boundary invariant under NumPy 2.5.1 — its bit buffering makes the flat sequence
+depend on how the caller splits the request — so it was rejected as the bit API. `Philox.advance(n)`
+was measured to skip `4n` uint64 words. The frozen information-bit stream is therefore an indexed
+raw-word stream with `bit_i = (word[i // 64] >> (i % 64)) & 1`, LSB-first, `uint8`, C order, with
+trailing bits discarded and never carried between work units; it is invariant at boundaries
+0/1/62/63/64/65/127/128, at irregular chunkings and at lengths not divisible by 64, and is also
+randomly addressable. Gaussians use `Generator(Philox(key=seed)).standard_normal`, `float64`,
+which is chunk-boundary invariant but consumed sequentially from index zero.
+
+That is sufficient because B1 also freezes **work-unit-atomic resume**: only a complete,
+atomically committed work-unit result is resumable evidence, an interrupted unit is discarded and
+restarted from trial zero on the same seeds, there is no mid-work-unit trial cursor, and shard
+layout or execution order can never change an output.
+
+Counts are authoritative. BER, BLER and both confidence bounds are recomputed from
+`trials_completed`, `information_bits`, `bit_errors` and `block_errors`; a stored float that
+disagrees is rejected. Zero observed errors at the full trial count is valid characterized
+evidence, as is every block failing; zero *completed* trials reports `null` rather than zero.
+Bounded smoke is capped at 3 work units and 16 trials per unit, is visibly labelled
+`NON-SCIENTIFIC BOUNDED SMOKE`, carries `scientific_evidence=false` and
+`required_coverage_contribution=0`, and can never satisfy the full-strength validator even when
+relabelled. The diagnostic interval is 95 percent Wilson score, project-owned: no general
+confidence parameter governs G-8, and `baseline.ldpc_bler_reference.confidence_percent` is
+G-2-specific and is not read. It is recorded as diagnostic only — not used in BR-4 ranking or
+eligibility and not a stopping rule — and no adaptive stopping exists.
+
+`results/baseline/g8/bler_tooling_contract.json` is generator-owned, with contract ID
+`g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd` derived from canonical
+content excluding the ID and independent of timestamps, absolute paths, hostname and commit SHA.
+It binds only the three B1 sources and never its own hash or a future runner/shard/merge file.
+The current-phase verifier now requires every original G8_A produced-artifact binding to remain
+byte-identical while allowing validated additions, gained a repeatable `--require-artifact`, and
+closed the B0 gap by naming the manifest's scientific base, interpretation rules and
+selection-policy invalidation clause. A narrow registration utility added the one new binding
+without touching a counter or work unit; state SHA-256 is
+`4b47e62aca0cd61930d9e389908b3dbdfb31e4f6d0be452fc9cd2cf0dfc2c3ab`.

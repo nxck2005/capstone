@@ -13,6 +13,11 @@
     "phase": "G8_B",
     "produced_artifacts": [
       {
+        "bytes": 11924,
+        "path": "results/baseline/g8/bler_tooling_contract.json",
+        "sha256": "dfa1d68775b3720375dce7d71661935026d1b8674f020114df8568961fca7945"
+      },
+      {
         "bytes": 6325,
         "path": "results/baseline/g8/campaign_manifest.json",
         "sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1"
@@ -23,7 +28,7 @@
         "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
       }
     ],
-    "restart_command": "rg -n \"trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2\" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline",
+    "restart_command": "rg -n \"BLER_WORK_UNIT|derive_seed|produced_artifacts|completed_work_unit_ids|in_progress_work_unit_id|write_campaign_state_atomically\" src/baseline tools tests",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
     "stage": "tooling_open"
   },
