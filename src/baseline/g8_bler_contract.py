@@ -248,6 +248,13 @@ STATUS_INCOMPLETE = "incomplete"
 STATUS_COMPLETE = "complete"
 STATUS_FAILED = "failed"
 RESULT_STATUSES = (STATUS_INCOMPLETE, STATUS_COMPLETE, STATUS_FAILED)
+RESULT_STATUS_RULES = {
+    "allowed_statuses": list(RESULT_STATUSES),
+    "complete_requires_positive_trials": True,
+    "complete_full_strength_requires_exact_trial_count": True,
+    "incomplete_merge_eligible": False,
+    "failed_merge_eligible": False,
+}
 
 TEST_SPLIT_ACCESS = 0
 
@@ -319,6 +326,15 @@ RESULT_EXECUTION_METADATA_FIELDS = (
     "shard_count",
     "attempt",
 )
+EXECUTION_METADATA_RULES = {
+    "wall_time_s": "null or finite non-negative real; booleans rejected",
+    "hostname": "null or nonblank string",
+    "device": "null or nonblank string",
+    "shard_index": "null or exact non-negative integer",
+    "shard_count": "null or exact positive integer",
+    "shard_pair": "both null, or both present with 0 <= shard_index < shard_count",
+    "attempt": "null or exact positive integer",
+}
 RESULT_DISPOSITION_FIELDS = (
     "scientific_evidence",
     "merge_eligible",
@@ -371,6 +387,44 @@ def _require_finite(value: Any, name: str) -> float:
     )
     _require(math.isfinite(float(value)), f"{name} must be finite; NaN and infinity are rejected")
     return float(value)
+
+
+def validate_execution_metadata(metadata: Any) -> dict[str, Any]:
+    """Validate non-identity runtime provenance without silently dropping data."""
+
+    if metadata is None:
+        metadata = {}
+    _require(isinstance(metadata, Mapping), "execution_metadata must be a mapping")
+    unknown = [name for name in metadata if name not in RESULT_EXECUTION_METADATA_FIELDS]
+    _require(not unknown, f"execution_metadata has unknown fields: {sorted(unknown)}")
+
+    wall_time = metadata.get("wall_time_s")
+    if wall_time is not None:
+        _require_finite(wall_time, "wall_time_s")
+        _require(float(wall_time) >= 0.0, "wall_time_s must be non-negative")
+
+    for name in ("hostname", "device"):
+        value = metadata.get(name)
+        if value is not None:
+            _require_nonblank_str(value, name)
+
+    shard_index = metadata.get("shard_index")
+    shard_count = metadata.get("shard_count")
+    _require(
+        (shard_index is None) == (shard_count is None),
+        "shard_index and shard_count must both be null or both be present",
+    )
+    if shard_index is not None:
+        shard_index = _require_nonnegative_int(shard_index, "shard_index")
+        shard_count = _require_exact_int(shard_count, "shard_count")
+        _require(shard_count > 0, "shard_count must be positive")
+        _require(shard_index < shard_count, "shard_index must be less than shard_count")
+
+    attempt = metadata.get("attempt")
+    if attempt is not None:
+        attempt = _require_exact_int(attempt, "attempt")
+        _require(attempt > 0, "attempt must be positive")
+    return dict(metadata)
 
 
 def _identical(left: Any, right: Any) -> bool:
@@ -1020,7 +1074,7 @@ def build_work_unit_result(
         and trials_completed > 0
         and (not full_strength or trials_completed == full_strength_trial_count())
     )
-    metadata = dict(execution_metadata or {})
+    metadata = validate_execution_metadata(execution_metadata)
     result = {
         "schema_version": BLER_WORK_UNIT_RESULT_SCHEMA_VERSION,
         "artifact_role": RESULT_ARTIFACT_ROLE,
@@ -1107,6 +1161,7 @@ def validate_work_unit_result(
              "result measurement section has missing or unknown fields")
     _require(isinstance(metadata, Mapping) and set(metadata) == set(RESULT_EXECUTION_METADATA_FIELDS),
              "result execution metadata has missing or unknown fields")
+    validate_execution_metadata(metadata)
     _require(isinstance(disposition, Mapping) and set(disposition) == set(RESULT_DISPOSITION_FIELDS),
              "result disposition section has missing or unknown fields")
     _require(isinstance(identity["implementation"], Mapping)

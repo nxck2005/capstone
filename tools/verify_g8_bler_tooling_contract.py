@@ -47,6 +47,35 @@ def _require(condition: bool, message: str) -> None:
         raise G8BlerToolingError(message)
 
 
+EXPECTED_TOP_LEVEL_FIELDS = {
+    "schema_version",
+    "campaign",
+    "artifact_role",
+    "phase",
+    "checkpoint",
+    "supersedes_contract_id",
+    "supersedes_contract_sha256",
+    "supersession_reason",
+    "scientific_execution_performed",
+    "characterization_started",
+    "bounded_smoke_started",
+    "campaign_bindings",
+    "trial_count",
+    "execution_classes",
+    "seed",
+    "rng",
+    "resume",
+    "request_schema",
+    "result_schema",
+    "count_authority",
+    "merge_rules",
+    "confidence",
+    "rules",
+    "contract_sources",
+    "contract_id",
+}
+
+
 def _independent_seed(campaign_id: str, work_unit_id: str, purpose: str) -> tuple[str, int]:
     """Re-derive a seed without calling the contract module's helpers."""
 
@@ -96,8 +125,16 @@ def _verify_campaign(payload: dict[str, Any]) -> None:
         "bound campaign manifest hash changed",
     )
     _require(
+        bindings["campaign_manifest"]["bytes"] == len(CAMPAIGN_MANIFEST.read_bytes()),
+        "bound campaign manifest byte length changed",
+    )
+    _require(
         bindings["required_bler_identities"]["sha256"] == sha256_file(REQUIRED_BLER_IDENTITIES),
         "bound required-identity hash changed",
+    )
+    _require(
+        bindings["required_bler_identities"]["bytes"] == len(REQUIRED_BLER_IDENTITIES.read_bytes()),
+        "bound required-identity byte length changed",
     )
     required = load_required_bler_identities(REQUIRED_BLER_IDENTITIES)
     _require(
@@ -127,6 +164,10 @@ def _verify_trial_count(payload: dict[str, Any]) -> None:
         "the bound full-strength trial count does not match its own parameter",
     )
     _require(trial["adaptive_stopping_permitted"] is False, "adaptive stopping is permitted")
+    _require(
+        trial["no_early_stopping_rule"] == contract.NO_EARLY_STOPPING_RULE,
+        "the no-early-stopping rule changed",
+    )
 
 
 def _verify_seeds(payload: dict[str, Any]) -> None:
@@ -137,8 +178,12 @@ def _verify_seeds(payload: dict[str, Any]) -> None:
     )
     _require(seed["domain_separator"] == contract.SEED_DOMAIN_SEPARATOR, "seed domain separator changed")
     _require(seed["digest"] == "sha256", "seed digest changed")
+    _require(seed["input_encoding"] == contract.SEED_INPUT_ENCODING, "seed input encoding changed")
+    _require(seed["output_rule"] == contract.SEED_OUTPUT_RULE, "seed output rule changed")
     _require(seed["purposes"] == list(contract.SEED_PURPOSES), "the allowed random purposes changed")
     _require(seed["width_bits"] == 64, "the seed width changed")  # literal-ok: uint64 seed width
+    _require(seed["forbidden_inputs"] == list(contract.SEED_FORBIDDEN_INPUTS),
+             "the forbidden seed inputs changed")
 
     vectors = seed["test_vectors"]
     campaign_id = vectors["fixture_campaign_id"]
@@ -206,6 +251,10 @@ def _verify_schemas(payload: dict[str, Any]) -> None:
         result["version"] == contract.BLER_WORK_UNIT_RESULT_SCHEMA_VERSION == 2,
         "the result schema version is not v2",
     )
+    _require(request["artifact_role"] == contract.REQUEST_ARTIFACT_ROLE,
+             "the request artifact role changed")
+    _require(result["artifact_role"] == contract.RESULT_ARTIFACT_ROLE,
+             "the result artifact role changed")
     _require(request["fields"] == list(contract.REQUEST_FIELDS), "the request schema changed")
     _require(request["unknown_fields_rejected"] is True, "unknown request fields are tolerated")
     _require(request["request_is_never_merge_eligible"] is True,
@@ -216,13 +265,25 @@ def _verify_schemas(payload: dict[str, Any]) -> None:
              "the result identity schema changed")
     _require(result["measurement_fields"] == list(contract.RESULT_MEASUREMENT_FIELDS),
              "the result measurement schema changed")
+    _require(result["execution_metadata_fields"] == list(contract.RESULT_EXECUTION_METADATA_FIELDS),
+             "the result execution-metadata schema changed")
+    _require(result["disposition_fields"] == list(contract.RESULT_DISPOSITION_FIELDS),
+             "the result disposition schema changed")
+    _require(result["implementation_fields"] == list(contract.IMPLEMENTATION_FIELDS),
+             "the result implementation schema changed")
     _require(result["statuses"] == list(contract.RESULT_STATUSES), "the result status enum changed")
+    _require(result["status_rules"] == contract.RESULT_STATUS_RULES,
+             "the result status rules changed")
     _require(
         result["non_identity_execution_metadata"] == list(contract.NON_IDENTITY_EXECUTION_METADATA),
         "runtime provenance fields leaked into or out of measurement identity",
     )
+    _require(result["execution_metadata_rules"] == contract.EXECUTION_METADATA_RULES,
+             "the execution metadata rules changed")
 
     counts = payload["count_authority"]
+    _require(counts["authoritative_fields"] == list(contract.COUNT_FIELDS_AUTHORITATIVE),
+             "the authoritative count fields changed")
     _require(
         counts["trial_definition"] == contract.TRIAL_DEFINITION,
         "the trial definition changed",
@@ -249,6 +310,8 @@ def _verify_schemas(payload: dict[str, Any]) -> None:
     )
     _require(counts["bler_rule"] == "block_errors / trials_completed", "the BLER estimate rule changed")
     _require(counts["ber_rule"] == "bit_errors / information_bits", "the BER estimate rule changed")
+    _require(counts["information_bits_rule"] == "trials_completed x K",
+             "the information-bit count rule changed")
     _require(counts["counts_override_stored_floats"] is True, "stored floats may override counts")
     _require(counts["zero_errors_is_characterized_evidence"] is True,
              "zero observed errors is no longer characterized evidence")
@@ -256,6 +319,13 @@ def _verify_schemas(payload: dict[str, Any]) -> None:
              "an all-error result is no longer characterized evidence")
     _require(counts["zero_completed_trials_reports_null_not_zero"] is True,
              "zero completed trials may report a zero rate")
+    for name in (
+        "negative_counts_rejected",
+        "boolean_counts_rejected",
+        "nan_and_infinity_rejected",
+        "completed_evidence_requires_positive_trials",
+    ):
+        _require(counts[name] is True, f"count rule {name} was weakened")
 
     merge = payload["merge_rules"]
     for name in (
@@ -270,6 +340,20 @@ def _verify_schemas(payload: dict[str, Any]) -> None:
              "runtime metadata may alter measurement identity")
 
     classes = payload["execution_classes"]
+    _require(classes["full_strength"] == contract.EXECUTION_CLASS_FULL_STRENGTH,
+             "full-strength execution class changed")
+    _require(classes["bounded_smoke"] == contract.EXECUTION_CLASS_BOUNDED_SMOKE,
+             "bounded-smoke execution class changed")
+    _require(classes["bounded_smoke_trial_count_source"] == contract.BOUNDED_SMOKE_TRIAL_COUNT_SOURCE,
+             "bounded-smoke trial-count source changed")
+    _require(classes["bounded_smoke_selection_rule"] == contract.BOUNDED_SMOKE_SELECTION_RULE,
+             "bounded-smoke selection rule changed")
+    _require(classes["bounded_smoke_label"] == contract.BOUNDED_SMOKE_LABEL,
+             "bounded-smoke label changed")
+    _require(classes["bounded_smoke_max_work_units"] == contract.BOUNDED_SMOKE_MAX_WORK_UNITS,
+             "bounded-smoke work-unit ceiling changed")
+    _require(classes["bounded_smoke_max_trials_per_unit"] == contract.BOUNDED_SMOKE_MAX_TRIALS_PER_UNIT,
+             "bounded-smoke trial ceiling changed")
     _require(classes["bounded_smoke_is_scientific_evidence"] is False,
              "bounded smoke claims scientific evidence")
     _require(classes["bounded_smoke_is_merge_eligible"] is False, "bounded smoke claims merge eligibility")
@@ -313,8 +397,22 @@ def _verify_rng(payload: dict[str, Any]) -> None:
 
 def _verify_resume(payload: dict[str, Any]) -> None:
     resume = payload["resume"]
-    _require(resume["granularity"] == "work_unit_atomic", "the resume granularity changed")
-    _require(resume["mid_work_unit_resume_permitted"] is False, "mid-work-unit resume was permitted")
+    _require(resume["granularity"] == contract.RESUME_GRANULARITY, "the resume granularity changed")
+    _require(resume["policy"] == contract.RESUME_POLICY, "the resume policy changed")
+    _require(resume["mid_work_unit_resume_permitted"] is contract.MID_WORK_UNIT_RESUME_PERMITTED,
+             "mid-work-unit resume was permitted")
+
+
+def _verify_rules(payload: dict[str, Any]) -> None:
+    rules = payload["rules"]
+    _require(rules["no_interpolation_or_extrapolation"] == contract.NO_INTERPOLATION_RULE,
+             "the no-interpolation rule changed")
+    _require(rules["test_split_access"] == contract.TEST_SPLIT_ACCESS,
+             "the contract permits test-split access")
+    _require(rules["one_work_unit_matches_exactly_one_required_entry"] is True,
+             "one work unit may match more than one required entry")
+    _require(rules["snr_never_rounded_or_coerced"] is True,
+             "SNR rounding or coercion is permitted")
 
 
 def verify(path: Path = generator.BLER_TOOLING_CONTRACT) -> dict[str, Any]:
@@ -324,8 +422,14 @@ def verify(path: Path = generator.BLER_TOOLING_CONTRACT) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError) as exc:
         raise G8BlerToolingError(f"cannot read BLER tooling contract {path}: {exc}") from exc
     _require(isinstance(payload, dict), "BLER tooling contract is not a JSON object")
+    _require(set(payload) == EXPECTED_TOP_LEVEL_FIELDS,
+             "BLER tooling contract has unknown or missing top-level keys")
     _require(raw == rendered_json(payload), "BLER tooling contract is not canonical rendered JSON")
+    _require(sha256_file(path) == sha256_bytes(raw),
+             "current BLER tooling contract SHA-256 cannot be reproduced")
     _require(payload.get("campaign") == CAMPAIGN, "the contract names the wrong campaign")
+    _require(payload.get("artifact_role") == contract.TOOLING_CONTRACT_ARTIFACT_ROLE,
+             "the contract artifact role changed")
     _require(payload.get("schema_version") == contract.BLER_TOOLING_CONTRACT_SCHEMA_VERSION == 2,
              "unsupported tooling contract schema_version")
     _require(payload.get("phase") == contract.TOOLING_CONTRACT_PHASE
@@ -356,6 +460,7 @@ def verify(path: Path = generator.BLER_TOOLING_CONTRACT) -> dict[str, Any]:
     _verify_schemas(payload)
     _verify_rng(payload)
     _verify_resume(payload)
+    _verify_rules(payload)
     return payload
 
 

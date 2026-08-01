@@ -31,6 +31,9 @@ from baseline.g8_campaign import (  # noqa: E402
     sha256_file,
 )
 
+G8_ARTIFACT_ROOT = (REPO / "results/baseline/g8").resolve()
+BLER_TOOLING_CONTRACT_PATH = "results/baseline/g8/bler_tooling_contract.json"
+
 
 class G8PhaseStateError(RuntimeError):
     """The current phase state or its immutable G8_A inputs is invalid."""
@@ -188,6 +191,73 @@ def _verify_produced_artifacts(
         _require(wanted in by_path, f"required produced-artifact binding is absent: {wanted}")
 
 
+def _verify_produced_artifact_paths(identity: dict[str, Any]) -> None:
+    """Reject traversal, outside-root and normalized-alias artifact paths."""
+
+    seen: dict[Path, str] = {}
+    raw_seen: set[str] = set()
+    for entry in identity["produced_artifacts"]:
+        raw = entry.get("path")
+        _require(isinstance(raw, str) and raw, "produced artifact path is not a string")
+        _require(raw not in raw_seen, f"produced artifact paths are duplicated: {raw}")
+        raw_seen.add(raw)
+        relative = Path(raw)
+        _require(not relative.is_absolute(), f"produced artifact path is absolute: {raw}")
+        _require(".." not in relative.parts, f"produced artifact path contains '..': {raw}")
+        resolved = (REPO / relative).resolve(strict=False)
+        try:
+            resolved.relative_to(G8_ARTIFACT_ROOT)
+        except ValueError:
+            raise G8PhaseStateError(
+                f"produced artifact path resolves outside the G8 root: {raw}"
+            ) from None
+        prior = seen.get(resolved)
+        _require(
+            prior is None,
+            f"produced artifact path aliases {prior!r} after normalization: {raw}",
+        )
+        seen[resolved] = raw
+
+
+def _verify_required_tooling_seed_identity(
+    state: dict[str, Any],
+    require_artifacts: tuple[str, ...],
+) -> None:
+    """Bind the live seed identity to the required B1C contract artifact."""
+
+    if BLER_TOOLING_CONTRACT_PATH not in require_artifacts:
+        return
+    try:
+        payload = json.loads((REPO / BLER_TOOLING_CONTRACT_PATH).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8PhaseStateError(f"cannot read required BLER tooling contract: {exc}") from exc
+    seed = payload.get("seed")
+    _require(isinstance(seed, dict), "required BLER tooling contract seed section is missing")
+    _require(
+        state["identity"]["seed_derivation_identity"] == seed.get("derivation_identity"),
+        "campaign state seed derivation identity does not match the tooling contract",
+    )
+
+
+def _precheck_state_artifact_paths(path: Path) -> None:
+    """Run the phase-owned path boundary before the generic state loader.
+
+    The generic loader deliberately validates bytes and schema first; this
+    precheck ensures the phase verifier itself reports unsafe paths before a
+    malformed absolute entry can be classified only as a generic binding
+    error.
+    """
+
+    try:
+        payload = json.loads(path.read_bytes())
+    except (OSError, json.JSONDecodeError):
+        return
+    if isinstance(payload, dict) and isinstance(payload.get("identity"), dict):
+        artifacts = payload["identity"].get("produced_artifacts")
+        if isinstance(artifacts, list):
+            _verify_produced_artifact_paths(payload["identity"])
+
+
 def verify(
     *,
     phase: str,
@@ -205,6 +275,7 @@ def verify(
 
     manifest, _required = _verify_manifest_and_required_artifact()
     path = CAMPAIGN_STATE if state_path is None else Path(state_path)
+    _precheck_state_artifact_paths(path)
     try:
         state = load_campaign_state(path)
     except G8ContractError as exc:
@@ -215,7 +286,9 @@ def verify(
     _require(identity["campaign_manifest_sha256"] == sha256_file(CAMPAIGN_MANIFEST),
              "campaign state manifest hash does not match the manifest")
 
+    _verify_produced_artifact_paths(identity)
     _verify_produced_artifacts(identity, require_artifacts)
+    _verify_required_tooling_seed_identity(state, require_artifacts)
 
     if require_zero_science:
         _require(identity["completed_work_unit_ids"] == [],

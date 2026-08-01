@@ -1062,6 +1062,126 @@ def test_runtime_metadata_does_not_change_the_measurement_identity(
     )
 
 
+def test_unknown_execution_metadata_is_rejected(full_request: dict[str, Any]) -> None:
+    with pytest.raises(contract.G8BlerContractError, match="unknown fields"):
+        contract.build_work_unit_result(
+            request=full_request,
+            status=contract.STATUS_COMPLETE,
+            trials_completed=full_request["trials_requested"],
+            bit_errors=1,
+            block_errors=1,
+            execution_metadata={"decoder_exception": True},
+        )
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf"), -1.0, True, "1"])
+def test_wall_time_metadata_is_finite_nonnegative_real(
+    full_request: dict[str, Any], value: Any
+) -> None:
+    with pytest.raises(contract.G8BlerContractError):
+        contract.build_work_unit_result(
+            request=full_request,
+            status=contract.STATUS_FAILED,
+            trials_completed=0,
+            bit_errors=0,
+            block_errors=0,
+            execution_metadata={"wall_time_s": value},
+        )
+
+
+@pytest.mark.parametrize("field", ["hostname", "device"])
+def test_hostname_and_device_must_be_nonblank_strings(
+    full_request: dict[str, Any], field: str
+) -> None:
+    for value in ("", " \t", 1, True):
+        with pytest.raises(contract.G8BlerContractError):
+            contract.build_work_unit_result(
+                request=full_request,
+                status=contract.STATUS_FAILED,
+                trials_completed=0,
+                bit_errors=0,
+                block_errors=0,
+                execution_metadata={field: value},
+            )
+
+
+@pytest.mark.parametrize("value", [-1, True, "0"])
+def test_shard_index_requires_an_exact_nonnegative_integer(
+    full_request: dict[str, Any], value: Any
+) -> None:
+    with pytest.raises(contract.G8BlerContractError):
+        contract.build_work_unit_result(
+            request=full_request,
+            status=contract.STATUS_FAILED,
+            trials_completed=0,
+            bit_errors=0,
+            block_errors=0,
+            execution_metadata={"shard_index": value, "shard_count": 2},
+        )
+
+
+@pytest.mark.parametrize("value", [0, -1, True, "2"])
+def test_shard_count_requires_an_exact_positive_integer(
+    full_request: dict[str, Any], value: Any
+) -> None:
+    with pytest.raises(contract.G8BlerContractError):
+        contract.build_work_unit_result(
+            request=full_request,
+            status=contract.STATUS_FAILED,
+            trials_completed=0,
+            bit_errors=0,
+            block_errors=0,
+            execution_metadata={"shard_index": 0, "shard_count": value},
+        )
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [{"shard_index": 0}, {"shard_count": 2}, {"shard_index": 2, "shard_count": 2}],
+)
+def test_shard_pair_is_complete_and_in_range(
+    full_request: dict[str, Any], metadata: dict[str, Any]
+) -> None:
+    with pytest.raises(contract.G8BlerContractError):
+        contract.build_work_unit_result(
+            request=full_request,
+            status=contract.STATUS_FAILED,
+            trials_completed=0,
+            bit_errors=0,
+            block_errors=0,
+            execution_metadata=metadata,
+        )
+
+
+@pytest.mark.parametrize("value", [0, -1, True, "1"])
+def test_attempt_requires_an_exact_positive_integer(
+    full_request: dict[str, Any], value: Any
+) -> None:
+    with pytest.raises(contract.G8BlerContractError):
+        contract.build_work_unit_result(
+            request=full_request,
+            status=contract.STATUS_FAILED,
+            trials_completed=0,
+            bit_errors=0,
+            block_errors=0,
+            execution_metadata={"attempt": value},
+        )
+
+
+def test_all_null_execution_metadata_is_valid(full_request: dict[str, Any]) -> None:
+    result = contract.build_work_unit_result(
+        request=full_request,
+        status=contract.STATUS_FAILED,
+        trials_completed=0,
+        bit_errors=0,
+        block_errors=0,
+        execution_metadata={name: None for name in contract.RESULT_EXECUTION_METADATA_FIELDS},
+    )
+    assert result["execution_metadata"] == {
+        name: None for name in contract.RESULT_EXECUTION_METADATA_FIELDS
+    }
+
+
 def test_changed_identity_with_copied_counts_is_rejected(
     full_request: dict[str, Any], required_unit_id: str
 ) -> None:
@@ -1254,7 +1374,7 @@ def test_contract_binds_no_future_runner_or_its_own_output() -> None:
 
 
 def _mutated_contract(tmp_path: Path, mutate: Callable[[dict], None], *, refresh_id: bool = True) -> Path:
-    payload = json.loads(generator.BLER_TOOLING_CONTRACT.read_text(encoding="utf-8"))
+    payload = generator.build()
     mutate(payload)
     if refresh_id:
         payload.pop("contract_id", None)
@@ -1265,6 +1385,8 @@ def _mutated_contract(tmp_path: Path, mutate: Callable[[dict], None], *, refresh
 
 
 MUTATIONS: dict[str, Callable[[dict], None]] = {
+    "unknown_top_level": lambda p: p.__setitem__("unexpected", True),
+    "tooling_schema_version": lambda p: p.__setitem__("schema_version", 1),
     "campaign_hash": lambda p: p["campaign_bindings"]["campaign_manifest"].__setitem__(
         "sha256", "0" * 64
     ),
@@ -1287,6 +1409,8 @@ MUTATIONS: dict[str, Callable[[dict], None]] = {
     ),
     "seed_domain": lambda p: p["seed"].__setitem__("domain_separator", "capstone:g8:other:v1"),
     "seed_identity": lambda p: p["seed"].__setitem__("derivation_identity", "sha256(x)-v2"),
+    "seed_input_encoding": lambda p: p["seed"].__setitem__("input_encoding", "other"),
+    "seed_output_rule": lambda p: p["seed"].__setitem__("output_rule", "other"),
     "seed_vector": lambda p: p["seed"]["test_vectors"]["seeds"]["awgn_real"].__setitem__(
         "seed_uint64", 1
     ),
@@ -1303,6 +1427,9 @@ MUTATIONS: dict[str, Callable[[dict], None]] = {
     ),
     "result_schema": lambda p: p["result_schema"].__setitem__("measurement_fields", ["bler"]),
     "result_statuses": lambda p: p["result_schema"].__setitem__("statuses", ["complete"]),
+    "result_metadata_rules": lambda p: p["result_schema"]["execution_metadata_rules"].__setitem__(
+        "attempt", "anything"
+    ),
     "smoke_merge_rule": lambda p: p["merge_rules"].__setitem__(
         "bounded_smoke_is_merge_eligible", True
     ),
@@ -1332,9 +1459,25 @@ MUTATIONS: dict[str, Callable[[dict], None]] = {
     "zero_error_evidence": lambda p: p["count_authority"].__setitem__(
         "zero_errors_is_characterized_evidence", False
     ),
+    "cross_count_invariants": lambda p: p["count_authority"].__setitem__(
+        "cross_count_invariants", []
+    ),
+    "execution_class": lambda p: p["execution_classes"].__setitem__(
+        "full_strength", "other"
+    ),
+    "smoke_selection_rule": lambda p: p["execution_classes"].__setitem__(
+        "bounded_smoke_selection_rule", "other"
+    ),
+    "smoke_label": lambda p: p["execution_classes"].__setitem__(
+        "bounded_smoke_label", "other"
+    ),
     "source_binding": lambda p: p["contract_sources"][0].__setitem__("sha256", "0" * 64),
     "phase": lambda p: p.__setitem__("phase", "G8_C"),
     "execution_claim": lambda p: p.__setitem__("scientific_execution_performed", True),
+    "no_interpolation": lambda p: p["rules"].__setitem__(
+        "no_interpolation_or_extrapolation", "other"
+    ),
+    "supersession_claim": lambda p: p.__setitem__("supersession_reason", "other"),
 }
 
 
@@ -1355,7 +1498,7 @@ def test_mutated_contract_id_alone_fails(tmp_path: Path) -> None:
 
 
 def test_noncanonical_contract_bytes_are_rejected(tmp_path: Path) -> None:
-    payload = json.loads(generator.BLER_TOOLING_CONTRACT.read_text(encoding="utf-8"))
+    payload = generator.build()
     path = tmp_path / "bler_tooling_contract.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(contract_verifier.G8BlerToolingError, match="canonical rendered JSON"):

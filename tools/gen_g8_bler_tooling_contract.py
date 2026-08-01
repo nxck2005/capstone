@@ -141,7 +141,9 @@ def build() -> dict[str, Any]:
             "disposition_fields": list(contract.RESULT_DISPOSITION_FIELDS),
             "implementation_fields": list(contract.IMPLEMENTATION_FIELDS),
             "statuses": list(contract.RESULT_STATUSES),
+            "status_rules": dict(contract.RESULT_STATUS_RULES),
             "non_identity_execution_metadata": list(contract.NON_IDENTITY_EXECUTION_METADATA),
+            "execution_metadata_rules": dict(contract.EXECUTION_METADATA_RULES),
         },
         "count_authority": {
             "authoritative_fields": list(contract.COUNT_FIELDS_AUTHORITATIVE),

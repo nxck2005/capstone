@@ -354,6 +354,64 @@ def test_required_artifact_check_rejects_an_absent_path(tmp_path: Path) -> None:
         )
 
 
+def _append_artifact_path(state: dict, path: str) -> None:
+    target = Path(path) if Path(path).is_absolute() else REPO_ROOT / path
+    body = target.read_bytes()
+    state["identity"]["produced_artifacts"].append(
+        {"path": path, "sha256": phase_verifier.sha256_file(target), "bytes": len(body)}
+    )
+    state["identity"]["produced_artifacts"].sort(key=lambda entry: entry["path"])
+
+
+@pytest.mark.parametrize(
+    "bad_path, message",
+    [
+        ("/etc/hostname", "absolute"),
+        ("results/baseline/g8/../w4/integration_adjudication.json", "contains"),
+        ("results/baseline/w4/integration_adjudication.json", "outside"),
+    ],
+)
+def test_phase_verifier_rejects_unsafe_additional_artifact_paths(
+    tmp_path: Path, bad_path: str, message: str
+) -> None:
+    path, state = _g8b_state_with_contract(tmp_path)
+    state = copy.deepcopy(state)
+    _append_artifact_path(state, bad_path)
+    _write_raw(path, state)
+    with pytest.raises(phase_verifier.G8PhaseStateError, match=message):
+        phase_verifier.verify(
+            phase="G8_B", stage="tooling_open", require_zero_science=True, state_path=path
+        )
+
+
+def test_phase_verifier_rejects_normalized_artifact_alias(tmp_path: Path) -> None:
+    path, state = _g8b_state_with_contract(tmp_path)
+    state = copy.deepcopy(state)
+    _append_artifact_path(state, "results/baseline/g8/./campaign_manifest.json")
+    _write_raw(path, state)
+    with pytest.raises(phase_verifier.G8PhaseStateError, match="aliases"):
+        phase_verifier.verify(
+            phase="G8_B", stage="tooling_open", require_zero_science=True, state_path=path
+        )
+
+
+def test_phase_verifier_binds_live_seed_identity_to_required_tooling_contract(
+    tmp_path: Path,
+) -> None:
+    path, state = _g8b_state_with_contract(tmp_path)
+    state = copy.deepcopy(state)
+    state["identity"]["seed_derivation_identity"] = "sha256(changed)-v1"
+    _write_raw(path, state)
+    with pytest.raises(phase_verifier.G8PhaseStateError, match="seed derivation identity"):
+        phase_verifier.verify(
+            phase="G8_B",
+            stage="tooling_open",
+            require_zero_science=True,
+            state_path=path,
+            require_artifacts=(B1_CONTRACT_ARTIFACT,),
+        )
+
+
 def test_registration_preserves_counters_and_work_unit_state(tmp_path: Path) -> None:
     path, before = _g8b_state(tmp_path)
     digest = registrar.register(B1_CONTRACT_ARTIFACT, B2_RESTART, state_path=path)
