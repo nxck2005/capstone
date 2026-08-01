@@ -1,7 +1,7 @@
 # G8_B B1C — harden frozen BLER contract, count semantics and provenance
 
-Repository: `https://github.com/nxck2005/capstone`  
-Working directory: `/home/nick/projects/capstone`  
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
 Interpreter: `.venv/bin/python`
 
 ## Purpose
