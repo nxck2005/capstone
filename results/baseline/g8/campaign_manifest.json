@@ -2,7 +2,7 @@
   "adjudication_complete": false,
   "authorization_issued": false,
   "campaign": "G-8",
-  "campaign_id": "g8-90c5793ed50b369bac40ff05a91a63cc6a118c4d6b180aa8c2a3dcc2dbbb28a7",
+  "campaign_id": "g8-7d70dd824142ab4c42421378917268393058fa33fa3101d81954db1c0fd7182f",
   "campaign_started": false,
   "characterization_started": false,
   "contract_sources": [
@@ -73,10 +73,10 @@
       "sha256": "85421c27a968cfab673c8eab724e5c0223d68c15246d3df4476f0b71d19423f9"
     },
     {
-      "bytes": 10034,
+      "bytes": 13169,
       "path": "tools/verify_g8_preflight.py",
       "role": "g8a_contract_source",
-      "sha256": "52f13758e69ec89da531b80381a6d94e1b4198df3ac7c0389ce170f59bb14a8e"
+      "sha256": "e72cd035518407b8d1a4dbdd917c76e9ddb9c721d031aad1373086970f77806b"
     }
   ],
   "dataset_split_manifests": [

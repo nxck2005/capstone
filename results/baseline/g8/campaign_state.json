@@ -1,7 +1,7 @@
 {
   "identity": {
-    "campaign_id": "g8-90c5793ed50b369bac40ff05a91a63cc6a118c4d6b180aa8c2a3dcc2dbbb28a7",
-    "campaign_manifest_sha256": "2662d525574e753f198d68dd399a5a5bc6a82b95357210fa54936db2ab7fa5ee",
+    "campaign_id": "g8-7d70dd824142ab4c42421378917268393058fa33fa3101d81954db1c0fd7182f",
+    "campaign_manifest_sha256": "f63d149490d0ff604eda2d9883ca54af818d0705a2eafdc0b6e2e59e95b83eed",
     "completed_work_unit_ids": [],
     "counters": {
       "inference": 0,
@@ -15,7 +15,7 @@
       {
         "bytes": 6335,
         "path": "results/baseline/g8/campaign_manifest.json",
-        "sha256": "2662d525574e753f198d68dd399a5a5bc6a82b95357210fa54936db2ab7fa5ee"
+        "sha256": "f63d149490d0ff604eda2d9883ca54af818d0705a2eafdc0b6e2e59e95b83eed"
       },
       {
         "bytes": 8610156,

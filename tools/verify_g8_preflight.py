@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -28,7 +30,7 @@ from baseline.classical.g8_campaign import (
     load_required_bler_identities,
     sha256_bytes,
 )
-from config.params import REPO_ROOT
+from config.params import REPO_ROOT, get
 
 EXPECTED_NORMATIVE_SOURCES = ("spec/SPEC.md", "spec/params.generated.yaml")
 EXPECTED_SPLIT_MANIFESTS = (
@@ -85,6 +87,93 @@ def _policy_fingerprint(machinery: dict[str, Any]) -> str:
         covered.append([field, value])
     canonical = json.dumps(covered, separators=(",", ":"), ensure_ascii=True)
     return sha256_bytes(canonical.encode("utf-8"))
+
+
+def verify_required_structure(required: dict[str, Any]) -> None:
+    """Independently reject malformed, incomplete, or optimistic enumeration."""
+
+    axes = required.get("axes") or {}
+    expected_datasets = [
+        {"name": name, "role": get(f"datasets.{name}.role")}
+        for name in ("imagenette160", "stl10")
+    ]
+    _require(axes.get("datasets") == expected_datasets, "required grid dataset axis changed")
+    _require(axes.get("ratios") == list(get("bandwidth.ratios")), "required grid ratio axis changed")
+    _require(axes.get("source_codecs") == [get("baseline.source_codec")],
+             "required grid source-codec axis changed")
+    _require(
+        axes.get("encode_axis_px")
+        == {name: list(get(f"baseline.downsample_axis_px.{name}")) for name in ("imagenette160", "stl10")},
+        "required grid encode-axis changed",
+    )
+    _require(axes.get("modulations") == list(get("baseline.modulations")),
+             "required grid modulation axis changed")
+    _require(axes.get("ldpc_rates") == list(get("baseline.ldpc_rates")),
+             "required grid LDPC-rate axis changed")
+    _require(axes.get("snr_grid_db") == list(get("channel.test_snr_grid_db")),
+             "required grid SNR axis changed")
+    candidates = required.get("structural_candidates") or []
+    work_units = required.get("required_bler_work_units") or []
+    candidate_ids = [row.get("candidate_id") for row in candidates]
+    work_unit_ids = [row.get("work_unit_id") for row in work_units]
+    _require(candidate_ids == sorted(candidate_ids), "structural candidate ordering is nondeterministic")
+    _require(len(candidate_ids) == len(set(candidate_ids)), "duplicate candidate ID")
+    _require(work_unit_ids == sorted(work_unit_ids), "BLER work-unit ordering is nondeterministic")
+    _require(len(work_unit_ids) == len(set(work_unit_ids)), "duplicate BLER work-unit ID")
+    counts = required.get("counts") or {}
+    _require(counts.get("structural_candidates") == len(candidates), "candidate count is false")
+    _require(counts.get("required_unique_bler_work_units") == len(work_units), "work-unit count is false")
+    coverage = required.get("g2_comparison") or {}
+    _require(coverage.get("coverage_complete") is False, "G-2 coverage is falsely complete")
+    _require(coverage.get("complete_coverage_claim_permitted") is False,
+             "preflight permits a false complete-coverage claim")
+    exact = set(coverage.get("already_characterized_exact") or [])
+    missing = set(coverage.get("missing_required") or [])
+    mismatch = set(coverage.get("uncharacterized_identity_mismatch") or [])
+    snr_missing = set(coverage.get("uncharacterized_snr_support") or [])
+    _require(exact.isdisjoint(missing) and exact | missing == set(work_unit_ids),
+             "G-2 exact/missing coverage partition is false")
+    _require(mismatch.isdisjoint(snr_missing) and mismatch | snr_missing == missing,
+             "G-2 missing-coverage categories are false")
+    _require(coverage.get("interpolation_used") is False, "G-2 interpolation was used")
+    _require(coverage.get("extrapolation_used") is False, "G-2 extrapolation was used")
+    _require(required.get("scientific_execution_performed") is False,
+             "required-BLER artifact claims scientific execution")
+    _require(required.get("dataset_pixels_loaded") == 0, "preflight loaded dataset pixels")
+    _require(required.get("fallback_invoked") is False, "preflight invoked fallback")
+
+
+def authorization_constructions(source: str, path: str) -> list[str]:
+    """Return line-qualified real constructor calls, ignoring comments/strings."""
+
+    tree = ast.parse(source, filename=path)
+    findings: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        function = node.func
+        name = function.id if isinstance(function, ast.Name) else (
+            function.attr if isinstance(function, ast.Attribute) else None
+        )
+        if name == "G8Authorization":
+            findings.append(f"{path}:{node.lineno}")
+    return findings
+
+
+def verify_no_tracked_authorization_construction() -> None:
+    result = subprocess.run(
+        ["git", "ls-files", "-z", "--", "*.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+    )
+    paths = sorted(path for path in result.stdout.decode().split("\0") if path)
+    findings: list[str] = []
+    for path in paths:
+        if path.startswith("tests/"):
+            continue
+        findings.extend(authorization_constructions((REPO_ROOT / path).read_text(), path))
+    _require(not findings, f"tracked non-test G8Authorization construction: {findings}")
 
 
 def verify(path: Path = CAMPAIGN_MANIFEST) -> dict[str, Any]:
@@ -156,28 +245,9 @@ def verify(path: Path = CAMPAIGN_MANIFEST) -> dict[str, Any]:
              "required-BLER artifact path changed")
     _verify_binding(generated[0])
     required = load_required_bler_identities(REQUIRED_BLER_IDENTITIES)
+    verify_required_structure(required)
     _require(required == build_structural_preflight(), "structural enumeration does not reproduce")
-    candidates = required.get("structural_candidates") or []
-    work_units = required.get("required_bler_work_units") or []
-    candidate_ids = [row.get("candidate_id") for row in candidates]
-    work_unit_ids = [row.get("work_unit_id") for row in work_units]
-    _require(candidate_ids == sorted(candidate_ids), "structural candidate ordering is nondeterministic")
-    _require(len(candidate_ids) == len(set(candidate_ids)), "duplicate candidate ID")
-    _require(work_unit_ids == sorted(work_unit_ids), "BLER work-unit ordering is nondeterministic")
-    _require(len(work_unit_ids) == len(set(work_unit_ids)), "duplicate BLER work-unit ID")
-    counts = required.get("counts") or {}
-    _require(counts.get("structural_candidates") == len(candidates), "candidate count is false")
-    _require(counts.get("required_unique_bler_work_units") == len(work_units), "work-unit count is false")
-    coverage = required.get("g2_comparison") or {}
-    _require(coverage.get("coverage_complete") is False, "G-2 coverage is falsely complete")
-    _require(coverage.get("complete_coverage_claim_permitted") is False,
-             "preflight permits a false complete-coverage claim")
-    _require(coverage.get("interpolation_used") is False, "G-2 interpolation was used")
-    _require(coverage.get("extrapolation_used") is False, "G-2 extrapolation was used")
-    _require(required.get("scientific_execution_performed") is False,
-             "required-BLER artifact claims scientific execution")
-    _require(required.get("dataset_pixels_loaded") == 0, "preflight loaded dataset pixels")
-    _require(required.get("fallback_invoked") is False, "preflight invoked fallback")
+    verify_no_tracked_authorization_construction()
     state = load_campaign_state(CAMPAIGN_STATE)
     state_identity = state["identity"]
     _require(state_identity["phase"] == "G8_A", "campaign state exposes a later phase")

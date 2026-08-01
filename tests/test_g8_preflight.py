@@ -60,7 +60,10 @@ def test_committed_campaign_contract_verifies() -> None:
         (lambda p: p["selection_policy"].__setitem__("selection_policy_sha256", "0" * 64), "policy hash"),
         (lambda p: p["selection_sources"][0].__setitem__("sha256", "0" * 64), "bound SHA-256"),
         (lambda p: p["normative_sources"][0].__setitem__("sha256", "0" * 64), "bound SHA-256"),
+        (lambda p: p["normative_sources"][1].__setitem__("sha256", "0" * 64), "bound SHA-256"),
         (lambda p: p["dataset_split_manifests"][0].__setitem__("sha256", "0" * 64), "bound SHA-256"),
+        (lambda p: p["dataset_split_manifests"][1].__setitem__("sha256", "0" * 64), "bound SHA-256"),
+        (lambda p: p["dataset_split_manifests"][2].__setitem__("sha256", "0" * 64), "bound SHA-256"),
         (lambda p: p.__setitem__("phase_order", list(reversed(p["phase_order"]))), "phase order"),
         (lambda p: p.__setitem__("campaign_started", True), "campaign_started"),
         (lambda p: p.__setitem__("authorization_issued", True), "authorization_issued"),
@@ -232,3 +235,60 @@ def test_state_transition_allows_only_adjacent_g8a_stage() -> None:
     opened = initial_campaign_state()
     complete = initial_campaign_state(stage="preflight_complete")
     validate_state_transition(opened, complete)
+
+
+def test_omitted_required_grid_axis_fails_closed() -> None:
+    required = build_structural_preflight()
+    required["axes"].pop("ratios")
+    with pytest.raises(verifier.G8PreflightError, match="ratio axis"):
+        verifier.verify_required_structure(required)
+
+
+def test_duplicate_candidate_id_fails_closed() -> None:
+    required = build_structural_preflight()
+    duplicate = copy.deepcopy(required["structural_candidates"][0])
+    required["structural_candidates"].insert(1, duplicate)
+    with pytest.raises(verifier.G8PreflightError, match="duplicate candidate ID"):
+        verifier.verify_required_structure(required)
+
+
+def test_duplicate_bler_work_unit_id_fails_closed() -> None:
+    required = build_structural_preflight()
+    duplicate = copy.deepcopy(required["required_bler_work_units"][0])
+    required["required_bler_work_units"].insert(1, duplicate)
+    with pytest.raises(verifier.G8PreflightError, match="duplicate BLER work-unit ID"):
+        verifier.verify_required_structure(required)
+
+
+def test_nondeterministic_candidate_order_fails_closed() -> None:
+    required = build_structural_preflight()
+    required["structural_candidates"][0], required["structural_candidates"][1] = (
+        required["structural_candidates"][1],
+        required["structural_candidates"][0],
+    )
+    with pytest.raises(verifier.G8PreflightError, match="nondeterministic"):
+        verifier.verify_required_structure(required)
+
+
+def test_false_complete_g2_coverage_claim_fails_closed() -> None:
+    required = build_structural_preflight()
+    required["g2_comparison"]["coverage_complete"] = True
+    with pytest.raises(verifier.G8PreflightError, match="falsely complete"):
+        verifier.verify_required_structure(required)
+
+
+def test_mismatched_g2_identity_cannot_be_treated_as_characterized() -> None:
+    required = build_structural_preflight()["required_bler_work_units"][0]
+    comparison = compare_required_to_g2([required], g2_measured_work_units())
+    assert comparison["already_characterized_exact"] == []
+    assert comparison["uncharacterized_identity_mismatch"] == [required["work_unit_id"]]
+
+
+def test_tracked_non_test_authorization_scan_passes_and_detects_real_calls() -> None:
+    verifier.verify_no_tracked_authorization_construction()
+    assert verifier.authorization_constructions(
+        "value = G8Authorization(campaign='G-8')\n", "synthetic.py"
+    ) == ["synthetic.py:1"]
+    assert verifier.authorization_constructions(
+        "# G8Authorization()\ntext = 'G8Authorization()'\n", "synthetic.py"
+    ) == []
