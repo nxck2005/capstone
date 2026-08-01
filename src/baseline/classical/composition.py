@@ -1296,7 +1296,14 @@ class SelectionCampaign:
     ) -> tuple[Selection, ...]:
         if isinstance(selections, Selection):
             selections = (selections,)
-        selections = tuple(selections)
+        try:
+            selections = tuple(selections)
+        except TypeError as exc:
+            location = "stored" if verb == "carry" else "returned"
+            raise SelectionPassError(
+                f"{location} selections for pass {pass_id} are not a sequence: "
+                f"{selections!r}"
+            ) from exc
         for selection in selections:
             if not isinstance(selection, Selection):
                 raise SelectionPassError(

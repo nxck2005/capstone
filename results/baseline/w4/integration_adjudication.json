@@ -267,7 +267,7 @@
     "retrained_by_w4": false
   },
   "gate": "W4 bounded classical-baseline integration",
-  "head_at_generation": "efde4d630309ef729af6068c046e8f7b481b7969",
+  "head_at_generation": "152d34119c9b77107b35cad7e3b73582c7535fde",
   "outage": {
     "assumed_uniform_accuracy_rejected": true,
     "denominator": 1000,
@@ -369,17 +369,17 @@
   "selection_sources": [
     {
       "bound_at": "HEAD",
-      "bytes": 71707,
+      "bytes": 72000,
       "path": "src/baseline/classical/composition.py",
       "role": "selection_implementation",
-      "sha256": "9641b8ed8d678656dac3425239f4e0b97a4da518b50a5ea8d3da48db4461a574"
+      "sha256": "e3135ecefd612c5505bd1137bbf9a8a8212cf338080dde24bf5b25e07212b744"
     },
     {
       "bound_at": "HEAD",
-      "bytes": 72185,
+      "bytes": 74457,
       "path": "tests/test_classical_composition.py",
       "role": "selection_test",
-      "sha256": "512abb26adfd66937dca941fe3853777ffcd8a5144e63097566024d433196bb0"
+      "sha256": "237b0c66def0967059e30d196550e24492f75f628eba2d939d5ed343f6e488ad"
     }
   ],
   "sweep_guard": {

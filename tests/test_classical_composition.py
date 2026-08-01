@@ -1422,6 +1422,40 @@ def test_a_stored_pass_holding_a_non_selection_is_rejected() -> None:
         SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(malformed,))
 
 
+@pytest.mark.parametrize("selections", [None, 7])
+def test_a_non_iterable_stored_selection_container_is_normalized(
+    selections: object,
+) -> None:
+    malformed = PassResult(
+        pass_id=PASS_ONE,
+        mode=CLASSICAL_ADAPTIVE,
+        scorer="clean",
+        selections=selections,  # type: ignore[arg-type]
+    )
+    with pytest.raises(
+        SelectionPassError, match="stored selections for pass 1 are not a sequence"
+    ) as captured:
+        SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(malformed,))
+    assert isinstance(captured.value.__cause__, TypeError)
+
+
+def test_valid_empty_and_typed_stored_selection_tuples_are_accepted() -> None:
+    empty = PassResult(
+        pass_id=PASS_ONE,
+        mode=CLASSICAL_ADAPTIVE,
+        scorer="clean",
+        selections=(),
+    )
+    assert SelectionCampaign(
+        CLASSICAL_ADAPTIVE, completed=(empty,)
+    ).state() == (empty,)
+
+    typed = _completed(PASS_ONE, "clean")
+    assert SelectionCampaign(
+        CLASSICAL_ADAPTIVE, completed=(typed,)
+    ).state() == (typed,)
+
+
 def test_resumed_state_that_is_not_a_pass_result_is_rejected() -> None:
     with pytest.raises(SelectionPassError, match="must be PassResults"):
         SelectionCampaign(CLASSICAL_ADAPTIVE, completed=({"pass_id": 1},))
@@ -1526,6 +1560,38 @@ def test_a_pass_must_return_selections() -> None:
     campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
     with pytest.raises(SelectionPassError, match="must return Selections"):
         campaign.run_pass(PASS_ONE, lambda ctx: ["not a selection"], scorer="clean")
+
+
+@pytest.mark.parametrize("selections", [None, 7])
+def test_fresh_and_resumed_non_iterable_selection_validation_is_equivalent(
+    selections: object,
+) -> None:
+    fresh = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    with pytest.raises(
+        SelectionPassError, match="returned selections for pass 1 are not a sequence"
+    ) as fresh_error:
+        fresh.run_pass(PASS_ONE, lambda context: selections, scorer="clean")
+
+    stored = PassResult(
+        pass_id=PASS_ONE,
+        mode=CLASSICAL_ADAPTIVE,
+        scorer="clean",
+        selections=selections,  # type: ignore[arg-type]
+    )
+    with pytest.raises(
+        SelectionPassError, match="stored selections for pass 1 are not a sequence"
+    ) as resumed_error:
+        SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(stored,))
+
+    assert isinstance(fresh_error.value.__cause__, TypeError)
+    assert isinstance(resumed_error.value.__cause__, TypeError)
+
+
+def test_single_selection_convenience_remains_valid() -> None:
+    selection = select_best([_evaluation(870, [0.01])])
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    result = campaign.run_pass(PASS_ONE, lambda context: selection, scorer="clean")
+    assert result.selections == (selection,)
 
 
 def test_pb3_does_not_train_the_artifact_finetuned_classifier() -> None:
