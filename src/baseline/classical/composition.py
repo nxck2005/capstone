@@ -109,6 +109,8 @@ __all__ = [
     "selection_passes",
     "CurveSelection",
     "resolve_curve",
+    "core_modulation",
+    "CORE_MODULATION_SOURCE",
     "SweepBudgetError",
     "SweepBudget",
     "G8Authorization",
@@ -1053,7 +1055,9 @@ def select_best(evaluations: Sequence[CandidateEvaluation]) -> Selection:
 #: at every SNR, per ``params.baseline.modulation_tuning = adaptive_per_snr``.
 CLASSICAL_ADAPTIVE = "classical_adaptive"
 
-#: One modulation for the whole curve, chosen for the grid as a whole; the LDPC
+#: The **fixed-modulation reference curve** of BR-9.  The modulation is not
+#: chosen: it is read from ``params.baseline.core_modulation`` and held at every
+#: SNR, so this arm is a reference rather than a second optimizer.  The LDPC
 #: rate and codec axis still adapt per SNR.
 CLASSICAL_FIXED_MOD = "classical_fixed_mod"
 
@@ -1371,6 +1375,90 @@ class CurveSelection:
         }
 
 
+#: Where the fixed-modulation reference curve's modulation comes from.  Recorded
+#: in ``CurveSelection.held_fixed`` and in the W4 adjudication so that "which
+#: modulation, and who chose it" is answerable from the artifact alone.
+CORE_MODULATION_SOURCE = "params.baseline.core_modulation"
+
+
+def core_modulation() -> str:
+    """The configured fixed-modulation reference, checked against the declared set.
+
+    BR-9: ``params.baseline.core_modulation`` *defines* the fixed-modulation
+    reference curve.  It is read, never searched for — an earlier implementation
+    picked whichever modulation summed highest across the grid, which quietly
+    turned the reference arm into a second optimizer and could report a BPSK or
+    16-QAM curve under the ``classical_fixed_mod`` label.
+
+    A configured modulation that is not in ``params.baseline.modulations`` is a
+    contradiction between two parameters rather than a missing candidate, so it
+    raises here rather than at any particular SNR.
+    """
+
+    configured = get("baseline.core_modulation")
+    declared = tuple(get("baseline.modulations"))
+    if configured not in declared:
+        raise CompositionError(
+            f"{CORE_MODULATION_SOURCE} is {configured!r}, which is not declared "
+            f"in params.baseline.modulations {list(declared)}; the "
+            "fixed-modulation reference curve has no configuration to hold"
+        )
+    return str(configured)
+
+
+def _resolve_fixed_modulation_curve(
+    policy: SystemModePolicy,
+    grid: tuple[float, ...],
+    evaluations_by_snr: Mapping[float, Sequence[CandidateEvaluation]],
+) -> CurveSelection:
+    """BR-9's fixed-modulation reference curve: read the modulation, hold it.
+
+    Three cases are genuinely different and are treated differently:
+
+    1. the configured modulation is not declared at all — a configuration
+       contradiction, raised by :func:`core_modulation`;
+    2. **no candidate at some SNR uses it** — the candidate grid was built
+       incompletely, which is a campaign-construction defect the caller must fix,
+       so this raises and names the SNR;
+    3. candidates using it exist but every one is infeasible or uncharacterized —
+       this is **not** an error.  The cell is preserved exactly as
+       :func:`select_best` reports it (``selected is None``, ``reason =
+       no_eligible_candidate``, every evaluation carried), because structural
+       infeasibility, codec infeasibility and missing BLER characterization must
+       stay auditable rather than terminating the resolve or vanishing from the
+       curve.  G-8's completeness preflight is what must later refuse to accept an
+       uncharacterized cell into a final adjudication; the resolver's job is to
+       preserve the cell and its reason so there is something to refuse.
+
+    In no case is another modulation substituted.
+    """
+
+    held = core_modulation()
+    per_snr: list[tuple[float, Selection]] = []
+    for snr in grid:
+        candidates = [
+            evaluation
+            for evaluation in evaluations_by_snr[snr]
+            if evaluation.candidate.modulation == held
+        ]
+        if not candidates:
+            raise CompositionError(
+                f"no candidate at {snr} dB uses the configured fixed modulation "
+                f"{held!r} ({CORE_MODULATION_SOURCE}); the candidate grid is "
+                "incomplete for the fixed-modulation reference curve, and "
+                "another modulation will not be substituted for it"
+            )
+        # Case 3 lands here deliberately: select_best() returns a Selection whose
+        # `selected` is None and whose reason is `no_eligible_candidate`, and that
+        # is what the curve carries.
+        per_snr.append((snr, select_best(candidates)))
+    return CurveSelection(
+        policy.mode,
+        tuple(per_snr),
+        held_fixed={"modulation": held, "source": CORE_MODULATION_SOURCE},
+    )
+
+
 def resolve_curve(
     mode: str, evaluations_by_snr: Mapping[float, Sequence[CandidateEvaluation]]
 ) -> CurveSelection:
@@ -1380,9 +1468,9 @@ def resolve_curve(
     only thing that distinguishes them:
 
     * ``classical_adaptive`` — everything re-selects, independently per SNR;
-    * ``classical_fixed_mod`` — one modulation is chosen for the whole grid
-      (the one whose per-SNR bests sum highest), and the LDPC rate and codec
-      axis then adapt underneath it;
+    * ``classical_fixed_mod`` — the modulation is **read from**
+      ``params.baseline.core_modulation`` and held at every SNR, and the LDPC
+      rate and codec axis then adapt underneath it;
     * ``classical_fixed_mcs`` — the complete configuration is chosen once at
       ``params.baseline.fixed_mcs_design_snr_db`` and held everywhere.
 
@@ -1402,59 +1490,7 @@ def resolve_curve(
         return CurveSelection(policy.mode, per_snr, held_fixed={})
 
     if policy.mode == CLASSICAL_FIXED_MOD:
-        from baseline.ldpc.modulation import bits_per_symbol
-
-        totals: dict[str, tuple[float, int, str]] = {}
-        for modulation in sorted(
-            {
-                evaluation.candidate.modulation
-                for evaluations in evaluations_by_snr.values()
-                for evaluation in evaluations
-            }
-        ):
-            best_per_snr = [
-                select_best(
-                    [
-                        evaluation
-                        for evaluation in evaluations_by_snr[snr]
-                        if evaluation.candidate.modulation == modulation
-                    ]
-                )
-                for snr in grid
-            ]
-            if any(selection.selected is None for selection in best_per_snr):
-                continue
-            total = sum(
-                selection.selected.composition.expected_accuracy  # type: ignore[union-attr]
-                for selection in best_per_snr
-            )
-            totals[modulation] = (
-                -total,
-                bits_per_symbol(modulation),
-                modulation,
-            )
-        if not totals:
-            raise CompositionError(
-                "no modulation is eligible at every SNR on the grid; a fixed "
-                "modulation cannot be held across it"
-            )
-        chosen = min(totals, key=lambda name: totals[name])
-        per_snr = tuple(
-            (
-                snr,
-                select_best(
-                    [
-                        evaluation
-                        for evaluation in evaluations_by_snr[snr]
-                        if evaluation.candidate.modulation == chosen
-                    ]
-                ),
-            )
-            for snr in grid
-        )
-        return CurveSelection(
-            policy.mode, per_snr, held_fixed={"modulation": chosen}
-        )
+        return _resolve_fixed_modulation_curve(policy, grid, evaluations_by_snr)
 
     design_snr = policy.design_snr_db
     if design_snr not in evaluations_by_snr:

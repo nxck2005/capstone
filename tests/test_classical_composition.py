@@ -26,6 +26,7 @@ from baseline.classical.composition import (
     CLASSICAL_ADAPTIVE,
     CLASSICAL_FIXED_MCS,
     CLASSICAL_FIXED_MOD,
+    CORE_MODULATION_SOURCE,
     ELIGIBLE,
     FEASIBILITY_KEY_EXCLUSIONS,
     FEASIBILITY_KEY_FIELDS,
@@ -58,6 +59,7 @@ from baseline.classical.composition import (
     UncharacterizedBlerError,
     g2_bler_table,
     check_sweep_budget,
+    core_modulation,
     evaluate_candidate,
     mode_policy,
     resolve_curve,
@@ -848,31 +850,42 @@ def test_an_unknown_mode_is_refused() -> None:
         mode_policy("learned")
 
 
+def _mod_evaluation(
+    modulation: str, correct: int, bler: float, **rest: object
+) -> CandidateEvaluation:
+    return _evaluation(correct, [bler], modulation=modulation, **rest)
+
+
 def _grid() -> dict[float, list[CandidateEvaluation]]:
     """A three-point grid where each mode must land somewhere different.
 
     BPSK is best when the link is bad, 16-QAM when it is clean, and the design
-    SNR sits in the middle — so an adaptive curve switches, a fixed-modulation
-    curve cannot, and a fixed-MCS curve is pinned to the middle point's choice.
+    SNR sits in the middle — so an adaptive curve switches and a fixed-MCS curve
+    is pinned to the middle point's choice.
+
+    QPSK is present and is deliberately **never the best choice at any SNR**
+    (0.59 everywhere, against BPSK's 0.694 and 16-QAM's 0.9415 at the clean
+    end).  That makes the grid discriminating rather than merely populated: an
+    implementation that *searches* for the fixed modulation picks BPSK here,
+    and only one that *reads* ``params.baseline.core_modulation`` picks QPSK.
     """
 
-    def evaluation(
-        modulation: str, correct: int, bler: float, **rest: object
-    ) -> CandidateEvaluation:
-        return _evaluation(correct, [bler], modulation=modulation, **rest)
-
+    evaluation = _mod_evaluation
     design = float(get("baseline.fixed_mcs_design_snr_db"))
     return {
         -6.0: [
             evaluation("bpsk", 700, 0.01),
+            evaluation("qpsk", 800, 0.30),
             evaluation("qam16", 950, 0.99),
         ],
         design: [
             evaluation("bpsk", 700, 0.01),
+            evaluation("qpsk", 800, 0.30),
             evaluation("qam16", 950, 0.50),
         ],
         18.0: [
             evaluation("bpsk", 700, 0.01),
+            evaluation("qpsk", 800, 0.30),
             evaluation("qam16", 950, 0.01),
         ],
     }
@@ -890,14 +903,216 @@ def test_adaptive_mode_reselects_the_modulation_per_snr() -> None:
     assert curve.held_fixed == {}
 
 
-def test_fixed_modulation_mode_holds_one_modulation_across_the_grid() -> None:
+def test_fixed_modulation_mode_holds_the_configured_core_modulation() -> None:
+    """BR-9: the reference curve *reads* the modulation, it does not choose it.
+
+    Asserting only that one modulation is held is not enough — an implementation
+    that searches the grid also holds exactly one.  The claim under test is that
+    the held modulation is ``params.baseline.core_modulation``.
+    """
+
+    configured = get("baseline.core_modulation")
     curve = resolve_curve(CLASSICAL_FIXED_MOD, _grid())
-    chosen = {
+
+    assert curve.held_fixed["modulation"] == configured
+    assert curve.held_fixed["source"] == CORE_MODULATION_SOURCE
+    assert CORE_MODULATION_SOURCE == "params.baseline.core_modulation"
+    chosen = [
         selection.selected.candidate.modulation  # type: ignore[union-attr]
         for _, selection in curve.per_snr
+    ]
+    assert chosen == [configured] * 3
+    assert core_modulation() == configured
+
+
+def test_the_fixed_modulation_is_the_configured_value_not_a_hard_coded_one() -> None:
+    """The value comes through the config interface, not a literal in source."""
+
+    configured = get("baseline.core_modulation")
+    assert configured in tuple(get("baseline.modulations"))
+    source = (
+        REPO_ROOT / "src" / "baseline" / "classical" / "composition.py"
+    ).read_text()
+    # The module may name the parameter, but must not name the value.
+    assert "baseline.core_modulation" in source
+    assert f'"{configured}"' not in source
+    assert f"'{configured}'" not in source
+
+
+def test_a_grid_where_bpsk_wins_outright_still_selects_the_core_modulation() -> None:
+    """The defect this replaces: whichever modulation summed highest was held."""
+
+    configured = get("baseline.core_modulation")
+    assert configured != "bpsk"
+    grid = {
+        snr: [
+            _mod_evaluation("bpsk", 990, 0.001),
+            _mod_evaluation(configured, 700, 0.40),
+            _mod_evaluation("qam16", 600, 0.60),
+        ]
+        for snr in (-6.0, 0.0, 18.0)
     }
-    assert len(chosen) == 1
-    assert curve.held_fixed["modulation"] in chosen
+    # BPSK really does dominate: confirm the adaptive curve takes it everywhere.
+    adaptive = resolve_curve(CLASSICAL_ADAPTIVE, grid)
+    assert all(
+        selection.selected.candidate.modulation == "bpsk"  # type: ignore[union-attr]
+        for _, selection in adaptive.per_snr
+    )
+
+    curve = resolve_curve(CLASSICAL_FIXED_MOD, grid)
+    assert curve.held_fixed["modulation"] == configured
+    assert all(
+        selection.selected.candidate.modulation == configured  # type: ignore[union-attr]
+        for _, selection in curve.per_snr
+    )
+
+
+def test_a_grid_where_qam16_wins_outright_still_selects_the_core_modulation() -> None:
+    configured = get("baseline.core_modulation")
+    assert configured != "qam16"
+    grid = {
+        snr: [
+            _mod_evaluation("bpsk", 600, 0.60),
+            _mod_evaluation(configured, 700, 0.40),
+            _mod_evaluation("qam16", 990, 0.001),
+        ]
+        for snr in (-6.0, 0.0, 18.0)
+    }
+    adaptive = resolve_curve(CLASSICAL_ADAPTIVE, grid)
+    assert all(
+        selection.selected.candidate.modulation == "qam16"  # type: ignore[union-attr]
+        for _, selection in adaptive.per_snr
+    )
+
+    curve = resolve_curve(CLASSICAL_FIXED_MOD, grid)
+    assert curve.held_fixed["modulation"] == configured
+    assert all(
+        selection.selected.candidate.modulation == configured  # type: ignore[union-attr]
+        for _, selection in curve.per_snr
+    )
+
+
+def test_rate_and_encode_axis_still_adapt_under_a_fixed_modulation() -> None:
+    """Fixing the modulation must not accidentally fix the rest of the MCS."""
+
+    configured = get("baseline.core_modulation")
+    grid = {
+        -6.0: [
+            _mod_evaluation(configured, 700, 0.02, ldpc_rate="1/3", encode_axis_px=128),
+            _mod_evaluation(configured, 900, 0.90, ldpc_rate="5/6", encode_axis_px=160),
+        ],
+        18.0: [
+            _mod_evaluation(configured, 700, 0.02, ldpc_rate="1/3", encode_axis_px=128),
+            _mod_evaluation(configured, 900, 0.01, ldpc_rate="5/6", encode_axis_px=160),
+        ],
+    }
+    curve = resolve_curve(CLASSICAL_FIXED_MOD, grid)
+    assert curve.held_fixed["modulation"] == configured
+    picked = [
+        (
+            selection.selected.candidate.ldpc_rate,  # type: ignore[union-attr]
+            selection.selected.candidate.encode_axis_px,  # type: ignore[union-attr]
+        )
+        for _, selection in curve.per_snr
+    ]
+    assert picked == [("1/3", 128), ("5/6", 160)]
+    assert len(set(picked)) == 2
+    assert mode_policy(CLASSICAL_FIXED_MOD).adapts_ldpc_rate is True
+    assert mode_policy(CLASSICAL_FIXED_MOD).adapts_encode_axis is True
+
+
+def test_an_undeclared_core_modulation_is_a_configuration_contradiction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import baseline.classical.composition as module
+
+    real = module.get
+
+    def fake(path: str):
+        if path == "baseline.core_modulation":
+            return "gmsk"
+        return real(path)
+
+    monkeypatch.setattr(module, "get", fake)
+    with pytest.raises(CompositionError, match="not declared in"):
+        module.core_modulation()
+    with pytest.raises(CompositionError, match="not declared in"):
+        resolve_curve(CLASSICAL_FIXED_MOD, _grid())
+
+
+def test_no_candidate_using_the_core_modulation_at_one_snr_fails_closed() -> None:
+    """An incomplete candidate grid is a defect, and it names the SNR."""
+
+    configured = get("baseline.core_modulation")
+    grid = _grid()
+    stripped = 18.0
+    grid[stripped] = [
+        evaluation
+        for evaluation in grid[stripped]
+        if evaluation.candidate.modulation != configured
+    ]
+    with pytest.raises(CompositionError, match=f"no candidate at {stripped} dB"):
+        resolve_curve(CLASSICAL_FIXED_MOD, grid)
+
+
+def test_an_all_infeasible_core_modulation_cell_is_preserved_not_raised() -> None:
+    """Structural infeasibility must stay auditable rather than terminate.
+
+    G-8's completeness preflight is what must refuse such a cell; the resolver's
+    job is to preserve it, with its reason, so there is something to refuse.
+    """
+
+    configured = get("baseline.core_modulation")
+    grid = _grid()
+    grid[18.0] = [
+        CandidateEvaluation(
+            candidate=_candidate(modulation=configured),
+            status=INFEASIBLE,
+            composition=None,
+            reason="structural_infeasibility",
+        ),
+        _mod_evaluation("bpsk", 950, 0.01),
+    ]
+    curve = resolve_curve(CLASSICAL_FIXED_MOD, grid)
+
+    assert curve.held_fixed["modulation"] == configured
+    preserved = curve.selection_at(18.0)
+    assert preserved.selected is None
+    assert preserved.reason == "no_eligible_candidate"
+    assert preserved.counts()[INFEASIBLE] == 1
+    assert len(preserved.evaluations) == 1
+    assert preserved.evaluations[0].candidate.modulation == configured
+    # And no other modulation was substituted at that SNR.
+    assert all(
+        evaluation.candidate.modulation == configured
+        for evaluation in preserved.evaluations
+    )
+    # The other SNRs still select normally.
+    assert (
+        curve.selection_at(-6.0).selected.candidate.modulation  # type: ignore[union-attr]
+        == configured
+    )
+
+
+def test_an_all_uncharacterized_core_modulation_cell_is_preserved_not_raised() -> None:
+    configured = get("baseline.core_modulation")
+    grid = _grid()
+    grid[18.0] = [
+        CandidateEvaluation(
+            candidate=_candidate(modulation=configured),
+            status=UNCHARACTERIZED,
+            composition=None,
+            reason="uncharacterized",
+        ),
+        _mod_evaluation("qam16", 950, 0.01),
+    ]
+    curve = resolve_curve(CLASSICAL_FIXED_MOD, grid)
+
+    preserved = curve.selection_at(18.0)
+    assert preserved.selected is None
+    assert preserved.reason == "no_eligible_candidate"
+    assert preserved.counts()[UNCHARACTERIZED] == 1
+    assert curve.held_fixed["modulation"] == configured
 
 
 def test_fixed_mcs_mode_holds_the_whole_configuration_from_the_design_snr() -> None:
