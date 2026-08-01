@@ -1228,23 +1228,14 @@ def check_integration_adjudication(evidence: Path) -> dict[str, Any]:
         "the adjudication permits extrapolation or zero-BLER defaults",
     )
 
-    # The selection machinery and sweep guard, read back out of the module.
-    _require(
-        payload.get("selection_machinery") == selection_machinery(),
-        "the adjudication's selection-machinery description does not match "
-        "src/baseline/classical/composition.py",
-    )
-    _require(
-        payload["selection_machinery"]["passes_executed"] == 0,
-        "the adjudication records selection passes as executed",
-    )
-
     # ------------------------------------------------------------------
-    # The pre-G-8 selection-policy freeze, checked by name rather than only
-    # through the whole-dict equality above.  A named failure says which rule
-    # moved; "the description does not match" does not.
+    # The pre-G-8 selection-policy freeze, checked field by field *before* the
+    # whole-dict equality below.  Order matters: the blanket comparison would
+    # catch every mutation here too, but only ever says "the description does
+    # not match", which does not tell a reader which rule moved.  Named checks
+    # first, blanket check as the backstop for anything they do not cover.
     # ------------------------------------------------------------------
-    machinery = payload["selection_machinery"]
+    machinery = payload.get("selection_machinery") or {}
     _require(
         list(machinery.get("tie_break_order") or [])
         == list(composition.TIE_BREAK_ORDER),
@@ -1313,6 +1304,17 @@ def check_integration_adjudication(evidence: Path) -> dict[str, Any]:
         == selection_policy_fingerprint(machinery),
         "the adjudication's selection_policy_sha256 does not reproduce from "
         "the policy fields it covers; the frozen selection policy has moved",
+    )
+
+    # The blanket backstop: everything the named checks above do not cover.
+    _require(
+        payload.get("selection_machinery") == selection_machinery(),
+        "the adjudication's selection-machinery description does not match "
+        "src/baseline/classical/composition.py",
+    )
+    _require(
+        machinery.get("passes_executed") == 0,
+        "the adjudication records selection passes as executed",
     )
     _require(
         payload.get("sweep_guard") == sweep_guard(),

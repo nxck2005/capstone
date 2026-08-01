@@ -198,6 +198,7 @@
     "bounded_validation_plumbing_integration": true,
     "br4_full_validation_sweep": false,
     "er9_implemented": false,
+    "g8_characterization_started": false,
     "g8_operating_point_selection": false,
     "g8_status": "unresolved",
     "lambda_calibration_performed": false,
@@ -266,7 +267,7 @@
     "retrained_by_w4": false
   },
   "gate": "W4 bounded classical-baseline integration",
-  "head_at_generation": "cb2dad906e871c342a36f462838c7715b1deda3a",
+  "head_at_generation": "efde4d630309ef729af6068c046e8f7b481b7969",
   "outage": {
     "assumed_uniform_accuracy_rejected": true,
     "denominator": 1000,
@@ -299,7 +300,7 @@
     "g8_started": false,
     "next_engineering_task": "G-8 classical validation work: the full BR-4 validation sweep and the operating-point decision"
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "selection_machinery": {
     "composition_formula": {
       "assumed_uniform_outage_accuracy_rejected": true,
@@ -319,23 +320,41 @@
         "encode_axis_px"
       ]
     },
+    "fixed_modulation": {
+      "configured_value": "qpsk",
+      "requirement": "BR-9",
+      "searches_modulations": false,
+      "source": "params.baseline.core_modulation"
+    },
     "module": "src/baseline/classical/composition.py",
     "passes_executed": 0,
-    "selection_passes": {
+    "resumed_state_validation": "exact_ordered_prefix",
+    "selection_pass_policy": {
       "artifact_finetune_gate": "G-8",
       "artifact_finetuned_classifier_trained": false,
-      "enforcement": "structural: SelectionCampaign state machine",
-      "permitted": [
-        1,
-        2
-      ],
-      "terminates_after_pass": 2
+      "enforcement": "structural: SelectionCampaign state machine"
     },
+    "selection_passes": [
+      1,
+      2
+    ],
+    "selection_policy_fields": [
+      "tie_break_order",
+      "tie_equality",
+      "fixed_modulation.source",
+      "fixed_modulation.configured_value",
+      "selection_passes",
+      "selection_termination_pass"
+    ],
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "selection_termination_pass": 2,
     "system_modes": [
       "classical_adaptive",
       "classical_fixed_mod",
       "classical_fixed_mcs"
     ],
+    "tie_break_frozen_against_gate": "G-8",
+    "tie_break_frozen_before_g8": true,
     "tie_break_order": [
       "expected_accuracy_descending",
       "success_probability_descending",
@@ -350,17 +369,17 @@
   "selection_sources": [
     {
       "bound_at": "HEAD",
-      "bytes": 66219,
+      "bytes": 71707,
       "path": "src/baseline/classical/composition.py",
       "role": "selection_implementation",
-      "sha256": "613c8a291facfcbc38a9033b3b3aee56d9d44eb1c5a6b8ca0b31e1b25652a8bf"
+      "sha256": "9641b8ed8d678656dac3425239f4e0b97a4da518b50a5ea8d3da48db4461a574"
     },
     {
       "bound_at": "HEAD",
-      "bytes": 57059,
+      "bytes": 72185,
       "path": "tests/test_classical_composition.py",
       "role": "selection_test",
-      "sha256": "513f947149e640ee74cfb5e246fa36e50b69293b8610badcb9b7202f8f128bef"
+      "sha256": "512abb26adfd66937dca941fe3853777ffcd8a5144e63097566024d433196bb0"
     }
   ],
   "sweep_guard": {
