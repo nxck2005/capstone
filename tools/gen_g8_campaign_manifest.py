@@ -40,6 +40,7 @@ CONTRACT_SOURCES = (
     "instructions/G8_G.txt",
     "src/baseline/classical/g8_campaign.py",
     "tools/gen_g8_campaign_manifest.py",
+    "tools/update_g8_campaign_state.py",
     "tools/verify_g8_preflight.py",
 )
 SPLIT_MANIFESTS = (

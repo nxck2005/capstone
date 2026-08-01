@@ -12,12 +12,18 @@ import pytest
 import verify_g8_preflight as verifier
 from baseline.classical.g8_campaign import (
     CAMPAIGN_MANIFEST,
+    G8ContractError,
     build_structural_preflight,
     campaign_identifier,
     canonical_json,
     compare_required_to_g2,
     g2_measured_work_units,
+    initial_campaign_state,
+    load_campaign_state,
     rendered_json,
+    validate_campaign_state,
+    validate_state_transition,
+    write_campaign_state_atomically,
 )
 
 
@@ -158,3 +164,71 @@ def test_same_g2_identity_at_unmeasured_snr_is_not_extrapolated() -> None:
     assert comparison["already_characterized_exact"] == []
     assert comparison["uncharacterized_snr_support"] == [required["work_unit_id"]]
     assert comparison["extrapolation_used"] is False
+
+
+def test_initial_state_is_pre_science_and_all_counters_are_zero() -> None:
+    state = initial_campaign_state()
+    validated = validate_campaign_state(state)
+    identity = validated["identity"]
+    assert identity["phase"] == "G8_A"
+    assert identity["stage"] == "contract_open"
+    assert identity["completed_work_unit_ids"] == []
+    assert identity["in_progress_work_unit_id"] is None
+    assert set(identity["counters"].values()) == {0}
+
+
+def test_campaign_state_atomic_write_is_byte_reproducible(tmp_path: Path) -> None:
+    path = tmp_path / "campaign_state.json"
+    state = initial_campaign_state()
+    first_hash = write_campaign_state_atomically(path, state)
+    first = path.read_bytes()
+    second_hash = write_campaign_state_atomically(path, state)
+    assert path.read_bytes() == first
+    assert second_hash == first_hash
+    assert list(tmp_path.glob("*.partial")) == []
+
+
+@pytest.mark.parametrize(
+    ("mutate", "match"),
+    [
+        (lambda s: s["identity"].__setitem__("campaign_id", "g8-wrong"), "another campaign"),
+        (lambda s: s["identity"].__setitem__("campaign_manifest_sha256", "0" * 64), "manifest hash mismatch"),
+        (lambda s: s["identity"]["completed_work_unit_ids"].extend(["x", "x"]), "duplicated"),
+        (lambda s: s["identity"].__setitem__("in_progress_work_unit_id", 7), "in-progress"),
+        (lambda s: s["identity"]["counters"].__setitem__("training", -1), "non-negative"),
+    ],
+)
+def test_campaign_state_mutations_fail_closed(
+    mutate: Callable[[dict[str, Any]], None],
+    match: str,
+) -> None:
+    state = initial_campaign_state()
+    mutate(state)
+    with pytest.raises(G8ContractError, match=match):
+        validate_campaign_state(state)
+
+
+def test_partial_campaign_state_is_not_accepted(tmp_path: Path) -> None:
+    path = tmp_path / "campaign_state.json"
+    path.write_text('{"schema_version": 1', encoding="utf-8")
+    with pytest.raises(G8ContractError, match="cannot read campaign state"):
+        load_campaign_state(path)
+
+
+def test_state_transition_refuses_skipped_and_reversed_phases() -> None:
+    opened = initial_campaign_state()
+    skipped = copy.deepcopy(opened)
+    skipped["identity"]["phase"] = "G8_C"
+    skipped["identity"]["stage"] = "characterization_open"
+    with pytest.raises(G8ContractError, match="skips or reverses a phase"):
+        validate_state_transition(opened, skipped)
+
+    complete = initial_campaign_state(stage="preflight_complete")
+    with pytest.raises(G8ContractError, match="skips or reverses a stage"):
+        validate_state_transition(complete, opened)
+
+
+def test_state_transition_allows_only_adjacent_g8a_stage() -> None:
+    opened = initial_campaign_state()
+    complete = initial_campaign_state(stage="preflight_complete")
+    validate_state_transition(opened, complete)

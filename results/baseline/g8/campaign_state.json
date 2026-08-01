@@ -1,0 +1,34 @@
+{
+  "identity": {
+    "campaign_id": "g8-90c5793ed50b369bac40ff05a91a63cc6a118c4d6b180aa8c2a3dcc2dbbb28a7",
+    "campaign_manifest_sha256": "2662d525574e753f198d68dd399a5a5bc6a82b95357210fa54936db2ab7fa5ee",
+    "completed_work_unit_ids": [],
+    "counters": {
+      "inference": 0,
+      "test_access": 0,
+      "training": 0,
+      "validation_decoding": 0
+    },
+    "in_progress_work_unit_id": null,
+    "phase": "G8_A",
+    "produced_artifacts": [
+      {
+        "bytes": 6335,
+        "path": "results/baseline/g8/campaign_manifest.json",
+        "sha256": "2662d525574e753f198d68dd399a5a5bc6a82b95357210fa54936db2ab7fa5ee"
+      },
+      {
+        "bytes": 8610156,
+        "path": "results/baseline/g8/required_bler_identities.json",
+        "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
+      }
+    ],
+    "restart_command": ".venv/bin/python tools/verify_g8_preflight.py",
+    "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
+    "stage": "contract_open"
+  },
+  "metadata": {
+    "last_successful_checkpoint_time": null
+  },
+  "schema_version": 1
+}

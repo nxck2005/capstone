@@ -2,7 +2,7 @@
   "adjudication_complete": false,
   "authorization_issued": false,
   "campaign": "G-8",
-  "campaign_id": "g8-1ee6eb8093314cdc7ac4da84d72f2009f7970c2dbdb006ead2637d34f0046246",
+  "campaign_id": "g8-90c5793ed50b369bac40ff05a91a63cc6a118c4d6b180aa8c2a3dcc2dbbb28a7",
   "campaign_started": false,
   "characterization_started": false,
   "contract_sources": [
@@ -55,22 +55,28 @@
       "sha256": "a65c74f101bc2c86726f02e913026e67f18ba04cb495395f13c1490455cb1499"
     },
     {
-      "bytes": 17537,
+      "bytes": 27427,
       "path": "src/baseline/classical/g8_campaign.py",
       "role": "g8a_contract_source",
-      "sha256": "4658fea4faa00b8f23fe3d8fb707783ca07dd7546285fdc4839bca804f5af9dc"
+      "sha256": "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
     },
     {
-      "bytes": 6401,
+      "bytes": 6442,
       "path": "tools/gen_g8_campaign_manifest.py",
       "role": "g8a_contract_source",
-      "sha256": "74707a98b3a04dbc679c1075a5cb48505c220cda6597fb0e4bf4aa6704749e06"
+      "sha256": "13d37a7590e543d32197f048ea8bc60d3d22ebad7ba9f9fb80f6a7e8fc2206e6"
     },
     {
-      "bytes": 9254,
+      "bytes": 1694,
+      "path": "tools/update_g8_campaign_state.py",
+      "role": "g8a_contract_source",
+      "sha256": "85421c27a968cfab673c8eab724e5c0223d68c15246d3df4476f0b71d19423f9"
+    },
+    {
+      "bytes": 10034,
       "path": "tools/verify_g8_preflight.py",
       "role": "g8a_contract_source",
-      "sha256": "b704381f57737f66b38312e8a20def40363e3088090e8a8c12bc2af723c972a9"
+      "sha256": "52f13758e69ec89da531b80381a6d94e1b4198df3ac7c0389ce170f59bb14a8e"
     }
   ],
   "dataset_split_manifests": [

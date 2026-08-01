@@ -18,11 +18,13 @@ from baseline.classical.g8_campaign import (
     PHASE_ORDER,
     PRE_DATA_FLAGS,
     REQUIRED_BLER_IDENTITIES,
+    CAMPAIGN_STATE,
     SELECTION_POLICY_FIELDS,
     G8ContractError,
     build_structural_preflight,
     campaign_identifier,
     load_campaign_manifest,
+    load_campaign_state,
     load_required_bler_identities,
     sha256_bytes,
 )
@@ -45,6 +47,7 @@ EXPECTED_CONTRACT_SOURCES = (
     "instructions/G8_G.txt",
     "src/baseline/classical/g8_campaign.py",
     "tools/gen_g8_campaign_manifest.py",
+    "tools/update_g8_campaign_state.py",
     "tools/verify_g8_preflight.py",
 )
 
@@ -175,6 +178,17 @@ def verify(path: Path = CAMPAIGN_MANIFEST) -> dict[str, Any]:
              "required-BLER artifact claims scientific execution")
     _require(required.get("dataset_pixels_loaded") == 0, "preflight loaded dataset pixels")
     _require(required.get("fallback_invoked") is False, "preflight invoked fallback")
+    state = load_campaign_state(CAMPAIGN_STATE)
+    state_identity = state["identity"]
+    _require(state_identity["phase"] == "G8_A", "campaign state exposes a later phase")
+    _require(state_identity["stage"] in ("contract_open", "preflight_complete"),
+             "campaign state exposes a future stage")
+    _require(state_identity["completed_work_unit_ids"] == [],
+             "G8_A state claims completed scientific work")
+    _require(state_identity["in_progress_work_unit_id"] is None,
+             "G8_A state claims in-progress scientific work")
+    _require(all(value == 0 for value in state_identity["counters"].values()),
+             "G8_A campaign counters are not all zero")
     return payload
 
 
