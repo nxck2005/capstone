@@ -146,6 +146,12 @@ def build() -> dict[str, Any]:
         },
         "count_authority": {
             "authoritative_fields": list(contract.COUNT_FIELDS_AUTHORITATIVE),
+            "trial_definition": contract.TRIAL_DEFINITION,
+            "comparison_domain": contract.COMPARISON_DOMAIN,
+            "bit_error_definition": contract.BIT_ERROR_DEFINITION,
+            "block_error_definition": contract.BLOCK_ERROR_DEFINITION,
+            "decoder_exception_policy": contract.DECODER_EXCEPTION_POLICY,
+            "cross_count_invariants": list(contract.COUNT_CROSS_INVARIANTS),
             "bler_rule": contract.BLER_POINT_ESTIMATE_RULE,
             "ber_rule": contract.BER_POINT_ESTIMATE_RULE,
             "counts_override_stored_floats": contract.COUNTS_OVERRIDE_STORED_FLOATS,

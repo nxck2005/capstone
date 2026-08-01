@@ -751,6 +751,80 @@ def test_bit_errors_exceeding_information_bits_are_rejected(full_request: dict[s
         contract.validate_work_unit_result(result)
 
 
+def test_zero_bit_errors_with_a_block_error_are_rejected(full_request: dict[str, Any]) -> None:
+    result = _complete_full_result(full_request, bit_errors=1, block_errors=1)
+    result["measurement"]["bit_errors"] = 0
+    with pytest.raises(contract.G8BlerContractError, match="block_errors == 0 iff bit_errors == 0"):
+        contract.validate_work_unit_result(result)
+
+
+def test_nonzero_bit_errors_with_zero_block_errors_are_rejected(full_request: dict[str, Any]) -> None:
+    result = _complete_full_result(full_request, bit_errors=1, block_errors=1)
+    result["measurement"]["block_errors"] = 0
+    with pytest.raises(contract.G8BlerContractError, match="block_errors == 0 iff bit_errors == 0"):
+        contract.validate_work_unit_result(result)
+
+
+def test_bit_errors_cannot_be_fewer_than_erroneous_blocks(full_request: dict[str, Any]) -> None:
+    result = _complete_full_result(full_request, bit_errors=5, block_errors=1)
+    result["measurement"]["block_errors"] = 6
+    with pytest.raises(contract.G8BlerContractError, match="between block_errors"):
+        contract.validate_work_unit_result(result)
+
+
+def test_bit_errors_cannot_exceed_k_per_erroneous_block(full_request: dict[str, Any]) -> None:
+    k = full_request["bler_identity"]["k_and_n"][0]
+    result = _complete_full_result(full_request, bit_errors=k, block_errors=1)
+    result["measurement"]["bit_errors"] = k + 1
+    with pytest.raises(contract.G8BlerContractError, match="between block_errors"):
+        contract.validate_work_unit_result(result)
+
+
+def test_decoder_exception_placeholder_cannot_be_completed_evidence(
+    full_request: dict[str, Any],
+) -> None:
+    # A decoder exception has no decoded K-bit vector.  Treating it as one
+    # block error with zero compared bit errors is therefore not evidence.
+    result = _complete_full_result(full_request, bit_errors=1, block_errors=1)
+    result["measurement"]["bit_errors"] = 0
+    with pytest.raises(contract.G8BlerContractError, match="block_errors == 0 iff bit_errors == 0"):
+        contract.validate_work_unit_result(result)
+
+
+def test_one_bit_error_per_erroneous_block_is_valid(full_request: dict[str, Any]) -> None:
+    result = _complete_full_result(full_request, bit_errors=3, block_errors=3)
+    assert result["measurement"]["bit_errors"] == 3
+    assert result["measurement"]["block_errors"] == 3
+
+
+def test_exactly_k_bit_errors_per_erroneous_block_is_valid(full_request: dict[str, Any]) -> None:
+    k = full_request["bler_identity"]["k_and_n"][0]
+    result = _complete_full_result(full_request, bit_errors=3 * k, block_errors=3)
+    assert result["measurement"]["bit_errors"] == 3 * k
+
+
+def test_intermediate_error_count_is_valid(full_request: dict[str, Any]) -> None:
+    k = full_request["bler_identity"]["k_and_n"][0]
+    result = _complete_full_result(full_request, bit_errors=k + 2, block_errors=3)
+    assert result["measurement"]["bit_errors"] == k + 2
+
+
+@pytest.mark.parametrize("status", [contract.STATUS_INCOMPLETE, contract.STATUS_FAILED])
+def test_zero_trial_noncharacterized_result_has_zero_counts_and_null_rates(
+    full_request: dict[str, Any], status: str
+) -> None:
+    result = contract.build_work_unit_result(
+        request=full_request,
+        status=status,
+        trials_completed=0,
+        bit_errors=0,
+        block_errors=0,
+    )
+    assert result["measurement"]["information_bits"] == 0
+    assert result["measurement"]["ber"] is None
+    assert result["measurement"]["bler"] is None
+
+
 def test_incorrect_information_bit_total_is_rejected(full_request: dict[str, Any]) -> None:
     result = _complete_full_result(full_request, bit_errors=1, block_errors=1)
     result["measurement"]["information_bits"] += 1

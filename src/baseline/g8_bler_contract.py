@@ -175,6 +175,36 @@ BOUNDED_SMOKE_LABEL = "NON-SCIENTIFIC BOUNDED SMOKE"
 # Count-authoritative measurement semantics
 # --------------------------------------------------------------------------
 
+# These definitions are deliberately plain contract data.  They are the
+# domain the future runner must compare, not an interpretation left to an
+# implementation or to a result writer.
+TRIAL_DEFINITION = (
+    "one independently generated K-bit LDPC information block for the exact "
+    "work-unit identity"
+)
+COMPARISON_DOMAIN = (
+    "the complete K-bit information vector accepted by the LDPC encoder and "
+    "returned by the decoder adapter, where K = bler_identity.k_and_n[0]"
+)
+BIT_ERROR_DEFINITION = (
+    "the Hamming distance between the transmitted and decoded K-bit information vectors"
+)
+BLOCK_ERROR_DEFINITION = (
+    "one block error iff at least one of those K decoded information bits differs"
+)
+DECODER_EXCEPTION_POLICY = (
+    "an encoder/decoder exception or malformed decoder output causes failed "
+    "execution; it is never recorded as a completed characterized block"
+)
+COUNT_CROSS_INVARIANTS = (
+    "block_errors == 0 iff bit_errors == 0",
+    "block_errors <= bit_errors <= block_errors * K when block_errors > 0",
+    "trials_completed <= trials_requested",
+    "block_errors <= trials_completed",
+    "information_bits == trials_completed * K",
+    "bit_errors <= information_bits",
+)
+
 COUNT_FIELDS_AUTHORITATIVE = (
     "trials_completed",
     "information_bits",
@@ -528,6 +558,7 @@ def recompute_measurements(
     information_bits: int,
     bit_errors: int,
     block_errors: int,
+    information_length: int,
 ) -> dict[str, Any]:
     """Derive every reported float from the authoritative counts."""
 
@@ -535,8 +566,19 @@ def recompute_measurements(
     information_bits = _require_nonnegative_int(information_bits, "information_bits")
     bit_errors = _require_nonnegative_int(bit_errors, "bit_errors")
     block_errors = _require_nonnegative_int(block_errors, "block_errors")
+    information_length = _require_exact_int(information_length, "K")
+    _require(information_length > 0, "K must be positive")
     _require(block_errors <= trials_completed, "block_errors cannot exceed trials_completed")
     _require(bit_errors <= information_bits, "bit_errors cannot exceed information_bits")
+    _require(
+        (block_errors == 0) == (bit_errors == 0),
+        "block_errors == 0 iff bit_errors == 0",
+    )
+    if block_errors > 0:
+        _require(
+            block_errors <= bit_errors <= block_errors * information_length,
+            "bit_errors must be between block_errors and block_errors * K",
+        )
     if trials_completed == 0:
         return {"ber": None, "bler": None, "bler_confidence_low": None, "bler_confidence_high": None}
     low, high = wilson_interval(block_errors, trials_completed)
@@ -843,6 +885,7 @@ def build_work_unit_result(
         information_bits=information_bits,
         bit_errors=bit_errors,
         block_errors=block_errors,
+        information_length=information_length,
     )
     full_strength = request["execution_class"] == EXECUTION_CLASS_FULL_STRENGTH
     complete = (
@@ -1010,6 +1053,7 @@ def validate_work_unit_result(
         information_bits=information_bits,
         bit_errors=bit_errors,
         block_errors=block_errors,
+        information_length=information_length,
     )
     for name, expected in derived.items():
         stored = measurement[name]

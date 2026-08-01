@@ -213,6 +213,30 @@ def _verify_schemas(payload: dict[str, Any]) -> None:
     )
 
     counts = payload["count_authority"]
+    _require(
+        counts["trial_definition"] == contract.TRIAL_DEFINITION,
+        "the trial definition changed",
+    )
+    _require(
+        counts["comparison_domain"] == contract.COMPARISON_DOMAIN,
+        "the count comparison domain changed",
+    )
+    _require(
+        counts["bit_error_definition"] == contract.BIT_ERROR_DEFINITION,
+        "the bit-error definition changed",
+    )
+    _require(
+        counts["block_error_definition"] == contract.BLOCK_ERROR_DEFINITION,
+        "the block-error definition changed",
+    )
+    _require(
+        counts["decoder_exception_policy"] == contract.DECODER_EXCEPTION_POLICY,
+        "the decoder-exception policy changed",
+    )
+    _require(
+        counts["cross_count_invariants"] == list(contract.COUNT_CROSS_INVARIANTS),
+        "the cross-count invariants changed",
+    )
     _require(counts["bler_rule"] == "block_errors / trials_completed", "the BLER estimate rule changed")
     _require(counts["ber_rule"] == "bit_errors / information_bits", "the BER estimate rule changed")
     _require(counts["counts_override_stored_floats"] is True, "stored floats may override counts")
