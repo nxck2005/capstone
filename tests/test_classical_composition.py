@@ -1307,26 +1307,219 @@ def test_a_resumed_campaign_after_one_pass_may_run_exactly_the_second() -> None:
     assert resumed.exhausted is True
 
 
-def test_resumed_state_is_validated_rather_than_trusted() -> None:
-    good = SelectionCampaign(CLASSICAL_ADAPTIVE)
-    good.run_pass(PASS_ONE, _selector, scorer="clean")
-    [first] = good.state()
+# --------------------------------------------------------------------------
+# Resumed state enforces every live invariant, not four of them
+# --------------------------------------------------------------------------
+#
+# A campaign that dies mid-sweep is resumed from stored PassResults.  Before
+# PB_3C those were trusted: `_admit_resumed()` checked the type, a known pass
+# id, no duplicate id and a matching mode, while `run_pass()` additionally
+# checked sequence position, a non-blank scorer, scorer uniqueness across
+# passes and Selection typing.  So the interruption path the resumable design
+# exists for was the one honouring the weaker contract.
+#
+# The permitted sequence is now derived from `selection_passes()` and the
+# supplied state must be an exact ordered *prefix* of it.
 
+
+def _completed(pass_id: int, scorer: str, mode: str = CLASSICAL_ADAPTIVE) -> PassResult:
+    """A stored PassResult, built directly rather than by running a campaign."""
+
+    return PassResult(
+        pass_id=pass_id,
+        mode=mode,
+        scorer=scorer,
+        selections=(select_best([_evaluation(870, [0.01])]),),
+    )
+
+
+def _pass_one() -> PassResult:
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    campaign.run_pass(PASS_ONE, _selector, scorer="clean")
+    [first] = campaign.state()
+    return first
+
+
+def test_resumed_pass_two_without_pass_one_is_rejected() -> None:
+    with pytest.raises(SelectionPassError, match="ordered prefix"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE, completed=(_completed(PASS_TWO, "artifact_finetuned"),)
+        )
+
+
+def test_a_resumed_sequence_must_begin_at_pass_one() -> None:
+    allowed = selection_passes()
+    with pytest.raises(SelectionPassError, match="position 0 carries pass"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE, completed=(_completed(allowed[-1], "second"),)
+        )
+
+
+def test_a_reversed_resumed_sequence_is_rejected_not_sorted() -> None:
+    """The corruption that matters must not be tidied away."""
+
+    reversed_state = (
+        _completed(PASS_TWO, "artifact_finetuned"),
+        _completed(PASS_ONE, "clean"),
+    )
+    with pytest.raises(SelectionPassError, match="ordered prefix"):
+        SelectionCampaign(CLASSICAL_ADAPTIVE, completed=reversed_state)
+
+
+def test_a_gap_in_the_resumed_sequence_is_rejected() -> None:
+    with pytest.raises(SelectionPassError, match="ordered prefix|unknown selection"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE,
+            completed=(_completed(PASS_ONE, "clean"), _completed(3, "third")),
+        )
+
+
+def test_duplicate_resumed_pass_identifiers_are_rejected() -> None:
+    first = _pass_one()
     with pytest.raises(SelectionPassError, match="repeats pass 1"):
         SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(first, first))
-    with pytest.raises(SelectionPassError, match="unknown pass"):
+
+
+def test_an_unknown_resumed_pass_identifier_is_rejected() -> None:
+    with pytest.raises(SelectionPassError, match="unknown selection pass 3"):
+        SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(_completed(3, "third"),))
+
+
+def test_a_resumed_pass_under_the_wrong_mode_is_rejected() -> None:
+    with pytest.raises(SelectionPassError, match="ran under mode"):
+        SelectionCampaign(CLASSICAL_FIXED_MCS, completed=(_pass_one(),))
+
+
+@pytest.mark.parametrize("scorer", ["", "   ", "\t"])
+def test_a_blank_resumed_scorer_is_rejected(scorer: str) -> None:
+    with pytest.raises(SelectionPassError, match="must name its scorer"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE, completed=(_completed(PASS_ONE, scorer),)
+        )
+
+
+def test_a_resumed_scorer_reused_across_both_passes_is_rejected() -> None:
+    """The second pass exists because the scorer changed."""
+
+    with pytest.raises(SelectionPassError, match="reuses the scorer"):
         SelectionCampaign(
             CLASSICAL_ADAPTIVE,
             completed=(
-                PassResult(
-                    pass_id=3, mode=CLASSICAL_ADAPTIVE, scorer="x", selections=()
-                ),
+                _completed(PASS_ONE, "clean"),
+                _completed(PASS_TWO, "clean"),
             ),
         )
-    with pytest.raises(SelectionPassError, match="ran under mode"):
-        SelectionCampaign(CLASSICAL_FIXED_MCS, completed=(first,))
+
+
+def test_a_stored_pass_holding_a_non_selection_is_rejected() -> None:
+    malformed = PassResult(
+        pass_id=PASS_ONE,
+        mode=CLASSICAL_ADAPTIVE,
+        scorer="clean",
+        selections=("not a selection",),  # type: ignore[arg-type]
+    )
+    with pytest.raises(SelectionPassError, match="must carry Selections"):
+        SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(malformed,))
+
+
+def test_resumed_state_that_is_not_a_pass_result_is_rejected() -> None:
     with pytest.raises(SelectionPassError, match="must be PassResults"):
         SelectionCampaign(CLASSICAL_ADAPTIVE, completed=({"pass_id": 1},))
+
+
+def test_more_resumed_passes_than_the_configured_limit_are_rejected() -> None:
+    with pytest.raises(SelectionPassError, match="more than the"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE,
+            completed=(
+                _completed(PASS_ONE, "clean"),
+                _completed(PASS_TWO, "artifact_finetuned"),
+                _completed(PASS_ONE, "third"),
+            ),
+        )
+
+
+def test_resumed_state_claiming_a_third_pass_is_rejected() -> None:
+    with pytest.raises(SelectionPassError, match="unknown selection pass 3|more than"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE,
+            completed=(
+                _completed(PASS_ONE, "clean"),
+                _completed(PASS_TWO, "artifact_finetuned"),
+                _completed(3, "third"),
+            ),
+        )
+
+
+def test_the_three_valid_resumed_sequences_are_accepted() -> None:
+    """Exactly (), (pass 1) and (pass 1, pass 2) — nothing else."""
+
+    allowed = selection_passes()
+
+    empty = SelectionCampaign(CLASSICAL_ADAPTIVE, completed=())
+    assert empty.completed_passes == ()
+    assert empty.exhausted is False
+
+    one = SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(_pass_one(),))
+    assert one.completed_passes == (allowed[0],)
+    assert one.exhausted is False
+
+    both = SelectionCampaign(
+        CLASSICAL_ADAPTIVE,
+        completed=(
+            _completed(PASS_ONE, "clean"),
+            _completed(PASS_TWO, "artifact_finetuned"),
+        ),
+    )
+    assert both.completed_passes == allowed
+    assert both.exhausted is True
+
+
+def test_scorer_uniqueness_is_identical_fresh_and_resumed() -> None:
+    """The two paths share one helper, so they cannot drift apart."""
+
+    fresh = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    fresh.run_pass(PASS_ONE, _selector, scorer="clean")
+    with pytest.raises(SelectionPassError, match="reuses the scorer"):
+        fresh.run_pass(PASS_TWO, _selector, scorer="clean")
+
+    resumed = SelectionCampaign(CLASSICAL_ADAPTIVE, completed=(_pass_one(),))
+    with pytest.raises(SelectionPassError, match="reuses the scorer"):
+        resumed.run_pass(PASS_TWO, _selector, scorer="clean")
+
+
+def test_the_permitted_sequence_is_read_from_config_not_assumed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A future spec change to the pass sequence must be respected.
+
+    Nothing may assume passes always begin at 1 and end at 2 — neither the
+    resume prefix rule nor `run_pass`'s next-pass arithmetic.
+    """
+
+    import baseline.classical.composition as module
+
+    monkeypatch.setattr(module, "selection_passes", lambda: (1, 2, 3))
+
+    campaign = SelectionCampaign(CLASSICAL_ADAPTIVE)
+    campaign.run_pass(1, _selector, scorer="a")
+    campaign.run_pass(2, _selector, scorer="b")
+    assert campaign.exhausted is False
+    campaign.run_pass(3, _selector, scorer="c")
+    assert campaign.exhausted is True
+
+    # And the prefix rule follows the same three-pass sequence.
+    resumed = SelectionCampaign(
+        CLASSICAL_ADAPTIVE,
+        completed=(_completed(1, "a"), _completed(2, "b")),
+    )
+    assert resumed.completed_passes == (1, 2)
+    assert resumed.exhausted is False
+    with pytest.raises(SelectionPassError, match="ordered prefix"):
+        SelectionCampaign(
+            CLASSICAL_ADAPTIVE,
+            completed=(_completed(1, "a"), _completed(3, "c")),
+        )
 
 
 def test_a_pass_must_return_selections() -> None:

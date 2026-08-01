@@ -1248,29 +1248,115 @@ class SelectionCampaign:
         self.mode = self.policy.mode
         self._allowed = selection_passes()
         self._completed: dict[int, PassResult] = {}
-        for result in completed:
-            self._admit_resumed(result)
+        self._admit_resumed_sequence(completed)
 
-    def _admit_resumed(self, result: PassResult) -> None:
-        if not isinstance(result, PassResult):
+    # -- shared invariants -------------------------------------------------
+    #
+    # `run_pass()` and resumed admission enforce the *same* rules through the
+    # same code.  Two parallel implementations is exactly how a resumed campaign
+    # ends up honouring a weaker contract than a live one, which was the defect
+    # this replaces: resumed state checked four things where the live path
+    # checked seven.
+
+    def _require_permitted_pass(self, pass_id: Any, what: str) -> int:
+        if isinstance(pass_id, bool) or not isinstance(pass_id, int):
             raise SelectionPassError(
-                f"resumed state must be PassResults, not {type(result).__name__}"
+                f"{what} pass identifier is not an integer: {pass_id!r}"
             )
-        if result.pass_id not in self._allowed:
+        if pass_id not in self._allowed:
             raise SelectionPassError(
-                f"resumed state carries unknown pass {result.pass_id!r}; "
-                f"permitted passes are {self._allowed}"
+                f"{what} carries unknown selection pass {pass_id}; BR-4 "
+                f"selection runs passes {self._allowed} and then stops (AM-54)"
             )
-        if result.pass_id in self._completed:
+        return pass_id
+
+    def _require_mode(self, mode: str, pass_id: int, what: str) -> None:
+        if mode != self.mode:
             raise SelectionPassError(
-                f"resumed state repeats pass {result.pass_id}"
-            )
-        if result.mode != self.mode:
-            raise SelectionPassError(
-                f"resumed pass {result.pass_id} ran under mode {result.mode!r}, "
+                f"{what} pass {pass_id} ran under mode {mode!r}, "
                 f"not {self.mode!r}"
             )
-        self._completed[result.pass_id] = result
+
+    def _require_scorer(self, scorer: Any, pass_id: int, what: str) -> str:
+        if not isinstance(scorer, str) or not scorer.strip():
+            raise SelectionPassError(
+                f"{what} pass {pass_id} must name its scorer"
+            )
+        for done in self._completed.values():
+            if done.scorer == scorer:
+                raise SelectionPassError(
+                    f"{what} pass {pass_id} reuses the scorer {scorer!r} of "
+                    "an earlier pass; the second pass exists precisely because "
+                    "the scorer changed"
+                )
+        return scorer
+
+    def _require_selections(
+        self, selections: Any, pass_id: int, verb: str
+    ) -> tuple[Selection, ...]:
+        if isinstance(selections, Selection):
+            selections = (selections,)
+        selections = tuple(selections)
+        for selection in selections:
+            if not isinstance(selection, Selection):
+                raise SelectionPassError(
+                    f"a selection pass must {verb} Selections, not "
+                    f"{type(selection).__name__}"
+                )
+        return selections
+
+    def _admit_resumed_sequence(self, completed: Sequence[PassResult]) -> None:
+        """Resumed state must be an exact ordered prefix of the allowed passes.
+
+        The rule is derived from ``selection_passes()`` rather than from
+        arithmetic on how many results arrived, so a spec change to the number
+        or numbering of passes is respected instead of silently assuming the
+        sequence always runs 1, 2.
+
+        Validation happens **in the order supplied**.  Malformed state is never
+        sorted into validity: a reversed ``(2, 1)`` is a corrupted resume, and
+        quietly reordering it would hide precisely the corruption that matters.
+        """
+
+        try:
+            supplied = list(completed)
+        except TypeError:
+            raise SelectionPassError(
+                f"resumed state is not a sequence of PassResults: {completed!r}"
+            ) from None
+
+        if len(supplied) > len(self._allowed):
+            raise SelectionPassError(
+                f"resumed state carries {len(supplied)} completed passes, more "
+                f"than the {len(self._allowed)} BR-4 selection permits (AM-54)"
+            )
+
+        for index, result in enumerate(supplied):
+            if not isinstance(result, PassResult):
+                raise SelectionPassError(
+                    f"resumed state must be PassResults, not "
+                    f"{type(result).__name__}"
+                )
+            self._require_permitted_pass(result.pass_id, "resumed state")
+            if result.pass_id in self._completed:
+                raise SelectionPassError(
+                    f"resumed state repeats pass {result.pass_id}"
+                )
+            expected = self._allowed[index]
+            if result.pass_id != expected:
+                raise SelectionPassError(
+                    f"resumed state is not an ordered prefix of the permitted "
+                    f"passes {self._allowed}: position {index} carries pass "
+                    f"{result.pass_id}, expected pass {expected}. Resumed state "
+                    f"must be one of (), {self._allowed[:1]} or {self._allowed}, "
+                    "in that order"
+                )
+            self._require_mode(result.mode, result.pass_id, "resumed")
+            self._require_scorer(result.scorer, result.pass_id, "resumed")
+            self._require_selections(
+                result.selections, result.pass_id, "carry"
+            )
+            self._completed[result.pass_id] = result
 
     @property
     def completed_passes(self) -> tuple[int, ...]:
@@ -1289,13 +1375,7 @@ class SelectionCampaign:
     def run_pass(self, pass_id: Any, selector: Any, *, scorer: str) -> PassResult:
         """Run one pass.  Out of order, twice, or a third time: all refused."""
 
-        if isinstance(pass_id, bool) or not isinstance(pass_id, int):
-            raise SelectionPassError(f"pass identifier is not an integer: {pass_id!r}")
-        if pass_id not in self._allowed:
-            raise SelectionPassError(
-                f"unknown selection pass {pass_id}; BR-4 selection runs passes "
-                f"{self._allowed} and then stops (AM-54)"
-            )
+        pass_id = self._require_permitted_pass(pass_id, "run_pass")
         if pass_id in self._completed:
             raise SelectionPassError(f"selection pass {pass_id} has already run")
         if self.exhausted:
@@ -1303,33 +1383,22 @@ class SelectionCampaign:
                 f"selection is exhausted after pass {max(self._allowed)}; "
                 "iteration terminates there (AM-54)"
             )
-        expected = len(self._completed) + 1
+        # The next pass is the next *allowed* one, not `len(completed) + 1`:
+        # the permitted sequence comes from the spec, so it is read, not assumed.
+        expected = self._allowed[len(self._completed)]
         if pass_id != expected:
             raise SelectionPassError(
                 f"selection pass {pass_id} cannot run before pass {expected}"
             )
-        if not str(scorer).strip():
-            raise SelectionPassError("a selection pass must name its scorer")
-        if any(done.scorer == scorer for done in self._completed.values()):
-            raise SelectionPassError(
-                f"pass {pass_id} reuses the scorer {scorer!r} of an earlier pass; "
-                "the second pass exists precisely because the scorer changed"
-            )
+        scorer = self._require_scorer(scorer, pass_id, "run_pass")
         context = PassContext(pass_id, dict(self._completed))
-        selections = selector(context)
-        if isinstance(selections, Selection):
-            selections = (selections,)
-        selections = tuple(selections)
-        for selection in selections:
-            if not isinstance(selection, Selection):
-                raise SelectionPassError(
-                    "a selection pass must return Selections, not "
-                    f"{type(selection).__name__}"
-                )
+        selections = self._require_selections(
+            selector(context), pass_id, "return"
+        )
         result = PassResult(
             pass_id=pass_id,
             mode=self.mode,
-            scorer=str(scorer),
+            scorer=scorer,
             selections=selections,
         )
         self._completed[pass_id] = result
