@@ -1126,11 +1126,108 @@ sweep budget (an implementation safety boundary with no scientific content). Rec
 as an amendment would use the amendment record to dignify an implementation detail, which §17's
 preamble is explicitly against.
 
+## PB_3C — the fixed-modulation reference, resumed state, and the frozen selection policy
+
+PB_3 was substantially right and is not reopened. Four things were corrected.
+
+**The fixed-modulation curve searched for its modulation.** BR-9 says
+`params.baseline.core_modulation` *defines* the fixed-modulation reference curve. The
+`classical_fixed_mod` branch of `resolve_curve()` instead enumerated every modulation present in the
+supplied grid, summed each one's per-SNR best expected accuracies and kept whichever total was
+highest. That is a second optimizer wearing the reference arm's label, and on a grid where BPSK
+dominates it would have reported a BPSK curve as the QPSK reference. The correction reads
+`baseline.core_modulation` through the config interface — the value is never written in source — and
+checks it against `baseline.modulations`. The old test could not have caught this: it asserted only
+that one modulation was held across the grid, which a searching implementation also satisfies. The
+replacement asserts the held modulation *is* the configured one, on grids where BPSK and where
+16-QAM each win the whole-grid total outright, with the adaptive curve on the same grid confirming
+the dominant modulation really would have been chosen.
+
+**Three cases are now distinguished, and the third is the interesting one.** An undeclared
+`core_modulation` is a contradiction between two parameters and raises. No candidate using it at a
+required SNR is an incomplete candidate grid and raises, naming the SNR. But candidates that exist
+and are *all* infeasible or uncharacterized do **not** raise and are **not** replaced: the cell is
+preserved with `selected = None` and `reason = no_eligible_candidate`, carrying every evaluation.
+Raising there would have been the tidier-looking choice and the wrong one — structural
+infeasibility, codec infeasibility and missing BLER characterization are exactly what G-8's
+completeness preflight exists to refuse, and it cannot refuse a cell that was deleted or that
+terminated the resolve.
+
+**Resumed campaign state was trusted rather than validated.** `run_pass()` enforced seven
+invariants; `_admit_resumed()` enforced four. So the crash-recovery path — the whole reason the
+campaign is serializable — honoured the weaker contract, and would accept pass two with no pass one,
+a reversed `(2, 1)`, a gap, a blank or duplicated scorer, or a `PassResult` whose `selections` held
+strings. Resumed state is now required to be an **exact ordered prefix** of `selection_passes()`:
+`result.pass_id == allowed[i]` at each index, validated in the order supplied and never sorted,
+because sorting malformed state into validity hides precisely the corruption worth catching. Four
+shared helpers carry the invariants and both paths call them, so they cannot drift again;
+`run_pass()`'s `len(completed) + 1` arithmetic became `allowed[len(completed)]`, and a test
+monkeypatches the sequence to `(1, 2, 3)` to prove nothing assumes passes run 1 then 2.
+
+**The tie-break order did not change; its status did.** The order was already good and already
+documented. The problem was that it could still be revised after the BR-4 table existed, and a
+ranking rule chosen after seeing the data is not preregistered. It is now recorded in the
+adjudication as frozen before G-8, checked field-by-field against the live module, and reduced to a
+`selection_policy_sha256` over canonical serialization of six policy fields — tie-break order, tie
+equality, the fixed-modulation source and configured value, the pass sequence and the termination
+pass. Recording the order alone would not have been enough, because implementation and generator
+could be edited together; the verifier therefore recomputes the digest independently, and a future
+G-8 campaign manifest must bind it alongside the adjudication's own SHA-256 and refuse to resume or
+adjudicate if either differs. Exact float equality remains the definition of a tie — no tolerance
+parameter was added, and the verifier asserts that by name.
+
+The adjudication `schema_version` moved **1 → 2**. The verifier now *requires* fields version 1
+never emitted, so a version-1 artifact can no longer satisfy it; additive-but-mandatory is still a
+break for any reader that trusts the version, and this repository has no rule exempting it. That is
+an adjudication-schema change only — no PB_2C measurement artifact, no bounded execution, no
+parameter and no specification text moved.
+
+**No amendment.** The spec defines no BR-4 selection tie-break parameter at all
+(`baseline.outage_class_tie_break` is BR-13's outage class, `reference_classifier.checkpoint_tie_break`
+is which epoch to keep), so freezing an implementation-level total order contradicts nothing. And
+the fixed-modulation repair *restores* BR-9's existing semantics rather than altering them — the
+same situation as PB_1C, which also needed none. Every existing requirement is satisfiable without
+changing any of them, which is the bar §17's preamble sets.
+
 ## Remaining frontier
 
-W4 is complete. The single next engineering task is **G-8 classical validation work** — the full BR-4
-validation sweep and the operating-point decision. As of this entry: the full BR-4 sweep has not
-started, G-8 is unresolved, no bandwidth ratio or operating point has been selected, no model has
+W4 is complete, including PB_3C. The single next engineering task is **G-8 classical validation
+work**, and it begins with **campaign implementation and preflight** — the sweep is step eight of
+twelve, and steps one to seven do not exist yet.
+
+The committed G-2 BLER evidence characterises exactly one physical-layer identity (`K=128, N=256,
+BG2, Z=22, rate 1/2, offset-min-sum 0.5, 50 iterations`) at four SNR points per modulation. It is a
+conformance artifact. It remains valid for G-2 and **must not be extrapolated or generalised** into
+the BR-4 characterization table; the lookup already fails closed outside it, and that behaviour is
+to be preserved rather than worked around.
+
+G-8 must: (1) enumerate the complete **structural candidate/configuration grid** and the code-block
+identity grid; (2) identify every required `(rate, SNR, block identity, modulation)`
+characterization; (3) run and archive **full-strength BR-4 physical-layer BLER characterization** at
+the configured trial count; (4) build a separate hash-bound G-8 `BlerTable` artifact and loader;
+(5) verify complete coverage before selection; (6) generate cached codec reconstructions and
+measured clean-classifier accuracies on validation; (7) construct measured codec-accuracy objects
+from verified artifacts rather than manual counts; (8) execute pass one; (9) build the training-only
+artifact corpus; (10) fine-tune the artifact classifier; (11) execute pass two once; and
+(12) adjudicate the operating ratios and the other G-8 outputs.
+
+Two terms are load-bearing. It is a *structural* candidate grid, not a "feasible" one — codec
+feasibility is unknown until the codec-search artifacts exist, while structural transport identities
+can be enumerated first. And it is *physical-layer* BLER characterization, not "validation" BLER —
+BLER is a channel-simulation artifact; "validation" is reserved for codec and classifier records
+derived from the validation split.
+
+G-8's outputs are `efficiency_ratio`, `crossover_ratio`, `low_ratio_operating_point`, classical
+non-degeneracy, the one-ratio-versus-two-ratio full-strength ER-1 decision, the artifact-finetuned
+classifier release, the final pass-two classical selections, and the frozen H2 validation window.
+Note that G-8 selects the *parameter named* `crossover_ratio` by ER-3's learned-blind classical
+rule; it does **not** decide whether a learned-versus-classical curve crossover exists, which stays
+at G-10 after learned models exist. Changing the tie-break order once the sweep has started
+invalidates the campaign.
+
+PB_3C builds and executes none of that. As of this entry: the full BR-4 sweep has not
+started, no G-8 characterization has run, G-8 is unresolved, no real `G8Authorization` exists in any
+tracked non-test file, no bandwidth ratio or operating point has been selected, no model has
 been trained or fine-tuned, the artifact-finetuned classifier does not exist, λ is uncalibrated, ER-9
 is unimplemented, and the test split is sealed until G-12 at W11. PR-1 (literature review), PR-2
 (Gantt chart) and PR-9 (deployment dossier and author/guide acknowledgement) remain outstanding

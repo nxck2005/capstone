@@ -117,11 +117,22 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**W4 is complete.** The single next engineering task is the **G-8 classical validation work** — the
-full BR-4 validation sweep, run through the selection machinery `src/baseline/classical/composition.py`
-provides, and then the operating-point decision. G-8 has not started, and neither has the sweep: the
-selection entry point refuses any workload above its bounded budget unless an explicit
-`G8Authorization` is constructed, and nothing in this repository constructs one. W4's PB_1 phase is
+**W4 is complete**, including the PB_3C correction. The single next engineering task is the **G-8
+classical validation work**, and it begins with **campaign implementation and preflight** rather
+than with the sweep — the sweep is step eight of twelve. The committed G-2 BLER evidence
+characterises one physical-layer identity at four SNR points per modulation: that is a conformance
+artifact, it stays valid for G-2, and it **must not be extrapolated** into the BR-4 characterization
+table. G-8 has to enumerate the structural candidate/configuration and code-block identity grids,
+run and archive full-strength BR-4 physical-layer BLER characterization, build a hash-bound G-8
+`BlerTable` and verify complete coverage, and derive measured codec and clean-classifier accuracies
+from verified artifacts — before pass one, the training-only artifact corpus, the artifact-classifier
+fine-tune, the single pass two and the adjudication. Nothing of that exists yet. G-8 has not started
+and neither has the sweep: the selection entry point refuses any workload above its bounded budget
+unless an explicit `G8Authorization` is constructed, and nothing in this repository constructs one.
+**PB_3C** corrected the `classical_fixed_mod` curve to *read* `params.baseline.core_modulation`
+instead of searching for a modulation (BR-9), made resumed campaign state an exact ordered prefix of
+the permitted passes instead of trusting stored results, and froze the selection tie-break order
+before G-8 behind an independently recomputed `selection_policy_sha256`. W4's PB_1 phase is
 complete **including its PB_1C correction**, which
 removed a duplicated TS 38.212 §5.4.2.2 modulation bit interleaver from the classical transmit path
 — Sionna already applies it after rate matching, so the project layer must not. No `src/baseline/ldpc/`

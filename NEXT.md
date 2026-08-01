@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-01 · **Phase:** **W4 complete (PB_3 landed). G-8 classical validation work is next and has not started.**
+**Last updated:** 2026-08-01 · **Phase:** **W4 complete (PB_3 landed, PB_3C corrected it). G-8 classical validation work is next and has not started — it begins with campaign implementation and preflight, not with the sweep.**
 
 ## Single next task
 
@@ -33,10 +33,14 @@ does not, it is wrong and this block is right.**
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G-8 classical validation work is the single next engineering task**, and it has not started. It
-has two parts: execute the full BR-4 validation sweep using the selection machinery PB_3 built, then
-decide the operating points. Everything else stays behind its own gate — do not calibrate λ, train
-learned models, implement ER-9, or access the test split until theirs.
+**G-8 classical validation work is the single next engineering task**, and it has not started.
+Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
+ER-9, or access the test split until theirs.
+
+⚠️ **It does not begin by constructing a `G8Authorization` and calling `select_operating_points()`.**
+That was the previous hand-off's framing and it was wrong, in a way that would have wasted a
+session: it implies the only missing piece is permission. The missing piece is the **science**. See
+**"What G-8 actually has to build"** below — twelve steps, of which the sweep is step eight.
 
 **Where W4 landed.** `instructions/RESUME.md` is the operational cursor for the four-phase sequence
 and wins on progress; every step in all four phases is now `done`. PA recovered and hardened the
@@ -76,12 +80,85 @@ maximum enforced by a state machine that also counts the passes a resumed campai
 cells unless an explicit typed `G8Authorization` is passed. There is no environment variable, no
 default-true flag, and **no tracked non-test file in this repository constructs one** — each of
 those absences is asserted by a test, not claimed in a comment. Doing the G-8 sweep means
-constructing that authorization deliberately, at the gate.
+constructing that authorization deliberately, at the gate — but the authorization is the **last**
+obstacle, not the first. The sweep is step eight of twelve and steps one to seven do not exist yet;
+see "What G-8 actually has to build" below.
 
 `results/baseline/w4/integration_adjudication.json` closes W4 and states, in machine-readable fields
 and in prose, that this is bounded validation/plumbing integration, not the BR-4 full validation
 sweep, not a G-8 operating-point selection and not test evidence. PB_3 needed **no amendment**: it
 implemented and verified existing specification semantics without changing them.
+
+**What PB_3C corrected.** Two defects in the machinery above, plus two process gaps. (1) The
+`classical_fixed_mod` curve **searched** for its modulation — it enumerated every modulation in the
+grid, summed each one's per-SNR bests and kept the highest total — where BR-9 says
+`params.baseline.core_modulation` *defines* that curve. It is now read (`qpsk`), never chosen, and
+`held_fixed` records the value and its source. A configured modulation that is undeclared raises; one
+with no candidate at a required SNR raises and names the SNR; one whose candidates all turn out
+infeasible or uncharacterized is **preserved** as a curve point with `selected = None` and
+`reason = no_eligible_candidate`, because that is exactly the cell G-8's completeness preflight has
+to be able to refuse. (2) **Resumed campaign state was trusted.** `run_pass()` checked seven
+invariants and `_admit_resumed()` checked four, so the crash-recovery path — the one the resumable
+design exists for — honoured the weaker contract and would accept pass two with no pass one, a
+reversed sequence, a duplicated scorer or a `PassResult` holding objects that are not `Selection`s.
+Resumed state must now be an **exact ordered prefix** of `selection_passes()`, validated in the order
+supplied and never sorted, with both paths sharing one set of helpers. (3) The tie-break order is
+**unchanged** but now frozen before G-8 and fingerprinted as `selection_policy_sha256`. (4) This
+hand-off was corrected. PB_3C needed **no amendment** either: it restores BR-9's existing semantics,
+and the spec defines no BR-4 selection tie-break to contradict.
+
+### What G-8 actually has to build — read this before starting it
+
+The committed G-2 BLER evidence characterises **exactly one** physical-layer identity (`K=128,
+N=256, BG2, Z=22, rate 1/2, offset-min-sum 0.5, 50 iterations`) at four SNR points per modulation.
+That is a **conformance** artifact. It is **not** the BR-4 characterization table, it remains valid
+for G-2, and **it must not be extrapolated or generalised** — the lookup already fails closed
+outside it, which is the behaviour to preserve rather than work around.
+
+So G-8 begins by implementing and preflighting the campaign:
+
+1. enumerate the complete **structural candidate/configuration grid** and the code-block identity
+   grid;
+2. identify every required `(rate, SNR, block identity, modulation)` characterization;
+3. run and archive **full-strength BR-4 physical-layer BLER characterization** at the configured
+   trial count;
+4. build a separate hash-bound G-8 `BlerTable` artifact and loader;
+5. verify complete coverage **before** selection;
+6. generate cached codec reconstructions and measured clean-classifier accuracies on validation;
+7. construct measured codec-accuracy objects from verified artifacts, never from manual counts;
+8. execute pass one;
+9. build the training-only artifact corpus;
+10. fine-tune the artifact classifier;
+11. execute pass two, once;
+12. adjudicate the operating ratios and the other G-8 outputs.
+
+**Two words are load-bearing.** It is a *structural* candidate grid, not a "feasible" one: codec
+feasibility is not known until the codec-search artifacts have been produced, whereas structural
+transport identities can be enumerated up front. And it is *physical-layer* BLER characterization,
+not "validation" BLER: BLER is a channel-simulation artifact. Reserve "validation" for
+codec/classifier records derived from the validation split.
+
+**G-8's outputs are:** `efficiency_ratio`; `crossover_ratio`; `low_ratio_operating_point`; classical
+non-degeneracy; the one-ratio-versus-two-ratio full-strength ER-1 decision; the artifact-finetuned
+classifier release; the final pass-two classical selections; and the frozen H2 validation window.
+
+⚠️ **G-8 selects the parameter named `crossover_ratio` using ER-3's learned-blind classical rule. It
+does not decide whether a learned-versus-classical curve crossover actually exists; that decision
+remains at G-10, after learned models exist.** The name is a trap for a reader who has not been told
+this.
+
+**The campaign-opening manifest must bind three things, and the runner must refuse to resume or
+adjudicate if any of them differs:** the SHA-256 of
+`results/baseline/w4/integration_adjudication.json`; the `selection_policy_sha256` recorded inside it
+(currently `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`); and the PB_3C green
+commit or the resolved selection-source identities. That binding is what makes the preregistration
+machine-enforceable rather than merely historically visible. **Changing the tie-break order after the
+sweep starts invalidates the campaign** — there is no partial-credit path, because a ranking rule
+chosen after seeing the table is not a preregistered rule.
+
+**As of PB_3C:** no real G-8 authorization exists anywhere in tracked non-test code; no sweep has
+started; no characterization has run; no ratio has been selected; no classifier has been fine-tuned;
+the test split is sealed until G-12 at W11; and PR-1, PR-2 and PR-9 remain outstanding.
 
 **What PB_2 landed.** The outage class is selected by counting labels across the *entire* committed
 Imagenette-160 validation manifest: the split is exactly stratified, so all ten classes tie at 100
@@ -241,8 +318,9 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 7. ~~**W4 PB_2, including the PB_2C correction — outage policy, records and bounded evidence.**~~
    **Complete.**
 8. ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication.**~~ **Complete.**
-9. **G-8 classical validation work — the full BR-4 validation sweep and the operating-point
-   decision. Next, not started.**
+9. **G-8 classical validation work — campaign implementation and preflight, then the full BR-4
+   validation sweep and the operating-point decision. Next, not started.** The sweep is step eight
+   of twelve; see "What G-8 actually has to build".
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
@@ -463,11 +541,14 @@ Review criterion** — it first appears at the Second — so these marks are for
 transparency-bitrate probe.** Do not reopen the reference-classifier recipe, start its fallback
 ladder, implement the G-7 width fallback, select an operating point from the probe's forecasts, or
 open another full-spec audit round without new evidence. **The single next engineering task is the
-G-8 classical validation work** — the full BR-4 validation sweep, executed through the selection
-machinery `src/baseline/classical/composition.py` already provides, followed by the operating-point
-decision. `instructions/RESUME.md` carries the facts that work needs. Note before starting it: the
-sweep entry point refuses any workload above 64 candidates / 25 samples / 512 cells unless an
-explicit `G8Authorization` is constructed, which nothing in this repository does today.
+G-8 classical validation work**, and it starts with **campaign implementation and preflight** — the
+sweep itself is step eight of twelve. `src/baseline/classical/composition.py` provides the selection
+machinery (corrected by PB_3C), but the characterization it would select *from* does not exist yet:
+the committed G-2 table covers one physical-layer identity at four SNR points per modulation and
+must not be extrapolated. Read "What G-8 actually has to build" above before starting, and
+`instructions/RESUME.md` for the facts that work needs. Note also: the sweep entry point refuses any
+workload above 64 candidates / 25 samples / 512 cells unless an explicit `G8Authorization` is
+constructed, which nothing in this repository does today.
 Registration remains confirmed (AM-63), and PR-9's author-owned hardware-alternative acknowledgement
 remains non-blocking.
 
@@ -747,8 +828,10 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
 probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The single next engineering
-task is the **G-8 classical validation work**: the full BR-4 validation sweep and the
-operating-point decision. PR-1 and PR-2 remain parallel First Review work, and the author-owned
+task is the **G-8 classical validation work**: campaign implementation and preflight, then the full
+BR-4 validation sweep and the operating-point decision. W4 also includes **PB_3C**, the corrective
+phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
+selection policy. PR-1 and PR-2 remain parallel First Review work, and the author-owned
 PR-9 acknowledgement remains open.
 
 | # | Do | Owner | Why now | Blocks |
@@ -763,7 +846,7 @@ PR-9 acknowledgement remains open.
 | ~~5b~~ | ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2**~~ **DONE 2026-07-30 — G-2 PASS** | — | Golden, known-answer, BLER and packetisation evidence verified | ~~W4+~~ |
 | ~~5c~~ | ~~**W4 PA / PB_1 / PB_2 bounded classical-baseline integration**~~ **DONE 2026-07-31 — including the PB_1C and PB_2C corrections** | — | Validated physical layer integrated; no sweep started | ~~PB_3~~ |
 | ~~5d~~ | ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication**~~ **DONE 2026-08-01** | — | Selection machinery built and verified; nothing run at scale, no amendment needed | ~~G-8~~ |
-| 5e | **G-8 classical validation work — the full BR-4 validation sweep, then the operating-point decision** | agent | W4 closed; the machinery exists and the sweep is the next scientific event | ER-1, H1–H4, the learned arms |
+| 5e | **G-8 classical validation work — campaign implementation and preflight, then the full BR-4 validation sweep and the operating-point decision** | agent | W4 closed and PB_3C corrected the selection machinery; the characterization the sweep selects from still has to be built | ER-1, H1–H4, the learned arms |
 | 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
 | 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
 
