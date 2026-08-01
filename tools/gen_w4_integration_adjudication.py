@@ -34,6 +34,7 @@ import hashlib
 import json
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -55,7 +56,16 @@ from models.frozen_reference_classifier import (  # noqa: E402
 EVIDENCE_DIR = REPO / "results" / "baseline" / "w4"
 ADJUDICATION = EVIDENCE_DIR / "integration_adjudication.json"
 
-ADJUDICATION_SCHEMA_VERSION = 1
+#: Bumped 1 → 2 at PB_3C.  The verifier now *requires* fields that version 1
+#: neither emitted nor demanded — the pre-G-8 freeze declaration, the
+#: fixed-modulation block, `resumed_state_validation`, the selection-policy
+#: fingerprint and `claims.g8_characterization_started` — so a version-1
+#: artifact can no longer satisfy the current verifier.  Additive-but-mandatory
+#: is still a compatibility break for any reader that trusts the version, and
+#: this repository has no rule exempting it, so the version moves rather than
+#: silently staying put.  This is an adjudication-schema change only: it does
+#: not touch PB_2C measurement evidence or the scientific specification.
+ADJUDICATION_SCHEMA_VERSION = 2
 
 #: The bounded evidence this adjudication stands on, hashed from disk.
 BOUND_EVIDENCE_FILES = (
@@ -229,8 +239,59 @@ def bler_characterization() -> dict[str, Any]:
     }
 
 
+#: The gate the selection policy is frozen against.  Freezing *before* the
+#: validation table exists is the whole point: once the BR-4 table is on disk,
+#: any change to the tie-break order is an after-the-fact choice, and a
+#: preregistered rule that can be revised after seeing the data is not one.
+SELECTION_POLICY_FREEZE_GATE = "G-8"
+
+#: The fields the selection-policy fingerprint covers, in canonical order.
+#: Recording the tie-break order and comparing it to the live module is
+#: necessary but not sufficient on its own — implementation and generator could
+#: in principle be edited together after sweep data exists.  The fingerprint is
+#: one short value that a future G-8 campaign manifest binds, so that kind of
+#: coordinated drift has to survive an equality check it cannot see.
+SELECTION_POLICY_FIELDS = (
+    "tie_break_order",
+    "tie_equality",
+    "fixed_modulation.source",
+    "fixed_modulation.configured_value",
+    "selection_passes",
+    "selection_termination_pass",
+)
+
+TIE_EQUALITY = "exact float equality; no tolerance parameter"
+
+
+def selection_policy_fingerprint(machinery: Mapping[str, Any]) -> str:
+    """A stable SHA-256 over the frozen selection policy.
+
+    Canonical field order, deterministic serialization: the digest is a
+    function of the policy, not of dict ordering or whitespace.  Computed by
+    this generator and **independently recomputed** by the verifier from the
+    same named fields, so neither one is trusted to have got it right alone.
+    """
+
+    covered: dict[str, Any] = {}
+    for field in SELECTION_POLICY_FIELDS:
+        head, _, tail = field.partition(".")
+        value = machinery[head]
+        if tail:
+            value = value[tail]
+        covered[field] = value
+    canonical = json.dumps(
+        [[field, covered[field]] for field in SELECTION_POLICY_FIELDS],
+        sort_keys=False,
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
+    return sha256_bytes(canonical.encode("utf-8"))
+
+
 def selection_machinery() -> dict[str, Any]:
-    return {
+    passes = list(composition.selection_passes())
+    termination = get("reference_classifier.br4_selection_terminates_after_pass")
+    machinery: dict[str, Any] = {
         "module": "src/baseline/classical/composition.py",
         "composition_formula": {
             "tb_success": "product over code blocks of (1 - BLER_r)",
@@ -246,14 +307,21 @@ def selection_machinery() -> dict[str, Any]:
             "excluded_fields": dict(composition.FEASIBILITY_KEY_EXCLUSIONS),
         },
         "tie_break_order": list(composition.TIE_BREAK_ORDER),
-        "tie_equality": "exact float equality; no tolerance parameter",
+        "tie_equality": TIE_EQUALITY,
+        "tie_break_frozen_before_g8": True,
+        "tie_break_frozen_against_gate": SELECTION_POLICY_FREEZE_GATE,
+        "fixed_modulation": {
+            "configured_value": composition.core_modulation(),
+            "source": composition.CORE_MODULATION_SOURCE,
+            "searches_modulations": False,
+            "requirement": "BR-9",
+        },
         "system_modes": list(composition.SYSTEM_MODES),
         "uncharacterized_candidates_are": "ineligible, not low-scoring",
-        "selection_passes": {
-            "permitted": list(composition.selection_passes()),
-            "terminates_after_pass": get(
-                "reference_classifier.br4_selection_terminates_after_pass"
-            ),
+        "resumed_state_validation": "exact_ordered_prefix",
+        "selection_passes": passes,
+        "selection_termination_pass": termination,
+        "selection_pass_policy": {
             "enforcement": "structural: SelectionCampaign state machine",
             "artifact_finetune_gate": get(
                 "reference_classifier.artifact_finetune_gate"
@@ -262,6 +330,9 @@ def selection_machinery() -> dict[str, Any]:
         },
         "passes_executed": 0,
     }
+    machinery["selection_policy_sha256"] = selection_policy_fingerprint(machinery)
+    machinery["selection_policy_fields"] = list(SELECTION_POLICY_FIELDS)
+    return machinery
 
 
 def sweep_guard() -> dict[str, Any]:
@@ -354,6 +425,11 @@ def build() -> dict[str, Any]:
             "bounded_validation_plumbing_integration": True,
             "br4_full_validation_sweep": False,
             "g8_operating_point_selection": False,
+            # Distinct from the sweep itself: G-8 must first *build* its
+            # characterization (the full BR-4 physical-layer BLER table, the
+            # codec reconstructions, the measured clean-classifier accuracies).
+            # None of that has run either, and PB_3C does not build it.
+            "g8_characterization_started": False,
             "test_evidence": False,
             "g8_status": "unresolved",
             "training_performed": False,

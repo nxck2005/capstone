@@ -78,7 +78,11 @@ from gen_w4_integration_adjudication import (  # noqa: E402
     PROVISIONAL_OPERATING_POINTS,
     SELECTION_SOURCES,
     bler_characterization,
+    SELECTION_POLICY_FIELDS,
+    SELECTION_POLICY_FREEZE_GATE,
+    TIE_EQUALITY,
     selection_machinery,
+    selection_policy_fingerprint,
     sweep_guard,
     worked_composition_example,
 )
@@ -1120,6 +1124,7 @@ def check_integration_adjudication(evidence: Path) -> dict[str, Any]:
     for field in (
         "br4_full_validation_sweep",
         "g8_operating_point_selection",
+        "g8_characterization_started",
         "test_evidence",
         "training_performed",
         "artifact_finetuning_performed",
@@ -1232,6 +1237,82 @@ def check_integration_adjudication(evidence: Path) -> dict[str, Any]:
     _require(
         payload["selection_machinery"]["passes_executed"] == 0,
         "the adjudication records selection passes as executed",
+    )
+
+    # ------------------------------------------------------------------
+    # The pre-G-8 selection-policy freeze, checked by name rather than only
+    # through the whole-dict equality above.  A named failure says which rule
+    # moved; "the description does not match" does not.
+    # ------------------------------------------------------------------
+    machinery = payload["selection_machinery"]
+    _require(
+        list(machinery.get("tie_break_order") or [])
+        == list(composition.TIE_BREAK_ORDER),
+        "the adjudication's tie-break order is not the implementation's: "
+        f"recorded {machinery.get('tie_break_order')!r}, "
+        f"module {list(composition.TIE_BREAK_ORDER)!r}",
+    )
+    _require(
+        machinery.get("tie_break_frozen_before_g8") is True,
+        "the adjudication does not declare the tie-break order frozen before "
+        "G-8; a selection rule that may be revised after the validation table "
+        "exists is not preregistered",
+    )
+    _require(
+        machinery.get("tie_break_frozen_against_gate")
+        == SELECTION_POLICY_FREEZE_GATE,
+        "the adjudication freezes the tie-break order against the wrong gate: "
+        f"recorded {machinery.get('tie_break_frozen_against_gate')!r}, "
+        f"expected {SELECTION_POLICY_FREEZE_GATE!r}",
+    )
+    _require(
+        machinery.get("tie_equality") == TIE_EQUALITY,
+        "the adjudication no longer defines a tie as exact equality; a "
+        "tolerance parameter would make the tie-break order negotiable",
+    )
+    _require(
+        machinery.get("resumed_state_validation") == "exact_ordered_prefix",
+        "the adjudication does not record that resumed selection state is "
+        "validated as an exact ordered prefix of the permitted passes",
+    )
+
+    # The fixed-modulation reference (BR-9), by name.
+    fixed = machinery.get("fixed_modulation") or {}
+    _require(
+        fixed.get("source") == composition.CORE_MODULATION_SOURCE
+        == "params.baseline.core_modulation",
+        "the adjudication does not name params.baseline.core_modulation as the "
+        "source of the fixed-modulation reference curve (BR-9)",
+    )
+    _require(
+        fixed.get("configured_value") == composition.core_modulation(),
+        "the adjudication records fixed modulation "
+        f"{fixed.get('configured_value')!r}, but "
+        f"{composition.CORE_MODULATION_SOURCE} resolves to "
+        f"{composition.core_modulation()!r}",
+    )
+    _require(
+        fixed.get("searches_modulations") is False,
+        "the adjudication claims the fixed-modulation curve searches "
+        "modulations; BR-9 makes it a reference, not a second optimizer",
+    )
+
+    # The fingerprint, recomputed here rather than read.  The generator and the
+    # implementation could in principle be edited together; this digest is the
+    # single value a future G-8 campaign manifest binds, so it is derived
+    # independently from the named fields.
+    _require(
+        list(machinery.get("selection_policy_fields") or [])
+        == list(SELECTION_POLICY_FIELDS),
+        "the adjudication's selection-policy fingerprint covers different "
+        f"fields: recorded {machinery.get('selection_policy_fields')!r}, "
+        f"expected {list(SELECTION_POLICY_FIELDS)!r}",
+    )
+    _require(
+        machinery.get("selection_policy_sha256")
+        == selection_policy_fingerprint(machinery),
+        "the adjudication's selection_policy_sha256 does not reproduce from "
+        "the policy fields it covers; the frozen selection policy has moved",
     )
     _require(
         payload.get("sweep_guard") == sweep_guard(),
@@ -1417,6 +1498,114 @@ def check_selection_machinery_behaviour() -> None:
         except composition.SelectionPassError:
             continue
         raise VerificationError(f"a further selection pass {third} was permitted")
+
+    # BR-9's fixed-modulation reference curve holds the *configured* modulation
+    # even when another one dominates the grid outright.  A recorded claim that
+    # the curve does not search is not proof that it does not; this is.
+    configured = composition.core_modulation()
+    dominant = next(
+        name for name in ("bpsk", "qam16", "qpsk") if name != configured
+    )
+
+    def _cell(modulation: str, correct: int, bler: float) -> Any:
+        return composition.CandidateEvaluation(
+            candidate=composition.Candidate(
+                dataset="imagenette160",
+                ratio="r_1_6",
+                modulation=modulation,
+                ldpc_rate="1/2",
+                encode_axis_px=160,
+                snr_db=12.0,
+            ),
+            status=composition.ELIGIBLE,
+            composition=composition.compose(
+                [bler], codec_accuracy=codec, outage_accuracy=outage
+            ),
+        )
+
+    grid = {
+        snr: [_cell(dominant, 990, 0.001), _cell(configured, 600, 0.50)]
+        for snr in (-6.0, 18.0)
+    }
+    curve = composition.resolve_curve(composition.CLASSICAL_FIXED_MOD, grid)
+    _require(
+        curve.held_fixed.get("modulation") == configured,
+        f"the fixed-modulation curve held {curve.held_fixed.get('modulation')!r} "
+        f"rather than the configured {configured!r} (BR-9)",
+    )
+    _require(
+        all(
+            selection.selected.candidate.modulation == configured
+            for _, selection in curve.per_snr
+        ),
+        "the fixed-modulation curve selected a non-core modulation at some SNR",
+    )
+    # ...and the adaptive curve really would have taken the other one, so the
+    # check above is discriminating rather than vacuous.
+    adaptive = composition.resolve_curve(composition.CLASSICAL_ADAPTIVE, grid)
+    _require(
+        all(
+            selection.selected.candidate.modulation == dominant
+            for _, selection in adaptive.per_snr
+        ),
+        "the fixed-modulation probe is not discriminating: the adaptive curve "
+        f"did not prefer {dominant!r}",
+    )
+
+    # Resumed state is an exact ordered prefix of the permitted passes.
+    allowed = composition.selection_passes()
+    good = composition.SelectionCampaign(composition.CLASSICAL_ADAPTIVE)
+    good.run_pass(allowed[0], _probe, scorer="clean")
+    [stored_first] = good.state()
+    resumable = composition.SelectionCampaign(
+        composition.CLASSICAL_ADAPTIVE, completed=(stored_first,)
+    )
+    _require(
+        resumable.completed_passes == (allowed[0],)
+        and resumable.exhausted is False,
+        "a valid pass-one resume was not admitted",
+    )
+
+    def _malformed(state: Any, what: str) -> None:
+        try:
+            composition.SelectionCampaign(
+                composition.CLASSICAL_ADAPTIVE, completed=state
+            )
+        except composition.SelectionPassError:
+            return
+        raise VerificationError(f"resumed state admitted {what}")
+
+    second = composition.PassResult(
+        pass_id=allowed[-1],
+        mode=composition.CLASSICAL_ADAPTIVE,
+        scorer="artifact_finetuned",
+        selections=stored_first.selections,
+    )
+    _malformed((second,), "pass two with no pass one")
+    _malformed((second, stored_first), "a reversed pass sequence")
+    _malformed(
+        (
+            stored_first,
+            composition.PassResult(
+                pass_id=allowed[-1],
+                mode=composition.CLASSICAL_ADAPTIVE,
+                scorer=stored_first.scorer,
+                selections=stored_first.selections,
+            ),
+        ),
+        "the same scorer reused across both passes",
+    )
+    _malformed(
+        (
+            composition.PassResult(
+                pass_id=allowed[0],
+                mode=composition.CLASSICAL_ADAPTIVE,
+                scorer="clean",
+                selections=("not a selection",),
+            ),
+        ),
+        "a stored pass holding a malformed selection",
+    )
 
     # The sweep guard refuses an unauthorized sweep-scale workload.
     budget = composition.sweep_budget(None)
