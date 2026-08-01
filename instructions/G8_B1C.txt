@@ -34,7 +34,7 @@ The frozen campaign values are:
 - required-identity SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`;
 - selection-policy SHA-256 `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`;
 - B1 contract ID `g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd`;
-- B1 contract-artifact SHA-256 `dfa1d68775b372037dce7d71661935026d1b8674f020114df8568961fca7945`;
+- B1 contract-artifact SHA-256 `dfa1d68775b3720375dce7d71661935026d1b8674f020114df8568961fca7945` (verified from the committed bytes; the prompt's carried spelling omitted one `5`);
 - B1 campaign-state SHA-256 `4b47e62aca0cd61930d9e389908b3dbdfb31e4f6d0be452fc9cd2cf0dfc2c3ab`.
 
 The live state must begin at `G8_B/tooling_open` with no completed or

@@ -13,9 +13,9 @@
     "phase": "G8_B",
     "produced_artifacts": [
       {
-        "bytes": 11924,
+        "bytes": 14231,
         "path": "results/baseline/g8/bler_tooling_contract.json",
-        "sha256": "dfa1d68775b3720375dce7d71661935026d1b8674f020114df8568961fca7945"
+        "sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866"
       },
       {
         "bytes": 6325,

@@ -20,7 +20,7 @@
     "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e"
   },
   "characterization_started": false,
-  "checkpoint": "B1",
+  "checkpoint": "B1C",
   "confidence": {
     "adaptive_stopping_permitted": false,
     "method": "wilson_score",
@@ -29,25 +29,25 @@
     "percent": 95,
     "role": "diagnostic only; not used in BR-4 ranking or eligibility; not a stopping rule"
   },
-  "contract_id": "g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd",
+  "contract_id": "g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975",
   "contract_sources": [
     {
-      "bytes": 46030,
+      "bytes": 57997,
       "path": "src/baseline/g8_bler_contract.py",
-      "role": "g8b_b1_contract_source",
-      "sha256": "2f5c086a25526f7320ad8e9766dc3edd2c4caac03576fb673aece96afad12279"
+      "role": "g8b_b1c_contract_source",
+      "sha256": "27718fcbef6e55b20d7f1dc8cef907d5e09fbb1254ace98f2a0cea6ec229e5d6"
     },
     {
-      "bytes": 9273,
+      "bytes": 9992,
       "path": "tools/gen_g8_bler_tooling_contract.py",
-      "role": "g8b_b1_contract_source",
-      "sha256": "34200cb123e968b65f132e582fc912cdd8345bd115774b374cc57fa4f92df02d"
+      "role": "g8b_b1c_contract_source",
+      "sha256": "f67bf168136f142edf6f0d0f50050afc216c904003f6d17e65bad8e961f649a2"
     },
     {
-      "bytes": 15968,
+      "bytes": 22830,
       "path": "tools/verify_g8_bler_tooling_contract.py",
-      "role": "g8b_b1_contract_source",
-      "sha256": "64707e38ad5562271b8c723db95a9415855616cabddef664f617ac6ee394e801"
+      "role": "g8b_b1c_contract_source",
+      "sha256": "f2c1d67f239c19184ab12b61719c94668f81268b47ed21d45698f58ba6e7bcff"
     }
   ],
   "count_authority": {
@@ -59,13 +59,26 @@
       "block_errors"
     ],
     "ber_rule": "bit_errors / information_bits",
+    "bit_error_definition": "the Hamming distance between the transmitted and decoded K-bit information vectors",
     "bler_rule": "block_errors / trials_completed",
+    "block_error_definition": "one block error iff at least one of those K decoded information bits differs",
     "boolean_counts_rejected": true,
+    "comparison_domain": "the complete K-bit information vector accepted by the LDPC encoder and returned by the decoder adapter, where K = bler_identity.k_and_n[0]",
     "completed_evidence_requires_positive_trials": true,
     "counts_override_stored_floats": true,
+    "cross_count_invariants": [
+      "block_errors == 0 iff bit_errors == 0",
+      "block_errors <= bit_errors <= block_errors * K when block_errors > 0",
+      "trials_completed <= trials_requested",
+      "block_errors <= trials_completed",
+      "information_bits == trials_completed * K",
+      "bit_errors <= information_bits"
+    ],
+    "decoder_exception_policy": "an encoder/decoder exception or malformed decoder output causes failed execution; it is never recorded as a completed characterized block",
     "information_bits_rule": "trials_completed x K",
     "nan_and_infinity_rejected": true,
     "negative_counts_rejected": true,
+    "trial_definition": "one independently generated K-bit LDPC information block for the exact work-unit identity",
     "zero_completed_trials_reports_null_not_zero": true,
     "zero_errors_is_characterized_evidence": true
   },
@@ -97,6 +110,8 @@
       "artifact_role",
       "execution_class",
       "campaign_id",
+      "bler_tooling_contract_id",
+      "bler_tooling_contract_sha256",
       "campaign_manifest_sha256",
       "required_bler_artifact_sha256",
       "selection_policy_sha256",
@@ -118,7 +133,7 @@
     "request_is_never_merge_eligible": true,
     "test_split_access": 0,
     "unknown_fields_rejected": true,
-    "version": 1
+    "version": 2
   },
   "result_schema": {
     "artifact_role": "g8_bler_work_unit_result",
@@ -136,10 +151,21 @@
       "shard_count",
       "attempt"
     ],
+    "execution_metadata_rules": {
+      "attempt": "null or exact positive integer",
+      "device": "null or nonblank string",
+      "hostname": "null or nonblank string",
+      "shard_count": "null or exact positive integer",
+      "shard_index": "null or exact non-negative integer",
+      "shard_pair": "both null, or both present with 0 <= shard_index < shard_count",
+      "wall_time_s": "null or finite non-negative real; booleans rejected"
+    },
     "identity_fields": [
       "execution_class",
       "request_sha256",
       "campaign_id",
+      "bler_tooling_contract_id",
+      "bler_tooling_contract_sha256",
       "campaign_manifest_sha256",
       "required_bler_artifact_sha256",
       "selection_policy_sha256",
@@ -191,12 +217,23 @@
       "execution_metadata",
       "disposition"
     ],
+    "status_rules": {
+      "allowed_statuses": [
+        "incomplete",
+        "complete",
+        "failed"
+      ],
+      "complete_full_strength_requires_exact_trial_count": true,
+      "complete_requires_positive_trials": true,
+      "failed_merge_eligible": false,
+      "incomplete_merge_eligible": false
+    },
     "statuses": [
       "incomplete",
       "complete",
       "failed"
     ],
-    "version": 1
+    "version": 2
   },
   "resume": {
     "granularity": "work_unit_atomic",
@@ -233,7 +270,7 @@
     "snr_never_rounded_or_coerced": true,
     "test_split_access": 0
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "scientific_execution_performed": false,
   "seed": {
     "derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
@@ -345,6 +382,9 @@
     },
     "width_bits": 64
   },
+  "supersedes_contract_id": "g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd",
+  "supersedes_contract_sha256": "dfa1d68775b3720375dce7d71661935026d1b8674f020114df8568961fca7945",
+  "supersession_reason": "mutable cached authority, incomplete error-count semantics, and missing per-unit tooling-contract binding corrected before execution",
   "trial_count": {
     "adaptive_stopping_permitted": false,
     "full_strength_trials": 5000,

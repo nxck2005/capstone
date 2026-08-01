@@ -65,7 +65,7 @@ TOOLING_CONTRACT_CHECKPOINT = "B1C"
 SUPERSEDES_CONTRACT_ID = (
     "g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd"
 )
-SUPERSEDES_CONTRACT_SHA256 = "dfa1d68775b372037d5ce7d71661935026d1b8674f020114df8568961fca7945"
+SUPERSEDES_CONTRACT_SHA256 = "dfa1d68775b3720375dce7d71661935026d1b8674f020114df8568961fca7945"
 SUPERSESSION_REASON = (
     "mutable cached authority, incomplete error-count semantics, and missing "
     "per-unit tooling-contract binding corrected before execution"

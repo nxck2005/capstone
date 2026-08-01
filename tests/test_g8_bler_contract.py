@@ -1356,7 +1356,7 @@ def test_contract_is_independent_of_timestamps_and_absolute_paths() -> None:
             return [name for value in node for name in keys(value)]
         return []
 
-    for forbidden in ("timestamp", "generated_at", "commit_sha", "wall_time_s", "created"):
+    for forbidden in ("timestamp", "generated_at", "commit_sha", "created"):
         assert forbidden not in keys(payload)
     assert not re.search(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}", text)
     # Rebuilding at a different wall-clock time yields the identical contract.
