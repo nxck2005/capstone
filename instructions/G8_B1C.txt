@@ -1,0 +1,292 @@
+# G8_B B1C — harden frozen BLER contract, count semantics and provenance
+
+Repository: `https://github.com/nxck2005/capstone`  
+Working directory: `/home/nick/projects/capstone`  
+Interpreter: `.venv/bin/python`
+
+## Purpose
+
+B1C is a narrow, pre-execution corrective checkpoint. B1 froze the broad BLER
+measurement design, deterministic seed derivation, and work-unit request/result
+schemas. A hostile line-by-line audit found three fail-open defects:
+
+1. cached campaign/work-unit authority exposes mutable nested values, so a
+   caller can corrupt the object later consulted by a builder or validator;
+2. `bit_errors` and `block_errors` are constrained independently rather than
+   as counts that can arise from the same decoded blocks; and
+3. requests and results do not directly bind the frozen tooling-contract ID
+   and SHA-256.
+
+B1C also hardens execution metadata, live-state seed identity, produced-artifact
+path containment, and independent-verifier completeness. No scientific result
+exists and no conclusion changes. B1 remains a historical design checkpoint;
+B1C is the corrective contract checkpoint that must be green before B2.
+
+## Starting assertions
+
+Expected starting remote-main SHA is
+`1b5d81f323fac588ca57a0be504f3ffdfa714ce4`. Require a clean worktree and
+local `HEAD`, `origin/main`, and remote `refs/heads/main` equal to that SHA.
+The frozen campaign values are:
+
+- campaign ID `g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a`;
+- campaign-manifest SHA-256 `0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1`;
+- required-identity SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`;
+- selection-policy SHA-256 `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`;
+- B1 contract ID `g8bler-878b218e60743dd5c85859348dfdbacdac847b344389d5688e182739e312dbbd`;
+- B1 contract-artifact SHA-256 `dfa1d68775b372037dce7d71661935026d1b8674f020114df8568961fca7945`;
+- B1 campaign-state SHA-256 `4b47e62aca0cd61930d9e389908b3dbdfb31e4f6d0be452fc9cd2cf0dfc2c3ab`.
+
+The live state must begin at `G8_B/tooling_open` with no completed or
+in-progress work unit and zero `validation_decoding`, `inference`, `training`
+and `test_access` counters. If any repository byte contradicts these
+assertions, stop with `G8_B HOLD — <precise contradiction>`; never reset,
+clean, stash, overwrite, or discard unexpected state.
+
+## Scope and prohibitions
+
+B1C may add this instruction, update the resume ledger and handoffs, correct
+`src/baseline/g8_bler_contract.py`, bump the tooling/request/result schemas,
+regenerate the contract at its tracked path, migrate its campaign-state binding,
+strengthen the generator, independent verifier, phase-state verifier and tests,
+and add one migration utility.
+
+B1C MUST NOT implement the BLER runner, sharding, scientific checkpoint
+execution, merge execution, or any G8_C-or-later work. It MUST NOT run an LDPC
+simulation, generate information bits or AWGN for a required work unit, create
+BLER results or a `BlerTable`, construct `G8Authorization`, load dataset pixels,
+run inference, train, select a ratio, invoke fallback, access test, or start
+bounded smoke. Tiny synthetic arrays used by deterministic contract tests are
+allowed. No production runner exists after B1C.
+
+## Checkpoint sequence
+
+The G8_B ledger uses exactly these states: `not-started`, `in-progress`, `done`.
+During B1C: B0 is `done`; B1 is `done` but superseded for future execution by
+B1C until B1C is green; B1C is active; B2–B6 are `not-started`. After B1C:
+B0, B1 and B1C are `done`, and B2 is next. The checkpoints are:
+
+```text
+C0  verify starting state and open B1C durably
+C1  remove mutable cached authority
+C2  freeze and enforce error-count semantics
+C3  bind requests/results to corrected tooling contract
+C4  harden metadata, state and independent verification
+C5  regenerate and migrate the contract/state binding recoverably
+C6  mutation and regression verification
+C7  full verification, handoff, commit and push
+```
+
+## Sudden-exit protocol
+
+Before every checkpoint that changes source, generated artifacts or live state:
+
+1. mark the checkpoint `in-progress` in `instructions/RESUME.md`;
+2. record the exact first command, every intended file, old and expected-new
+   artifact states, and the exact recovery command;
+3. commit a non-empty marker, push it, and confirm local `HEAD` equals
+   `origin/main` before beginning the checkpoint.
+
+At completion, run targeted tests, record exact results, mark the checkpoint
+`done`, record the next exact command, commit, push, and confirm parity. Never
+hold more than one coherent checkpoint uncommitted. Do not amend, squash,
+rebase or force-push. Keep recovery commands and commit subjects in the ledger,
+not only in `/tmp`. If GPG signing fails, preserve the staged tree and intended
+subject, record the failure and retry command in the ledger, and never substitute
+a placeholder subject. On interruption, report:
+
+```text
+G8_B B1C INCOMPLETE — RESUME AT <checkpoint and exact command>
+```
+
+## C0 — baseline and durable opening
+
+Run the cheap Git checks separately and require parity. Then run, separately:
+
+```bash
+.venv/bin/python tools/gen_g8_campaign_manifest.py --check
+.venv/bin/python tools/verify_g8_phase_state.py \
+  --phase G8_B --stage tooling_open --require-zero-science \
+  --require-artifact results/baseline/g8/bler_tooling_contract.json
+.venv/bin/python tools/gen_g8_bler_tooling_contract.py --check
+.venv/bin/python tools/verify_g8_bler_tooling_contract.py
+.venv/bin/python tools/verify_w4_baseline_integration.py
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python -m pytest
+```
+
+Before the full suite, create this instruction, append the B1C ledger entry,
+mark C0 `in-progress`, record the exact first/recovery command and the old/new
+artifact states, then commit and push:
+
+```text
+wip(g8-b): open B1C contract hardening
+```
+
+Record the observed starting full-suite count; do not inherit B1's count.
+
+## C1 — immutable cached authority
+
+No public reference used as scientific authority may be mutable. The preferred
+representation caches canonical JSON bytes keyed by work-unit ID and parses a
+fresh record for each lookup; fresh dictionaries are also required from
+`campaign_bindings()`. A shallow `MappingProxyType` containing mutable nested
+lists/dicts is not sufficient. Validators must obtain an independent
+authoritative record rather than trusting a caller-mutated object.
+
+Tests must prove that mutating returned campaign ID, manifest hash, nested
+`identity["iterations"]`, nested `identity["k_and_n"]`, or appending/reordering
+`source_packet_config_ids` cannot change a later request or validator; that
+mutating an index result cannot change `required_work_unit()`; that corruption
+cannot make an invalid request validate; and that a later valid request still
+matches `required_bler_identities.json`.
+
+## C2 — count semantics
+
+Freeze these source definitions and generated-contract fields:
+
+- one trial is one independently generated K-bit LDPC information block for
+  the exact work-unit identity;
+- the comparison domain is the complete K-bit information vector accepted by
+  the encoder and returned by the decoder adapter, with `K = k_and_n[0]`;
+- bit errors are the Hamming distance between transmitted and decoded K-bit
+  vectors;
+- a block error is exactly one when at least one of those K bits differs; and
+- an encoder/decoder exception or malformed decoder output fails execution and
+  is never completed characterized evidence.
+
+For every result, including partial/incomplete results:
+
+```text
+block_errors == 0  iff  bit_errors == 0
+block_errors <= bit_errors <= block_errors * K
+trials_completed <= trials_requested
+block_errors <= trials_completed
+information_bits = trials_completed * K
+bit_errors <= information_bits
+```
+
+Decoder failures are not extra block errors unless an actual K-bit decoded
+vector was produced and compared. Reject zero-bit/nonzero-block, nonzero-bit/
+zero-block, fewer than one bit per erroneous block, more than K bits per
+erroneous block, and decoder-exception placeholders. Accept zero errors,
+one-per-error-block, K-per-error-block, valid intermediate counts, and zero-
+trial failed/incomplete records with null rates.
+
+## C3 — contract binding and schema v2
+
+Bump `BLER_TOOLING_CONTRACT_SCHEMA_VERSION`,
+`BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION` and
+`BLER_WORK_UNIT_RESULT_SCHEMA_VERSION` from 1 to 2. Every request and result
+must carry `bler_tooling_contract_id` and `bler_tooling_contract_sha256`, and
+the request digest and result identity must bind them. No B1 request/result
+evidence exists, so no evidence migration is allowed or needed.
+
+The loader for `results/baseline/g8/bler_tooling_contract.json` must fail closed
+on noncanonical JSON, wrong role/campaign/phase/checkpoint, non-reproducible
+ID, wrong campaign/manifest/required/policy bindings, wrong exact source path
+set or source byte length/SHA-256, and wrong current artifact SHA-256. The new
+payload records `checkpoint=B1C`, the exact B1 contract ID/SHA, and this
+supersession reason:
+
+```text
+mutable cached authority, incomplete error-count semantics,
+and missing per-unit tooling-contract binding corrected before execution
+```
+
+The generator must build the replacement from primary sources without requiring
+the old or new output artifact to be valid first, avoiding a generation cycle.
+
+## C4 — metadata, state, paths and independent verification
+
+`build_work_unit_result()` rejects unknown metadata keys. Validate wall time as
+null or finite non-negative real (booleans rejected), hostname/device as null
+or nonblank strings, exact integer shard index/count/attempt with the shard
+pair either both null or `0 <= index < count`, and positive attempt when present.
+Runtime metadata remains outside the measurement-identity digest.
+
+When the B1C contract is required, phase-state verification must require the
+live state's seed-derivation identity to equal the contract's exact identity.
+Every additional artifact path must be relative, contain no `..`, resolve under
+`results/baseline/g8/`, and not alias another normalized path. All contract
+top-level keys, schema versions, seed input/output rules, execution constants,
+smoke ceilings/selection label, trial ownership and excluded G-2 key, count
+definitions/invariants, request/result field lists, status/metadata rules,
+resume granularity, no-interpolation rule, zero test access, supersession
+fields and source bindings must be checked independently.
+
+## C5 — recoverable migration
+
+Add `tools/migrate_g8_bler_tooling_contract.py`. It requires G8_B/tooling_open,
+zero counters and units, unchanged non-tooling artifacts and valid campaign
+bindings. It accepts only exact old B1 or exact new B1C artifact/state bindings.
+It builds and independently validates canonical replacement bytes in a
+same-directory temporary, calculates ID/SHA, replaces the artifact atomically,
+then replaces the state binding atomically while preserving all other identity,
+zero counters and the exact B2 restart command. It fsyncs files/directories and
+reruns safely for old+old, new+old, new+new and old+new interruption states;
+unknown bindings and nonzero/in-progress/completed/wrong phase-state HOLD.
+Artifact replacement precedes state replacement so a crash between them is
+recoverable by rerunning the same command:
+
+```bash
+.venv/bin/python tools/migrate_g8_bler_tooling_contract.py
+```
+
+## C6 — coverage and C7 handoff
+
+Add mutation/regression tests for authority, counts, contract IDs/SHA/schema,
+metadata, seed identity, artifact paths, original-artifact preservation,
+duplicate bindings, every migration state, exact byte idempotence, and zero
+scientific state. Run the targeted and full suites, all contract/phase/W4/G-2
+verifiers, spec/doc/literal checks, CPU-lock verification, `git diff --check`,
+and inspect `git diff --name-status` from the expected starting SHA. Do not run
+the B2 restart search command during B1C; store it only in the ledger/state:
+
+```text
+rg -n "BLER_WORK_UNIT|derive_seed|produced_artifacts|completed_work_unit_ids|in_progress_work_unit_id|write_campaign_state_atomically" src/baseline tools tests
+```
+
+Final handoff wording must say G8_A complete; G8_B active; B0, B1 and B1C
+complete; B2 next; G8_C–G8_G prohibited; and no runner, simulation, smoke or
+characterization started. Record that B1 is historical, B1C schema v2
+supersedes B1 schema v1, no v1 evidence exists, and future G8 code must use
+only the corrected contract. The exact terminal commit subject is:
+
+```text
+fix(g8-b): harden frozen BLER contract
+```
+
+No amendment is expected. Stop for an amendment only if inspection proves the
+normative specification contradicts the actual LDPC adapter's complete
+information-bit comparison domain.
+
+## Verification commands
+
+Run each final command separately:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check
+.venv/bin/python tools/check_doc_consistency.py -v
+.venv/bin/python tools/check_literals.py -v
+.venv/bin/python tools/gen_g8_campaign_manifest.py --check
+.venv/bin/python tools/gen_g8_bler_tooling_contract.py --check
+.venv/bin/python tools/verify_g8_bler_tooling_contract.py
+.venv/bin/python tools/verify_g8_phase_state.py --phase G8_B --stage tooling_open --require-zero-science --require-artifact results/baseline/g8/bler_tooling_contract.json
+.venv/bin/python tools/verify_w4_baseline_integration.py
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python -m pytest tests/test_g8_bler_contract.py -q
+.venv/bin/python -m pytest tests/test_g8_preflight.py tests/test_g8_phase_open.py tests/test_g8_bler_contract.py -q
+.venv/bin/python -m pytest
+.venv/bin/python tools/verify_cpu_lock.py --clean-install
+git diff --check
+git status --short
+```
+
+## Terminal verdicts
+
+```text
+G8_B B1C COMPLETE — BLER CONTRACT HARDENED; B2 READY; NO SIMULATION STARTED
+G8_B B1C INCOMPLETE — RESUME AT <checkpoint and exact command>
+G8_B HOLD — <precise blocking condition>
+```
