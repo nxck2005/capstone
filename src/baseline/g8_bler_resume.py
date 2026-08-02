@@ -1396,6 +1396,567 @@ def _census_bucket(
     return ignored_staging
 
 
+# ---------------------------------------------------------------------------
+# Request / result chain validation (G8_B3 §11, §12)
+# ---------------------------------------------------------------------------
+
+
+def _read_exact_artifact(path: Path, label: str) -> tuple[bytes, str, dict[str, Any]]:
+    """Read one authoritative artifact and require exact canonical JSON bytes.
+
+    Returns the raw bytes, their SHA-256 and the decoded payload.  A file whose
+    bytes are semantically valid JSON but not the exact canonical encoding is a
+    HOLD: a digest computed over re-rendered bytes would silently disagree with
+    the digest a peer computes over the file.
+    """
+
+    entry = _lstat(path)
+    if entry is None:
+        raise ResumeChainError(f"{label} is absent: {path}")
+    _require_regular_unaliased(entry, path, label)
+    raw = _read_canonical_file(path)
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise ResumeChainError(f"{label} is not decodable JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ResumeChainError(f"{label} is not a JSON object: {path}")
+    if canonical_json(payload) != raw:
+        raise ResumeChainError(f"{label} is not exact canonical JSON bytes: {path}")
+    return raw, sha256_bytes(raw), payload
+
+
+def read_unit_state_snapshot(
+    context: Any,
+    work_unit_id: str,
+    *,
+    root: Path | str | None = None,
+) -> dict[str, Any] | None:
+    """Read and fully validate one unit state, or return ``None`` if absent.
+
+    ``None`` means *no state file exists*.  A malformed, unreadable, aliased or
+    non-canonical state is never reported as absent; it raises.
+    """
+
+    context = _resume_context(context)
+    path = state_path(context, work_unit_id, root=root)
+    entry = _lstat(path)
+    if entry is None:
+        return None
+    _require_regular_unaliased(entry, path, "unit state")
+    raw, digest, _payload = _read_exact_artifact(path, "unit state")
+    try:
+        state = work_units.read_unit_state(context.state_context, path, root=_root_path(root))
+    except work_units.G8BlerWorkUnitError as exc:
+        raise ResumeChainError(f"unit state failed B2C validation: {path}: {exc}") from exc
+    identity = state["identity"]
+    if identity["work_unit_id"] != work_unit_id:
+        raise ResumeContradictionError(
+            "unit-state path digest does not correspond to the embedded work-unit ID"
+        )
+    record = _fresh(state)
+    record["state_sha256"] = digest
+    record["state_bytes"] = len(raw)
+    return record
+
+
+def validate_request_file(
+    context: Any,
+    work_unit_id: str,
+    attempt: Any,
+    *,
+    root: Path | str | None = None,
+    require_full_strength: bool = True,
+) -> dict[str, Any]:
+    """Validate one attempt's request file against the frozen B1C contract."""
+
+    context = _resume_context(context)
+    number = _positive_int(attempt, "attempt", ResumeChainError)
+    path = request_path(context, work_unit_id, number, root=root)
+    raw, digest, payload = _read_exact_artifact(path, "work-unit request")
+    try:
+        request = (
+            bler_contract.require_full_strength_request(payload)
+            if require_full_strength
+            else bler_contract.validate_work_unit_request(payload)
+        )
+    except Exception as exc:  # noqa: BLE001 - the contract raises its own hierarchy
+        raise ResumeChainError(f"work-unit request failed B1C validation: {path}: {exc}") from exc
+
+    if request["schema_version"] != REQUEST_SCHEMA_VERSION:
+        raise ResumeChainError(
+            f"work-unit request schema version {request['schema_version']} is not "
+            f"{REQUEST_SCHEMA_VERSION}"
+        )
+    if request["work_unit_id"] != work_unit_id:
+        raise ResumeContradictionError(
+            "request filename digest does not correspond to the embedded work-unit ID"
+        )
+    authority = context.authority_binding()
+    for field in (
+        "campaign_id",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+    ):
+        if request[field] != authority[field]:
+            raise ResumeChainError(f"work-unit request carries a foreign {field}")
+    if request["test_split_access"] != bler_contract.TEST_SPLIT_ACCESS:
+        raise ResumeChainError("work-unit request does not declare zero test-split access")
+
+    # The request digest a peer computes over the *file* must equal the B1C
+    # canonical digest of its content; otherwise two workers disagree.
+    if bler_contract.request_digest(request) != digest:
+        raise ResumeChainError("work-unit request digest does not reproduce from its file bytes")
+
+    return _fresh(
+        {
+            "work_unit_id": work_unit_id,
+            "attempt": number,
+            "request": request,
+            "request_sha256": digest,
+            "request_bytes": len(raw),
+            "logical_path": logical_artifact_path(
+                context, work_unit_id, ARTIFACT_KIND_REQUEST, number
+            ),
+            "execution_class": request["execution_class"],
+        }
+    )
+
+
+def validate_result_file(
+    context: Any,
+    work_unit_id: str,
+    attempt: Any,
+    *,
+    root: Path | str | None = None,
+    request_record: Mapping[str, Any] | None = None,
+    shard_index: int | None = None,
+    shard_count: int | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Validate one attempt's result against its exact request.
+
+    A result is never validated in isolation: §12 requires locating the exact
+    request for the same work unit *and the same attempt* first, so a result
+    can never be credited against a request it did not run.
+    """
+
+    context = _resume_context(context)
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+    number = _positive_int(attempt, "attempt", ResumeChainError)
+    if request_record is None:
+        request_record = validate_request_file(
+            context,
+            work_unit_id,
+            number,
+            root=root,
+            require_full_strength=scan_mode == SCAN_MODE_PRODUCTION_MERGE,
+        )
+    if request_record["attempt"] != number:
+        raise ResumeContradictionError("a result was offered against another attempt's request")
+
+    path = result_path(context, work_unit_id, number, root=root)
+    raw, digest, payload = _read_exact_artifact(path, "work-unit result")
+    try:
+        result = bler_contract.validate_work_unit_result(
+            payload, request=request_record["request"]
+        )
+    except Exception as exc:  # noqa: BLE001 - the contract raises its own hierarchy
+        raise ResumeChainError(f"work-unit result failed B1C validation: {path}: {exc}") from exc
+
+    if result["schema_version"] != RESULT_SCHEMA_VERSION:
+        raise ResumeChainError(
+            f"work-unit result schema version {result['schema_version']} is not "
+            f"{RESULT_SCHEMA_VERSION}"
+        )
+    identity = result["identity"]
+    if identity["work_unit_id"] != work_unit_id:
+        raise ResumeContradictionError(
+            "result filename digest does not correspond to the embedded work-unit ID"
+        )
+    if identity["request_sha256"] != request_record["request_sha256"]:
+        raise ResumeContradictionError(
+            "work-unit result binds a request SHA-256 other than its exact request file"
+        )
+
+    metadata = result["execution_metadata"]
+    disposition = result["disposition"]
+    status = result["status"]
+    merge_candidate = (
+        status == bler_contract.STATUS_COMPLETE
+        and scan_mode == SCAN_MODE_PRODUCTION_MERGE
+        and bool(disposition["merge_eligible"])
+    )
+    if merge_candidate:
+        if metadata["attempt"] is None:
+            raise ResumeChainError("a production merge candidate must record its attempt")
+        if metadata["attempt"] != number:
+            raise ResumeContradictionError(
+                "result execution metadata records a different attempt than its path"
+            )
+        if metadata["shard_index"] is None or metadata["shard_count"] is None:
+            raise ResumeChainError("a production merge candidate must record its shard assignment")
+        if shard_index is not None and metadata["shard_index"] != shard_index:
+            raise ResumeContradictionError(
+                "result shard index differs from the current unit-state shard assignment"
+            )
+        if shard_count is not None and metadata["shard_count"] != shard_count:
+            raise ResumeContradictionError(
+                "result shard count differs from the current unit-state shard assignment"
+            )
+    elif metadata["attempt"] is not None and metadata["attempt"] != number:
+        raise ResumeContradictionError(
+            "result execution metadata records a different attempt than its path"
+        )
+
+    if disposition["test_split_access"] != bler_contract.TEST_SPLIT_ACCESS:
+        raise ResumeChainError("work-unit result does not declare zero test-split access")
+
+    return _fresh(
+        {
+            "work_unit_id": work_unit_id,
+            "attempt": number,
+            "status": status,
+            "result": result,
+            "result_sha256": digest,
+            "result_bytes": len(raw),
+            "logical_path": logical_result_path(context, work_unit_id, number),
+            "request_sha256": request_record["request_sha256"],
+            "merge_eligible": bool(disposition["merge_eligible"]),
+            "required_coverage_contribution": disposition["required_coverage_contribution"],
+            "trials_completed": result["measurement"]["trials_completed"],
+        }
+    )
+
+
+def is_full_strength_merge_candidate(
+    context: Any,
+    result_record: Mapping[str, Any],
+    request_record: Mapping[str, Any],
+) -> bool:
+    """Exactly the §12 production merge conditions, with no partial credit."""
+
+    context = _resume_context(context)
+    result = result_record["result"]
+    request = request_record["request"]
+    disposition = result["disposition"]
+    measurement = result["measurement"]
+    full_trials = bler_contract.full_strength_trial_count()
+    return (
+        result["status"] == bler_contract.STATUS_COMPLETE
+        and result["identity"]["execution_class"] == bler_contract.EXECUTION_CLASS_FULL_STRENGTH
+        and request["execution_class"] == bler_contract.EXECUTION_CLASS_FULL_STRENGTH
+        and result["identity"]["trials_requested"] == full_trials
+        and measurement["trials_completed"] == full_trials
+        and disposition["scientific_evidence"] is True
+        and disposition["merge_eligible"] is True
+        and disposition["required_coverage_contribution"] == 1
+        and disposition["test_split_access"] == bler_contract.TEST_SPLIT_ACCESS
+        and result["identity"]["request_sha256"] == request_record["request_sha256"]
+    )
+
+
+# ---------------------------------------------------------------------------
+# Closed per-unit classification (G8_B3 §13, §14, §15)
+# ---------------------------------------------------------------------------
+
+
+def _attempts_for(census: Mapping[str, Any], key: str, work_unit_id: str) -> tuple[int, ...]:
+    return tuple(census[key].get(work_unit_id, ()))
+
+
+def classify_work_unit(
+    context: Any,
+    work_unit_id: str,
+    census: Mapping[str, Any],
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Assign exactly one closed classification to one required work unit.
+
+    Every byte-level check of §11 and §12 runs first; the corrected §13 rule in
+    :func:`classification_for_shape` then names the class.  Nothing benign is
+    inferred from silence: a contradiction raises rather than downgrading to
+    ``absent``.
+    """
+
+    context = _resume_context(context)
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+    context.ordinal(work_unit_id)
+
+    request_attempts = _attempts_for(census, "request_attempts", work_unit_id)
+    result_attempts = _attempts_for(census, "result_attempts", work_unit_id)
+    state = read_unit_state_snapshot(context, work_unit_id, root=root)
+
+    if state is None:
+        # §14: an artifact without its state is a contradiction, never absent.
+        if request_attempts or result_attempts:
+            raise ResumeContradictionError(
+                f"{work_unit_id} has attempt artifacts but no unit state"
+            )
+        return _classification_record(
+            context,
+            work_unit_id,
+            CLASSIFICATION_ABSENT,
+            attempt=None,
+            state=None,
+            request_record=None,
+            result_record=None,
+        )
+
+    identity = state["identity"]
+    attempt = identity["attempt"]
+    status = identity["status"]
+
+    # §15: attempts are append-only history and may never run ahead of state.
+    for label, attempts in (("request", request_attempts), ("result", result_attempts)):
+        ahead = [value for value in attempts if value > attempt]
+        if ahead:
+            raise ResumeContradictionError(
+                f"{work_unit_id} has a {label} for attempt {min(ahead)} beyond state attempt {attempt}"
+            )
+
+    request_record = None
+    if attempt in request_attempts:
+        request_record = validate_request_file(
+            context,
+            work_unit_id,
+            attempt,
+            root=root,
+            require_full_strength=scan_mode == SCAN_MODE_PRODUCTION_MERGE,
+        )
+    result_record = None
+    if attempt in result_attempts:
+        if request_record is None:
+            raise ResumeContradictionError(
+                f"{work_unit_id} has a result for attempt {attempt} without its exact request"
+            )
+        result_record = validate_result_file(
+            context,
+            work_unit_id,
+            attempt,
+            root=root,
+            request_record=request_record,
+            shard_index=identity["shard_index"],
+            shard_count=identity["shard_count"],
+            scan_mode=scan_mode,
+        )
+
+    _require_state_matches_artifacts(context, state, request_record, result_record)
+    _require_no_stranded_older_evidence(
+        context,
+        work_unit_id,
+        attempt,
+        request_attempts,
+        result_attempts,
+        root=root,
+        scan_mode=scan_mode,
+    )
+
+    merge_eligible = True
+    if result_record is not None and result_record["status"] == bler_contract.STATUS_COMPLETE:
+        merge_eligible = is_full_strength_merge_candidate(
+            context, result_record, request_record
+        )
+
+    classification = classification_for_shape(
+        state_status=status,
+        state_request_bound=identity["request_sha256"] is not None,
+        request_present=request_record is not None,
+        result_status=None if result_record is None else result_record["status"],
+        result_merge_eligible=merge_eligible,
+        scan_mode=scan_mode,
+    )
+    return _classification_record(
+        context,
+        work_unit_id,
+        classification,
+        attempt=attempt,
+        state=state,
+        request_record=request_record,
+        result_record=result_record,
+    )
+
+
+def _require_state_matches_artifacts(
+    context: AuthenticatedResumeContext,
+    state: Mapping[str, Any],
+    request_record: Mapping[str, Any] | None,
+    result_record: Mapping[str, Any] | None,
+) -> None:
+    """§14: a bound state digest or path must reproduce from the exact bytes."""
+
+    identity = state["identity"]
+    work_unit_id = identity["work_unit_id"]
+    bound_request = identity["request_sha256"]
+    bound_result = identity["result_sha256"]
+    bound_path = identity["result_path"]
+
+    if bound_request is not None:
+        if request_record is None:
+            raise ResumeContradictionError(
+                f"{work_unit_id} binds a request SHA-256 but its exact request file is absent"
+            )
+        if bound_request != request_record["request_sha256"]:
+            raise ResumeContradictionError(
+                f"{work_unit_id} state request SHA-256 differs from its request file bytes"
+            )
+    if bound_result is not None:
+        if result_record is None:
+            raise ResumeContradictionError(
+                f"{work_unit_id} binds a result SHA-256 but its exact result file is absent"
+            )
+        if bound_result != result_record["result_sha256"]:
+            raise ResumeContradictionError(
+                f"{work_unit_id} state result SHA-256 differs from its result file bytes"
+            )
+    if bound_path is not None:
+        expected = logical_result_path(context, work_unit_id, identity["attempt"])
+        if bound_path != expected:
+            raise ResumeContradictionError(
+                f"{work_unit_id} state result path is not the exact derived current-attempt path"
+            )
+    if identity["status"] == work_units.STATUS_RESULT_LINKED and result_record is None:
+        raise ResumeContradictionError(
+            f"{work_unit_id} is result_linked but has no current-attempt result"
+        )
+    if (
+        identity["status"] == work_units.STATUS_RESULT_LINKED
+        and result_record["status"] != bler_contract.STATUS_COMPLETE
+    ):
+        raise ResumeContradictionError(
+            f"{work_unit_id} is result_linked but its result is not complete"
+        )
+    if (
+        identity["status"] == work_units.STATUS_FAILED
+        and result_record is not None
+        and result_record["status"] == bler_contract.STATUS_COMPLETE
+    ):
+        raise ResumeContradictionError(
+            f"{work_unit_id} is failed but a complete result exists for that attempt"
+        )
+
+
+def _require_no_stranded_older_evidence(
+    context: AuthenticatedResumeContext,
+    work_unit_id: str,
+    attempt: int,
+    request_attempts: Sequence[int],
+    result_attempts: Sequence[int],
+    *,
+    root: Path | str | None,
+    scan_mode: str,
+) -> None:
+    """§15: older attempts stay as history, but may not hide merge evidence.
+
+    An older *complete, merge-eligible* result means the campaign already had
+    valid coverage and then advanced past it — silently dropping required
+    scientific evidence.  Older failed and non-mergeable results are ordinary
+    history and contribute zero.
+    """
+
+    for older in sorted(value for value in result_attempts if value < attempt):
+        if older not in request_attempts:
+            raise ResumeContradictionError(
+                f"{work_unit_id} has an attempt-{older} result without its exact request"
+            )
+        older_request = validate_request_file(
+            context,
+            work_unit_id,
+            older,
+            root=root,
+            require_full_strength=scan_mode == SCAN_MODE_PRODUCTION_MERGE,
+        )
+        older_result = validate_result_file(
+            context,
+            work_unit_id,
+            older,
+            root=root,
+            request_record=older_request,
+            scan_mode=scan_mode,
+        )
+        if older_result["status"] != bler_contract.STATUS_COMPLETE:
+            continue
+        if is_full_strength_merge_candidate(context, older_result, older_request):
+            raise ResumeContradictionError(
+                f"{work_unit_id} has a complete merge-eligible attempt-{older} result "
+                f"while state advanced to attempt {attempt}"
+            )
+
+
+def _classification_record(
+    context: AuthenticatedResumeContext,
+    work_unit_id: str,
+    classification: str,
+    *,
+    attempt: int | None,
+    state: Mapping[str, Any] | None,
+    request_record: Mapping[str, Any] | None,
+    result_record: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """One deterministic per-unit record.  No path, host, PID or time enters it."""
+
+    if classification not in CLASSIFICATIONS:
+        raise ResumeHoldError(f"{classification!r} is not a closed B3 classification")
+    coverage = 1 if classification == CLASSIFICATION_COMPLETED_FULL_STRENGTH else 0
+    record = {
+        "work_unit_id": work_unit_id,
+        "canonical_ordinal": context.ordinal(work_unit_id),
+        "classification": classification,
+        "attempt": attempt,
+        "state_status": None if state is None else state["identity"]["status"],
+        "state_sha256": None if state is None else state["state_sha256"],
+        "shard_index": None if state is None else state["identity"]["shard_index"],
+        "shard_count": None if state is None else state["identity"]["shard_count"],
+        "request_sha256": None if request_record is None else request_record["request_sha256"],
+        "result_sha256": None if result_record is None else result_record["result_sha256"],
+        "result_status": None if result_record is None else result_record["status"],
+        "trials_completed": (
+            0 if result_record is None else result_record["trials_completed"]
+        ),
+        "required_coverage_contribution": coverage,
+        "proposed_attempt": proposed_attempt(classification, attempt),
+        "repairable": classification in REPAIRABLE_CLASSIFICATIONS,
+        "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+    }
+    return _fresh(record)
+
+
+def proposed_attempt(classification: str, attempt: int | None) -> int | None:
+    """§17: the exact next attempt, or ``None`` when none is proposed."""
+
+    if classification not in PROPOSED_ATTEMPT_POLICY:
+        raise ResumeHoldError(f"{classification!r} is not a closed B3 classification")
+    policy = PROPOSED_ATTEMPT_POLICY[classification]
+    if policy is None:
+        return None
+    if policy == "attempt_1":
+        return 1
+    return _positive_int(attempt, "attempt", ResumeHoldError) + 1
+
+
+def classify_runtime_root(
+    context: Any,
+    census: Mapping[str, Any],
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> tuple[dict[str, Any], ...]:
+    """Classify every required work unit in frozen authority order."""
+
+    context = _resume_context(context)
+    return tuple(
+        classify_work_unit(context, work_unit_id, census, root=root, scan_mode=scan_mode)
+        for work_unit_id in context.ordered_work_unit_ids
+    )
+
+
 def _census_record(
     context: AuthenticatedResumeContext,
     *,
@@ -1456,6 +2017,15 @@ __all__ = [
     "CANONICAL_FILE_ENCODING",
     "CENSUS_REJECTIONS",
     "CHECKPOINT",
+    "CLASSIFICATIONS",
+    "CLASSIFICATION_ABSENT",
+    "CLASSIFICATION_CLAIMED_REQUEST_PUBLISHED",
+    "CLASSIFICATION_CLAIMED_UNBOUND",
+    "CLASSIFICATION_COMPLETED_FULL_STRENGTH",
+    "CLASSIFICATION_FAILED_RETRYABLE",
+    "CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT",
+    "CLASSIFICATION_RECOVERABLE_FAILED_RESULT",
+    "CLASSIFICATION_TERMINAL_NONMERGEABLE",
     "DEFAULT_RESUME_CONTRACT_PATH",
     "DEFAULT_WORK_UNIT_ROOT",
     "EXPECTED_B1C_CONTRACT_ID",
@@ -1468,13 +2038,22 @@ __all__ = [
     "EXPECTED_REQUIRED_WORK_UNIT_COUNT",
     "EXPECTED_SELECTION_POLICY_SHA256",
     "FORBIDDEN_ORDER_SOURCES",
+    "FROZEN_CLAIMED_STATE_FIELDS",
     "G8BlerResumeError",
     "LOCK_MODES",
     "LOCK_MODE_EXCLUSIVE",
     "LOCK_MODE_SHARED",
     "LOCK_ORDER",
+    "NON_REPAIRABLE_CLASSIFICATIONS",
     "PHASE",
+    "POST_REPAIR_CLASSIFICATIONS",
+    "PROPOSED_ATTEMPT_POLICY",
     "RECONCILIATION_LOCK_NAME",
+    "RECOVERABLE_CLASSIFICATIONS",
+    "REJECTED_UNREACHABLE_CLASSIFICATIONS",
+    "REMAINING_CLASSIFICATIONS",
+    "REPAIRABLE_CLASSIFICATIONS",
+    "REPAIR_MATRIX",
     "REQUEST_FILENAME_SUFFIX",
     "REQUEST_SCHEMA_VERSION",
     "RESULT_FILENAME_SUFFIX",
@@ -1497,20 +2076,29 @@ __all__ = [
     "SCAN_MODE_BOUNDED_SMOKE_INSPECTION",
     "SCAN_MODE_PRODUCTION_MERGE",
     "STATE_FILENAME_SUFFIX",
+    "TERMINAL_CLASSIFICATIONS",
     "UNIT_STATE_SCHEMA_VERSION",
     "WORK_UNIT_ROOT_LOGICAL_PREFIX",
     "artifact_path",
     "artifact_relative_path",
     "census_runtime_root",
+    "classification_for_shape",
+    "classify_runtime_root",
+    "classify_work_unit",
     "format_attempt",
+    "is_full_strength_merge_candidate",
     "logical_artifact_path",
     "logical_result_path",
     "parse_attempt_token",
+    "proposed_attempt",
+    "read_unit_state_snapshot",
     "reconciliation_lock",
     "request_path",
     "request_relative_path",
     "result_path",
     "result_relative_path",
     "state_path",
+    "validate_request_file",
+    "validate_result_file",
     "work_unit_digest",
 ]

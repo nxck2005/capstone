@@ -1134,3 +1134,452 @@ def test_the_future_generator_and_verifier_bind_the_corrected_model() -> None:
             assert rejected not in source, f"{tool.name} names rejected class {rejected}"
         for name, target in resume.REPAIR_MATRIX:
             assert name in source and target in source
+
+
+# ---------------------------------------------------------------------------
+# B3.2 — request/result chain validation and closed classification
+#
+# Every fixture below publishes real canonical bytes into an isolated
+# temporary root.  Nothing here runs a simulation: the "results" are assembled
+# from authoritative counts by the frozen B1C builder, exactly as a merge
+# validator would later read them.
+# ---------------------------------------------------------------------------
+
+
+def _write_canonical(path: Path, payload: dict[str, Any]) -> str:
+    raw = bler_contract.canonical_json(payload)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+    return units.sha256_bytes(raw)
+
+
+def _publish_state(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    state: dict[str, Any],
+) -> str:
+    path = resume.state_path(context, state["identity"]["work_unit_id"], root=root)
+    return _write_canonical(path, state)
+
+
+def _publish_request(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    work_unit_id: str,
+    attempt: int,
+) -> tuple[dict[str, Any], str]:
+    request = bler_contract.build_full_strength_request(work_unit_id)
+    digest = _write_canonical(
+        resume.request_path(context, work_unit_id, attempt, root=root), request
+    )
+    return request, digest
+
+
+def _publish_result(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    work_unit_id: str,
+    attempt: int,
+    request: dict[str, Any],
+    *,
+    status: str = bler_contract.STATUS_COMPLETE,
+    trials_completed: int | None = None,
+    bit_errors: int = 5,
+    block_errors: int = 1,
+    shard_index: int = 0,
+    shard_count: int = 1,
+) -> tuple[dict[str, Any], str]:
+    if trials_completed is None:
+        trials_completed = (
+            request["trials_requested"] if status == bler_contract.STATUS_COMPLETE else 17
+        )
+    if status != bler_contract.STATUS_COMPLETE:
+        bit_errors = 0
+        block_errors = 0
+    result = bler_contract.build_work_unit_result(
+        request=request,
+        status=status,
+        trials_completed=trials_completed,
+        bit_errors=bit_errors,
+        block_errors=block_errors,
+        execution_metadata={
+            "wall_time_s": None,
+            "hostname": None,
+            "device": None,
+            "shard_index": shard_index,
+            "shard_count": shard_count,
+            "attempt": attempt,
+        },
+    )
+    digest = _write_canonical(
+        resume.result_path(context, work_unit_id, attempt, root=root), result
+    )
+    return result, digest
+
+
+def _classify_one(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    work_unit_id: str,
+    *,
+    scan_mode: str = resume.SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    census = resume.census_runtime_root(context, root=root)
+    return resume.classify_work_unit(
+        context, work_unit_id, census, root=root, scan_mode=scan_mode
+    )
+
+
+def test_an_absent_unit_classifies_as_absent_and_proposes_attempt_one(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    record = _classify_one(context, root, _unit(context))
+    assert record["classification"] == "absent"
+    assert record["proposed_attempt"] == 1
+    assert record["state_status"] is None
+    assert record["required_coverage_contribution"] == 0
+    assert record["repairable"] is False
+
+
+def test_an_artifact_without_its_state_is_a_contradiction_not_absent(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_request(context, root, work_unit_id, 1)
+    with pytest.raises(resume.ResumeContradictionError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_a_clean_claim_alone_is_claimed_unbound(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id, attempt=3))
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "claimed_unbound"
+    assert record["attempt"] == 3
+    assert record["proposed_attempt"] == 4
+    assert record["request_sha256"] is None
+    assert record["repairable"] is False
+
+
+def test_a_clean_claim_with_its_request_is_claimed_request_published(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id, attempt=2))
+    _request, digest = _publish_request(context, root, work_unit_id, 2)
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "claimed_request_published"
+    # The request is history, not a state binding: the state stays unbound and
+    # the unit is remaining work at exactly the next attempt.
+    assert record["request_sha256"] == digest
+    assert record["state_status"] == units.STATUS_CLAIMED
+    assert record["proposed_attempt"] == 3
+    assert record["repairable"] is False
+    assert record["required_coverage_contribution"] == 0
+
+
+def test_a_clean_claim_with_a_failed_result_is_recoverable_failed_result(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    request, _digest = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(
+        context, root, work_unit_id, 1, request, status=bler_contract.STATUS_FAILED
+    )
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "recoverable_failed_result"
+    assert record["repairable"] is True
+    assert record["proposed_attempt"] is None
+    assert record["required_coverage_contribution"] == 0
+    assert record["trials_completed"] == 17
+
+
+def test_a_clean_claim_with_a_complete_result_is_recoverable_complete_result(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    request, _digest = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(context, root, work_unit_id, 1, request)
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "recoverable_complete_result"
+    assert record["repairable"] is True
+    assert record["proposed_attempt"] is None
+    assert record["trials_completed"] == 5000
+
+
+def test_a_terminal_result_linked_unit_is_completed_full_strength(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, request_sha = _publish_request(context, root, work_unit_id, 1)
+    _result, result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    linked = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_RESULT_LINKED,
+        request_sha256=request_sha,
+        result_path=resume.logical_result_path(context, work_unit_id, 1),
+        result_sha256=result_sha,
+        scientific_execution_performed=True,
+        trials_completed=request["trials_requested"],
+    )
+    _publish_state(context, root, linked)
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "completed_full_strength"
+    assert record["required_coverage_contribution"] == 1
+    assert record["proposed_attempt"] is None
+    assert record["result_sha256"] == result_sha
+    assert record["test_split_access"] == 0
+
+
+def test_a_failed_state_is_failed_retryable_and_contributes_zero(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, request_sha = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(
+        context, root, work_unit_id, 1, request, status=bler_contract.STATUS_FAILED
+    )
+    failed = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_FAILED,
+        request_sha256=request_sha,
+        scientific_execution_performed=True,
+        trials_completed=17,
+    )
+    _publish_state(context, root, failed)
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "failed_retryable"
+    assert record["proposed_attempt"] == 2
+    assert record["required_coverage_contribution"] == 0
+    assert record["repairable"] is False
+
+
+def test_a_state_request_digest_that_does_not_reproduce_holds(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, _sha = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(
+        context, root, work_unit_id, 1, request, status=bler_contract.STATUS_FAILED
+    )
+    failed = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_FAILED,
+        request_sha256="d" * 64,
+        scientific_execution_performed=True,
+        trials_completed=17,
+    )
+    _publish_state(context, root, failed)
+    with pytest.raises(resume.ResumeContradictionError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_a_result_without_its_exact_request_holds(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    request = bler_contract.build_full_strength_request(work_unit_id)
+    _publish_result(context, root, work_unit_id, 1, request)
+    resume.request_path(context, work_unit_id, 1, root=root).unlink(missing_ok=True)
+    with pytest.raises(resume.ResumeContradictionError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_a_result_bound_to_another_request_holds(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    other_id = _unit(context, 1)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    _publish_request(context, root, work_unit_id, 1)
+    foreign = bler_contract.build_full_strength_request(other_id)
+    _publish_result(context, root, work_unit_id, 1, foreign)
+    with pytest.raises(resume.ResumeHoldError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_an_artifact_beyond_the_state_attempt_holds(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id, attempt=1))
+    _publish_request(context, root, work_unit_id, 2)
+    with pytest.raises(resume.ResumeContradictionError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_an_older_complete_merge_eligible_result_holds_when_state_advanced(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, _sha = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(context, root, work_unit_id, 1, request)
+    _publish_state(context, root, _clean_claim(context, work_unit_id, attempt=2))
+    with pytest.raises(resume.ResumeContradictionError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_an_older_failed_result_is_history_and_contributes_zero(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, _sha = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(
+        context, root, work_unit_id, 1, request, status=bler_contract.STATUS_FAILED
+    )
+    _publish_state(context, root, _clean_claim(context, work_unit_id, attempt=2))
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "claimed_unbound"
+    assert record["proposed_attempt"] == 3
+    assert record["required_coverage_contribution"] == 0
+
+
+def test_request_bytes_are_identical_across_attempts_on_disk(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _first, first_sha = _publish_request(context, root, work_unit_id, 1)
+    _second, second_sha = _publish_request(context, root, work_unit_id, 2)
+    assert first_sha == second_sha
+    assert (
+        resume.request_path(context, work_unit_id, 1, root=root).read_bytes()
+        == resume.request_path(context, work_unit_id, 2, root=root).read_bytes()
+    )
+
+
+def test_noncanonical_request_bytes_are_rejected(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request = bler_contract.build_full_strength_request(work_unit_id)
+    path = resume.request_path(context, work_unit_id, 1, root=root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Semantically identical, byte-wise different: indented JSON.
+    path.write_bytes(json.dumps(request, indent=2, sort_keys=True).encode("utf-8"))
+    with pytest.raises(resume.ResumeChainError):
+        resume.validate_request_file(context, work_unit_id, 1, root=root)
+
+
+def test_a_full_strength_result_at_the_wrong_trial_count_is_rejected(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    """5000 is the only complete full-strength count; 4999 is not partial credit."""
+
+    work_unit_id = _unit(context)
+    request, _sha = _publish_request(context, root, work_unit_id, 1)
+    result, _result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    forged = json.loads(json.dumps(result))
+    forged["measurement"]["trials_completed"] = 4999
+    _write_canonical(resume.result_path(context, work_unit_id, 1, root=root), forged)
+    request_record = resume.validate_request_file(context, work_unit_id, 1, root=root)
+    with pytest.raises(resume.ResumeChainError):
+        resume.validate_result_file(
+            context, work_unit_id, 1, root=root, request_record=request_record
+        )
+
+
+def test_a_bounded_smoke_result_is_never_production_required_coverage(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, _sha = _publish_request(context, root, work_unit_id, 1)
+    result, _result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    request_record = resume.validate_request_file(context, work_unit_id, 1, root=root)
+    result_record = resume.validate_result_file(
+        context, work_unit_id, 1, root=root, request_record=request_record
+    )
+    assert (
+        resume.is_full_strength_merge_candidate(context, result_record, request_record)
+        is True
+    )
+    # Flipping the disposition flags alone must not buy coverage: the frozen
+    # contract binds them to the exact counts and execution class.
+    forged_result = json.loads(json.dumps(result_record["result"]))
+    forged_result["disposition"]["merge_eligible"] = False
+    forged_result["disposition"]["required_coverage_contribution"] = 0
+    forged_record = dict(result_record, result=forged_result)
+    assert (
+        resume.is_full_strength_merge_candidate(context, forged_record, request_record)
+        is False
+    )
+
+
+def test_result_shard_metadata_must_match_the_current_state(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, _sha = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(context, root, work_unit_id, 1, request, shard_index=0, shard_count=4)
+    request_record = resume.validate_request_file(context, work_unit_id, 1, root=root)
+    with pytest.raises(resume.ResumeContradictionError):
+        resume.validate_result_file(
+            context,
+            work_unit_id,
+            1,
+            root=root,
+            request_record=request_record,
+            shard_index=0,
+            shard_count=1,
+        )
+
+
+def test_a_malformed_state_never_degrades_to_absent(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    path = resume.state_path(context, work_unit_id, root=root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b'{"schema_version":2}')
+    with pytest.raises(resume.ResumeHoldError):
+        resume.read_unit_state_snapshot(context, work_unit_id, root=root)
+
+
+def test_classification_is_deterministic_and_covers_every_required_unit(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    _publish_request(context, root, work_unit_id, 1)
+    census = resume.census_runtime_root(context, root=root)
+    first = resume.classify_runtime_root(context, census, root=root)
+    second = resume.classify_runtime_root(context, census, root=root)
+    assert len(first) == context.required_work_unit_count
+    assert bler_contract.canonical_json(list(first)) == bler_contract.canonical_json(list(second))
+    assert [record["work_unit_id"] for record in first] == list(context.ordered_work_unit_ids)
+    assert first[0]["classification"] == "claimed_request_published"
+    assert {record["classification"] for record in first[1:]} == {"absent"}
+    for record in first:
+        assert record["classification"] in resume.CLASSIFICATIONS
+        assert record["test_split_access"] == 0
