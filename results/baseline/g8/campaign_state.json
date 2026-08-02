@@ -18,9 +18,9 @@
         "sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41"
       },
       {
-        "bytes": 15317,
+        "bytes": 17597,
         "path": "results/baseline/g8/bler_runner_contract.json",
-        "sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40"
+        "sha256": "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268"
       },
       {
         "bytes": 18394,
@@ -33,6 +33,11 @@
         "sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866"
       },
       {
+        "bytes": 36572,
+        "path": "results/baseline/g8/bounded_smoke_record.json",
+        "sha256": "cff4fb75835c4a010baed285103c3ba425b7b44b226186ce9969dcb17537763e"
+      },
+      {
         "bytes": 6325,
         "path": "results/baseline/g8/campaign_manifest.json",
         "sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1"
@@ -43,7 +48,7 @@
         "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
       }
     ],
-    "restart_command": ".venv/bin/python tools/run_g8_bler.py --execution-class bounded_smoke --root <explicit-temp-root> --device cpu --shard-count 1 --shard-index 0 --batch-size 1 --max-units 3",
+    "restart_command": "rg -n \"G8_C|characterization_open|full_strength|run_g8_bler|resume_plan|merge_report|tooling_smoke_complete\" src/baseline tools tests instructions",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
     "stage": "tooling_open"
   },
