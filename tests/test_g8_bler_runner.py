@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -194,6 +197,118 @@ def test_immutable_publication_rejects_symlink_and_hard_link_alias(tmp_path):
     (bucket / "hard.json").hardlink_to(hard_target)
     with pytest.raises(runner.RunnerConflictError):
         runner._publish_immutable_json(bucket / "hard.json", {"x": 1}, root=root)
+
+
+def _child_env() -> dict[str, str]:
+    env = os.environ.copy()
+    repo = Path(__file__).resolve().parents[1]
+    env["PYTHONPATH"] = f"{repo / 'src'}:{repo / 'tools'}"
+    return env
+
+
+def test_process_hard_exit_before_publication_leaves_no_final_json(tmp_path):
+    root = tmp_path / "before-publish"
+    target = root / "aa" / "request.json"
+    script = r'''
+import os, sys
+from pathlib import Path
+from baseline import g8_bler_runner as r
+root = Path(sys.argv[1]); root.mkdir(); target = root / "aa" / "request.json"
+def die(*args, **kwargs): os._exit(71)
+r._publish_without_replace = die
+r._publish_immutable_json(target, {"value": 1}, root=root)
+'''
+    completed = subprocess.run(
+        [sys.executable, "-c", script, str(root)],
+        env=_child_env(),
+        check=False,
+    )
+    assert completed.returncode == 71
+    assert not target.exists()
+    assert list((root / "aa").glob("*.staging"))
+
+
+def test_process_hard_exit_after_publication_leaves_complete_json(tmp_path):
+    root = tmp_path / "after-publish"
+    target = root / "aa" / "request.json"
+    body = canonical_json({"value": 2})
+    script = r'''
+import os, sys
+from pathlib import Path
+from baseline import g8_bler_runner as r
+root = Path(sys.argv[1]); root.mkdir(); target = root / "aa" / "request.json"
+original = r._publish_without_replace
+def publish(*args, **kwargs):
+    original(*args, **kwargs)
+    os._exit(72)
+r._publish_without_replace = publish
+r._publish_immutable_json(target, {"value": 2}, root=root)
+'''
+    completed = subprocess.run(
+        [sys.executable, "-c", script, str(root)],
+        env=_child_env(),
+        check=False,
+    )
+    assert completed.returncode == 72
+    assert target.read_bytes() == body
+
+
+def test_concurrent_immutable_creators_have_one_exact_installed_result(tmp_path):
+    root = tmp_path / "concurrent"
+    root.mkdir()
+    target = root / "aa" / "request.json"
+    script = r'''
+import sys
+from pathlib import Path
+from baseline import g8_bler_runner as r
+root = Path(sys.argv[1]); target = root / "aa" / "request.json"
+r._publish_immutable_json(target, {"same": True}, root=root)
+'''
+    first = subprocess.Popen([sys.executable, "-c", script, str(root)], env=_child_env())
+    second = subprocess.Popen([sys.executable, "-c", script, str(root)], env=_child_env())
+    assert first.wait(timeout=30) == 0
+    assert second.wait(timeout=30) == 0
+    assert target.read_bytes() == canonical_json({"same": True})
+    assert not list(root.rglob("*.staging"))
+
+
+def test_uncertain_publication_accepts_only_exact_installed_bytes(tmp_path, monkeypatch):
+    root = tmp_path / "uncertain"
+    root.mkdir()
+    target = root / "aa" / "request.json"
+    original_fsync = runner.os.fsync
+    calls = 0
+
+    def fail_directory_fsync(fd):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected uncertain directory fsync")
+        return original_fsync(fd)
+
+    monkeypatch.setattr(runner.os, "fsync", fail_directory_fsync)
+    payload = {"exact": True}
+    digest = runner._publish_immutable_json(target, payload, root=root)
+    assert digest == bler_contract.sha256_bytes(canonical_json(payload))
+    assert target.read_bytes() == canonical_json(payload)
+
+
+def test_uncertain_publication_rejects_nonexact_installed_bytes(tmp_path, monkeypatch):
+    root = tmp_path / "uncertain-conflict"
+    root.mkdir()
+    target = root / "aa" / "request.json"
+    original_read = runner._read_installed
+    reads = 0
+
+    def wrong_after_install(fd, name):
+        nonlocal reads
+        reads += 1
+        observed = original_read(fd, name)
+        return b"wrong" if reads >= 2 else observed
+
+    monkeypatch.setattr(runner, "_read_installed", wrong_after_install)
+    with pytest.raises(runner.RunnerPublicationError):
+        runner._publish_immutable_json(target, {"exact": False}, root=root)
 
 
 def test_one_bounded_unit_uses_claim_request_result_link_transaction(

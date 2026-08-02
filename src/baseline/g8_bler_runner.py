@@ -17,6 +17,7 @@ import os
 import secrets
 import stat
 import time
+import ctypes
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
@@ -60,6 +61,7 @@ SMOKE_RECORD_ARTIFACT_ROLE = "g8_bounded_smoke_record"
 _FILE_MODE = stat.S_IRUSR | stat.S_IWUSR
 _DIRECTORY_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
 _STAGING_SUFFIX = ".staging"
+_RENAME_NOREPLACE = 1
 
 
 class G8BlerRunnerError(RuntimeError):
@@ -395,6 +397,50 @@ def _read_installed(bucket_fd: int, final_name: str) -> bytes | None:
             os.close(descriptor)
 
 
+def _publish_without_replace(bucket_fd: int, staging: str, final_name: str) -> None:
+    """Use Linux ``renameat2(RENAME_NOREPLACE)`` without a fallback.
+
+    Unlike a hard-link publication, the successful rename leaves no second
+    hard link behind.  Thus a hard exit after publication leaves an ordinary
+    one-link immutable file that B3 can validate on the next scan.
+    """
+
+    libc = ctypes.CDLL(None, use_errno=True)
+    renameat2 = getattr(libc, "renameat2", None)
+    if renameat2 is None:
+        raise RunnerPublicationError(
+            "crash-durable no-replace publication is unavailable; refusing fallback"
+        )
+    renameat2.argtypes = [
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_int,
+        ctypes.c_char_p,
+        ctypes.c_uint,
+    ]
+    renameat2.restype = ctypes.c_int
+    result = renameat2(
+        bucket_fd,
+        os.fsencode(staging),
+        bucket_fd,
+        os.fsencode(final_name),
+        _RENAME_NOREPLACE,
+    )
+    if result == 0:
+        return
+    error_number = ctypes.get_errno()
+    if error_number == errno.EEXIST:
+        raise FileExistsError(errno.EEXIST, os.strerror(error_number), final_name)
+    if error_number in {errno.ENOSYS, errno.EPERM, errno.EOPNOTSUPP, errno.EXDEV}:
+        raise RunnerPublicationError(
+            "crash-durable no-replace publication is unavailable; refusing fallback"
+        ) from OSError(error_number, os.strerror(error_number))
+    raise RunnerPublicationError(
+        f"descriptor-relative no-replace publication failed at {final_name}: "
+        f"{os.strerror(error_number)}"
+    ) from OSError(error_number, os.strerror(error_number))
+
+
 def _publish_immutable_json(path: Path, payload: Mapping[str, Any], *, root: Path) -> str:
     """Publish exact canonical request/result bytes without replacing a target."""
 
@@ -438,14 +484,9 @@ def _publish_immutable_json(path: Path, payload: Mapping[str, Any], *, root: Pat
                 os.close(descriptor)
         published = False
         try:
-            os.link(
-                staging,
-                final_name,
-                src_dir_fd=bucket_fd,
-                dst_dir_fd=bucket_fd,
-                follow_symlinks=False,
-            )
+            _publish_without_replace(bucket_fd, staging, final_name)
             published = True
+            staging = None
         except FileExistsError as exc:
             installed = _read_installed(bucket_fd, final_name)
             if installed == body:
@@ -466,28 +507,11 @@ def _publish_immutable_json(path: Path, payload: Mapping[str, Any], *, root: Pat
             os.fsync(bucket_fd)
             os.fsync(root_fd)
         except OSError as exc:
-            if published:
-                try:
-                    os.unlink(staging, dir_fd=bucket_fd)
-                except FileNotFoundError:
-                    pass
             installed = _read_installed(bucket_fd, final_name)
             if installed == body:
                 return digest
             raise RunnerPublicationError(
                 f"directory durability failed and exact publication was not proven: {path}: {exc}"
-            ) from exc
-        os.unlink(staging, dir_fd=bucket_fd)
-        staging = None
-        try:
-            os.fsync(bucket_fd)
-            os.fsync(root_fd)
-        except OSError as exc:
-            installed = _read_installed(bucket_fd, final_name)
-            if installed == body:
-                return digest
-            raise RunnerPublicationError(
-                f"directory durability after staging cleanup failed and exact publication was not proven: {path}: {exc}"
             ) from exc
         installed = _read_installed(bucket_fd, final_name)
         if installed != body:

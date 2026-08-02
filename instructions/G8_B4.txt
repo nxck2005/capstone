@@ -56,9 +56,9 @@ history prefix; B3 recovery handles it on the next scan.
 
 Request and result publication use one primitive: render canonical bytes before
 opening the destination; stage in a unique same-directory `0600` file with
-`O_CREAT|O_EXCL|O_NOFOLLOW`; write, flush, and fsync; publish with a
-descriptor-relative no-replace hard link; fsync the directory; remove staging;
-and reread exact bytes. Existing identical bytes are idempotent, different
+`O_CREAT|O_EXCL|O_NOFOLLOW`; write, flush, and fsync; publish with
+descriptor-relative `renameat2(RENAME_NOREPLACE)`; fsync the directory; and
+reread exact bytes. Existing identical bytes are idempotent, different
 bytes conflict, aliases and symlinks are rejected, and an uncertain exception
 is success only after the exact proposed bytes and SHA-256 are reread.
 
