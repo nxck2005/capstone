@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-02 · **Phase:** **G8_B active; B0, B1 and B1C complete; B2 next. G8_C–G8_G remain prohibited.**
+**Last updated:** 2026-08-02 · **Phase:** **G8_B active; B0, B1, B1C and B2 complete; B3 next — implement exact resume and merge validation. G8_C–G8_G remain prohibited.**
 
 ## Single next task
 
@@ -26,15 +26,15 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **G8_B active; B0, B1 and B1C complete; B2 next — implement sharding and atomic unit state.** |
-| G8_B–G8_G | **G8_B active; B0, B1 and B1C complete; G8_C–G8_G prohibited until the preceding phase is green** |
+| G-8 classical validation work | **G8_B active; B0, B1, B1C and B2 complete; B3 next — implement exact resume and merge validation.** |
+| G8_B–G8_G | **G8_B active; B0, B1, B1C and B2 complete; G8_C–G8_G prohibited until the preceding phase is green** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B is active; B0, B1 and B1C are complete and B2 is next.** B0 verified G8_A and opened the phase. B1 remains a historical design checkpoint; B1C corrected and hardened the executable BLER contract before data. Tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 implements sharding and atomic unit state. G8_B builds characterization tooling and runs bounded synthetic/unit-scale smoke only; it must not run full-strength characterization. No runner, simulation, smoke or characterization has started. On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint.
+**G8_B active. B0, B1, B1C and B2 complete. B3 next — implement exact resume and merge validation.** B0 verified G8_A and opened the phase. B1 remains a historical design checkpoint; B1C corrected and hardened the executable BLER contract before data. Tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed per-unit state, atomic publication, and the independently verified B2 contract; it did not interpret a state directory as execution history. **No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited.** On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint.
 Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 
@@ -112,7 +112,7 @@ and the spec defines no BR-4 selection tie-break to contradict.
 
 ### Durable G-8 phase partition
 
-The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**active; B0, B1 and B1C complete, B2 next**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**active; B0, B1, B1C and B2 complete, B3 next**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
 ### What G-8 actually has to build — read this before starting it
 
@@ -326,7 +326,7 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
    **Complete.**
 8. ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication.**~~ **Complete.**
 9. **G-8 classical validation work — campaign implementation and preflight, then the full BR-4
-   validation sweep and the operating-point decision. G8_B is active; B0 and B1 are complete and B2 is next.** The sweep is step eight
+   validation sweep and the operating-point decision. G8_B is active; B0, B1, B1C and B2 are complete; B3 is next — exact resume and merge validation.** The sweep is step eight
    of twelve; see "What G-8 actually has to build".
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7

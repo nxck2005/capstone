@@ -1,0 +1,245 @@
+{
+  "artifact_role": "g8_bler_state_contract",
+  "authority_bindings": {
+    "bler_tooling_contract_id": "g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975",
+    "bler_tooling_contract_sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866",
+    "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+    "campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+    "request_schema_version": 2,
+    "required_bler_artifact_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
+    "required_work_unit_count": 3213,
+    "result_schema_version": 2,
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "tooling_schema_version": 2
+  },
+  "campaign": "G-8",
+  "checkpoint": "B2",
+  "contract_id": "g8state-77ff45564fbe282179a860d70f2cc509264d06e1855d7360a50994a4fabaaa7c",
+  "contract_sources": [
+    {
+      "bytes": 49778,
+      "path": "src/baseline/g8_bler_work_units.py",
+      "role": "g8b_b2_contract_source",
+      "sha256": "7b652434a56853e7254df01690e35be95b93463c97f6ceb443869baf88250c5f"
+    },
+    {
+      "bytes": 12249,
+      "path": "tools/gen_g8_bler_state_contract.py",
+      "role": "g8b_b2_contract_source",
+      "sha256": "c076b67052a292e7b46e059c8d669fc901c4aeedd2d9b6e7860c7e8d05ba2312"
+    },
+    {
+      "bytes": 22461,
+      "path": "tools/verify_g8_bler_state_contract.py",
+      "role": "g8b_b2_contract_source",
+      "sha256": "01a7c6204a37bf777236b78a51d01e2bbd61bfd345b830f6f3ab0da94fe3bb71"
+    }
+  ],
+  "execution_context": {
+    "authentication": "AuthenticatedExecutionContext verifies the exact B1C contract, campaign manifest, required-identity artifact, selection policy, schemas, count, and every complete ordered work-unit record once at construction.",
+    "authority_cache_rule": "the required-identity artifact may be loaded and hashed once per context; record lookup and shard construction never invoke an uncached artifact loader per unit",
+    "immutable_internal_storage": "canonical work-unit bytes, scalar bindings, tuples, and read-only mappings; public record and index lookups return fresh decoded copies",
+    "request_or_result_construction": false,
+    "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
+    "seed_forbidden_inputs": [
+      "python_hash",
+      "process_id",
+      "worker_id",
+      "shard_number",
+      "enumeration_order",
+      "dictionary_order",
+      "wall_clock_time",
+      "hostname",
+      "device",
+      "absolute_path",
+      "commit_time",
+      "batch_number",
+      "retry_number"
+    ],
+    "shard_assignment_does_not_enter_seed_derivation": true,
+    "test_split_access": 0
+  },
+  "phase": "G8_B",
+  "publication": {
+    "atomic_replacement": {
+      "expected_previous_sha256_required": true,
+      "malformed_state_repair": false,
+      "operation": "optimistic compare-and-swap",
+      "partial_temporary_cleanup": true,
+      "post_replace_failure": "installed old-or-new canonical state is recoverable by reread",
+      "stale_writer_error": "StaleWriterError",
+      "steps": [
+        "read and validate current canonical state",
+        "compare actual SHA-256 with expected previous SHA-256",
+        "validate proposed state and monotonic attempt",
+        "write same-directory temporary",
+        "flush and fsync temporary file",
+        "os.replace destination atomically",
+        "fsync containing directory where supported",
+        "reread and validate installed canonical state"
+      ]
+    },
+    "exclusive_creation": {
+      "directory_fsync": "after publication where supported; unsupported directory fsync is explicit",
+      "file_fsync": true,
+      "filesystem_flags": [
+        "O_CREAT",
+        "O_EXCL",
+        "O_NOFOLLOW when supported"
+      ],
+      "publication_bytes_prepared_before_open": true,
+      "silent_overwrite": false,
+      "winner_rule": "exactly one simultaneous creator succeeds; losers receive StateConflictError"
+    }
+  },
+  "schema_version": 1,
+  "scope": {
+    "b2_state_writes_only_in_isolated_temporary_tests": true,
+    "bounded_smoke_started": false,
+    "characterization_started": false,
+    "exact_b3_restart_command": "rg -n \"resume|remaining_work|merge|request_sha256|result_sha256|completed_work_unit_ids|in_progress_work_unit_id|unit_state|shard_plan\" src/baseline tools tests",
+    "exact_resume_and_merge_checkpoint": "B3",
+    "runner_exists": false,
+    "scientific_execution_performed": false,
+    "simulation_started": false,
+    "test_split_access": 0,
+    "tracked_live_unit_state_files": []
+  },
+  "sharding": {
+    "algorithm": "canonical_ordinal_modulo_v1",
+    "argument_rule": "shard_count is an exact positive integer; shard_index is an exact integer in range",
+    "artifact_role": "g8_bler_shard_plan",
+    "forbidden_order_sources": [
+      "set order",
+      "dictionary order",
+      "filesystem order",
+      "completion order",
+      "hostname",
+      "process ID",
+      "worker ID",
+      "runtime duration",
+      "python hash"
+    ],
+    "formula": "ordinal % shard_count == shard_index",
+    "order_rule": "preserve canonical artifact order within every shard",
+    "ordinal_definition": "zero-based position in the exact ordered required_bler_work_units sequence",
+    "plan_digest_rule": "sha256(canonical JSON over the complete shard plan identity excluding plan_digest)",
+    "plan_fields": [
+      "schema_version",
+      "artifact_role",
+      "sharding_algorithm",
+      "campaign_id",
+      "campaign_manifest_sha256",
+      "required_bler_artifact_sha256",
+      "selection_policy_sha256",
+      "bler_tooling_contract_id",
+      "bler_tooling_contract_sha256",
+      "total_required_work_unit_count",
+      "shard_index",
+      "shard_count",
+      "assigned_work_unit_ids",
+      "assigned_work_unit_count",
+      "plan_digest"
+    ],
+    "schema_version": 1,
+    "seed_independence": "changing shard_count or shard_index changes membership only, never seeds or request identity"
+  },
+  "unit_state_path": {
+    "digest_input": "exact UTF-8 bytes of the exact work-unit ID",
+    "path_is_not_authority": "the payload carries the original ID and validation recomputes the digest",
+    "rejections": [
+      "absolute or relative aliases",
+      "dot or dot-dot traversal",
+      "outside-root paths",
+      "symlink escape",
+      "wrong extension",
+      "uppercase or malformed digest",
+      "unknown IDs",
+      "a path whose digest does not match its payload ID"
+    ],
+    "root_relative_layout": "<first-two-lowercase-hex>/<sha256-utf8-work-unit-id>.state.json"
+  },
+  "unit_state_schema": {
+    "all_statuses": [
+      "claimed",
+      "failed",
+      "result_linked"
+    ],
+    "artifact_role": "g8_bler_work_unit_state",
+    "canonical_file_encoding": "compact sorted-key JSON bytes, ensure_ascii=true, allow_nan=false, no trailing newline",
+    "global_invariants": [
+      "bindings match the authenticated context exactly",
+      "canonical ordinal and required-record hash reproduce",
+      "shard ownership and shard-plan digest reproduce",
+      "attempt is a positive exact integer and cannot regress on replacement",
+      "counters are exact non-negative integers and booleans are rejected",
+      "test_split_access is exactly zero",
+      "unknown and omitted fields fail closed",
+      "NaN and infinity fail through canonical JSON and numeric metadata validation"
+    ],
+    "identity_digest_rule": "identity_sha256 = sha256(canonical JSON of identity only); runtime_metadata is excluded",
+    "identity_fields": [
+      "schema_version",
+      "artifact_role",
+      "campaign_id",
+      "campaign_manifest_sha256",
+      "required_bler_artifact_sha256",
+      "selection_policy_sha256",
+      "bler_tooling_contract_id",
+      "bler_tooling_contract_sha256",
+      "request_schema_version",
+      "result_schema_version",
+      "work_unit_id",
+      "canonical_ordinal",
+      "required_work_unit_record_sha256",
+      "sharding_algorithm",
+      "shard_index",
+      "shard_count",
+      "shard_plan_digest",
+      "attempt",
+      "status",
+      "request_sha256",
+      "result_path",
+      "result_sha256",
+      "scientific_execution_performed",
+      "trials_completed",
+      "test_split_access"
+    ],
+    "runtime_metadata_fields": [
+      "hostname",
+      "process_id",
+      "device",
+      "wall_clock_annotation",
+      "update_annotation"
+    ],
+    "schema_version": 1,
+    "statuses": {
+      "claimed": {
+        "pre_execution_claim": true,
+        "request_sha256": null,
+        "result_path": null,
+        "result_sha256": null,
+        "scientific_execution_performed": false,
+        "trials_completed": 0
+      },
+      "failed": {
+        "characterized_evidence": false,
+        "merge_decision": "not implemented in B2",
+        "result_path": null,
+        "result_sha256": null
+      },
+      "result_linked": {
+        "result_path": "required nonblank canonical repository-relative path",
+        "result_sha256": "required lowercase SHA-256",
+        "result_validation": "B2 validates the reference fields only; it does not read, merge, or prefer a result"
+      }
+    },
+    "top_level_fields": [
+      "schema_version",
+      "artifact_role",
+      "identity",
+      "runtime_metadata",
+      "identity_sha256"
+    ]
+  }
+}

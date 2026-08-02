@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -142,7 +143,6 @@ STATE_STATUSES = (STATUS_CLAIMED, STATUS_FAILED, STATUS_RESULT_LINKED)
 
 DEFAULT_WORK_UNIT_ROOT = REPO_ROOT / "results/baseline/g8/work_units"
 STATE_FILENAME_SUFFIX = ".state.json"
-STATE_DIGEST_HEX_LENGTH = 64
 HEX_DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
 
 B3_RESTART_COMMAND = (
@@ -1004,7 +1004,7 @@ def create_unit_state_exclusive(
     try:
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
         try:
-            descriptor = os.open(target, flags, 0o600)
+            descriptor = os.open(target, flags, stat.S_IRUSR | stat.S_IWUSR)
         except FileExistsError as exc:
             raise StateConflictError(f"unit-state already exists: {target}") from exc
         created = True

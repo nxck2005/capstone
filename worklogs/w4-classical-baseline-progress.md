@@ -1191,9 +1191,10 @@ changing any of them, which is the bar §17's preamble sets.
 
 ## Remaining frontier
 
-W4 is complete, including PB_3C. The single next engineering task is **G-8 classical validation
-work**, and it begins with **campaign implementation and preflight** — the sweep is step eight of
-twelve, and steps one to seven do not exist yet.
+W4 is complete, including PB_3C. **G8_B active. B0, B1, B1C and B2 complete. B3 next — implement
+exact resume and merge validation. No runner, simulation, smoke or characterization has started.
+G8_C–G8_G remain prohibited.** The single next engineering task is **G-8 classical validation
+work**; the full sweep is step eight of twelve, and the B2 tooling now precedes it.
 
 The committed G-2 BLER evidence characterises exactly one physical-layer identity (`K=128, N=256,
 BG2, Z=22, rate 1/2, offset-min-sum 0.5, 50 iterations`) at four SNR points per modulation. It is a
@@ -1240,17 +1241,17 @@ G8_A began from clean local/origin/remote parity at `39c43e327573f33011c561c6de2
 
 The PB_3C terminal handoff provenance is explicit rather than inferred from an intended subject: terminal SHA `39c43e327573f33011c561c6de22bd05ff93c068`, actual subject `fix: fix push failure due to gpg for resume.md`; implementation/adjudication checkpoint `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3 implementation green `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; latest scientific-measurement green `3324393a3e1692478bba8cf1020708bf52947f6d`. History is preserved.
 
-G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. G8_B B0, B1 and B1C are complete; B2 — implement sharding and atomic unit state — is next. B1 remains a historical design checkpoint; B1C corrected and hardened the executable contract before data. The corrected tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. G8_B is tooling and bounded smoke only; G8_C and later remain prohibited.
+G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. G8_B active. B0, B1, B1C and B2 complete. B3 next — implement exact resume and merge validation. No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited. B1 remains a historical design checkpoint; B1C corrected and hardened the executable contract before data. The corrected tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed unit snapshots and atomic publication without interpreting state history.
 
 ## G8_A green — contract frozen, G8_B released
 
 G8_A enumerated 12,096 structural candidates over the headline and already-specified fallback roles, 144 packet configurations, and 3,213 unique physical-layer BLER work units. Exact G-2 coverage is 0/3,213: all required cells differ in physical identity, 24 measured G-2 convention/point records lie outside the required set, and neither interpolation nor extrapolation was used. This expected insufficiency releases characterization *tooling* work, not scientific execution.
 
-`results/baseline/g8/campaign_manifest.json` binds the W4 adjudication, selection-policy fingerprint, selection sources, normative spec/generated parameters, split-manifest bytes, phase order and G8_A contract sources. `required_bler_identities.json` is generator-owned; `campaign_state.json` is crash-safe and manifest-bound. B0 opened it at `G8_B/tooling_open` with no work units and all decoding/inference/training/test counters zero, and B1 registered one further produced artifact, `bler_tooling_contract.json`, without touching a counter or work unit; B2 is next. Later phases may not silently reinterpret these artifacts.
+`results/baseline/g8/campaign_manifest.json` binds the W4 adjudication, selection-policy fingerprint, selection sources, normative spec/generated parameters, split-manifest bytes, phase order and G8_A contract sources. `required_bler_identities.json` is generator-owned; `campaign_state.json` is crash-safe and manifest-bound. B0 opened it at `G8_B/tooling_open` with no work units and all decoding/inference/training/test counters zero, B1 registered `bler_tooling_contract.json`, and B2 registered `bler_state_contract.json` without touching a counter or work unit; B3 is next. Later phases may not silently reinterpret these artifacts.
 
 ## G8_B B0 — verify G8_A and open the phase (complete)
 
-G8_B is active; B0 and B1 are complete and B2 is next. The first B0 command after the marker was
+G8_B is active; B0, B1, B1C and B2 are complete and B3 is next. The first B0 command after the marker was
 `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; the exact B1 restart command is
 `rg -n "trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`.
 No characterization, sweep, validation decoding, inference, training, test access, ratio
@@ -1326,3 +1327,34 @@ closed the B0 gap by naming the manifest's scientific base, interpretation rules
 selection-policy invalidation clause. A narrow registration utility added the one new binding
 without touching a counter or work unit; state SHA-256 is
 `4b47e62aca0cd61930d9e389908b3dbdfb31e4f6d0be452fc9cd2cf0dfc2c3ab`.
+
+## G8_B B2 — deterministic sharding and atomic unit state (complete)
+
+**G8_B active. B0, B1, B1C and B2 complete. B3 next — implement exact resume and merge
+validation. No runner, simulation, smoke or characterization has started. G8_C–G8_G remain
+prohibited.** B2 is infrastructure only: no required work unit was claimed, no request or result
+was created, no BLER path was invoked, and no state directory was scanned for execution history.
+
+The authenticated `AuthenticatedExecutionContext` binds campaign ID, manifest, required-identity,
+selection-policy and corrected B1C contract ID/SHA, schemas 2, all 3,213 complete records and the
+exact artifact order. It stores canonical bytes, tuples and read-only mappings; public lookups are
+fresh decoded copies. Construction authenticates the required artifact once per context, and the
+instrumented 92-test suite observed one loader call while performing record lookups and 11 shard
+plans. `canonical_ordinal_modulo_v1` uses `ordinal % shard_count == shard_index`, preserves order,
+and never enters seed derivation. Plans bind the full authority and a digest over their complete
+identity. State paths use the exact UTF-8 work-unit-ID SHA-256 under a lowercase two-hex bucket.
+
+Unit state schema v1 separates identity from closed runtime metadata and binds the corrected B1C
+request/result schemas v2, canonical ordinal, record hash, shard ownership and plan digest. The
+identity digest covers identity only. Exclusive creation uses `O_EXCL`/`O_NOFOLLOW` where supported,
+file fsync and directory fsync; replacement is a canonical same-directory compare-and-swap with
+expected previous SHA, fsynced temporary, atomic replace, directory fsync and reread. The
+independent contract verifier exercises races, stale writers, malformed state, interruption
+before/after replace and cleanup only in temporary directories.
+
+The generated B2 contract is `g8state-77ff45564fbe282179a860d70f2cc509264d06e1855d7360a50994a4fabaaa7c`,
+SHA-256 `2422c4c2a019c2a901cfd8732747555262dfca5601b28b0e700ff33743d4d939`, 9,390 bytes. The
+registration-owned campaign state has four produced artifacts, SHA-256
+`c75254513f2edc31a37957a5f2cfa13d532062e959f887091fabac04c4d91c92`, completed IDs `[]`,
+in-progress `null`, and all four scientific counters zero. No amendment was needed: B2 freezes
+implementation mechanics left open by the normative spec and contradicts no requirement.

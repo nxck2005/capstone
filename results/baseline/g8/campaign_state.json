@@ -13,6 +13,11 @@
     "phase": "G8_B",
     "produced_artifacts": [
       {
+        "bytes": 9390,
+        "path": "results/baseline/g8/bler_state_contract.json",
+        "sha256": "2422c4c2a019c2a901cfd8732747555262dfca5601b28b0e700ff33743d4d939"
+      },
+      {
         "bytes": 14231,
         "path": "results/baseline/g8/bler_tooling_contract.json",
         "sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866"
@@ -28,7 +33,7 @@
         "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
       }
     ],
-    "restart_command": "rg -n \"BLER_WORK_UNIT|derive_seed|produced_artifacts|completed_work_unit_ids|in_progress_work_unit_id|write_campaign_state_atomically\" src/baseline tools tests",
+    "restart_command": "rg -n \"resume|remaining_work|merge|request_sha256|result_sha256|completed_work_unit_ids|in_progress_work_unit_id|unit_state|shard_plan\" src/baseline tools tests",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
     "stage": "tooling_open"
   },

@@ -20,6 +20,9 @@ import pytest
 
 from baseline import g8_bler_contract
 from baseline import g8_bler_work_units as units
+import gen_g8_bler_state_contract as state_generator
+import verify_g8_bler_state_contract as state_verifier
+from baseline.g8_campaign import rendered_json
 
 
 @pytest.fixture(scope="module")
@@ -642,3 +645,53 @@ def test_scope_guard_inspects_ast_not_strings_or_comments() -> None:
 
 def test_b2_never_creates_live_work_unit_tree() -> None:
     assert not units.DEFAULT_WORK_UNIT_ROOT.exists()
+
+
+def test_generated_b2_contract_is_canonical_and_independently_verified() -> None:
+    payload = state_verifier.verify()
+    assert payload["contract_id"] == state_generator.contract_identifier(payload)
+    assert payload["authority_bindings"]["required_work_unit_count"] == 3213
+    assert payload["scope"]["scientific_execution_performed"] is False
+    assert payload["scope"]["test_split_access"] == 0
+    assert state_generator.main(["--check"]) == 0
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda p: p.__setitem__("phase", "G8_C"),
+        lambda p: p["authority_bindings"].__setitem__("required_work_unit_count", 1),
+        lambda p: p["sharding"].__setitem__("formula", "ordinal % 2 == shard_index"),
+        lambda p: p["unit_state_schema"].__setitem__("identity_digest_rule", "runtime too"),
+        lambda p: p["publication"]["exclusive_creation"].__setitem__("silent_overwrite", True),
+        lambda p: p["scope"].__setitem__("simulation_started", True),
+    ],
+)
+def test_independent_b2_verifier_rejects_contract_mutations(
+    tmp_path: Path,
+    mutation: Any,
+) -> None:
+    payload = state_generator.build()
+    mutation(payload)
+    payload["contract_id"] = state_generator.contract_identifier(payload)
+    path = tmp_path / "bler_state_contract.json"
+    path.write_bytes(rendered_json(payload))
+    with pytest.raises(state_verifier.G8BlerStateContractError):
+        state_verifier.verify(path)
+
+
+def test_contract_verifier_does_not_import_or_call_the_generator() -> None:
+    source_path = Path(__file__).parents[1] / "tools/verify_g8_bler_state_contract.py"
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+    imported = {
+        node.module
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module
+    }
+    imported.update(
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    )
+    assert "gen_g8_bler_state_contract" not in imported
