@@ -1,0 +1,135 @@
+# G8_B B2C — correct and harden unit-state publication before B3
+
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
+Interpreter: `.venv/bin/python`
+
+## Purpose
+
+B2C is a narrow, pre-execution corrective checkpoint. B2's sharding direction
+and closed unit-state schema are correct and are retained. A line-by-line audit
+of the B2 primitives found that they do not yet supply the guarantees B3 exact
+resume and merge validation will depend on:
+
+1. **First publication is not crash-atomic.** `create_unit_state_exclusive`
+   opened the *final* pathname with `O_CREAT | O_EXCL` and wrote into it. The
+   exclusivity is real, but a hard exit between `open` and `fsync` leaves a
+   truncated or partial JSON file at the authoritative name. A later reader
+   cannot distinguish "never written" from "half written".
+2. **Replacement was not linearizable.** `replace_unit_state` read the current
+   state, compared its SHA-256 with `expected_previous_sha256`, and only then
+   wrote a temporary and called `os.replace()`, with nothing held across that
+   window. Two writers holding the same predecessor SHA could both pass the
+   comparison and both report success; the second silently destroyed the
+   first. That is a read-then-write, not a compare-and-swap, and the B2
+   contract described it as one.
+3. **Descriptors could be closed twice.** The failure path closed the raw
+   descriptor inside `except` and again inside `finally`, so a genuine
+   publication failure could surface to the caller as a secondary `EBADF`
+   instead of the intended domain error.
+4. **Symlink checks were fail-open.** `path.exists() and path.is_symlink()`
+   follows the link, so a *dangling* symlink at the final state name, the root,
+   the bucket directory, or a staging name reported `exists() == False` and
+   passed the guard. Validation also compared two `resolve()` calls derived
+   from the same candidate, which cannot prove anything an attacker-controlled
+   parent has not already decided.
+5. **Directory durability was silently downgraded.** `_fsync_directory`
+   swallowed `EACCES` — which is a permission failure, not "unsupported" — and
+   returned `False`; every caller discarded that return and reported success.
+6. **Results were not request-bound and not terminal.** A `result_linked`
+   state could carry a null `request_sha256`; and once linked, its result path,
+   result SHA-256, trials, or attempt could still be rewritten by any writer
+   holding the current SHA. Trials could decrease, a non-null request SHA could
+   change, and the scientific flag could go true → false.
+7. **Unit states did not bind their own contract.** Identity bound the B1C
+   tooling contract only, so a state written under the superseded B2 contract
+   was indistinguishable from one written under B2C.
+8. **The independent verifier was not independent.** It imported every expected
+   constant, field list, and status rule from `baseline.g8_bler_work_units`,
+   so a mutation of the production module mutated the "expected" values in
+   lockstep and the verifier still passed.
+9. **A permanent no-live-state assertion was scheduled to fail.** The B2
+   verifier and `test_b2_never_creates_live_work_unit_tree` asserted that
+   `results/baseline/g8/work_units/` never exists. That is correct now and
+   guaranteed to be wrong the moment B3/B4 legitimately execute.
+
+B2C corrects all nine. No scientific result exists, no scientific parameter,
+hypothesis, gate, operating rule or selection rule changes, and therefore **no
+specification amendment is required**. B2 remains a historical implementation
+checkpoint; B2C is the corrective checkpoint that must be green before B3.
+
+## Starting assertions
+
+Expected starting remote-main SHA is
+`6193dfda2bd2cc91e090eb3cfd57d46a3a0a9726`
+(`feat(g8-b): add deterministic sharding and atomic unit state`). Require a
+clean worktree and local `HEAD`, `origin/main`, and remote `refs/heads/main`
+all equal to that SHA.
+
+The immutable campaign values are:
+
+- campaign ID `g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a`;
+- campaign-manifest SHA-256 `0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1`;
+- required-identity SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`;
+- selection-policy SHA-256 `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`;
+- B1C tooling contract ID `g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975`;
+- B1C tooling contract SHA-256 `bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866`.
+
+The exact B2 state contract being superseded is:
+
+- contract ID `g8state-77ff45564fbe282179a860d70f2cc509264d06e1855d7360a50994a4fabaaa7c`;
+- artifact SHA-256 `2422c4c2a019c2a901cfd8732747555262dfca5601b28b0e700ff33743d4d939`;
+- artifact length 9,390 bytes;
+- campaign-state SHA-256 `c75254513f2edc31a37957a5f2cfa13d532062e959f887091fabac04c4d91c92`.
+
+The live state must begin at `G8_B/tooling_open` with `completed_work_unit_ids`
+empty, `in_progress_work_unit_id` null, and zero `validation_decoding`,
+`inference`, `training` and `test_access` counters. No
+`results/baseline/g8/work_units/` tree may exist, tracked or untracked. The
+starting full suite is **1,580 passed, 0 failed, 0 skipped**. If any repository
+byte contradicts these assertions, stop with
+`G8_B B2C HOLD — <precise contradiction>`; never reset, clean, stash, overwrite,
+or discard unexpected state.
+
+## Scope and prohibitions
+
+B2C may add this instruction, update the resume ledger and handoffs, correct
+`src/baseline/g8_bler_work_units.py` and its tests, bump the unit-state and
+contract schema versions, regenerate the state contract at its tracked path,
+rewrite the independent verifier so it derives its own expected truth, add
+`tools/migrate_g8_bler_state_contract.py` and its tests, and migrate exactly one
+campaign-state artifact binding.
+
+B2C may **not** create a runner, a request writer, a result writer, a merger, a
+directory resume scanner, a smoke tool, a characterization tool, a `BlerTable`,
+an authorization object, or any scientific artifact. It may not touch
+`spec/**`, the frozen G8_A files, `src/baseline/g8_campaign.py`,
+`src/baseline/g8_bler_contract.py`, `src/baseline/ldpc/**`,
+`results/baseline/g2/**`, `results/baseline/w4/**`, `data/manifests/**`, or any
+dataset. It must not execute B3.
+
+## Adversary model
+
+The corrected contract states its boundary explicitly rather than implying a
+stronger one. B2C assumes a **trusted local user and a single trusted
+repository checkout**. What it defends against is *accident and concurrency*:
+two cooperating workers racing, a hard process kill mid-write, a stale writer
+resuming with an obsolete predecessor SHA, an orphaned staging file, and a
+symlink or alias that a careless tool or a partially-restored backup left
+behind. It does **not** claim to defeat a local attacker who already has write
+access to the work-unit root and can win an arbitrary time-of-check /
+time-of-use race against a `renameat2`-less filesystem; the publication path is
+descriptor-relative specifically to *narrow* that window, not to close it
+against an unbounded adversary.
+
+## Exact B3 restart command
+
+```
+rg -n "resume|remaining_work|merge|request_sha256|result_sha256|completed_work_unit_ids|in_progress_work_unit_id|unit_state|shard_plan" src/baseline tools tests
+```
+
+## Recovery command
+
+```
+.venv/bin/python -m pytest tests/test_g8_bler_work_units.py tests/test_g8_bler_state_contract_migration.py -q
+```
