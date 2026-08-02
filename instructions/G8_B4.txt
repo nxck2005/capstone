@@ -1,0 +1,85 @@
+# G8_B4 — runner and bounded-smoke contract
+
+This instruction is subordinate to `spec/SPEC.md`, the authenticated G8
+artifacts, and the registered B3 resume contract.  B4 implements the runner
+that G8_C will later use, but B4 itself may execute only the explicitly
+bounded smoke described below.  It must not create a production
+`results/baseline/g8/work_units/` tree or perform full-strength
+characterization.
+
+## Frozen inputs and authorization
+
+The runner consumes authenticated B1C requests, B2C unit state, B3 resume
+plans and reconciliation, and the exact G8_A required-work-unit authority. It
+must never reconstruct the grid or invent an identity.  A bounded request is
+authorized only in `G8_B/tooling_open` with an explicit isolated root.  A
+full-strength request is authorized only in `G8_C/characterization_open`; in
+every G8_B stage the rejection occurs before root creation, state or request
+publication, LDPC-adapter construction, information-bit generation, or
+decoding.
+
+The registered B4 contract binds the runner, CLI, contract generator,
+independent verifier, and bounded-smoke verifier. It also binds the existing
+LDPC adapter and modulation implementation source bytes as scientific
+dependencies. After registration, those B4 production sources are frozen.
+
+## One trial and deterministic streams
+
+For each authenticated work-unit identity, derive `K`, `N`, base graph,
+lifting size, modulation, rate, and SNR from its record. Generate exactly K
+information bits from the frozen information-bit stream, encode with
+`SionnaLDPCAdapter`, map with the existing modulation implementation, use the
+Es/N0-per-symbol convention to derive `N0`, draw real and imaginary AWGN from
+two persistent Philox generators starting at index zero, scale complex noise by
+`sqrt(N0 / 2)`, demap with max-log LLRs, and decode with the configured
+offset-min-sum adapter. Require decoder shape `(batch, K)` and binary finite
+outputs. Compare all K information bits; authoritative counts are trials,
+`trials_completed * K` information bits, complete Hamming distance, and one
+block error for any differing bit.
+
+Batch partitions must not affect a result. The information stream is addressed
+by trial offset; both normal streams are persistent and consumed sequentially.
+Batch size, attempt, shard, worker, device, and retry never enter seed
+derivation. A decoder exception, malformed shape, nonbinary output, nonfinite
+LLR, or incompatible codeword is a failed attempt, never completed evidence.
+
+## Transaction and publication
+
+The complete per-unit transaction holds a B3 shared global lease and uses the
+B2C per-unit lock only through B2C's state primitive. It selects a remaining
+unit from a validated B3 plan, refuses unrepaired contradictions, claims the
+exact next attempt, publishes one immutable canonical request, executes from
+trial zero, publishes one immutable canonical result, transitions directly to
+`failed` or `result_linked`, rereads the chain, and then releases the shared
+lease. There is no mid-unit resume. A hard exit leaves only a valid immutable
+history prefix; B3 recovery handles it on the next scan.
+
+Request and result publication use one primitive: render canonical bytes before
+opening the destination; stage in a unique same-directory `0600` file with
+`O_CREAT|O_EXCL|O_NOFOLLOW`; write, flush, and fsync; publish with a
+descriptor-relative no-replace hard link; fsync the directory; remove staging;
+and reread exact bytes. Existing identical bytes are idempotent, different
+bytes conflict, aliases and symlinks are rejected, and an uncertain exception
+is success only after the exact proposed bytes and SHA-256 are reread.
+
+## Bounded smoke
+
+Select the first canonical required identity for each configured modulation in
+configured modulation order (`bpsk`, `qpsk`, `qam16`). Execute exactly sixteen
+trials for at most three units on CPU through the same transaction path. Use a
+temporary explicit isolated root, validate it with B3 bounded-smoke
+inspection, require `terminal_nonmergeable`, zero required coverage and zero
+test access, then build and independently verify the deterministic
+`NON-SCIENTIFIC BOUNDED SMOKE` record and remove the temporary root.
+
+The smoke record contains no temporary path, host, PID, wall clock, timestamp,
+inode or mtime. It is not a BLER table, not characterization evidence, and
+cannot unlock BR-4 or G8_C by itself.
+
+## Required checks
+
+Run the B4 focused tests, B1C/B2C/B3 combined tests, the runner and smoke
+verifiers, the full suite, the phase-state verifier with exactly seven
+produced artifacts and zero science, and the documented CPU-lock check. Any
+production source drift after the B4 contract is registered is a HOLD rather
+than a silent regeneration.
