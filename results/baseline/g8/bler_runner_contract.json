@@ -1,5 +1,11 @@
 {
   "artifact_role": "g8_bler_runner_contract",
+  "authenticated_hot_path": {
+    "b1c_tooling_contract_authentications_after_context_construction": 0,
+    "request_validation": "B3 cached strict fast validator",
+    "required_identity_artifact_reads_after_context_construction": 0,
+    "result_validation": "B3 cached strict fast validator"
+  },
   "authority_bindings": {
     "bler_resume_contract_id": "g8resume-7bf4935ed82aa1eea6514208cdd82f9b60f73e4ba58b280642b493444f5364c0",
     "bler_resume_contract_sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41",
@@ -45,11 +51,27 @@
       "qam16"
     ],
     "device": "cpu",
+    "diagnostic_records_may_not_publish_official_artifact": true,
     "label": "NON-SCIENTIFIC BOUNDED SMOKE",
     "maximum_work_units": 3,
     "merge_eligible": false,
+    "official_max_units_must_equal_count": true,
+    "official_work_unit_count": 3,
     "record_artifact_role": "g8_bounded_smoke_record",
+    "record_chain": {
+      "attempt": true,
+      "exact_request_result_state_digests": true,
+      "request": true,
+      "result": true,
+      "terminal_state": true,
+      "work_unit_record": true
+    },
+    "record_schema_version": 2,
+    "record_verifier_must_pass_before_cli_success": true,
+    "required_bler_sha_source": "exact closed produced_artifacts binding plus independently read artifact and manifest binding",
     "required_coverage_contribution": 0,
+    "selection_policy_reproduction": "canonical ordered policy-field array from the manifest field list and authenticated frozen W4 selection machinery",
+    "selection_policy_sha_source": "authenticated campaign manifest selection_policy.selection_policy_sha256",
     "selection_rule": "first canonical required work-unit identity per configured modulation in configured order",
     "temporary_root_removed": true,
     "terminal_classification": "terminal_nonmergeable",
@@ -60,37 +82,43 @@
   "campaign": "G-8",
   "characterization_started": false,
   "checkpoint": "B4",
-  "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+  "contract_id": "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5",
   "contract_sources": [
     {
-      "bytes": 42828,
+      "bytes": 59324,
       "path": "src/baseline/g8_bler_runner.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "966194ee9731083883685d482db4cc776526223e2a69a919efa754da382f9eb1"
+      "sha256": "e2d56c42516b3ffdc06f99f3b82806a7182479ea77edbd205d444f80a088607b"
     },
     {
-      "bytes": 6510,
+      "bytes": 7549,
       "path": "tools/run_g8_bler.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "51072812350c015ed77e597d33dba98a7f9df69d4288a6c47268b619cccfb4ab"
+      "sha256": "2974287a678d74028ae3365fba33a88001672a914cc4c75688d6232822cad836"
     },
     {
-      "bytes": 15743,
+      "bytes": 18109,
       "path": "tools/gen_g8_bler_runner_contract.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "c3bd0a342f1199ecbb763292a4ff10d32fc586d9165e9224718f18ff9dc10c66"
+      "sha256": "410f331d3a73fd27dce6c9425d1fd0cd1c205f7e1565dc0046f97b7e38df9dd2"
     },
     {
-      "bytes": 20168,
+      "bytes": 22740,
       "path": "tools/verify_g8_bler_runner_contract.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "f64283e7255ac67db354104821f6845a1633adf422e64cb86fed6f027fb129f6"
+      "sha256": "be2c6208578426f49bbe302876fc5aeeffb404a8c155df4698c6627937a4e2a3"
     },
     {
-      "bytes": 12286,
+      "bytes": 26615,
       "path": "tools/verify_g8_bounded_smoke.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "f9991c5fc577df7cca5a25ce98e8c42b3ff9116bad516d3455d397f40dc238d9"
+      "sha256": "ee1f9c1079cdcdf6a74142fe7448e6e7f497731ecd061ac8619a9d695b3611d7"
+    },
+    {
+      "bytes": 9110,
+      "path": "tools/migrate_g8_bler_runner_contract.py",
+      "role": "g8b_b4_runner_contract_source",
+      "sha256": "68b0d2691ad88926919cd338995c41b8d852c5e7f398d49dc9987a916d369fc5"
     }
   ],
   "count_semantics": {
@@ -206,6 +234,15 @@
     ],
     "staging_same_directory_unique": true,
     "symlink_dangling_symlink_and_hard_link_alias_rejected": true,
+    "tracked_smoke_record": {
+      "canonical_bytes_before_destination_open": true,
+      "conflicting_bytes_rejected": true,
+      "directory_fsync": true,
+      "exact_reread_required": true,
+      "first_install": "descriptor-relative renameat2(RENAME_NOREPLACE)",
+      "guarded_corrected_record_rebind": "descriptor-relative renameat2(RENAME_EXCHANGE) only for an exact unregistered schema-2 chain with its prior runner binding",
+      "guarded_provisional_replacement": "descriptor-relative renameat2(RENAME_EXCHANGE) only for the exact old unregistered record"
+    },
     "uncertain_publication": "accept only exact installed canonical bytes and SHA-256"
   },
   "rng": {
@@ -225,12 +262,12 @@
     "shard_enters_seed_derivation": false,
     "stream_chunk_boundary_invariant": true
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "schemas": {
     "bounded_smoke_record": {
       "artifact_role": "g8_bounded_smoke_record",
       "label": "NON-SCIENTIFIC BOUNDED SMOKE",
-      "schema_version": 1
+      "schema_version": 2
     },
     "merge_report": {
       "artifact_role": "g8_bler_merge_validation_report",
@@ -423,6 +460,12 @@
     }
   },
   "scientific_execution_performed": false,
+  "supersedes": {
+    "contract_bytes": 15317,
+    "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+    "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
+    "reason": "bounded-smoke verifier referenced fields absent from the closed campaign-state schema"
+  },
   "transaction": {
     "complete_result_recovery": "B3 recovery links a published complete result",
     "failed_result_recovery": "B3 recovery transitions a published failed result to failed",

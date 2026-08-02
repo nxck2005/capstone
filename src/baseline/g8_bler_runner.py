@@ -35,7 +35,7 @@ from config.params import REPO_ROOT, get
 
 PHASE = "G8_B"
 CHECKPOINT = "B4"
-RUNNER_CONTRACT_SCHEMA_VERSION = 1
+RUNNER_CONTRACT_SCHEMA_VERSION = 2
 RUNNER_CONTRACT_ARTIFACT_ROLE = "g8_bler_runner_contract"
 RUNNER_CONTRACT_ID_PREFIX = "g8runner"
 RUNNER_CONTRACT_REPO_RELATIVE_PATH = "results/baseline/g8/bler_runner_contract.json"
@@ -46,8 +46,20 @@ RUNNER_CONTRACT_SOURCE_PATHS = (
     "tools/gen_g8_bler_runner_contract.py",
     "tools/verify_g8_bler_runner_contract.py",
     "tools/verify_g8_bounded_smoke.py",
+    "tools/migrate_g8_bler_runner_contract.py",
 )
 DEFAULT_RUNNER_CONTRACT_PATH = REPO_ROOT / RUNNER_CONTRACT_REPO_RELATIVE_PATH
+
+SUPERSEDED_RUNNER_CONTRACT_ID = (
+    "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5"
+)
+SUPERSEDED_RUNNER_CONTRACT_SHA256 = (
+    "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40"
+)
+SUPERSEDED_RUNNER_CONTRACT_BYTES = 15317
+RUNNER_CONTRACT_SUPERSESSION_REASON = (
+    "bounded-smoke verifier referenced fields absent from the closed campaign-state schema"
+)
 
 EXECUTION_CLASS_FULL_STRENGTH = bler_contract.EXECUTION_CLASS_FULL_STRENGTH
 EXECUTION_CLASS_BOUNDED_SMOKE = bler_contract.EXECUTION_CLASS_BOUNDED_SMOKE
@@ -55,13 +67,14 @@ BOUNDED_SMOKE_LABEL = bler_contract.BOUNDED_SMOKE_LABEL
 BOUNDED_SMOKE_MAX_WORK_UNITS = bler_contract.BOUNDED_SMOKE_MAX_WORK_UNITS
 BOUNDED_SMOKE_MAX_TRIALS = bler_contract.BOUNDED_SMOKE_MAX_TRIALS_PER_UNIT
 
-SMOKE_RECORD_SCHEMA_VERSION = 1
+SMOKE_RECORD_SCHEMA_VERSION = 2
 SMOKE_RECORD_ARTIFACT_ROLE = "g8_bounded_smoke_record"
 
 _FILE_MODE = stat.S_IRUSR | stat.S_IWUSR
 _DIRECTORY_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
 _STAGING_SUFFIX = ".staging"
 _RENAME_NOREPLACE = 1
+_RENAME_EXCHANGE = 2
 
 
 class G8BlerRunnerError(RuntimeError):
@@ -226,6 +239,17 @@ class AuthenticatedRunnerContext:
             raise RunnerAuthorizationError("B4 runner contract artifact role changed")
         if payload.get("phase") != PHASE or payload.get("checkpoint") != CHECKPOINT:
             raise RunnerAuthorizationError("B4 runner contract phase/checkpoint changed")
+        supersedes = payload.get("supersedes")
+        if RUNNER_CONTRACT_SCHEMA_VERSION == 2:
+            if supersedes != {
+                "contract_id": SUPERSEDED_RUNNER_CONTRACT_ID,
+                "contract_sha256": SUPERSEDED_RUNNER_CONTRACT_SHA256,
+                "contract_bytes": SUPERSEDED_RUNNER_CONTRACT_BYTES,
+                "reason": RUNNER_CONTRACT_SUPERSESSION_REASON,
+            }:
+                raise RunnerAuthorizationError("B4 runner contract supersession is not exact")
+        elif "supersedes" in payload:
+            raise RunnerAuthorizationError("B4 runner contract unexpectedly contains supersession")
         contract_id = payload.get("contract_id")
         if not isinstance(contract_id, str) or contract_id != runner_contract_identifier(payload):
             raise RunnerAuthorizationError("B4 runner contract ID does not reproduce")
@@ -303,6 +327,44 @@ class AuthenticatedRunnerContext:
 
     def work_unit_record(self, work_unit_id: str) -> dict[str, Any]:
         return self._resume_context.work_unit_record(work_unit_id)
+
+    def validate_request(
+        self,
+        request: Mapping[str, Any],
+        *,
+        execution_class: str | None = None,
+    ) -> dict[str, Any]:
+        """Validate a request against the already authenticated B3 cache."""
+
+        try:
+            return resume._fast_validate_request(
+                self._resume_context,
+                request,
+                execution_class=execution_class,
+            )
+        except Exception as exc:
+            if isinstance(exc, G8BlerRunnerError):
+                raise
+            raise RunnerAuthorizationError(f"cached request validation failed: {exc}") from exc
+
+    def validate_result(
+        self,
+        result: Mapping[str, Any],
+        *,
+        request: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Validate a result against the already authenticated B3 cache."""
+
+        try:
+            return resume._fast_validate_result(
+                self._resume_context,
+                result,
+                request=request,
+            )
+        except Exception as exc:
+            if isinstance(exc, G8BlerRunnerError):
+                raise
+            raise RunnerAuthorizationError(f"cached result validation failed: {exc}") from exc
 
 
 def _root_is_production_alias(root: Path) -> bool:
@@ -397,20 +459,13 @@ def _read_installed(bucket_fd: int, final_name: str) -> bytes | None:
             os.close(descriptor)
 
 
-def _publish_without_replace(bucket_fd: int, staging: str, final_name: str) -> None:
-    """Use Linux ``renameat2(RENAME_NOREPLACE)`` without a fallback.
-
-    Unlike a hard-link publication, the successful rename leaves no second
-    hard link behind.  Thus a hard exit after publication leaves an ordinary
-    one-link immutable file that B3 can validate on the next scan.
-    """
+def _renameat2(directory_fd: int, source: str, target: str, flags: int) -> None:
+    """Run one descriptor-relative ``renameat2`` operation, fail closed."""
 
     libc = ctypes.CDLL(None, use_errno=True)
     renameat2 = getattr(libc, "renameat2", None)
     if renameat2 is None:
-        raise RunnerPublicationError(
-            "crash-durable no-replace publication is unavailable; refusing fallback"
-        )
+        raise RunnerPublicationError("descriptor-relative atomic publication is unavailable")
     renameat2.argtypes = [
         ctypes.c_int,
         ctypes.c_char_p,
@@ -420,25 +475,36 @@ def _publish_without_replace(bucket_fd: int, staging: str, final_name: str) -> N
     ]
     renameat2.restype = ctypes.c_int
     result = renameat2(
-        bucket_fd,
-        os.fsencode(staging),
-        bucket_fd,
-        os.fsencode(final_name),
-        _RENAME_NOREPLACE,
+        directory_fd,
+        os.fsencode(source),
+        directory_fd,
+        os.fsencode(target),
+        flags,
     )
     if result == 0:
         return
     error_number = ctypes.get_errno()
-    if error_number == errno.EEXIST:
-        raise FileExistsError(errno.EEXIST, os.strerror(error_number), final_name)
+    if error_number == errno.EEXIST and flags == _RENAME_NOREPLACE:
+        raise FileExistsError(errno.EEXIST, os.strerror(error_number), target)
     if error_number in {errno.ENOSYS, errno.EPERM, errno.EOPNOTSUPP, errno.EXDEV}:
         raise RunnerPublicationError(
-            "crash-durable no-replace publication is unavailable; refusing fallback"
+            "descriptor-relative atomic publication is unavailable; refusing fallback"
         ) from OSError(error_number, os.strerror(error_number))
     raise RunnerPublicationError(
-        f"descriptor-relative no-replace publication failed at {final_name}: "
+        f"descriptor-relative atomic publication failed at {target}: "
         f"{os.strerror(error_number)}"
     ) from OSError(error_number, os.strerror(error_number))
+
+
+def _publish_without_replace(bucket_fd: int, staging: str, final_name: str) -> None:
+    """Use Linux ``renameat2(RENAME_NOREPLACE)`` without a fallback.
+
+    Unlike a hard-link publication, the successful rename leaves no second
+    hard link behind.  Thus a hard exit after publication leaves an ordinary
+    one-link immutable file that B3 can validate on the next scan.
+    """
+
+    _renameat2(bucket_fd, staging, final_name, _RENAME_NOREPLACE)
 
 
 def _publish_immutable_json(path: Path, payload: Mapping[str, Any], *, root: Path) -> str:
@@ -454,7 +520,7 @@ def _publish_immutable_json(path: Path, payload: Mapping[str, Any], *, root: Pat
         raise RunnerPublicationError("immutable artifact path has the wrong bucket layout")
     bucket, final_name = relative.parts
     root_fd, bucket_fd = _open_bucket(root, bucket)
-    staging = f".{final_name}.{os.getpid()}.{secrets.token_hex(12)}{_STAGING_SUFFIX}"
+    staging = f".{final_name}.{os.getpid()}.{secrets.token_hex(12)}{_STAGING_SUFFIX}"  # literal-ok: unique staging-name entropy
     try:
         existing = _read_installed(bucket_fd, final_name)
         if existing is not None:
@@ -531,6 +597,141 @@ def _publish_immutable_json(path: Path, payload: Mapping[str, Any], *, root: Pat
         os.close(root_fd)
 
 
+def _validate_record_parent(path: Path) -> None:
+    """Open only the authenticated repository parent, rejecting aliases."""
+
+    if not path.is_absolute() or os.path.normpath(os.fspath(path)) != os.fspath(path):
+        raise RunnerPublicationError("tracked smoke record path must be absolute and canonical")
+    try:
+        relative = path.parent.relative_to(REPO_ROOT)
+    except ValueError as exc:
+        raise RunnerPublicationError("tracked smoke record is outside the repository") from exc
+    cursor = REPO_ROOT
+    for component in relative.parts:
+        cursor = cursor / component
+        entry = os.lstat(cursor)
+        if stat.S_ISLNK(entry.st_mode) or not stat.S_ISDIR(entry.st_mode):
+            raise RunnerPublicationError("tracked smoke-record parent contains an alias")
+
+
+def _write_staged_bytes(directory_fd: int, staging: str, body: bytes) -> None:
+    descriptor: int | None = None
+    stream = None
+    try:
+        descriptor = os.open(
+            staging,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+            _FILE_MODE,
+            dir_fd=directory_fd,
+        )
+        stream = os.fdopen(descriptor, "wb")
+        descriptor = None
+        stream.write(body)
+        stream.flush()
+        os.fsync(stream.fileno())
+    except Exception as exc:
+        raise RunnerPublicationError(f"cannot stage tracked smoke record: {exc}") from exc
+    finally:
+        if stream is not None:
+            stream.close()
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def publish_smoke_record_atomic(
+    path: Path,
+    payload: Mapping[str, Any],
+    *,
+    expected_provisional_sha256: str | None = None,
+    expected_existing_sha256: str | None = None,
+    expected_existing_runner_contract_id: str | None = None,
+    expected_existing_runner_contract_sha256: str | None = None,
+) -> str:
+    """Install the tracked smoke record with exact crash-atomic semantics.
+
+    A first publication uses ``RENAME_NOREPLACE``.  The sole allowed
+    replacement is the guarded migration from the old, unregistered
+    provisional record; ``RENAME_EXCHANGE`` makes that replacement atomic even
+    if the process dies after the directory entry change.
+    """
+
+    target = Path(path)
+    _validate_record_parent(target)
+    body = rendered_json(dict(payload))
+    digest = sha256_bytes(body)
+    directory_fd = os.open(target.parent, _DIRECTORY_FLAGS)
+    staging = f".{target.name}.{os.getpid()}.{secrets.token_hex(12)}{_STAGING_SUFFIX}"
+    try:
+        existing = _read_installed(directory_fd, target.name)
+        if existing is not None:
+            if existing == body:
+                return digest
+            if expected_provisional_sha256 is None and expected_existing_sha256 is None:
+                raise RunnerConflictError(
+                    "bounded-smoke record already exists with different canonical bytes"
+                )
+            expected_existing_digest = expected_provisional_sha256 or expected_existing_sha256
+            if sha256_bytes(existing) != expected_existing_digest:
+                raise RunnerConflictError("existing smoke record is not the guarded provisional bytes")
+            try:
+                previous = json.loads(existing)
+            except (ValueError, TypeError, json.JSONDecodeError) as exc:
+                raise RunnerConflictError("guarded provisional smoke record is not valid JSON") from exc
+            if not isinstance(previous, Mapping):
+                raise RunnerConflictError("guarded existing smoke record is not an object")
+            if expected_provisional_sha256 is not None:
+                if previous.get("schema_version") != 1:
+                    raise RunnerConflictError("guarded existing smoke record is not the old provisional schema")
+                expected_id = SUPERSEDED_RUNNER_CONTRACT_ID
+                expected_sha = SUPERSEDED_RUNNER_CONTRACT_SHA256
+            else:
+                if previous.get("schema_version") != SMOKE_RECORD_SCHEMA_VERSION:
+                    raise RunnerConflictError("guarded existing smoke record is not the corrected schema")
+                expected_id = expected_existing_runner_contract_id
+                expected_sha = expected_existing_runner_contract_sha256
+            if previous.get("bler_runner_contract_id") != expected_id:
+                raise RunnerConflictError("guarded provisional smoke record has the wrong runner contract")
+            if previous.get("bler_runner_contract_sha256") != expected_sha:
+                raise RunnerConflictError("guarded provisional smoke record has the wrong runner SHA-256")
+            if (
+                previous.get("label") != BOUNDED_SMOKE_LABEL
+                or previous.get("non_scientific") is not True
+                or previous.get("merge_eligible") is not False
+                or previous.get("required_coverage_contribution") != 0
+                or previous.get("test_split_access") != 0
+            ):
+                raise RunnerConflictError("guarded provisional smoke record is not non-scientific zero-coverage output")
+
+        _write_staged_bytes(directory_fd, staging, body)
+        if existing is None:
+            _publish_without_replace(directory_fd, staging, target.name)
+            staging = None
+        else:
+            _renameat2(directory_fd, staging, target.name, _RENAME_EXCHANGE)
+        try:
+            os.fsync(directory_fd)
+        except OSError as exc:
+            installed = _read_installed(directory_fd, target.name)
+            if installed == body:
+                return digest
+            raise RunnerPublicationError(
+                f"smoke-record directory durability failed and exact bytes were not proven: {exc}"
+            ) from exc
+        installed = _read_installed(directory_fd, target.name)
+        if installed != body:
+            raise RunnerPublicationError("installed smoke-record bytes differ from canonical bytes")
+        return digest
+    finally:
+        if staging is not None:
+            try:
+                os.unlink(staging, dir_fd=directory_fd)
+            except FileNotFoundError:
+                pass
+            except OSError:
+                pass
+        os.close(directory_fd)
+
+
 def _batch_ranges(total: int, batch_size: int) -> Iterator[tuple[int, int]]:
     start = 0
     while start < total:
@@ -539,11 +740,132 @@ def _batch_ranges(total: int, batch_size: int) -> Iterator[tuple[int, int]]:
         start += count
 
 
+def _build_request(
+    context: AuthenticatedRunnerContext,
+    work_unit_id: str,
+    *,
+    execution_class: str,
+    trials_requested: int,
+) -> dict[str, Any]:
+    """Build a request from the authenticated context without B1C rereads."""
+
+    unit = context.work_unit_record(work_unit_id)
+    authority = context.authority_binding()
+    request = {
+        "schema_version": bler_contract.BLER_WORK_UNIT_REQUEST_SCHEMA_VERSION,
+        "artifact_role": bler_contract.REQUEST_ARTIFACT_ROLE,
+        "execution_class": execution_class,
+        "campaign_id": authority["campaign_id"],
+        "bler_tooling_contract_id": authority["bler_tooling_contract_id"],
+        "bler_tooling_contract_sha256": authority["bler_tooling_contract_sha256"],
+        "campaign_manifest_sha256": authority["campaign_manifest_sha256"],
+        "required_bler_artifact_sha256": authority["required_bler_artifact_sha256"],
+        "selection_policy_sha256": authority["selection_policy_sha256"],
+        "work_unit_id": work_unit_id,
+        "bler_identity": dict(unit["identity"]),
+        "snr_db": unit["snr_db"],
+        "source_packet_config_ids": list(unit["source_packet_config_ids"]),
+        "trials_requested": trials_requested,
+        "trial_count_source": (
+            bler_contract.FULL_STRENGTH_TRIAL_COUNT_SOURCE
+            if execution_class == EXECUTION_CLASS_FULL_STRENGTH
+            else bler_contract.BOUNDED_SMOKE_TRIAL_COUNT_SOURCE
+        ),
+        "seed_derivation_identity": bler_contract.SEED_DERIVATION_IDENTITY,
+        "seed_domain_separator": bler_contract.SEED_DOMAIN_SEPARATOR,
+        "stream_seeds": context.resume_context.execution_context.stream_seed_records(work_unit_id),
+        "scientific_evidence": execution_class == EXECUTION_CLASS_FULL_STRENGTH,
+        "merge_eligible": False,
+        "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+        "label": (
+            EXECUTION_CLASS_FULL_STRENGTH
+            if execution_class == EXECUTION_CLASS_FULL_STRENGTH
+            else BOUNDED_SMOKE_LABEL
+        ),
+    }
+    return context.validate_request(request, execution_class=execution_class)
+
+
+def _build_result(
+    context: AuthenticatedRunnerContext,
+    *,
+    request: Mapping[str, Any],
+    status: str,
+    trials_completed: int,
+    bit_errors: int,
+    block_errors: int,
+    execution_metadata: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build and validate result bytes without invoking the public B1C loader."""
+
+    request = context.validate_request(request)
+    information_length = int(request["bler_identity"]["k_and_n"][0])
+    derived = bler_contract.recompute_measurements(
+        trials_completed=trials_completed,
+        information_bits=trials_completed * information_length,
+        bit_errors=bit_errors,
+        block_errors=block_errors,
+        information_length=information_length,
+    )
+    metadata = bler_contract.validate_execution_metadata(execution_metadata)
+    full_strength = request["execution_class"] == EXECUTION_CLASS_FULL_STRENGTH
+    full_count = bler_contract.full_strength_trial_count()
+    complete = status == bler_contract.STATUS_COMPLETE and trials_completed > 0 and (
+        not full_strength or trials_completed == full_count
+    )
+    result = {
+        "schema_version": bler_contract.BLER_WORK_UNIT_RESULT_SCHEMA_VERSION,
+        "artifact_role": bler_contract.RESULT_ARTIFACT_ROLE,
+        "status": status,
+        "identity": {
+            "execution_class": request["execution_class"],
+            "request_sha256": bler_contract.request_digest(request),
+            "campaign_id": request["campaign_id"],
+            "bler_tooling_contract_id": request["bler_tooling_contract_id"],
+            "bler_tooling_contract_sha256": request["bler_tooling_contract_sha256"],
+            "campaign_manifest_sha256": request["campaign_manifest_sha256"],
+            "required_bler_artifact_sha256": request["required_bler_artifact_sha256"],
+            "selection_policy_sha256": request["selection_policy_sha256"],
+            "work_unit_id": request["work_unit_id"],
+            "bler_identity": dict(request["bler_identity"]),
+            "snr_db": request["snr_db"],
+            "source_packet_config_ids": list(request["source_packet_config_ids"]),
+            "trials_requested": request["trials_requested"],
+            "trial_count_source": request["trial_count_source"],
+            "seed_derivation_identity": request["seed_derivation_identity"],
+            "seed_domain_separator": request["seed_domain_separator"],
+            "stream_seeds": dict(request["stream_seeds"]),
+            "implementation": bler_contract.implementation_binding(),
+        },
+        "measurement": {
+            "trials_completed": trials_completed,
+            "information_bits": trials_completed * information_length,
+            "bit_errors": bit_errors,
+            "block_errors": block_errors,
+            **derived,
+            "confidence_interval_method": bler_contract.CONFIDENCE_INTERVAL_METHOD,
+            "confidence_interval_percent": bler_contract.CONFIDENCE_INTERVAL_PERCENT,
+            "confidence_interval_role": bler_contract.CONFIDENCE_INTERVAL_ROLE,
+        },
+        "execution_metadata": {
+            name: metadata.get(name) for name in bler_contract.RESULT_EXECUTION_METADATA_FIELDS
+        },
+        "disposition": {
+            "scientific_evidence": full_strength,
+            "merge_eligible": bool(full_strength and complete),
+            "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+            "required_coverage_contribution": 1 if (full_strength and complete) else 0,
+        },
+    }
+    return context.validate_result(result, request=request)
+
+
 def _execute_measurement(
     request: Mapping[str, Any],
     *,
     device: str,
     batch_size: int,
+    context: AuthenticatedRunnerContext | None = None,
 ) -> dict[str, Any]:
     """Execute one request from trial zero with bounded memory."""
 
@@ -551,7 +873,11 @@ def _execute_measurement(
     from baseline.ldpc.adapter import SionnaLDPCAdapter
     from baseline.ldpc.modulation import map_bits, max_log_llr, n0_from_esn0_db, bits_per_symbol
 
-    request = bler_contract.validate_work_unit_request(request)
+    request = (
+        context.validate_request(request)
+        if context is not None
+        else bler_contract.validate_work_unit_request(request)
+    )
     identity = request["bler_identity"]
     k, n = (int(value) for value in identity["k_and_n"])
     q_m = bits_per_symbol(identity["modulation"])
@@ -634,12 +960,19 @@ def _select_smoke_ids(context: AuthenticatedRunnerContext, max_units: int) -> li
     return selected[: min(max_units, BOUNDED_SMOKE_MAX_WORK_UNITS)]
 
 
+def official_smoke_unit_count() -> int:
+    """Return the exact configured official smoke count."""
+
+    return len(tuple(get("baseline.modulations")))
+
+
 def _state_claim(
     context: AuthenticatedRunnerContext,
     work_unit_id: str,
     plan: Mapping[str, Any],
     *,
     root: Path,
+    device: str,
 ) -> tuple[dict[str, Any], str, int]:
     record = next(item for item in plan["assigned_unit_records"] if item["work_unit_id"] == work_unit_id)
     classification = record["classification"]
@@ -659,6 +992,13 @@ def _state_claim(
         shard_plan,
         attempt=attempt,
         status=work_units.STATUS_CLAIMED,
+        runtime_metadata={
+            "hostname": None,
+            "process_id": None,
+            "device": device,
+            "wall_clock_annotation": None,
+            "update_annotation": None,
+        },
     )
     target = resume.state_path(context.resume_context, work_unit_id, root=root)
     if record["state_sha256"] is None:
@@ -743,25 +1083,29 @@ def run_one_unit(
         # A runner's full transaction is shared-global then B2C per-unit.  The
         # state primitive owns the latter lock and its compare-and-swap.
         lease._assert_usable(root_path, resume.LOCK_MODE_SHARED)
-        claim, claim_sha, attempt = _state_claim(context, work_unit_id, plan, root=root_path)
-        request = (
-            bler_contract.build_full_strength_request(work_unit_id)
-            if execution_class == EXECUTION_CLASS_FULL_STRENGTH
-            else bler_contract.build_bounded_smoke_request(
-                work_unit_id=work_unit_id,
-                bler_identity=context.work_unit_record(work_unit_id)["identity"],
-                snr_db=context.work_unit_record(work_unit_id)["snr_db"],
-                source_packet_config_ids=context.work_unit_record(work_unit_id)["source_packet_config_ids"],
-                trials_requested=BOUNDED_SMOKE_MAX_TRIALS,
-            )
+        claim, claim_sha, attempt = _state_claim(
+            context, work_unit_id, plan, root=root_path, device=device
+        )
+        request = _build_request(
+            context,
+            work_unit_id,
+            execution_class=execution_class,
+            trials_requested=(
+                bler_contract.full_strength_trial_count()
+                if execution_class == EXECUTION_CLASS_FULL_STRENGTH
+                else BOUNDED_SMOKE_MAX_TRIALS
+            ),
         )
         request_path = resume.request_path(context.resume_context, work_unit_id, attempt, root=root_path)
         request_sha = _publish_immutable_json(request_path, request, root=root_path)
         try:
-            measurement = _execute_measurement(request, device=device, batch_size=batch_size)
+            measurement = _execute_measurement(
+                request, device=device, batch_size=batch_size, context=context
+            )
         except Exception as exc:
             measurement = _failed_measurement(exc, trials_completed=0, bit_errors=0, block_errors=0)
-        result = bler_contract.build_work_unit_result(
+        result = _build_result(
+            context,
             request=request,
             status=measurement["status"],
             trials_completed=measurement["trials_completed"],
@@ -792,6 +1136,13 @@ def run_one_unit(
                 result_sha256=result_sha,
                 scientific_execution_performed=True,
                 trials_completed=measurement["trials_completed"],
+                runtime_metadata={
+                    "hostname": None,
+                    "process_id": None,
+                    "device": device,
+                    "wall_clock_annotation": None,
+                    "update_annotation": None,
+                },
             )
         else:
             proposed = work_units.build_unit_state(
@@ -805,6 +1156,13 @@ def run_one_unit(
                 request_sha256=request_sha,
                 scientific_execution_performed=True,
                 trials_completed=measurement["trials_completed"],
+                runtime_metadata={
+                    "hostname": None,
+                    "process_id": None,
+                    "device": device,
+                    "wall_clock_annotation": None,
+                    "update_annotation": None,
+                },
             )
         state_path = resume.state_path(context.resume_context, work_unit_id, root=root_path)
         state_sha = work_units.replace_unit_state(
@@ -873,13 +1231,28 @@ def build_bounded_smoke_record(
         request = outcome["request"]["request"]
         result = outcome["result"]["result"]
         identity = context.work_unit_record(outcome["work_unit_id"])
+        terminal_state = outcome["state"]
+        # The execution metadata and state runtime metadata contain schema
+        # slots for host/process/time provenance.  Their smoke values are
+        # deterministic nulls, so the tracked record stores only the closed
+        # deterministic result/state projections and the verifier reconstructs
+        # the complete canonical artifacts before checking their digests.
+        result_projection = {
+            key: value for key, value in result.items() if key != "execution_metadata"
+        }
+        state_projection = {"identity": terminal_state["identity"]}
         selected.append(
             {
                 "work_unit_id": outcome["work_unit_id"],
+                "attempt": outcome["attempt"],
+                "work_unit_record": identity,
                 "identity_sha256": sha256_bytes(canonical_json(identity)),
                 "seed_records": request["stream_seeds"],
+                "request": request,
                 "request_sha256": outcome["request_sha256"],
+                "result": result_projection,
                 "result_sha256": outcome["result_sha256"],
+                "terminal_state": state_projection,
                 "terminal_state_sha256": outcome["state_sha256"],
                 "trials_requested": request["trials_requested"],
                 "trials_completed": result["measurement"]["trials_completed"],
@@ -914,6 +1287,7 @@ def build_bounded_smoke_record(
         "execution_class": EXECUTION_CLASS_BOUNDED_SMOKE,
         "selection_rule": bler_contract.BOUNDED_SMOKE_SELECTION_RULE,
         "maximum_work_units": BOUNDED_SMOKE_MAX_WORK_UNITS,
+        "official_work_unit_count": official_smoke_unit_count(),
         "maximum_trials_per_unit": BOUNDED_SMOKE_MAX_TRIALS,
         "selected_work_units": selected,
         "shard_count": shard_count,
@@ -946,6 +1320,8 @@ def run_bounded_smoke(
     root_path = authorize_execution(context, EXECUTION_CLASS_BOUNDED_SMOKE, root=root)
     _require_positive_int(batch_size, "batch_size")
     _require_positive_int(max_units, "max_units")
+    if max_units > BOUNDED_SMOKE_MAX_WORK_UNITS:
+        raise RunnerAuthorizationError("bounded smoke exceeds its frozen work-unit ceiling")
     if device != "cpu":
         raise RunnerAuthorizationError("G8_B bounded smoke is CPU-only")
     _require_positive_int(shard_count, "shard_count")
@@ -1017,6 +1393,8 @@ __all__ = [
     "SMOKE_RECORD_SCHEMA_VERSION",
     "authorize_execution",
     "build_bounded_smoke_record",
+    "official_smoke_unit_count",
+    "publish_smoke_record_atomic",
     "run_bounded_smoke",
     "run_one_unit",
     "runner_contract_identifier",

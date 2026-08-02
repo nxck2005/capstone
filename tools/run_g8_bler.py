@@ -15,6 +15,7 @@ sys.path.insert(0, str(REPO / "tools"))
 from baseline import g8_bler_contract as bler_contract  # noqa: E402
 from baseline import g8_bler_runner as runner  # noqa: E402
 from baseline.g8_campaign import REPO_ROOT, rendered_json  # noqa: E402
+import verify_g8_bounded_smoke as smoke_verifier  # noqa: E402
 
 
 EXIT_SUCCESS = 0
@@ -43,16 +44,25 @@ def _parser() -> argparse.ArgumentParser:
 
 def _write_smoke_record(record: dict) -> tuple[Path, str]:
     path = REPO_ROOT / "results/baseline/g8/bounded_smoke_record.json"
-    body = rendered_json(record)
+    provisional_sha = None
     if path.exists():
         existing = path.read_bytes()
-        if existing != body:
-            raise runner.RunnerConflictError(
-                "bounded-smoke record already exists with different canonical bytes"
-            )
-    else:
-        path.write_bytes(body)
-    return path, bler_contract.sha256_bytes(body)
+        provisional_sha = bler_contract.sha256_bytes(existing)
+        try:
+            provisional = __import__("json").loads(existing)
+        except (TypeError, ValueError):
+            raise runner.RunnerConflictError("existing smoke record is not decodable JSON")
+        if not isinstance(provisional, dict):
+            raise runner.RunnerConflictError("existing smoke record is not an object")
+        if provisional.get("schema_version") != 1:
+            provisional_sha = None
+    body = rendered_json(record)
+    digest = runner.publish_smoke_record_atomic(
+        path,
+        record,
+        expected_provisional_sha256=provisional_sha,
+    )
+    return path, digest
 
 
 def _remove_isolated_root(root: Path) -> None:
@@ -79,6 +89,13 @@ def main(argv: list[str] | None = None) -> int:
             return EXIT_HOLD
         if args.work_unit_id is not None:
             print("G8 B4 runner HOLD: --work-unit-id is full-strength-only", file=sys.stderr)
+            return EXIT_HOLD
+        if args.max_units != runner.official_smoke_unit_count():
+            print(
+                "G8 B4 runner HOLD: official bounded smoke requires exactly "
+                f"{runner.official_smoke_unit_count()} units",
+                file=sys.stderr,
+            )
             return EXIT_HOLD
     elif args.max_units != runner.BOUNDED_SMOKE_MAX_WORK_UNITS:
         print("G8 B4 runner HOLD: --max-units is smoke-only", file=sys.stderr)
@@ -141,6 +158,11 @@ def main(argv: list[str] | None = None) -> int:
         _remove_isolated_root(runtime_root)
         record["temporary_root_removed"] = True
         path, digest = _write_smoke_record(record)
+        try:
+            smoke_verifier.verify(path)
+        except smoke_verifier.SmokeVerificationError as exc:
+            print(f"G8 B4 runner HOLD: installed smoke record failed independent verification: {exc}", file=sys.stderr)
+            return EXIT_HOLD
         print(
             "G8 bounded smoke PASS: "
             f"units={len(outcomes)} trials_per_unit={runner.BOUNDED_SMOKE_MAX_TRIALS} "

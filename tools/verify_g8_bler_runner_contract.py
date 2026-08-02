@@ -34,7 +34,7 @@ from config.params import get  # noqa: E402
 CONTRACT_PATH = REPO_ROOT / "results/baseline/g8/bler_runner_contract.json"
 EXPECTED_PHASE = "G8_B"
 EXPECTED_CHECKPOINT = "B4"
-EXPECTED_SCHEMA_VERSION = 1
+EXPECTED_SCHEMA_VERSION = 2
 EXPECTED_ROLE = "g8_bler_runner_contract"
 EXPECTED_ID_PREFIX = "g8runner"
 EXPECTED_SOURCE_ROLE = "g8b_b4_runner_contract_source"
@@ -44,6 +44,7 @@ EXPECTED_SOURCE_PATHS = (
     "tools/gen_g8_bler_runner_contract.py",
     "tools/verify_g8_bler_runner_contract.py",
     "tools/verify_g8_bounded_smoke.py",
+    "tools/migrate_g8_bler_runner_contract.py",
 )
 EXPECTED_OUTPUT_PATH = "results/baseline/g8/bler_runner_contract.json"
 EXPECTED_CAMPAIGN = "G-8"
@@ -62,6 +63,12 @@ EXPECTED_B4_COMMAND = (
     'rg -n "G8_C|characterization_open|full_strength|run_g8_bler|resume_plan|merge_report|'
     'tooling_smoke_complete" src/baseline tools tests instructions'
 )
+EXPECTED_SUPERSEDES = {
+    "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+    "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
+    "contract_bytes": 15317,
+    "reason": "bounded-smoke verifier referenced fields absent from the closed campaign-state schema",
+}
 
 
 class RunnerContractVerificationError(RuntimeError):
@@ -177,7 +184,7 @@ def _schemas() -> dict[str, Any]:
             "digest_rule": b3["schemas"]["merge_report"]["digest_rule"],
         },
         "bounded_smoke_record": {
-            "schema_version": 1,
+            "schema_version": 2,
             "artifact_role": "g8_bounded_smoke_record",
             "label": "NON-SCIENTIFIC BOUNDED SMOKE",
         },
@@ -311,6 +318,15 @@ def _expected_publication() -> dict[str, Any]:
         "different_existing_bytes_are_conflict": True,
         "symlink_dangling_symlink_and_hard_link_alias_rejected": True,
         "uncertain_publication": "accept only exact installed canonical bytes and SHA-256",
+        "tracked_smoke_record": {
+            "canonical_bytes_before_destination_open": True,
+            "first_install": "descriptor-relative renameat2(RENAME_NOREPLACE)",
+            "guarded_provisional_replacement": "descriptor-relative renameat2(RENAME_EXCHANGE) only for the exact old unregistered record",
+            "guarded_corrected_record_rebind": "descriptor-relative renameat2(RENAME_EXCHANGE) only for an exact unregistered schema-2 chain with its prior runner binding",
+            "directory_fsync": True,
+            "exact_reread_required": True,
+            "conflicting_bytes_rejected": True,
+        },
     }
 
 
@@ -341,6 +357,31 @@ def _expected_bounded() -> dict[str, Any]:
         "test_split_access": 0,
         "temporary_root_removed": True,
         "record_artifact_role": "g8_bounded_smoke_record",
+        "record_schema_version": 2,
+        "official_work_unit_count": len(get("baseline.modulations")),
+        "official_max_units_must_equal_count": True,
+        "diagnostic_records_may_not_publish_official_artifact": True,
+        "record_chain": {
+            "work_unit_record": True,
+            "request": True,
+            "result": True,
+            "terminal_state": True,
+            "attempt": True,
+            "exact_request_result_state_digests": True,
+        },
+        "record_verifier_must_pass_before_cli_success": True,
+        "required_bler_sha_source": "exact closed produced_artifacts binding plus independently read artifact and manifest binding",
+        "selection_policy_sha_source": "authenticated campaign manifest selection_policy.selection_policy_sha256",
+        "selection_policy_reproduction": "canonical ordered policy-field array from the manifest field list and authenticated frozen W4 selection machinery",
+    }
+
+
+def _expected_hot_path() -> dict[str, Any]:
+    return {
+        "request_validation": "B3 cached strict fast validator",
+        "result_validation": "B3 cached strict fast validator",
+        "required_identity_artifact_reads_after_context_construction": 0,
+        "b1c_tooling_contract_authentications_after_context_construction": 0,
     }
 
 
@@ -384,16 +425,18 @@ def verify(path: Path = CONTRACT_PATH, *, require_registered: bool = False) -> d
     _require(raw == rendered_json(payload), "B4 runner contract is not canonical rendered JSON")
     expected_top = {
         "schema_version", "artifact_role", "campaign", "phase", "checkpoint",
+        "supersedes",
         "scientific_execution_performed", "characterization_started", "bounded_smoke_started",
         "contract_sources", "authority_bindings", "dependencies", "schemas", "authorization",
         "rng", "physical_layer", "transaction", "publication", "count_semantics",
-        "bounded_smoke", "no_science_boundary", "g8_c_handoff", "contract_id",
+        "bounded_smoke", "authenticated_hot_path", "no_science_boundary", "g8_c_handoff", "contract_id",
     }
     _require(set(payload) == expected_top, "B4 runner contract top-level fields changed")
     _require(payload["schema_version"] == EXPECTED_SCHEMA_VERSION, "B4 runner contract schema changed")
     _require(payload["artifact_role"] == EXPECTED_ROLE, "B4 runner contract role changed")
     _require(payload["campaign"] == EXPECTED_CAMPAIGN, "B4 runner contract campaign changed")
     _require(payload["phase"] == EXPECTED_PHASE and payload["checkpoint"] == EXPECTED_CHECKPOINT, "B4 phase/checkpoint changed")
+    _require(payload["supersedes"] == EXPECTED_SUPERSEDES, "B4 supersession relationship changed")
     _require(payload["scientific_execution_performed"] is False, "B4 contract claims scientific execution")
     _require(payload["characterization_started"] is False, "B4 contract claims characterization")
     _require(payload["bounded_smoke_started"] is False, "B4 contract claims smoke has started")
@@ -410,6 +453,7 @@ def verify(path: Path = CONTRACT_PATH, *, require_registered: bool = False) -> d
     _require(payload["publication"] == _expected_publication(), "B4 publication rules changed")
     _require(payload["count_semantics"] == _expected_counts(), "B4 count semantics changed")
     _require(payload["bounded_smoke"] == _expected_bounded(), "B4 bounded-smoke rules changed")
+    _require(payload["authenticated_hot_path"] == _expected_hot_path(), "B4 authenticated hot path changed")
     _require(payload["no_science_boundary"] == _expected_no_science(), "B4 no-science boundary changed")
     _require(payload["g8_c_handoff"] == _expected_handoff(), "B4 G8_C handoff changed")
     _require(payload["contract_id"] == _contract_id(payload), "B4 contract ID does not reproduce")
