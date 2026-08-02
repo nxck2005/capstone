@@ -7,7 +7,21 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-02 · **Phase:** **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 next — implement exact resume and merge validation. G8_C–G8_G remain prohibited.**
+**Last updated:** 2026-08-02 · **Phase:** **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 OPEN and on HOLD at B3.2 — B3.0 and B3.1 are done, B3.2 is blocked by a frozen-file contradiction. G8_C–G8_G remain prohibited.**
+
+> **B3 HOLD (read this first).** B3.0 (durable instruction) and B3.1 (authenticated B3 context, runtime path grammar, global
+> reconciliation lock, no-follow census — 85 tests) are complete, committed and pushed. **B3.2 is blocked.**
+> `instructions/G8_B3.txt` §13 defines four of its nine closed classifications as a `claimed` unit state carrying a **bound**
+> `request_sha256`, and §17 makes "bind the request SHA to a `claimed` state" the first repair transition. The frozen B2C
+> schema forbids that state: `src/baseline/g8_bler_work_units.py:1264-1266` requires every `claimed` state to have
+> `request_sha256 = null`, and the registered B2C contract artifact encodes the same rule. Confirmed empirically — both
+> `build_unit_state` and `validate_unit_state` refuse it. The repair *outcomes* remain legal
+> (`claimed(unbound) -> failed` and `claimed(unbound) -> result_linked` both pass `validate_state_transition`), so only the
+> intermediate bound-claim state and the unbound→bound repair row are unreachable. It was **not** worked around, because the
+> classification enum and recovery matrix are bound verbatim into the registered B3 contract. Resolving it needs an explicit
+> decision: **(a)** a B2C2 correction letting `claimed` carry a bound `request_sha256` with result fields still null, or
+> **(b)** an amendment to `instructions/G8_B3.txt` §13/§17 down to the reachable three-class recovery matrix. `spec/SPEC.md`
+> is not implicated; this is not a specification amendment. See the B3.2 row in `instructions/RESUME.md` for the full record.
 
 ## Single next task
 
