@@ -18,6 +18,8 @@ import json
 import os
 import select
 import stat
+import subprocess
+import sys
 import time
 import warnings
 from pathlib import Path
@@ -2723,3 +2725,230 @@ def test_stale_reconciliation_proposal_is_rejected(
     resume.apply_campaign_reconciliation(context, proposal, root=root)
     with pytest.raises(resume.ResumeCampaignError):
         resume.apply_campaign_reconciliation(context, proposal, root=root)
+
+
+# ---------------------------------------------------------------------------
+# B3.7 — mutation, adversarial and restart verification (§22)
+# ---------------------------------------------------------------------------
+
+
+def _write_mutated_resume_contract(tmp_path: Path, mutation: Any) -> Path:
+    """Copy the candidate B3 artifact, apply one mutation, and render it canonically."""
+
+    artifact = resume.REPO_ROOT / resume.RESUME_CONTRACT_REPO_RELATIVE_PATH
+    payload = json.loads(artifact.read_text(encoding="utf-8"))
+    mutation(payload)
+    basis = dict(payload)
+    basis.pop("contract_id", None)
+    payload["contract_id"] = "g8resume-" + units.sha256_bytes(bler_contract.canonical_json(basis))
+    target = tmp_path / "mutated-bler-resume-contract.json"
+    target.write_bytes(g8_campaign.rendered_json(payload))
+    return target
+
+
+def _run_resume_contract_verifier(path: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(resume.REPO_ROOT / "tools/verify_g8_bler_resume_contract.py"),
+            "--path",
+            str(path),
+        ],
+        cwd=resume.REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda payload: payload["authority_bindings"].update(campaign_id="foreign"),
+        lambda payload: payload["authority_bindings"].update(campaign_manifest_sha256="0" * 64),
+        lambda payload: payload["authority_bindings"].update(required_bler_artifact_sha256="0" * 64),
+        lambda payload: payload["authority_bindings"].update(selection_policy_sha256="0" * 64),
+        lambda payload: payload["authority_bindings"].update(bler_tooling_contract_id="foreign"),
+        lambda payload: payload["state_contract_binding"].update(bler_state_contract_id="foreign"),
+        lambda payload: payload["b4_handoff"].update(exact_restart_command="foreign"),
+        lambda payload: payload["no_science_boundary"].update(test_access=1),
+    ],
+    ids=[
+        "campaign-id",
+        "manifest-sha",
+        "required-sha",
+        "selection-policy",
+        "b1c-id",
+        "b2c-id",
+        "handoff-command",
+        "test-access",
+    ],
+)
+def test_independent_verifier_rejects_authority_and_contract_mutations(
+    tmp_path: Path,
+    mutation: Any,
+) -> None:
+    mutated = _write_mutated_resume_contract(tmp_path, mutation)
+    result = _run_resume_contract_verifier(mutated)
+    assert result.returncode != 0
+    assert "HOLD" in result.stderr or "HOLD" in result.stdout
+
+
+def test_independent_verifier_rejects_source_binding_mutation(tmp_path: Path) -> None:
+    def mutate(payload: dict[str, Any]) -> None:
+        payload["contract_sources"][0]["sha256"] = "0" * 64
+
+    mutated = _write_mutated_resume_contract(tmp_path, mutate)
+    result = _run_resume_contract_verifier(mutated)
+    assert result.returncode != 0
+
+
+def test_independent_verifier_rejects_schema_and_classification_mutations(tmp_path: Path) -> None:
+    def mutate(payload: dict[str, Any]) -> None:
+        payload["schemas"]["resume_plan"]["schema_version"] = 2
+        payload["classifications"]["ordered"].reverse()
+
+    mutated = _write_mutated_resume_contract(tmp_path, mutate)
+    result = _run_resume_contract_verifier(mutated)
+    assert result.returncode != 0
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("artifact_role", "foreign"),
+        ("execution_class", bler_contract.EXECUTION_CLASS_BOUNDED_SMOKE),
+        ("campaign_id", "foreign"),
+        ("bler_tooling_contract_id", "foreign"),
+        ("bler_tooling_contract_sha256", "0" * 64),
+        ("campaign_manifest_sha256", "0" * 64),
+        ("required_bler_artifact_sha256", "0" * 64),
+        ("selection_policy_sha256", "0" * 64),
+        ("snr_db", 123.0),
+        ("source_packet_config_ids", []),
+        ("trials_requested", 1),
+        ("trial_count_source", "foreign"),
+        ("seed_derivation_identity", "foreign"),
+        ("seed_domain_separator", "foreign"),
+        ("stream_seeds", {}),
+        ("scientific_evidence", False),
+        ("merge_eligible", True),
+        ("test_split_access", 1),
+        ("label", "foreign"),
+    ],
+)
+def test_every_named_request_mutation_holds(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    field: str,
+    value: Any,
+) -> None:
+    work_unit_id = _unit(context)
+    request = bler_contract.build_full_strength_request(work_unit_id)
+    path = resume.request_path(context, work_unit_id, 1, root=root)
+    request[field] = value
+    _write_canonical(path, request)
+    with pytest.raises(resume.ResumeHoldError):
+        resume.validate_request_file(context, work_unit_id, 1, root=root)
+
+
+@pytest.mark.parametrize(
+    ("section", "field", "value"),
+    [
+        ("identity", "request_sha256", "0" * 64),
+        ("identity", "work_unit_id", "foreign"),
+        ("identity", "snr_db", 123.0),
+        ("identity", "source_packet_config_ids", []),
+        ("identity", "trial_count_source", "foreign"),
+        ("identity", "implementation", {"rng_library": "foreign"}),
+        ("measurement", "trials_completed", 4999),
+        ("measurement", "information_bits", 0),
+        ("measurement", "bit_errors", 10**12),
+        ("measurement", "block_errors", 10**12),
+        ("measurement", "ber", 0.123),
+        ("measurement", "bler", 0.123),
+        ("measurement", "confidence_interval_method", "foreign"),
+        ("measurement", "confidence_interval_percent", 94),
+        ("measurement", "bler_confidence_low", 0.9),
+        ("execution_metadata", "attempt", 2),
+        ("execution_metadata", "shard_count", 0),
+        ("disposition", "scientific_evidence", False),
+        ("disposition", "merge_eligible", False),
+        ("disposition", "required_coverage_contribution", 0),
+        ("disposition", "test_split_access", 1),
+    ],
+)
+def test_every_named_result_mutation_holds(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    section: str,
+    field: str,
+    value: Any,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    request, _request_sha = _publish_request(context, root, work_unit_id, 1)
+    result, _result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    forged = json.loads(json.dumps(result))
+    forged[section][field] = value
+    _write_canonical(resume.result_path(context, work_unit_id, 1, root=root), forged)
+    request_record = resume.validate_request_file(context, work_unit_id, 1, root=root)
+    with pytest.raises(resume.ResumeHoldError):
+        resume.validate_result_file(
+            context,
+            work_unit_id,
+            1,
+            root=root,
+            request_record=request_record,
+        )
+
+
+def test_retry_request_divergence_is_a_history_hold(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_request(context, root, work_unit_id, 1)
+    second, _second_sha = _publish_request(context, root, work_unit_id, 2)
+    second["snr_db"] = float(second["snr_db"]) + 0.25
+    _write_canonical(resume.request_path(context, work_unit_id, 2, root=root), second)
+    _publish_state(context, root, _clean_claim(context, work_unit_id, attempt=2))
+    with pytest.raises(resume.ResumeHoldError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_filesystem_order_and_completion_order_never_enter_plan_or_report(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_registered_b3_binding(context, monkeypatch)
+    original = resume.os.scandir
+
+    def reversed_scandir(path: Any) -> Any:
+        entries = list(original(path))
+        entries.reverse()
+        return iter(entries)
+
+    monkeypatch.setattr(resume.os, "scandir", reversed_scandir)
+    first_plan = resume.build_resume_plan(context, root=root, shard_count=7, shard_index=3)
+    first_report = resume.build_merge_report(context, root=root)
+    monkeypatch.setattr(resume.os, "scandir", original)
+    second_plan = resume.build_resume_plan(context, root=root, shard_count=7, shard_index=3)
+    second_report = resume.build_merge_report(context, root=root)
+    assert bler_contract.canonical_json(first_plan) == bler_contract.canonical_json(second_plan)
+    assert bler_contract.canonical_json(first_report) == bler_contract.canonical_json(second_report)
+
+
+def test_plan_rejects_invalid_shard_bounds_and_unknown_scan_mode(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_registered_b3_binding(context, monkeypatch)
+    with pytest.raises(units.G8BlerWorkUnitError):
+        resume.build_resume_plan(context, root=root, shard_count=0, shard_index=0)
+    with pytest.raises(units.G8BlerWorkUnitError):
+        resume.build_resume_plan(context, root=root, shard_count=2, shard_index=2)
+    with pytest.raises(resume.ResumeHoldError):
+        resume.build_merge_report(context, root=root, scan_mode="foreign")
