@@ -1,0 +1,725 @@
+{
+  "artifact_role": "g8_bler_resume_merge_contract",
+  "authority_bindings": {
+    "bler_tooling_contract_id": "g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975",
+    "bler_tooling_contract_sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866",
+    "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+    "campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+    "request_schema_version": 2,
+    "required_bler_artifact_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
+    "required_work_unit_count": 3213,
+    "result_schema_version": 2,
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "tooling_schema_version": 2
+  },
+  "b4_handoff": {
+    "exact_restart_command": "rg -n \"bounded_smoke|run_g8_bler|SionnaLDPCAdapter|information_bit_stream|normal_stream|map_bits|max_log_llr\" src/baseline tools tests",
+    "full_strength_not_authorized_by_b3": true,
+    "runner_may_consume": [
+      "authenticated B1C requests",
+      "authenticated B2C state",
+      "authenticated B3 plans and reconciliation",
+      "exact G8_A work-unit authority"
+    ],
+    "runner_must_not_invent_work_unit_identities": true
+  },
+  "bounded_mode": {
+    "rejects_default_root": true,
+    "rejects_lexical_resolved_symlink_and_same_inode_alias": true,
+    "rejects_none": true,
+    "required_coverage_contribution": 0,
+    "requires_explicit_root": true,
+    "requires_nonproduction_root": true,
+    "terminal_nonmergeable_permitted_only_here": true,
+    "test_split_access": 0
+  },
+  "bounded_smoke_started": false,
+  "campaign": "G-8",
+  "campaign_reconciliation": {
+    "apply_adds_only": true,
+    "apply_never_removes": true,
+    "artifact_role": "g8_campaign_reconciliation_proposal",
+    "atomic_writer": "baseline.g8_campaign.write_campaign_state_atomically",
+    "bounded_and_recoverable_contribute": false,
+    "campaign_state_logical_path": "results/baseline/g8/campaign_state.json",
+    "counters_unchanged": true,
+    "derive_completed_only_from": "completed_full_strength",
+    "failed_and_claimed_contribute": false,
+    "in_progress_is_not_execution_authority": true,
+    "lag_allowed": true,
+    "lead_holds": true,
+    "live_b3_closeout_expected_change": "none",
+    "reread_exact_installed_bytes": true,
+    "schema_version": 1,
+    "uncertain_publication_requires_exact_bytes": true
+  },
+  "census": {
+    "filesystem_enumeration_order_is_ignored": true,
+    "hard_linked_authoritative_files_hold": true,
+    "ignored_orphan_staging_is_counted": true,
+    "opens_descriptors_and_flocks": true,
+    "read_only_default": true,
+    "read_only_mutations": [
+      "create lock file",
+      "create runtime root",
+      "create .locks",
+      "create bucket",
+      "create state",
+      "write, rename, or unlink",
+      "update campaign state"
+    ],
+    "rejections": [
+      "symlinks and dangling symlinks at every level",
+      "unknown top-level entries",
+      "wrong-case buckets",
+      "non-directory buckets",
+      "non-regular authoritative files",
+      "files in the wrong bucket",
+      "unknown work-unit digests",
+      "malformed attempt names",
+      "hard-linked authoritative aliases",
+      "duplicate semantic artifacts",
+      "request or result files for a future attempt",
+      "filenames whose digest does not map to the embedded work-unit ID",
+      "unrecognized temporary files",
+      "nested directories not defined by the contract"
+    ],
+    "root_absence_is_a_valid_empty_census": true,
+    "root_absence_is_locked": true,
+    "symlinks_and_dangling_symlinks_hold": true,
+    "unknown_entries_hold": true
+  },
+  "characterization_started": false,
+  "checkpoint": "B3",
+  "classifications": {
+    "ordered": [
+      "absent",
+      "claimed_unbound",
+      "claimed_request_published",
+      "recoverable_failed_result",
+      "recoverable_complete_result",
+      "failed_retryable",
+      "completed_full_strength",
+      "terminal_nonmergeable"
+    ],
+    "proposed_attempt_policy": {
+      "absent": "attempt_1",
+      "claimed_request_published": "old_attempt_plus_1",
+      "claimed_unbound": "old_attempt_plus_1",
+      "completed_full_strength": null,
+      "failed_retryable": "old_attempt_plus_1",
+      "recoverable_complete_result": null,
+      "recoverable_failed_result": null,
+      "terminal_nonmergeable": null
+    },
+    "recoverable": [
+      "recoverable_failed_result",
+      "recoverable_complete_result"
+    ],
+    "remaining": [
+      "absent",
+      "claimed_unbound",
+      "claimed_request_published",
+      "failed_retryable"
+    ],
+    "rules": {
+      "absent": "no state, request, or result: remaining; proposed attempt 1",
+      "claimed_request_published": "claimed state with immutable request history: remaining; old attempt plus 1",
+      "claimed_unbound": "claimed state without request: remaining; old attempt plus 1",
+      "completed_full_strength": "result_linked exact complete merge-eligible result: completed; no proposed attempt",
+      "failed_retryable": "failed state: remaining; old attempt plus 1",
+      "recoverable_complete_result": "claimed state plus exact complete result: recoverable; no proposed attempt",
+      "recoverable_failed_result": "claimed state plus exact failed result: recoverable; no proposed attempt",
+      "terminal_nonmergeable": "result_linked exact complete non-mergeable result only in explicit isolated bounded mode"
+    },
+    "terminal": [
+      "completed_full_strength",
+      "terminal_nonmergeable"
+    ],
+    "unknown_classification_holds": true
+  },
+  "contract_id": "g8resume-7bf4935ed82aa1eea6514208cdd82f9b60f73e4ba58b280642b493444f5364c0",
+  "contract_sources": [
+    {
+      "bytes": 145628,
+      "path": "src/baseline/g8_bler_resume.py",
+      "role": "g8b_b3_resume_contract_source",
+      "sha256": "c448d186cb7115e96553b50fd4dcd4ea025894563de3bc9d8402dcc0d91bb4fa"
+    },
+    {
+      "bytes": 23342,
+      "path": "tools/gen_g8_bler_resume_contract.py",
+      "role": "g8b_b3_resume_contract_source",
+      "sha256": "21d9d211b78869eec392b11e648c05d5be4aea64a5580b17ad9ec8071e55160d"
+    },
+    {
+      "bytes": 29306,
+      "path": "tools/verify_g8_bler_resume_contract.py",
+      "role": "g8b_b3_resume_contract_source",
+      "sha256": "c33300f8c537fa8f779a8d5497106f04998e806b808fdd4a92834c331dfbc03b"
+    }
+  ],
+  "history_validation": {
+    "all_request_bytes_canonical": true,
+    "all_requests_validate_against_exact_authority": true,
+    "exact_same_attempt_request_for_every_result": true,
+    "full_strength_retry_requests_byte_identical": true,
+    "incomplete_final_result_holds": true,
+    "incomplete_result_is_invalid_in_production_and_bounded_inspection": true,
+    "malformed_or_foreign_older_request_only_holds": true,
+    "no_request_or_result_beyond_state_attempt": true,
+    "older_complete_merge_eligible_result_while_state_advanced_holds": true,
+    "older_failed_results_contribute_zero": true,
+    "state_result_binding": {
+      "failed_persisted_request_sha256_exact": true,
+      "failed_persisted_trials_equal_result_measurement": true,
+      "failed_without_request_permitted_only_without_current_request_or_result": true,
+      "failed_without_result_reports_state_trials": true,
+      "result_linked_request_sha256_exact": true,
+      "result_linked_result_path_exact_current_attempt": true,
+      "result_linked_result_sha256_exact": true,
+      "result_linked_scientific_execution_performed": true,
+      "result_linked_trials_equal_result_measurement": true
+    },
+    "validate_every_attempt_through_state_attempt": true
+  },
+  "lock": {
+    "absent_root_never_bypasses_lock": true,
+    "exclusive_mode": "LOCK_EX",
+    "exclusive_required_for": [
+      "inspection",
+      "recovery",
+      "reconciliation",
+      "merge"
+    ],
+    "flock_function": "fcntl.flock",
+    "inspection_creates_lock_file": false,
+    "inspection_creates_parent": false,
+    "inspection_creates_root": false,
+    "lock_order": [
+      "global parent-directory lock",
+      "B2C per-unit lock"
+    ],
+    "open_flags": [
+      "O_RDONLY",
+      "O_DIRECTORY",
+      "O_NOFOLLOW"
+    ],
+    "parent_must_already_exist": true,
+    "shared_mode": "LOCK_SH",
+    "shared_required_for": [
+      "future complete per-unit runner transaction"
+    ],
+    "target": "the existing physical parent directory inode of the runtime root",
+    "unsupported_directory_locking": "fail closed; no fallback lock or unlocked continuation"
+  },
+  "lock_lease": {
+    "batch_inspection_reuses_one_exclusive_lease": true,
+    "fields": [
+      "canonical physical root",
+      "mode",
+      "owner PID",
+      "active state",
+      "parent st_dev",
+      "parent st_ino"
+    ],
+    "manual_nested_b2c_lock_for_replace": false,
+    "opaque": true,
+    "public_repair_acquires_exclusive": true,
+    "rejects": [
+      "missing lease",
+      "inactive lease",
+      "wrong-root lease",
+      "shared lease where exclusive is required",
+      "lease inherited across fork without reacquisition",
+      "changed locked-parent inode"
+    ]
+  },
+  "merge_report": {
+    "artifact_role": "g8_bler_merge_validation_report",
+    "constructs_bler_table": false,
+    "coverage_complete_requires": [
+      "3213 required IDs in canonical authority order",
+      "3213 unique completed_full_strength units",
+      "3213 valid requests",
+      "3213 valid complete results",
+      "sum(required_coverage_contribution) == 3213",
+      "no unknown IDs",
+      "no duplicates",
+      "no omissions",
+      "test_split_access == 0"
+    ],
+    "digest_excludes_only_self": true,
+    "digest_field": "report_digest",
+    "fields": [
+      "schema_version",
+      "artifact_role",
+      "bler_resume_contract_id",
+      "bler_resume_contract_sha256",
+      "bler_state_contract_id",
+      "bler_state_contract_sha256",
+      "bler_tooling_contract_id",
+      "bler_tooling_contract_sha256",
+      "campaign_id",
+      "campaign_manifest_sha256",
+      "required_bler_artifact_sha256",
+      "selection_policy_sha256",
+      "request_schema_version",
+      "result_schema_version",
+      "unit_state_schema_version",
+      "required_work_unit_count",
+      "required_work_unit_ids",
+      "validated_complete_work_unit_ids",
+      "missing_work_unit_ids",
+      "remaining_work_unit_ids",
+      "recoverable_work_unit_ids",
+      "failed_work_unit_ids",
+      "bounded_nonmergeable_work_unit_ids",
+      "duplicate_count",
+      "unknown_count",
+      "exact_coverage_count",
+      "valid_request_count",
+      "valid_result_count",
+      "valid_complete_result_count",
+      "total_required_coverage_contribution",
+      "coverage_complete",
+      "merge_ready",
+      "logical_root",
+      "scan_mode",
+      "ignored_staging_count",
+      "test_split_access",
+      "report_digest"
+    ],
+    "partial_state_is_not_merge_ready": true,
+    "schema_version": 1,
+    "validation_only": true
+  },
+  "no_science_boundary": {
+    "blertable_exists": false,
+    "full_strength_requests_or_results": false,
+    "inference": 0,
+    "phase": "G8_B",
+    "production_runtime_root": false,
+    "runner_exists": false,
+    "scientific_execution_performed": false,
+    "stage": "tooling_open",
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 0
+  },
+  "phase": "G8_B",
+  "publication": {
+    "canonical_bytes_before_destination_open": true,
+    "different_existing_bytes_are_conflict": true,
+    "directory_fsync": true,
+    "directory_fsync_failure_is_not_swallowed": true,
+    "exact_existing_bytes_are_idempotent": true,
+    "final_path_never_opened_for_writing": true,
+    "flush_and_file_fsync": true,
+    "no_replace_publication": "descriptor-relative hard link or equivalently proven no-replace primitive",
+    "staging_mode": "0600",
+    "staging_open_flags": [
+      "O_CREAT",
+      "O_EXCL",
+      "O_NOFOLLOW"
+    ],
+    "staging_same_directory_unique": true,
+    "symlink_dangling_symlink_and_hard_link_alias_rejected": true,
+    "uncertain_publication": "reread installed artifact and accept only exact proposed canonical bytes and exact SHA-256; matching status alone is insufficient"
+  },
+  "recovery": {
+    "exactly_two_rows": true,
+    "matrix_rows": [
+      {
+        "classification": "recoverable_failed_result",
+        "result_reference_in_successor": false,
+        "result_status": "failed",
+        "successor_state_status": "failed"
+      },
+      {
+        "classification": "recoverable_complete_result",
+        "result_reference_in_successor": true,
+        "result_status": "complete",
+        "successor_state_status": "result_linked"
+      }
+    ],
+    "no_manual_nested_b2c_lock": true,
+    "per_unit_compare_and_swap_owned_by_b2c": true,
+    "repair_requires_exclusive_global_lease": true,
+    "request_only_recovery": false
+  },
+  "resume_plan": {
+    "artifact_role": "g8_bler_resume_plan",
+    "binds": [
+      "B3 contract ID and SHA",
+      "B2C contract ID and SHA",
+      "B1C contract ID and SHA",
+      "campaign ID",
+      "campaign manifest SHA",
+      "required identities SHA",
+      "selection-policy SHA",
+      "required count",
+      "shard count and index",
+      "exact B2 shard-plan digest",
+      "logical root only",
+      "scan mode",
+      "ignored staging count",
+      "assigned unit records",
+      "completed IDs",
+      "recoverable IDs",
+      "remaining IDs",
+      "proposed attempt for every remaining unit",
+      "test access"
+    ],
+    "digest_excludes_only_self": true,
+    "digest_field": "plan_digest",
+    "fields": [
+      "schema_version",
+      "artifact_role",
+      "bler_resume_contract_id",
+      "bler_resume_contract_sha256",
+      "bler_state_contract_id",
+      "bler_state_contract_sha256",
+      "bler_tooling_contract_id",
+      "bler_tooling_contract_sha256",
+      "campaign_id",
+      "campaign_manifest_sha256",
+      "required_bler_artifact_sha256",
+      "selection_policy_sha256",
+      "request_schema_version",
+      "result_schema_version",
+      "unit_state_schema_version",
+      "required_work_unit_count",
+      "shard_count",
+      "shard_index",
+      "shard_plan_digest",
+      "assigned_work_unit_ids",
+      "assigned_unit_records",
+      "completed_work_unit_ids",
+      "recoverable_work_unit_ids",
+      "remaining_work_unit_ids",
+      "terminal_nonmergeable_work_unit_ids",
+      "proposed_attempts",
+      "logical_root",
+      "scan_mode",
+      "ignored_staging_count",
+      "test_split_access",
+      "plan_digest"
+    ],
+    "forbidden_fields": [
+      "absolute path",
+      "hostname",
+      "PID",
+      "timestamp",
+      "inode",
+      "mtime",
+      "filesystem order",
+      "worker name",
+      "completion order",
+      "wall time"
+    ],
+    "order_rule": "exact frozen shard-plan order",
+    "repeat_identical_bytes": true,
+    "reshard_changes_membership_only": true,
+    "schema_version": 1
+  },
+  "runtime_paths": {
+    "absolute_paths_in_artifacts": false,
+    "allowed_bucket_entries": [
+      "<digest>.state.json",
+      "<digest>.attempt-<attempt>.request.json",
+      "<digest>.attempt-<attempt>.result.json",
+      ".<final-name>.<pid>.<random>.staging (ignored orphan staging)"
+    ],
+    "allowed_root_entries": [
+      "two-lowercase-hex bucket directory",
+      ".locks directory"
+    ],
+    "attempt_token_prefix": "attempt-",
+    "hostname_pid_inode_mtime_in_digests": false,
+    "lock_directory_name": ".locks",
+    "lock_filename_suffix": ".lock",
+    "logical_root": "results/baseline/g8/work_units",
+    "request_filename_suffix": ".request.json",
+    "result_filename_suffix": ".result.json",
+    "staging_filename_suffix": ".staging",
+    "state_filename_suffix": ".state.json"
+  },
+  "schema_version": 1,
+  "schemas": {
+    "campaign_reconciliation": {
+      "artifact_role": "g8_campaign_reconciliation_proposal",
+      "digest_field": "proposal_digest",
+      "digest_rule": "sha256(canonical JSON over the complete proposal identity excluding proposal_digest)",
+      "schema_version": 1
+    },
+    "merge_report": {
+      "artifact_role": "g8_bler_merge_validation_report",
+      "digest_field": "report_digest",
+      "digest_rule": "sha256(canonical JSON over the complete report identity excluding report_digest)",
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "bler_resume_contract_id",
+        "bler_resume_contract_sha256",
+        "bler_state_contract_id",
+        "bler_state_contract_sha256",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "campaign_id",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "request_schema_version",
+        "result_schema_version",
+        "unit_state_schema_version",
+        "required_work_unit_count",
+        "required_work_unit_ids",
+        "validated_complete_work_unit_ids",
+        "missing_work_unit_ids",
+        "remaining_work_unit_ids",
+        "recoverable_work_unit_ids",
+        "failed_work_unit_ids",
+        "bounded_nonmergeable_work_unit_ids",
+        "duplicate_count",
+        "unknown_count",
+        "exact_coverage_count",
+        "valid_request_count",
+        "valid_result_count",
+        "valid_complete_result_count",
+        "total_required_coverage_contribution",
+        "coverage_complete",
+        "merge_ready",
+        "logical_root",
+        "scan_mode",
+        "ignored_staging_count",
+        "test_split_access",
+        "report_digest"
+      ],
+      "schema_version": 1
+    },
+    "request": {
+      "artifact_role": "g8_bler_work_unit_request",
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "execution_class",
+        "campaign_id",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "work_unit_id",
+        "bler_identity",
+        "snr_db",
+        "source_packet_config_ids",
+        "trials_requested",
+        "trial_count_source",
+        "seed_derivation_identity",
+        "seed_domain_separator",
+        "stream_seeds",
+        "scientific_evidence",
+        "merge_eligible",
+        "test_split_access",
+        "label"
+      ],
+      "omitted_field_defaults_permitted": false,
+      "request_is_never_merge_eligible": true,
+      "schema_version": 2,
+      "test_split_access": 0,
+      "unknown_fields_rejected": true
+    },
+    "result": {
+      "artifact_role": "g8_bler_work_unit_result",
+      "disposition_fields": [
+        "scientific_evidence",
+        "merge_eligible",
+        "test_split_access",
+        "required_coverage_contribution"
+      ],
+      "execution_metadata_fields": [
+        "wall_time_s",
+        "hostname",
+        "device",
+        "shard_index",
+        "shard_count",
+        "attempt"
+      ],
+      "execution_metadata_rules": {
+        "attempt": "null or exact positive integer",
+        "device": "null or nonblank string",
+        "hostname": "null or nonblank string",
+        "shard_count": "null or exact positive integer",
+        "shard_index": "null or exact non-negative integer",
+        "shard_pair": "both null, or both present with 0 <= shard_index < shard_count",
+        "wall_time_s": "null or finite non-negative real; booleans rejected"
+      },
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "status",
+        "identity",
+        "measurement",
+        "execution_metadata",
+        "disposition"
+      ],
+      "identity_fields": [
+        "execution_class",
+        "request_sha256",
+        "campaign_id",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "work_unit_id",
+        "bler_identity",
+        "snr_db",
+        "source_packet_config_ids",
+        "trials_requested",
+        "trial_count_source",
+        "seed_derivation_identity",
+        "seed_domain_separator",
+        "stream_seeds",
+        "implementation"
+      ],
+      "implementation_fields": [
+        "rng_library",
+        "rng_library_version",
+        "rng_bit_generator",
+        "request_schema_version",
+        "result_schema_version"
+      ],
+      "measurement_fields": [
+        "trials_completed",
+        "information_bits",
+        "bit_errors",
+        "block_errors",
+        "ber",
+        "bler",
+        "confidence_interval_method",
+        "confidence_interval_percent",
+        "bler_confidence_low",
+        "bler_confidence_high",
+        "confidence_interval_role"
+      ],
+      "schema_version": 2,
+      "status_rules": {
+        "allowed_statuses": [
+          "incomplete",
+          "complete",
+          "failed"
+        ],
+        "complete_full_strength_requires_exact_trial_count": true,
+        "complete_requires_positive_trials": true,
+        "failed_merge_eligible": false,
+        "incomplete_merge_eligible": false
+      },
+      "statuses": [
+        "incomplete",
+        "complete",
+        "failed"
+      ],
+      "test_split_access": 0
+    },
+    "resume_plan": {
+      "artifact_role": "g8_bler_resume_plan",
+      "digest_field": "plan_digest",
+      "digest_rule": "sha256(canonical JSON over the complete plan identity excluding plan_digest)",
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "bler_resume_contract_id",
+        "bler_resume_contract_sha256",
+        "bler_state_contract_id",
+        "bler_state_contract_sha256",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "campaign_id",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "request_schema_version",
+        "result_schema_version",
+        "unit_state_schema_version",
+        "required_work_unit_count",
+        "shard_count",
+        "shard_index",
+        "shard_plan_digest",
+        "assigned_work_unit_ids",
+        "assigned_unit_records",
+        "completed_work_unit_ids",
+        "recoverable_work_unit_ids",
+        "remaining_work_unit_ids",
+        "terminal_nonmergeable_work_unit_ids",
+        "proposed_attempts",
+        "logical_root",
+        "scan_mode",
+        "ignored_staging_count",
+        "test_split_access",
+        "plan_digest"
+      ],
+      "schema_version": 1
+    },
+    "unit_state": {
+      "artifact_role": "g8_bler_work_unit_state",
+      "canonical_file_encoding": "compact sorted-key JSON bytes, ensure_ascii=true, allow_nan=false, separators (\",\", \":\"), no trailing newline",
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "identity",
+        "runtime_metadata",
+        "identity_sha256"
+      ],
+      "identity_fields": [
+        "schema_version",
+        "artifact_role",
+        "campaign_id",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "bler_state_contract_id",
+        "bler_state_contract_sha256",
+        "request_schema_version",
+        "result_schema_version",
+        "work_unit_id",
+        "canonical_ordinal",
+        "required_work_unit_record_sha256",
+        "sharding_algorithm",
+        "shard_index",
+        "shard_count",
+        "shard_plan_digest",
+        "attempt",
+        "status",
+        "request_sha256",
+        "result_path",
+        "result_sha256",
+        "scientific_execution_performed",
+        "trials_completed",
+        "test_split_access"
+      ],
+      "runtime_metadata_fields": [
+        "hostname",
+        "process_id",
+        "device",
+        "wall_clock_annotation",
+        "update_annotation"
+      ],
+      "schema_version": 2,
+      "statuses": [
+        "claimed",
+        "failed",
+        "result_linked"
+      ],
+      "test_split_access": 0
+    }
+  },
+  "scientific_execution_performed": false,
+  "state_contract_binding": {
+    "bler_state_contract_id": "g8state-a36b37f3c21d4254a50ffe5e893237ee4738c68c7b3e9d76b473856ca7605deb",
+    "bler_state_contract_sha256": "cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583"
+  }
+}

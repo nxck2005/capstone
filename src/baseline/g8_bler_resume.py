@@ -73,8 +73,8 @@ DEFAULT_RESUME_CONTRACT_PATH = REPO_ROOT / RESUME_CONTRACT_REPO_RELATIVE_PATH
 #: The exact command a B4 session runs first.  Stored in campaign state at
 #: registration and bound into the contract.
 B4_RESTART_COMMAND = (
-    'rg -n "bounded_smoke|NON-SCIENTIFIC BOUNDED SMOKE|build_bounded_smoke_request|'
-    'resume_plan|merge_report|result_linked" src/baseline tools tests'
+    'rg -n "bounded_smoke|run_g8_bler|SionnaLDPCAdapter|information_bit_stream|'
+    'normal_stream|map_bits|max_log_llr" src/baseline tools tests'
 )
 
 # ---------------------------------------------------------------------------

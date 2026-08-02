@@ -1450,6 +1450,59 @@ def test_the_future_generator_and_verifier_bind_the_corrected_model() -> None:
             assert name in source and target in source
 
 
+def test_b3_verifier_is_independent_of_generator_and_resume_runtime() -> None:
+    """The registered-contract verifier must reconstruct B3 truth independently."""
+
+    import ast
+
+    verifier = resume.REPO_ROOT / "tools/verify_g8_bler_resume_contract.py"
+    if not verifier.exists():
+        pytest.skip("B3.6 verifier is not present at the historical pre-B3.6 boundary")
+    tree = ast.parse(verifier.read_text(encoding="utf-8"), filename=str(verifier))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported = [alias.name for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            imported = [node.module or ""]
+        else:
+            continue
+        assert all("gen_g8_bler_resume_contract" not in name for name in imported)
+        assert all("g8_bler_resume" not in name for name in imported)
+
+
+def test_candidate_b3_contract_authenticates_operations_in_an_isolated_registered_state(
+    tmp_path: Path,
+) -> None:
+    """Candidate registration is exercised before the live state is changed."""
+
+    import register_g8_artifact as registrar
+
+    artifact = resume.REPO_ROOT / "results/baseline/g8/bler_resume_contract.json"
+    if not artifact.exists():
+        pytest.skip("B3.6 artifact is not present at the historical pre-B3.6 boundary")
+    campaign_state = tmp_path / "campaign_state.json"
+    campaign_state.write_bytes(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
+    registrar.register(
+        resume.RESUME_CONTRACT_REPO_RELATIVE_PATH,
+        resume.B4_RESTART_COMMAND,
+        state_path=campaign_state,
+    )
+    state_context = units.AuthenticatedUnitStateContext(
+        campaign_state_path=campaign_state,
+    )
+    context = resume.AuthenticatedResumeContext(
+        state_context,
+        require_resume_contract=True,
+    )
+    isolated_root = tmp_path / "isolated-work-units"
+    plan = resume.build_resume_plan(context, root=isolated_root)
+    report = resume.build_merge_report(context, root=isolated_root)
+    assert plan["remaining_work_unit_ids"] == list(context.ordered_work_unit_ids)
+    assert report["coverage_complete"] is False
+    assert report["merge_ready"] is False
+    assert not isolated_root.exists()
+
+
 # ---------------------------------------------------------------------------
 # B3.2 — request/result chain validation and closed classification
 #
