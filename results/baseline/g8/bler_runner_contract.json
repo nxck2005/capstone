@@ -1,0 +1,448 @@
+{
+  "artifact_role": "g8_bler_runner_contract",
+  "authority_bindings": {
+    "bler_resume_contract_id": "g8resume-7bf4935ed82aa1eea6514208cdd82f9b60f73e4ba58b280642b493444f5364c0",
+    "bler_resume_contract_sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41",
+    "bler_state_contract_id": "g8state-a36b37f3c21d4254a50ffe5e893237ee4738c68c7b3e9d76b473856ca7605deb",
+    "bler_state_contract_sha256": "cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583",
+    "bler_tooling_contract_id": "g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975",
+    "bler_tooling_contract_sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866",
+    "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+    "campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+    "request_schema_version": 2,
+    "required_bler_artifact_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
+    "required_work_unit_count": 3213,
+    "result_schema_version": 2,
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "tooling_schema_version": 2,
+    "unit_state_schema_version": 2
+  },
+  "authorization": {
+    "bounded_smoke": {
+      "device": "cpu",
+      "execution_class": "bounded_smoke",
+      "max_trials_per_unit": 16,
+      "max_work_units": 3,
+      "phase": "G8_B",
+      "root": "explicit absolute isolated nonproduction root",
+      "stage": "tooling_open"
+    },
+    "full_strength": {
+      "execution_class": "full_strength",
+      "phase": "G8_C",
+      "rejected_before_root_state_request_adapter_bits_decode_in_g8_b": true,
+      "root": "explicit absolute runtime root",
+      "stage": "characterization_open"
+    },
+    "invalid_shard_bounds_rejected": true,
+    "no_implicit_production_root": true,
+    "unknown_work_unit_ids_rejected": true
+  },
+  "bounded_smoke": {
+    "configured_modulations": [
+      "bpsk",
+      "qpsk",
+      "qam16"
+    ],
+    "device": "cpu",
+    "label": "NON-SCIENTIFIC BOUNDED SMOKE",
+    "maximum_work_units": 3,
+    "merge_eligible": false,
+    "record_artifact_role": "g8_bounded_smoke_record",
+    "required_coverage_contribution": 0,
+    "selection_rule": "first canonical required work-unit identity per configured modulation in configured order",
+    "temporary_root_removed": true,
+    "terminal_classification": "terminal_nonmergeable",
+    "test_split_access": 0,
+    "trials_per_unit": 16
+  },
+  "bounded_smoke_started": false,
+  "campaign": "G-8",
+  "characterization_started": false,
+  "checkpoint": "B4",
+  "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+  "contract_sources": [
+    {
+      "bytes": 42828,
+      "path": "src/baseline/g8_bler_runner.py",
+      "role": "g8b_b4_runner_contract_source",
+      "sha256": "966194ee9731083883685d482db4cc776526223e2a69a919efa754da382f9eb1"
+    },
+    {
+      "bytes": 6510,
+      "path": "tools/run_g8_bler.py",
+      "role": "g8b_b4_runner_contract_source",
+      "sha256": "51072812350c015ed77e597d33dba98a7f9df69d4288a6c47268b619cccfb4ab"
+    },
+    {
+      "bytes": 15743,
+      "path": "tools/gen_g8_bler_runner_contract.py",
+      "role": "g8b_b4_runner_contract_source",
+      "sha256": "c3bd0a342f1199ecbb763292a4ff10d32fc586d9165e9224718f18ff9dc10c66"
+    },
+    {
+      "bytes": 20168,
+      "path": "tools/verify_g8_bler_runner_contract.py",
+      "role": "g8b_b4_runner_contract_source",
+      "sha256": "f64283e7255ac67db354104821f6845a1633adf422e64cb86fed6f027fb129f6"
+    },
+    {
+      "bytes": 12286,
+      "path": "tools/verify_g8_bounded_smoke.py",
+      "role": "g8b_b4_runner_contract_source",
+      "sha256": "f9991c5fc577df7cca5a25ce98e8c42b3ff9116bad516d3455d397f40dc238d9"
+    }
+  ],
+  "count_semantics": {
+    "authoritative_fields": [
+      "trials_completed",
+      "information_bits",
+      "bit_errors",
+      "block_errors"
+    ],
+    "ber_rule": "bit_errors / information_bits",
+    "bler_rule": "block_errors / trials_completed",
+    "bounded_smoke_is_not_scientific": true,
+    "confidence_method": "wilson_score",
+    "confidence_role": "diagnostic only; not used in BR-4 ranking or eligibility; not a stopping rule",
+    "invariants": [
+      "block_errors == 0 iff bit_errors == 0",
+      "block_errors <= bit_errors <= block_errors * K when block_errors > 0",
+      "trials_completed <= trials_requested",
+      "block_errors <= trials_completed",
+      "information_bits == trials_completed * K",
+      "bit_errors <= information_bits"
+    ],
+    "trials_requested_source": "params.baseline.bler_characterisation_trials"
+  },
+  "dependencies": {
+    "configured_decoder": "offset_min_sum",
+    "configured_decoder_impl_spelling": "offset-minsum",
+    "configured_decoder_offset": 0.5,
+    "configured_decoder_schedule": "flooding",
+    "configured_decoder_vn_update": "sum",
+    "configured_llr_clip": 20.0,
+    "configured_max_iters": 50,
+    "configured_sionna_version": "2.0.1",
+    "numpy_version": "2.5.1",
+    "sionna_version": "2.0.1",
+    "source_bindings": [
+      {
+        "bytes": 2546,
+        "path": "src/baseline/ldpc/adapter.py",
+        "role": "g8b_b4_runner_contract_source",
+        "sha256": "1bc62ba6c5936c9095a97e0e9f989eb1f25efc2f29b2268f651d7a58fbd15de9"
+      },
+      {
+        "bytes": 3790,
+        "path": "src/baseline/ldpc/modulation.py",
+        "role": "g8b_b4_runner_contract_source",
+        "sha256": "eb3e7f05e453ea74ba099cfe5de5494ca9926f1333db16ee3d3dcc461ae011ad"
+      }
+    ],
+    "torch_cuda_version": "13.0",
+    "torch_version": "2.13.0+cu130"
+  },
+  "g8_c_handoff": {
+    "first_authorized_phase": "G8_C",
+    "first_authorized_stage": "characterization_open",
+    "full_strength_is_not_started_in_g8_b": true,
+    "runner_contract_is_not_a_bler_table": true
+  },
+  "no_science_boundary": {
+    "BlerTable": false,
+    "full_strength_execution": false,
+    "inference": 0,
+    "phase": "G8_B",
+    "production_runtime_root": false,
+    "required_bler_work_units_completed": 0,
+    "stage": "tooling_open",
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 0
+  },
+  "phase": "G8_B",
+  "physical_layer": {
+    "bit_errors": "complete K-vector Hamming distance",
+    "block_errors": "one for any differing K-bit vector",
+    "bounded_memory": true,
+    "comparison_domain": "complete K-bit information vector",
+    "complex_noise_scale": "sqrt(N0 / 2)",
+    "decoder": "SionnaLDPCAdapter offset-min-sum decoder",
+    "decoder_exception_policy": "failed attempt, never completed evidence",
+    "decoder_output_shape": "(batch, K)",
+    "demapper": "baseline.ldpc.modulation.max_log_llr",
+    "derive_fields": [
+      "K",
+      "N",
+      "base_graph",
+      "lifting_size",
+      "modulation",
+      "rate",
+      "SNR"
+    ],
+    "encoder": "baseline.ldpc.adapter.SionnaLDPCAdapter",
+    "finite_llr_required": true,
+    "identity_source": "authenticated exact required work-unit record",
+    "information_bits_count": "trials_completed * K",
+    "information_bits_per_trial": "exactly K",
+    "malformed_output_policy": "failed attempt, never completed evidence",
+    "mapper": "baseline.ldpc.modulation.map_bits",
+    "noise_convention": "Es/N0 per symbol; N0 = 10 ** (-SNR_dB / 10)"
+  },
+  "publication": {
+    "canonical_bytes_before_destination_open": true,
+    "different_existing_bytes_are_conflict": true,
+    "directory_fsync": true,
+    "exact_existing_bytes_are_idempotent": true,
+    "final_path_never_opened_for_writing": true,
+    "flush_and_file_fsync": true,
+    "no_replace": "descriptor-relative renameat2(RENAME_NOREPLACE) with fail-closed availability",
+    "staging_mode": "0600",
+    "staging_open_flags": [
+      "O_CREAT",
+      "O_EXCL",
+      "O_NOFOLLOW"
+    ],
+    "staging_same_directory_unique": true,
+    "symlink_dangling_symlink_and_hard_link_alias_rejected": true,
+    "uncertain_publication": "accept only exact installed canonical bytes and SHA-256"
+  },
+  "rng": {
+    "attempt_enters_seed_derivation": false,
+    "batch_size_enters_seed_derivation": false,
+    "consumed_sequentially_from_index_zero": true,
+    "device_enters_seed_derivation": false,
+    "information_stream": "numpy.random.Philox(key=seed).random_raw(words)",
+    "information_stream_addressed_by_trial_offset": true,
+    "library": "numpy",
+    "library_version": "2.5.1",
+    "normal_stream": "numpy.random.Generator(numpy.random.Philox(key=seed)).standard_normal(count)",
+    "persistent_real_and_imaginary_generators": true,
+    "philox_bit_generator": "Philox",
+    "real_and_imaginary_streams_independent": true,
+    "reseed_each_batch": false,
+    "shard_enters_seed_derivation": false,
+    "stream_chunk_boundary_invariant": true
+  },
+  "schema_version": 1,
+  "schemas": {
+    "bounded_smoke_record": {
+      "artifact_role": "g8_bounded_smoke_record",
+      "label": "NON-SCIENTIFIC BOUNDED SMOKE",
+      "schema_version": 1
+    },
+    "merge_report": {
+      "artifact_role": "g8_bler_merge_validation_report",
+      "digest_field": "report_digest",
+      "digest_rule": "sha256(canonical JSON over the complete report identity excluding report_digest)",
+      "schema_version": 1
+    },
+    "request": {
+      "artifact_role": "g8_bler_work_unit_request",
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "execution_class",
+        "campaign_id",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "work_unit_id",
+        "bler_identity",
+        "snr_db",
+        "source_packet_config_ids",
+        "trials_requested",
+        "trial_count_source",
+        "seed_derivation_identity",
+        "seed_domain_separator",
+        "stream_seeds",
+        "scientific_evidence",
+        "merge_eligible",
+        "test_split_access",
+        "label"
+      ],
+      "request_is_never_merge_eligible": true,
+      "schema_version": 2,
+      "test_split_access": 0,
+      "unknown_fields_rejected": true
+    },
+    "result": {
+      "artifact_role": "g8_bler_work_unit_result",
+      "disposition_fields": [
+        "scientific_evidence",
+        "merge_eligible",
+        "test_split_access",
+        "required_coverage_contribution"
+      ],
+      "execution_metadata_fields": [
+        "wall_time_s",
+        "hostname",
+        "device",
+        "shard_index",
+        "shard_count",
+        "attempt"
+      ],
+      "execution_metadata_rules": {
+        "attempt": "null or exact positive integer",
+        "device": "null or nonblank string",
+        "hostname": "null or nonblank string",
+        "shard_count": "null or exact positive integer",
+        "shard_index": "null or exact non-negative integer",
+        "shard_pair": "both null, or both present with 0 <= shard_index < shard_count",
+        "wall_time_s": "null or finite non-negative real; booleans rejected"
+      },
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "status",
+        "identity",
+        "measurement",
+        "execution_metadata",
+        "disposition"
+      ],
+      "identity_fields": [
+        "execution_class",
+        "request_sha256",
+        "campaign_id",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "work_unit_id",
+        "bler_identity",
+        "snr_db",
+        "source_packet_config_ids",
+        "trials_requested",
+        "trial_count_source",
+        "seed_derivation_identity",
+        "seed_domain_separator",
+        "stream_seeds",
+        "implementation"
+      ],
+      "implementation_fields": [
+        "rng_library",
+        "rng_library_version",
+        "rng_bit_generator",
+        "request_schema_version",
+        "result_schema_version"
+      ],
+      "measurement_fields": [
+        "trials_completed",
+        "information_bits",
+        "bit_errors",
+        "block_errors",
+        "ber",
+        "bler",
+        "confidence_interval_method",
+        "confidence_interval_percent",
+        "bler_confidence_low",
+        "bler_confidence_high",
+        "confidence_interval_role"
+      ],
+      "schema_version": 2,
+      "status_rules": {
+        "allowed_statuses": [
+          "incomplete",
+          "complete",
+          "failed"
+        ],
+        "complete_full_strength_requires_exact_trial_count": true,
+        "complete_requires_positive_trials": true,
+        "failed_merge_eligible": false,
+        "incomplete_merge_eligible": false
+      },
+      "statuses": [
+        "incomplete",
+        "complete",
+        "failed"
+      ],
+      "test_split_access": 0
+    },
+    "resume_plan": {
+      "artifact_role": "g8_bler_resume_plan",
+      "digest_field": "plan_digest",
+      "digest_rule": "sha256(canonical JSON over the complete plan identity excluding plan_digest)",
+      "schema_version": 1
+    },
+    "unit_state": {
+      "artifact_role": "g8_bler_work_unit_state",
+      "fields": [
+        "schema_version",
+        "artifact_role",
+        "identity",
+        "runtime_metadata",
+        "identity_sha256"
+      ],
+      "identity_fields": [
+        "schema_version",
+        "artifact_role",
+        "campaign_id",
+        "campaign_manifest_sha256",
+        "required_bler_artifact_sha256",
+        "selection_policy_sha256",
+        "bler_tooling_contract_id",
+        "bler_tooling_contract_sha256",
+        "bler_state_contract_id",
+        "bler_state_contract_sha256",
+        "request_schema_version",
+        "result_schema_version",
+        "work_unit_id",
+        "canonical_ordinal",
+        "required_work_unit_record_sha256",
+        "sharding_algorithm",
+        "shard_index",
+        "shard_count",
+        "shard_plan_digest",
+        "attempt",
+        "status",
+        "request_sha256",
+        "result_path",
+        "result_sha256",
+        "scientific_execution_performed",
+        "trials_completed",
+        "test_split_access"
+      ],
+      "runtime_metadata_fields": [
+        "hostname",
+        "process_id",
+        "device",
+        "wall_clock_annotation",
+        "update_annotation"
+      ],
+      "schema_version": 2,
+      "statuses": [
+        "claimed",
+        "failed",
+        "result_linked"
+      ],
+      "test_split_access": 0
+    }
+  },
+  "scientific_execution_performed": false,
+  "transaction": {
+    "complete_result_recovery": "B3 recovery links a published complete result",
+    "failed_result_recovery": "B3 recovery transitions a published failed result to failed",
+    "global_lock": "B3 shared global parent-directory lease",
+    "lock_order": [
+      "global shared parent-directory lock",
+      "B2C per-unit lock"
+    ],
+    "mid_work_unit_resume": false,
+    "per_unit_lock": "B2C owns the per-unit lock through state primitives",
+    "steps": [
+      "build authenticated B3 plan",
+      "select assigned remaining unit",
+      "claim exact proposed attempt",
+      "publish immutable request",
+      "execute from trial zero",
+      "publish immutable result",
+      "transition directly to failed or result_linked",
+      "validate complete chain",
+      "release shared lease"
+    ]
+  }
+}

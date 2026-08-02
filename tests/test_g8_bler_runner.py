@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import ast
 from pathlib import Path
 import subprocess
 import sys
@@ -15,7 +16,7 @@ from baseline import g8_bler_contract as bler_contract
 from baseline import g8_bler_runner as runner
 from baseline import g8_bler_work_units as work_units
 from baseline.ldpc import adapter as adapter_module
-from baseline.g8_campaign import canonical_json
+from baseline.g8_campaign import canonical_json, rendered_json, CAMPAIGN_STATE
 from config.params import get
 
 
@@ -360,3 +361,59 @@ def test_smoke_record_builder_is_path_and_time_free(auth_context, tmp_path, monk
     assert "timestamp" not in rendered
     assert str(tmp_path) not in rendered
     assert record["selected_work_units"][0]["required_coverage_contribution"] == 0
+
+
+def test_runner_contract_verifier_is_independent_and_rejects_mutations(tmp_path):
+    verifier_path = Path(__file__).resolve().parents[1] / "tools/verify_g8_bler_runner_contract.py"
+    tree = ast.parse(verifier_path.read_text(encoding="utf-8"))
+    imported = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            imported.append(node.module or "")
+        elif isinstance(node, ast.Import):
+            imported.extend(alias.name for alias in node.names)
+    assert not any("g8_bler_runner" in name or "gen_g8_bler_runner_contract" in name for name in imported)
+
+    contract_path = Path(__file__).resolve().parents[1] / "results/baseline/g8/bler_runner_contract.json"
+    original = json.loads(contract_path.read_text(encoding="utf-8"))
+    for mutation in ("contract_id", "authority_bindings", "physical_layer", "contract_sources"):
+        mutated = json.loads(json.dumps(original))
+        if mutation == "contract_id":
+            mutated[mutation] = "g8runner-" + "0" * 64
+        elif mutation == "authority_bindings":
+            mutated[mutation]["required_work_unit_count"] = 3212
+        elif mutation == "physical_layer":
+            mutated[mutation]["complex_noise_scale"] = "sqrt(N0)"
+        else:
+            mutated[mutation][0]["sha256"] = "0" * 64
+        candidate = tmp_path / f"mutated-{mutation}.json"
+        candidate.write_bytes(rendered_json(mutated))
+        completed = subprocess.run(
+            [sys.executable, "tools/verify_g8_bler_runner_contract.py", "--path", str(candidate)],
+            cwd=Path(__file__).resolve().parents[1],
+            env=_child_env(),
+            check=False,
+        )
+        assert completed.returncode != 0, mutation
+
+
+def test_candidate_runner_contract_registers_against_isolated_campaign_state(tmp_path):
+    from baseline.g8_bler_resume import AuthenticatedResumeContext
+    from register_g8_artifact import register
+
+    state_path = tmp_path / "campaign_state.json"
+    state_path.write_bytes(CAMPAIGN_STATE.read_bytes())
+    register(
+        "results/baseline/g8/bler_runner_contract.json",
+        "bounded smoke candidate",
+        state_path=state_path,
+    )
+    resume_context = AuthenticatedResumeContext(
+        campaign_state_path=state_path,
+        require_resume_contract=True,
+    )
+    context = runner.AuthenticatedRunnerContext(
+        resume_context=resume_context,
+        require_registered_runner_contract=True,
+    )
+    assert context.runner_contract_binding()["bler_runner_contract_id"].startswith("g8runner-")
