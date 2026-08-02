@@ -1,0 +1,809 @@
+# G8_B B3 — exact resume and merge validation
+
+Repository: `https://github.com/nxck2005/capstone`
+Working directory: `/home/nick/projects/capstone`
+Interpreter: `.venv/bin/python`
+
+This file is the durable B3 instruction. It is committed before any B3 production
+code so that a session dying mid-checkpoint leaves the complete intent behind,
+not a fragment. `instructions/RESUME.md` is the operational cursor and wins on
+progress; this file wins on intent.
+
+## 1. Objective
+
+Implement the complete **read, validate, classify, recover, resume-plan and
+merge-validation layer** that B4 and G8_C will use.
+
+B3 must make these statements mechanically true:
+
+1. A restart derives the exact remaining work from authenticated
+   required-work-unit authority and validated per-unit state, never from
+   filesystem order, completion order, timestamps, worker names or
+   process-local memory.
+2. A complete result is accepted only when its request file, result file, unit
+   state, campaign bindings, B1C tooling contract, B2C state contract, schemas,
+   identities, hashes, counts, execution class, attempt and shard provenance
+   form one exact chain.
+3. A hard exit at any point leaves either an already authoritative complete
+   unit, an explicitly recoverable request/result publication, or a unit that
+   restarts from trial zero on the same frozen seeds.
+4. No incomplete, failed, bounded-smoke, malformed, duplicated, aliased,
+   unregistered or merely present result contributes required BLER coverage.
+5. Resharding changes membership only. It never changes seeds, request identity
+   or an already completed result.
+6. B3 creates no runner, performs no simulation, starts no smoke and produces
+   no scientific BLER measurement or aggregate BLER table.
+
+Green B3 means exact resume and merge validation are frozen, independently
+verified, registered and mutation-tested, and that bounded B4 smoke may begin.
+It does **not** mean a BLER runner exists or that any characterization has
+occurred.
+
+## 2. Immutable authority
+
+These values are frozen and must reproduce exactly before implementation
+begins.
+
+    campaign_id                    g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a
+    campaign_manifest sha256       0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1
+    required_bler_identities sha256 b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77
+    required work-unit count       3213
+    selection_policy sha256        6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e
+    B1C tooling contract id        g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975
+    B1C tooling contract sha256    bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866
+    B1C tooling/request/result schema versions   2
+    B2C state contract id          g8state-a36b37f3c21d4254a50ffe5e893237ee4738c68c7b3e9d76b473856ca7605deb
+    B2C state contract sha256      cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583
+    B2C state contract byte length 18394
+    campaign_state sha256 (start)  34285740aad8a462fb4523b988f89a06eb4c8bb24b19861cad157044b6360e2c
+    seed identity                  sha256(campaign_id,work_unit_id,purpose)-v1
+    full-strength trial count      5000, owned only by params.baseline.bler_characterisation_trials
+    phase/stage                    G8_B/tooling_open
+    completed_work_unit_ids        []
+    in_progress_work_unit_id       null
+    counters                       validation_decoding = inference = training = test_access = 0
+    produced-artifact count        4
+    runtime tree                   results/baseline/g8/work_units/ absent, tracked and untracked
+    starting full suite            1662 passed, 0 failed, 0 skipped
+
+A different starting test count at the exact expected commit, a different
+artifact hash, an unexpected runtime tree, dirty state, or local/remote
+disagreement is a contradiction. Stop with
+
+    G8_B B3 HOLD — <precise contradiction>
+
+Do not reset, clean, stash, overwrite, regenerate frozen artifacts, or discard
+unexpected files to make an assertion pass.
+
+## 3. Starting boundary
+
+    expected starting commit   80ed32dd20e7a2f88c21088266b1d535763d7d10
+    expected starting subject  fix(g8-b): harden atomic unit state before B3
+
+Cold-start verification, run first:
+
+    git status --short
+    git log -12 --oneline --decorate
+    git rev-parse HEAD
+    git fetch origin
+    git rev-parse origin/main
+    git ls-remote origin refs/heads/main
+    git show --show-signature --no-patch HEAD
+
+Require HEAD = origin/main = remote refs/heads/main =
+`80ed32dd20e7a2f88c21088266b1d535763d7d10`.
+
+Then run:
+
+    .venv/bin/python tools/gen_g8_campaign_manifest.py --check
+    .venv/bin/python tools/gen_g8_bler_tooling_contract.py --check
+    .venv/bin/python tools/verify_g8_bler_tooling_contract.py
+    .venv/bin/python tools/gen_g8_bler_state_contract.py --check
+    .venv/bin/python tools/verify_g8_bler_state_contract.py --require-no-live-state
+    .venv/bin/python tools/verify_g8_phase_state.py \
+      --phase G8_B --stage tooling_open --require-zero-science \
+      --require-artifact results/baseline/g8/bler_tooling_contract.json \
+      --require-artifact results/baseline/g8/bler_state_contract.json
+    .venv/bin/python tools/verify_w4_baseline_integration.py
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python -m pytest
+    git diff --check
+    git status --short
+
+Independently calculate and compare the exact byte lengths and SHA-256 values
+of `campaign_manifest.json`, `required_bler_identities.json`,
+`bler_tooling_contract.json`, `bler_state_contract.json` and
+`campaign_state.json` under `results/baseline/g8/`. Do not rely only on the
+generated verifiers for this starting comparison.
+
+## 4. Frozen files
+
+B3 must not modify any B1C or B2C contract source or artifact:
+
+    src/baseline/g8_bler_contract.py
+    tools/gen_g8_bler_tooling_contract.py
+    tools/verify_g8_bler_tooling_contract.py
+    results/baseline/g8/bler_tooling_contract.json
+    src/baseline/g8_bler_work_units.py
+    tools/gen_g8_bler_state_contract.py
+    tools/verify_g8_bler_state_contract.py
+    results/baseline/g8/bler_state_contract.json
+    tools/migrate_g8_bler_state_contract.py
+
+Also frozen:
+
+    spec/**
+    instructions/G8.txt
+    instructions/G8_A.txt
+    instructions/G8_B.txt
+    instructions/G8_B1C.txt
+    instructions/G8_B2C.txt
+    src/baseline/g8_campaign.py
+    src/baseline/ldpc/**
+    results/baseline/g2/**
+    results/baseline/w4/**
+    results/baseline/g8/campaign_manifest.json
+    results/baseline/g8/required_bler_identities.json
+    data/manifests/**
+    requirements*.in
+    requirements*.lock
+
+If B3 cannot be implemented without changing a frozen file, stop with a precise
+HOLD. Do not silently create B1D, B2D, B2C2 or a specification amendment.
+
+## 5. Permitted scope
+
+Expected additions:
+
+    instructions/G8_B3.txt
+    src/baseline/g8_bler_resume.py
+    tools/gen_g8_bler_resume_contract.py
+    tools/verify_g8_bler_resume_contract.py
+    tools/inspect_g8_bler_resume.py
+    tests/test_g8_bler_resume.py
+    results/baseline/g8/bler_resume_contract.json
+
+Expected modifications:
+
+    results/baseline/g8/campaign_state.json
+    instructions/RESUME.md
+    NEXT.md
+    AGENTS.md
+    README.md
+    worklogs/w4-classical-baseline-progress.md
+
+`results/baseline/g8/campaign_state.json` may be changed only by the
+repository's artifact-registration/state-writing tooling and only to (1) append
+exactly one B3 contract artifact binding, (2) preserve every existing binding
+and scientific field, and (3) replace the restart command with the exact B4
+restart command.
+
+Tests may use isolated temporary directories and synthetic JSON fixtures.
+Production paths must remain untouched.
+
+## 6. Prohibited work
+
+B3 may not implement or execute LDPC encoding or decoding, information-bit
+generation, AWGN generation, BLER simulation, a characterization runner, a
+request writer, a result writer, bounded smoke, full-strength work, adaptive
+stopping, a BLER table, interpolation, extrapolation, nearest matching, SNR
+rounding, defaults, dataset loading, codec work, classifier inference,
+training, selection, fallback, authorization, test access, or G8_C or any later
+phase.
+
+B3 may read and validate synthetic request/result fixtures in temporary
+directories. It may not write a request or result under the production runtime
+root.
+
+## 7. B3 authority context
+
+Implement a B3 authenticated context wrapping the existing
+`AuthenticatedExecutionContext` and `AuthenticatedUnitStateContext`. It must
+authenticate the complete ordered 3213-unit authority, the exact B1C tooling
+contract, the exact registered B2C state contract, the exact campaign-manifest
+and required-identity hashes, request/result schema version 2, unit-state
+schema version 2, and the registered B3 resume/merge contract once that
+artifact exists.
+
+Store only immutable bytes, tuples, scalar values and read-only mappings
+internally. Public records and reports must be fresh decoded copies. No mutable
+cached authority may escape.
+
+The B3 context must not reread and reparse the 8.6 MB required-identity
+artifact per unit. Authenticate once per context and prove this with
+instrumentation.
+
+## 8. Canonical runtime layout
+
+Physical runtime root is caller supplied; its production default is
+`results/baseline/g8/work_units`. The logical repository-relative prefix is
+fixed as `results/baseline/g8/work_units`.
+
+For exact `work_unit_id`:
+
+    digest = sha256(work_unit_id.encode("utf-8")).hexdigest()
+    bucket = digest[:2]
+
+Paths:
+
+    <root>/<bucket>/<digest>.state.json
+    <root>/<bucket>/<digest>.attempt-<attempt>.request.json
+    <root>/<bucket>/<digest>.attempt-<attempt>.result.json
+
+Rules:
+
+* `attempt` is a positive base-10 integer with no sign, whitespace, prefix,
+  suffix, decimal point or leading zero. `attempt-1` is valid; `attempt-01`,
+  `attempt-0`, `attempt-+1` and `attempt-1.0` are invalid.
+* Request and result files contain compact sorted-key canonical JSON:
+  `ensure_ascii=true`, `allow_nan=false`, separators `(",", ":")`, no trailing
+  newline. The SHA-256 is over the exact canonical file bytes.
+* A result-linked state's `result_path` must equal the exact logical
+  repository-relative path derived from its work-unit ID and attempt.
+* No absolute path, `.`/`..`, alternate separator, normalization alias,
+  symlink, hard-link alias, wrong bucket, uppercase digest or alternate
+  extension is accepted.
+* Authoritative state, request and result files must be regular files with link
+  count one.
+* Final request and result files are immutable once published. A retry writes a
+  new attempt path and never overwrites a previous attempt.
+* Temporary/staging names are never evidence.
+* The scanner must never infer an attempt from lexical filename ordering.
+
+## 9. Global reconciliation lock
+
+    <root>/.reconciliation.lock
+
+* Read/repair/reconcile/merge operations acquire it with
+  `fcntl.flock(LOCK_EX)`.
+* Future workers must acquire it with `fcntl.flock(LOCK_SH)` for the complete
+  claim → request publication → execution → result publication → state-link
+  transaction.
+* Shared worker locks may coexist; exclusive reconciliation excludes every
+  conforming worker.
+* Per-unit B2C locks remain mandatory and are acquired inside the global
+  shared/exclusive coordination boundary as appropriate.
+* Release occurs on normal return, exception and process death.
+* The lock file is infrastructure, not state or evidence.
+* A symlink or dangling symlink at the lock path is rejected.
+* There is no "continue without locking" fallback.
+* Lock acquisition and release must be tested with real processes.
+
+Single documented lock order, never reversed:
+
+    global reconciliation lock  ->  per-unit B2C lock
+
+## 10. Filesystem census
+
+No-follow census of the runtime root. Recognize only exact two-lowercase-hex
+bucket directories, `.locks/` from B2C, `.reconciliation.lock`, exact canonical
+state filenames, exact canonical per-attempt request filenames, exact canonical
+per-attempt result filenames, exact B2C staging filenames (reported as ignored
+orphan staging), and exact B3 staging filenames if B3 introduces any.
+
+Reject symlinks and dangling symlinks at every level; unknown top-level
+entries; wrong-case buckets; non-directory buckets; non-regular authoritative
+files; files in the wrong bucket; unknown work-unit digests; malformed attempt
+names; hard-linked authoritative aliases; duplicate semantic artifacts; request
+or result files for a future attempt; filenames whose digest does not map to
+the embedded work-unit ID; unrecognized temporary files; nested directories not
+defined by the contract.
+
+Filesystem iteration order must not appear in any returned record or digest.
+Sort only by the frozen required-work-unit order and explicit numeric attempt.
+
+An absent production root is valid and means all work remains. B3 itself must
+finish with that root absent.
+
+## 11. Request validation
+
+For every request file: require canonical JSON bytes; run
+`validate_work_unit_request`; require schema version 2; require the exact
+campaign, manifest, required-identity, selection-policy, B1C contract ID and
+B1C contract SHA bindings; require an exact known work-unit ID; require exact
+`BlerIdentity`, SNR, packet-config IDs, seed records and trial-count source;
+recompute the request SHA from the exact file bytes and require equality with
+the B1C canonical request digest; require the filename digest and embedded
+work-unit ID to agree; require the attempt path to agree with the unit-state
+attempt when the request is current; reject unknown fields, omitted fields,
+NaN, infinity, booleans in integer fields and noncanonical number
+representations.
+
+For production merge validation require:
+
+    execution_class == "full_strength"
+    trials_requested == 5000
+    scientific_evidence == true
+    merge_eligible == false
+    test_split_access == 0
+    label == "full_strength"
+
+A bounded-smoke request can be valid as a request but never valid as production
+required coverage.
+
+## 12. Result validation
+
+For every result file: require canonical JSON bytes; locate and validate the
+exact request for the same work unit and attempt; run
+`validate_work_unit_result(result, request=request)`; require schema version 2;
+require `request_sha256` to equal the exact request-file SHA; require exact
+identity, SNR, packet IDs, seeds, tooling bindings and implementation binding;
+require filename work-unit digest and embedded work-unit ID to agree; require
+execution metadata `attempt` non-null and equal to the path/state attempt for a
+production merge candidate; require execution metadata `shard_index` and
+`shard_count` non-null and equal to the current state's shard assignment for a
+production merge candidate; recompute all count-derived BER, BLER and Wilson
+fields; reject any stored float that does not exactly reproduce from the
+authoritative counts.
+
+A production merge candidate must satisfy exactly:
+
+    status == "complete"
+    execution_class == "full_strength"
+    trials_requested == 5000
+    trials_completed == 5000
+    scientific_evidence == true
+    merge_eligible == true
+    required_coverage_contribution == 1
+    test_split_access == 0
+    request_sha256 == exact request-file SHA-256
+
+Also enforce:
+
+    information_bits == trials_completed * K
+    block_errors <= trials_completed
+    bit_errors <= information_bits
+    block_errors == 0 iff bit_errors == 0
+    if block_errors > 0: block_errors <= bit_errors <= block_errors * K
+
+`incomplete` and `failed` results are never merge candidates. A bounded-smoke
+result is never required coverage even if an attacker changes its label,
+filename, state or stored disposition flags.
+
+## 13. Per-unit classification
+
+Exactly one classification per required work unit, from a closed enum:
+
+    absent
+    claimed_unbound
+    claimed_request_bound
+    recoverable_request_binding
+    recoverable_failed_result
+    recoverable_complete_result
+    failed_retryable
+    completed_full_strength
+    terminal_nonmergeable
+
+Anything malformed or contradictory raises a typed HOLD exception and never
+receives a benign classification.
+
+* `absent` — no state, no attempt artifact. Resume: clean claim at attempt 1.
+* `claimed_unbound` — state `claimed`, `request_sha256` null, no current-attempt
+  request or result. Resume: clean claim at `old_attempt + 1`.
+* `recoverable_request_binding` — state `claimed`, `request_sha256` null, one
+  exact byte-canonical validating current-attempt request, no current-attempt
+  result. Repair may bind the request SHA via B2C CAS. Read-only inspection
+  never repairs automatically.
+* `claimed_request_bound` — state `claimed`, `request_sha256` non-null, exact
+  current-attempt request present and matching, no current-attempt result.
+  Resume: restart at trial zero as a clean claim at `old_attempt + 1`.
+* `recoverable_failed_result` — state `claimed`, request bound, one exact
+  current-attempt `failed` result validating against the request. Repair may
+  transition the current attempt `claimed -> failed`. Never contributes
+  coverage.
+* `recoverable_complete_result` — state `claimed`, request bound, one exact
+  current-attempt complete result, fully valid chain. Repair may transition to
+  `result_linked` without rerunning. In production mode the result must meet
+  all full-strength merge conditions; in bounded-smoke inspection mode it
+  remains nonmergeable.
+* `failed_retryable` — state `failed`, any bound request matches, any
+  current-attempt failed result validates, no complete result for that attempt.
+  Resume: clean claim at `old_attempt + 1`.
+* `completed_full_strength` — state `result_linked`; state, request, result
+  path, request SHA, result SHA, attempt, shard metadata and complete result all
+  validate; result is full-strength, complete, merge-eligible and contributes
+  exactly one required identity. Terminal; excluded from every remaining-work
+  list.
+* `terminal_nonmergeable` — state `result_linked` with a valid chain whose
+  result is bounded smoke or otherwise explicitly nonmergeable. Permitted only
+  when the caller explicitly selects bounded-smoke inspection mode on an
+  isolated nonproduction root. Production merge mode must HOLD, because a
+  terminal nonmergeable state at a required production-unit location would
+  permanently block the full-strength unit.
+
+## 14. Contradictions that must HOLD
+
+At minimum: state absent but request or result exists; result without its
+request; result for a future attempt; state request SHA differs from current
+request bytes; state result SHA differs from result bytes; state result path is
+not the exact derived current-attempt path; result work-unit ID differs from
+request or state; `result_linked` with missing request or result;
+`result_linked` with an incomplete, failed or invalid result; `failed` with a
+complete result for that attempt; a complete merge-eligible result in an older
+attempt while state advanced; multiple request or result files for the same unit
+and attempt; a completed unit assigned again; a `result_linked` state moved to
+another shard; campaign state claiming a completed ID without validated terminal
+full-strength evidence; a required ID represented by an unknown or aliased path;
+a bounded-smoke result presented as production coverage; a malformed
+authoritative state treated as absent; a read error, permission error or
+unsupported filesystem primitive treated as "no state".
+
+Do not silently quarantine, delete, repair, downgrade or skip contradictions.
+
+## 15. Historical-attempt rules
+
+Attempts are append-only history. For one work unit: no artifact may exist for
+an attempt greater than the state attempt; request/result paths for older
+attempts may remain; an older result must validate against the older request; an
+older complete merge-eligible result is forbidden if state advanced beyond it;
+incomplete final result files are forbidden — the atomic resume policy discards
+incomplete temporary output rather than publishing it as a final result; failed
+older attempts contribute zero coverage; retries never overwrite earlier attempt
+artifacts; retry number, attempt, shard number and execution order never enter
+seed derivation; request bytes for the same full-strength work unit reproduce
+identically across attempts; execution metadata may differ without moving
+request or measurement identity.
+
+## 16. Read-only inspection and explicit repair
+
+`tools/inspect_g8_bler_resume.py` is read-only by default: authenticate all
+contracts, acquire the exclusive reconciliation lock, census and validate the
+root, produce a deterministic summary, make no filesystem or campaign-state
+change.
+
+Explicit repair requires `--repair-recoverable` and may perform only:
+
+    claimed + exact unbound request        -> claimed with request_sha256 bound
+    claimed + bound request + failed result -> failed
+    claimed + bound request + complete result -> result_linked
+
+Repair rules: hold the exclusive global reconciliation lock; acquire the exact
+per-unit B2C lock; reread state, request and result after locking; recompute all
+hashes and validations; use the current state SHA as B2C's expected predecessor;
+perform only legal B2C transitions; reread and validate installed state; if
+publication raises after the atomic replacement may have occurred, recover by
+rereading authoritative bytes and never infer publication state from the
+exception alone; never repair an absent state, malformed state,
+failed-to-complete conflict, `result_linked` state or unknown file; never
+create, rewrite or delete request/result files.
+
+Repair must be idempotent: repeating it after success returns the same canonical
+state and performs no additional transition.
+
+## 17. Exact resume plan
+
+Closed canonical resume-plan schema binding: B3 contract ID and externally
+registered B3 contract SHA; B2C state contract ID and SHA; B1C tooling contract
+ID and SHA; campaign ID; campaign-manifest SHA; required-identity SHA;
+selection-policy SHA; required-work-unit count; shard plan and shard-plan
+digest; physical root logical identity (never its absolute path); scan mode;
+each assigned unit's classification; completed assigned IDs; recoverable
+assigned IDs; remaining assigned IDs; proposed next attempt per remaining unit;
+ignored staging count; zero test access.
+
+Rules:
+
+1. Assigned order is the existing canonical shard-plan order.
+2. Completed IDs are the exact assigned subsequence classified
+   `completed_full_strength`.
+3. Recoverable IDs are the exact assigned subsequence with one of the
+   recoverable classifications.
+4. Remaining IDs are the exact assigned subsequence not completed and not
+   awaiting explicit repair.
+5. After repair, a second scan must produce the exact updated plan.
+6. `absent` proposes attempt 1.
+7. A nonterminal state proposes exactly `old_attempt + 1`.
+8. Attempt skips and regressions are impossible.
+9. A retry is always a completely clean claim.
+10. Resharding is allowed only on that next-attempt clean-claim transition.
+11. Changing shard count/index changes membership only.
+12. Seeds and request bytes for a work unit remain unchanged.
+13. Repeated scans of identical authoritative bytes produce byte-identical plan
+    bytes and digest.
+14. Hostname, PID, wall time, filesystem order, file mtime, inode, worker name
+    and absolute path do not enter the plan digest.
+15. A partial campaign is valid and reports missing IDs explicitly.
+16. No plan claims complete required coverage until all 3213 exact units
+    validate once.
+
+## 18. Merge validation
+
+Merge **validation**, not a BLER table writer. The merge report must iterate in
+exact complete required-artifact order; accept at most one validated
+full-strength contribution per required work-unit ID; validate the complete
+state/request/result chain; report validated completed IDs, missing IDs,
+recoverable IDs separately and failed/nonterminal IDs separately; report
+bounded-smoke contributions as zero; report unexpected artifacts as HOLD rather
+than ignoring them; compute exact coverage count; set `coverage_complete = true`
+only at `3213 / 3213`; never interpolate, extrapolate, round, synthesize,
+default or reuse G2 evidence; never select an operating point; never construct a
+`BlerTable`; never write a scientific result artifact in B3.
+
+A complete merge report requires:
+
+    3213 unique required IDs
+    3213 validated result-linked states
+    3213 exact full-strength requests
+    3213 exact complete full-strength results
+    3213 merge_eligible == true
+    sum(required_coverage_contribution) == 3213
+    no duplicates, no missing IDs, no unknown IDs
+    test_split_access == 0 everywhere
+
+For partial state, return an explicit partial report. Do not call it complete,
+green, characterized or merge-ready.
+
+## 19. Campaign-state reconciliation
+
+Per-unit states and validated request/result chains are execution authority.
+Campaign state is an atomically published summary.
+
+Under the exclusive reconciliation lock: validate the live campaign state; scan
+all 3213 required IDs; derive the exact canonical sorted list of
+`completed_full_strength` IDs; compare it with
+`campaign_state.identity.completed_work_unit_ids`.
+
+Rules: campaign completed IDs may lag validated per-unit completions before
+reconciliation, and may never lead them; a campaign-completed ID without
+validated terminal full-strength evidence is a HOLD; reconciliation may add only
+validated completed IDs and may never remove a completed ID;
+`in_progress_work_unit_id` is not a shard-worker lease and is never resume
+authority; during an offline reconciliation no worker is active because the
+exclusive global lock is held; a stale non-null campaign
+`in_progress_work_unit_id` may be cleared only when its corresponding per-unit
+state is valid and nonterminal or completed and the operation preserves the
+existing campaign transition rules; do not project bounded smoke, recoverable
+results, failed attempts or claimed states into completed IDs; do not increment
+validation, inference, training or test counters for BLER request/result
+inspection or bounded smoke; campaign state publication must use the existing
+atomic campaign-state writer; a read-only reconciliation function must be
+available separately from an explicit apply operation. B3 closeout performs no
+completion reconciliation because no unit exists.
+
+## 20. B3 contract artifact
+
+Generate `results/baseline/g8/bler_resume_contract.json` with
+
+    schema_version = 1
+    artifact_role  = "g8_bler_resume_merge_contract"
+    checkpoint     = "B3"
+    contract ID prefix = "g8resume"
+
+binding all immutable campaign authority; B1C tooling contract ID and SHA; B2C
+state contract ID and SHA; request/result/unit-state schema versions; required
+count 3213; runtime layout; lock order; census rules; closed classifications;
+recovery matrix; repair rules; resume-plan schema and digest; merge-validity
+rules; campaign reconciliation rules; no-science scope; exact B4 restart
+command.
+
+Source bindings exactly:
+
+    src/baseline/g8_bler_resume.py
+    tools/gen_g8_bler_resume_contract.py
+    tools/verify_g8_bler_resume_contract.py
+
+The contract must not bind its own SHA-256, its own path as a source, a commit
+SHA, hostname, PID, timestamps, absolute paths, test outputs, future runner
+sources, future smoke sources or LDPC runtime sources. The contract ID is
+SHA-256 over canonical contract content excluding `contract_id`.
+
+## 21. Independent verifier
+
+`tools/verify_g8_bler_resume_contract.py` must independently reconstruct
+expected truth. It may import `baseline.g8_bler_resume` only as the system under
+test. It must not import the generator; must not
+`from baseline.g8_bler_resume import <expected constant>`; must not obtain
+expected schemas, classifications, field sets, path rules, recovery rules or
+hashes from production constants; and must not accept a generated payload merely
+because generator `--check` passes.
+
+It must define or derive independently: frozen campaign/B1C/B2C values; source
+paths and roles; contract schema; artifact layouts; attempt grammar; allowed
+census entries; classification enum; recovery matrix; resume ordering; merge
+conditions; campaign projection; exact B4 restart command.
+
+Add AST-enforced tests that fail if the verifier imports the generator or
+imports expected constants directly from the production module. The verifier
+must exercise isolated temporary roots and real child processes, and must never
+create the production runtime root.
+
+## 22. Mutation and recovery tests
+
+Authority and contract: wrong campaign ID; wrong manifest SHA; wrong
+required-identity SHA; wrong selection-policy SHA; wrong B1C ID/SHA; wrong B2C
+ID/SHA; wrong B3 ID/SHA; mutable-return corruption does not poison later calls;
+required artifact loaded once per context, not once per unit; unknown and
+missing fields; noncanonical contract JSON; contract self-hash/path
+contamination.
+
+Paths and census: wrong bucket; uppercase digest; unknown digest; malformed
+attempt; leading-zero attempt; request/result future attempt; unexpected
+top-level file; unexpected bucket file; symlink and dangling symlink at root,
+bucket, state, request, result and reconciliation lock; hard-link alias;
+nonregular authoritative object; orphan staging ignored but counted;
+unrecognized temporary object rejected; randomized filesystem enumeration gives
+byte-identical output.
+
+Request/result chain: request digest mismatch; result digest mismatch; result
+binds another request; result binds another work unit; result path mismatch;
+result attempt mismatch; result shard metadata mismatch; null attempt/shard
+metadata rejected for production merge; full-strength result at 4999 or 5001
+trials rejected; count cross-invariant mutations; BER/BLER/Wilson mutations;
+bounded smoke relabelled as full-strength; merge flag flipped; contribution
+changed; failed/incomplete result offered as merge evidence; valid zero-error
+and all-error complete results accepted; decoder-exception placeholder never
+accepted as completed evidence.
+
+Classification and recovery: completely absent root; absent unit; claimed before
+request; crash after request publication before state request binding; crash
+after request binding before result; crash after failed-result publication
+before failed-state transition; crash after complete-result publication before
+result link; crash after result link; exception after atomic state installation
+recovered by reread; repeated repair idempotent; stale writer loses; repair and
+worker race serialized by locks; hard process exit releases reconciliation and
+per-unit locks.
+
+Attempts and resharding: request bytes identical across attempts; seeds
+identical across attempts and shard layouts; attempt regression rejected;
+attempt skip rejected; retry overwriting old artifact rejected; older complete
+result plus advanced state rejected; failed old result contributes zero;
+result-linked unit cannot reshard; nonterminal next attempt can reshard through
+clean claim only.
+
+Resume and merge: exact remaining order under many shard counts; no
+filesystem-order dependence; no completion-order dependence; partial coverage
+remains partial; duplicate contribution rejected; unknown contribution rejected;
+campaign completed list ahead of evidence rejected; campaign completed list lag
+repaired monotonically; bounded smoke never enters completed list; complete
+coverage requires exactly 3213; test access remains zero.
+
+Use real `os.fork`/multiprocessing tests where process lifetime, `flock` or hard
+exit is the property being proved. Threads alone are insufficient.
+
+## 23. Subcheckpoint protocol
+
+    B3.0 establish boundary and publish durable instruction
+    B3.1 implement authenticated B3 context, layout, and no-follow census
+    B3.2 implement request/result chain validation and closed classification
+    B3.3 implement global reconciliation locking and explicit recovery
+    B3.4 implement deterministic resume plans and merge reports
+    B3.5 implement campaign-state reconciliation
+    B3.6 generate and independently verify the B3 contract
+    B3.7 mutation, race, hard-exit, and regression verification
+    B3.8 register artifact, update handoff, run full verification, publish green
+
+Before each multi-file subcheckpoint: update its ledger row to `in-progress`;
+record the exact first command, the exact recovery command and intended files;
+commit and push `wip(g8-b): mark B3.<n> in-progress`.
+
+After completing each subcheckpoint: run its focused tests; record exact
+observed counts and hashes; mark it `done`; commit with a truthful conventional
+subject; push; verify local/origin/remote parity. Never leave more than one
+subcheckpoint's work uncommitted.
+
+On cold resume: inspect dirty changes and do not discard them; trust only `done`
+rows; reverify an `in-progress` subcheckpoint from scratch; resume from its
+exact recovery command; do not rerun completed expensive work without evidence
+of corruption.
+
+## 24. Registration and B4 handoff
+
+After the B3 contract generator and independent verifier both pass, register
+exactly `results/baseline/g8/bler_resume_contract.json` using the existing
+artifact registration tool. Preserve the four existing artifact bindings
+byte-for-byte and append exactly one new binding.
+
+Set the exact B4 restart command to:
+
+    rg -n "bounded_smoke|NON-SCIENTIFIC BOUNDED SMOKE|build_bounded_smoke_request|resume_plan|merge_report|result_linked" src/baseline tools tests
+
+After registration require: produced-artifact count exactly 5; completed IDs
+remain `[]`; in-progress remains `null`; all four counters remain zero;
+phase/stage remains `G8_B/tooling_open`; seed identity remains exact; no
+production runtime tree exists; no request/result/state/lock runtime artifact is
+tracked.
+
+Update live wording everywhere to:
+
+    G8_B active. B0, B1, B1C, B2, B2C and B3 complete.
+    B4 next — run bounded synthetic/unit-scale smoke only.
+    No runner, simulation, smoke or characterization has started.
+    G8_C–G8_G remain prohibited.
+
+Do not claim "runner ready" or "G8_B green"; B4, B5 and B6 still remain.
+
+## 25. Final verification
+
+    .venv/bin/python -m pytest tests/test_g8_bler_resume.py -q
+
+    .venv/bin/python -m pytest \
+      tests/test_g8_bler_contract.py \
+      tests/test_g8_bler_work_units.py \
+      tests/test_g8_bler_state_contract_migration.py \
+      tests/test_g8_bler_resume.py \
+      tests/test_g8_phase_open.py \
+      tests/test_g8_preflight.py -q
+
+    .venv/bin/python tools/gen_g8_campaign_manifest.py --check
+    .venv/bin/python tools/gen_g8_bler_tooling_contract.py --check
+    .venv/bin/python tools/verify_g8_bler_tooling_contract.py
+    .venv/bin/python tools/gen_g8_bler_state_contract.py --check
+    .venv/bin/python tools/verify_g8_bler_state_contract.py --require-no-live-state
+    .venv/bin/python tools/gen_g8_bler_resume_contract.py --check
+    .venv/bin/python tools/verify_g8_bler_resume_contract.py
+
+    .venv/bin/python tools/verify_g8_phase_state.py \
+      --phase G8_B --stage tooling_open --require-zero-science \
+      --require-artifact results/baseline/g8/bler_tooling_contract.json \
+      --require-artifact results/baseline/g8/bler_state_contract.json \
+      --require-artifact results/baseline/g8/bler_resume_contract.json
+
+    .venv/bin/python tools/verify_w4_baseline_integration.py
+    .venv/bin/python tools/verify_g2_adjudication.py
+    .venv/bin/python tools/gen_spec_views.py --check
+    .venv/bin/python tools/check_doc_consistency.py
+    .venv/bin/python tools/check_no_unapproved_literals.py
+    .venv/bin/python -m pytest
+    git diff --check
+    git status --short
+
+Run the repository's documented clean CPU-lock verification exactly as specified
+in `AGENTS.md`/`README.md` and record the exact command and result rather than
+paraphrasing it.
+
+Also prove:
+
+    test ! -e results/baseline/g8/work_units
+    git ls-files results/baseline/g8/work_units
+
+The first must succeed; the second must print nothing.
+
+Inspect the complete B2C-to-B3 diff:
+
+    git diff --name-status 80ed32dd20e7a2f88c21088266b1d535763d7d10
+    git diff --stat 80ed32dd20e7a2f88c21088266b1d535763d7d10
+    git diff --check 80ed32dd20e7a2f88c21088266b1d535763d7d10
+
+Explicitly verify that every frozen file is byte-identical to the starting
+commit.
+
+## 26. Amendment judgment
+
+Expected judgment: **no specification amendment.** B3 freezes operational
+resume, recovery, merge-validation and provenance mechanics before any data. It
+changes no scientific parameter, hypothesis, gate, trial count, identity,
+selection policy, measurement rule or test boundary. If implementation exposes a
+genuine contradiction with `spec/SPEC.md`, stop and report it; do not edit the
+specification as part of B3.
+
+## 27. Final commit and publication
+
+Once every B3 subcheckpoint is `done`, every verification passes, the worktree
+is clean and no production runtime artifact exists:
+
+    git commit -S -m "feat(g8-b): add exact BLER resume and merge validation"
+    git push origin main
+
+Do not amend any earlier B3 commit. Then verify `git status --short`,
+`git rev-parse HEAD`, `git rev-parse origin/main`,
+`git ls-remote origin refs/heads/main` and
+`git show --show-signature --no-patch HEAD`. Require a clean worktree and exact
+local/origin/remote parity.
+
+If signing fails, do not silently use an unsigned commit. Preserve the staged
+tree, record the exact failed command and error in the ledger, and retry the
+same signed commit. Do not create a misleading alternate commit.
+
+## 28. Terminal verdict
+
+Exactly one of:
+
+    G8_B B3 COMPLETE — EXACT RESUME, RECOVERY, MERGE VALIDATION, AND CAMPAIGN RECONCILIATION FROZEN; B4 READY; NO RUNNER OR SIMULATION STARTED
+    G8_B B3 INCOMPLETE — RESUME AT <exact subcheckpoint and command>
+    G8_B B3 HOLD — <precise blocking contradiction>
+
+B3 is not complete merely because tests pass. Completion additionally requires
+durable ledger closure, generated contract registration, independent
+verification, exact handoff wording, a final signed commit, a successful push,
+local/origin/remote parity, a clean worktree and no production runtime
+artifacts.
