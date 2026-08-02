@@ -1583,3 +1583,264 @@ def test_classification_is_deterministic_and_covers_every_required_unit(
     for record in first:
         assert record["classification"] in resume.CLASSIFICATIONS
         assert record["test_split_access"] == 0
+
+
+# ---------------------------------------------------------------------------
+# B3.3 — global reconciliation locking and explicit recovery (§16)
+# ---------------------------------------------------------------------------
+
+
+def _recoverable_unit(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    *,
+    status: str = bler_contract.STATUS_COMPLETE,
+    index: int = 0,
+) -> str:
+    work_unit_id = _unit(context, index)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    request, _sha = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(context, root, work_unit_id, 1, request, status=status)
+    return work_unit_id
+
+
+def test_inspection_is_read_only_by_default(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root)
+    before = resume.state_path(context, work_unit_id, root=root).read_bytes()
+    report = resume.inspect_runtime_root(context, root=root)
+    assert report["repair_mode"] == resume.REPAIR_MODE_READ_ONLY
+    assert report["repairs"] == []
+    assert report["classifications"][0]["classification"] == "recoverable_complete_result"
+    assert resume.state_path(context, work_unit_id, root=root).read_bytes() == before
+
+
+def test_repair_transitions_a_failed_result_directly_to_failed(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root, status=bler_contract.STATUS_FAILED)
+    outcome = resume.repair_work_unit(context, work_unit_id, root=root)
+    assert outcome["repaired"] is True
+    assert outcome["from_classification"] == "recoverable_failed_result"
+    assert outcome["classification"] == "failed_retryable"
+
+    state = resume.read_unit_state_snapshot(context, work_unit_id, root=root)
+    identity = state["identity"]
+    assert identity["status"] == units.STATUS_FAILED
+    assert identity["request_sha256"] is not None
+    # A failed state deliberately carries no result reference.
+    assert identity["result_path"] is None
+    assert identity["result_sha256"] is None
+    assert identity["scientific_execution_performed"] is True
+    assert identity["trials_completed"] == 17
+    assert identity["test_split_access"] == 0
+    assert identity["attempt"] == 1
+
+
+def test_repair_transitions_a_complete_result_directly_to_result_linked(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root)
+    outcome = resume.repair_work_unit(context, work_unit_id, root=root)
+    assert outcome["repaired"] is True
+    assert outcome["classification"] == "completed_full_strength"
+
+    state = resume.read_unit_state_snapshot(context, work_unit_id, root=root)
+    identity = state["identity"]
+    assert identity["status"] == units.STATUS_RESULT_LINKED
+    assert identity["result_path"] == resume.logical_result_path(context, work_unit_id, 1)
+    assert identity["result_sha256"] is not None
+    assert identity["trials_completed"] == 5000
+    assert identity["test_split_access"] == 0
+
+
+def test_repair_never_creates_a_request_bound_claimed_state(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    """The corrected matrix has no intermediate bound claim to pass through."""
+
+    work_unit_id = _recoverable_unit(context, root)
+    resume.repair_work_unit(context, work_unit_id, root=root)
+    identity = resume.read_unit_state_snapshot(context, work_unit_id, root=root)["identity"]
+    assert not (identity["status"] == units.STATUS_CLAIMED and identity["request_sha256"])
+
+
+def test_repair_is_idempotent(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root)
+    resume.repair_work_unit(context, work_unit_id, root=root)
+    settled = resume.state_path(context, work_unit_id, root=root).read_bytes()
+    second = resume.repair_work_unit(context, work_unit_id, root=root)
+    assert second["repaired"] is False
+    assert second["classification"] == "completed_full_strength"
+    assert resume.state_path(context, work_unit_id, root=root).read_bytes() == settled
+
+
+@pytest.mark.parametrize(
+    "builder",
+    [
+        "claimed_unbound",
+        "claimed_request_published",
+        "failed_retryable",
+        "absent",
+    ],
+)
+def test_repair_never_modifies_a_non_repairable_class(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    builder: str,
+) -> None:
+    work_unit_id = _unit(context)
+    if builder == "absent":
+        root.mkdir(parents=True, exist_ok=True)
+    elif builder == "failed_retryable":
+        request, request_sha = _publish_request(context, root, work_unit_id, 1)
+        _publish_result(
+            context, root, work_unit_id, 1, request, status=bler_contract.STATUS_FAILED
+        )
+        _publish_state(
+            context,
+            root,
+            units.build_unit_state(
+                context.state_context,
+                work_unit_id,
+                _plan(context),
+                status=units.STATUS_FAILED,
+                request_sha256=request_sha,
+                scientific_execution_performed=True,
+                trials_completed=17,
+            ),
+        )
+    else:
+        _publish_state(context, root, _clean_claim(context, work_unit_id))
+        if builder == "claimed_request_published":
+            _publish_request(context, root, work_unit_id, 1)
+
+    state_file = resume.state_path(context, work_unit_id, root=root)
+    before = state_file.read_bytes() if state_file.exists() else None
+    report = resume.inspect_runtime_root(
+        context, root=root, repair_mode=resume.REPAIR_MODE_REPAIR_RECOVERABLE
+    )
+    assert report["repairs"] == []
+    assert report["classifications"][0]["classification"] == builder
+    after = state_file.read_bytes() if state_file.exists() else None
+    assert after == before
+
+
+def test_explicit_repair_mode_repairs_only_the_two_recoverable_classes(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    failed_id = _recoverable_unit(context, root, status=bler_contract.STATUS_FAILED, index=0)
+    complete_id = _recoverable_unit(context, root, index=1)
+    untouched_id = _unit(context, 2)
+    _publish_state(context, root, _clean_claim(context, untouched_id))
+    untouched_before = resume.state_path(context, untouched_id, root=root).read_bytes()
+
+    report = resume.inspect_runtime_root(
+        context, root=root, repair_mode=resume.REPAIR_MODE_REPAIR_RECOVERABLE
+    )
+    repaired = {entry["work_unit_id"]: entry for entry in report["repairs"]}
+    assert set(repaired) == {failed_id, complete_id}
+    assert repaired[failed_id]["classification"] == "failed_retryable"
+    assert repaired[complete_id]["classification"] == "completed_full_strength"
+    assert (
+        resume.state_path(context, untouched_id, root=root).read_bytes() == untouched_before
+    )
+    # The post-repair rescan is what the report returns.
+    by_id = {entry["work_unit_id"]: entry for entry in report["classifications"]}
+    assert by_id[failed_id]["classification"] == "failed_retryable"
+    assert by_id[complete_id]["classification"] == "completed_full_strength"
+    assert by_id[untouched_id]["classification"] == "claimed_unbound"
+
+
+def test_a_stale_predecessor_loses_the_compare_and_swap(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root)
+    state = resume.read_unit_state_snapshot(context, work_unit_id, root=root)
+    stale_sha = state["state_sha256"]
+    resume.repair_work_unit(context, work_unit_id, root=root)
+
+    # A writer still holding the pre-repair digest must lose, not overwrite.
+    proposed = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_FAILED,
+        request_sha256="e" * 64,
+        scientific_execution_performed=True,
+        trials_completed=3,
+    )
+    with pytest.raises(units.StateConflictError):
+        units.replace_unit_state(
+            context.state_context,
+            resume.state_path(context, work_unit_id, root=root),
+            proposed,
+            stale_sha,
+            root=root,
+        )
+
+
+def test_repair_refuses_an_unknown_repair_mode(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    root.mkdir(parents=True, exist_ok=True)
+    with pytest.raises(resume.ResumeRepairError):
+        resume.inspect_runtime_root(context, root=root, repair_mode="force")
+
+
+def test_inspection_waits_for_the_exclusive_reconciliation_lock(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    """A reconciliation pass must not run concurrently with another holder."""
+
+    _recoverable_unit(context, root)
+    # Outside the runtime root: the census rejects any undefined entry inside it.
+    started = root.parent / "child-started"
+    hold_seconds = 1.0
+    with _forking():
+        pid = os.fork()
+    if pid == 0:  # pragma: no cover - child process
+        try:
+            with resume.reconciliation_lock(root, mode=resume.LOCK_MODE_EXCLUSIVE):
+                started.write_bytes(b"1")
+                time.sleep(hold_seconds)
+        finally:
+            os._exit(0)
+    try:
+        deadline = time.monotonic() + 5.0
+        while not started.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert started.exists()
+        began = time.monotonic()
+        report = resume.inspect_runtime_root(context, root=root)
+        waited = time.monotonic() - began
+    finally:
+        os.waitpid(pid, 0)
+    # It blocked until the child released rather than reconciling alongside it.
+    assert waited >= hold_seconds * 0.5
+    assert report["classifications"][0]["classification"] == "recoverable_complete_result"
+
+
+def test_inspection_never_creates_the_production_runtime_root(
+    context: resume.AuthenticatedResumeContext,
+) -> None:
+    production = resume.DEFAULT_WORK_UNIT_ROOT
+    existed = production.exists()
+    report = resume.inspect_runtime_root(context)
+    if not existed:
+        assert report["root_present"] is False
+        assert report["census"]["root_present"] is False
+        assert {record["classification"] for record in report["classifications"]} == {"absent"}
+    assert production.exists() == existed

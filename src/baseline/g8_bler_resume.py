@@ -1957,6 +1957,230 @@ def classify_runtime_root(
     )
 
 
+# ---------------------------------------------------------------------------
+# Read-only inspection and explicit repair (G8_B3 §16)
+# ---------------------------------------------------------------------------
+
+#: Read-only inspection never repairs.  Repair is opt-in and bounded to the
+#: exact two rows of the recovery matrix.
+REPAIR_MODE_READ_ONLY = "read_only"
+REPAIR_MODE_REPAIR_RECOVERABLE = "repair_recoverable"
+REPAIR_MODES = (REPAIR_MODE_READ_ONLY, REPAIR_MODE_REPAIR_RECOVERABLE)
+
+
+def _repaired_state(
+    context: AuthenticatedResumeContext,
+    state: Mapping[str, Any],
+    classification: str,
+    request_record: Mapping[str, Any],
+    result_record: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Build the exact successor state for one recovery-matrix row.
+
+    Both rows transition *directly* from a clean claim.  Neither ever produces
+    an intermediate request-bound ``claimed`` state, which B2C forbids.
+    """
+
+    identity = state["identity"]
+    work_unit_id = identity["work_unit_id"]
+    plan = work_units.build_shard_plan(
+        context.state_context, identity["shard_count"], identity["shard_index"]
+    )
+    common = {
+        "attempt": identity["attempt"],
+        "request_sha256": request_record["request_sha256"],
+        "scientific_execution_performed": True,
+        "trials_completed": result_record["trials_completed"],
+    }
+    if classification == CLASSIFICATION_RECOVERABLE_FAILED_RESULT:
+        # The failed result file stays as immutable history; a failed state
+        # deliberately carries no result reference.
+        return work_units.build_unit_state(
+            context.state_context,
+            work_unit_id,
+            plan,
+            status=work_units.STATUS_FAILED,
+            **common,
+        )
+    if classification == CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT:
+        return work_units.build_unit_state(
+            context.state_context,
+            work_unit_id,
+            plan,
+            status=work_units.STATUS_RESULT_LINKED,
+            result_path=logical_result_path(context, work_unit_id, identity["attempt"]),
+            result_sha256=result_record["result_sha256"],
+            **common,
+        )
+    raise ResumeRepairError(f"{classification!r} is not a repairable classification")
+
+
+def repair_work_unit(
+    context: Any,
+    work_unit_id: str,
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Apply the exact recovery-matrix transition for one work unit.
+
+    The caller must already hold the exclusive global reconciliation lock.
+    Everything is reread *after* the per-unit lock is taken, so a decision made
+    from a pre-lock scan can never be applied to bytes that have since moved.
+    """
+
+    context = _resume_context(context)
+    root_path = _root_path(root)
+    target = state_path(context, work_unit_id, root=root_path)
+
+    # Complete reread immediately before proposing.  The per-unit B2C critical
+    # section is entered by ``replace_unit_state`` itself, which rereads under
+    # the lock and compares against ``expected`` inside that same section — the
+    # compare-and-swap *is* the linearization point.  Taking the same per-unit
+    # lock here as well would deadlock against it and would buy nothing: any
+    # interleaving that moves the state between this reread and the swap is
+    # exactly what the stale-writer check rejects.
+    census = census_runtime_root(context, root=root_path)
+    record = classify_work_unit(
+        context, work_unit_id, census, root=root_path, scan_mode=scan_mode
+    )
+    classification = record["classification"]
+    if classification not in REPAIRABLE_CLASSIFICATIONS:
+        # Idempotence: a unit already repaired reports its settled class and
+        # performs no second transition.
+        return _repair_outcome(record, repaired=False, reason="not_repairable")
+
+    state = read_unit_state_snapshot(context, work_unit_id, root=root_path)
+    if state is None:  # pragma: no cover - classification already proved it exists
+        raise ResumeRepairError(f"{work_unit_id} lost its state during repair")
+    attempt = state["identity"]["attempt"]
+    request_record = validate_request_file(
+        context,
+        work_unit_id,
+        attempt,
+        root=root_path,
+        require_full_strength=scan_mode == SCAN_MODE_PRODUCTION_MERGE,
+    )
+    result_record = validate_result_file(
+        context,
+        work_unit_id,
+        attempt,
+        root=root_path,
+        request_record=request_record,
+        shard_index=state["identity"]["shard_index"],
+        shard_count=state["identity"]["shard_count"],
+        scan_mode=scan_mode,
+    )
+    proposed = _repaired_state(context, state, classification, request_record, result_record)
+    # B2C validates the transition itself; this keeps the refusal typed and
+    # local rather than surfacing as a bare contract error.
+    try:
+        work_units.validate_state_transition(state, proposed)
+    except work_units.G8BlerWorkUnitError as exc:
+        raise ResumeRepairError(f"refusing an illegal repair for {work_unit_id}: {exc}") from exc
+
+    try:
+        work_units.replace_unit_state(
+            context.state_context, target, proposed, state["state_sha256"], root=root_path
+        )
+    except work_units.StaleWriterError:
+        raise
+    except work_units.G8BlerWorkUnitError as exc:
+        # Publication may or may not have landed.  Never infer it from the
+        # exception: reread the installed authoritative bytes and decide.
+        installed = read_unit_state_snapshot(context, work_unit_id, root=root_path)
+        if installed is None or installed["identity"]["status"] != proposed["identity"]["status"]:
+            raise ResumeRepairError(
+                f"repair of {work_unit_id} failed and did not publish: {exc}"
+            ) from exc
+
+    settled = classify_work_unit(
+        context,
+        work_unit_id,
+        census_runtime_root(context, root=root_path),
+        root=root_path,
+        scan_mode=scan_mode,
+    )
+    expected_classes = POST_REPAIR_CLASSIFICATIONS[classification]
+    if settled["classification"] not in expected_classes:
+        raise ResumeRepairError(
+            f"{work_unit_id} repaired to {settled['classification']!r}, "
+            f"which is not one of {expected_classes}"
+        )
+    return _repair_outcome(settled, repaired=True, reason=classification)
+
+
+def _repair_outcome(record: Mapping[str, Any], *, repaired: bool, reason: str) -> dict[str, Any]:
+    return _fresh(
+        {
+            "work_unit_id": record["work_unit_id"],
+            "repaired": repaired,
+            "from_classification": reason if repaired else None,
+            "classification": record["classification"],
+            "attempt": record["attempt"],
+            "state_status": record["state_status"],
+            "state_sha256": record["state_sha256"],
+            "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+        }
+    )
+
+
+def inspect_runtime_root(
+    context: Any,
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+    repair_mode: str = REPAIR_MODE_READ_ONLY,
+) -> dict[str, Any]:
+    """Authenticate, lock, census, classify and — only if asked — repair.
+
+    The default is strictly read-only: it makes no filesystem change and no
+    campaign-state change.  ``repair_mode`` must be set explicitly to
+    ``repair_recoverable`` before any state is transitioned, and even then only
+    the two recovery-matrix rows are touched.
+    """
+
+    context = _resume_context(context)
+    if repair_mode not in REPAIR_MODES:
+        raise ResumeRepairError(f"unknown repair mode {repair_mode!r}")
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+
+    with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as held:
+        root_present = held["root_present"]
+        census = census_runtime_root(context, root=root)
+        records = classify_runtime_root(context, census, root=root, scan_mode=scan_mode)
+        repairs: list[dict[str, Any]] = []
+        if repair_mode == REPAIR_MODE_REPAIR_RECOVERABLE:
+            for record in records:
+                if record["classification"] in REPAIRABLE_CLASSIFICATIONS:
+                    repairs.append(
+                        repair_work_unit(
+                            context,
+                            record["work_unit_id"],
+                            root=root,
+                            scan_mode=scan_mode,
+                        )
+                    )
+            census = census_runtime_root(context, root=root)
+            records = classify_runtime_root(context, census, root=root, scan_mode=scan_mode)
+
+    return _fresh(
+        {
+            "schema_version": RESUME_CONTRACT_SCHEMA_VERSION,
+            "artifact_role": "g8_bler_resume_inspection",
+            "logical_root": WORK_UNIT_ROOT_LOGICAL_PREFIX,
+            "root_present": root_present,
+            "scan_mode": scan_mode,
+            "repair_mode": repair_mode,
+            "census": census,
+            "classifications": list(records),
+            "repairs": repairs,
+            "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+        }
+    )
+
+
 def _census_record(
     context: AuthenticatedResumeContext,
     *,
@@ -2054,6 +2278,9 @@ __all__ = [
     "REMAINING_CLASSIFICATIONS",
     "REPAIRABLE_CLASSIFICATIONS",
     "REPAIR_MATRIX",
+    "REPAIR_MODES",
+    "REPAIR_MODE_READ_ONLY",
+    "REPAIR_MODE_REPAIR_RECOVERABLE",
     "REQUEST_FILENAME_SUFFIX",
     "REQUEST_SCHEMA_VERSION",
     "RESULT_FILENAME_SUFFIX",
@@ -2086,6 +2313,7 @@ __all__ = [
     "classify_runtime_root",
     "classify_work_unit",
     "format_attempt",
+    "inspect_runtime_root",
     "is_full_strength_merge_candidate",
     "logical_artifact_path",
     "logical_result_path",
@@ -2093,6 +2321,7 @@ __all__ = [
     "proposed_attempt",
     "read_unit_state_snapshot",
     "reconciliation_lock",
+    "repair_work_unit",
     "request_path",
     "request_relative_path",
     "result_path",
