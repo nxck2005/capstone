@@ -252,21 +252,24 @@ Rules:
 
 ## 9. Global reconciliation lock
 
-    <root>/.reconciliation.lock
+The global coordination target is the already-existing physical parent
+directory inode of the runtime root.  For `/root-parent/work_units`, open
+`/root-parent` with `O_RDONLY | O_DIRECTORY | O_NOFOLLOW` and apply
+`fcntl.flock()` directly to that descriptor.
 
-* Read/repair/reconcile/merge operations acquire it with
-  `fcntl.flock(LOCK_EX)`.
-* Future workers must acquire it with `fcntl.flock(LOCK_SH)` for the complete
-  claim → request publication → execution → result publication → state-link
-  transaction.
+* Read/repair/reconcile/merge operations acquire it with `LOCK_EX`.
+* Future workers must acquire it with `LOCK_SH` for the complete claim → request
+  publication → execution → result publication → state-link transaction.
 * Shared worker locks may coexist; exclusive reconciliation excludes every
   conforming worker.
+* The parent directory must already exist; inspection never creates the parent,
+  runtime root, lock file, `.locks`, bucket, state, request, result or campaign
+  state.
+* Root absence never bypasses locking.  Unsupported directory locking fails
+  closed with no fallback.
 * Per-unit B2C locks remain mandatory and are acquired inside the global
   shared/exclusive coordination boundary as appropriate.
 * Release occurs on normal return, exception and process death.
-* The lock file is infrastructure, not state or evidence.
-* A symlink or dangling symlink at the lock path is rejected.
-* There is no "continue without locking" fallback.
 * Lock acquisition and release must be tested with real processes.
 
 Single documented lock order, never reversed:
@@ -276,10 +279,10 @@ Single documented lock order, never reversed:
 ## 10. Filesystem census
 
 No-follow census of the runtime root. Recognize only exact two-lowercase-hex
-bucket directories, `.locks/` from B2C, `.reconciliation.lock`, exact canonical
-state filenames, exact canonical per-attempt request filenames, exact canonical
-per-attempt result filenames, exact B2C staging filenames (reported as ignored
-orphan staging), and exact B3 staging filenames if B3 introduces any.
+bucket directories, `.locks/` from B2C, exact canonical state filenames, exact
+canonical per-attempt request filenames, exact canonical per-attempt result
+filenames, exact B2C staging filenames (reported as ignored orphan staging), and
+exact B3 staging filenames if B3 introduces any.
 
 Reject symlinks and dangling symlinks at every level; unknown top-level
 entries; wrong-case buckets; non-directory buckets; non-regular authoritative

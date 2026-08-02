@@ -12,8 +12,11 @@ real child processes.  Threads cannot substitute.
 from __future__ import annotations
 
 import contextlib
+import errno
+import fcntl
 import json
 import os
+import select
 import stat
 import time
 import warnings
@@ -163,6 +166,65 @@ def test_required_artifact_is_authenticated_once_per_context_not_once_per_unit(
         resume.work_unit_digest(work_unit_id)
         context.work_unit_id_for_digest(resume.work_unit_digest(work_unit_id))
     assert calls["count"] == 0
+
+
+def test_fast_validators_cover_200_request_result_pairs_without_artifact_reloads(
+    context: resume.AuthenticatedResumeContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The strict B3 hot path remains contract-equivalent after authentication."""
+
+    requests: list[dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
+    for work_unit_id in context.ordered_work_unit_ids[:200]:
+        request = bler_contract.build_full_strength_request(work_unit_id)
+        result = bler_contract.build_work_unit_result(
+            request=request,
+            status=bler_contract.STATUS_COMPLETE,
+            trials_completed=request["trials_requested"],
+            bit_errors=5,
+            block_errors=1,
+            execution_metadata={
+                "wall_time_s": None,
+                "hostname": None,
+                "device": None,
+                "shard_index": 0,
+                "shard_count": 1,
+                "attempt": 1,
+            },
+        )
+        requests.append(request)
+        results.append(result)
+
+    calls = {"tooling": 0, "required_bytes": 0, "required_index": 0, "required_one": 0}
+    from baseline import g8_bler_contract
+
+    def forbidden_tooling(*_args: Any, **_kwargs: Any) -> Any:
+        calls["tooling"] += 1
+        raise AssertionError("B3 fast validation reread the B1C tooling contract")
+
+    def forbidden_required_bytes(*_args: Any, **_kwargs: Any) -> Any:
+        calls["required_bytes"] += 1
+        raise AssertionError("B3 fast validation reread the required artifact")
+
+    def forbidden_required_index(*_args: Any, **_kwargs: Any) -> Any:
+        calls["required_index"] += 1
+        raise AssertionError("B3 fast validation reconstructed the required index")
+
+    def forbidden_required_one(*_args: Any, **_kwargs: Any) -> Any:
+        calls["required_one"] += 1
+        raise AssertionError("B3 fast validation called the public required-unit loader")
+
+    monkeypatch.setattr(g8_bler_contract, "load_bler_tooling_contract", forbidden_tooling)
+    monkeypatch.setattr(g8_bler_contract, "_required_work_unit_bytes", forbidden_required_bytes)
+    monkeypatch.setattr(g8_bler_contract, "required_work_unit_index", forbidden_required_index)
+    monkeypatch.setattr(g8_bler_contract, "required_work_unit", forbidden_required_one)
+
+    for request in requests:
+        assert resume._fast_validate_request(context, request)["work_unit_id"] == request["work_unit_id"]
+    for request, result in zip(requests, results, strict=True):
+        assert resume._fast_validate_result(context, result, request=request)["status"] == bler_contract.STATUS_COMPLETE
+    assert calls == {"tooling": 0, "required_bytes": 0, "required_index": 0, "required_one": 0}
 
 
 def test_resume_contract_is_absent_before_registration(
@@ -397,19 +459,17 @@ def test_census_is_invariant_under_randomized_enumeration_order(
         assert json.dumps(resume.census_runtime_root(context, root=root), sort_keys=True) == baseline
 
 
-def test_census_accepts_the_lock_directory_and_reconciliation_lock(
+def test_census_accepts_the_b2c_lock_directory_only(
     context: resume.AuthenticatedResumeContext,
     root: Path,
 ) -> None:
     unit = _unit(context)
     digest = resume.work_unit_digest(unit)
     root.mkdir(parents=True)
-    (root / resume.RECONCILIATION_LOCK_NAME).write_bytes(b"")
     locks = root / units.LOCK_DIRECTORY_NAME
     locks.mkdir()
     (locks / f"{digest}{units.LOCK_FILENAME_SUFFIX}").write_bytes(b"")
     census = resume.census_runtime_root(context, root=root)
-    assert census["reconciliation_lock_present"] is True
     assert census["lock_directory_present"] is True
     assert census["lock_file_count"] == 1
 
@@ -597,20 +657,15 @@ def test_symlinked_bucket_and_lock_directory_are_rejected(
         resume.census_runtime_root(context, root=root)
 
 
-def test_symlinked_reconciliation_lock_is_rejected(
+def test_unknown_root_lock_entry_is_rejected(
     context: resume.AuthenticatedResumeContext,
     root: Path,
     tmp_path: Path,
 ) -> None:
     root.mkdir(parents=True)
-    target = tmp_path / "other.lock"
-    target.write_bytes(b"")
-    (root / resume.RECONCILIATION_LOCK_NAME).symlink_to(target)
+    (root / "legacy.lock").write_bytes(b"")
     with pytest.raises(resume.ResumeCensusError):
         resume.census_runtime_root(context, root=root)
-    with pytest.raises(resume.ResumeCensusError):
-        with resume.reconciliation_lock(root):
-            pass
 
 
 def test_non_regular_authoritative_objects_are_rejected(
@@ -657,18 +712,27 @@ def test_staging_for_a_foreign_or_unknown_digest_is_rejected(
 def test_lock_on_an_absent_root_does_not_create_it(
     root: Path,
 ) -> None:
+    parent_before = sorted(entry.name for entry in root.parent.iterdir())
     with resume.reconciliation_lock(root) as held:
-        assert held == {"held": False, "root_present": False, "mode": "exclusive"}
+        assert held.active is True
+        assert held.root_present is False
+        assert held.mode == resume.LOCK_MODE_EXCLUSIVE
+        assert held.owner_pid == os.getpid()
+        assert held.canonical_root == root.resolve(strict=False)
     assert not root.exists()
+    assert sorted(entry.name for entry in root.parent.iterdir()) == parent_before
 
 
-def test_lock_creates_only_the_lock_file_when_the_root_exists(root: Path) -> None:
+def test_lock_on_an_existing_root_creates_no_lock_entry(root: Path) -> None:
     root.mkdir(parents=True)
+    before = sorted(entry.name for entry in root.iterdir())
     with resume.reconciliation_lock(root) as held:
-        assert held["held"] is True
+        assert held.active is True
+        assert held.root_present is True
+        assert held.parent_device == root.parent.stat().st_dev
+        assert held.parent_inode == root.parent.stat().st_ino
     entries = sorted(p.name for p in root.iterdir())
-    assert entries == [resume.RECONCILIATION_LOCK_NAME]
-    assert stat.S_ISREG(os.lstat(root / resume.RECONCILIATION_LOCK_NAME).st_mode)
+    assert entries == before == []
 
 
 def test_lock_order_constant_is_global_then_per_unit() -> None:
@@ -682,15 +746,18 @@ def test_unknown_lock_mode_is_refused(root: Path) -> None:
             pass
 
 
-def _child_tries_exclusive(root: Path, ready: Path, done: Path) -> None:
-    """Child body: report whether an exclusive acquisition would block."""
+def _child_tries_parent_lock(root: Path, mode: int, done: Path) -> None:
+    """Child body: report whether the parent-directory lock would block."""
 
     import fcntl as _fcntl
 
-    fd = os.open(str(root / resume.RECONCILIATION_LOCK_NAME), os.O_RDWR | os.O_CREAT, 0o600)
+    fd = os.open(
+        str(root.parent),
+        os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+    )
     try:
         try:
-            _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+            _fcntl.flock(fd, mode | _fcntl.LOCK_NB)
         except OSError:
             done.write_bytes(b"blocked")
             os._exit(0)
@@ -700,6 +767,201 @@ def _child_tries_exclusive(root: Path, ready: Path, done: Path) -> None:
         os.close(fd)
 
 
+def _child_waits_for_parent_lock(
+    root: Path,
+    mode: int,
+    inherited_fd: int,
+    write_fd: int,
+) -> None:
+    """Child body for a blocking parent-directory lease assertion."""
+
+    # The child inherited the parent's open file description.  Close only the
+    # child copy before opening a fresh description; the parent's lease remains
+    # held in the parent process and therefore still excludes this acquisition.
+    os.close(inherited_fd)
+    fd = os.open(
+        str(root.parent),
+        os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+    )
+    try:
+        fcntl.flock(fd, mode)
+        os.write(write_fd, b"acquired")
+    finally:  # pragma: no cover - child exits immediately after the write
+        os.close(fd)
+        os.close(write_fd)
+    os._exit(0)
+
+
+def _wait_for_pipe_byte(read_fd: int, timeout: float = 2.0) -> bytes:
+    ready, _unused_writable, _unused_errors = select.select([read_fd], [], [], timeout)
+    return os.read(read_fd, 64) if ready else b""
+
+
+def test_absent_root_exclusive_lock_blocks_a_shared_worker_before_root_creation(
+    root: Path,
+) -> None:
+    read_fd, write_fd = os.pipe()
+    try:
+        with resume.reconciliation_lock(root, mode=resume.LOCK_MODE_EXCLUSIVE) as held:
+            with _forking():
+                pid = os.fork()
+            if pid == 0:  # pragma: no cover - child process
+                _child_waits_for_parent_lock(root, fcntl.LOCK_SH, held._parent_fd, write_fd)
+            os.close(write_fd)
+            write_fd = -1
+            assert _wait_for_pipe_byte(read_fd, 0.2) == b""
+            assert not root.exists()
+        assert _wait_for_pipe_byte(read_fd) == b"acquired"
+        os.waitpid(pid, 0)
+    finally:
+        os.close(read_fd)
+        if write_fd >= 0:
+            os.close(write_fd)
+
+
+def test_shared_worker_blocks_exclusive_inspection_until_shared_lease_releases(
+    root: Path,
+) -> None:
+    root.mkdir(parents=True)
+    read_fd, write_fd = os.pipe()
+    try:
+        with resume.reconciliation_lock(root, mode=resume.LOCK_MODE_SHARED) as held:
+            with _forking():
+                pid = os.fork()
+            if pid == 0:  # pragma: no cover - child process
+                _child_waits_for_parent_lock(root, fcntl.LOCK_EX, held._parent_fd, write_fd)
+            os.close(write_fd)
+            write_fd = -1
+            assert _wait_for_pipe_byte(read_fd, 0.2) == b""
+        assert _wait_for_pipe_byte(read_fd) == b"acquired"
+        os.waitpid(pid, 0)
+    finally:
+        os.close(read_fd)
+        if write_fd >= 0:
+            os.close(write_fd)
+
+
+def test_directory_locking_fails_closed_without_a_fallback(
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unsupported(_fd: int, _operation: int) -> None:
+        raise OSError(errno.ENOTSUP, "directory locks unavailable")
+
+    parent_before = sorted(entry.name for entry in root.parent.iterdir())
+    monkeypatch.setattr(resume.fcntl, "flock", unsupported)
+    with pytest.raises(resume.ResumeLockError):
+        with resume.reconciliation_lock(root):
+            pass
+    assert not root.exists()
+    assert sorted(entry.name for entry in root.parent.iterdir()) == parent_before
+
+
+def test_lease_rejects_wrong_root_and_inactive_leases(root: Path, tmp_path: Path) -> None:
+    root.mkdir(parents=True)
+    other = tmp_path / "other-work-units"
+    with resume.reconciliation_lock(root) as held:
+        with pytest.raises(resume.ResumeLockError):
+            held._assert_usable(other, resume.LOCK_MODE_EXCLUSIVE)
+    with pytest.raises(resume.ResumeLockError):
+        held._assert_usable(root, resume.LOCK_MODE_EXCLUSIVE)
+
+
+def test_lease_inherited_across_fork_is_rejected(root: Path) -> None:
+    root.mkdir(parents=True)
+    read_fd, write_fd = os.pipe()
+    try:
+        with resume.reconciliation_lock(root) as held:
+            with _forking():
+                pid = os.fork()
+            if pid == 0:  # pragma: no cover - child process
+                try:
+                    held._assert_usable(root, resume.LOCK_MODE_EXCLUSIVE)
+                except resume.ResumeLockError:
+                    os.write(write_fd, b"rejected")
+                else:  # pragma: no cover - assertion failure in child
+                    os.write(write_fd, b"accepted")
+                os._exit(0)
+            os.close(write_fd)
+            write_fd = -1
+            assert _wait_for_pipe_byte(read_fd) == b"rejected"
+            os.waitpid(pid, 0)
+    finally:
+        os.close(read_fd)
+        if write_fd >= 0:
+            os.close(write_fd)
+
+
+def test_public_repair_acquires_its_own_exclusive_global_lease(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root)
+    calls: list[tuple[Path | str | None, str]] = []
+    original = resume.reconciliation_lock
+
+    @contextlib.contextmanager
+    def spy(*args: Any, **kwargs: Any) -> Any:
+        calls.append((kwargs.get("root", args[0] if args else None), kwargs.get("mode", resume.LOCK_MODE_EXCLUSIVE)))
+        with original(*args, **kwargs) as lease:
+            yield lease
+
+    monkeypatch.setattr(resume, "reconciliation_lock", spy)
+    resume.repair_work_unit(context, work_unit_id, root=root)
+    assert calls == [(root, resume.LOCK_MODE_EXCLUSIVE)]
+
+
+def test_batch_repair_reuses_one_exclusive_lease_and_does_not_nest_global_locks(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _recoverable_unit(context, root, status=bler_contract.STATUS_FAILED, index=0)
+    _recoverable_unit(context, root, index=1)
+    calls: list[str] = []
+    original = resume.reconciliation_lock
+
+    @contextlib.contextmanager
+    def spy(*args: Any, **kwargs: Any) -> Any:
+        calls.append(kwargs.get("mode", resume.LOCK_MODE_EXCLUSIVE))
+        with original(*args, **kwargs) as lease:
+            yield lease
+
+    monkeypatch.setattr(resume, "reconciliation_lock", spy)
+    report = resume.inspect_runtime_root(
+        context,
+        root=root,
+        repair_mode=resume.REPAIR_MODE_REPAIR_RECOVERABLE,
+    )
+    assert len(report["repairs"]) == 2
+    assert calls == [resume.LOCK_MODE_EXCLUSIVE]
+
+
+def test_read_only_inspection_preserves_every_existing_path_and_byte(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    _recoverable_unit(context, root)
+    lock_dir = root / units.LOCK_DIRECTORY_NAME
+    lock_dir.mkdir()
+    (lock_dir / f"{resume.work_unit_digest(_unit(context))}{units.LOCK_FILENAME_SUFFIX}").write_bytes(b"lock")
+
+    def snapshot() -> tuple[tuple[str, str, bytes | None], ...]:
+        entries: list[tuple[str, str, bytes | None]] = []
+        for path in sorted(root.rglob("*")):
+            relative = path.relative_to(root).as_posix()
+            if path.is_dir():
+                entries.append((relative, "directory", None))
+            else:
+                entries.append((relative, "file", path.read_bytes()))
+        return tuple(entries)
+
+    before = snapshot()
+    resume.inspect_runtime_root(context, root=root)
+    assert snapshot() == before
+
+
 def test_exclusive_lock_excludes_a_real_child_process(root: Path, tmp_path: Path) -> None:
     root.mkdir(parents=True)
     done = tmp_path / "verdict"
@@ -707,7 +969,7 @@ def test_exclusive_lock_excludes_a_real_child_process(root: Path, tmp_path: Path
         with _forking():
             pid = os.fork()
         if pid == 0:  # pragma: no cover - child process
-            _child_tries_exclusive(root, tmp_path / "ready", done)
+            _child_tries_parent_lock(root, fcntl.LOCK_EX, done)
         os.waitpid(pid, 0)
         assert done.read_bytes() == b"blocked"
 
@@ -721,7 +983,10 @@ def test_shared_locks_coexist_between_real_processes(root: Path, tmp_path: Path)
         if pid == 0:  # pragma: no cover - child process
             import fcntl as _fcntl
 
-            fd = os.open(str(root / resume.RECONCILIATION_LOCK_NAME), os.O_RDWR | os.O_CREAT, 0o600)
+            fd = os.open(
+                str(root.parent),
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+            )
             try:
                 _fcntl.flock(fd, _fcntl.LOCK_SH | _fcntl.LOCK_NB)
             except OSError:
@@ -742,7 +1007,10 @@ def test_shared_lock_is_excluded_by_an_exclusive_holder(root: Path, tmp_path: Pa
         if pid == 0:  # pragma: no cover - child process
             import fcntl as _fcntl
 
-            fd = os.open(str(root / resume.RECONCILIATION_LOCK_NAME), os.O_RDWR | os.O_CREAT, 0o600)
+            fd = os.open(
+                str(root.parent),
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+            )
             try:
                 _fcntl.flock(fd, _fcntl.LOCK_SH | _fcntl.LOCK_NB)
             except OSError:
@@ -754,7 +1022,7 @@ def test_shared_lock_is_excluded_by_an_exclusive_holder(root: Path, tmp_path: Pa
         assert done.read_bytes() == b"blocked"
 
 
-def test_hard_process_exit_releases_the_reconciliation_lock(root: Path, tmp_path: Path) -> None:
+def test_hard_process_exit_releases_the_parent_directory_lock(root: Path, tmp_path: Path) -> None:
     """A killed holder must not leave the campaign permanently locked."""
 
     root.mkdir(parents=True)
@@ -774,7 +1042,7 @@ def test_hard_process_exit_releases_the_reconciliation_lock(root: Path, tmp_path
     os.waitpid(pid, 0)
     # The kernel drops the flock at process death, so this must not hang.
     with resume.reconciliation_lock(root, mode=resume.LOCK_MODE_EXCLUSIVE) as held:
-        assert held["held"] is True
+        assert held.active is True
 
 
 def test_lock_is_released_on_exception(root: Path) -> None:
@@ -783,7 +1051,7 @@ def test_lock_is_released_on_exception(root: Path) -> None:
         with resume.reconciliation_lock(root):
             raise ValueError("boom")
     with resume.reconciliation_lock(root) as held:
-        assert held["held"] is True
+        assert held.active is True
 
 
 def test_lock_never_creates_the_production_runtime_root() -> None:
@@ -791,7 +1059,7 @@ def test_lock_never_creates_the_production_runtime_root() -> None:
     existed = production.exists()
     with resume.reconciliation_lock() as held:
         if not existed:
-            assert held["root_present"] is False
+            assert held.root_present is False
     assert production.exists() == existed
 
 
@@ -1119,6 +1387,51 @@ def test_terminal_nonmergeable_is_bounded_smoke_only_and_holds_in_production() -
     )
 
 
+def test_bounded_smoke_inspection_requires_an_explicit_nonproduction_root(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    tmp_path: Path,
+) -> None:
+    for candidate in (None, resume.DEFAULT_WORK_UNIT_ROOT):
+        with pytest.raises(resume.ResumeCensusError):
+            resume.inspect_runtime_root(
+                context,
+                root=candidate,
+                scan_mode=resume.SCAN_MODE_BOUNDED_SMOKE_INSPECTION,
+            )
+
+    production = resume.DEFAULT_WORK_UNIT_ROOT
+    alias_parent = tmp_path / "production-parent-alias"
+    alias_parent.symlink_to(production.parent, target_is_directory=True)
+    alias = alias_parent / production.name
+    with pytest.raises(resume.ResumeCensusError):
+        resume.inspect_runtime_root(
+            context,
+            root=alias,
+            scan_mode=resume.SCAN_MODE_BOUNDED_SMOKE_INSPECTION,
+        )
+
+    # A normal isolated root is accepted and remains absent after inspection.
+    report = resume.inspect_runtime_root(
+        context,
+        root=root,
+        scan_mode=resume.SCAN_MODE_BOUNDED_SMOKE_INSPECTION,
+    )
+    assert report["root_present"] is False
+    assert not root.exists()
+
+
+def test_bounded_smoke_repair_also_rejects_the_production_root(
+    context: resume.AuthenticatedResumeContext,
+) -> None:
+    with pytest.raises(resume.ResumeCensusError):
+        resume.repair_work_unit(
+            context,
+            _unit(context),
+            scan_mode=resume.SCAN_MODE_BOUNDED_SMOKE_INSPECTION,
+        )
+
+
 def test_the_future_generator_and_verifier_bind_the_corrected_model() -> None:
     """B3.6 binds these; until then the tools must not exist at all."""
 
@@ -1368,6 +1681,69 @@ def test_a_failed_state_is_failed_retryable_and_contributes_zero(
     assert record["proposed_attempt"] == 2
     assert record["required_coverage_contribution"] == 0
     assert record["repairable"] is False
+
+
+def test_a_failed_state_without_a_result_reports_its_persisted_trial_count(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    failed = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_FAILED,
+        scientific_execution_performed=True,
+        trials_completed=23,
+    )
+    _publish_state(context, root, failed)
+    record = _classify_one(context, root, work_unit_id)
+    assert record["classification"] == "failed_retryable"
+    assert record["trials_completed"] == 23
+    assert record["required_coverage_contribution"] == 0
+
+
+def test_result_linked_state_trials_must_equal_the_exact_result_count(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    request, request_sha = _publish_request(context, root, work_unit_id, 1)
+    _result, result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    linked = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_RESULT_LINKED,
+        request_sha256=request_sha,
+        result_path=resume.logical_result_path(context, work_unit_id, 1),
+        result_sha256=result_sha,
+        scientific_execution_performed=True,
+        trials_completed=4999,
+    )
+    _publish_state(context, root, linked)
+    with pytest.raises(resume.ResumeContradictionError):
+        _classify_one(context, root, work_unit_id)
+
+
+def test_incomplete_final_result_is_a_hold_not_retryable_evidence(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    _publish_state(context, root, _clean_claim(context, work_unit_id))
+    request, _request_sha = _publish_request(context, root, work_unit_id, 1)
+    _publish_result(
+        context,
+        root,
+        work_unit_id,
+        1,
+        request,
+        status=bler_contract.STATUS_INCOMPLETE,
+        trials_completed=17,
+    )
+    with pytest.raises(resume.ResumeContradictionError):
+        _classify_one(context, root, work_unit_id)
 
 
 def test_a_state_request_digest_that_does_not_reproduce_holds(
@@ -1656,6 +2032,39 @@ def test_repair_transitions_a_complete_result_directly_to_result_linked(
     assert identity["result_sha256"] is not None
     assert identity["trials_completed"] == 5000
     assert identity["test_split_access"] == 0
+
+
+def test_uncertain_repair_publication_requires_exact_installed_bytes(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root)
+    original = units.replace_unit_state
+
+    def publish_then_raise(*args: Any, **kwargs: Any) -> Any:
+        installed = original(*args, **kwargs)
+        raise RuntimeError("directory fsync acknowledgement was lost")
+
+    monkeypatch.setattr(units, "replace_unit_state", publish_then_raise)
+    outcome = resume.repair_work_unit(context, work_unit_id, root=root)
+    assert outcome["classification"] == "completed_full_strength"
+    assert outcome["repaired"] is True
+
+
+def test_uncertain_repair_publication_without_exact_bytes_is_a_hold(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = _recoverable_unit(context, root)
+
+    def raise_before_publication(*_args: Any, **_kwargs: Any) -> Any:
+        raise RuntimeError("publication outcome is uncertain")
+
+    monkeypatch.setattr(units, "replace_unit_state", raise_before_publication)
+    with pytest.raises(resume.ResumeRepairError):
+        resume.repair_work_unit(context, work_unit_id, root=root)
 
 
 def test_repair_never_creates_a_request_bound_claimed_state(

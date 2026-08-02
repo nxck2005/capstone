@@ -34,10 +34,10 @@ import errno
 import fcntl
 import hashlib
 import json
+import math
 import os
 import re
 import stat
-import threading
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
@@ -114,7 +114,6 @@ ATTEMPT_TOKEN_PREFIX = "attempt-"
 STAGING_FILENAME_SUFFIX = work_units.STAGING_FILENAME_SUFFIX
 LOCK_DIRECTORY_NAME = work_units.LOCK_DIRECTORY_NAME
 LOCK_FILENAME_SUFFIX = work_units.LOCK_FILENAME_SUFFIX
-RECONCILIATION_LOCK_NAME = ".reconciliation.lock"
 
 #: ``attempt`` is a positive base-10 integer with no sign, whitespace, prefix,
 #: suffix, decimal point or leading zero.  ``attempt-1`` is valid;
@@ -147,7 +146,6 @@ ARTIFACT_KINDS = (ARTIFACT_KIND_STATE, ARTIFACT_KIND_REQUEST, ARTIFACT_KIND_RESU
 ALLOWED_ROOT_ENTRIES = (
     "two-lowercase-hex bucket directory",
     f"{LOCK_DIRECTORY_NAME} directory",
-    f"{RECONCILIATION_LOCK_NAME} regular file",
 )
 ALLOWED_BUCKET_ENTRIES = (
     f"<digest>{STATE_FILENAME_SUFFIX}",
@@ -729,6 +727,8 @@ class AuthenticatedResumeContext:
 
     __slots__ = (
         "_state_context",
+        "_authority",
+        "_required_record_bytes",
         "_digest_index",
         "_resume_contract",
         "_resume_binding",
@@ -790,7 +790,16 @@ class AuthenticatedResumeContext:
                 "B3 requires the exact registered B2C state-contract artifact SHA-256"
             )
 
+        authority_binding = dict(state_context.authority_binding())
+        required_record_bytes = {
+            work_unit_id: bytes(
+                state_context.execution_context.work_unit_record_bytes(work_unit_id)
+            )
+            for work_unit_id in state_context.ordered_work_unit_ids
+        }
         self._state_context = state_context
+        self._authority = MappingProxyType(authority_binding)
+        self._required_record_bytes = MappingProxyType(required_record_bytes)
         # One reverse index, built once from the authenticated ordered
         # authority.  A digest is otherwise a one-way function and a scanner
         # would have to rehash all 3213 IDs per file.
@@ -993,7 +1002,7 @@ class AuthenticatedResumeContext:
         return self._state_context.ordered_work_unit_ids
 
     def authority_binding(self) -> dict[str, Any]:
-        return self._state_context.authority_binding()
+        return dict(self._authority)
 
     def state_contract_binding(self) -> dict[str, str]:
         return self._state_context.state_contract_binding()
@@ -1018,10 +1027,20 @@ class AuthenticatedResumeContext:
         return self._state_context.ordinal(work_unit_id)
 
     def work_unit_record(self, work_unit_id: str) -> dict[str, Any]:
-        return self._state_context.work_unit_record(work_unit_id)
+        try:
+            return json.loads(self._required_record_bytes[work_unit_id])
+        except KeyError as exc:
+            raise ResumeContractAuthenticationError(
+                f"work unit {work_unit_id!r} is not an exact required BLER identity"
+            ) from exc
 
     def work_unit_record_sha256(self, work_unit_id: str) -> str:
-        return self._state_context.work_unit_record_sha256(work_unit_id)
+        try:
+            return sha256_bytes(self._required_record_bytes[work_unit_id])
+        except KeyError as exc:
+            raise ResumeContractAuthenticationError(
+                f"work unit {work_unit_id!r} is not an exact required BLER identity"
+            ) from exc
 
     def work_unit_id_for_digest(self, digest: str) -> str:
         """Resolve a filename digest, or raise; an unknown digest is a HOLD."""
@@ -1051,18 +1070,145 @@ def _resume_context(value: Any) -> AuthenticatedResumeContext:
 # Global reconciliation lock
 # ---------------------------------------------------------------------------
 
-_THREAD_LOCK_GUARD = threading.Lock()
-_THREAD_LOCKS: dict[str, threading.Lock] = {}
+
+def _canonical_physical_root(root: Path | str | None) -> Path:
+    """Return the physical root identity without creating any path component."""
+
+    root_path = _root_path(root)
+    return Path(os.path.realpath(os.fspath(root_path)))
 
 
-def _root_thread_lock(root_path: Path) -> threading.Lock:
-    key = str(root_path)
-    with _THREAD_LOCK_GUARD:
-        lock = _THREAD_LOCKS.get(key)
-        if lock is None:
-            lock = threading.Lock()
-            _THREAD_LOCKS[key] = lock
-        return lock
+def _open_lock_parent(root_path: Path) -> tuple[int, os.stat_result, Path]:
+    """Open the existing physical parent inode that coordinates this root."""
+
+    parent = root_path.parent
+    try:
+        parent_fd = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    except OSError as exc:
+        if exc.errno == errno.ELOOP:
+            raise ResumeLockError(f"work-unit root parent may not be a symlink: {parent}") from exc
+        raise ResumeLockError(
+            f"cannot open the existing work-unit root parent {parent}; locking is unavailable: {exc}"
+        ) from exc
+    try:
+        parent_stat = os.fstat(parent_fd)
+    except OSError as exc:
+        _close_quietly(parent_fd)
+        raise ResumeLockError(f"cannot stat the work-unit root parent {parent}: {exc}") from exc
+    if not stat.S_ISDIR(parent_stat.st_mode):  # pragma: no cover - O_DIRECTORY already enforces this
+        _close_quietly(parent_fd)
+        raise ResumeLockError(f"work-unit root parent is not a directory: {parent}")
+    return parent_fd, parent_stat, parent
+
+
+def _create_root_under_parent(root_path: Path, parent_fd: int) -> None:
+    """Create only an explicitly requested root, relative to its locked parent."""
+
+    name = root_path.name
+    if not name or name in {".", ".."}:
+        raise ResumeLockError(f"work-unit root has no safe final component: {root_path}")
+    try:
+        os.mkdir(name, 0o700, dir_fd=parent_fd)
+    except FileExistsError:
+        pass
+    except OSError as exc:
+        raise ResumeLockError(f"cannot create the work-unit root under its locked parent: {exc}") from exc
+    entry = _lstat(root_path)
+    if entry is None:
+        raise ResumeLockError(f"work-unit root disappeared after creation: {root_path}")
+    if stat.S_ISLNK(entry.st_mode) or not stat.S_ISDIR(entry.st_mode):
+        raise ResumeLockError(f"work-unit root is not a real directory: {root_path}")
+
+
+class ReconciliationLease:
+    """Opaque process-owned lease over the root parent's directory inode."""
+
+    __slots__ = (
+        "_canonical_root",
+        "_mode",
+        "_owner_pid",
+        "_active",
+        "_parent_device",
+        "_parent_inode",
+        "_parent_fd",
+        "_root_present",
+    )
+
+    def __init__(
+        self,
+        *,
+        canonical_root: Path,
+        mode: str,
+        owner_pid: int,
+        parent_stat: os.stat_result,
+        parent_fd: int,
+        root_present: bool,
+    ) -> None:
+        self._canonical_root = canonical_root
+        self._mode = mode
+        self._owner_pid = owner_pid
+        self._active = True
+        self._parent_device = int(parent_stat.st_dev)
+        self._parent_inode = int(parent_stat.st_ino)
+        self._parent_fd = parent_fd
+        self._root_present = root_present
+
+    @property
+    def canonical_root(self) -> Path:
+        return self._canonical_root
+
+    @property
+    def mode(self) -> str:
+        return self._mode
+
+    @property
+    def owner_pid(self) -> int:
+        return self._owner_pid
+
+    @property
+    def active(self) -> bool:
+        return self._active
+
+    @property
+    def parent_device(self) -> int:
+        return self._parent_device
+
+    @property
+    def parent_inode(self) -> int:
+        return self._parent_inode
+
+    @property
+    def root_present(self) -> bool:
+        return self._root_present
+
+    def _assert_usable(self, root: Path | str | None, required_mode: str) -> None:
+        if not self._active:
+            raise ResumeLockError("global reconciliation lease is inactive")
+        if self._owner_pid != os.getpid():
+            raise ResumeLockError("global reconciliation lease was inherited across fork")
+        if required_mode not in LOCK_MODES:
+            raise ResumeLockError(f"unknown required lock mode {required_mode!r}")
+        if required_mode == LOCK_MODE_EXCLUSIVE and self._mode != LOCK_MODE_EXCLUSIVE:
+            raise ResumeLockError("an exclusive global lease is required")
+        if self._mode not in LOCK_MODES:
+            raise ResumeLockError("global reconciliation lease has an invalid mode")
+        if _canonical_physical_root(root) != self._canonical_root:
+            raise ResumeLockError("global reconciliation lease belongs to another physical root")
+        try:
+            current = os.fstat(self._parent_fd)
+        except OSError as exc:
+            raise ResumeLockError(f"cannot revalidate the locked parent directory: {exc}") from exc
+        if (int(current.st_dev), int(current.st_ino)) != (
+            self._parent_device,
+            self._parent_inode,
+        ):
+            raise ResumeLockError("locked parent directory identity changed")
+
+    def _release(self) -> None:
+        if not self._active:
+            return
+        self._active = False
+        _close_quietly(self._parent_fd)
 
 
 @contextmanager
@@ -1071,89 +1217,53 @@ def reconciliation_lock(
     *,
     mode: str = LOCK_MODE_EXCLUSIVE,
     create_missing_root: bool = False,
-) -> Iterator[dict[str, Any]]:
-    """Hold the global coordination lock at ``<root>/.reconciliation.lock``.
+) -> Iterator[ReconciliationLease]:
+    """Hold a flock directly on the existing parent directory inode.
 
-    ``exclusive`` excludes every conforming worker for the whole
-    read/repair/reconcile/merge operation; ``shared`` is what a future B4+
-    worker holds for its complete claim → request → execute → result →
-    state-link transaction, so shared holders coexist while an exclusive
-    reconciliation excludes all of them.
-
-    Release happens on normal return, on exception and on process death: the
-    kernel drops a ``flock`` when the last descriptor referring to that open
-    file description closes, including at process exit.  There is no
-    "continue without locking" fallback.
-
-    An **absent root** is not an error and does not create anything.  A worker
-    must create the root before it can do anything, and it creates it while
-    taking this same lock, so an absent root means no worker can be mid-flight.
-    That is what keeps read-only inspection from materialising the production
-    runtime tree merely by looking at it.
-
-    Lock order is fixed and never reversed: this global lock, then the per-unit
-    B2C lock.  See :data:`LOCK_ORDER`.
+    The parent is the lock target, not a file inside the runtime root.  This
+    makes an absent root participate in the same lock domain as an existing
+    root.  Inspection defaults to non-creating operation; only an explicit
+    ``create_missing_root`` request may create the final root component after
+    the parent lease is held.
     """
 
     if mode not in LOCK_MODES:
         raise ResumeLockError(f"unknown reconciliation lock mode {mode!r}")
     root_path = _root_path(root)
-    if _lstat(root_path) is None:
-        if not create_missing_root:
-            yield {"held": False, "root_present": False, "mode": mode}
-            return
-        try:
-            root_path.mkdir(parents=True, exist_ok=True)
-        except OSError as exc:
-            raise ResumeLockError(f"cannot create the work-unit root {root_path}: {exc}") from exc
-        root_path = _root_path(root_path)
-
-    thread_lock = _root_thread_lock(root_path) if mode == LOCK_MODE_EXCLUSIVE else None
-    if thread_lock is not None:
-        thread_lock.acquire()
-    root_fd: int | None = None
-    lock_fd: int | None = None
+    canonical_root = _canonical_physical_root(root_path)
+    parent_fd, parent_stat, _parent = _open_lock_parent(root_path)
+    operation = fcntl.LOCK_EX if mode == LOCK_MODE_EXCLUSIVE else fcntl.LOCK_SH
     try:
-        root_fd = _open_directory(root_path)
-        existing = _lstat(RECONCILIATION_LOCK_NAME, dir_fd=root_fd)
-        if existing is not None:
-            if stat.S_ISLNK(existing.st_mode):
-                raise ResumeCensusError(
-                    "the reconciliation lock path may not be a symlink: "
-                    f"{root_path / RECONCILIATION_LOCK_NAME}"
-                )
-            if not stat.S_ISREG(existing.st_mode):
-                raise ResumeCensusError(
-                    "the reconciliation lock path is not a regular file: "
-                    f"{root_path / RECONCILIATION_LOCK_NAME}"
-                )
         try:
-            lock_fd = os.open(
-                RECONCILIATION_LOCK_NAME,
-                os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW,
-                stat.S_IRUSR | stat.S_IWUSR,
-                dir_fd=root_fd,
-            )
+            fcntl.flock(parent_fd, operation)
         except OSError as exc:
-            if exc.errno == errno.ELOOP:
-                raise ResumeCensusError(
-                    "the reconciliation lock path may not be a symlink: "
-                    f"{root_path / RECONCILIATION_LOCK_NAME}"
+            if exc.errno in {errno.EINVAL, errno.ENOSYS, errno.ENOTSUP, errno.EOPNOTSUPP}:
+                raise ResumeLockError(
+                    f"directory locking is unsupported for the work-unit root parent: {exc}"
                 ) from exc
-            raise ResumeLockError(f"cannot open the reconciliation lock: {exc}") from exc
-        operation = fcntl.LOCK_EX if mode == LOCK_MODE_EXCLUSIVE else fcntl.LOCK_SH
+            raise ResumeLockError(f"cannot acquire the global parent-directory lock: {exc}") from exc
+
+        if create_missing_root and _lstat(root_path) is None:
+            if mode != LOCK_MODE_SHARED:
+                _create_root_under_parent(root_path, parent_fd)
+            else:
+                raise ResumeLockError("a shared lease may not create the runtime root")
+        root_present = _lstat(root_path) is not None
+        lease = ReconciliationLease(
+            canonical_root=canonical_root,
+            mode=mode,
+            owner_pid=os.getpid(),
+            parent_stat=parent_stat,
+            parent_fd=parent_fd,
+            root_present=root_present,
+        )
         try:
-            fcntl.flock(lock_fd, operation)
-        except OSError as exc:
-            raise ResumeLockError(f"cannot acquire the reconciliation lock: {exc}") from exc
-        yield {"held": True, "root_present": True, "mode": mode}
-    finally:
-        # Closing the descriptor releases the flock; the kernel also releases
-        # it if this process dies while holding it.
-        _close_quietly(lock_fd)
-        _close_quietly(root_fd)
-        if thread_lock is not None:
-            thread_lock.release()
+            yield lease
+        finally:
+            lease._release()
+    except BaseException:
+        _close_quietly(parent_fd)
+        raise
 
 
 # ---------------------------------------------------------------------------
@@ -1202,10 +1312,11 @@ def _staging_final_name(name: str) -> str | None:
     return match.group("final")
 
 
-def census_runtime_root(
+def _census_runtime_root_locked(
     context: Any,
     *,
     root: Path | str | None = None,
+    lease: ReconciliationLease,
 ) -> dict[str, Any]:
     """Enumerate the runtime root no-follow and reject everything undefined.
 
@@ -1218,6 +1329,7 @@ def census_runtime_root(
     """
 
     context = _resume_context(context)
+    lease._assert_usable(root, LOCK_MODE_EXCLUSIVE)
     root_path = _root_path(root)
     ordered_ids = context.ordered_work_unit_ids
 
@@ -1226,7 +1338,6 @@ def census_runtime_root(
     results: dict[str, set[int]] = {}
     ignored_staging = 0
     lock_files = 0
-    reconciliation_lock_present = False
     lock_directory_present = False
     buckets: set[str] = set()
 
@@ -1241,7 +1352,6 @@ def census_runtime_root(
             buckets=buckets,
             ignored_staging=ignored_staging,
             lock_files=lock_files,
-            reconciliation_lock_present=False,
             lock_directory_present=False,
         )
 
@@ -1254,11 +1364,6 @@ def census_runtime_root(
             raise ResumeCensusError(f"runtime entry disappeared during the census: {name}")
         if stat.S_ISLNK(entry_stat.st_mode):
             raise ResumeCensusError(f"runtime root entry may not be a symlink: {name}")
-        if name == RECONCILIATION_LOCK_NAME:
-            if not stat.S_ISREG(entry_stat.st_mode):
-                raise ResumeCensusError("the reconciliation lock is not a regular file")
-            reconciliation_lock_present = True
-            continue
         if name == LOCK_DIRECTORY_NAME:
             if not stat.S_ISDIR(entry_stat.st_mode):
                 raise ResumeCensusError(f"{LOCK_DIRECTORY_NAME} is not a directory")
@@ -1268,7 +1373,7 @@ def census_runtime_root(
         if BUCKET_RE.fullmatch(name) is None:
             raise ResumeCensusError(
                 f"unknown runtime root entry {name!r}; only two-lowercase-hex buckets, "
-                f"{LOCK_DIRECTORY_NAME} and {RECONCILIATION_LOCK_NAME} are defined"
+                f"and {LOCK_DIRECTORY_NAME} are defined"
             )
         if not stat.S_ISDIR(entry_stat.st_mode):
             raise ResumeCensusError(f"bucket {name!r} is not a directory")
@@ -1292,9 +1397,28 @@ def census_runtime_root(
         buckets=buckets,
         ignored_staging=ignored_staging,
         lock_files=lock_files,
-        reconciliation_lock_present=reconciliation_lock_present,
         lock_directory_present=lock_directory_present,
     )
+
+
+def census_runtime_root(
+    context: Any,
+    *,
+    root: Path | str | None = None,
+    lease: ReconciliationLease | None = None,
+) -> dict[str, Any]:
+    """Take an exclusive parent-directory lease and return a read-only census.
+
+    A caller holding the exact exclusive lease may pass it to avoid nested
+    acquisition.  The census itself never creates the root, a lock file, a
+    bucket, or any other filesystem object.
+    """
+
+    context = _resume_context(context)
+    if lease is not None:
+        return _census_runtime_root_locked(context, root=root, lease=lease)
+    with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as held:
+        return _census_runtime_root_locked(context, root=root, lease=held)
 
 
 def _scandir(path: Path) -> list[os.DirEntry[str]]:
@@ -1426,6 +1550,298 @@ def _read_exact_artifact(path: Path, label: str) -> tuple[bytes, str, dict[str, 
     return raw, sha256_bytes(raw), payload
 
 
+def _fast_require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ResumeChainError(message)
+
+
+def _fast_exact_int(value: Any, name: str) -> int:
+    _fast_require(
+        not isinstance(value, bool) and isinstance(value, int),
+        f"{name} must be an integer, not a boolean or float",
+    )
+    return int(value)
+
+
+def _fast_nonnegative_int(value: Any, name: str) -> int:
+    number = _fast_exact_int(value, name)
+    _fast_require(number >= 0, f"{name} must be non-negative")
+    return number
+
+
+def _fast_finite(value: Any, name: str) -> float:
+    _fast_require(
+        not isinstance(value, bool) and isinstance(value, (int, float)),
+        f"{name} must be a real number",
+    )
+    _fast_require(math.isfinite(float(value)), f"{name} must be finite")
+    return float(value)
+
+
+def _fast_validate_request(
+    context: AuthenticatedResumeContext,
+    request: Mapping[str, Any],
+    *,
+    execution_class: str | None = None,
+) -> dict[str, Any]:
+    """B1C-equivalent request validation over the authenticated B3 cache.
+
+    This intentionally does not call ``load_bler_tooling_contract``,
+    ``campaign_bindings`` or ``required_work_unit``.  The state context has
+    already authenticated those bytes; B3 keeps immutable scalar bindings and
+    canonical required-record bytes for this strict hot path.
+    """
+
+    try:
+        _fast_require(isinstance(request, Mapping), "work-unit request is not a mapping")
+        _fast_require(
+            set(request) == set(bler_contract.REQUEST_FIELDS),
+            "work-unit request has missing or unknown fields",
+        )
+        _fast_require(
+            request["schema_version"] == REQUEST_SCHEMA_VERSION,
+            "unsupported work-unit request schema_version",
+        )
+        _fast_require(request["artifact_role"] == bler_contract.REQUEST_ARTIFACT_ROLE, "wrong request artifact role")
+        observed_class = request["execution_class"]
+        _fast_require(
+            observed_class in bler_contract.EXECUTION_CLASSES,
+            f"unknown execution class {observed_class!r}",
+        )
+        if execution_class is not None:
+            _fast_require(observed_class == execution_class, f"request is {observed_class!r}, not {execution_class!r}")
+
+        authority = context._authority
+        for name in (
+            "campaign_id",
+            "campaign_manifest_sha256",
+            "required_bler_artifact_sha256",
+            "selection_policy_sha256",
+            "bler_tooling_contract_id",
+            "bler_tooling_contract_sha256",
+        ):
+            _fast_require(request[name] == authority[name], f"request binding {name} does not match the campaign")
+
+        work_unit_id = request["work_unit_id"]
+        _fast_require(isinstance(work_unit_id, str) and work_unit_id.strip() != "", "work_unit_id must be a non-blank string")
+        identity = request["bler_identity"]
+        _fast_require(isinstance(identity, Mapping), "bler_identity is not a mapping")
+        try:
+            bler_contract.BlerIdentity.from_mapping(identity)
+        except Exception as exc:
+            raise ResumeChainError(f"bler_identity failed B1C validation: {exc}") from exc
+        _fast_finite(request["snr_db"], "snr_db")
+        packet_ids = request["source_packet_config_ids"]
+        _fast_require(
+            isinstance(packet_ids, list)
+            and packet_ids
+            and all(isinstance(item, str) and item for item in packet_ids),
+            "source_packet_config_ids must be a non-empty list of non-blank strings",
+        )
+        _fast_require(
+            packet_ids == sorted(set(packet_ids)),
+            "source_packet_config_ids must be unique and canonically ordered",
+        )
+        _fast_require(
+            request["seed_derivation_identity"] == bler_contract.SEED_DERIVATION_IDENTITY,
+            "request seed-derivation identity is not the frozen identity",
+        )
+        _fast_require(
+            request["seed_domain_separator"] == bler_contract.SEED_DOMAIN_SEPARATOR,
+            "request seed domain separator is not the frozen separator",
+        )
+        seeds = request["stream_seeds"]
+        _fast_require(isinstance(seeds, Mapping), "stream_seeds is not a mapping")
+        _fast_require(set(seeds) == set(bler_contract.SEED_PURPOSES), "stream_seeds must cover exactly the allowed purposes")
+        for purpose in bler_contract.SEED_PURPOSES:
+            expected_seed = bler_contract.seed_record(authority["campaign_id"], work_unit_id, purpose)
+            _fast_require(
+                canonical_json(seeds[purpose]) == canonical_json(expected_seed),
+                f"stream seed record for {purpose} does not reproduce from the frozen derivation",
+            )
+        _fast_require(
+            len({seeds[purpose]["seed_uint64"] for purpose in bler_contract.SEED_PURPOSES})
+            == len(bler_contract.SEED_PURPOSES),
+            "random purposes must not share a stream seed",
+        )
+
+        trials = _fast_nonnegative_int(request["trials_requested"], "trials_requested")
+        _fast_require(trials > 0, "trials_requested must be positive")
+        _fast_require(request["merge_eligible"] is False, "a request is never merge eligible")
+        _fast_require(request["test_split_access"] == bler_contract.TEST_SPLIT_ACCESS, "request claims test-split access")
+        full_count = bler_contract.full_strength_trial_count()
+        if observed_class == bler_contract.EXECUTION_CLASS_FULL_STRENGTH:
+            required = context.work_unit_record(work_unit_id)
+            _fast_require(
+                canonical_json(identity) == canonical_json(required["identity"]),
+                "full-strength identity does not match the required entry exactly",
+            )
+            _fast_require(
+                canonical_json(request["snr_db"]) == canonical_json(required["snr_db"]),
+                "full-strength SNR does not match the required entry exactly",
+            )
+            _fast_require(
+                canonical_json(packet_ids) == canonical_json(list(required["source_packet_config_ids"])),
+                "full-strength source packet IDs do not match the required entry exactly",
+            )
+            _fast_require(
+                request["trial_count_source"] == bler_contract.FULL_STRENGTH_TRIAL_COUNT_SOURCE,
+                "full-strength trial count source changed",
+            )
+            _fast_require(trials == full_count, "full-strength request must use exactly the configured trial count")
+            _fast_require(request["scientific_evidence"] is True, "full-strength request must be scientific evidence")
+            _fast_require(request["label"] == bler_contract.EXECUTION_CLASS_FULL_STRENGTH, "full-strength label changed")
+        else:
+            _fast_require(
+                request["trial_count_source"] == bler_contract.BOUNDED_SMOKE_TRIAL_COUNT_SOURCE,
+                "bounded smoke trial count source changed",
+            )
+            _fast_require(
+                trials <= bler_contract.BOUNDED_SMOKE_MAX_TRIALS_PER_UNIT,
+                "bounded smoke exceeds its per-unit limit",
+            )
+            _fast_require(trials < full_count, "bounded smoke must stay below the full-strength trial count")
+            _fast_require(request["scientific_evidence"] is False, "bounded smoke is scientific evidence")
+            _fast_require(request["label"] == bler_contract.BOUNDED_SMOKE_LABEL, "bounded smoke label changed")
+        return json.loads(canonical_json(dict(request)))
+    except ResumeChainError:
+        raise
+    except Exception as exc:
+        raise ResumeChainError(f"work-unit request failed B3 fast validation: {exc}") from exc
+
+
+def _fast_validate_result(
+    context: AuthenticatedResumeContext,
+    result: Mapping[str, Any],
+    *,
+    request: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """B1C-equivalent result validation without rereading B1C artifacts."""
+
+    try:
+        _fast_require(isinstance(result, Mapping), "work-unit result is not a mapping")
+        _fast_require(set(result) == set(bler_contract.RESULT_FIELDS), "work-unit result has missing or unknown sections")
+        _fast_require(result["schema_version"] == RESULT_SCHEMA_VERSION, "unsupported work-unit result schema_version")
+        _fast_require(result["artifact_role"] == bler_contract.RESULT_ARTIFACT_ROLE, "wrong result artifact role")
+        status = result["status"]
+        _fast_require(status in bler_contract.RESULT_STATUSES, f"unknown result status {status!r}")
+
+        identity = result["identity"]
+        measurement = result["measurement"]
+        metadata = result["execution_metadata"]
+        disposition = result["disposition"]
+        _fast_require(isinstance(identity, Mapping) and set(identity) == set(bler_contract.RESULT_IDENTITY_FIELDS), "result identity section has missing or unknown fields")
+        _fast_require(isinstance(measurement, Mapping) and set(measurement) == set(bler_contract.RESULT_MEASUREMENT_FIELDS), "result measurement section has missing or unknown fields")
+        _fast_require(isinstance(metadata, Mapping) and set(metadata) == set(bler_contract.RESULT_EXECUTION_METADATA_FIELDS), "result execution metadata has missing or unknown fields")
+        try:
+            bler_contract.validate_execution_metadata(metadata)
+        except Exception as exc:
+            raise ResumeChainError(f"result execution metadata failed B1C validation: {exc}") from exc
+        _fast_require(isinstance(disposition, Mapping) and set(disposition) == set(bler_contract.RESULT_DISPOSITION_FIELDS), "result disposition section has missing or unknown fields")
+        implementation = identity["implementation"]
+        _fast_require(isinstance(implementation, Mapping) and set(implementation) == set(bler_contract.IMPLEMENTATION_FIELDS), "result implementation binding has missing or unknown fields")
+        _fast_require(
+            canonical_json(implementation) == canonical_json(bler_contract.implementation_binding()),
+            "result implementation/dependency binding does not match the frozen contract",
+        )
+
+        rebuilt = {
+            "schema_version": REQUEST_SCHEMA_VERSION,
+            "artifact_role": bler_contract.REQUEST_ARTIFACT_ROLE,
+            "execution_class": identity["execution_class"],
+            "campaign_id": identity["campaign_id"],
+            "bler_tooling_contract_id": identity["bler_tooling_contract_id"],
+            "bler_tooling_contract_sha256": identity["bler_tooling_contract_sha256"],
+            "campaign_manifest_sha256": identity["campaign_manifest_sha256"],
+            "required_bler_artifact_sha256": identity["required_bler_artifact_sha256"],
+            "selection_policy_sha256": identity["selection_policy_sha256"],
+            "work_unit_id": identity["work_unit_id"],
+            "bler_identity": dict(identity["bler_identity"]),
+            "snr_db": identity["snr_db"],
+            "source_packet_config_ids": list(identity["source_packet_config_ids"]),
+            "trials_requested": identity["trials_requested"],
+            "trial_count_source": identity["trial_count_source"],
+            "seed_derivation_identity": identity["seed_derivation_identity"],
+            "seed_domain_separator": identity["seed_domain_separator"],
+            "stream_seeds": dict(identity["stream_seeds"]),
+            "scientific_evidence": identity["execution_class"] == bler_contract.EXECUTION_CLASS_FULL_STRENGTH,
+            "merge_eligible": False,
+            "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+            "label": (
+                bler_contract.EXECUTION_CLASS_FULL_STRENGTH
+                if identity["execution_class"] == bler_contract.EXECUTION_CLASS_FULL_STRENGTH
+                else bler_contract.BOUNDED_SMOKE_LABEL
+            ),
+        }
+        rebuilt = _fast_validate_request(context, rebuilt)
+        request_digest = bler_contract.request_digest(rebuilt)
+        _fast_require(identity["request_sha256"] == request_digest, "result request digest does not reproduce from its identity section")
+        if request is not None:
+            checked_request = _fast_validate_request(context, request)
+            _fast_require(identity["request_sha256"] == bler_contract.request_digest(checked_request), "result does not bind the request it claims")
+            for field in ("work_unit_id", "trials_requested", "execution_class", "trial_count_source"):
+                _fast_require(canonical_json(identity[field]) == canonical_json(checked_request[field]), f"result {field} does not match its request exactly")
+            _fast_require(canonical_json(identity["bler_identity"]) == canonical_json(checked_request["bler_identity"]), "result identity does not match its request exactly")
+            _fast_require(canonical_json(identity["snr_db"]) == canonical_json(checked_request["snr_db"]), "result SNR does not match its request exactly")
+
+        full_strength = identity["execution_class"] == bler_contract.EXECUTION_CLASS_FULL_STRENGTH
+        full_count = bler_contract.full_strength_trial_count()
+        trials_requested = _fast_nonnegative_int(identity["trials_requested"], "trials_requested")
+        trials_completed = _fast_nonnegative_int(measurement["trials_completed"], "trials_completed")
+        information_bits = _fast_nonnegative_int(measurement["information_bits"], "information_bits")
+        bit_errors = _fast_nonnegative_int(measurement["bit_errors"], "bit_errors")
+        block_errors = _fast_nonnegative_int(measurement["block_errors"], "block_errors")
+        _fast_require(trials_completed <= trials_requested, "trials_completed exceeds trials_requested")
+        _fast_require(block_errors <= trials_completed, "block_errors exceeds trials_completed")
+        try:
+            information_length = _fast_exact_int(identity["bler_identity"]["k_and_n"][0], "K")
+            derived = bler_contract.recompute_measurements(
+                trials_completed=trials_completed,
+                information_bits=information_bits,
+                bit_errors=bit_errors,
+                block_errors=block_errors,
+                information_length=information_length,
+            )
+        except Exception as exc:
+            raise ResumeChainError(f"result counts failed B1C validation: {exc}") from exc
+        _fast_require(information_bits == trials_completed * information_length, "information_bits is not trials_completed x K")
+        _fast_require(bit_errors <= information_bits, "bit_errors exceeds information_bits")
+        for name, expected_value in derived.items():
+            stored = measurement[name]
+            if expected_value is None:
+                _fast_require(stored is None, f"{name} must be null at zero completed trials")
+            else:
+                _fast_require(stored is not None, f"{name} is missing")
+                _fast_finite(stored, name)
+                _fast_require(stored == expected_value, f"stored {name} does not reproduce from the counts")
+        _fast_require(measurement["confidence_interval_method"] == bler_contract.CONFIDENCE_INTERVAL_METHOD, "confidence interval method changed")
+        _fast_require(measurement["confidence_interval_percent"] == bler_contract.CONFIDENCE_INTERVAL_PERCENT, "confidence interval percent changed")
+        _fast_require(measurement["confidence_interval_role"] == bler_contract.CONFIDENCE_INTERVAL_ROLE, "confidence interval role changed")
+
+        if status == bler_contract.STATUS_COMPLETE:
+            _fast_require(trials_completed > 0, "completed evidence requires trials_completed > 0")
+            if full_strength:
+                _fast_require(trials_completed == trials_requested == full_count, "completed full-strength result needs exactly the configured trial count")
+        scientific = disposition["scientific_evidence"]
+        merge_eligible = disposition["merge_eligible"]
+        _fast_require(type(scientific) is bool and type(merge_eligible) is bool, "disposition flags must be booleans")
+        _fast_require(scientific is full_strength, "only full-strength execution is scientific evidence")
+        _fast_require(disposition["test_split_access"] == bler_contract.TEST_SPLIT_ACCESS, "result claims test-split access")
+        contribution = _fast_nonnegative_int(disposition["required_coverage_contribution"], "required_coverage_contribution")
+        expected_merge = full_strength and status == bler_contract.STATUS_COMPLETE and trials_completed == full_count
+        _fast_require(merge_eligible is expected_merge, "merge eligibility must follow exactly from status, class and counts")
+        _fast_require(contribution == (1 if expected_merge else 0), "required coverage contribution must follow merge eligibility")
+        if not full_strength:
+            _fast_require(merge_eligible is False and contribution == 0, "bounded smoke is never merge eligible")
+        if status in (bler_contract.STATUS_INCOMPLETE, bler_contract.STATUS_FAILED):
+            _fast_require(merge_eligible is False, "an incomplete or failed result is never merge eligible")
+        return json.loads(canonical_json(dict(result)))
+    except ResumeChainError:
+        raise
+    except Exception as exc:
+        raise ResumeChainError(f"work-unit result failed B3 fast validation: {exc}") from exc
+
+
 def read_unit_state_snapshot(
     context: Any,
     work_unit_id: str,
@@ -1474,14 +1890,13 @@ def validate_request_file(
     number = _positive_int(attempt, "attempt", ResumeChainError)
     path = request_path(context, work_unit_id, number, root=root)
     raw, digest, payload = _read_exact_artifact(path, "work-unit request")
-    try:
-        request = (
-            bler_contract.require_full_strength_request(payload)
-            if require_full_strength
-            else bler_contract.validate_work_unit_request(payload)
-        )
-    except Exception as exc:  # noqa: BLE001 - the contract raises its own hierarchy
-        raise ResumeChainError(f"work-unit request failed B1C validation: {path}: {exc}") from exc
+    request = _fast_validate_request(
+        context,
+        payload,
+        execution_class=(
+            bler_contract.EXECUTION_CLASS_FULL_STRENGTH if require_full_strength else None
+        ),
+    )
 
     if request["schema_version"] != REQUEST_SCHEMA_VERSION:
         raise ResumeChainError(
@@ -1561,12 +1976,11 @@ def validate_result_file(
 
     path = result_path(context, work_unit_id, number, root=root)
     raw, digest, payload = _read_exact_artifact(path, "work-unit result")
-    try:
-        result = bler_contract.validate_work_unit_result(
-            payload, request=request_record["request"]
-        )
-    except Exception as exc:  # noqa: BLE001 - the contract raises its own hierarchy
-        raise ResumeChainError(f"work-unit result failed B1C validation: {path}: {exc}") from exc
+    result = _fast_validate_result(
+        context,
+        payload,
+        request=request_record["request"],
+    )
 
     if result["schema_version"] != RESULT_SCHEMA_VERSION:
         raise ResumeChainError(
@@ -1660,6 +2074,108 @@ def is_full_strength_merge_candidate(
     )
 
 
+def validate_attempt_history(
+    context: Any,
+    work_unit_id: str,
+    state_attempt: Any,
+    request_attempts: Sequence[int],
+    result_attempts: Sequence[int],
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Validate every persisted request/result at or below a state attempt.
+
+    The returned record is deterministic and is the single history object that
+    later B3 plan, merge, and reconciliation code reuses.  Older failed
+    results are retained as zero-contribution history; an older complete
+    merge-eligible result, an incomplete result, a result without its exact
+    request, or a request/result beyond the state attempt is a HOLD.
+    """
+
+    context = _resume_context(context)
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+    attempt = _positive_int(state_attempt, "state attempt", ResumeChainError)
+    request_numbers = tuple(sorted(set(_positive_int(value, "request attempt", ResumeChainError) for value in request_attempts)))
+    result_numbers = tuple(sorted(set(_positive_int(value, "result attempt", ResumeChainError) for value in result_attempts)))
+    if len(request_numbers) != len(tuple(request_attempts)):
+        raise ResumeContradictionError(f"{work_unit_id} has duplicate request attempts")
+    if len(result_numbers) != len(tuple(result_attempts)):
+        raise ResumeContradictionError(f"{work_unit_id} has duplicate result attempts")
+    for label, values in (("request", request_numbers), ("result", result_numbers)):
+        ahead = [value for value in values if value > attempt]
+        if ahead:
+            raise ResumeContradictionError(
+                f"{work_unit_id} has a {label} for attempt {min(ahead)} beyond state attempt {attempt}"
+            )
+
+    records: list[dict[str, Any]] = []
+    full_request_digest: str | None = None
+    for number in sorted(set(request_numbers) | set(result_numbers)):
+        request_record: dict[str, Any] | None = None
+        result_record: dict[str, Any] | None = None
+        if number in request_numbers:
+            request_record = validate_request_file(
+                context,
+                work_unit_id,
+                number,
+                root=root,
+                require_full_strength=scan_mode == SCAN_MODE_PRODUCTION_MERGE,
+            )
+            if request_record["execution_class"] == bler_contract.EXECUTION_CLASS_FULL_STRENGTH:
+                if full_request_digest is None:
+                    full_request_digest = request_record["request_sha256"]
+                elif full_request_digest != request_record["request_sha256"]:
+                    raise ResumeContradictionError(
+                        f"{work_unit_id} full-strength retry requests are not byte-identical"
+                    )
+        if number in result_numbers:
+            if request_record is None:
+                raise ResumeContradictionError(
+                    f"{work_unit_id} has a result for attempt {number} without its exact request"
+                )
+            result_record = validate_result_file(
+                context,
+                work_unit_id,
+                number,
+                root=root,
+                request_record=request_record,
+                scan_mode=scan_mode,
+            )
+            if result_record["status"] == bler_contract.STATUS_INCOMPLETE:
+                raise ResumeContradictionError(
+                    f"{work_unit_id} has a persisted incomplete result at attempt {number}"
+                )
+            if number < attempt and result_record["status"] == bler_contract.STATUS_COMPLETE:
+                if is_full_strength_merge_candidate(context, result_record, request_record):
+                    raise ResumeContradictionError(
+                        f"{work_unit_id} has a complete merge-eligible attempt-{number} result "
+                        f"while state advanced to attempt {attempt}"
+                    )
+        records.append(
+            {
+                "attempt": number,
+                "request_sha256": None if request_record is None else request_record["request_sha256"],
+                "result_sha256": None if result_record is None else result_record["result_sha256"],
+                "request": request_record,
+                "result": result_record,
+                "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+            }
+        )
+    return _fresh(
+        {
+            "work_unit_id": work_unit_id,
+            "state_attempt": attempt,
+            "request_attempts": list(request_numbers),
+            "result_attempts": list(result_numbers),
+            "attempts": records,
+            "full_strength_request_sha256": full_request_digest,
+            "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+        }
+    )
+
+
 # ---------------------------------------------------------------------------
 # Closed per-unit classification (G8_B3 §13, §14, §15)
 # ---------------------------------------------------------------------------
@@ -1714,29 +2230,24 @@ def classify_work_unit(
     attempt = identity["attempt"]
     status = identity["status"]
 
-    # §15: attempts are append-only history and may never run ahead of state.
-    for label, attempts in (("request", request_attempts), ("result", result_attempts)):
-        ahead = [value for value in attempts if value > attempt]
-        if ahead:
-            raise ResumeContradictionError(
-                f"{work_unit_id} has a {label} for attempt {min(ahead)} beyond state attempt {attempt}"
-            )
-
-    request_record = None
-    if attempt in request_attempts:
-        request_record = validate_request_file(
-            context,
-            work_unit_id,
-            attempt,
-            root=root,
-            require_full_strength=scan_mode == SCAN_MODE_PRODUCTION_MERGE,
-        )
-    result_record = None
-    if attempt in result_attempts:
-        if request_record is None:
-            raise ResumeContradictionError(
-                f"{work_unit_id} has a result for attempt {attempt} without its exact request"
-            )
+    history = validate_attempt_history(
+        context,
+        work_unit_id,
+        attempt,
+        request_attempts,
+        result_attempts,
+        root=root,
+        scan_mode=scan_mode,
+    )
+    current_history = next(
+        (entry for entry in history["attempts"] if entry["attempt"] == attempt),
+        None,
+    )
+    request_record = None if current_history is None else current_history["request"]
+    result_record = None if current_history is None else current_history["result"]
+    if result_record is not None:
+        # Revalidate the current result against the state shard assignment.  The
+        # fast history pass intentionally has no state dependency.
         result_record = validate_result_file(
             context,
             work_unit_id,
@@ -1749,16 +2260,6 @@ def classify_work_unit(
         )
 
     _require_state_matches_artifacts(context, state, request_record, result_record)
-    _require_no_stranded_older_evidence(
-        context,
-        work_unit_id,
-        attempt,
-        request_attempts,
-        result_attempts,
-        root=root,
-        scan_mode=scan_mode,
-    )
-
     merge_eligible = True
     if result_record is not None and result_record["status"] == bler_contract.STATUS_COMPLETE:
         merge_eligible = is_full_strength_merge_candidate(
@@ -1822,6 +2323,43 @@ def _require_state_matches_artifacts(
             raise ResumeContradictionError(
                 f"{work_unit_id} state result path is not the exact derived current-attempt path"
             )
+    if identity["status"] == work_units.STATUS_RESULT_LINKED:
+        if request_record is None or result_record is None:
+            raise ResumeContradictionError(
+                f"{work_unit_id} result_linked state is missing its current-attempt chain"
+            )
+        if identity["request_sha256"] != request_record["request_sha256"]:
+            raise ResumeContradictionError(
+                f"{work_unit_id} result_linked request SHA-256 is not the exact request digest"
+            )
+        if identity["result_sha256"] != result_record["result_sha256"]:
+            raise ResumeContradictionError(
+                f"{work_unit_id} result_linked result SHA-256 is not the exact result digest"
+            )
+        if identity["scientific_execution_performed"] is not True:
+            raise ResumeContradictionError(
+                f"{work_unit_id} result_linked state does not record scientific execution"
+            )
+        if identity["trials_completed"] != result_record["trials_completed"]:
+            raise ResumeContradictionError(
+                f"{work_unit_id} result_linked trials_completed differs from its result"
+            )
+    if (
+        identity["status"] == work_units.STATUS_FAILED
+        and identity["request_sha256"] is None
+        and (request_record is not None or result_record is not None)
+    ):
+        raise ResumeContradictionError(
+            f"{work_unit_id} failed state without a request binding has current-attempt artifacts"
+        )
+    if (
+        identity["status"] == work_units.STATUS_FAILED
+        and result_record is not None
+        and identity["trials_completed"] != result_record["trials_completed"]
+    ):
+        raise ResumeContradictionError(
+            f"{work_unit_id} failed state trials_completed differs from its result"
+        )
     if identity["status"] == work_units.STATUS_RESULT_LINKED and result_record is None:
         raise ResumeContradictionError(
             f"{work_unit_id} is result_linked but has no current-attempt result"
@@ -1918,7 +2456,9 @@ def _classification_record(
         "result_sha256": None if result_record is None else result_record["result_sha256"],
         "result_status": None if result_record is None else result_record["status"],
         "trials_completed": (
-            0 if result_record is None else result_record["trials_completed"]
+            result_record["trials_completed"]
+            if result_record is not None
+            else (0 if state is None else state["identity"]["trials_completed"])
         ),
         "required_coverage_contribution": coverage,
         "proposed_attempt": proposed_attempt(classification, attempt),
@@ -1968,6 +2508,34 @@ REPAIR_MODE_REPAIR_RECOVERABLE = "repair_recoverable"
 REPAIR_MODES = (REPAIR_MODE_READ_ONLY, REPAIR_MODE_REPAIR_RECOVERABLE)
 
 
+def _require_bounded_smoke_root(root: Path | str | None) -> Path:
+    """Reject every lexical, resolved, or same-inode production-root alias."""
+
+    if root is None:
+        raise ResumeCensusError(
+            "bounded-smoke inspection requires an explicit isolated root; None is the production root"
+        )
+    candidate = _root_path(root)
+    production = _root_path(DEFAULT_WORK_UNIT_ROOT)
+    candidate_norm = os.path.normpath(os.fspath(candidate))
+    production_norm = os.path.normpath(os.fspath(production))
+    if candidate_norm == production_norm:
+        raise ResumeCensusError("bounded-smoke inspection may not use the production root")
+    candidate_physical = _canonical_physical_root(candidate)
+    production_physical = _canonical_physical_root(production)
+    if candidate_physical == production_physical:
+        raise ResumeCensusError("bounded-smoke inspection may not use an alias of the production root")
+    candidate_entry = _lstat(candidate)
+    production_entry = _lstat(production)
+    if candidate_entry is not None and production_entry is not None:
+        if (candidate_entry.st_dev, candidate_entry.st_ino) == (
+            production_entry.st_dev,
+            production_entry.st_ino,
+        ):
+            raise ResumeCensusError("bounded-smoke root is the production root inode")
+    return candidate
+
+
 def _repaired_state(
     context: AuthenticatedResumeContext,
     state: Mapping[str, Any],
@@ -2015,21 +2583,25 @@ def _repaired_state(
     raise ResumeRepairError(f"{classification!r} is not a repairable classification")
 
 
-def repair_work_unit(
+def _repair_work_unit_locked(
     context: Any,
     work_unit_id: str,
     *,
     root: Path | str | None = None,
     scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+    lease: ReconciliationLease,
 ) -> dict[str, Any]:
     """Apply the exact recovery-matrix transition for one work unit.
 
-    The caller must already hold the exclusive global reconciliation lock.
+    The caller must already hold the exclusive global reconciliation lease.
     Everything is reread *after* the per-unit lock is taken, so a decision made
     from a pre-lock scan can never be applied to bytes that have since moved.
     """
 
     context = _resume_context(context)
+    if scan_mode == SCAN_MODE_BOUNDED_SMOKE_INSPECTION:
+        _require_bounded_smoke_root(root)
+    lease._assert_usable(root, LOCK_MODE_EXCLUSIVE)
     root_path = _root_path(root)
     target = state_path(context, work_unit_id, root=root_path)
 
@@ -2040,7 +2612,7 @@ def repair_work_unit(
     # lock here as well would deadlock against it and would buy nothing: any
     # interleaving that moves the state between this reread and the swap is
     # exactly what the stale-writer check rejects.
-    census = census_runtime_root(context, root=root_path)
+    census = _census_runtime_root_locked(context, root=root_path, lease=lease)
     record = classify_work_unit(
         context, work_unit_id, census, root=root_path, scan_mode=scan_mode
     )
@@ -2079,25 +2651,40 @@ def repair_work_unit(
     except work_units.G8BlerWorkUnitError as exc:
         raise ResumeRepairError(f"refusing an illegal repair for {work_unit_id}: {exc}") from exc
 
+    proposed_body = work_units.canonical_state_bytes(context.state_context, proposed)
+    proposed_sha256 = sha256_bytes(proposed_body)
     try:
         work_units.replace_unit_state(
             context.state_context, target, proposed, state["state_sha256"], root=root_path
         )
     except work_units.StaleWriterError:
         raise
-    except work_units.G8BlerWorkUnitError as exc:
-        # Publication may or may not have landed.  Never infer it from the
-        # exception: reread the installed authoritative bytes and decide.
-        installed = read_unit_state_snapshot(context, work_unit_id, root=root_path)
-        if installed is None or installed["identity"]["status"] != proposed["identity"]["status"]:
+    except Exception as exc:
+        # Publication may or may not have landed.  Never infer it from status:
+        # reread the installed canonical bytes and require the exact proposed
+        # digest and bytes before treating the uncertain operation as success.
+        try:
+            installed = read_unit_state_snapshot(context, work_unit_id, root=root_path)
+            installed_body, installed_sha256, _installed_payload = _read_exact_artifact(
+                target, "installed unit state"
+            )
+        except ResumeHoldError as read_exc:
             raise ResumeRepairError(
-                f"repair of {work_unit_id} failed and did not publish: {exc}"
+                f"repair of {work_unit_id} failed and installed state could not be proven: {exc}"
+            ) from read_exc
+        if (
+            installed is None
+            or installed_sha256 != proposed_sha256
+            or installed_body != proposed_body
+        ):
+            raise ResumeRepairError(
+                f"repair of {work_unit_id} failed and did not publish the exact proposed bytes: {exc}"
             ) from exc
 
     settled = classify_work_unit(
         context,
         work_unit_id,
-        census_runtime_root(context, root=root_path),
+        _census_runtime_root_locked(context, root=root_path, lease=lease),
         root=root_path,
         scan_mode=scan_mode,
     )
@@ -2108,6 +2695,28 @@ def repair_work_unit(
             f"which is not one of {expected_classes}"
         )
     return _repair_outcome(settled, repaired=True, reason=classification)
+
+
+def repair_work_unit(
+    context: Any,
+    work_unit_id: str,
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Acquire the exclusive parent-directory lease before repairing one unit."""
+
+    context = _resume_context(context)
+    if scan_mode == SCAN_MODE_BOUNDED_SMOKE_INSPECTION:
+        _require_bounded_smoke_root(root)
+    with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as lease:
+        return _repair_work_unit_locked(
+            context,
+            work_unit_id,
+            root=root,
+            scan_mode=scan_mode,
+            lease=lease,
+        )
 
 
 def _repair_outcome(record: Mapping[str, Any], *, repaired: bool, reason: str) -> dict[str, Any]:
@@ -2146,23 +2755,27 @@ def inspect_runtime_root(
     if scan_mode not in SCAN_MODES:
         raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
 
+    if scan_mode == SCAN_MODE_BOUNDED_SMOKE_INSPECTION:
+        _require_bounded_smoke_root(root)
+
     with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as held:
-        root_present = held["root_present"]
-        census = census_runtime_root(context, root=root)
+        root_present = held.root_present
+        census = _census_runtime_root_locked(context, root=root, lease=held)
         records = classify_runtime_root(context, census, root=root, scan_mode=scan_mode)
         repairs: list[dict[str, Any]] = []
         if repair_mode == REPAIR_MODE_REPAIR_RECOVERABLE:
             for record in records:
                 if record["classification"] in REPAIRABLE_CLASSIFICATIONS:
                     repairs.append(
-                        repair_work_unit(
+                        _repair_work_unit_locked(
                             context,
                             record["work_unit_id"],
                             root=root,
                             scan_mode=scan_mode,
+                            lease=held,
                         )
                     )
-            census = census_runtime_root(context, root=root)
+            census = _census_runtime_root_locked(context, root=root, lease=held)
             records = classify_runtime_root(context, census, root=root, scan_mode=scan_mode)
 
     return _fresh(
@@ -2192,7 +2805,6 @@ def _census_record(
     buckets: set[str],
     ignored_staging: int,
     lock_files: int,
-    reconciliation_lock_present: bool,
     lock_directory_present: bool,
 ) -> dict[str, Any]:
     """Assemble the census in frozen authority order, never filesystem order."""
@@ -2202,7 +2814,6 @@ def _census_record(
         "artifact_role": "g8_bler_runtime_census",
         "logical_root": WORK_UNIT_ROOT_LOGICAL_PREFIX,
         "root_present": root_present,
-        "reconciliation_lock_present": reconciliation_lock_present,
         "lock_directory_present": lock_directory_present,
         "lock_file_count": lock_files,
         "bucket_count": len(buckets),
@@ -2272,7 +2883,7 @@ __all__ = [
     "PHASE",
     "POST_REPAIR_CLASSIFICATIONS",
     "PROPOSED_ATTEMPT_POLICY",
-    "RECONCILIATION_LOCK_NAME",
+    "ReconciliationLease",
     "RECOVERABLE_CLASSIFICATIONS",
     "REJECTED_UNREACHABLE_CLASSIFICATIONS",
     "REMAINING_CLASSIFICATIONS",
@@ -2329,5 +2940,6 @@ __all__ = [
     "state_path",
     "validate_request_file",
     "validate_result_file",
+    "validate_attempt_history",
     "work_unit_digest",
 ]

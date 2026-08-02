@@ -83,7 +83,7 @@ published checkpoint.
 
 ## B3.H2 — harden the foundation before plans or merges
 
-Replace the root-local `.reconciliation.lock` design.  For a physical root
+Replace the root-local lock-file design.  For a physical root
 `/root-parent/work_units`, open the already-existing parent directory
 `/root-parent` with `O_RDONLY | O_DIRECTORY | O_NOFOLLOW` and apply
 `fcntl.flock()` directly to that descriptor.  The parent must already exist;
@@ -93,7 +93,7 @@ repair, reconciliation, and merge; reserve `LOCK_SH` for a future runner's
 complete per-unit transaction.  Root absence never bypasses locking.
 Unsupported directory locking fails closed with no fallback.  Lock order is
 global parent-directory lock, then the B2C per-unit lock.  Remove
-`.reconciliation.lock` from constants, allowed entries, census schema,
+the root-local lock-file name from constants, allowed entries, census schema,
 instructions, tests, and future contracts.
 
 Return an opaque lease binding canonical physical root, mode, owner PID, active
@@ -362,4 +362,3 @@ G8_B/tooling_smoke_complete; zero counters; empty/null IDs; absent runtime;
 no full-strength outputs or scientific access; no `BlerTable`; no G8_C; exact
 restart command; final parity and clean worktree; amendment judgment.  The final
 line must be the exact green terminal line above.
-
