@@ -1,0 +1,365 @@
+# G8_B remainder — autonomous completion from B3.H2 through B6
+
+This file is the durable, autonomous operational instruction for the remaining
+G8_B work.  It is subordinate to `spec/SPEC.md`, generated parameters, and the
+authenticated G8 artifacts.  It supersedes no frozen scientific or prior
+contract decision.  It must be read with `instructions/RESUME.md`; the latter
+is the inter-session cursor and this file is the complete remainder contract.
+
+## Objective and stop rule
+
+Starting at the B3.H2 correction boundary, complete, in order, B3.H2, B3.4,
+B3.5, B3.6, B3.7, B3.8, B4.0, B4.1, B4.2, B4.3, B4.4, B5, and B6.  Continue
+automatically after every internally green checkpoint.  Do not request another
+audit between checkpoints.  Stop only for a genuine frozen-contract HOLD or a
+real external interruption.  The only successful terminal line is:
+
+`G8_B GREEN — CHARACTERIZATION TOOLING READY; G8_C RELEASED; NO FULL-STRENGTH CHARACTERIZATION STARTED`
+
+A genuine frozen scientific/prior-contract contradiction is reported as
+`G8_B HOLD — <precise blocking contradiction>`.  An external interruption is
+reported as `G8_B INCOMPLETE — RESUME AT <exact checkpoint and exact command>`.
+An implementation bug, failed test, race, deadlock, or bad assumption is fixed
+within G8_B and is not a HOLD by itself.
+
+## Boundary and authority
+
+Repository: `/home/nick/projects/capstone`; interpreter: `.venv/bin/python`;
+expected starting commit: `848c94a3ed7a9658b54357ef83759c569b95ca78`;
+expected subject: `docs(g8-b): hand off B3 at B3.4`.  Starting phase/stage is
+`G8_B/tooling_open`; B0, B1, B1C, B2, B2C, B3.0, B3.1, B3.H1, B3.2, and
+B3.3 are complete.  The campaign has 3,213 required units and no completed or
+in-progress unit.  Counters `validation_decoding`, `inference`, `training`,
+and `test_access` are zero.  The four existing artifacts and their authenticated
+bytes remain unchanged.  No production runtime tree, request, result, runner,
+smoke, simulation, characterization, B3 contract, or B4 contract exists at the
+boundary.
+
+Authority order is: `spec/SPEC.md`; generated parameters and approved
+amendments; authenticated G8 artifacts; executable validators and production
+code; independent reconstruction; tests; instructions and handoff prose.
+Never force the boundary by deleting or resetting unexpected state.  Inspect
+unknown dirty state and preserve it.  The frozen paths in the user-provided G8_B
+completion instruction remain prohibited, including `spec/**`, G8_A/B1C/B2C
+sources and artifacts, G-2/W4 evidence, manifests, locks, and all registered
+contract sources after their registration points.
+
+## Initial verification
+
+Run the requested Git, signature, targeted-test, full-suite, generator,
+verifier, phase-state, documentation, literal, independent-hash, and absent-
+path checks from the completion instruction.  Require a clean worktree, good
+HEAD signature, local/origin/remote parity at the expected SHA, the stated
+starting tests, unchanged hashes and byte lengths for:
+
+* `results/baseline/g8/campaign_manifest.json`;
+* `results/baseline/g8/required_bler_identities.json`;
+* `results/baseline/g8/bler_tooling_contract.json`;
+* `results/baseline/g8/bler_state_contract.json`;
+* `results/baseline/g8/campaign_state.json`.
+
+Require no `results/baseline/g8/work_units`, no resume/runner/smoke artifact,
+and no tracked `work_units` path.  Any contradiction is a starting HOLD.
+
+## Publication protocol and ledger
+
+Use signed commits throughout.  Before each substantive checkpoint mark only
+that checkpoint `in-progress`, commit and push its marker, verify local
+`origin/main` and `git ls-remote origin refs/heads/main` parity, then work.
+After focused tests and all checkpoint checks pass, mark that checkpoint `done`,
+commit and push, verify parity, and begin the next checkpoint immediately.
+Never amend, squash, rebase, force-push, or rewrite a published commit.  The
+user explicitly requires direct pushes to the existing `main` branch; that
+scope overrides a generic draft-PR recommendation.  Do not leave more than one
+checkpoint's intended implementation uncommitted.  On restart trust only rows
+marked `done`; rerun the focused verification of the row marked `in-progress`
+and continue from its exact recovery command.
+
+The parent and child rows in `instructions/RESUME.md` must each record starting
+SHA, exact first command, exact recovery command, intended and prohibited files,
+observed tests, ending SHA, signature status, local/origin/remote parity,
+zero-science status, and amendment judgment.  Keep the row truthful after every
+published checkpoint.
+
+## B3.H2 — harden the foundation before plans or merges
+
+Replace the root-local `.reconciliation.lock` design.  For a physical root
+`/root-parent/work_units`, open the already-existing parent directory
+`/root-parent` with `O_RDONLY | O_DIRECTORY | O_NOFOLLOW` and apply
+`fcntl.flock()` directly to that descriptor.  The parent must already exist;
+inspection never creates it, the runtime root, a lock file, `.locks`, a bucket,
+state, request, result, or campaign-state update.  Use `LOCK_EX` for inspection,
+repair, reconciliation, and merge; reserve `LOCK_SH` for a future runner's
+complete per-unit transaction.  Root absence never bypasses locking.
+Unsupported directory locking fails closed with no fallback.  Lock order is
+global parent-directory lock, then the B2C per-unit lock.  Remove
+`.reconciliation.lock` from constants, allowed entries, census schema,
+instructions, tests, and future contracts.
+
+Return an opaque lease binding canonical physical root, mode, owner PID, active
+state, parent `st_dev`, and parent `st_ino`.  Reject missing, inactive,
+wrong-root, wrong-mode, and fork-inherited leases.  Public `repair_work_unit()`
+acquires its own exclusive global lock.  Batch inspection uses a private
+already-held-lease path.  Never manually acquire the B2C lock around
+`replace_unit_state()`; B2C owns its lock and compare-and-swap.
+
+Validate complete history for every attempt at or below the state attempt:
+each result has the exact same-attempt request; every request is canonical and
+validated by the exact authority; full-strength retry request bytes for a unit
+are identical; no artifact is beyond the state attempt; malformed or foreign
+older request-only artifacts HOLD; older failed results contribute zero; older
+complete merge-eligible results while state advanced HOLD; and every final
+`status == incomplete` result HOLDs.  Incomplete results are never production
+or bounded-smoke terminal evidence.
+
+Bind `result_linked` state request/result SHA and exact current-attempt logical
+result path to exact files, require `scientific_execution_performed == true`,
+and bind `trials_completed` to the result.  A persisted failed result binds its
+request SHA and trial count; a failed state with no result reports its persisted
+trial count, not zero.  A failed state may have a null request SHA only when no
+current request or result exists.
+
+Bounded-smoke inspection requires an explicit nonproduction root and rejects
+`None`, the production default, every lexical/resolved/symlinked alias, and
+same-inode aliases.  Before state replacement compute proposed canonical bytes
+and digest.  If publication raises, reread and accept only exact proposed bytes
+and exact proposed SHA, never status alone.
+
+Authenticate B1C, required identities, and immutable scalar bindings once at
+`AuthenticatedResumeContext` construction.  Retain immutable canonical bytes
+and read-only authority.  A B3-owned fast validator must reproduce every B1C
+request/result check: schemas and closed fields, exact work-unit identity,
+packet/SNR/seed fields, trial-count source, execution class and disposition,
+result binding and implementation binding, execution metadata, counts,
+BER/BLER/Wilson values, merge disposition, and zero test access.  Instrument
+at least 200 distinct validations and prove that after context construction
+there are zero additional public tooling-contract loads, complete required-
+artifact hashes, or complete required-index reconstructions.  Do not patch
+production globals to obtain the proof; use frozen B1C validators as the test
+oracle.
+
+Use real processes to prove absent-root EX blocks a shared worker before root
+creation, SH/SH coexistence, EX/EX exclusion, EX/SH exclusion, hard-exit
+release, wrong-root/inactive/inherited lease rejection, public repair locking,
+one-lock batch repair, and no nested B2C deadlock.  Run focused H2 tests and the
+full suite before continuing.  Commit subject: `fix(g8-b): harden B3 locking
+and chain validation`.
+
+## B3.4 — deterministic resume plans and merge reports
+
+Implement public `build_resume_plan(...)` and `build_merge_report(...)` in
+`src/baseline/g8_bler_resume.py` with tests.  Both require an exclusive global
+lease.  Resume plan schema/artifact role are version 1 and
+`g8_bler_resume_plan`.  Bind B3/B2C/B1C IDs and SHAs, campaign and authority
+hashes, selection-policy SHA, required count 3,213, shard count/index, exact
+B2 shard-plan digest, logical root, scan mode, ignored staging count, assigned
+records, completed/recoverable/remaining IDs, proposed next attempt for every
+remaining unit, and zero test access.  Exclude absolute paths, host/PID/time,
+inode/mtime, filesystem or completion order, and worker identity.  The plan
+digest is SHA-256 over exact canonical plan identity excluding only its own
+digest field.  Use frozen shard-plan order everywhere.
+
+Use the eight frozen classifications exactly: `absent`, `claimed_unbound`,
+`claimed_request_published`, `failed_retryable`,
+`recoverable_failed_result`, `recoverable_complete_result`,
+`completed_full_strength`, and `terminal_nonmergeable`.  Absent proposes attempt
+1; claimed/request-published/failed-retryable propose old attempt + 1; the two
+recoverable classes have no proposed attempt; completed and bounded terminal
+classes have none.  Repeated scans of identical bytes are byte-identical.
+Changing shard count/index may change membership only, never seeds, request
+bytes, history, or completed result identity.
+
+Merge report schema/artifact role are version 1 and
+`g8_bler_merge_validation_report`.  Report required IDs in authority order,
+validated complete IDs, missing/remaining/recoverable/failed/bounded IDs,
+duplicates, unknowns, exact coverage count, required count, coverage-complete,
+total coverage contribution, and zero test access.  Complete means exactly
+3,213 unique `completed_full_strength` units, 3,213 valid requests, 3,213 valid
+complete results, sum contribution 3,213, no unknowns, duplicates, omissions,
+or test access.  This is validation only and never constructs a `BlerTable`.
+
+## B3.5 — campaign-state reconciliation
+
+Implement `propose_campaign_reconciliation(...)` and
+`apply_campaign_reconciliation(...)` under the exclusive global lease.  Authenticate
+campaign state and scan all required units.  Derive completed IDs only from
+validated `completed_full_strength` evidence in exact authority order.  Campaign
+IDs may lag evidence but never lead it; a campaign-completed ID without exact
+terminal evidence is a HOLD.  Apply may add only validated completions and never
+remove an ID.  Bounded smoke, recoverable results, failed/claimed states and
+`in_progress_work_unit_id` contribute nothing.  Do not change counters.  Use the
+existing atomic campaign-state writer, reread and verify exact installed bytes,
+and resolve uncertain publication by exact bytes.  The live closeout must
+propose no scientific change because no unit exists.
+
+## B3.6 — generated contract and independent verifier
+
+Create `tools/gen_g8_bler_resume_contract.py`,
+`tools/verify_g8_bler_resume_contract.py`, `tools/inspect_g8_bler_resume.py`,
+and `results/baseline/g8/bler_resume_contract.json`.  It is schema 1,
+artifact role `g8_bler_resume_merge_contract`, phase G8_B, checkpoint B3, and
+ID prefix `g8resume`.  Bind exactly the three B3 source files and all authority,
+schemas, parent-directory lock/lease, paths, census/history rules, eight
+classifications, two-row recovery matrix, uncertain recovery, plan/report
+schemas, reconciliation, bounded isolation, no-science boundary, and exact B4
+handoff.  Do not bind its own output, its own SHA, commit, timestamps, absolute
+paths, or test counts.
+
+The verifier independently reconstructs expected truth and does not import the
+generator or expected constants from the production module.  AST tests reject
+generator imports, direct expected-constant imports, and treating generator
+output as expected truth.  Before registration test operations against isolated
+campaign-state copies that register the candidate contract; do not weaken APIs
+to admit an unregistered contract.  Once registered, freeze the three B3 source
+files and artifact.  B3.8 leaves five produced artifacts, no live root, empty
+completed IDs, null in-progress ID, zero counters, G8_B/tooling_open, and sets
+the temporary B4 restart command:
+
+`rg -n "bounded_smoke|run_g8_bler|SionnaLDPCAdapter|information_bit_stream|normal_stream|map_bits|max_log_llr" src/baseline tools tests`
+
+## B3.7/B3.8 — adversarial closure and registration
+
+Add mutation, process, hard-exit, enumeration-randomization, sharding,
+publication, history, campaign lead/lag, race, and 200-chain performance
+tests covering the complete matrix in the completion instruction: authority,
+source bindings, paths/aliases/symlinks/hard links/unknown files, malformed
+attempts, all request/result mutations, incomplete and count mismatches,
+state/result mismatches, older-history and retry divergence, duplicate/missing/
+unknown coverage, stale writers, exact/nonexact uncertain publication, lease
+misuse, hard process death, and bounded isolation.  Run focused, combined G8,
+and full tests.  Register exactly the resume artifact and run its generator
+check/verifier.  Do not create any science.
+
+## B4 — runner and bounded smoke only
+
+Create `instructions/G8_B4.txt`,
+`src/baseline/g8_bler_runner.py`, `tools/run_g8_bler.py`, the runner generator
+and independent verifier, `tools/verify_g8_bounded_smoke.py`, runner tests,
+`bler_runner_contract.json`, and `bounded_smoke_record.json`.  Consume the
+authenticated B1C request, B2C state, B3 plans/reconciliation, and exact G8_A
+authority; never reconstruct the grid or invent IDs.  Full-strength execution
+is forbidden until G8_C/characterization_open and must fail before root/state/
+request/adapter/bits/decoder work.  Bounded smoke requires G8_B/tooling_open,
+execution class `bounded_smoke`, an explicit isolated root, and a maximum of
+three units and sixteen trials per unit.
+
+`AuthenticatedRunnerContext` authenticates each authority/contract once,
+required work units, installed NumPy/Sionna/Torch implementation binding, and
+LDPC adapter/modulation source hashes.  Accessors return fresh copies.  The
+physical-layer trial is exact: derive K/N/BG/Z/modulation/rate/SNR; generate K
+information bits from the frozen stream; encode with `SionnaLDPCAdapter`; map
+with existing modulation; use Es/N0-per-symbol variance; generate independent
+Philox real/imag normals; scale by `sqrt(N0/2)`; max-log demap; frozen OMS
+decode; require `(batch,K)`; compare all K bits; accumulate complete Hamming
+and block-error counts.  Exceptions, nonfinite LLRs, bad shapes, wrong lengths,
+or nonbinary output fail the attempt and never become a completed result.
+
+Use one persistent Philox normal generator per AWGN component, consume from
+zero sequentially, never reseed per batch, and never include batch/attempt/
+shard/device in seeds.  Prove identical measurements for batch partitions of
+1, 2, irregular sizes, and one complete batch where feasible, with bounded
+memory.
+
+The full transaction holds a shared global lease: validate plan; select an
+assigned remaining unit; refuse unresolved recoveries; claim exact attempt;
+atomically publish immutable request; execute from trial zero; atomically
+publish result; transition directly to failed or result_linked; reread and
+validate the full chain; release.  Hard-exit recovery follows the seven cases
+in the completion instruction and never resumes mid-unit.
+
+Use one immutable canonical JSON publisher for request/result: render bytes
+first; unique same-directory `O_CREAT|O_EXCL|O_NOFOLLOW` mode 0600 staging;
+write/flush/fsync; descriptor-relative no-replace hard-link (or equivalently
+proven primitive); directory fsync; cleanup; exact post-install reread.  Exact
+existing bytes are idempotent; different bytes conflict; final paths are never
+opened for writing; aliases and unsupported durability fail closed; uncertain
+errors use exact bytes.
+
+CLI options are `--execution-class bounded_smoke|full_strength`, explicit
+absolute `--root`, `--device cpu|cuda`, positive shard count/index, positive
+batch size, `--repair-recoverable`, and smoke-only `--max-units`.  Reject bad
+shards/unknown IDs, bound smoke despite oversized requests, distinguish success,
+incomplete, conflict, and HOLD exit codes, and preserve causes for unexpected
+exceptions.
+
+Runner contract schema/artifact role are version 1,
+`g8_bler_runner_contract`, phase G8_B/checkpoint B4, prefix `g8runner`.  Bind
+the five runner source files, LDPC adapter and modulation dependency hashes,
+B1C/B2C/B3, schema versions, RNG, trial/count semantics, Es/N0, decoder,
+transaction/publication/authorization gates, smoke selection and record schema,
+and the G8_B no-full-strength boundary.  The verifier reconstructs truth
+independently.
+
+Execute actual CPU smoke in a temporary isolated root, selecting the first
+canonical required identity for each configured modulation in configured order
+(`bpsk`, `qpsk`, `qam16`), exactly 16 trials each unless the frozen builder
+requires fewer.  Validate it as bounded-smoke; every terminal result is
+`terminal_nonmergeable`, zero coverage, merge-ineligible, labelled exactly
+`NON-SCIENTIFIC BOUNDED SMOKE`, zero test access; build and independently verify
+the tracked record, then remove the temporary root.  The record excludes path,
+host, PID, wall time, timestamps, inode and mtime and includes all identity,
+seed, request/result/state hashes and counts, Wilson bounds, zero contribution,
+zero test access, and root-isolation/removal confirmations.  Register the runner
+contract and record; produced artifacts become seven, while all science remains
+zero and the production tree remains absent.
+
+## B5 — mutation and adversarial verification
+
+Primarily add tests, without silently editing hash-bound B3/B4 production after
+registration.  If a post-registration production defect is found, HOLD with
+the exact defect instead of leaving a stale contract.  Cover all authority and
+source mutations, seed purpose/swap/attempt/shard/batch/reseed/offset/width/
+Philox mutations, mapper/LLR/N0/noise/EsN0/K-bit/decoder/shape/NaN/count
+mutations, partial publication/hard exits/conflicts/aliases/stale state/
+recovery/attempt mutations, merge and campaign lead/lag/reshard mutations,
+smoke limits and relabelling, test-access and path/timestamp contamination,
+batch/plan/request/result repeatability, randomized enumeration, concurrent
+creators and replacements.  Use real processes for locks, hard exits and
+immutable publication.  Run resume, runner, all B1C/B2C/B3, combined G8, and
+full suites; continue to B6 without an interim stop.
+
+## B6 — final green and handoff
+
+Atomically advance campaign state to `phase=G8_B`,
+`stage=tooling_smoke_complete`, preserving empty completed IDs, null in-progress
+ID, all four zero counters, and exactly seven artifacts.  Set the exact G8_C
+restart command:
+
+`rg -n "G8_C|characterization_open|full_strength|run_g8_bler|resume_plan|merge_report|tooling_smoke_complete" src/baseline tools tests instructions`
+
+Run every final command in the completion instruction, including focused,
+combined, generator/verifier, phase-state, W4/G-2, spec/docs/literals,
+full-suite, CPU-lock, diff, parity, and forbidden-output checks.  Prove no
+production runtime artifacts, no full-strength request/result/state, no
+validation/inference/training/selection/authorization/test access, no
+`BlerTable`, and no G8_C execution.  Explicitly verify every frozen file against
+the starting commit.  Update `AGENTS.md`, `NEXT.md`, `README.md`,
+`instructions/RESUME.md`, and the W4 worklog with the exact required live
+wording, without claiming a BLER table, physical operating point, G8_C start,
+or test evidence.
+
+The final signed commit subject is:
+`feat(g8-b): complete BLER tooling and bounded smoke`
+
+Expected amendment judgment is exactly **No specification amendment.**  Amend
+`spec/SPEC.md` only if a genuine normative scientific parameter, hypothesis,
+gate, measurement definition, selection rule, or test boundary contradiction is
+found; never amend for implementation inconvenience.
+
+## Required final report
+
+The final report must state the starting SHA/signature/parity/worktree; starting
+tests; every marker and ending commit; changed files/count; B3.H2 locking and
+process evidence; history rules; fast-validator equivalence and instrumentation;
+B3 contract ID/SHA/bytes/source bindings; plan schema/digest; merge completeness;
+campaign lead/lag; runner transaction/crash matrix; physical pipeline; seeds and
+batch proof; publication mechanics; full-strength G8_B rejection; runner
+contract ID/SHA/bytes/source/dependencies; selected smoke IDs and exact counts;
+smoke record hash/bytes and zero coverage; mutation totals; targeted/combined/
+full totals and durations; all verifier results; CPU-lock result; unchanged
+original artifact hashes; final seven artifacts and campaign-state SHA;
+G8_B/tooling_smoke_complete; zero counters; empty/null IDs; absent runtime;
+no full-strength outputs or scientific access; no `BlerTable`; no G8_C; exact
+restart command; final parity and clean worktree; amendment judgment.  The final
+line must be the exact green terminal line above.
+
