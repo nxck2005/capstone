@@ -2253,3 +2253,148 @@ def test_inspection_never_creates_the_production_runtime_root(
         assert report["census"]["root_present"] is False
         assert {record["classification"] for record in report["classifications"]} == {"absent"}
     assert production.exists() == existed
+
+
+# ---------------------------------------------------------------------------
+# B3.4 — deterministic resume plans and merge reports (§17–§18)
+# ---------------------------------------------------------------------------
+
+
+def _stub_registered_b3_binding(
+    context: resume.AuthenticatedResumeContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Use a candidate binding while the real B3 artifact is not registered yet."""
+
+    binding = {
+        "bler_resume_contract_id": "g8resume-" + "a" * 64,
+        "bler_resume_contract_sha256": "b" * 64,
+        "bler_state_contract_id": resume.EXPECTED_B2C_CONTRACT_ID,
+        "bler_state_contract_sha256": resume.EXPECTED_B2C_CONTRACT_SHA256,
+        "bler_tooling_contract_id": resume.EXPECTED_B1C_CONTRACT_ID,
+        "bler_tooling_contract_sha256": resume.EXPECTED_B1C_CONTRACT_SHA256,
+        "campaign_id": resume.EXPECTED_CAMPAIGN_ID,
+        "campaign_manifest_sha256": resume.EXPECTED_CAMPAIGN_MANIFEST_SHA256,
+        "required_bler_artifact_sha256": resume.EXPECTED_REQUIRED_IDENTITIES_SHA256,
+        "selection_policy_sha256": resume.EXPECTED_SELECTION_POLICY_SHA256,
+        "request_schema_version": resume.REQUEST_SCHEMA_VERSION,
+        "result_schema_version": resume.RESULT_SCHEMA_VERSION,
+        "unit_state_schema_version": resume.UNIT_STATE_SCHEMA_VERSION,
+    }
+    monkeypatch.setattr(resume, "_resume_operation_bindings", lambda _context: dict(binding))
+
+
+def test_plans_and_merge_reports_require_a_registered_b3_contract(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    with pytest.raises(resume.ResumeContractAuthenticationError):
+        resume.build_resume_plan(context, root=root)
+    with pytest.raises(resume.ResumeContractAuthenticationError):
+        resume.build_merge_report(context, root=root)
+
+
+def test_empty_resume_plan_is_byte_deterministic_and_shard_ordered(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_registered_b3_binding(context, monkeypatch)
+    first = resume.build_resume_plan(context, root=root, shard_count=3, shard_index=1)
+    second = resume.build_resume_plan(context, root=root, shard_count=3, shard_index=1)
+    assert bler_contract.canonical_json(first) == bler_contract.canonical_json(second)
+    assert resume.resume_plan_digest(first) == first["plan_digest"]
+    assert first["schema_version"] == 1
+    assert first["artifact_role"] == "g8_bler_resume_plan"
+    assert first["logical_root"] == resume.WORK_UNIT_ROOT_LOGICAL_PREFIX
+    assert first["test_split_access"] == 0
+    assert first["shard_plan_digest"] == units.build_shard_plan(
+        context.state_context, 3, 1
+    )["plan_digest"]
+    expected_ids = list(context.ordered_work_unit_ids)[1::3]
+    assert first["assigned_work_unit_ids"] == expected_ids
+    assert [record["work_unit_id"] for record in first["assigned_unit_records"]] == expected_ids
+    assert first["completed_work_unit_ids"] == []
+    assert first["recoverable_work_unit_ids"] == []
+    assert first["remaining_work_unit_ids"] == expected_ids
+    assert all(entry["proposed_attempt"] == 1 for entry in first["proposed_attempts"])
+    assert str(root) not in bler_contract.canonical_json(first).decode("ascii")
+    forbidden = ("hostname", "process_id", "timestamp", "mtime", "inode")
+    assert not any(name in first for name in forbidden)
+
+
+def test_changing_shard_layout_changes_membership_only(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_registered_b3_binding(context, monkeypatch)
+    first = resume.build_resume_plan(context, root=root, shard_count=2, shard_index=0)
+    second = resume.build_resume_plan(context, root=root, shard_count=5, shard_index=0)
+    first_records = {entry["work_unit_id"]: entry for entry in first["assigned_unit_records"]}
+    second_records = {entry["work_unit_id"]: entry for entry in second["assigned_unit_records"]}
+    overlap = set(first_records) & set(second_records)
+    assert overlap
+    for work_unit_id in overlap:
+        assert first_records[work_unit_id] == second_records[work_unit_id]
+    assert set(first["assigned_work_unit_ids"]) != set(second["assigned_work_unit_ids"])
+    assert all(entry["proposed_attempt"] == 1 for entry in second["proposed_attempts"])
+
+
+def test_partial_merge_report_is_explicitly_not_complete(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_registered_b3_binding(context, monkeypatch)
+    work_unit_id = _unit(context)
+    request, request_sha = _publish_request(context, root, work_unit_id, 1)
+    _result, result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    linked = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_RESULT_LINKED,
+        request_sha256=request_sha,
+        result_path=resume.logical_result_path(context, work_unit_id, 1),
+        result_sha256=result_sha,
+        scientific_execution_performed=True,
+        trials_completed=request["trials_requested"],
+    )
+    _publish_state(context, root, linked)
+    report = resume.build_merge_report(context, root=root)
+    assert resume.merge_report_digest(report) == report["report_digest"]
+    assert report["required_work_unit_ids"] == list(context.ordered_work_unit_ids)
+    assert report["validated_complete_work_unit_ids"] == [work_unit_id]
+    assert report["missing_work_unit_ids"] == list(context.ordered_work_unit_ids[1:])
+    assert report["valid_request_count"] == 1
+    assert report["valid_result_count"] == 1
+    assert report["valid_complete_result_count"] == 1
+    assert report["exact_coverage_count"] == 1
+    assert report["total_required_coverage_contribution"] == 1
+    assert report["coverage_complete"] is False
+    assert report["merge_ready"] is False
+    assert report["duplicate_count"] == 0
+    assert report["unknown_count"] == 0
+    assert report["test_split_access"] == 0
+
+
+def test_plan_and_merge_scan_under_one_exclusive_lease(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_registered_b3_binding(context, monkeypatch)
+    original = resume.reconciliation_lock
+    calls: list[str] = []
+
+    @contextlib.contextmanager
+    def spy(*args: Any, **kwargs: Any) -> Any:
+        calls.append(kwargs.get("mode", resume.LOCK_MODE_EXCLUSIVE))
+        with original(*args, **kwargs) as lease:
+            yield lease
+
+    monkeypatch.setattr(resume, "reconciliation_lock", spy)
+    resume.build_resume_plan(context, root=root)
+    resume.build_merge_report(context, root=root)
+    assert calls == [resume.LOCK_MODE_EXCLUSIVE, resume.LOCK_MODE_EXCLUSIVE]

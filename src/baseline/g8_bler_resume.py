@@ -2498,6 +2498,305 @@ def classify_runtime_root(
 
 
 # ---------------------------------------------------------------------------
+# Deterministic resume plans and merge validation (G8_B3 §17–§18)
+# ---------------------------------------------------------------------------
+
+RESUME_PLAN_SCHEMA_VERSION = RESUME_CONTRACT_SCHEMA_VERSION
+RESUME_PLAN_ARTIFACT_ROLE = "g8_bler_resume_plan"
+MERGE_REPORT_SCHEMA_VERSION = RESUME_CONTRACT_SCHEMA_VERSION
+MERGE_REPORT_ARTIFACT_ROLE = "g8_bler_merge_validation_report"
+PLAN_DIGEST_FIELD = "plan_digest"
+MERGE_REPORT_DIGEST_FIELD = "report_digest"
+
+
+def _scan_runtime_root_locked(
+    context: AuthenticatedResumeContext,
+    *,
+    root: Path | str | None,
+    scan_mode: str,
+    lease: ReconciliationLease,
+) -> tuple[dict[str, Any], tuple[dict[str, Any], ...]]:
+    """Census and classify once under one already-held exclusive lease."""
+
+    lease._assert_usable(root, LOCK_MODE_EXCLUSIVE)
+    census = _census_runtime_root_locked(context, root=root, lease=lease)
+    records = classify_runtime_root(context, census, root=root, scan_mode=scan_mode)
+    return census, records
+
+
+def _resume_operation_bindings(context: AuthenticatedResumeContext) -> dict[str, Any]:
+    """Return the complete immutable binding block for a B3 derived record."""
+
+    authority = context.authority_binding()
+    state_binding = context.state_contract_binding()
+    resume_binding = context.require_resume_contract_binding()
+    return {
+        "bler_resume_contract_id": resume_binding["bler_resume_contract_id"],
+        "bler_resume_contract_sha256": resume_binding["bler_resume_contract_sha256"],
+        "bler_state_contract_id": state_binding["bler_state_contract_id"],
+        "bler_state_contract_sha256": state_binding["bler_state_contract_sha256"],
+        "bler_tooling_contract_id": authority["bler_tooling_contract_id"],
+        "bler_tooling_contract_sha256": authority["bler_tooling_contract_sha256"],
+        "campaign_id": authority["campaign_id"],
+        "campaign_manifest_sha256": authority["campaign_manifest_sha256"],
+        "required_bler_artifact_sha256": authority["required_bler_artifact_sha256"],
+        "selection_policy_sha256": authority["selection_policy_sha256"],
+        "request_schema_version": authority["request_schema_version"],
+        "result_schema_version": authority["result_schema_version"],
+        "unit_state_schema_version": UNIT_STATE_SCHEMA_VERSION,
+    }
+
+
+def _with_derived_digest(payload: Mapping[str, Any], field: str) -> dict[str, Any]:
+    """Add one self-excluding SHA-256 over canonical identity bytes."""
+
+    body = dict(payload)
+    body.pop(field, None)
+    body[field] = sha256_bytes(canonical_json(body))
+    return _fresh(body)
+
+
+def resume_plan_digest(plan: Mapping[str, Any]) -> str:
+    """Recompute a resume-plan digest without trusting its stored value."""
+
+    if not isinstance(plan, Mapping):
+        raise ResumeChainError("resume plan must be a mapping")
+    body = dict(plan)
+    supplied = body.pop(PLAN_DIGEST_FIELD, None)
+    _digest(supplied, "resume plan digest", ResumeChainError)
+    return sha256_bytes(canonical_json(body))
+
+
+def merge_report_digest(report: Mapping[str, Any]) -> str:
+    """Recompute a merge-report digest without trusting its stored value."""
+
+    if not isinstance(report, Mapping):
+        raise ResumeChainError("merge report must be a mapping")
+    body = dict(report)
+    supplied = body.pop(MERGE_REPORT_DIGEST_FIELD, None)
+    _digest(supplied, "merge report digest", ResumeChainError)
+    return sha256_bytes(canonical_json(body))
+
+
+def _build_resume_plan_locked(
+    context: AuthenticatedResumeContext,
+    *,
+    root: Path | str | None,
+    shard_count: Any,
+    shard_index: Any,
+    scan_mode: str,
+    lease: ReconciliationLease,
+) -> dict[str, Any]:
+    lease._assert_usable(root, LOCK_MODE_EXCLUSIVE)
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+    bindings = _resume_operation_bindings(context)
+    shard_plan = work_units.build_shard_plan(
+        context.state_context,
+        shard_count,
+        shard_index,
+    )
+    shard_plan = work_units.validate_shard_plan(context.state_context, shard_plan)
+    census, records = _scan_runtime_root_locked(
+        context,
+        root=root,
+        scan_mode=scan_mode,
+        lease=lease,
+    )
+    by_id = {record["work_unit_id"]: record for record in records}
+    assigned_ids = list(shard_plan["assigned_work_unit_ids"])
+    assigned_records = [by_id[work_unit_id] for work_unit_id in assigned_ids]
+    completed = [
+        record["work_unit_id"]
+        for record in assigned_records
+        if record["classification"] == CLASSIFICATION_COMPLETED_FULL_STRENGTH
+    ]
+    recoverable = [
+        record["work_unit_id"]
+        for record in assigned_records
+        if record["classification"] in RECOVERABLE_CLASSIFICATIONS
+    ]
+    remaining = [
+        record["work_unit_id"]
+        for record in assigned_records
+        if record["classification"] in REMAINING_CLASSIFICATIONS
+    ]
+    terminal = [
+        record["work_unit_id"]
+        for record in assigned_records
+        if record["classification"] in TERMINAL_CLASSIFICATIONS
+    ]
+    proposed_attempts = [
+        {
+            "work_unit_id": record["work_unit_id"],
+            "classification": record["classification"],
+            "current_attempt": record["attempt"],
+            "proposed_attempt": record["proposed_attempt"],
+        }
+        for record in assigned_records
+        if record["classification"] in REMAINING_CLASSIFICATIONS
+    ]
+    plan = {
+        "schema_version": RESUME_PLAN_SCHEMA_VERSION,
+        "artifact_role": RESUME_PLAN_ARTIFACT_ROLE,
+        **bindings,
+        "required_work_unit_count": context.required_work_unit_count,
+        "shard_count": shard_plan["shard_count"],
+        "shard_index": shard_plan["shard_index"],
+        "shard_plan_digest": shard_plan["plan_digest"],
+        "assigned_work_unit_ids": assigned_ids,
+        "assigned_unit_records": assigned_records,
+        "completed_work_unit_ids": completed,
+        "recoverable_work_unit_ids": recoverable,
+        "remaining_work_unit_ids": remaining,
+        "terminal_nonmergeable_work_unit_ids": terminal,
+        "proposed_attempts": proposed_attempts,
+        "logical_root": WORK_UNIT_ROOT_LOGICAL_PREFIX,
+        "scan_mode": scan_mode,
+        "ignored_staging_count": census["ignored_orphan_staging_count"],
+        "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+    }
+    return _with_derived_digest(plan, PLAN_DIGEST_FIELD)
+
+
+def build_resume_plan(
+    context: Any,
+    *,
+    root: Path | str | None = None,
+    shard_count: Any = 1,
+    shard_index: Any = 0,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Build one byte-deterministic, exclusive-lease resume plan."""
+
+    context = _resume_context(context)
+    with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as lease:
+        return _build_resume_plan_locked(
+            context,
+            root=root,
+            shard_count=shard_count,
+            shard_index=shard_index,
+            scan_mode=scan_mode,
+            lease=lease,
+        )
+
+
+def _build_merge_report_locked(
+    context: AuthenticatedResumeContext,
+    *,
+    root: Path | str | None,
+    scan_mode: str,
+    lease: ReconciliationLease,
+) -> dict[str, Any]:
+    lease._assert_usable(root, LOCK_MODE_EXCLUSIVE)
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+    bindings = _resume_operation_bindings(context)
+    census, records = _scan_runtime_root_locked(
+        context,
+        root=root,
+        scan_mode=scan_mode,
+        lease=lease,
+    )
+    required_ids = list(context.ordered_work_unit_ids)
+    completed = [
+        record["work_unit_id"]
+        for record in records
+        if record["classification"] == CLASSIFICATION_COMPLETED_FULL_STRENGTH
+    ]
+    recoverable = [
+        record["work_unit_id"]
+        for record in records
+        if record["classification"] in RECOVERABLE_CLASSIFICATIONS
+    ]
+    remaining = [
+        record["work_unit_id"]
+        for record in records
+        if record["classification"] in REMAINING_CLASSIFICATIONS
+    ]
+    failed = [
+        record["work_unit_id"]
+        for record in records
+        if record["classification"] == CLASSIFICATION_FAILED_RETRYABLE
+    ]
+    bounded = [
+        record["work_unit_id"]
+        for record in records
+        if record["classification"] == CLASSIFICATION_TERMINAL_NONMERGEABLE
+    ]
+    missing = [work_unit_id for work_unit_id in required_ids if work_unit_id not in set(completed)]
+    valid_requests = sum(1 for record in records if record["request_sha256"] is not None)
+    valid_results = sum(1 for record in records if record["result_sha256"] is not None)
+    valid_complete_results = sum(
+        1
+        for record in records
+        if record["result_sha256"] is not None
+        and record["result_status"] == bler_contract.STATUS_COMPLETE
+    )
+    duplicate_count = 0
+    unknown_count = 0
+    exact_coverage_count = len(completed)
+    total_coverage = sum(record["required_coverage_contribution"] for record in records)
+    coverage_complete = (
+        required_ids == list(dict.fromkeys(required_ids))
+        and len(completed) == context.required_work_unit_count
+        and len(set(completed)) == context.required_work_unit_count
+        and valid_requests == context.required_work_unit_count
+        and valid_complete_results == context.required_work_unit_count
+        and total_coverage == context.required_work_unit_count
+        and not duplicate_count
+        and not unknown_count
+        and not missing
+        and bler_contract.TEST_SPLIT_ACCESS == 0
+    )
+    report = {
+        "schema_version": MERGE_REPORT_SCHEMA_VERSION,
+        "artifact_role": MERGE_REPORT_ARTIFACT_ROLE,
+        **bindings,
+        "required_work_unit_count": context.required_work_unit_count,
+        "required_work_unit_ids": required_ids,
+        "validated_complete_work_unit_ids": completed,
+        "missing_work_unit_ids": missing,
+        "remaining_work_unit_ids": remaining,
+        "recoverable_work_unit_ids": recoverable,
+        "failed_work_unit_ids": failed,
+        "bounded_nonmergeable_work_unit_ids": bounded,
+        "duplicate_count": duplicate_count,
+        "unknown_count": unknown_count,
+        "exact_coverage_count": exact_coverage_count,
+        "valid_request_count": valid_requests,
+        "valid_result_count": valid_results,
+        "valid_complete_result_count": valid_complete_results,
+        "total_required_coverage_contribution": total_coverage,
+        "coverage_complete": coverage_complete,
+        "merge_ready": coverage_complete,
+        "logical_root": WORK_UNIT_ROOT_LOGICAL_PREFIX,
+        "scan_mode": scan_mode,
+        "ignored_staging_count": census["ignored_orphan_staging_count"],
+        "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+    }
+    return _with_derived_digest(report, MERGE_REPORT_DIGEST_FIELD)
+
+
+def build_merge_report(
+    context: Any,
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Validate resume coverage under one exclusive lease without merging."""
+
+    context = _resume_context(context)
+    with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as lease:
+        return _build_merge_report_locked(
+            context,
+            root=root,
+            scan_mode=scan_mode,
+            lease=lease,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Read-only inspection and explicit repair (G8_B3 §16)
 # ---------------------------------------------------------------------------
 
@@ -2919,6 +3218,8 @@ __all__ = [
     "WORK_UNIT_ROOT_LOGICAL_PREFIX",
     "artifact_path",
     "artifact_relative_path",
+    "build_merge_report",
+    "build_resume_plan",
     "census_runtime_root",
     "classification_for_shape",
     "classify_runtime_root",
@@ -2928,6 +3229,7 @@ __all__ = [
     "is_full_strength_merge_candidate",
     "logical_artifact_path",
     "logical_result_path",
+    "merge_report_digest",
     "parse_attempt_token",
     "proposed_attempt",
     "read_unit_state_snapshot",
@@ -2937,6 +3239,7 @@ __all__ = [
     "request_relative_path",
     "result_path",
     "result_relative_path",
+    "resume_plan_digest",
     "state_path",
     "validate_request_file",
     "validate_result_file",
