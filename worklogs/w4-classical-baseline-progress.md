@@ -1191,7 +1191,7 @@ changing any of them, which is the bar §17's preamble sets.
 
 ## Remaining frontier
 
-W4 is complete, including PB_3C. **G8_B active. B0, B1, B1C and B2 complete. B3 next — implement
+W4 is complete, including PB_3C. **G8_B active. B0, B1, B1C, B2 and B2C complete. B3 next — implement
 exact resume and merge validation. No runner, simulation, smoke or characterization has started.
 G8_C–G8_G remain prohibited.** The single next engineering task is **G-8 classical validation
 work**; the full sweep is step eight of twelve, and the B2 tooling now precedes it.
@@ -1241,7 +1241,7 @@ G8_A began from clean local/origin/remote parity at `39c43e327573f33011c561c6de2
 
 The PB_3C terminal handoff provenance is explicit rather than inferred from an intended subject: terminal SHA `39c43e327573f33011c561c6de22bd05ff93c068`, actual subject `fix: fix push failure due to gpg for resume.md`; implementation/adjudication checkpoint `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3 implementation green `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; latest scientific-measurement green `3324393a3e1692478bba8cf1020708bf52947f6d`. History is preserved.
 
-G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. G8_B active. B0, B1, B1C and B2 complete. B3 next — implement exact resume and merge validation. No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited. B1 remains a historical design checkpoint; B1C corrected and hardened the executable contract before data. The corrected tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed unit snapshots and atomic publication without interpreting state history.
+G8_A is complete. It froze the pre-data contract, enumerated structural candidates and required physical-layer identities, and added state/preflight verification without running characterization, loading validation pixels, measuring accuracy, selecting anything, training, issuing authorization, invoking fallback, or accessing test. G8_B active. B0, B1, B1C, B2 and B2C complete. B3 next — implement exact resume and merge validation. No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited. B1 remains a historical design checkpoint; B1C corrected and hardened the executable contract before data. The corrected tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed unit snapshots and atomic publication without interpreting state history.
 
 ## G8_A green — contract frozen, G8_B released
 
@@ -1251,7 +1251,7 @@ G8_A enumerated 12,096 structural candidates over the headline and already-speci
 
 ## G8_B B0 — verify G8_A and open the phase (complete)
 
-G8_B is active; B0, B1, B1C and B2 are complete and B3 is next. The first B0 command after the marker was
+G8_B is active; B0, B1, B1C, B2 and B2C are complete and B3 is next. The first B0 command after the marker was
 `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; the exact B1 restart command is
 `rg -n "trials_per_point|bler_trials|seed|BlerIdentity|run_ldpc_g2" spec/SPEC.md spec/params.generated.yaml tools/run_ldpc_g2.py src/baseline`.
 No characterization, sweep, validation decoding, inference, training, test access, ratio
@@ -1330,7 +1330,7 @@ without touching a counter or work unit; state SHA-256 is
 
 ## G8_B B2 — deterministic sharding and atomic unit state (complete)
 
-**G8_B active. B0, B1, B1C and B2 complete. B3 next — implement exact resume and merge
+**G8_B active. B0, B1, B1C, B2 and B2C complete. B3 next — implement exact resume and merge
 validation. No runner, simulation, smoke or characterization has started. G8_C–G8_G remain
 prohibited.** B2 is infrastructure only: no required work unit was claimed, no request or result
 was created, no BLER path was invoked, and no state directory was scanned for execution history.
@@ -1358,3 +1358,122 @@ registration-owned campaign state has four produced artifacts, SHA-256
 `c75254513f2edc31a37957a5f2cfa13d532062e959f887091fabac04c4d91c92`, completed IDs `[]`,
 in-progress `null`, and all four scientific counters zero. No amendment was needed: B2 freezes
 implementation mechanics left open by the normative spec and contradicts no requirement.
+
+## G8_B B2C — correct and harden unit-state publication before B3 (complete)
+
+**G8_B active. B0, B1, B1C, B2 and B2C complete. B3 next — implement exact resume and merge
+validation. No runner, simulation, smoke or characterization has started. G8_C–G8_G remain
+prohibited.** B2C is infrastructure only: no required work unit was claimed, no request or result
+was created, no BLER path was invoked, and no state directory was scanned for execution history.
+It began and ended with `completed_work_unit_ids == []`, `in_progress_work_unit_id == null` and all
+four scientific counters zero.
+
+**Why B2C exists.** B2's sharding and schema direction was right and is kept unchanged. Its
+publication primitives were not, and a line-by-line audit found nine defects that B3's exact resume
+and merge validation would have inherited:
+
+1. **First publication was not crash-atomic.** `create_unit_state_exclusive` opened the *final*
+   pathname with `O_CREAT | O_EXCL` and wrote into it. The exclusivity was real, but a hard kill
+   between `open` and `fsync` leaves a truncated file at the authoritative name, and a later reader
+   cannot tell "never written" from "half written".
+2. **Replacement was not linearizable.** It read the current state, compared its SHA-256 with
+   `expected_previous_sha256`, then wrote a temporary and called `os.replace()` — with nothing held
+   across that window. Two writers starting from the same predecessor digest could both pass the
+   comparison and both report success, the second silently destroying the first. That is a
+   read-then-write; the B2 contract described it as compare-and-swap.
+3. **A descriptor could be closed twice**, in `except` and again in `finally`, so a real publication
+   failure could reach the caller as a secondary `EBADF`.
+4. **Symlink guards were fail-open.** `path.exists() and path.is_symlink()` follows the link, so a
+   *dangling* symlink at the final name, the root, the bucket or a staging name reported
+   `exists() == False` and passed. Validation also compared two `resolve()` calls derived from the
+   same candidate, which proves nothing an attacker-controlled parent has not already decided.
+5. **Directory durability was silently downgraded** — `EACCES` was treated as "unsupported" and
+   every caller discarded the returned flag.
+6. **Results were not request-bound and not terminal**: a `result_linked` state could carry a null
+   `request_sha256`, and once linked its result path, result SHA, trials or attempt could still be
+   rewritten by any writer holding the current digest.
+7. **Trials could decrease**, a bound request SHA could change, and the scientific flag could go
+   true → false.
+8. **Unit states did not bind their own contract**, so a state written under the superseded B2
+   contract was indistinguishable from one written under B2C.
+9. **The independent verifier was not independent** — it imported every expected constant, field
+   list and status rule from the module under test, so a mutation moved the "expected" values in
+   lockstep and the verifier still passed. A permanent assertion that the runtime work-unit tree
+   never exists was also scheduled to fail the moment B3 or B4 legitimately executes.
+
+**What B2C installs.** Two explicit authority layers. `AuthenticatedExecutionContext` keeps the B1C
+campaign/work-unit/sharding authority and remains sufficient for contract generation and shard
+planning. `AuthenticatedUnitStateContext` wraps it and additionally authenticates the *registered*
+B2C state-contract artifact against campaign state — path, byte count, SHA-256, contract ID, schema
+version, checkpoint, supersession and source bindings — and is required by every unit-state build,
+validate, read, create and replace. A plain execution context is rejected where the state layer is
+required. The circular dependency is avoided rather than papered over: the contract artifact never
+binds its own SHA-256, so the generator can build it before it is installed, and the external
+SHA-256 that every unit state binds comes from the authenticated campaign-state binding.
+
+Unit-state schema version 2 adds `bler_state_contract_id` and `bler_state_contract_sha256`. A state
+binding the superseded B2 contract ID or SHA is rejected, as is one binding any contract other than
+the registered B2C artifact.
+
+First publication renders complete canonical bytes, opens the root and bucket descriptor-relative
+with `O_DIRECTORY | O_NOFOLLOW`, rejects any object already at the final name by no-follow `lstat`,
+creates a unique same-directory staging file with `O_CREAT | O_EXCL | O_NOFOLLOW` mode `0600`,
+writes, flushes and `fsync`s it, then publishes with
+`os.link(..., follow_symlinks=False)` against the bucket descriptor — a primitive that **cannot**
+replace, so a regular file, symlink, dangling symlink, directory or any other occupant produces a
+domain conflict. It then `fsync`s the directory, removes the staging name and rereads and validates
+the installed bytes. The final pathname is never opened for writing and there is no fallback that
+would do so; if the filesystem cannot supply the no-replace primitive the operation fails closed.
+
+Replacement holds one exclusive per-unit critical section — `fcntl.flock(LOCK_EX)` on a canonical
+lock file under `.locks/`, which can never collide with a two-hex-digit state bucket, plus a
+process-local keyed lock so threads in one process cannot race either — and performs the reread,
+the digest comparison, the transition validation and the publication inside it. Locks release on
+normal exit, on exception and on process death.
+
+A valid `result_linked` state requires a non-null lowercase-hex `request_sha256`, a result path and
+SHA, `scientific_execution_performed == true`, `trials_completed > 0` and `test_split_access == 0`;
+no result may exist without a request binding in any status. It is **terminal**: the only permitted
+operation is exact canonical-byte idempotence, and different bytes raise `StateConflictError` even
+when the writer supplies the current digest. Within one attempt, trials never decrease, the
+scientific flag never goes true → false, a bound request SHA never changes or clears, shard
+assignment is immutable, and `failed → claimed` and `failed → result_linked` are both forbidden. A
+non-result state may begin a new attempt only as `old_attempt + 1` with a completely clean claim,
+and **that transition is the only legal resharding path** — which is what lets an abandoned unit be
+reassigned without deleting its prior state while guaranteeing a completed result can never move.
+
+**Verification.** The independent verifier now defines or derives every expected value locally —
+immutable campaign and B1C values, superseded B2 values, field sets, schema versions, status and
+transition rules, the shard formula, path derivation and the publication guarantees — reads the
+campaign manifest, required identities, tooling contract, campaign state and state contract itself,
+and uses its own canonical-JSON implementation. It imports the production module only as the system
+under test; an AST test enforces that it never uses `from baseline.g8_bler_work_units import …` for
+expected constants. Its drills fork real child processes: eight simultaneous creators with exactly
+one winner, a hard exit before publication leaving the final path absent, and a hard exit after
+publication leaving complete canonical bytes.
+
+The permanent no-live-state assertion became the explicit `--require-no-live-state` option, used
+when closing B2C. Ordinary contract verification no longer requires the runtime tree to be absent,
+so B3, B4 and G8_C can legitimately create one; tracked unit-state or lock files are rejected
+always, through `git ls-files`.
+
+**Migration.** `tools/migrate_g8_bler_state_contract.py` replaces exactly one already-registered
+produced-artifact binding. It accepts only the exact B2 or the exact B2C pair, refuses any
+scientific or phase drift, stages the corrected contract, verifies it independently against a
+staged campaign state that registers exactly the staged bytes — which is how the artifact/state
+circularity is broken without weakening either check — atomically replaces the artifact, `fsync`s
+the directory, then atomically updates only the state-contract entry. It preserves the campaign ID,
+manifest, required identities, B1C contract, every unrelated artifact, phase, stage, completed IDs,
+in-progress ID, all counters, seed identity and the exact B3 restart command, and is idempotent and
+recoverable from all four artifact/state pairs and from interruption before, between and after the
+two replacements. **Because no unit-state file has ever existed, no per-unit migration was needed
+or written.**
+
+**Amendment judgment: no specification amendment.** B2C corrects implementation mechanics before
+any data exists and changes no scientific parameter, hypothesis, gate, operating rule or selection
+rule.
+
+**Also recorded during B2C, and deliberately not acted on:** DJSCC training infrastructure remains a
+later W5 task; PR-1, PR-2, PR-3 and PR-9 remain outstanding and are governed by the actual calendar
+review deadline rather than by the completion of the engineering work package called W4; and
+`er1_projected_total_hours_status` remains an open profiling/governance item.

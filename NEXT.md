@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-02 · **Phase:** **G8_B active; B0, B1, B1C and B2 complete; B3 next — implement exact resume and merge validation. G8_C–G8_G remain prohibited.**
+**Last updated:** 2026-08-02 · **Phase:** **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 next — implement exact resume and merge validation. G8_C–G8_G remain prohibited.**
 
 ## Single next task
 
@@ -26,15 +26,15 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **G8_B active; B0, B1, B1C and B2 complete; B3 next — implement exact resume and merge validation.** |
-| G8_B–G8_G | **G8_B active; B0, B1, B1C and B2 complete; G8_C–G8_G prohibited until the preceding phase is green** |
+| G-8 classical validation work | **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 next — implement exact resume and merge validation.** |
+| G8_B–G8_G | **G8_B active; B0, B1, B1C, B2 and B2C complete; G8_C–G8_G prohibited until the preceding phase is green** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B active. B0, B1, B1C and B2 complete. B3 next — implement exact resume and merge validation.** B0 verified G8_A and opened the phase. B1 remains a historical design checkpoint; B1C corrected and hardened the executable BLER contract before data. Tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed per-unit state, atomic publication, and the independently verified B2 contract; it did not interpret a state directory as execution history. **No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited.** On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint.
+**G8_B active. B0, B1, B1C, B2 and B2C complete. B3 next — implement exact resume and merge validation.** B0 verified G8_A and opened the phase. B1 remains a historical design checkpoint; B1C corrected and hardened the executable BLER contract before data. Tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed per-unit state, atomic publication, and the independently verified B2 contract; it did not interpret a state directory as execution history. **B2C is B2's pre-execution correction and is what B3 must build on.** B2's direction was right but its primitives did not actually deliver what B3 needs: first publication wrote straight into the final pathname (so a hard kill could leave half a JSON file at the authoritative name), replacement did an unlocked read-compare-`os.replace()` and called it compare-and-swap (so two workers holding the same predecessor digest could both "succeed", the second silently destroying the first), the failure path could close one descriptor twice and surface `EBADF` instead of the real error, `exists() and is_symlink()` followed the link so a *dangling* symlink passed the guard, a directory-fsync `EACCES` was swallowed as "unsupported", a `result_linked` state was neither request-bound nor terminal, and unit states bound only the B1C tooling contract, not their own. B2C fixed all of that: staged crash-atomic no-replace publication, a linearizable per-unit `flock` critical section, no-follow path inspection, fail-closed durability, request-bound terminal results with a single legal next-attempt resharding path, and a state-contract binding in every unit state. The independent verifier now derives its own expected truth instead of importing it from the module under test, and the permanent "the runtime tree never exists" assertion became the explicit `--require-no-live-state` option so B3 and B4 can legitimately create one. **No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited.** On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint.
 Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 
@@ -54,6 +54,15 @@ committed bounded evidence and the W4 integration verifier. **PB_3 built the BR-
 machinery and deliberately did not run it** — see the section below. What remains after W4 is G-8:
 the full BR-4 validation sweep and the operating-point decision. PR-1, PR-2 and PR-9 remain
 outstanding programme deliverables and are unblocked by all of this.
+
+**Three items recorded during B2C, none of them B2C work.** (i) **DJSCC training infrastructure
+remains a later W5 task** — it is not part of G-8 and must not be started to "unblock" anything
+here. (ii) **PR-1, PR-2, PR-3 and PR-9 remain outstanding**, and their urgency is governed by the
+actual calendar review deadline in `params.deliverables.review_dates`, **not** by the fact that the
+engineering work package called W4 is complete. Finishing W4 did not move a review date; do not
+read "W4 complete" as slack on these. (iii) **`er1_projected_total_hours_status` remains an open
+profiling/governance item** — it is unresolved, it was not touched by B2C, and it still needs a
+profiling pass plus a recorded governance decision.
 
 **What PB_3 landed, and what it refused to do.** `src/baseline/classical/composition.py` implements
 AM-51's analytic composition — `P(TB success)` as the product over code blocks of `1 - BLER_r`, and
@@ -112,7 +121,7 @@ and the spec defines no BR-4 selection tie-break to contradict.
 
 ### Durable G-8 phase partition
 
-The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**active; B0, B1, B1C and B2 complete, B3 next**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**active; B0, B1, B1C, B2 and B2C complete, B3 next**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
 ### What G-8 actually has to build — read this before starting it
 
@@ -326,7 +335,7 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
    **Complete.**
 8. ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication.**~~ **Complete.**
 9. **G-8 classical validation work — campaign implementation and preflight, then the full BR-4
-   validation sweep and the operating-point decision. G8_B is active; B0, B1, B1C and B2 are complete; B3 is next — exact resume and merge validation.** The sweep is step eight
+   validation sweep and the operating-point decision. G8_B is active; B0, B1, B1C, B2 and B2C are complete; B3 is next — exact resume and merge validation.** The sweep is step eight
    of twelve; see "What G-8 actually has to build".
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7

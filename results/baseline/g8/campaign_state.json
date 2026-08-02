@@ -13,9 +13,9 @@
     "phase": "G8_B",
     "produced_artifacts": [
       {
-        "bytes": 9390,
+        "bytes": 18394,
         "path": "results/baseline/g8/bler_state_contract.json",
-        "sha256": "2422c4c2a019c2a901cfd8732747555262dfca5601b28b0e700ff33743d4d939"
+        "sha256": "cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583"
       },
       {
         "bytes": 14231,

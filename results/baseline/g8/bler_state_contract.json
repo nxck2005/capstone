@@ -1,4 +1,24 @@
 {
+  "adversary_model": {
+    "assumes": "a trusted local user and a single trusted repository checkout",
+    "defends_against": [
+      "two cooperating workers racing on the same unit",
+      "a hard process kill at any point during publication",
+      "a stale writer resuming with an obsolete predecessor digest",
+      "an orphaned staging artifact from an earlier killed writer",
+      "a symlink, dangling symlink, or alias left by a careless tool or partial restore",
+      "a parent-directory rename between validation and publication"
+    ],
+    "does_not_claim": "defeat of a local attacker who already holds write access to the work-unit root and can win an unbounded time-of-check/time-of-use race; descriptor-relative publication narrows that window rather than closing it",
+    "filesystem_requirements": [
+      "Linux or POSIX",
+      "descriptor-relative openat/linkat/renameat",
+      "hard links within one directory",
+      "working directory fsync",
+      "fcntl.flock"
+    ],
+    "unavailable_primitive_policy": "fail closed with AtomicStateError stating that crash-durable publication is unavailable; never fall back to writing the final pathname directly"
+  },
   "artifact_role": "g8_bler_state_contract",
   "authority_bindings": {
     "bler_tooling_contract_id": "g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975",
@@ -13,32 +33,44 @@
     "tooling_schema_version": 2
   },
   "campaign": "G-8",
-  "checkpoint": "B2",
-  "contract_id": "g8state-77ff45564fbe282179a860d70f2cc509264d06e1855d7360a50994a4fabaaa7c",
+  "checkpoint": "B2C",
+  "circular_dependency_rule": {
+    "artifact_binds_its_own_path_as_a_source": false,
+    "artifact_binds_its_own_sha256": false,
+    "external_sha256_source": "the authenticated campaign-state produced-artifact binding for results/baseline/g8/bler_state_contract.json",
+    "generator_requires_unit_state_context": false,
+    "unit_state_binds_external_artifact_sha256": true
+  },
+  "contract_id": "g8state-a36b37f3c21d4254a50ffe5e893237ee4738c68c7b3e9d76b473856ca7605deb",
   "contract_sources": [
     {
-      "bytes": 49778,
+      "bytes": 80796,
       "path": "src/baseline/g8_bler_work_units.py",
-      "role": "g8b_b2_contract_source",
-      "sha256": "7b652434a56853e7254df01690e35be95b93463c97f6ceb443869baf88250c5f"
+      "role": "g8b_b2c_contract_source",
+      "sha256": "583487c4b378473b39b0d055357cbb1b6bb99c625d0d529fb4a2591fb119a26e"
     },
     {
-      "bytes": 12249,
+      "bytes": 23712,
       "path": "tools/gen_g8_bler_state_contract.py",
-      "role": "g8b_b2_contract_source",
-      "sha256": "c076b67052a292e7b46e059c8d669fc901c4aeedd2d9b6e7860c7e8d05ba2312"
+      "role": "g8b_b2c_contract_source",
+      "sha256": "18089faacf6ada37019f1746beb366a69c971cc45b0b59499b4c741640d0c92a"
     },
     {
-      "bytes": 22461,
+      "bytes": 58241,
       "path": "tools/verify_g8_bler_state_contract.py",
-      "role": "g8b_b2_contract_source",
-      "sha256": "01a7c6204a37bf777236b78a51d01e2bbd61bfd345b830f6f3ab0da94fe3bb71"
+      "role": "g8b_b2c_contract_source",
+      "sha256": "c4cc24e40657142ec875626bd1f4ea1f27d9adbfcf8ca58c1f7065b81e8ad817"
     }
   ],
   "execution_context": {
-    "authentication": "AuthenticatedExecutionContext verifies the exact B1C contract, campaign manifest, required-identity artifact, selection policy, schemas, count, and every complete ordered work-unit record once at construction.",
     "authority_cache_rule": "the required-identity artifact may be loaded and hashed once per context; record lookup and shard construction never invoke an uncached artifact loader per unit",
+    "explicit_campaign_state_and_contract_paths_allowed": "for isolated tests and staged migration verification; production defaults remain the committed paths",
     "immutable_internal_storage": "canonical work-unit bytes, scalar bindings, tuples, and read-only mappings; public record and index lookups return fresh decoded copies",
+    "layers": {
+      "AuthenticatedExecutionContext": "authenticates the exact B1C contract, campaign manifest, required-identity artifact, selection policy, schemas, count, and every complete ordered work-unit record once at construction; sufficient for contract generation and shard planning",
+      "AuthenticatedUnitStateContext": "wraps an authenticated execution context and additionally authenticates the registered B2C state-contract artifact against campaign state — path, byte count, SHA-256, contract ID, schema version, checkpoint, supersession and source bindings; required by every unit-state build, validate, read, create and replace operation"
+    },
+    "plain_execution_context_rejected_for_unit_state": true,
     "request_or_result_construction": false,
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
     "seed_forbidden_inputs": [
@@ -62,48 +94,94 @@
   "phase": "G8_B",
   "publication": {
     "atomic_replacement": {
+      "critical_section": "the expected-previous-SHA check and the publication occur inside one exclusive per-unit critical section",
       "expected_previous_sha256_required": true,
+      "lock_files_are_not_state": true,
+      "lock_release": "on normal exit, on exception, and on process death",
       "malformed_state_repair": false,
-      "operation": "optimistic compare-and-swap",
-      "partial_temporary_cleanup": true,
+      "operation": "linearizable compare-and-swap under an exclusive per-unit lock",
+      "partial_staging_cleanup": true,
       "post_replace_failure": "installed old-or-new canonical state is recoverable by reread",
+      "process_lock": "fcntl.flock(LOCK_EX) on a canonical lock file",
       "stale_writer_error": "StaleWriterError",
       "steps": [
-        "read and validate current canonical state",
-        "compare actual SHA-256 with expected previous SHA-256",
-        "validate proposed state and monotonic attempt",
-        "write same-directory temporary",
-        "flush and fsync temporary file",
-        "os.replace destination atomically",
-        "fsync containing directory where supported",
-        "reread and validate installed canonical state"
-      ]
+        "acquire the process-local and process-safe per-unit locks",
+        "reread and validate the current canonical state",
+        "recompute its SHA-256",
+        "compare with expected_previous_sha256",
+        "reject a mismatch with StaleWriterError",
+        "enforce terminal result semantics and exact-byte idempotence",
+        "validate the complete transition",
+        "write and fsync a same-directory staging file",
+        "atomically replace the final state descriptor-relative",
+        "fsync the containing directory",
+        "reread and validate the installed state",
+        "return the installed SHA-256"
+      ],
+      "thread_lock": "a process-local keyed threading.Lock",
+      "two_writers_same_predecessor": "exactly one succeeds; every loser raises StaleWriterError"
+    },
+    "descriptor_discipline": {
+      "cleanup_failure_masks_publication_failure": false,
+      "closed_exactly_once": true,
+      "double_close_in_except_and_finally": false,
+      "original_exception_preserved_as_cause": true,
+      "ownership_transfer_rule": "after ownership transfers to a stream the raw descriptor variable is set to None",
+      "secondary_ebadf_masking": false
     },
     "exclusive_creation": {
-      "directory_fsync": "after publication where supported; unsupported directory fsync is explicit",
-      "file_fsync": true,
-      "filesystem_flags": [
-        "O_CREAT",
-        "O_EXCL",
-        "O_NOFOLLOW when supported"
+      "conflicting_objects": [
+        "pre-existing regular file",
+        "symlink",
+        "dangling symlink",
+        "directory",
+        "any other filesystem object"
       ],
-      "publication_bytes_prepared_before_open": true,
+      "directory_fsync": "required; any failure becomes AtomicStateError",
+      "fallback_to_direct_final_path_write": false,
+      "file_fsync": true,
+      "final_pathname_opened_for_writing": false,
+      "no_replace_primitive": "descriptor-relative hard-link publication",
+      "operation": "crash-atomic staged no-replace publication",
       "silent_overwrite": false,
-      "winner_rule": "exactly one simultaneous creator succeeds; losers receive StateConflictError"
+      "steps": [
+        "validate the complete proposed state",
+        "render complete canonical bytes before any final-path publication",
+        "open the root descriptor-relative with O_DIRECTORY|O_NOFOLLOW",
+        "open the bucket descriptor-relative with O_DIRECTORY|O_NOFOLLOW",
+        "reject any object already occupying the final name via no-follow lstat",
+        "create a unique same-directory staging file with O_CREAT|O_EXCL|O_NOFOLLOW mode 0600",
+        "write all canonical bytes",
+        "flush and fsync the staging file",
+        "publish with descriptor-relative os.link(follow_symlinks=False), which cannot replace",
+        "fsync the containing directory",
+        "remove the staging name safely",
+        "reread and validate the installed final bytes"
+      ],
+      "winner_rule": "exactly one simultaneous creator succeeds; every loser receives StateConflictError"
+    },
+    "hard_exit_semantics": {
+      "after_publication": "the final path contains complete canonical old-or-new bytes, never partial JSON",
+      "before_publication": "an ignored staging artifact may remain; the final path is absent",
+      "retry_after_hard_exit": "a later valid retry or valid read always remains possible",
+      "staging_artifacts_interpreted_as_state": false
     }
   },
-  "schema_version": 1,
+  "schema_version": 2,
   "scope": {
-    "b2_state_writes_only_in_isolated_temporary_tests": true,
+    "b2c_state_writes_only_in_isolated_temporary_tests": true,
     "bounded_smoke_started": false,
     "characterization_started": false,
     "exact_b3_restart_command": "rg -n \"resume|remaining_work|merge|request_sha256|result_sha256|completed_work_unit_ids|in_progress_work_unit_id|unit_state|shard_plan\" src/baseline tools tests",
     "exact_resume_and_merge_checkpoint": "B3",
+    "live_state_tree_absence_is_an_explicit_verifier_option": "--require-no-live-state",
+    "live_state_tree_required_absent_for_contract_verification": false,
     "runner_exists": false,
     "scientific_execution_performed": false,
     "simulation_started": false,
     "test_split_access": 0,
-    "tracked_live_unit_state_files": []
+    "tracked_live_unit_state_files": [],
+    "tracked_unit_state_or_lock_files_always_rejected": true
   },
   "sharding": {
     "algorithm": "canonical_ordinal_modulo_v1",
@@ -144,20 +222,88 @@
     "schema_version": 1,
     "seed_independence": "changing shard_count or shard_index changes membership only, never seeds or request identity"
   },
+  "supersedes": {
+    "checkpoint": "B2",
+    "contract_bytes": 9390,
+    "contract_id": "g8state-77ff45564fbe282179a860d70f2cc509264d06e1855d7360a50994a4fabaaa7c",
+    "contract_sha256": "2422c4c2a019c2a901cfd8732747555262dfca5601b28b0e700ff33743d4d939",
+    "per_unit_migration_required": false,
+    "reason": "B2 first publication opened the final pathname directly, its replacement performed an unlocked read-compare-replace that it described as compare-and-swap, its failure path could close one descriptor twice, its symlink guards followed links so dangling links passed, directory fsync failures were swallowed, results were neither request-bound nor terminal, unit states did not bind their own state contract, and its verifier imported every expected value from the module under test",
+    "states_written_under_the_superseded_contract": 0
+  },
+  "transitions": {
+    "permanently_immutable_fields": [
+      "schema_version",
+      "artifact_role",
+      "campaign_id",
+      "campaign_manifest_sha256",
+      "required_bler_artifact_sha256",
+      "selection_policy_sha256",
+      "bler_tooling_contract_id",
+      "bler_tooling_contract_sha256",
+      "bler_state_contract_id",
+      "bler_state_contract_sha256",
+      "request_schema_version",
+      "result_schema_version",
+      "work_unit_id",
+      "canonical_ordinal",
+      "required_work_unit_record_sha256",
+      "sharding_algorithm"
+    ],
+    "retry_rule": {
+      "attempt_regression_rejected": true,
+      "attempt_skip_rejected": true,
+      "new_attempt": "old_attempt + 1",
+      "new_status": "claimed",
+      "request_sha256": null,
+      "reshard_permitted": true,
+      "reshard_rule": "on that exact new-attempt transition the shard assignment may change to another valid shard plan for the same work unit; this is the only legal resharding path",
+      "result_linked_reassignment_rejected": true,
+      "result_path": null,
+      "result_sha256": null,
+      "scientific_execution_performed": false,
+      "test_split_access": 0,
+      "trials_completed": 0
+    },
+    "same_attempt_rules": [
+      "trials_completed may never decrease",
+      "scientific_execution_performed may never change from true to false",
+      "a non-null request_sha256 may never change or become null",
+      "shard_count, shard_index, sharding_algorithm and shard_plan_digest are immutable",
+      "failed -> claimed is forbidden",
+      "failed -> result_linked is forbidden"
+    ],
+    "shard_fields_immutable_within_an_attempt": [
+      "shard_index",
+      "shard_count",
+      "shard_plan_digest"
+    ],
+    "terminal_result_rule": "a valid result_linked state is terminal; the only permitted operation is exact canonical-byte idempotence, and a replacement containing different bytes raises StateConflictError even when the writer supplies the current SHA-256"
+  },
   "unit_state_path": {
     "digest_input": "exact UTF-8 bytes of the exact work-unit ID",
+    "lock_layout": ".locks/<sha256-utf8-work-unit-id>.lock",
+    "no_follow_inspection_rule": "os.lstat, never exists()+is_symlink(), so a dangling symlink is detected as present rather than reported absent",
     "path_is_not_authority": "the payload carries the original ID and validation recomputes the digest",
     "rejections": [
       "absolute or relative aliases",
       "dot or dot-dot traversal",
       "outside-root paths",
-      "symlink escape",
+      "final-path symlinks including dangling symlinks",
+      "root symlinks",
+      "bucket-directory symlinks",
+      "lock-file symlinks",
+      "staging-file symlinks",
+      "non-directory parent components",
+      "a final path that is not a regular file",
       "wrong extension",
       "uppercase or malformed digest",
       "unknown IDs",
       "a path whose digest does not match its payload ID"
     ],
-    "root_relative_layout": "<first-two-lowercase-hex>/<sha256-utf8-work-unit-id>.state.json"
+    "root_relative_layout": "<first-two-lowercase-hex>/<sha256-utf8-work-unit-id>.state.json",
+    "staging_is_never_state": true,
+    "staging_layout": ".<final-name>.<pid>.<random>.staging"
   },
   "unit_state_schema": {
     "all_statuses": [
@@ -169,11 +315,14 @@
     "canonical_file_encoding": "compact sorted-key JSON bytes, ensure_ascii=true, allow_nan=false, no trailing newline",
     "global_invariants": [
       "bindings match the authenticated context exactly",
+      "every state binds the registered B2C state-contract ID and SHA-256",
+      "a state binding the superseded B2 contract is rejected",
       "canonical ordinal and required-record hash reproduce",
       "shard ownership and shard-plan digest reproduce",
-      "attempt is a positive exact integer and cannot regress on replacement",
+      "attempt is a positive exact integer",
       "counters are exact non-negative integers and booleans are rejected",
       "test_split_access is exactly zero",
+      "no result reference may exist without a bound request SHA-256",
       "unknown and omitted fields fail closed",
       "NaN and infinity fail through canonical JSON and numeric metadata validation"
     ],
@@ -187,6 +336,8 @@
       "selection_policy_sha256",
       "bler_tooling_contract_id",
       "bler_tooling_contract_sha256",
+      "bler_state_contract_id",
+      "bler_state_contract_sha256",
       "request_schema_version",
       "result_schema_version",
       "work_unit_id",
@@ -212,7 +363,11 @@
       "wall_clock_annotation",
       "update_annotation"
     ],
-    "schema_version": 1,
+    "schema_version": 2,
+    "state_contract_binding_fields": [
+      "bler_state_contract_id",
+      "bler_state_contract_sha256"
+    ],
     "statuses": {
       "claimed": {
         "pre_execution_claim": true,
@@ -224,14 +379,19 @@
       },
       "failed": {
         "characterized_evidence": false,
-        "merge_decision": "not implemented in B2",
+        "merge_decision": "not implemented in B2C",
         "result_path": null,
         "result_sha256": null
       },
       "result_linked": {
+        "request_sha256": "required lowercase SHA-256; no result may exist without a request binding",
         "result_path": "required nonblank canonical repository-relative path",
         "result_sha256": "required lowercase SHA-256",
-        "result_validation": "B2 validates the reference fields only; it does not read, merge, or prefer a result"
+        "result_validation": "B2C validates the reference fields only; B3 validates the actual request and result files",
+        "scientific_execution_performed": true,
+        "terminal": true,
+        "test_split_access": 0,
+        "trials_completed": "strictly positive"
       }
     },
     "top_level_fields": [
