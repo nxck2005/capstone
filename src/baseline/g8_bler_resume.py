@@ -45,8 +45,9 @@ from types import MappingProxyType
 from typing import Any
 
 from baseline import g8_bler_contract as bler_contract
+from baseline import g8_campaign
 from baseline import g8_bler_work_units as work_units
-from baseline.g8_campaign import canonical_json, sha256_bytes
+from baseline.g8_campaign import canonical_json, rendered_json, sha256_bytes
 from config.params import REPO_ROOT
 
 # ---------------------------------------------------------------------------
@@ -2507,6 +2508,9 @@ MERGE_REPORT_SCHEMA_VERSION = RESUME_CONTRACT_SCHEMA_VERSION
 MERGE_REPORT_ARTIFACT_ROLE = "g8_bler_merge_validation_report"
 PLAN_DIGEST_FIELD = "plan_digest"
 MERGE_REPORT_DIGEST_FIELD = "report_digest"
+CAMPAIGN_RECONCILIATION_SCHEMA_VERSION = RESUME_CONTRACT_SCHEMA_VERSION
+CAMPAIGN_RECONCILIATION_ARTIFACT_ROLE = "g8_campaign_reconciliation_proposal"
+CAMPAIGN_STATE_LOGICAL_PATH = "results/baseline/g8/campaign_state.json"
 
 
 def _scan_runtime_root_locked(
@@ -2793,6 +2797,246 @@ def build_merge_report(
             root=root,
             scan_mode=scan_mode,
             lease=lease,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Campaign-state reconciliation (G8_B3 §19)
+# ---------------------------------------------------------------------------
+
+
+def _load_campaign_state_exact(
+    context: AuthenticatedResumeContext,
+) -> tuple[dict[str, Any], bytes, str]:
+    path = context.campaign_state_path
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise ResumeCampaignError(f"cannot read campaign state {path}: {exc}") from exc
+    try:
+        state = g8_campaign.load_campaign_state(path)
+    except g8_campaign.G8ContractError as exc:
+        raise ResumeCampaignError(f"campaign state failed authentication: {exc}") from exc
+    return state, raw, sha256_bytes(raw)
+
+
+def _build_campaign_reconciliation_locked(
+    context: AuthenticatedResumeContext,
+    *,
+    root: Path | str | None,
+    scan_mode: str,
+    lease: ReconciliationLease,
+) -> dict[str, Any]:
+    lease._assert_usable(root, LOCK_MODE_EXCLUSIVE)
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+    bindings = _resume_operation_bindings(context)
+    state, state_bytes, state_sha256 = _load_campaign_state_exact(context)
+    identity = state["identity"]
+    if identity["phase"] != PHASE or identity["stage"] not in {
+        "tooling_open",
+        "tooling_smoke_complete",
+    }:
+        raise ResumeCampaignError(
+            "campaign reconciliation is only valid during G8_B tooling stages"
+        )
+    census, records = _scan_runtime_root_locked(
+        context,
+        root=root,
+        scan_mode=scan_mode,
+        lease=lease,
+    )
+    required_ids = list(context.ordered_work_unit_ids)
+    known_ids = set(required_ids)
+    campaign_completed = list(identity["completed_work_unit_ids"])
+    unknown_campaign_ids = [work_unit_id for work_unit_id in campaign_completed if work_unit_id not in known_ids]
+    if unknown_campaign_ids:
+        raise ResumeCampaignError(
+            "campaign state lists unknown completed work-unit IDs: "
+            + ", ".join(unknown_campaign_ids)
+        )
+    by_id = {record["work_unit_id"]: record for record in records}
+    validated_completed = [
+        record["work_unit_id"]
+        for record in records
+        if record["classification"] == CLASSIFICATION_COMPLETED_FULL_STRENGTH
+    ]
+    evidence_set = set(validated_completed)
+    lead_ids = [work_unit_id for work_unit_id in campaign_completed if work_unit_id not in evidence_set]
+    if lead_ids:
+        raise ResumeCampaignError(
+            "campaign state leads validated per-unit evidence: "
+            + ", ".join(lead_ids)
+        )
+    # This explicit loop keeps the lead check tied to the exact terminal record,
+    # rather than trusting only the classification name in the projection.
+    for work_unit_id in campaign_completed:
+        record = by_id[work_unit_id]
+        if (
+            record["classification"] != CLASSIFICATION_COMPLETED_FULL_STRENGTH
+            or record["request_sha256"] is None
+            or record["result_sha256"] is None
+            or record["required_coverage_contribution"] != 1
+            or record["test_split_access"] != bler_contract.TEST_SPLIT_ACCESS
+        ):
+            raise ResumeCampaignError(
+                f"campaign completed ID {work_unit_id} lacks exact terminal full-strength evidence"
+            )
+    lagging_ids = [work_unit_id for work_unit_id in validated_completed if work_unit_id not in set(campaign_completed)]
+    current_in_progress = identity["in_progress_work_unit_id"]
+    proposed_in_progress = (
+        None if current_in_progress in evidence_set else current_in_progress
+    )
+    counters = dict(identity["counters"])
+    changed = campaign_completed != validated_completed or current_in_progress != proposed_in_progress
+    proposal = {
+        "schema_version": CAMPAIGN_RECONCILIATION_SCHEMA_VERSION,
+        "artifact_role": CAMPAIGN_RECONCILIATION_ARTIFACT_ROLE,
+        **bindings,
+        "campaign_state_logical_path": CAMPAIGN_STATE_LOGICAL_PATH,
+        "campaign_state_sha256": state_sha256,
+        "campaign_state_bytes": len(state_bytes),
+        "phase": identity["phase"],
+        "stage": identity["stage"],
+        "required_work_unit_count": context.required_work_unit_count,
+        "campaign_completed_work_unit_ids": campaign_completed,
+        "validated_completed_work_unit_ids": validated_completed,
+        "lagging_work_unit_ids": lagging_ids,
+        "proposed_completed_work_unit_ids": validated_completed,
+        "in_progress_work_unit_id": current_in_progress,
+        "proposed_in_progress_work_unit_id": proposed_in_progress,
+        "counters": counters,
+        "changed": changed,
+        "scan_mode": scan_mode,
+        "logical_root": WORK_UNIT_ROOT_LOGICAL_PREFIX,
+        "ignored_staging_count": census["ignored_orphan_staging_count"],
+        "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+    }
+    return _with_derived_digest(proposal, "proposal_digest")
+
+
+def propose_campaign_reconciliation(
+    context: Any,
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Derive a no-write campaign-state projection under an exclusive lease."""
+
+    context = _resume_context(context)
+    with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as lease:
+        return _build_campaign_reconciliation_locked(
+            context,
+            root=root,
+            scan_mode=scan_mode,
+            lease=lease,
+        )
+
+
+def _validate_reconciliation_proposal(
+    proposal: Mapping[str, Any],
+    expected: Mapping[str, Any],
+) -> None:
+    if not isinstance(proposal, Mapping):
+        raise ResumeCampaignError("campaign reconciliation proposal is not a mapping")
+    supplied = dict(proposal)
+    digest = supplied.get("proposal_digest")
+    _digest(digest, "campaign reconciliation proposal digest", ResumeCampaignError)
+    body = dict(supplied)
+    body.pop("proposal_digest", None)
+    if digest != sha256_bytes(canonical_json(body)):
+        raise ResumeCampaignError("campaign reconciliation proposal digest does not reproduce")
+    if canonical_json(supplied) != canonical_json(dict(expected)):
+        raise ResumeCampaignError(
+            "campaign reconciliation proposal is stale or does not describe the exact current evidence"
+        )
+
+
+def apply_campaign_reconciliation(
+    context: Any,
+    proposal: Mapping[str, Any] | None = None,
+    *,
+    root: Path | str | None = None,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> dict[str, Any]:
+    """Apply only validated completed IDs through the atomic campaign writer."""
+
+    context = _resume_context(context)
+    with reconciliation_lock(root, mode=LOCK_MODE_EXCLUSIVE) as lease:
+        expected = _build_campaign_reconciliation_locked(
+            context,
+            root=root,
+            scan_mode=scan_mode,
+            lease=lease,
+        )
+        if proposal is not None:
+            _validate_reconciliation_proposal(proposal, expected)
+        state, _state_bytes, state_sha256 = _load_campaign_state_exact(context)
+        if not expected["changed"]:
+            return _fresh(
+                {
+                    "proposal": expected,
+                    "applied": False,
+                    "installed_campaign_state_sha256": state_sha256,
+                    "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+                }
+            )
+
+        candidate = json.loads(canonical_json(state))
+        candidate_identity = candidate["identity"]
+        candidate_identity["completed_work_unit_ids"] = list(
+            expected["proposed_completed_work_unit_ids"]
+        )
+        candidate_identity["in_progress_work_unit_id"] = expected[
+            "proposed_in_progress_work_unit_id"
+        ]
+        try:
+            g8_campaign.validate_state_transition(state, candidate)
+        except g8_campaign.G8ContractError as exc:
+            raise ResumeCampaignError(f"campaign reconciliation transition is illegal: {exc}") from exc
+        proposed_body = rendered_json(candidate)
+        proposed_sha256 = sha256_bytes(proposed_body)
+        try:
+            g8_campaign.write_campaign_state_atomically(
+                context.campaign_state_path,
+                candidate,
+            )
+        except Exception as exc:
+            try:
+                installed_body = context.campaign_state_path.read_bytes()
+                installed = g8_campaign.load_campaign_state(context.campaign_state_path)
+            except Exception as read_exc:
+                raise ResumeCampaignError(
+                    "campaign-state publication outcome is uncertain and the installed bytes "
+                    f"could not be authenticated: {exc}"
+                ) from read_exc
+            if installed_body != proposed_body or sha256_bytes(installed_body) != proposed_sha256:
+                raise ResumeCampaignError(
+                    "campaign-state publication failed and did not install the exact proposed bytes"
+                ) from exc
+            _ = installed
+        try:
+            installed_body = context.campaign_state_path.read_bytes()
+            installed = g8_campaign.load_campaign_state(context.campaign_state_path)
+        except Exception as exc:
+            raise ResumeCampaignError(
+                f"cannot reread the installed campaign state after reconciliation: {exc}"
+            ) from exc
+        if installed_body != proposed_body or sha256_bytes(installed_body) != proposed_sha256:
+            raise ResumeCampaignError(
+                "installed campaign state does not equal the exact proposed canonical bytes"
+            )
+        if installed["identity"]["completed_work_unit_ids"] != expected[
+            "proposed_completed_work_unit_ids"
+        ]:
+            raise ResumeCampaignError("installed campaign state does not contain the exact completed-ID projection")
+        return _fresh(
+            {
+                "proposal": expected,
+                "applied": True,
+                "installed_campaign_state_sha256": proposed_sha256,
+                "test_split_access": bler_contract.TEST_SPLIT_ACCESS,
+            }
         )
 
 
@@ -3146,6 +3390,9 @@ __all__ = [
     "ATTEMPT_GRAMMAR",
     "ATTEMPT_TOKEN_PREFIX",
     "AuthenticatedResumeContext",
+    "CAMPAIGN_RECONCILIATION_ARTIFACT_ROLE",
+    "CAMPAIGN_RECONCILIATION_SCHEMA_VERSION",
+    "CAMPAIGN_STATE_LOGICAL_PATH",
     "B4_RESTART_COMMAND",
     "CAMPAIGN_ROLE",
     "CANONICAL_FILE_ENCODING",
@@ -3178,6 +3425,8 @@ __all__ = [
     "LOCK_MODE_EXCLUSIVE",
     "LOCK_MODE_SHARED",
     "LOCK_ORDER",
+    "MERGE_REPORT_ARTIFACT_ROLE",
+    "MERGE_REPORT_SCHEMA_VERSION",
     "NON_REPAIRABLE_CLASSIFICATIONS",
     "PHASE",
     "POST_REPAIR_CLASSIFICATIONS",
@@ -3201,6 +3450,8 @@ __all__ = [
     "RESUME_CONTRACT_SCHEMA_VERSION",
     "RESUME_CONTRACT_SOURCE_PATHS",
     "RESUME_CONTRACT_SOURCE_ROLE",
+    "RESUME_PLAN_ARTIFACT_ROLE",
+    "RESUME_PLAN_SCHEMA_VERSION",
     "ResumeCampaignError",
     "ResumeCensusError",
     "ResumeChainError",
@@ -3220,6 +3471,7 @@ __all__ = [
     "artifact_relative_path",
     "build_merge_report",
     "build_resume_plan",
+    "apply_campaign_reconciliation",
     "census_runtime_root",
     "classification_for_shape",
     "classify_runtime_root",
@@ -3232,6 +3484,7 @@ __all__ = [
     "merge_report_digest",
     "parse_attempt_token",
     "proposed_attempt",
+    "propose_campaign_reconciliation",
     "read_unit_state_snapshot",
     "reconciliation_lock",
     "repair_work_unit",

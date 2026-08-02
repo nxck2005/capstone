@@ -26,6 +26,7 @@ from typing import Any
 import pytest
 
 from baseline import g8_bler_contract as bler_contract
+from baseline import g8_campaign
 from baseline import g8_bler_resume as resume
 from baseline import g8_bler_work_units as units
 
@@ -2398,3 +2399,274 @@ def test_plan_and_merge_scan_under_one_exclusive_lease(
     resume.build_resume_plan(context, root=root)
     resume.build_merge_report(context, root=root)
     assert calls == [resume.LOCK_MODE_EXCLUSIVE, resume.LOCK_MODE_EXCLUSIVE]
+
+
+# ---------------------------------------------------------------------------
+# B3.5 — campaign-state reconciliation (§19)
+# ---------------------------------------------------------------------------
+
+
+def _context_with_campaign_copy(
+    execution_context: units.AuthenticatedExecutionContext,
+    path: Path,
+    *,
+    completed: list[str] | None = None,
+    in_progress: str | None = None,
+) -> resume.AuthenticatedResumeContext:
+    state = json.loads(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
+    state["identity"]["completed_work_unit_ids"] = (
+        list(completed) if completed is not None else []
+    )
+    state["identity"]["in_progress_work_unit_id"] = in_progress
+    path.write_bytes(g8_campaign.rendered_json(state))
+    copied_state_context = units.AuthenticatedUnitStateContext(
+        execution_context,
+        campaign_state_path=path,
+    )
+    return resume.AuthenticatedResumeContext(copied_state_context)
+
+
+def _publish_bounded_complete(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    work_unit_id: str,
+) -> tuple[dict[str, Any], str, str]:
+    required = context.work_unit_record(work_unit_id)
+    request = bler_contract.build_bounded_smoke_request(
+        work_unit_id=work_unit_id,
+        bler_identity=required["identity"],
+        snr_db=required["snr_db"],
+        source_packet_config_ids=required["source_packet_config_ids"],
+        trials_requested=16,
+    )
+    request_sha = _write_canonical(
+        resume.request_path(context, work_unit_id, 1, root=root), request
+    )
+    result = bler_contract.build_work_unit_result(
+        request=request,
+        status=bler_contract.STATUS_COMPLETE,
+        trials_completed=16,
+        bit_errors=1,
+        block_errors=1,
+        execution_metadata={
+            "wall_time_s": None,
+            "hostname": None,
+            "device": "cpu",
+            "shard_index": 0,
+            "shard_count": 1,
+            "attempt": 1,
+        },
+    )
+    result_sha = _write_canonical(
+        resume.result_path(context, work_unit_id, 1, root=root), result
+    )
+    linked = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_RESULT_LINKED,
+        request_sha256=request_sha,
+        result_path=resume.logical_result_path(context, work_unit_id, 1),
+        result_sha256=result_sha,
+        scientific_execution_performed=True,
+        trials_completed=16,
+    )
+    _publish_state(context, root, linked)
+    return request, request_sha, result_sha
+
+
+def test_live_b3_closeout_reconciliation_is_an_exact_noop(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _stub_registered_b3_binding(context, monkeypatch)
+    before = context.campaign_state_path.read_bytes()
+    proposal = resume.propose_campaign_reconciliation(context, root=root)
+    assert proposal["campaign_completed_work_unit_ids"] == []
+    assert proposal["validated_completed_work_unit_ids"] == []
+    assert proposal["lagging_work_unit_ids"] == []
+    assert proposal["proposed_completed_work_unit_ids"] == []
+    assert proposal["changed"] is False
+    result = resume.apply_campaign_reconciliation(context, proposal, root=root)
+    assert result["applied"] is False
+    assert context.campaign_state_path.read_bytes() == before
+
+
+def test_reconciliation_projects_only_validated_terminal_evidence_and_preserves_counters(
+    execution_context: units.AuthenticatedExecutionContext,
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = execution_context.ordered_work_unit_ids[0]
+    campaign_copy = tmp_path / "campaign_state.json"
+    context = _context_with_campaign_copy(execution_context, campaign_copy)
+    _stub_registered_b3_binding(context, monkeypatch)
+    request, request_sha = _publish_request(context, root, work_unit_id, 1)
+    _result, result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    linked = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        status=units.STATUS_RESULT_LINKED,
+        request_sha256=request_sha,
+        result_path=resume.logical_result_path(context, work_unit_id, 1),
+        result_sha256=result_sha,
+        scientific_execution_performed=True,
+        trials_completed=request["trials_requested"],
+    )
+    _publish_state(context, root, linked)
+    proposal = resume.propose_campaign_reconciliation(context, root=root)
+    assert proposal["campaign_completed_work_unit_ids"] == []
+    assert proposal["validated_completed_work_unit_ids"] == [work_unit_id]
+    assert proposal["lagging_work_unit_ids"] == [work_unit_id]
+    assert proposal["proposed_completed_work_unit_ids"] == [work_unit_id]
+    assert proposal["counters"] == {
+        "validation_decoding": 0,
+        "inference": 0,
+        "training": 0,
+        "test_access": 0,
+    }
+    result = resume.apply_campaign_reconciliation(context, proposal, root=root)
+    assert result["applied"] is True
+    installed = g8_campaign.load_campaign_state(campaign_copy)
+    assert installed["identity"]["completed_work_unit_ids"] == [work_unit_id]
+    assert installed["identity"]["counters"] == proposal["counters"]
+    assert installed["identity"]["in_progress_work_unit_id"] is None
+
+
+def test_campaign_completed_ids_leading_evidence_are_a_hold(
+    execution_context: units.AuthenticatedExecutionContext,
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = execution_context.ordered_work_unit_ids[0]
+    context = _context_with_campaign_copy(
+        execution_context,
+        tmp_path / "campaign_state.json",
+        completed=[work_unit_id],
+    )
+    _stub_registered_b3_binding(context, monkeypatch)
+    with pytest.raises(resume.ResumeCampaignError):
+        resume.propose_campaign_reconciliation(context, root=root)
+
+
+def test_recoverable_and_bounded_evidence_contribute_nothing_to_reconciliation(
+    execution_context: units.AuthenticatedExecutionContext,
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = execution_context.ordered_work_unit_ids[0]
+    context = _context_with_campaign_copy(execution_context, tmp_path / "campaign_state.json")
+    _stub_registered_b3_binding(context, monkeypatch)
+    _recoverable_unit(context, root, index=0)
+    proposal = resume.propose_campaign_reconciliation(context, root=root)
+    assert proposal["validated_completed_work_unit_ids"] == []
+    assert proposal["proposed_completed_work_unit_ids"] == []
+
+    bounded_root = tmp_path / "bounded-work-units"
+    _publish_bounded_complete(context, bounded_root, work_unit_id)
+    bounded = resume.propose_campaign_reconciliation(
+        context,
+        root=bounded_root,
+        scan_mode=resume.SCAN_MODE_BOUNDED_SMOKE_INSPECTION,
+    )
+    assert bounded["validated_completed_work_unit_ids"] == []
+    assert bounded["proposed_completed_work_unit_ids"] == []
+    assert bounded["test_split_access"] == 0
+
+
+def test_in_progress_id_is_not_execution_authority(
+    execution_context: units.AuthenticatedExecutionContext,
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = execution_context.ordered_work_unit_ids[0]
+    context = _context_with_campaign_copy(
+        execution_context,
+        tmp_path / "campaign_state.json",
+        in_progress=work_unit_id,
+    )
+    _stub_registered_b3_binding(context, monkeypatch)
+    proposal = resume.propose_campaign_reconciliation(context, root=root)
+    assert proposal["validated_completed_work_unit_ids"] == []
+    assert proposal["proposed_completed_work_unit_ids"] == []
+    assert proposal["proposed_in_progress_work_unit_id"] == work_unit_id
+    assert proposal["changed"] is False
+
+
+def test_uncertain_campaign_publication_requires_exact_installed_bytes(
+    execution_context: units.AuthenticatedExecutionContext,
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = execution_context.ordered_work_unit_ids[0]
+    campaign_copy = tmp_path / "campaign_state.json"
+    context = _context_with_campaign_copy(execution_context, campaign_copy)
+    _stub_registered_b3_binding(context, monkeypatch)
+    request, request_sha = _publish_request(context, root, work_unit_id, 1)
+    _result, result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    _publish_state(
+        context,
+        root,
+        units.build_unit_state(
+            context.state_context,
+            work_unit_id,
+            _plan(context),
+            status=units.STATUS_RESULT_LINKED,
+            request_sha256=request_sha,
+            result_path=resume.logical_result_path(context, work_unit_id, 1),
+            result_sha256=result_sha,
+            scientific_execution_performed=True,
+            trials_completed=request["trials_requested"],
+        ),
+    )
+    original = g8_campaign.write_campaign_state_atomically
+
+    def publish_then_raise(*args: Any, **kwargs: Any) -> Any:
+        installed = original(*args, **kwargs)
+        raise RuntimeError("campaign directory fsync acknowledgement was lost")
+
+    monkeypatch.setattr(g8_campaign, "write_campaign_state_atomically", publish_then_raise)
+    proposal = resume.propose_campaign_reconciliation(context, root=root)
+    result = resume.apply_campaign_reconciliation(context, proposal, root=root)
+    assert result["applied"] is True
+    assert g8_campaign.load_campaign_state(campaign_copy)["identity"]["completed_work_unit_ids"] == [work_unit_id]
+
+
+def test_stale_reconciliation_proposal_is_rejected(
+    execution_context: units.AuthenticatedExecutionContext,
+    root: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    work_unit_id = execution_context.ordered_work_unit_ids[0]
+    campaign_copy = tmp_path / "campaign_state.json"
+    context = _context_with_campaign_copy(execution_context, campaign_copy)
+    _stub_registered_b3_binding(context, monkeypatch)
+    request, request_sha = _publish_request(context, root, work_unit_id, 1)
+    _result, result_sha = _publish_result(context, root, work_unit_id, 1, request)
+    _publish_state(
+        context,
+        root,
+        units.build_unit_state(
+            context.state_context,
+            work_unit_id,
+            _plan(context),
+            status=units.STATUS_RESULT_LINKED,
+            request_sha256=request_sha,
+            result_path=resume.logical_result_path(context, work_unit_id, 1),
+            result_sha256=result_sha,
+            scientific_execution_performed=True,
+            trials_completed=request["trials_requested"],
+        ),
+    )
+    proposal = resume.propose_campaign_reconciliation(context, root=root)
+    resume.apply_campaign_reconciliation(context, proposal, root=root)
+    with pytest.raises(resume.ResumeCampaignError):
+        resume.apply_campaign_reconciliation(context, proposal, root=root)
