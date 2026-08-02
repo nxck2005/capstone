@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-03 · **Phase:** **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 OPEN — B3.0, B3.1 and the B3.H1 correction are done, and B3.2 resumes next. G8_C–G8_G remain prohibited.**
+**Last updated:** 2026-08-03 · **Phase:** **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 OPEN — B3.0, B3.1, B3.H1, B3.2 and B3.3 are done; B3.4 is next. G8_C–G8_G remain prohibited.**
 
 > **B3.H1 complete — the B3.2 HOLD is resolved (read this first).** B3.0 (durable instruction) and B3.1 (authenticated B3
 > context, runtime path grammar, global reconciliation lock, no-follow census) remain complete. **B2C clean-claim semantics
@@ -33,6 +33,24 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 > amendment**; `spec/SPEC.md` is not implicated. See the B3.H1 and B3.2 rows in `instructions/RESUME.md`, and
 > `instructions/G8_B3.txt` §29, for the full record.
 
+> **Where B3 stands now.** `B3.0` boundary and durable instruction, `B3.1` authenticated context /
+> path grammar / reconciliation lock / no-follow census, `B3.H1` the recovery-model correction,
+> `B3.2` request/result chain validation and closed classification, and `B3.3` explicit recovery
+> under the reconciliation lock are **all complete, committed and pushed**. `tests/test_g8_bler_resume.py`
+> is at **135 passed**; the full suite is at **1,797 passed, 0 failed, 0 skipped**.
+> **`B3.4` is next — deterministic resume plans and merge reports** (`instructions/G8_B3.txt` §17
+> and §18), then `B3.5` campaign-state reconciliation, `B3.6` generate and independently verify the
+> B3 contract, `B3.7` mutation/race/hard-exit verification, and `B3.8` registration, hand-off and
+> green publication. Start from the B3.4 row in `instructions/RESUME.md`; the exact recovery command
+> throughout is `.venv/bin/python -m pytest tests/test_g8_bler_resume.py -q`.
+>
+> Still true, and still the boundary: **no runner, request writer, result writer, simulation, smoke,
+> characterization, dataset access, inference, training, selection, authorization, test access or
+> production work-unit tree exists.** `completed_work_unit_ids = []`, `in_progress_work_unit_id = null`,
+> all four counters 0, produced artifacts 4, phase/stage `G8_B/tooling_open`. No B3 contract artifact
+> has been generated or registered yet — that happens at `B3.6`/`B3.8`, and the corrected eight-class
+> enum and two-row repair matrix are frozen in `src/baseline/g8_bler_resume.py` waiting to be bound.
+
 ## Single next task
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
@@ -50,7 +68,7 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 open — B3.0, B3.1 and B3.H1 done, B3.2 next.** |
+| G-8 classical validation work | **G8_B active; B0, B1, B1C, B2 and B2C complete; B3 open — B3.0, B3.1, B3.H1, B3.2 and B3.3 done, B3.4 next.** |
 | G8_B–G8_G | **G8_B active; B0, B1, B1C, B2 and B2C complete; G8_C–G8_G prohibited until the preceding phase is green** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
@@ -58,7 +76,7 @@ does not, it is wrong and this block is right.**
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B active. B0, B1, B1C, B2 and B2C complete. B3 open — B3.0, B3.1 and the B3.H1 recovery-model correction are done; B3.2 is next.** B0 verified G8_A and opened the phase. B1 remains a historical design checkpoint; B1C corrected and hardened the executable BLER contract before data. Tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed per-unit state, atomic publication, and the independently verified B2 contract; it did not interpret a state directory as execution history. **B2C is B2's pre-execution correction and is what B3 must build on.** B2's direction was right but its primitives did not actually deliver what B3 needs: first publication wrote straight into the final pathname (so a hard kill could leave half a JSON file at the authoritative name), replacement did an unlocked read-compare-`os.replace()` and called it compare-and-swap (so two workers holding the same predecessor digest could both "succeed", the second silently destroying the first), the failure path could close one descriptor twice and surface `EBADF` instead of the real error, `exists() and is_symlink()` followed the link so a *dangling* symlink passed the guard, a directory-fsync `EACCES` was swallowed as "unsupported", a `result_linked` state was neither request-bound nor terminal, and unit states bound only the B1C tooling contract, not their own. B2C fixed all of that: staged crash-atomic no-replace publication, a linearizable per-unit `flock` critical section, no-follow path inspection, fail-closed durability, request-bound terminal results with a single legal next-attempt resharding path, and a state-contract binding in every unit state. The independent verifier now derives its own expected truth instead of importing it from the module under test, and the permanent "the runtime tree never exists" assertion became the explicit `--require-no-live-state` option so B3 and B4 can legitimately create one. **No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited.** On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint.
+**G8_B active. B0, B1, B1C, B2 and B2C complete. B3 open — B3.0, B3.1, B3.H1, B3.2 and B3.3 are done; B3.4 is next.** B0 verified G8_A and opened the phase. B1 remains a historical design checkpoint; B1C corrected and hardened the executable BLER contract before data. Tooling, request and result schemas are version 2, no version-1 request or result exists, and B2 and later must use the corrected contract only. The characterization runner does not exist yet. B2 froze deterministic sharding, safe paths, closed per-unit state, atomic publication, and the independently verified B2 contract; it did not interpret a state directory as execution history. **B2C is B2's pre-execution correction and is what B3 must build on.** B2's direction was right but its primitives did not actually deliver what B3 needs: first publication wrote straight into the final pathname (so a hard kill could leave half a JSON file at the authoritative name), replacement did an unlocked read-compare-`os.replace()` and called it compare-and-swap (so two workers holding the same predecessor digest could both "succeed", the second silently destroying the first), the failure path could close one descriptor twice and surface `EBADF` instead of the real error, `exists() and is_symlink()` followed the link so a *dangling* symlink passed the guard, a directory-fsync `EACCES` was swallowed as "unsupported", a `result_linked` state was neither request-bound nor terminal, and unit states bound only the B1C tooling contract, not their own. B2C fixed all of that: staged crash-atomic no-replace publication, a linearizable per-unit `flock` critical section, no-follow path inspection, fail-closed durability, request-bound terminal results with a single legal next-attempt resharding path, and a state-contract binding in every unit state. The independent verifier now derives its own expected truth instead of importing it from the module under test, and the permanent "the runtime tree never exists" assertion became the explicit `--require-no-live-state` option so B3 and B4 can legitimately create one. **No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited.** On resumption, `instructions/RESUME.md` identifies the first incomplete checkpoint.
 Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 
@@ -145,7 +163,7 @@ and the spec defines no BR-4 selection tie-break to contradict.
 
 ### Durable G-8 phase partition
 
-The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**active; B0, B1, B1C, B2 and B2C complete, B3 open at B3.2**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**active; B0, B1, B1C, B2 and B2C complete, B3 open at B3.4**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
 ### What G-8 actually has to build — read this before starting it
 
