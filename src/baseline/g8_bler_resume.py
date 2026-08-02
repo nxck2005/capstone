@@ -208,6 +208,107 @@ SCAN_MODE_PRODUCTION_MERGE = "production_merge"
 SCAN_MODE_BOUNDED_SMOKE_INSPECTION = "bounded_smoke_inspection"
 SCAN_MODES = (SCAN_MODE_PRODUCTION_MERGE, SCAN_MODE_BOUNDED_SMOKE_INSPECTION)
 
+# ---------------------------------------------------------------------------
+# Closed per-unit classification (G8_B3 §13, as corrected by B3.H1 §29)
+# ---------------------------------------------------------------------------
+
+#: The frozen B2C ``claimed`` state.  A claim is a pre-execution reservation and
+#: is *always* request-unbound; a published request file is immutable attempt
+#: history, not a state transition.  B3 may never construct or accept a
+#: ``claimed`` state whose ``request_sha256`` is non-null.
+FROZEN_CLAIMED_STATE_FIELDS: dict[str, object] = {
+    "status": work_units.STATUS_CLAIMED,
+    "request_sha256": None,
+    "result_path": None,
+    "result_sha256": None,
+    "scientific_execution_performed": False,
+    "trials_completed": 0,
+}
+
+CLASSIFICATION_ABSENT = "absent"
+CLASSIFICATION_CLAIMED_UNBOUND = "claimed_unbound"
+CLASSIFICATION_CLAIMED_REQUEST_PUBLISHED = "claimed_request_published"
+CLASSIFICATION_RECOVERABLE_FAILED_RESULT = "recoverable_failed_result"
+CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT = "recoverable_complete_result"
+CLASSIFICATION_FAILED_RETRYABLE = "failed_retryable"
+CLASSIFICATION_COMPLETED_FULL_STRENGTH = "completed_full_strength"
+CLASSIFICATION_TERMINAL_NONMERGEABLE = "terminal_nonmergeable"
+
+#: Exactly the eight reachable classes.  Anything outside this set is a typed
+#: HOLD, never a benign classification.
+CLASSIFICATIONS = (
+    CLASSIFICATION_ABSENT,
+    CLASSIFICATION_CLAIMED_UNBOUND,
+    CLASSIFICATION_CLAIMED_REQUEST_PUBLISHED,
+    CLASSIFICATION_RECOVERABLE_FAILED_RESULT,
+    CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT,
+    CLASSIFICATION_FAILED_RETRYABLE,
+    CLASSIFICATION_COMPLETED_FULL_STRENGTH,
+    CLASSIFICATION_TERMINAL_NONMERGEABLE,
+)
+
+#: Rejected as unreachable by B3.H1.  These named a ``claimed`` state carrying a
+#: bound ``request_sha256``, which the frozen B2C schema forbids.  They are
+#: retained only so tests can assert their absence; they are live nowhere.
+REJECTED_UNREACHABLE_CLASSIFICATIONS = (
+    "claimed_request_bound",
+    "recoverable_request_binding",
+)
+
+#: The exact two-row repair matrix.  There is no request-only state repair: a
+#: published request does not bind itself into a claimed state.
+REPAIR_MATRIX = (
+    (CLASSIFICATION_RECOVERABLE_FAILED_RESULT, work_units.STATUS_FAILED),
+    (CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT, work_units.STATUS_RESULT_LINKED),
+)
+
+#: Classes ``--repair-recoverable`` may transition.  Read-only inspection never
+#: repairs, and no other class is ever modified by repair.
+REPAIRABLE_CLASSIFICATIONS = tuple(name for name, _ in REPAIR_MATRIX)
+NON_REPAIRABLE_CLASSIFICATIONS = tuple(
+    name for name in CLASSIFICATIONS if name not in REPAIRABLE_CLASSIFICATIONS
+)
+
+#: Recoverable IDs in a resume plan are exactly the repairable classes.
+RECOVERABLE_CLASSIFICATIONS = REPAIRABLE_CLASSIFICATIONS
+#: Remaining work.  ``claimed_request_published`` is remaining work, not
+#: recoverable evidence.
+REMAINING_CLASSIFICATIONS = (
+    CLASSIFICATION_ABSENT,
+    CLASSIFICATION_CLAIMED_UNBOUND,
+    CLASSIFICATION_CLAIMED_REQUEST_PUBLISHED,
+    CLASSIFICATION_FAILED_RETRYABLE,
+)
+TERMINAL_CLASSIFICATIONS = (
+    CLASSIFICATION_COMPLETED_FULL_STRENGTH,
+    CLASSIFICATION_TERMINAL_NONMERGEABLE,
+)
+
+#: Proposed next attempt per classification.  ``None`` means no attempt is
+#: proposed: terminal, or awaiting explicit repair.
+PROPOSED_ATTEMPT_POLICY: dict[str, str | None] = {
+    CLASSIFICATION_ABSENT: "attempt_1",
+    CLASSIFICATION_CLAIMED_UNBOUND: "old_attempt_plus_1",
+    CLASSIFICATION_CLAIMED_REQUEST_PUBLISHED: "old_attempt_plus_1",
+    CLASSIFICATION_FAILED_RETRYABLE: "old_attempt_plus_1",
+    CLASSIFICATION_RECOVERABLE_FAILED_RESULT: None,
+    CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT: None,
+    CLASSIFICATION_COMPLETED_FULL_STRENGTH: None,
+    CLASSIFICATION_TERMINAL_NONMERGEABLE: None,
+}
+
+#: Where a repaired unit lands on the next scan.  A complete result becomes
+#: ``completed_full_strength`` in production merge mode, or
+#: ``terminal_nonmergeable`` for a valid bounded-smoke result under explicit
+#: bounded-smoke inspection.
+POST_REPAIR_CLASSIFICATIONS: dict[str, tuple[str, ...]] = {
+    CLASSIFICATION_RECOVERABLE_FAILED_RESULT: (CLASSIFICATION_FAILED_RETRYABLE,),
+    CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT: (
+        CLASSIFICATION_COMPLETED_FULL_STRENGTH,
+        CLASSIFICATION_TERMINAL_NONMERGEABLE,
+    ),
+}
+
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -252,6 +353,92 @@ class ResumeRepairError(G8BlerResumeError):
 
 class ResumeLockError(G8BlerResumeError):
     """The global reconciliation lock could not be established."""
+
+
+# ---------------------------------------------------------------------------
+# The frozen classification rule (G8_B3 §13, as corrected by B3.H1 §29)
+# ---------------------------------------------------------------------------
+
+
+def classification_for_shape(
+    *,
+    state_status: str | None,
+    state_request_bound: bool,
+    request_present: bool,
+    result_status: str | None,
+    result_merge_eligible: bool = True,
+    scan_mode: str = SCAN_MODE_PRODUCTION_MERGE,
+) -> str:
+    """Map an already-validated per-unit shape onto the closed enum.
+
+    This is the classification *rule* alone.  It assumes every byte-level check
+    of §11 and §12 has already succeeded, and it decides nothing about
+    filesystem layout, digests or merge eligibility.  B3.2's classifier
+    validates the chain and then defers to exactly this rule, so the corrected
+    model is frozen in one place rather than restated per call site.
+
+    ``state_status`` is ``None`` when no state exists.  ``result_status`` is the
+    current attempt's result status, or ``None`` when no result exists.
+    """
+
+    if scan_mode not in SCAN_MODES:
+        raise ResumeHoldError(f"unknown scan mode {scan_mode!r}")
+
+    if state_status is None:
+        if request_present or result_status is not None:
+            raise ResumeContradictionError(
+                "no unit state exists but a request or result artifact does"
+            )
+        return CLASSIFICATION_ABSENT
+
+    if state_status == work_units.STATUS_CLAIMED:
+        # B2C keeps a claim request-unbound.  A bound claim cannot exist, so
+        # reaching here means a forged state slipped past validation.
+        if state_request_bound:
+            raise ResumeContradictionError(
+                "claimed state carries a bound request_sha256, which B2C forbids"
+            )
+        if result_status is None:
+            # A published request is immutable attempt history, not a state
+            # binding: both of these are remaining work, not recoverable.
+            return (
+                CLASSIFICATION_CLAIMED_REQUEST_PUBLISHED
+                if request_present
+                else CLASSIFICATION_CLAIMED_UNBOUND
+            )
+        if not request_present:
+            raise ResumeContradictionError("a result exists without its exact request")
+        if result_status == bler_contract.STATUS_FAILED:
+            return CLASSIFICATION_RECOVERABLE_FAILED_RESULT
+        if result_status == bler_contract.STATUS_COMPLETE:
+            return CLASSIFICATION_RECOVERABLE_COMPLETE_RESULT
+        raise ResumeContradictionError(
+            f"result status {result_status!r} cannot be recovered from a claimed state"
+        )
+
+    if state_status == work_units.STATUS_FAILED:
+        if result_status == bler_contract.STATUS_COMPLETE:
+            raise ResumeContradictionError("failed state with a complete result for that attempt")
+        if result_status is not None and not request_present:
+            raise ResumeContradictionError("a result exists without its exact request")
+        return CLASSIFICATION_FAILED_RETRYABLE
+
+    if state_status == work_units.STATUS_RESULT_LINKED:
+        if not request_present or result_status != bler_contract.STATUS_COMPLETE:
+            raise ResumeContradictionError(
+                "result_linked state without its exact request and complete result"
+            )
+        if result_merge_eligible:
+            return CLASSIFICATION_COMPLETED_FULL_STRENGTH
+        # A terminal non-mergeable unit parked at a required production
+        # location would permanently block that full-strength unit.
+        if scan_mode != SCAN_MODE_BOUNDED_SMOKE_INSPECTION:
+            raise ResumeContradictionError(
+                "terminal non-mergeable result at a required production work unit"
+            )
+        return CLASSIFICATION_TERMINAL_NONMERGEABLE
+
+    raise ResumeHoldError(f"unknown unit-state status {state_status!r}")
 
 
 # ---------------------------------------------------------------------------

@@ -362,43 +362,91 @@ filename, state or stored disposition flags.
 
 ## 13. Per-unit classification
 
-Exactly one classification per required work unit, from a closed enum:
+The frozen B2C `claimed` state is always exactly:
+
+    status = claimed
+    request_sha256 = null
+    result_path = null
+    result_sha256 = null
+    scientific_execution_performed = false
+    trials_completed = 0
+
+No B3 code, contract, verifier, test, fixture or documentation may construct or
+accept a `claimed` state with a non-null `request_sha256`. See §29.
+
+Exactly one classification per required work unit, from a closed enum of exactly
+eight reachable classes:
 
     absent
     claimed_unbound
-    claimed_request_bound
-    recoverable_request_binding
+    claimed_request_published
     recoverable_failed_result
     recoverable_complete_result
     failed_retryable
     completed_full_strength
     terminal_nonmergeable
 
-Anything malformed or contradictory raises a typed HOLD exception and never
-receives a benign classification.
+Anything outside these exact reachable classes, and anything malformed or
+contradictory, raises a typed HOLD exception and never receives a benign
+classification.
 
-* `absent` — no state, no attempt artifact. Resume: clean claim at attempt 1.
-* `claimed_unbound` — state `claimed`, `request_sha256` null, no current-attempt
-  request or result. Resume: clean claim at `old_attempt + 1`.
-* `recoverable_request_binding` — state `claimed`, `request_sha256` null, one
-  exact byte-canonical validating current-attempt request, no current-attempt
-  result. Repair may bind the request SHA via B2C CAS. Read-only inspection
-  never repairs automatically.
-* `claimed_request_bound` — state `claimed`, `request_sha256` non-null, exact
-  current-attempt request present and matching, no current-attempt result.
-  Resume: restart at trial zero as a clean claim at `old_attempt + 1`.
-* `recoverable_failed_result` — state `claimed`, request bound, one exact
-  current-attempt `failed` result validating against the request. Repair may
-  transition the current attempt `claimed -> failed`. Never contributes
-  coverage.
-* `recoverable_complete_result` — state `claimed`, request bound, one exact
-  current-attempt complete result, fully valid chain. Repair may transition to
-  `result_linked` without rerunning. In production mode the result must meet
-  all full-strength merge conditions; in bounded-smoke inspection mode it
-  remains nonmergeable.
-* `failed_retryable` — state `failed`, any bound request matches, any
-  current-attempt failed result validates, no complete result for that attempt.
-  Resume: clean claim at `old_attempt + 1`.
+* `absent` — no state, no request for any attempt, no result for any attempt.
+  Resume: create a clean attempt 1.
+* `claimed_unbound` — a valid state with `status = claimed`, `request_sha256`
+  null, `result_path` null, `result_sha256` null,
+  `scientific_execution_performed` false, `trials_completed` 0, no
+  current-attempt request and no current-attempt result. The old attempt is
+  treated as interrupted. Resume: propose exactly `old_attempt + 1`; the new
+  state must be a clean claim. It is remaining work, not recoverable evidence.
+* `claimed_request_published` — a valid state with `status = claimed` retaining
+  the exact clean B2C claimed fields above; exactly one exact canonical
+  current-attempt request exists; the request validates completely; its digest
+  reproduces; no current-attempt result exists. The request file is immutable
+  historical input for the interrupted attempt. It does not become a state
+  binding and does not justify modifying the current claimed state. The old
+  attempt is treated as interrupted. Resume: propose exactly `old_attempt + 1`;
+  the new state must be a clean claim; the new attempt's full-strength request
+  bytes must reproduce byte-identically. It is remaining work, not a recoverable
+  state transition. Do not delete or overwrite the older request.
+* `recoverable_failed_result` — a valid state with `status = claimed` retaining
+  the exact clean B2C claimed fields; exactly one exact canonical current-attempt
+  request exists; exactly one exact canonical current-attempt result exists;
+  result `status` is `failed`; the result validates against that request; no
+  complete result exists for the attempt. Explicit repair is direct:
+
+      claimed, request-unbound  ->  failed, request-bound
+
+  The repaired failed state must contain `request_sha256` equal to the exact
+  request-file SHA-256, `result_path` null, `result_sha256` null,
+  `scientific_execution_performed` true, `trials_completed` equal to the exact
+  validated failed-result `trials_completed`, `test_split_access` 0, the same
+  attempt and the same shard. The failed result file remains an immutable
+  historical attempt artifact but is never referenced as completed evidence.
+  This class contributes zero coverage.
+* `recoverable_complete_result` — a valid state with `status = claimed`
+  retaining the exact clean B2C claimed fields; exactly one exact canonical
+  current-attempt request exists; exactly one exact canonical current-attempt
+  complete result exists; the result validates against that request. Explicit
+  repair is direct:
+
+      claimed, request-unbound  ->  result_linked, request-and-result-bound
+
+  The repaired state must contain `request_sha256` equal to the exact
+  request-file SHA-256, `result_path` equal to the exact canonical
+  repository-relative current-attempt result path, `result_sha256` equal to the
+  exact result-file SHA-256, `scientific_execution_performed` true,
+  `trials_completed` equal to the exact validated result `trials_completed`,
+  `test_split_access` 0, the same attempt and the same shard. In production merge
+  mode the result must additionally satisfy every full-strength merge
+  requirement. In bounded-smoke inspection mode a valid bounded-smoke result
+  becomes `terminal_nonmergeable`, never required coverage.
+* `failed_retryable` — a valid state with `status = failed` and no complete
+  result for that attempt. When `request_sha256` is non-null, the exact
+  corresponding request file must exist, its bytes must match the state digest
+  and it must validate completely. When `request_sha256` is null, no request may
+  be inferred or synthesized. Any failed result file that exists must validate
+  against its exact request and contributes zero coverage. Resume: propose
+  exactly `old_attempt + 1`; the new state must be a clean claim.
 * `completed_full_strength` — state `result_linked`; state, request, result
   path, request SHA, result SHA, attempt, shard metadata and complete result all
   validate; result is full-strength, complete, merge-eligible and contributes
@@ -428,6 +476,23 @@ a bounded-smoke result presented as production coverage; a malformed
 authoritative state treated as absent; a read error, permission error or
 unsupported filesystem primitive treated as "no state".
 
+Additionally HOLD on each of:
+
+    any claimed state with a non-null request_sha256
+    any claimed state with a result reference
+    any claimed state with nonzero trials or a set execution flag
+    a request-only current attempt classified as repairable
+    a failed or complete result without its exact request
+    repair attempting to create a request-bound claimed state
+    a new-attempt request whose bytes differ from the prior valid
+      full-strength request for the same work unit
+    a result for an attempt different from its request path
+    an older complete merge-eligible result when state advanced beyond
+      that attempt
+
+Do **not** treat `claimed-clean + request file only` as contradictory. Its exact
+classification is `claimed_request_published` (§13).
+
 Do not silently quarantine, delete, repair, downgrade or skip contradictions.
 
 ## 15. Historical-attempt rules
@@ -451,21 +516,30 @@ contracts, acquire the exclusive reconciliation lock, census and validate the
 root, produce a deterministic summary, make no filesystem or campaign-state
 change.
 
-Explicit repair requires `--repair-recoverable` and may perform only:
+Explicit repair requires `--repair-recoverable` and may perform only these two
+transitions:
 
-    claimed + exact unbound request        -> claimed with request_sha256 bound
-    claimed + bound request + failed result -> failed
-    claimed + bound request + complete result -> result_linked
+    claimed-clean + exact request + exact failed result
+        -> failed with request SHA bound
+
+    claimed-clean + exact request + exact complete result
+        -> result_linked with request and result bound
+
+There is no request-only state repair. `--repair-recoverable` must not modify a
+unit classified `claimed_unbound`, `claimed_request_published`,
+`failed_retryable`, `completed_full_strength`, `terminal_nonmergeable` or
+`absent`. Read-only inspection never repairs.
 
 Repair rules: hold the exclusive global reconciliation lock; acquire the exact
-per-unit B2C lock; reread state, request and result after locking; recompute all
-hashes and validations; use the current state SHA as B2C's expected predecessor;
-perform only legal B2C transitions; reread and validate installed state; if
-publication raises after the atomic replacement may have occurred, recover by
-rereading authoritative bytes and never infer publication state from the
-exception alone; never repair an absent state, malformed state,
-failed-to-complete conflict, `result_linked` state or unknown file; never
-create, rewrite or delete request/result files.
+per-unit B2C lock; reread state, request and result completely after acquiring
+the lock; recompute all hashes and validations; use the current state SHA as
+B2C's expected predecessor; perform only legal B2C transitions; reread and
+validate installed state; if publication raises after the atomic replacement may
+have occurred, recover by rereading the installed authoritative bytes and never
+infer publication state from the exception alone; never repair an absent state,
+malformed state, failed-to-complete conflict, `result_linked` state or unknown
+file; never create a request-bound `claimed` state; never create, rewrite or
+delete request/result files.
 
 Repair must be idempotent: repeating it after success returns the same canonical
 state and performs no additional transition.
@@ -483,11 +557,36 @@ ignored staging count; zero test access.
 
 Rules:
 
+Per-classification plan semantics:
+
+    absent                       -> proposed attempt 1
+    claimed_unbound              -> proposed attempt old_attempt + 1
+    claimed_request_published    -> proposed attempt old_attempt + 1
+    failed_retryable             -> proposed attempt old_attempt + 1
+    recoverable_failed_result    -> no proposed attempt until explicit repair
+    recoverable_complete_result  -> no proposed attempt until explicit repair
+    completed_full_strength      -> no proposed attempt; excluded from
+                                    remaining work
+    terminal_nonmergeable        -> bounded-smoke inspection only;
+                                    production mode HOLD
+
+Recoverable IDs are exactly `recoverable_failed_result` and
+`recoverable_complete_result`. Remaining IDs include `absent`,
+`claimed_unbound`, `claimed_request_published` and `failed_retryable`.
+
+After repair:
+
+    recoverable_failed_result   -> failed_retryable
+    recoverable_complete_result -> completed_full_strength
+                                   or terminal_nonmergeable
+
+Rules:
+
 1. Assigned order is the existing canonical shard-plan order.
 2. Completed IDs are the exact assigned subsequence classified
    `completed_full_strength`.
-3. Recoverable IDs are the exact assigned subsequence with one of the
-   recoverable classifications.
+3. Recoverable IDs are the exact assigned subsequence classified
+   `recoverable_failed_result` or `recoverable_complete_result`.
 4. Remaining IDs are the exact assigned subsequence not completed and not
    awaiting explicit repair.
 5. After repair, a second scan must produce the exact updated plan.
@@ -497,7 +596,10 @@ Rules:
 9. A retry is always a completely clean claim.
 10. Resharding is allowed only on that next-attempt clean-claim transition.
 11. Changing shard count/index changes membership only.
-12. Seeds and request bytes for a work unit remain unchanged.
+12. Seeds and request bytes for a work unit remain unchanged. Request content
+    does not contain attempt or shard identity, so a new full-strength request
+    for the same work unit must reproduce byte-identically across retries even
+    though it is published at a different attempt path.
 13. Repeated scans of identical authoritative bytes produce byte-identical plan
     bytes and digest.
 14. Hostname, PID, wall time, filesystem order, file mtime, inode, worker name
@@ -512,7 +614,9 @@ Merge **validation**, not a BLER table writer. The merge report must iterate in
 exact complete required-artifact order; accept at most one validated
 full-strength contribution per required work-unit ID; validate the complete
 state/request/result chain; report validated completed IDs, missing IDs,
-recoverable IDs separately and failed/nonterminal IDs separately; report
+recoverable IDs (exactly `recoverable_failed_result` and
+`recoverable_complete_result`) separately and failed/nonterminal IDs — which
+include `claimed_unbound` and `claimed_request_published` — separately; report
 bounded-smoke contributions as zero; report unexpected artifacts as HOLD rather
 than ignoring them; compute exact coverage count; set `coverage_complete = true`
 only at `3213 / 3213`; never interpolate, extrapolate, round, synthesize,
@@ -571,8 +675,10 @@ Generate `results/baseline/g8/bler_resume_contract.json` with
 
 binding all immutable campaign authority; B1C tooling contract ID and SHA; B2C
 state contract ID and SHA; request/result/unit-state schema versions; required
-count 3213; runtime layout; lock order; census rules; closed classifications;
-recovery matrix; repair rules; resume-plan schema and digest; merge-validity
+count 3213; runtime layout; lock order; census rules; the closed classification
+enum as exactly the eight reachable classes of §13; the recovery matrix as
+exactly the two rows of §16; repair rules; resume-plan schema and digest;
+merge-validity
 rules; campaign reconciliation rules; no-science scope; exact B4 restart
 command.
 
@@ -599,8 +705,9 @@ because generator `--check` passes.
 
 It must define or derive independently: frozen campaign/B1C/B2C values; source
 paths and roles; contract schema; artifact layouts; attempt grammar; allowed
-census entries; classification enum; recovery matrix; resume ordering; merge
-conditions; campaign projection; exact B4 restart command.
+census entries; the exact eight-class classification enum of §13; the exact
+two-row recovery matrix of §16; resume ordering; merge conditions; campaign
+projection; exact B4 restart command.
 
 Add AST-enforced tests that fail if the verifier imports the generator or
 imports expected constants directly from the production module. The verifier
@@ -634,14 +741,26 @@ changed; failed/incomplete result offered as merge evidence; valid zero-error
 and all-error complete results accepted; decoder-exception placeholder never
 accepted as completed evidence.
 
-Classification and recovery: completely absent root; absent unit; claimed before
-request; crash after request publication before state request binding; crash
-after request binding before result; crash after failed-result publication
-before failed-state transition; crash after complete-result publication before
-result link; crash after result link; exception after atomic state installation
-recovered by reread; repeated repair idempotent; stale writer loses; repair and
-worker race serialized by locks; hard process exit releases reconciliation and
-per-unit locks.
+Classification and recovery: completely absent root; absent unit; clean claim
+before any request is `claimed_unbound`; crash after request publication while
+the state stays clean is `claimed_request_published`, is not modified by repair,
+and proposes exactly `old_attempt + 1`; the request bytes at attempt `N + 1`
+reproduce byte-identically; clean claim plus exact failed result is
+`recoverable_failed_result` and repairs directly to a valid `failed`; clean
+claim plus exact complete result is `recoverable_complete_result` and repairs
+directly to a valid `result_linked`; both direct transitions pass the frozen B2C
+`validate_state_transition`; crash after result link; any request-bound
+`claimed` fixture is rejected by B2C before classification is ever reached; the
+rejected, unreachable pre-correction names `claimed_request_bound` and
+`recoverable_request_binding` (§29) appear nowhere in the live enum,
+implementation, generated contract or verifier, and appear in the tests only as
+the subject of these absence assertions; exception after
+atomic state installation recovered by reread; repeated repair idempotent; stale
+writer loses; repair and worker race serialized by locks; hard process exit
+releases reconciliation and per-unit locks.
+
+The generator and independent verifier must use exactly the corrected
+eight-class enum (§13) and the exact two-row repair matrix (§16).
 
 Attempts and resharding: request bytes identical across attempts; seeds
 identical across attempts and shard layouts; attempt regression rejected;
@@ -664,6 +783,8 @@ exit is the property being proved. Threads alone are insufficient.
 
     B3.0 establish boundary and publish durable instruction
     B3.1 implement authenticated B3 context, layout, and no-follow census
+    B3.H1 align B3 recovery classifications with frozen B2C clean-claim
+          semantics (§29; correction interposed between B3.1 and B3.2)
     B3.2 implement request/result chain validation and closed classification
     B3.3 implement global reconciliation locking and explicit recovery
     B3.4 implement deterministic resume plans and merge reports
@@ -742,7 +863,7 @@ Do not claim "runner ready" or "G8_B green"; B4, B5 and B6 still remain.
     .venv/bin/python tools/verify_g2_adjudication.py
     .venv/bin/python tools/gen_spec_views.py --check
     .venv/bin/python tools/check_doc_consistency.py
-    .venv/bin/python tools/check_no_unapproved_literals.py
+    .venv/bin/python tools/check_literals.py
     .venv/bin/python -m pytest
     git diff --check
     git status --short
@@ -807,3 +928,42 @@ durable ledger closure, generated contract registration, independent
 verification, exact handoff wording, a final signed commit, a successful push,
 local/origin/remote parity, a clean worktree and no production runtime
 artifacts.
+
+## 29. B3.H1 adjudication — recovery model aligned with frozen B2C
+
+B3.H1 corrected an unreachable operational model before the B3 contract existed.
+
+B2C deliberately keeps `claimed` state request-unbound.
+
+Request-only publication is immutable attempt history, not a state transition.
+
+Failed and complete outcomes repair directly from clean claimed state.
+
+No B2C source, schema or artifact changed.
+
+Record. The original §13 of this instruction defined a nine-class enum whose
+`claimed_request_bound` and `recoverable_request_binding` classes, and whose
+original first §16 repair row `claimed + exact unbound request -> claimed with
+request_sha256 bound`, all required a `claimed` unit state carrying a bound
+`request_sha256`. The frozen B2C schema forbids that state
+(`src/baseline/g8_bler_work_units.py`, `claimed` requires
+`(request_sha256, result_path, result_sha256, scientific_execution_performed,
+trials_completed) == (None, None, None, False, 0)`), and the registered B2C
+contract artifact encodes the same rule. B3.2 correctly raised a HOLD rather
+than implementing a model the system cannot represent.
+
+Adjudication. The HOLD was correct. The frozen B2C contract is authoritative and
+remains unchanged; **no B2C2 correction was opened** and no B2C source, schema,
+contract ID, contract SHA-256 or campaign-state binding was modified. The
+contradiction was resolved by correcting this operational instruction and all
+future B3 implementation, generator, verifier and tests to match the
+already-frozen B2C state machine. Because no B3 contract artifact had been
+generated or registered, the correction required no generated-artifact
+migration.
+
+`claimed_request_bound` and `recoverable_request_binding` are **rejected and
+unreachable**. They are recorded here and in the B3.2/B3.H1 rows of
+`instructions/RESUME.md` as history only, and are live nowhere.
+
+Amendment judgment: **no specification amendment**; `spec/SPEC.md` is not
+implicated. B3.0 and B3.1 remain accepted and complete.

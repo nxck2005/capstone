@@ -22,6 +22,7 @@ from typing import Any
 
 import pytest
 
+from baseline import g8_bler_contract as bler_contract
 from baseline import g8_bler_resume as resume
 from baseline import g8_bler_work_units as units
 
@@ -792,3 +793,344 @@ def test_lock_never_creates_the_production_runtime_root() -> None:
         if not existed:
             assert held["root_present"] is False
     assert production.exists() == existed
+
+
+# ---------------------------------------------------------------------------
+# B3.H1 — the corrected recovery model (G8_B3 §13, §16, §17, §29)
+#
+# B2C deliberately keeps a `claimed` state request-unbound: a claim is a
+# pre-execution reservation, and a published request file is immutable attempt
+# history rather than a state transition.  The pre-correction B3 instruction
+# defined four classes and the first repair row in terms of a request-bound
+# claim, which that schema makes unreachable.  These tests freeze the corrected
+# eight-class enum and two-row repair matrix now; B3.6 binds them into the
+# generated contract.
+# ---------------------------------------------------------------------------
+
+
+def _plan(context: resume.AuthenticatedResumeContext) -> dict[str, Any]:
+    return units.build_shard_plan(context.state_context, 1, 0)
+
+
+def _clean_claim(
+    context: resume.AuthenticatedResumeContext,
+    work_unit_id: str,
+    *,
+    attempt: int = 1,
+) -> dict[str, Any]:
+    return units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        attempt=attempt,
+        status=units.STATUS_CLAIMED,
+    )
+
+
+def test_b2c_rejects_a_request_bound_claimed_state(
+    context: resume.AuthenticatedResumeContext,
+) -> None:
+    work_unit_id = _unit(context)
+    digest = "a" * 64
+    with pytest.raises(units.UnitStateError):
+        units.build_unit_state(
+            context.state_context,
+            work_unit_id,
+            _plan(context),
+            status=units.STATUS_CLAIMED,
+            request_sha256=digest,
+        )
+    forged = _clean_claim(context, work_unit_id)
+    forged["identity"] = dict(forged["identity"]) | {"request_sha256": digest}
+    with pytest.raises(units.UnitStateError):
+        units.validate_unit_state(context.state_context, forged)
+
+
+def test_b3_never_includes_the_rejected_unreachable_classifications() -> None:
+    assert resume.REJECTED_UNREACHABLE_CLASSIFICATIONS == (
+        "claimed_request_bound",
+        "recoverable_request_binding",
+    )
+    for rejected in resume.REJECTED_UNREACHABLE_CLASSIFICATIONS:
+        assert rejected not in resume.CLASSIFICATIONS
+        assert rejected not in resume.REPAIRABLE_CLASSIFICATIONS
+        assert rejected not in resume.RECOVERABLE_CLASSIFICATIONS
+        assert rejected not in resume.REMAINING_CLASSIFICATIONS
+        assert rejected not in resume.PROPOSED_ATTEMPT_POLICY
+        assert rejected not in {name for name, _ in resume.REPAIR_MATRIX}
+        assert rejected not in {target for _, target in resume.REPAIR_MATRIX}
+
+
+def test_the_closed_enum_is_exactly_the_eight_reachable_classes() -> None:
+    assert resume.CLASSIFICATIONS == (
+        "absent",
+        "claimed_unbound",
+        "claimed_request_published",
+        "recoverable_failed_result",
+        "recoverable_complete_result",
+        "failed_retryable",
+        "completed_full_strength",
+        "terminal_nonmergeable",
+    )
+    assert len(set(resume.CLASSIFICATIONS)) == 8
+    assert set(resume.PROPOSED_ATTEMPT_POLICY) == set(resume.CLASSIFICATIONS)
+    assert (
+        set(resume.RECOVERABLE_CLASSIFICATIONS)
+        | set(resume.REMAINING_CLASSIFICATIONS)
+        | set(resume.TERMINAL_CLASSIFICATIONS)
+    ) == set(resume.CLASSIFICATIONS)
+
+
+def test_clean_claim_without_a_request_is_claimed_unbound() -> None:
+    assert (
+        resume.classification_for_shape(
+            state_status=units.STATUS_CLAIMED,
+            state_request_bound=False,
+            request_present=False,
+            result_status=None,
+        )
+        == "claimed_unbound"
+    )
+
+
+def test_clean_claim_with_one_exact_request_and_no_result_is_request_published() -> None:
+    assert (
+        resume.classification_for_shape(
+            state_status=units.STATUS_CLAIMED,
+            state_request_bound=False,
+            request_present=True,
+            result_status=None,
+        )
+        == "claimed_request_published"
+    )
+
+
+def test_a_published_request_is_never_repaired_and_is_remaining_work() -> None:
+    assert "claimed_request_published" not in resume.REPAIRABLE_CLASSIFICATIONS
+    assert "claimed_request_published" in resume.NON_REPAIRABLE_CLASSIFICATIONS
+    assert "claimed_request_published" in resume.REMAINING_CLASSIFICATIONS
+    assert "claimed_request_published" not in resume.RECOVERABLE_CLASSIFICATIONS
+    # Read-only inspection and explicit repair both leave every other class
+    # untouched; only the two result-bearing classes are ever transitioned.
+    assert set(resume.NON_REPAIRABLE_CLASSIFICATIONS) == {
+        "absent",
+        "claimed_unbound",
+        "claimed_request_published",
+        "failed_retryable",
+        "completed_full_strength",
+        "terminal_nonmergeable",
+    }
+
+
+def test_a_published_request_proposes_exactly_the_next_attempt() -> None:
+    assert resume.PROPOSED_ATTEMPT_POLICY["claimed_request_published"] == "old_attempt_plus_1"
+    assert resume.PROPOSED_ATTEMPT_POLICY["claimed_unbound"] == "old_attempt_plus_1"
+    assert resume.PROPOSED_ATTEMPT_POLICY["failed_retryable"] == "old_attempt_plus_1"
+    assert resume.PROPOSED_ATTEMPT_POLICY["absent"] == "attempt_1"
+    for terminal_or_recoverable in (
+        "recoverable_failed_result",
+        "recoverable_complete_result",
+        "completed_full_strength",
+        "terminal_nonmergeable",
+    ):
+        assert resume.PROPOSED_ATTEMPT_POLICY[terminal_or_recoverable] is None
+
+
+def test_request_bytes_reproduce_identically_at_the_next_attempt(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    first = bler_contract.canonical_json(bler_contract.build_full_strength_request(work_unit_id))
+    second = bler_contract.canonical_json(bler_contract.build_full_strength_request(work_unit_id))
+    # Request content carries no attempt or shard identity, so a retry
+    # republishes byte-identical bytes at a different attempt path.
+    assert first == second
+    old = resume.artifact_path(context, work_unit_id, resume.ARTIFACT_KIND_REQUEST, 1, root=root)
+    new = resume.artifact_path(context, work_unit_id, resume.ARTIFACT_KIND_REQUEST, 2, root=root)
+    assert old != new
+    assert old.parent == new.parent
+
+
+def test_clean_claim_plus_failed_result_is_recoverable_failed_result() -> None:
+    assert (
+        resume.classification_for_shape(
+            state_status=units.STATUS_CLAIMED,
+            state_request_bound=False,
+            request_present=True,
+            result_status=bler_contract.STATUS_FAILED,
+        )
+        == "recoverable_failed_result"
+    )
+    assert "recoverable_failed_result" in resume.RECOVERABLE_CLASSIFICATIONS
+
+
+def test_clean_claim_plus_complete_result_is_recoverable_complete_result() -> None:
+    assert (
+        resume.classification_for_shape(
+            state_status=units.STATUS_CLAIMED,
+            state_request_bound=False,
+            request_present=True,
+            result_status=bler_contract.STATUS_COMPLETE,
+        )
+        == "recoverable_complete_result"
+    )
+    assert "recoverable_complete_result" in resume.RECOVERABLE_CLASSIFICATIONS
+
+
+def test_the_repair_matrix_has_exactly_two_direct_rows() -> None:
+    assert resume.REPAIR_MATRIX == (
+        ("recoverable_failed_result", units.STATUS_FAILED),
+        ("recoverable_complete_result", units.STATUS_RESULT_LINKED),
+    )
+    assert resume.POST_REPAIR_CLASSIFICATIONS == {
+        "recoverable_failed_result": ("failed_retryable",),
+        "recoverable_complete_result": (
+            "completed_full_strength",
+            "terminal_nonmergeable",
+        ),
+    }
+
+
+def test_direct_repair_transitions_pass_the_frozen_b2c_validator(
+    context: resume.AuthenticatedResumeContext,
+    root: Path,
+) -> None:
+    work_unit_id = _unit(context)
+    claimed = _clean_claim(context, work_unit_id)
+    for field, expected in resume.FROZEN_CLAIMED_STATE_FIELDS.items():
+        assert claimed["identity"][field] == expected
+
+    request_sha = "b" * 64
+    result_sha = "c" * 64
+    result_path = str(
+        resume.artifact_relative_path(context, work_unit_id, resume.ARTIFACT_KIND_RESULT, 1)
+    )
+
+    # claimed, request-unbound -> failed, request-bound
+    repaired_failed = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        attempt=claimed["identity"]["attempt"],
+        status=units.STATUS_FAILED,
+        request_sha256=request_sha,
+        scientific_execution_performed=True,
+        trials_completed=1234,
+    )
+    units.validate_state_transition(claimed, repaired_failed)
+    failed_identity = repaired_failed["identity"]
+    assert failed_identity["request_sha256"] == request_sha
+    assert failed_identity["result_path"] is None
+    assert failed_identity["result_sha256"] is None
+    assert failed_identity["scientific_execution_performed"] is True
+    assert failed_identity["trials_completed"] == 1234
+    assert failed_identity["test_split_access"] == 0
+    assert failed_identity["attempt"] == claimed["identity"]["attempt"]
+    assert failed_identity["shard_index"] == claimed["identity"]["shard_index"]
+
+    # claimed, request-unbound -> result_linked, request-and-result-bound
+    repaired_linked = units.build_unit_state(
+        context.state_context,
+        work_unit_id,
+        _plan(context),
+        attempt=claimed["identity"]["attempt"],
+        status=units.STATUS_RESULT_LINKED,
+        request_sha256=request_sha,
+        result_path=result_path,
+        result_sha256=result_sha,
+        scientific_execution_performed=True,
+        trials_completed=5000,
+    )
+    units.validate_state_transition(claimed, repaired_linked)
+    linked_identity = repaired_linked["identity"]
+    assert linked_identity["request_sha256"] == request_sha
+    assert linked_identity["result_path"] == result_path
+    assert linked_identity["result_sha256"] == result_sha
+    assert linked_identity["scientific_execution_performed"] is True
+    assert linked_identity["trials_completed"] == 5000
+    assert linked_identity["test_split_access"] == 0
+    assert linked_identity["attempt"] == claimed["identity"]["attempt"]
+    assert linked_identity["shard_index"] == claimed["identity"]["shard_index"]
+
+
+def test_a_request_bound_claim_holds_before_classification_is_reached() -> None:
+    with pytest.raises(resume.ResumeContradictionError):
+        resume.classification_for_shape(
+            state_status=units.STATUS_CLAIMED,
+            state_request_bound=True,
+            request_present=True,
+            result_status=None,
+        )
+    with pytest.raises(resume.ResumeContradictionError):
+        resume.classification_for_shape(
+            state_status=units.STATUS_CLAIMED,
+            state_request_bound=True,
+            request_present=True,
+            result_status=bler_contract.STATUS_COMPLETE,
+        )
+    # A result without its exact request, and an artifact without any state,
+    # are HOLDs rather than benign classifications.
+    with pytest.raises(resume.ResumeContradictionError):
+        resume.classification_for_shape(
+            state_status=units.STATUS_CLAIMED,
+            state_request_bound=False,
+            request_present=False,
+            result_status=bler_contract.STATUS_COMPLETE,
+        )
+    with pytest.raises(resume.ResumeContradictionError):
+        resume.classification_for_shape(
+            state_status=None,
+            state_request_bound=False,
+            request_present=True,
+            result_status=None,
+        )
+
+
+def test_terminal_nonmergeable_is_bounded_smoke_only_and_holds_in_production() -> None:
+    assert (
+        resume.classification_for_shape(
+            state_status=units.STATUS_RESULT_LINKED,
+            state_request_bound=True,
+            request_present=True,
+            result_status=bler_contract.STATUS_COMPLETE,
+            result_merge_eligible=False,
+            scan_mode=resume.SCAN_MODE_BOUNDED_SMOKE_INSPECTION,
+        )
+        == "terminal_nonmergeable"
+    )
+    with pytest.raises(resume.ResumeContradictionError):
+        resume.classification_for_shape(
+            state_status=units.STATUS_RESULT_LINKED,
+            state_request_bound=True,
+            request_present=True,
+            result_status=bler_contract.STATUS_COMPLETE,
+            result_merge_eligible=False,
+            scan_mode=resume.SCAN_MODE_PRODUCTION_MERGE,
+        )
+    assert (
+        resume.classification_for_shape(
+            state_status=units.STATUS_RESULT_LINKED,
+            state_request_bound=True,
+            request_present=True,
+            result_status=bler_contract.STATUS_COMPLETE,
+        )
+        == "completed_full_strength"
+    )
+
+
+def test_the_future_generator_and_verifier_bind_the_corrected_model() -> None:
+    """B3.6 binds these; until then the tools must not exist at all."""
+
+    generator = resume.REPO_ROOT / "tools/gen_g8_bler_resume_contract.py"
+    verifier = resume.REPO_ROOT / "tools/verify_g8_bler_resume_contract.py"
+    for tool in (generator, verifier):
+        if not tool.exists():
+            continue
+        source = tool.read_text(encoding="utf-8")
+        for name in resume.CLASSIFICATIONS:
+            assert name in source, f"{tool.name} omits classification {name}"
+        for rejected in resume.REJECTED_UNREACHABLE_CLASSIFICATIONS:
+            assert rejected not in source, f"{tool.name} names rejected class {rejected}"
+        for name, target in resume.REPAIR_MATRIX:
+            assert name in source and target in source
