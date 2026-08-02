@@ -2341,9 +2341,27 @@ def _stub_registered_b3_binding(
 
 
 def test_plans_and_merge_reports_require_a_registered_b3_contract(
-    context: resume.AuthenticatedResumeContext,
+    execution_context: units.AuthenticatedExecutionContext,
     root: Path,
+    tmp_path: Path,
 ) -> None:
+    # The live campaign is registered at B3.8.  Strip the binding in an
+    # isolated copied campaign state so this test continues to exercise the
+    # pre-registration fail-closed boundary rather than the live fixture.
+    campaign_state = tmp_path / "campaign_state.json"
+    state = json.loads(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
+    state["identity"]["produced_artifacts"] = [
+        entry
+        for entry in state["identity"]["produced_artifacts"]
+        if entry.get("path") != resume.RESUME_CONTRACT_REPO_RELATIVE_PATH
+    ]
+    campaign_state.write_bytes(g8_campaign.rendered_json(state))
+    context = resume.AuthenticatedResumeContext(
+        units.AuthenticatedUnitStateContext(
+            execution_context,
+            campaign_state_path=campaign_state,
+        )
+    )
     with pytest.raises(resume.ResumeContractAuthenticationError):
         resume.build_resume_plan(context, root=root)
     with pytest.raises(resume.ResumeContractAuthenticationError):

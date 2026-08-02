@@ -13,6 +13,11 @@
     "phase": "G8_B",
     "produced_artifacts": [
       {
+        "bytes": 24284,
+        "path": "results/baseline/g8/bler_resume_contract.json",
+        "sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41"
+      },
+      {
         "bytes": 18394,
         "path": "results/baseline/g8/bler_state_contract.json",
         "sha256": "cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583"
@@ -33,7 +38,7 @@
         "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
       }
     ],
-    "restart_command": "rg -n \"resume|remaining_work|merge|request_sha256|result_sha256|completed_work_unit_ids|in_progress_work_unit_id|unit_state|shard_plan\" src/baseline tools tests",
+    "restart_command": "rg -n \"bounded_smoke|run_g8_bler|SionnaLDPCAdapter|information_bit_stream|normal_stream|map_bits|max_log_llr\" src/baseline tools tests",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
     "stage": "tooling_open"
   },

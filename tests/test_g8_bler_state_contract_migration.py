@@ -62,7 +62,20 @@ def new_contract_bytes() -> bytes:
 
 @pytest.fixture(scope="module")
 def new_state_bytes() -> bytes:
-    return LIVE_STATE.read_bytes()
+    # This migration fixture is the B2C-era pair.  The live campaign advances
+    # its restart command and registers the B3 artifact at B3.8, so reconstruct
+    # the exact four-artifact tooling-open state that the frozen migration
+    # utility is designed to recover.  The live state itself remains the
+    # authoritative five-artifact B3 state.
+    state = json.loads(LIVE_STATE.read_bytes())
+    identity = state["identity"]
+    identity["restart_command"] = units.B3_RESTART_COMMAND
+    identity["produced_artifacts"] = [
+        entry
+        for entry in identity["produced_artifacts"]
+        if entry["path"] != "results/baseline/g8/bler_resume_contract.json"
+    ]
+    return rendered_json(state)
 
 
 def _pair(tmp_path: Path, contract: bytes, state: bytes) -> tuple[Path, Path]:
