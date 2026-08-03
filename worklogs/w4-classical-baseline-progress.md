@@ -1604,9 +1604,21 @@ only after the runner has published and linked the complete transaction; B3
 reconciliation validated the chains and retained the evidence. Coordination
 locks remain untracked. **No specification amendment.**
 
-The next durable C2 batch is prepared for authority ordinals 117–148, intended
-IDs `bler-0922d808f9a6de5709feebaf` through
-`bler-0b3f1deb304cbcaf3cc9509c`, with the exact registered characterization
+The next 32-unit suffix completed authority ordinals 117–148, from
+`bler-0922d808f9a6de5709feebaf` through `bler-0b3f1deb304cbcaf3cc9509c`, all
+at attempt 1 with exactly 5,000 trials. The fresh production census reports 149
+completed and 3,064 remaining, with every recoverable, failed,
+terminal-nonmergeable, unknown, duplicate and missing count at zero. The
+reconciled campaign-state is SHA-256
+`a2433f5d201bda8fc6a3cd94d50229662b96919b9bac1f908c20c13ffc1be850`, 8,262
+bytes. The frozen worker summary continues to raise `KeyError: measurement`
+only after the runner has published and linked the complete transaction; B3
+reconciliation validated the chains and retained the evidence. Coordination
+locks remain untracked. **No specification amendment.**
+
+The next durable C2 batch is prepared for authority ordinals 149–180, intended
+IDs `bler-0b415683173d2ef45cd2de53` through
+`bler-0e8fad563b140778353fa2ff`, with the exact registered characterization
 CLI, shard `1/0`, one CUDA worker and auto batch 64. Current completed count is
-117 and remaining count is 3,096; the next boundary will reconcile before any
+149 and remaining count is 3,064; the next boundary will reconcile before any
 evidence is staged. **No specification amendment.**
