@@ -1191,10 +1191,14 @@ changing any of them, which is the bar §17's preamble sets.
 
 ## Remaining frontier
 
-W4 is complete, including PB_3C. **G8_B active. B0, B1, B1C, B2 and B2C complete. B3 next — implement
-exact resume and merge validation. No runner, simulation, smoke or characterization has started.
-G8_C–G8_G remain prohibited.** The single next engineering task is **G-8 classical validation
-work**; the full sweep is step eight of twelve, and the B2 tooling now precedes it.
+W4 is complete, including PB_3C. **G8_B is complete through B6 at
+`G8_B/tooling_smoke_complete`; G8_C is ready but not started.** The authenticated runner,
+exact resume/merge validation, atomic state machinery and bounded smoke are green. No
+full-strength characterization, BLER table, selection, authorization, inference, training,
+validation decoding or test access has occurred; the production runtime root is absent and the
+test split remains sealed. The exact G8_C restart command is stored in the campaign state and is
+`rg -n "G8_C|characterization_open|full_strength|run_g8_bler|resume_plan|merge_report|tooling_smoke_complete" src/baseline tools tests instructions`
+and is not executed here.
 
 The committed G-2 BLER evidence characterises exactly one physical-layer identity (`K=128, N=256,
 BG2, Z=22, rate 1/2, offset-min-sum 0.5, 50 iterations`) at four SNR points per modulation. It is a
@@ -1226,14 +1230,12 @@ rule; it does **not** decide whether a learned-versus-classical curve crossover 
 at G-10 after learned models exist. Changing the tie-break order once the sweep has started
 invalidates the campaign.
 
-PB_3C builds and executes none of that. As of this entry: the full BR-4 sweep has not
-started, no G-8 characterization has run, G-8 is unresolved, no real `G8Authorization` exists in any
-tracked non-test file, no bandwidth ratio or operating point has been selected, no model has
-been trained or fine-tuned, the artifact-finetuned classifier does not exist, λ is uncalibrated, ER-9
-is unimplemented, and the test split is sealed until G-12 at W11. PR-1 (literature review), PR-2
-(Gantt chart) and PR-9 (deployment dossier and author/guide acknowledgement) remain outstanding
-programme deliverables. The PB_1 cache-key field-spelling issue is unchanged and remains deliberately
-untouched.
+PB_3C's historical note remains unchanged, but B6 has now completed the G8_B tooling gate. As of
+this handoff: the full BR-4 sweep has not started, no G-8 characterization has run, G-8 remains
+unresolved, no real `G8Authorization` exists in any tracked non-test file, no bandwidth ratio or
+operating point has been selected, no model has been trained or fine-tuned, the artifact-finetuned
+classifier does not exist, λ is uncalibrated, ER-9 is unimplemented, and the test split is sealed
+until G-12 at W11. PR-1, PR-2 and PR-9 remain outstanding programme deliverables.
 
 ## G8_A opening — durable partition and corrected terminal provenance
 
@@ -1477,3 +1479,29 @@ rule.
 later W5 task; PR-1, PR-2, PR-3 and PR-9 remain outstanding and are governed by the actual calendar
 review deadline rather than by the completion of the engineering work package called W4; and
 `er1_projected_total_hours_status` remains an open profiling/governance item.
+
+## G8_B B6 — final green and handoff (complete)
+
+The existing B5 row in `instructions/RESUME.md` closed after the signed commits
+`faf089edcf121f8827e7c2f231702177d781463c` (literal correction, v3 contract and migration support),
+`14f584ba2bf747ecfe649bb6da525d6822f0940e` (live v2→v3 runner migration and v3-bound schema-2
+smoke), `bd77ac5287473c690c29de9c5a0b70059afa5dd1` (migration/publication adversarial matrix), and
+`28ba80a5dbb18c0a68d6db04851bfb5e2a338b43` (B5 ledger closure). All are signed and pushed with
+local/origin/remote parity.
+
+The final v3 runner is `g8runner-49e4facbe266117c74ff802b4252bcba87a7331c34a7ffe228b4648469728583`,
+SHA-256 `a238478eb9f231c984258e1f99c4c54d1a0fba353faa683908bca460c6c03763`, 18,612 bytes, with
+the complete v2→v1 supersession history. The v3-bound smoke is SHA-256
+`1f574b8d8442b68c44211693d128f768bc17f0bfa5472ae144d6c9e5b8ef6635`, 36,572 bytes. The exact
+selected smoke IDs are `bler-0020cd25150d4f59a8fbb7c0`, `bler-002ad933f0d8e5617ad23e11` and
+`bler-00a9c6a1b521eb82a351382c`; each ran 16 trials at attempt 1 and every contribution is zero.
+
+B6 passed every requested generator/verifier, W4 and G-2 integration, spec/docs/literal checks,
+resume `218`, runner `49`, combined `772`, and full-suite `1953 passed, 0 failed, 0 skipped` in
+`283.15 s`; `verify_cpu_lock.py --clean-install` passed. The only state change was the validated,
+atomic stage advance to `G8_B/tooling_smoke_complete`, producing campaign-state SHA-256
+`09f1655f570fe947f93bf2477b7bb3b3a7e871c32a98addde0b9d1e7b3400a77`. It preserves seven artifact
+bindings, empty completed IDs, null in-progress ID and four zero counters. No full-strength work,
+selection, authorization, test access, `BlerTable`, inference or training occurred. Frozen G8_A,
+B1C, B2C, B3, LDPC, G-2, W4, dataset, parameter and specification files remain byte-identical to
+the B5 starting boundary. **No specification amendment.**

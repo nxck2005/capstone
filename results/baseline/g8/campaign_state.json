@@ -50,7 +50,7 @@
     ],
     "restart_command": "rg -n \"G8_C|characterization_open|full_strength|run_g8_bler|resume_plan|merge_report|tooling_smoke_complete\" src/baseline tools tests instructions",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
-    "stage": "tooling_open"
+    "stage": "tooling_smoke_complete"
   },
   "metadata": {
     "last_successful_checkpoint_time": null
