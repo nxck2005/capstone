@@ -1591,3 +1591,10 @@ bytes. The frozen worker summary continues to raise `KeyError: measurement`
 only after the runner has published and linked the complete transaction; B3
 reconciliation validated the chains and retained the evidence. Coordination
 locks remain untracked. **No specification amendment.**
+
+The next durable C2 batch is prepared for authority ordinals 85–116, intended
+IDs `bler-05aad0f21238088183ca27ac` through
+`bler-091d040b92ab672d4c895444`, with the exact registered characterization
+CLI, shard `1/0`, one CUDA worker and auto batch 64. Current completed count is
+85 and remaining count is 3,128; the next boundary will reconcile before any
+evidence is staged. **No specification amendment.**
