@@ -850,9 +850,9 @@ after valid result publication; B3 reconciliation validates and retains each
 complete terminal chain. This suffix is the next signed raw-evidence
 checkpoint; coordination locks remain untracked. No specification amendment.
 
-Next C2 durable batch marker: ordinals 149–180, intended IDs
-`bler-0b415683173d2ef45cd2de53` through `bler-0e8fad563b140778353fa2ff`,
-32 newly completed units maximum. Resolved topology remains CUDA on one
+Next C2 durable batch marker: ordinals 149–276, intended IDs
+`bler-0b415683173d2ef45cd2de53` through `bler-172d2401174dda87d4ced5f6`,
+128 newly completed units maximum. Resolved topology remains CUDA on one
 `NVIDIA GeForce RTX 4060 Laptop GPU`, one worker, shard `1/0`, auto batch 64,
 and the exact restart command is the registered characterization CLI recorded
 in the C2 row above. Launch only after this marker is signed and pushed; at
