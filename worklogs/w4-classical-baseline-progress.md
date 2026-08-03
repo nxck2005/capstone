@@ -1622,3 +1622,23 @@ IDs `bler-0b415683173d2ef45cd2de53` through
 CLI, shard `1/0`, one CUDA worker and auto batch 64. Current completed count is
 149 and remaining count is 3,064; the next boundary will reconcile before any
 evidence is staged. **No specification amendment.**
+
+The 149–276 frozen-CLI suffix was interrupted at authority ordinal 179 before
+its result publication completed. The authenticated read-only B3 census found
+179 complete full-strength chains, one request-only `claimed_request_published`
+transaction, and 3,033 absent units; recoverable, retryable-failed,
+terminal-nonmergeable, unknown, duplicate and missing counts were all zero, and
+test access was zero. The request-only transaction is ordinal 179,
+`bler-0e7c3102fbf553ba90fc5458`, attempt 1, request SHA
+`42062b62a4f88e08193b00fee25ed998ccbcd502782a206f231d10aae4c1b1c6`, state SHA
+`66f372885e7e8de5744f0e51e83b6ec1a1d19a004f2ddd36b4f64ff707cf1dc1`; it has no
+result and contributes no accepted evidence. The exact recovery invocation
+was the registered characterization command with `--reconcile-only`; it
+completed successfully and published campaign-state SHA
+`e39b4090a5a1f65b4228aa423de52a6a59bda7912476d1fb28247e8610e274da`, 9,432
+bytes, with 179 completed IDs, null in-progress ID and all protected counters
+zero. The frozen worker's post-publication `KeyError: measurement` remains an
+operational nuisance after valid chains are published; no bound source was
+changed and no repair was applied. The next execution must derive a fresh B3
+suffix and retry ordinal 179 only through its exact next clean attempt. **No
+specification amendment.**

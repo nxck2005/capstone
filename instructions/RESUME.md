@@ -837,18 +837,23 @@ C rows below are updated in the same commit as their checkpoint. C0 is the
 state-only opening step and has no full-strength execution.
 
 Current C2 durable checkpoint detail: the authenticated production census after
-the frozen-CLI suffix reports 149 `completed_full_strength` units and 3,064
-absent/remaining units, with zero recoverable, retryable-failed,
-terminal-nonmergeable, unknown, duplicate or missing units. Authority ordinals
-117–148 are `bler-0922d808f9a6de5709feebaf` through
-`bler-0b3f1deb304cbcaf3cc9509c`, all attempt 1 with exactly 5,000 trials;
-`test_split_access=0` and every protected counter remains zero. The
-reconciled campaign-state is SHA-256
-`a2433f5d201bda8fc6a3cd94d50229662b96919b9bac1f908c20c13ffc1be850`,
-8,262 bytes. The frozen worker summary still raises `KeyError: measurement`
-after valid result publication; B3 reconciliation validates and retains each
-complete terminal chain. This suffix is the next signed raw-evidence
-checkpoint; coordination locks remain untracked. No specification amendment.
+the interrupted frozen-CLI suffix reports 179 `completed_full_strength` units,
+one `claimed_request_published` remaining transaction, and 3,033 absent units.
+The request-only transaction is not accepted evidence and contributes zero; it
+is retained for the B3 history and will use the exact next clean attempt. There
+are zero recoverable, retryable-failed, terminal-nonmergeable, unknown,
+duplicate or missing units. Authority ordinals 149–178 are complete at attempt
+1 with exactly 5,000 trials; `test_split_access=0` and every protected counter
+remains zero. The reconciled campaign-state is SHA-256
+`e39b4090a5a1f65b4228aa423de52a6a59bda7912476d1fb28247e8610e274da`,
+9,432 bytes. The request-only ordinal 179 is
+`bler-0e7c3102fbf553ba90fc5458`, attempt 1, with request SHA
+`42062b62a4f88e08193b00fee25ed998ccbcd502782a206f231d10aae4c1b1c6` and
+state SHA `66f372885e7e8de5744f0e51e83b6ec1a1d19a004f2ddd36b4f64ff707cf1dc1`.
+The frozen worker summary still raises `KeyError: measurement` after valid
+result publication; B3 reconciliation validates and retains each complete
+terminal chain. Coordination locks remain untracked. No specification
+amendment.
 
 Next C2 durable batch marker: ordinals 149–276, intended IDs
 `bler-0b415683173d2ef45cd2de53` through `bler-172d2401174dda87d4ced5f6`,
@@ -857,6 +862,23 @@ Next C2 durable batch marker: ordinals 149–276, intended IDs
 and the exact restart command is the registered characterization CLI recorded
 in the C2 row above. Launch only after this marker is signed and pushed; at
 the next boundary reconcile before staging. No specification amendment.
+
+Interrupted C2 execution checkpoint (2026-08-04T00:59:18+05:30): the active
+tmux session `g8c_batch_0149_0276` ended at the side-conversation boundary. The
+last pushed batch marker remains
+`0e2cb828a41138a162a6eb03ed7934c187d6d881`; no post-marker raw evidence had
+been committed or pushed at interruption. The exact B3 read-only census then
+found 179 complete chains and one request-only claimed transaction at ordinal
+179; it found no repairable publication and test access remained zero. The
+exact recovery command was:
+`.venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128 --reconcile-only`.
+It completed successfully, republished campaign state with 179 completed IDs,
+null in-progress ID, zero protected counters and state SHA
+`e39b4090a5a1f65b4228aa423de52a6a59bda7912476d1fb28247e8610e274da` (9,432
+bytes). No scientific result was fabricated, and no repair was applied. Resume
+at C2 by authenticating, inspecting and deriving a fresh remaining suffix; do
+not trust the old plan. Exact restart command:
+`.venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`.
 
 | Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
 |---|---|---|---|---|---|---|---|
