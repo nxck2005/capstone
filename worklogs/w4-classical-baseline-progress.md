@@ -1533,3 +1533,14 @@ modes. C1 state SHA-256 is
 `0ac72d8c6e0c8459b78f0c97a45db517e59da4d30a521522fb4f445d80482153`, with eight artifacts,
 empty completed IDs, null in-progress ID, zero counters and an absent production root. The final
 pre-data gates are being rerun before C2. **No specification amendment.**
+
+The first C2 durable-batch marker is prepared from C1 completion
+`50a62bba4c806f88066993a0cfcf99fd979e5d22`. The exact restart command is the coordinator command
+in `instructions/RESUME.md`; its read-only plan probe authenticated one CUDA worker on the WSL2
+`NVIDIA GeForce RTX 4060 Laptop GPU`, resolved batch size 64, shard plan `1/0`, and maximum durable
+batch 128. The fresh B3 plan digest is
+`9ff51133ea1b2ade32838668c9a6a0b7c40a2aee9ce41b881e592a81ce17e674`, with 3,213 remaining units;
+the first intended durable prefix contains 128 authority-ordered IDs from
+`bler-0020cd25150d4f59a8fbb7c0` through `bler-09c7fddde6d6ef0ad7f436fe`. The plan probe did not
+create the production root. No worker has started yet, and all four protected counters remain
+zero. **No specification amendment.**
