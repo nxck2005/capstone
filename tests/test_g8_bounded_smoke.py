@@ -82,6 +82,23 @@ def test_registered_artifact_binding_mutation_fails_before_chain(tmp_path):
         verifier.verify(candidate, campaign_state_path=state_path, runner_contract_path=contract)
 
 
+@pytest.mark.parametrize("shape", ["missing", "duplicate", "unknown"])
+def test_smoke_verifier_rejects_missing_duplicate_and_unknown_artifact_bindings(tmp_path, shape):
+    candidate, state_path, contract = _candidate(tmp_path, lambda payload: None)
+    state = json.loads(state_path.read_bytes())
+    artifacts = state["identity"]["produced_artifacts"]
+    runner_entry = next(entry for entry in artifacts if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH)
+    if shape == "missing":
+        artifacts.remove(runner_entry)
+    elif shape == "duplicate":
+        artifacts.append(copy.deepcopy(runner_entry))
+    else:
+        runner_entry["path"] = "results/baseline/g8/unknown.json"
+    state_path.write_bytes(rendered_json(state))
+    with pytest.raises(verifier.SmokeVerificationError):
+        verifier.verify(candidate, campaign_state_path=state_path, runner_contract_path=contract)
+
+
 def test_verifier_accepts_the_installed_record_and_exact_three_unit_selection():
     # The committed v2 record is retained as the pre-migration fixture; this
     # candidate projection exercises the final v3 verifier chain before the

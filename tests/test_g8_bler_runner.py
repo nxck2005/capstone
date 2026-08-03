@@ -472,12 +472,35 @@ def test_runner_contract_verifier_is_independent_and_rejects_mutations(tmp_path)
 
     contract_path = Path(__file__).resolve().parents[1] / "results/baseline/g8/bler_runner_contract.json"
     original = json.loads(contract_path.read_text(encoding="utf-8"))
-    for mutation in ("contract_id", "authority_bindings", "physical_layer", "contract_sources"):
+    for mutation in (
+        "contract_id",
+        "supersedes",
+        "supersession_history",
+        "authority_bindings",
+        "dependencies",
+        "authorization",
+        "bounded_smoke",
+        "campaign",
+        "physical_layer",
+        "contract_sources",
+    ):
         mutated = json.loads(json.dumps(original))
         if mutation == "contract_id":
             mutated[mutation] = "g8runner-" + "0" * 64
+        elif mutation == "supersedes":
+            mutated[mutation]["contract_sha256"] = "0" * 64
+        elif mutation == "supersession_history":
+            mutated[mutation][0]["contract_id"] = "g8runner-" + "0" * 64
         elif mutation == "authority_bindings":
             mutated[mutation]["required_work_unit_count"] = 3212
+        elif mutation == "dependencies":
+            mutated[mutation]["configured_decoder_offset"] = 0.25
+        elif mutation == "authorization":
+            mutated[mutation]["bounded_smoke"]["max_work_units"] = 2
+        elif mutation == "bounded_smoke":
+            mutated[mutation]["trials_per_unit"] = 15
+        elif mutation == "campaign":
+            mutated[mutation] = "G-7"
         elif mutation == "physical_layer":
             mutated[mutation]["complex_noise_scale"] = "sqrt(N0)"
         else:
@@ -563,6 +586,23 @@ def _isolated_old_runner_state(tmp_path: Path) -> Path:
     return path
 
 
+def _isolated_old_smoke(tmp_path: Path) -> Path:
+    path = tmp_path / "bounded_smoke_record-v2.json"
+    path.write_bytes(
+        subprocess.run(
+            [
+                "git",
+                "show",
+                "16377bd613ee89c1091688ad59cd527665757e33:results/baseline/g8/bounded_smoke_record.json",
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+    )
+    return path
+
+
 def _candidate_v3_runner(tmp_path: Path) -> Path:
     path = tmp_path / "bler_runner_contract-v3.json"
     path.write_bytes(rendered_json(runner_generator.build()))
@@ -594,6 +634,7 @@ def test_runner_contract_migration_replaces_exactly_one_binding(tmp_path):
     installed = runner_migration.migrate(
         contract_path=candidate_path,
         state_path=state_path,
+        smoke_path=_isolated_old_smoke(tmp_path),
     )
     after = installed["identity"]
     assert len(after["produced_artifacts"]) == 7
@@ -624,7 +665,11 @@ def test_runner_contract_migration_rejects_state_mutations(tmp_path, mutation, m
     state_path = tmp_path / "campaign_state.json"
     state_path.write_bytes(rendered_json(payload))
     with pytest.raises(runner_migration.RunnerContractMigrationError, match=match):
-        runner_migration.migrate(contract_path=_candidate_v3_runner(tmp_path), state_path=state_path)
+        runner_migration.migrate(
+            contract_path=_candidate_v3_runner(tmp_path),
+            state_path=state_path,
+            smoke_path=_isolated_old_smoke(tmp_path),
+        )
 
 
 def test_runner_contract_migration_rejects_unrelated_artifact_mutation(tmp_path):
@@ -633,7 +678,11 @@ def test_runner_contract_migration_rejects_unrelated_artifact_mutation(tmp_path)
     state_path = tmp_path / "campaign_state.json"
     state_path.write_bytes(rendered_json(payload))
     with pytest.raises(runner_migration.RunnerContractMigrationError, match="strict projected validation"):
-        runner_migration.migrate(contract_path=_candidate_v3_runner(tmp_path), state_path=state_path)
+        runner_migration.migrate(
+            contract_path=_candidate_v3_runner(tmp_path),
+            state_path=state_path,
+            smoke_path=_isolated_old_smoke(tmp_path),
+        )
 
 
 def test_runner_contract_migration_rejects_malformed_supersession(tmp_path):
@@ -643,7 +692,11 @@ def test_runner_contract_migration_rejects_malformed_supersession(tmp_path):
     candidate_path.write_bytes(rendered_json(candidate))
     state_path = _isolated_old_runner_state(tmp_path)
     with pytest.raises(runner_migration.RunnerContractMigrationError, match="independent verification"):
-        runner_migration.migrate(contract_path=candidate_path, state_path=state_path)
+        runner_migration.migrate(
+            contract_path=candidate_path,
+            state_path=state_path,
+            smoke_path=_isolated_old_smoke(tmp_path),
+        )
 
 
 def test_runner_contract_migration_preserves_state_on_interrupted_publication(tmp_path, monkeypatch):
@@ -656,7 +709,120 @@ def test_runner_contract_migration_preserves_state_on_interrupted_publication(tm
 
     monkeypatch.setattr(runner_migration, "_publish_state", interrupted)
     with pytest.raises(OSError, match="interrupted"):
-        runner_migration.migrate(contract_path=candidate_path, state_path=state_path)
+        runner_migration.migrate(
+            contract_path=candidate_path,
+            state_path=state_path,
+            smoke_path=_isolated_old_smoke(tmp_path),
+        )
+    assert state_path.read_bytes() == before
+
+
+def test_runner_contract_migration_recovers_the_complete_v2_v3_matrix(tmp_path):
+    v2_contract = tmp_path / "bler_runner_contract-v2.json"
+    v2_contract.write_bytes(
+        subprocess.run(
+            [
+                "git",
+                "show",
+                "16377bd613ee89c1091688ad59cd527665757e33:results/baseline/g8/bler_runner_contract.json",
+            ],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+    )
+    v2_smoke = _isolated_old_smoke(tmp_path)
+    v3_contract = _candidate_v3_runner(tmp_path)
+    v3_smoke = tmp_path / "bounded_smoke_record-v3.json"
+    v3_smoke.write_bytes((REPO_ROOT / runner.SMOKE_RECORD_REPO_RELATIVE_PATH).read_bytes())
+
+    # 1: v2 runner + v2 state binding + v2 smoke + v2 smoke binding is a no-op.
+    state_path = tmp_path / "campaign_state.json"
+    state_path.write_bytes(rendered_json(_old_runner_state_payload()))
+    before = state_path.read_bytes()
+    runner_migration.migrate(
+        contract_path=v2_contract,
+        state_path=state_path,
+        smoke_path=v2_smoke,
+    )
+    assert state_path.read_bytes() == before
+
+    # 2: install v3 runner while the state and smoke remain v2.
+    runner_migration.migrate(
+        contract_path=v3_contract,
+        state_path=state_path,
+        smoke_path=v2_smoke,
+    )
+    state_v3_runner = json.loads(state_path.read_bytes())
+    assert next(
+        entry for entry in state_v3_runner["identity"]["produced_artifacts"]
+        if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH
+    )["sha256"] == sha256_bytes(v3_contract.read_bytes())
+    assert next(
+        entry for entry in state_v3_runner["identity"]["produced_artifacts"]
+        if entry["path"] == runner.SMOKE_RECORD_REPO_RELATIVE_PATH
+    )["sha256"] == runner_migration.OLD_SMOKE_SHA256
+
+    # 3: v3 runner + v3 state binding + v2 smoke remains an idempotent no-op.
+    before = state_path.read_bytes()
+    runner_migration.migrate(
+        contract_path=v3_contract,
+        state_path=state_path,
+        smoke_path=v2_smoke,
+    )
+    assert state_path.read_bytes() == before
+
+    # 4: v3 smoke has been installed, but the state still binds v2 smoke.
+    runner_migration.migrate(
+        contract_path=v3_contract,
+        state_path=state_path,
+        smoke_path=v3_smoke,
+    )
+    state_v3 = json.loads(state_path.read_bytes())
+    assert next(
+        entry for entry in state_v3["identity"]["produced_artifacts"]
+        if entry["path"] == runner.SMOKE_RECORD_REPO_RELATIVE_PATH
+    )["sha256"] == sha256_bytes(v3_smoke.read_bytes())
+
+    # 5: v3 runner + v3 state + v3 smoke binding is an idempotent no-op.
+    before = state_path.read_bytes()
+    runner_migration.migrate(
+        contract_path=v3_contract,
+        state_path=state_path,
+        smoke_path=v3_smoke,
+    )
+    assert state_path.read_bytes() == before
+
+
+def test_runner_contract_migration_recovers_after_state_publication_interrupt(tmp_path, monkeypatch):
+    state_path = _isolated_old_runner_state(tmp_path)
+    v2_smoke = _isolated_old_smoke(tmp_path)
+    v3_contract = _candidate_v3_runner(tmp_path)
+    real_publish = runner_migration._publish_state
+
+    def publish_then_interrupt(*args, **kwargs):
+        real_publish(*args, **kwargs)
+        raise KeyboardInterrupt("simulated interruption after state publication")
+
+    monkeypatch.setattr(runner_migration, "_publish_state", publish_then_interrupt)
+    with pytest.raises(KeyboardInterrupt, match="after state publication"):
+        runner_migration.migrate(
+            contract_path=v3_contract,
+            state_path=state_path,
+            smoke_path=v2_smoke,
+        )
+    installed = json.loads(state_path.read_bytes())
+    assert next(
+        entry for entry in installed["identity"]["produced_artifacts"]
+        if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH
+    )["sha256"] == sha256_bytes(v3_contract.read_bytes())
+    monkeypatch.setattr(runner_migration, "_publish_state", real_publish)
+    before = state_path.read_bytes()
+    runner_migration.migrate(
+        contract_path=v3_contract,
+        state_path=state_path,
+        smoke_path=v2_smoke,
+    )
     assert state_path.read_bytes() == before
 
 
@@ -735,6 +901,84 @@ def test_smoke_record_publisher_rejects_conflict_and_allows_guarded_provisional_
         runner.publish_smoke_record_atomic(target, {"different": True})
 
 
+def test_smoke_record_publisher_guarded_schema2_exchange_is_exact_and_alias_safe(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "REPO_ROOT", tmp_path)
+    parent = tmp_path / "results" / "baseline" / "g8"
+    parent.mkdir(parents=True)
+    old_body = _isolated_old_smoke(tmp_path).read_bytes()
+    new_body = (REPO_ROOT / runner.SMOKE_RECORD_REPO_RELATIVE_PATH).read_bytes()
+    new_payload = json.loads(new_body)
+    target = parent / "bounded_smoke_record.json"
+    target.write_bytes(old_body)
+    digest = runner.publish_smoke_record_atomic(
+        target,
+        new_payload,
+        expected_existing_sha256=runner_migration.OLD_SMOKE_SHA256,
+        expected_existing_runner_contract_id=runner_migration.OLD_SMOKE_RUNNER_ID,
+        expected_existing_runner_contract_sha256=runner_migration.OLD_SMOKE_RUNNER_SHA256,
+    )
+    assert target.read_bytes() == new_body
+    assert digest == sha256_bytes(new_body)
+    assert runner.publish_smoke_record_atomic(target, new_payload) == digest
+    target.write_bytes(old_body)
+    with pytest.raises(runner.RunnerConflictError):
+        runner.publish_smoke_record_atomic(
+            target,
+            new_payload,
+            expected_existing_sha256=runner_migration.OLD_SMOKE_SHA256,
+            expected_existing_runner_contract_id="g8runner-" + "0" * 64,
+            expected_existing_runner_contract_sha256=runner_migration.OLD_SMOKE_RUNNER_SHA256,
+        )
+
+    for kind in ("symlink", "dangling_symlink", "hard_link"):
+        alias = parent / f"{kind}.json"
+        foreign = tmp_path / f"{kind}-foreign.json"
+        foreign.write_bytes(old_body)
+        if kind == "symlink":
+            alias.symlink_to(foreign)
+        elif kind == "dangling_symlink":
+            alias.symlink_to(tmp_path / f"{kind}-missing.json")
+        else:
+            alias.hardlink_to(foreign)
+        with pytest.raises(runner.RunnerConflictError):
+            runner.publish_smoke_record_atomic(
+                alias,
+                new_payload,
+                expected_existing_sha256=runner_migration.OLD_SMOKE_SHA256,
+                expected_existing_runner_contract_id=runner_migration.OLD_SMOKE_RUNNER_ID,
+                expected_existing_runner_contract_sha256=runner_migration.OLD_SMOKE_RUNNER_SHA256,
+            )
+
+
+def test_smoke_record_guarded_exchange_recovers_directory_fsync_uncertainty(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner, "REPO_ROOT", tmp_path)
+    parent = tmp_path / "results" / "baseline" / "g8"
+    parent.mkdir(parents=True)
+    target = parent / "bounded_smoke_record.json"
+    old_body = _isolated_old_smoke(tmp_path).read_bytes()
+    target.write_bytes(old_body)
+    new_payload = json.loads((REPO_ROOT / runner.SMOKE_RECORD_REPO_RELATIVE_PATH).read_bytes())
+    original_fsync = runner.os.fsync
+    calls = 0
+
+    def fail_directory_fsync(fd):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected smoke directory fsync uncertainty")
+        return original_fsync(fd)
+
+    monkeypatch.setattr(runner.os, "fsync", fail_directory_fsync)
+    assert runner.publish_smoke_record_atomic(
+        target,
+        new_payload,
+        expected_existing_sha256=runner_migration.OLD_SMOKE_SHA256,
+        expected_existing_runner_contract_id=runner_migration.OLD_SMOKE_RUNNER_ID,
+        expected_existing_runner_contract_sha256=runner_migration.OLD_SMOKE_RUNNER_SHA256,
+    ) == sha256_bytes(rendered_json(new_payload))
+    assert target.read_bytes() == rendered_json(new_payload)
+
+
 def test_bounded_smoke_cli_rejects_diagnostic_max_units_without_touching_record(tmp_path):
     from run_g8_bler import main
 
@@ -802,6 +1046,53 @@ def test_smoke_record_publication_survives_hard_exit_before_and_after_install(tm
     completed = subprocess.run([sys.executable, "-c", script_after, str(after_root)], env=env, check=False)
     assert completed.returncode == 74
     assert (after_root / "results" / "baseline" / "g8" / "bounded_smoke_record.json").read_bytes() == rendered_json({"schema_version": 2})
+
+
+def test_registered_schema2_smoke_exchange_survives_hard_exit_boundaries(tmp_path):
+    env = _child_env()
+    old_path = _isolated_old_smoke(tmp_path)
+    new_path = tmp_path / "bounded_smoke_record-v3.json"
+    new_path.write_bytes((REPO_ROOT / runner.SMOKE_RECORD_REPO_RELATIVE_PATH).read_bytes())
+    script = r'''
+import json, os, sys
+from pathlib import Path
+from baseline import g8_bler_runner as r
+root = Path(sys.argv[1]); old = Path(sys.argv[2]); new = Path(sys.argv[3])
+target = root / "results" / "baseline" / "g8" / "bounded_smoke_record.json"
+target.parent.mkdir(parents=True); target.write_bytes(old.read_bytes()); r.REPO_ROOT = root
+kwargs = {
+    "expected_existing_sha256": "cff4fb75835c4a010baed285103c3ba425b7b44b226186ce9969dcb17537763e",
+    "expected_existing_runner_contract_id": "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5",
+    "expected_existing_runner_contract_sha256": "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268",
+}
+def die(*args, **kwargs): os._exit(75)
+r._renameat2 = die
+r.publish_smoke_record_atomic(target, json.loads(new.read_bytes()), **kwargs)
+'''
+    before_root = tmp_path / "guard-before"
+    completed = subprocess.run(
+        [sys.executable, "-c", script, str(before_root), str(old_path), str(new_path)],
+        env=env,
+        check=False,
+    )
+    assert completed.returncode == 75
+    before_target = before_root / "results" / "baseline" / "g8" / "bounded_smoke_record.json"
+    assert before_target.read_bytes() == old_path.read_bytes()
+    assert list(before_target.parent.glob("*.staging"))
+
+    after_script = script.replace(
+        "def die(*args, **kwargs): os._exit(75)\nr._renameat2 = die",
+        "original = r._renameat2\ndef die(*args, **kwargs):\n    original(*args, **kwargs)\n    os._exit(76)\nr._renameat2 = die",
+    )
+    after_root = tmp_path / "guard-after"
+    completed = subprocess.run(
+        [sys.executable, "-c", after_script, str(after_root), str(old_path), str(new_path)],
+        env=env,
+        check=False,
+    )
+    assert completed.returncode == 76
+    after_target = after_root / "results" / "baseline" / "g8" / "bounded_smoke_record.json"
+    assert after_target.read_bytes() == new_path.read_bytes()
 
 
 def test_cli_returns_hold_when_post_publication_verifier_fails(tmp_path, monkeypatch):
