@@ -1542,5 +1542,13 @@ batch 128. The fresh B3 plan digest is
 `9ff51133ea1b2ade32838668c9a6a0b7c40a2aee9ce41b881e592a81ce17e674`, with 3,213 remaining units;
 the first intended durable prefix contains 128 authority-ordered IDs from
 `bler-0020cd25150d4f59a8fbb7c0` through `bler-09c7fddde6d6ef0ad7f436fe`. The plan probe did not
-create the production root. No worker has started yet, and all four protected counters remain
+create the production root. The first worker transaction completed
+`bler-0020cd25150d4f59a8fbb7c0` at attempt 1 with exactly 5,000 trials and request/result/state
+digests `7670fabefe4f94a1b897513a78ad4f93d479dfb9c9e41391d6d1b7377a452201`,
+`7dd4cbbdda922112608b86a88783719f2b9061f504d481e37864ba23d236fec4` and
+`8b24cef4dc7c078cf540b540226ed8e3ccaf9c3caa5ed317a34e07df2b7d5de9`. The worker summary then
+hit a `KeyError: measurement` after the frozen runner had published and linked the complete
+transaction; the coordinator reconciled one completed ID and 3,212 remaining, with no recoverable,
+failed, duplicate or unknown item. The source remains byte-frozen; subsequent suffix execution
+uses the exact same CLI and clean B3 plan/reconciliation path. All four protected counters remain
 zero. **No specification amendment.**

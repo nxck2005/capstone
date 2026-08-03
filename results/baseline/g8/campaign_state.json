@@ -2,7 +2,9 @@
   "identity": {
     "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
     "campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
-    "completed_work_unit_ids": [],
+    "completed_work_unit_ids": [
+      "bler-0020cd25150d4f59a8fbb7c0"
+    ],
     "counters": {
       "inference": 0,
       "test_access": 0,
