@@ -10,7 +10,7 @@
       "validation_decoding": 0
     },
     "in_progress_work_unit_id": null,
-    "phase": "G8_B",
+    "phase": "G8_C",
     "produced_artifacts": [
       {
         "bytes": 24284,
@@ -48,9 +48,9 @@
         "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
       }
     ],
-    "restart_command": "rg -n \"G8_C|characterization_open|full_strength|run_g8_bler|resume_plan|merge_report|tooling_smoke_complete\" src/baseline tools tests instructions",
+    "restart_command": ".venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
-    "stage": "tooling_smoke_complete"
+    "stage": "characterization_open"
   },
   "metadata": {
     "last_successful_checkpoint_time": null

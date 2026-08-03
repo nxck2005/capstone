@@ -44,14 +44,14 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_B is complete through B6; G8_C C0 is in-progress.** The live
-state is still the authenticated `G8_B/tooling_smoke_complete` handoff until
-the legal C0 transition is installed. No full-strength characterization,
-selection, authorization, inference, training, validation decoding or test
-access has started. B1 remains historical; B1C is the pre-execution corrective
-contract checkpoint. The corrected tooling, request and result schemas are
-version 2, no version-1 request or result exists, and no production G8_B/G8_C
-source may use the stale version-1 contract. PB_3C was a narrow corrective
+**Current phase:** **G8_C is open; C0 is complete and C1 is next.**
+The live state is the authenticated `G8_C/characterization_open` cursor. No
+full-strength characterization, selection, authorization, inference, training,
+validation decoding or test access has started. B1 remains historical; B1C is
+the pre-execution corrective contract checkpoint. The corrected tooling,
+request and result schemas are version 2, no version-1 request or result exists,
+and no production G8_B/G8_C source may use the stale version-1 contract. PB_3C
+was a narrow corrective
 phase between PB_3 and G-8: it fixed the fixed-modulation reference (BR-9), made resumed campaign
 state an exact ordered prefix of the permitted passes, froze the selection tie-break policy before
 G-8 behind an independently recomputed `selection_policy_sha256`, and corrected this hand-off. Its
@@ -72,10 +72,10 @@ adjudication of existing evidence rather than new measurement. The provisional P
 **invalidated**; the corrected bounded evidence was regenerated at
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** the signed G8_B B6 green `28ba80a5dbb18c0a68d6db04851bfb5e2a338b43`. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
-**Next action:** **complete G8_C C0: verify the boundary, install only
-G8_B/tooling_smoke_complete → G8_C/characterization_open, and then continue
-immediately to C1.**
+**Last durable checkpoint:** the signed correction `490138ef3ecc1a96c528d0f75ca90fadeb8db14f`; the legal C0 transition is now installed and is being closed in the next signed checkpoint. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
+**Next action:** **mark C1 in-progress, freeze the characterization sources and
+orchestration, register the C1 source manifest, and run all pre-data gates before
+the first full-strength unit.**
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
@@ -710,12 +710,12 @@ silently reinterpret earlier artifacts. This file remains the only operational
 cursor.
 
 **Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
-**Current phase:** G8_B complete through B6; G8_C C0 is in-progress before the legal phase transition. No full-strength characterization, selection, authorization, inference, training, validation decoding or test access has started.
+**Current phase:** G8_C open; C0 is complete and C1 is the next in-progress checkpoint. No full-strength characterization, selection, authorization, inference, training, validation decoding or test access has started.
 **Current scientific state:** campaign not started; characterization not
 started; validation measurements not started; pass one not executed; training
 not started; pass two not executed; adjudication incomplete; test access zero;
 authorization not issued.
-**Exact next action:** complete C0's authenticated state-only transition, then mark C1 in-progress and freeze the characterization source manifest and orchestration before any full-strength unit.
+**Exact next action:** mark C1 in-progress, then implement and independently verify the characterization source manifest and orchestration before any full-strength unit.
 
 ## G8_A — contract, structural enumeration, state and preflight
 
@@ -838,8 +838,8 @@ state-only opening step and has no full-strength execution.
 
 | Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
 |---|---|---|---|---|---|---|---|
-| C0 verify and open G8_C | in-progress | `d95da8e0f6ded31fab7ee37d571d39cba509f522` | first: `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; restart: the exact `run_g8_bler_characterization.py` command in `instructions/G8_C.txt` | handoff docs, campaign state only; no runtime root, unit evidence or characterization | C0 HOLD resolved: the manifest-bound `instructions/G8_C.txt` was restored byte-for-byte to 2,820 bytes / `c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815`; the in-place expansion requirement was withdrawn; the detailed execution brief remains operational and subordinate to frozen authority; no manifest, campaign ID, registered contract, scientific parameter or evidence changed | correction commit `fix(g8-c): restore frozen characterization instruction` pending; canonical C0 state transition is already installed but not yet committed | IDs empty/null; all four counters 0; No specification amendment, campaign-manifest supersession or contract supersession |
-| C1 freeze characterization sources, schemas and orchestration | not-started | after C0 | first: source/CLI inspection; restart: exact characterization CLI command | six C-owned sources, source manifest, tests and ledger; no full-strength unit before registration | pending | pending | physical-layer characterization not started; no amendment |
+| C0 verify and open G8_C | done | `d95da8e0f6ded31fab7ee37d571d39cba509f522` | first: `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; restart: the exact `run_g8_bler_characterization.py` command in `instructions/G8_C.txt` | handoff docs, campaign state only; no runtime root, unit evidence or characterization | C0 HOLD resolved: the manifest-bound `instructions/G8_C.txt` was restored byte-for-byte to 2,820 bytes / `c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815`; the in-place expansion requirement was withdrawn; the detailed execution brief remains operational and subordinate to frozen authority; no manifest, campaign ID, registered contract, scientific parameter or evidence changed; canonical state transition PASS with state SHA `9627dd772585dd3047c02e395ea448908ffca9f7877da1ed0450bdf7fb7cb22d` | correction `490138ef3ecc1a96c528d0f75ca90fadeb8db14f` signed/pushed; transition commit pending | IDs empty/null; all four counters 0; No specification amendment, campaign-manifest supersession or contract supersession |
+| C1 freeze characterization sources, schemas and orchestration | not-started | after C0 transition | first: source/CLI inspection; restart: exact characterization CLI command | six C-owned sources, source manifest, tests and ledger; no full-strength unit before registration | pending | pending | physical-layer characterization not started; no amendment |
 | C2 execute resumable full-strength characterization | not-started | after C1 | first/restart: exact characterization CLI command with fresh B3 plan | production root and authoritative request/result/state evidence only; no validation, codec, inference, training, selection or test | pending; durable batches max 128 by default | pending | protected counters remain 0; no amendment |
 | C3 independently merge all work-unit evidence | not-started | after C2 | first: merge tool in validation-only mode; restart: same merge command | merge report and verifier only; no simulation or retry | pending | pending | no interpolation/extrapolation; no amendment |
 | C4 verify exact complete required coverage | not-started | after C3 | first: independent coverage verifier/mutation matrix; restart: same verifier | merge registration only after 3,213/3,213 proof | pending | pending | 16,065,000 accepted trials required; no amendment |
