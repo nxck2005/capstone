@@ -1570,3 +1570,12 @@ campaign-state is SHA-256
 `bfcaca96cfac9a38bd341747bfe512011fa3134574ce0e413b95bb7adb393f9e`, 3,270 bytes. The 16-unit
 chunk is being committed as one bounded durable batch; coordination locks remain untracked.
 **No specification amendment.**
+
+The next 32-unit chunk completed authority ordinals 21–52, from
+`bler-0189e7306fa5b665bb7d137a` through `bler-03922fa92259b91c0d4597f4`, all at attempt 1 with
+exactly 5,000 trials. The fresh census reports 53 completed and 3,160 remaining, with every
+recoverable, failed, terminal-nonmergeable, unknown, duplicate and missing count at zero. The
+reconciled campaign-state is SHA-256
+`3de106acd5b95aa9870b16b60bc50ac85fd3e40f7761226e4a17b7bad4f4a9ab`, 4,518 bytes. This chunk is
+the next signed raw-evidence checkpoint; coordination locks are not tracked. **No specification
+amendment.**
