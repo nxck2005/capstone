@@ -69,6 +69,8 @@ def new_state_bytes() -> bytes:
     # state itself remains authoritative and is never edited by this fixture.
     state = json.loads(LIVE_STATE.read_bytes())
     identity = state["identity"]
+    identity["phase"] = "G8_B"
+    identity["stage"] = "tooling_open"
     identity["restart_command"] = units.B3_RESTART_COMMAND
     identity["produced_artifacts"] = [
         entry

@@ -1483,7 +1483,11 @@ def test_candidate_b3_contract_authenticates_operations_in_an_isolated_registere
     if not artifact.exists():
         pytest.skip("B3.6 artifact is not present at the historical pre-B3.6 boundary")
     campaign_state = tmp_path / "campaign_state.json"
-    campaign_state.write_bytes(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
+    historical_state = json.loads(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
+    historical_state["identity"]["phase"] = "G8_B"
+    historical_state["identity"]["stage"] = "tooling_open"
+    historical_state["identity"]["restart_command"] = resume.B4_RESTART_COMMAND
+    campaign_state.write_bytes(g8_campaign.rendered_json(historical_state))
     registrar.register(
         resume.RESUME_CONTRACT_REPO_RELATIVE_PATH,
         resume.B4_RESTART_COMMAND,

@@ -17,6 +17,7 @@ import pytest
 
 from baseline import g8_bler_contract as bler_contract
 from baseline import g8_bler_runner as runner
+from baseline import g8_bler_resume as resume
 from baseline import g8_bler_work_units as work_units
 from baseline.ldpc import adapter as adapter_module
 from baseline.g8_campaign import canonical_json, rendered_json, CAMPAIGN_STATE, REPO_ROOT, sha256_bytes
@@ -36,6 +37,9 @@ def auth_context(tmp_path_factory) -> runner.AuthenticatedRunnerContext:
     candidate = runner_generator.build()
     candidate_path.write_bytes(rendered_json(candidate))
     state = json.loads(CAMPAIGN_STATE.read_bytes())
+    state["identity"]["phase"] = "G8_B"
+    state["identity"]["stage"] = "tooling_open"
+    state["identity"]["restart_command"] = resume.B4_RESTART_COMMAND
     binding = {
         "path": runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH,
         "sha256": sha256_bytes(candidate_path.read_bytes()),
@@ -566,6 +570,9 @@ def test_candidate_runner_contract_registers_against_isolated_campaign_state(tmp
 
 def _old_runner_state_payload() -> dict:
     payload = json.loads(CAMPAIGN_STATE.read_bytes())
+    payload["identity"]["phase"] = "G8_B"
+    payload["identity"]["stage"] = "tooling_open"
+    payload["identity"]["restart_command"] = resume.B4_RESTART_COMMAND
     for entry in payload["identity"]["produced_artifacts"]:
         if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
             entry.update(

@@ -44,7 +44,14 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_B active. B0, B1, B1C, B2 and B2C complete. B3 next — implement exact resume and merge validation. No runner, simulation, smoke or characterization has started. G8_C–G8_G remain prohibited.** B1 remains historical; B1C is the pre-execution corrective contract checkpoint. The corrected tooling, request and result schemas are version 2, no version-1 request or result exists, and no production G8_B/G8_C source may use the stale version-1 contract. PB_3C was a narrow corrective
+**Current phase:** **G8_B is complete through B6; G8_C C0 is in-progress.** The live
+state is still the authenticated `G8_B/tooling_smoke_complete` handoff until
+the legal C0 transition is installed. No full-strength characterization,
+selection, authorization, inference, training, validation decoding or test
+access has started. B1 remains historical; B1C is the pre-execution corrective
+contract checkpoint. The corrected tooling, request and result schemas are
+version 2, no version-1 request or result exists, and no production G8_B/G8_C
+source may use the stale version-1 contract. PB_3C was a narrow corrective
 phase between PB_3 and G-8: it fixed the fixed-modulation reference (BR-9), made resumed campaign
 state an exact ordered prefix of the permitted passes, froze the selection tie-break policy before
 G-8 behind an independently recomputed `selection_policy_sha256`, and corrected this hand-off. Its
@@ -65,8 +72,10 @@ adjudication of existing evidence rather than new measurement. The provisional P
 **invalidated**; the corrected bounded evidence was regenerated at
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** the G8_A green `feat(classical): freeze G-8 campaign contract and preflight` commit, resolved from Git history after this file is committed. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
-**Next action:** **G8_B B2 — implement sharding and atomic unit state.**
+**Last durable checkpoint:** the signed G8_B B6 green `28ba80a5dbb18c0a68d6db04851bfb5e2a338b43`. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
+**Next action:** **complete G8_C C0: verify the boundary, install only
+G8_B/tooling_smoke_complete → G8_C/characterization_open, and then continue
+immediately to C1.**
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
@@ -701,12 +710,12 @@ silently reinterpret earlier artifacts. This file remains the only operational
 cursor.
 
 **Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
-**Current phase:** G8_B active; B0, B1, B1C, B2 and B2C complete; B3 next — implement exact resume and merge validation. G8_A is green and G8_C–G8_G remain prohibited. No runner, simulation, smoke or characterization started.
+**Current phase:** G8_B complete through B6; G8_C C0 is in-progress before the legal phase transition. No full-strength characterization, selection, authorization, inference, training, validation decoding or test access has started.
 **Current scientific state:** campaign not started; characterization not
 started; validation measurements not started; pass one not executed; training
 not started; pass two not executed; adjudication incomplete; test access zero;
 authorization not issued.
-**Exact next action:** **G8_B B3 is on HOLD at B3.2** — see the B3.2 row. B3.0 and B3.1 are `done` and pushed; B3.2 cannot be implemented without either a B2C2 correction to the frozen `claimed` unit-state rule or an amendment to `instructions/G8_B3.txt` §13/§17. That decision is the next action.
+**Exact next action:** complete C0's authenticated state-only transition, then mark C1 in-progress and freeze the characterization source manifest and orchestration before any full-strength unit.
 
 ## G8_A — contract, structural enumeration, state and preflight
 
@@ -820,3 +829,20 @@ G8_A verifier itself remains unchanged and G8_A-specific.
 The G8_A manifest, required-identity artifact, and all campaign contract sources remain
 byte-bound. The live state must carry the B1 restart command after the one permitted transition;
 the manifest's pre-data flags remain immutable and are not a live cursor.
+
+## G8_C — complete full-strength characterization and freeze the BLER table
+
+Durable instruction: `instructions/G8_C.txt`. This is the only live C cursor; the
+C rows below are updated in the same commit as their checkpoint. C0 is the
+state-only opening step and has no full-strength execution.
+
+| Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
+|---|---|---|---|---|---|---|---|
+| C0 verify and open G8_C | in-progress | `d95da8e0f6ded31fab7ee37d571d39cba509f522` | first: `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; restart: the exact `run_g8_bler_characterization.py` command in `instructions/G8_C.txt` | handoff docs, campaign state only; no runtime root, unit evidence or characterization | boundary hashes/sizes match; upstream preflight gates pass; initial full suite exposed 16 historical fixture failures at the now-closed `tooling_open` boundary, then isolated test fixtures were corrected without production changes | opening marker `wip(g8-c): open full-strength BLER characterization` pending; state transition pending | IDs empty/null; all four counters 0; no amendment |
+| C1 freeze characterization sources, schemas and orchestration | not-started | after C0 | first: source/CLI inspection; restart: exact characterization CLI command | six C-owned sources, source manifest, tests and ledger; no full-strength unit before registration | pending | pending | physical-layer characterization not started; no amendment |
+| C2 execute resumable full-strength characterization | not-started | after C1 | first/restart: exact characterization CLI command with fresh B3 plan | production root and authoritative request/result/state evidence only; no validation, codec, inference, training, selection or test | pending; durable batches max 128 by default | pending | protected counters remain 0; no amendment |
+| C3 independently merge all work-unit evidence | not-started | after C2 | first: merge tool in validation-only mode; restart: same merge command | merge report and verifier only; no simulation or retry | pending | pending | no interpolation/extrapolation; no amendment |
+| C4 verify exact complete required coverage | not-started | after C3 | first: independent coverage verifier/mutation matrix; restart: same verifier | merge registration only after 3,213/3,213 proof | pending | pending | 16,065,000 accepted trials required; no amendment |
+| C5 build and freeze the G-8 BlerTable | not-started | after C4 | first: table construction/check; restart: same table command | table, loader and verifier; no G-2 substitution or selection | pending | pending | measured points only; no amendment |
+| C6 source-manifest and mutation verification | not-started | after C5 | first: source/history/mutation block; restart: exact failing subcommand | bound sources, raw evidence, reports and tests; no post-data source rewrite | pending | pending | no amendment expected |
+| C7 full verification and G8_D handoff | not-started | after C6 | first: final upstream/G8_C gates; restart: exact G8_D search command recorded in state | final state/docs/ledger; no G8_D execution or validation pixels | pending | pending | final G8_C counters all 0; no amendment |
