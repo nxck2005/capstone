@@ -1561,3 +1561,12 @@ reconciled; the campaign now contains five completed IDs and 3,208 remaining. Be
 worker summary projection has the known `KeyError: measurement` after each successful publication,
 these are being checkpointed as a bounded four-unit operational batch while the source-manifest
 bytes remain unchanged. **No specification amendment.**
+
+The following 16-unit durable chunk completed authority ordinals 5–20, from
+`bler-00a79fc1f1b8b9e36506fc7b` through `bler-0188e28e5b384c467711bc1f`, all at attempt 1 with
+exactly 5,000 trials. A fresh production census reports 21 completed, 3,192 remaining and zero
+recoverable, failed, terminal-nonmergeable, unknown, duplicate or missing units. The reconciled
+campaign-state is SHA-256
+`bfcaca96cfac9a38bd341747bfe512011fa3134574ce0e413b95bb7adb393f9e`, 3,270 bytes. The 16-unit
+chunk is being committed as one bounded durable batch; coordination locks remain untracked.
+**No specification amendment.**
