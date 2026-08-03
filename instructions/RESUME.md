@@ -855,13 +855,15 @@ result publication; B3 reconciliation validates and retains each complete
 terminal chain. Coordination locks remain untracked. No specification
 amendment.
 
-Next C2 durable batch marker: ordinals 149–276, intended IDs
-`bler-0b415683173d2ef45cd2de53` through `bler-172d2401174dda87d4ced5f6`,
+Next C2 durable batch marker: ordinals 179–306, intended IDs
+`bler-0e7c3102fbf553ba90fc5458` through `bler-19d066588180619553c8f9c1`,
 128 newly completed units maximum. Resolved topology remains CUDA on one
 `NVIDIA GeForce RTX 4060 Laptop GPU`, one worker, shard `1/0`, auto batch 64,
 and the exact restart command is the registered characterization CLI recorded
-in the C2 row above. Launch only after this marker is signed and pushed; at
-the next boundary reconcile before staging. No specification amendment.
+in the C2 row above. The previous marker was interrupted after ordinal 178;
+the request-only ordinal 179 is included here for its legal clean retry.
+Launch only after this marker is signed and pushed; at the next boundary
+reconcile before staging. No specification amendment.
 
 Interrupted C2 execution checkpoint (2026-08-04T00:59:18+05:30): the active
 tmux session `g8c_batch_0149_0276` ended at the side-conversation boundary. The

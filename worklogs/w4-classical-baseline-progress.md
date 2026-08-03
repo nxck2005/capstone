@@ -1616,12 +1616,13 @@ only after the runner has published and linked the complete transaction; B3
 reconciliation validated the chains and retained the evidence. Coordination
 locks remain untracked. **No specification amendment.**
 
-The next durable C2 batch is prepared for authority ordinals 149–276, intended
-IDs `bler-0b415683173d2ef45cd2de53` through
-`bler-172d2401174dda87d4ced5f6`, with the exact registered characterization
+The next durable C2 batch is prepared for authority ordinals 179–306, intended
+IDs `bler-0e7c3102fbf553ba90fc5458` through
+`bler-19d066588180619553c8f9c1`, with the exact registered characterization
 CLI, shard `1/0`, one CUDA worker and auto batch 64. Current completed count is
-149 and remaining count is 3,064; the next boundary will reconcile before any
-evidence is staged. **No specification amendment.**
+179 and the remaining count is 3,034 including the request-only ordinal 179;
+the next boundary will reconcile before any evidence is staged. **No
+specification amendment.**
 
 The 149–276 frozen-CLI suffix was interrupted at authority ordinal 179 before
 its result publication completed. The authenticated read-only B3 census found
