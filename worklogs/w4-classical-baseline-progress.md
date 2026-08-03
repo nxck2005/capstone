@@ -1552,3 +1552,12 @@ transaction; the coordinator reconciled one completed ID and 3,212 remaining, wi
 failed, duplicate or unknown item. The source remains byte-frozen; subsequent suffix execution
 uses the exact same CLI and clean B3 plan/reconciliation path. All four protected counters remain
 zero. **No specification amendment.**
+
+The next four frozen-CLI invocations completed authority ordinals 1–4
+(`bler-002ad933f0d8e5617ad23e11`, `bler-0032dc2b9c53168091b0dd75`,
+`bler-004e65f1c85e812b81fb02aa` and `bler-0058cf3520d20daab0af1163`) at attempt 1,
+each with 5,000 trials and no retryable failure. Their request/result/state chains were independently
+reconciled; the campaign now contains five completed IDs and 3,208 remaining. Because the frozen
+worker summary projection has the known `KeyError: measurement` after each successful publication,
+these are being checkpointed as a bounded four-unit operational batch while the source-manifest
+bytes remain unchanged. **No specification amendment.**

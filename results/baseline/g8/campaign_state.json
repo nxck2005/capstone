@@ -3,7 +3,11 @@
     "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
     "campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
     "completed_work_unit_ids": [
-      "bler-0020cd25150d4f59a8fbb7c0"
+      "bler-0020cd25150d4f59a8fbb7c0",
+      "bler-002ad933f0d8e5617ad23e11",
+      "bler-0032dc2b9c53168091b0dd75",
+      "bler-004e65f1c85e812b81fb02aa",
+      "bler-0058cf3520d20daab0af1163"
     ],
     "counters": {
       "inference": 0,
