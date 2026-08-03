@@ -204,6 +204,9 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# G8_C runtime locks are coordination state, never scientific evidence.
+/results/baseline/g8/work_units/.locks/
+
 # Ruff stuff:
 .ruff_cache/
 
