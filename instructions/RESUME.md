@@ -847,9 +847,9 @@ duplicate or missing units. Authority ordinals 149–178 are complete at attempt
 remains zero. The reconciled campaign-state is SHA-256
 `e39b4090a5a1f65b4228aa423de52a6a59bda7912476d1fb28247e8610e274da`,
 9,432 bytes. The request-only ordinal 179 is
-`bler-0e7c3102fbf553ba90fc5458`, attempt 1, with request SHA
+`bler-0e7c3102fbf553ba90fc5458`, attempt 2, with request SHA
 `42062b62a4f88e08193b00fee25ed998ccbcd502782a206f231d10aae4c1b1c6` and
-state SHA `66f372885e7e8de5744f0e51e83b6ec1a1d19a004f2ddd36b4f64ff707cf1dc1`.
+state SHA `e4b90d82fdc5760bd6298e82650e266ad759e2271e807be57a258bc6678b9361`.
 The frozen worker summary still raises `KeyError: measurement` after valid
 result publication; B3 reconciliation validates and retains each complete
 terminal chain. Coordination locks remain untracked. No specification
@@ -881,6 +881,23 @@ bytes). No scientific result was fabricated, and no repair was applied. Resume
 at C2 by authenticating, inspecting and deriving a fresh remaining suffix; do
 not trust the old plan. Exact restart command:
 `.venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`.
+
+Session-stop checkpoint (2026-08-04T01:07:26+05:30): the next frozen-CLI
+session `g8c_batch_0179_0306` was stopped at the user's session boundary while
+ordinal 179 was being claimed. The active transaction left no result; the
+authenticated production census after stopping reports exactly 179 complete
+chains, ordinal 179 as `claimed_request_published` at attempt 2, and 3,033
+absent units. The attempt-2 request is byte-identical to attempt 1 at SHA
+`42062b62a4f88e08193b00fee25ed998ccbcd502782a206f231d10aae4c1b1c6` and is
+2,185 bytes; its terminal state is SHA
+`e4b90d82fdc5760bd6298e82650e266ad759e2271e807be57a258bc6678b9361`, 1,682
+bytes. B3 proposes attempt 3; no repair was applied, no failed result exists,
+and no scientific unit was accepted after ordinal 178. Campaign state remains
+SHA `e39b4090a5a1f65b4228aa423de52a6a59bda7912476d1fb28247e8610e274da`,
+9,432 bytes, with null in-progress ID, zero protected counters and
+`test_split_access=0`. Exact next command is the registered characterization
+CLI in the C2 row above; it must begin from a fresh B3 plan and retry ordinal
+179 only through attempt 3. No specification amendment.
 
 | Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
 |---|---|---|---|---|---|---|---|

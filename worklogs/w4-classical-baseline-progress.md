@@ -1643,3 +1643,20 @@ operational nuisance after valid chains are published; no bound source was
 changed and no repair was applied. The next execution must derive a fresh B3
 suffix and retry ordinal 179 only through its exact next clean attempt. **No
 specification amendment.**
+
+At 2026-08-04T01:07:26+05:30, the requested session stop interrupted the next
+frozen-CLI invocation while ordinal 179 was being claimed. The exact
+post-stop B3 census remains 179 completed full-strength chains, one
+`claimed_request_published` transaction at attempt 2, and 3,033 absent units;
+recoverable, retryable-failed, terminal-nonmergeable, unknown, duplicate and
+missing counts are zero, with test access zero. The attempt-2 request is
+byte-identical to attempt 1, SHA
+`42062b62a4f88e08193b00fee25ed998ccbcd502782a206f231d10aae4c1b1c6`, 2,185
+bytes; its state SHA is
+`e4b90d82fdc5760bd6298e82650e266ad759e2271e807be57a258bc6678b9361`, 1,682
+bytes, and no result exists. B3 proposes attempt 3. Campaign state remains
+SHA `e39b4090a5a1f65b4228aa423de52a6a59bda7912476d1fb28247e8610e274da`, 9,432
+bytes, with 179 completed IDs, null in-progress ID and all protected counters
+zero. The exact registered characterization CLI is the next restart command;
+it must reauthenticate and derive a fresh plan before retrying ordinal 179.
+**No specification amendment.**
