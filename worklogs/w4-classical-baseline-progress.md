@@ -1579,3 +1579,15 @@ reconciled campaign-state is SHA-256
 `3de106acd5b95aa9870b16b60bc50ac85fd3e40f7761226e4a17b7bad4f4a9ab`, 4,518 bytes. This chunk is
 the next signed raw-evidence checkpoint; coordination locks are not tracked. **No specification
 amendment.**
+
+The following 32-unit suffix completed authority ordinals 53–84, from
+`bler-03d6e36ebe2ec8c69ab68010` through `bler-05a588314336009da0769e55`, all
+at attempt 1 with exactly 5,000 trials. The fresh production census reports 85
+completed and 3,128 remaining, with every recoverable, failed,
+terminal-nonmergeable, unknown, duplicate and missing count at zero. The
+reconciled campaign-state is SHA-256
+`5538b942ab73fd9f9136c6ed50d15aed2de4dac6281166e4a17b7bad4f0aa1254`, 5,766
+bytes. The frozen worker summary continues to raise `KeyError: measurement`
+only after the runner has published and linked the complete transaction; B3
+reconciliation validated the chains and retained the evidence. Coordination
+locks remain untracked. **No specification amendment.**

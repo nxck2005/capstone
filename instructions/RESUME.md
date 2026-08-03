@@ -836,6 +836,20 @@ Durable instruction: `instructions/G8_C.txt`. This is the only live C cursor; th
 C rows below are updated in the same commit as their checkpoint. C0 is the
 state-only opening step and has no full-strength execution.
 
+Current C2 durable checkpoint detail: the authenticated production census after
+the next frozen-CLI suffix reports 85 `completed_full_strength` units and 3,128
+absent/remaining units, with zero recoverable, retryable-failed,
+terminal-nonmergeable, unknown, duplicate or missing units. Authority ordinals
+53–84 are `bler-03d6e36ebe2ec8c69ab68010` through
+`bler-05a588314336009da0769e55`, all attempt 1 with exactly 5,000 trials;
+`test_split_access=0` and every protected counter remains zero. The
+reconciled campaign-state is SHA-256
+`5538b942ab73fd9f9136c6ed50d15aed2de4dac6281166e4a17b7bad4f0aa1254`,
+5,766 bytes. The frozen worker summary still raises `KeyError: measurement`
+after valid result publication; B3 reconciliation validates and retains each
+complete terminal chain. This suffix is the next signed raw-evidence
+checkpoint; coordination locks remain untracked. No specification amendment.
+
 | Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
 |---|---|---|---|---|---|---|---|
 | C0 verify and open G8_C | done | `d95da8e0f6ded31fab7ee37d571d39cba509f522` | first: `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; restart: the exact `run_g8_bler_characterization.py` command in `instructions/G8_C.txt` | handoff docs, campaign state only; no runtime root, unit evidence or characterization | C0 HOLD resolved: the manifest-bound `instructions/G8_C.txt` was restored byte-for-byte to 2,820 bytes / `c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815`; the in-place expansion requirement was withdrawn; the detailed execution brief remains operational and subordinate to frozen authority; no manifest, campaign ID, registered contract, scientific parameter or evidence changed; canonical state transition PASS with state SHA `9627dd772585dd3047c02e395ea448908ffca9f7877da1ed0450bdf7fb7cb22d` | correction `490138ef3ecc1a96c528d0f75ca90fadeb8db14f` signed/pushed; transition `1363fa73338e9d44151f751bf1bba47f73812ebb` signed/pushed; local/origin/remote parity confirmed | IDs empty/null; all four counters 0; No specification amendment, campaign-manifest supersession or contract supersession |
