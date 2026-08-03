@@ -18,9 +18,9 @@
         "sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41"
       },
       {
-        "bytes": 17597,
+        "bytes": 18612,
         "path": "results/baseline/g8/bler_runner_contract.json",
-        "sha256": "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268"
+        "sha256": "a238478eb9f231c984258e1f99c4c54d1a0fba353faa683908bca460c6c03763"
       },
       {
         "bytes": 18394,
@@ -35,7 +35,7 @@
       {
         "bytes": 36572,
         "path": "results/baseline/g8/bounded_smoke_record.json",
-        "sha256": "cff4fb75835c4a010baed285103c3ba425b7b44b226186ce9969dcb17537763e"
+        "sha256": "1f574b8d8442b68c44211693d128f768bc17f0bfa5472ae144d6c9e5b8ef6635"
       },
       {
         "bytes": 6325,
