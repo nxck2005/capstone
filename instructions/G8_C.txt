@@ -1,274 +1,69 @@
-# G8_C — complete full-strength BLER characterization and freeze G-8
+# G8_C — full-strength physical-layer BLER characterization
 
-This instruction is the durable operational contract for G8_C. The normative
-authority order is `spec/SPEC.md`, approved amendments and generated
-parameters, the authenticated G8_A campaign and required identities, the
-registered B1C/B2C/B3/v3 contracts, executable validators, independent
-verifiers, tests, `instructions/G8.txt`, this file, `instructions/RESUME.md`,
-and handoff notes. A lower item never repairs a contradiction in a higher
-item.
+## Purpose and scope
 
-## Scope and release boundary
+Execute and freeze the complete full-strength BLER characterization grid fixed
+by G8_A using the runner proven by G8_B. This phase creates physical-layer
+evidence only.
 
-G8_C executes exactly the 3,213 required physical-layer BLER work units from
-`results/baseline/g8/required_bler_identities.json`. Each unit uses its
-authenticated `BlerIdentity`, exact SNR, packet-configuration bindings,
-deterministic seed records and the registered v3 runner for exactly 5,000
-trials. G8_C produces raw channel evidence, an independently reconstructed
-merge report, and a separately hash-bound G-8 `BlerTable`.
+## Prerequisites and starting assertions
 
-G8_C may not load validation pixels, access test data, encode or decode image
-codecs, reconstruct images, run classifier inference, train or fine-tune a
-model, construct a `G8Authorization`, select operating points, execute either
-selection pass, invoke fallback adjudication, or execute G8_D or any later
-phase. The four protected counters remain zero; physical-layer
-characterization is scientific execution even though it is not validation
-decoding, inference, training or test access.
+G8_A and G8_B are green; campaign, identities, runner sources, seed policy and
+state bindings verify; no identity or trial count drifted; characterization has
+not started; validation pixels and test remain untouched.
 
-The G-2 BLER artifact is a narrow conformance record for one exact physical
-identity and must not fill, interpolate, extrapolate or stand in for a missing
-G8_C point. G8_C table construction uses measured points only. A zero-error or
-all-error point is valid evidence when its integer counts and complete chain
-validate.
+## Exact outputs
 
-## Authenticated starting boundary
+Independent atomic work-unit artifacts at configured full-strength trials and
+deterministic seeds; exact resume state; verified merge and complete coverage;
+a separately hash-bound G-8 `BlerTable`; immutable characterization source
+manifest; mutation evidence; updated ledger/handoffs.
 
-The only legal starting state is the authenticated G8_B handoff:
+## Checkpoint sequence
 
-* campaign ID `g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a`;
-* campaign manifest SHA-256 `0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1`;
-* required-identities SHA-256 `b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77`;
-* selection-policy SHA-256 `6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e`;
-* 3,213 required units and 5,000 full-strength trials per unit;
-* seed identity `sha256(campaign_id,work_unit_id,purpose)-v1`;
-* B1C tooling `g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975` / `bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866`;
-* B2C state `g8state-a36b37f3c21d4254a50ffe5e893237ee4738c68c7b3e9d76b473856ca7605deb` / `cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583`;
-* B3 resume `g8resume-7bf4935ed82aa1eea6514208cdd82f9b60f73e4ba58b280642b493444f5364c0` / `de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41`;
-* v3 runner `g8runner-49e4facbe266117c74ff802b4252bcba87a7331c34a7ffe228b4648469728583` / `a238478eb9f231c984258e1f99c4c54d1a0fba353faa683908bca460c6c03763`;
-* completed IDs empty, in-progress ID null, all four protected counters zero,
-  seven registered artifacts, and no production runtime root.
+C0 verify/open; C1 mark and freeze execution sources; C2 execute resumable
+shards; C3 merge independently; C4 verify every required identity and measured
+SNR point; C5 build/freeze the G-8 `BlerTable`; C6 source-manifest and mutation
+verification; C7 full verification and green handoff.
 
-At C0, load all authority through the canonical campaign-state and contract
-validators. Require the exact seed identity and the exact current restart
-command before changing state. Do not invoke either historical B2C or runner
-contract migration. A stale plan is always discarded and rebuilt from raw
-authority.
+## Sudden-exit protocol
 
-## Checkpoints and exact state machine
+Before every shard or merge, ledger exact command, work-unit IDs, intended
+paths, seed identities and restart command; commit/push the marker. Checkpoint
+each completed unit atomically and record its hash. Resume only the exact
+uncompleted set; never rerun or merge a unit silently.
 
-The single cursor is `instructions/RESUME.md`. C0 opens only
-`G8_B/tooling_smoke_complete → G8_C/characterization_open`, changing only
-phase, stage and restart command. The transition must use the canonical
-`validate_state_transition()` and atomic state writer, then reread the
-installed bytes. The exact G8_C restart command stored in state is:
+## Prohibited work
 
-```bash
-.venv/bin/python tools/run_g8_bler_characterization.py \
-  --root /home/nick/projects/capstone/results/baseline/g8/work_units \
-  --device auto \
-  --shard-count auto \
-  --batch-size auto \
-  --max-units-per-worker-batch 128
-```
+No codec/reconstruction/classifier measurement; no validation pixels; no
+ratio/operating-point selection; no pass one; no training; no G8_D+ command;
+no interpolation outside measured support; no test access. Later phases may not
+reinterpret the frozen table or merge schema.
 
-C1 freezes and registers the characterization source manifest, schemas,
-ordering, sharding, retry, merge, table and handoff rules before a full-
-strength trial. C2 runs bounded durable batches with one coordinator and
-worker-owned unit transactions. C3 independently reconstructs all accepted
-raw evidence. C4 proves exact one-to-one required coverage and registers the
-merge report. C5 constructs and verifies the measured-only G-8 table and its
-fail-closed loader, then registers it. C6 verifies byte provenance, immutable
-source bindings, mutation rejection and history. C7 runs every upstream,
-G8_C, integration, CPU-lock and test gate, atomically advances only to
-`G8_C/characterization_complete`, and records the exact G8_D cursor without
-executing it.
+## Frozen-before-data decisions
 
-Every long checkpoint is marked `in-progress` and pushed before work begins,
-then closed by a signed commit after the exact tree passes its gates. Never
-amend, squash, rebase or force-push. If signing or pushing fails, preserve the
-tree and retry the same truthful subject; do not begin the next state-changing
-checkpoint.
+The complete identity grid, full-strength trial count, deterministic seeds,
+decoder and SNR convention, work-unit boundaries, confidence/count fields,
+merge order, completeness predicate, and G-8 table schema/source binding.
 
-## C1 source freeze
+## Verification commands
 
-Before any full-strength execution, generate and register
-`results/baseline/g8/bler_characterization_source_manifest.json` with
-`schema_version=1`, role `g8_bler_characterization_source_manifest`, phase
-`G8_C`, checkpoint `C1`, ID prefix `g8charsrc`,
-`scientific_execution_performed=false`, and
-`characterization_started=false`. Its ID is over canonical content excluding
-only its own ID. It binds the campaign, required identities, selection policy,
-all four registered contract IDs/SHA-256 values, 3,213, 5,000, the exact
-physical root, full-strength class, required ordering, sharding and retry
-rules, no mid-unit resume, byte-identical requests across attempts, count
-semantics, merge predicate, table schema/ID rule, measured-only construction,
-no extrapolation and the exact G8_D handoff command.
+Verify every unit hash/seed/trial count, exact resumption, one-to-one required
+coverage, zero duplicates/omissions, no extrapolation, table loader/hash,
+source manifest, mutations, G8_A/B contracts, upstream gates, full pytest,
+CPU lock, and clean scope/status.
 
-The manifest binds exactly these G8_C sources:
+## Final report requirements
 
-```text
-src/baseline/g8_bler_characterization.py
-tools/run_g8_bler_characterization.py
-tools/gen_g8_bler_characterization_manifest.py
-tools/verify_g8_bler_characterization_manifest.py
-tools/merge_g8_bler_characterization.py
-tools/verify_g8_bler_table.py
-```
-
-It also binds, without modifying them, `composition.py` and the four
-registered G8 contracts. It does not bind commit IDs, hostnames, PIDs,
-timestamps, GPU metadata, absolute paths, measured values or its own file.
-The independent verifier reconstructs every expected field without importing
-the generator or expected constants from the characterization module. AST
-tests enforce the import and data-access boundaries.
-
-## C1/C2 orchestration and topology
-
-The characterization CLI validates every argument before inspecting recovery
-state, opening a runner context, creating a root or launching a worker. It
-accepts `--root`, `--device auto|cpu|cuda`, `--shard-count auto|positive`,
-optional `--shard-index`, `--batch-size auto|positive`,
-`--max-units-per-worker-batch positive`, `--repair-recoverable`,
-`--plan-only`, `--reconcile-only` and `--merge-only`. The production root
-must resolve exactly to `/home/nick/projects/capstone/results/baseline/g8/work_units`;
-relative paths, aliases, symlinks, traversal and all alternate roots fail
-closed.
-
-Resolve `auto` only from authenticated implementation capability and hardware:
-use at most one worker per supported physical GPU, otherwise one CPU worker;
-never oversubscribe a GPU and never use measured BLER to choose topology.
-Record resolved device, worker count, shard count, shard IDs and batch size as
-execution provenance. A lower batch size is permitted only after an OOM and
-must be recorded with its reason. Device and batch size never enter request
-identity.
-
-Each worker creates one authenticated runner context, authenticates authority
-once, reuses it across its batch, and never shares mutable context with another
-process. Before each unit, obtain a fresh B3 resume plan and reread authority.
-Workers execute only assigned remaining IDs in exact required order, never a
-completed or unknown ID, and stop before exclusive recoverable repair. The
-coordinator alone reconciles campaign state; workers never write it.
-
-For each unit use only the frozen transaction:
-
-```text
-clean claim → immutable request → execute from trial zero
-→ immutable result → failed/result_linked terminal state
-→ exact chain reread and validation
-```
-
-Every complete result is full-strength, scientific, merge-eligible, has
-`trials_requested=trials_completed=5000`, exact integer information-bit/bit-
-error/block-error counts, derived BER/BLER and Wilson bounds, exact seeds,
-identity, SNR, implementation binding, request/result/state hashes, attempt and
-shard metadata, and contribution exactly one. Failed attempts remain immutable
-history and contribute zero. A process interruption or transient failed
-attempt is recoverable; retry only at the next legal clean attempt, without
-changing request bytes, seeds, identity, SNR, decoder, code or trial count.
-Never rerun a valid terminal unit because its BLER is surprising.
-
-At each durable batch boundary stop workers, acquire the B3 exclusive lock,
-repair only its two declared recoverable classes, census raw files, reconcile
-the exact newly completed IDs, validate every new chain, reject staging/lock/
-partial objects, update the ledger, stage only authoritative evidence/state,
-commit, push and verify parity. At most one unpushed batch may exist. The
-default batch is 128 newly completed units and may be smaller for resource or
-repository limits.
-
-## C3/C4 independent evidence proof
-
-`bler_merge_report.json` is schema 1, role `g8_bler_merge_report`, phase G8_C,
-checkpoint C3, ID prefix `g8merge`, canonical and hash-bound excluding only
-its own ID. It iterates required authority order and records every unit's
-ordinal, complete identity/SNR/configuration, final attempt, request/result/
-state paths and hashes, trials, integer counts, BER/BLER/Wilson bounds,
-eligibility, contribution, test access and historical-attempt counts. The top
-level records every required/complete/missing/duplicate/unknown/recoverable/
-failed count, contribution sum, total trials/bits/errors, coverage flag,
-interpolation/extrapolation false and test access zero.
-
-The merge generator is validation-only: no simulation, retry, interpolation,
-extrapolation or selection. Its independent verifier reconstructs the report
-from required identities, raw request/result/state files, registered
-contracts and the registered source manifest, without trusting generator
-calculations.
-
-C4 must fail closed on missing, duplicate, unknown, mutated identity/SNR,
-request/result/state bytes, seeds, trials, counts, BER/BLER/Wilson values,
-eligibility, contribution, table-source or campaign-completed-list mutations.
-The complete predicate is exactly 3,213 accepted terminal units, one per
-required ID, every complete and full-strength at 5,000 trials, contribution
-one, no recoverable/failed/unknown/duplicate/missing unit, and accepted total
-trials 16,065,000. Register the merge report only after this proof.
-
-## C5 measured-only G-8 table
-
-`bler_table.json` is schema 1, role `g8_bler_table`, phase G8_C, checkpoint C5,
-ID prefix `g8blertable`, canonical and hash-bound excluding only its own ID.
-It binds campaign/required identities/selection policy, all four contracts,
-the characterization source manifest and merge report, 3,213 required and
-measured points, 5,000 trials per point, no extrapolation, no construction-
-time interpolation, and test access zero. Curves are in complete-identity
-order with exact ascending SNR points. Each point carries work-unit ID,
-identity/SNR, trials, information bits, bit/block errors, BER/BLER, Wilson
-bounds and request/result/state hashes.
-
-The stored metrics are exactly `block_errors / trials_completed` and
-`bit_errors / information_bits`. Do not smooth, fit, clip, floor, censor,
-force monotonicity or replace a zero. Construction reads only accepted merge
-points and never reuses G-2.
-
-`src/baseline/g8_bler_characterization.py` exposes a fail-closed loader into
-the existing classical `BlerTable` representation without changing
-`composition.py`. It authenticates the table, source manifest and merge
-report, verifies every point and complete identity, permits only the existing
-declared in-support interpolation for future queries, refuses unknown or
-partial identity, wrong rate/modulation/decoder/SNR convention and all
-out-of-support SNR, and never extrapolates. Tests cover every exact point,
-unknown/partial/wrong identities, support boundaries and zero/all-error
-mutations. The independent table verifier does not import expected content
-from the loader or generator.
-
-## C6/C7 closure
-
-After C1, no bound execution source may change. C6 compares every source and
-dependency hash to the pre-data manifest and inspects Git history from C1 to
-closure; a post-data change without an explicitly declared pre-data
-supersession is a HOLD. Raw request/result/state evidence remains tracked,
-including valid failed-attempt history. Runtime census requires 3,213 final
-states, 3,213 final requests and 3,213 final results, plus any accounted
-historical failed artifacts, with no symlink, alias, staging, partial, lock or
-unknown object.
-
-Before C7 transition, run every upstream generator/verifier, W4/G-2
-integration, spec/docs/literals gate, focused G8 suite, hash-seed variants,
-full pytest, CPU-lock clean-install verification, frozen-boundary diff and
-runtime census. Then atomically change only
-`G8_C/characterization_open → G8_C/characterization_complete`, preserving all
-3,213 IDs, null in-progress and zero protected counters, and register exactly
-the source manifest, merge report and table for ten artifacts total.
-
-Set the exact G8_D restart command to:
-
-```bash
-rg -n "G8_D|measurement_tooling_open|codec|reconstruction|BR-11|clean_classifier|bler_table|characterization_complete" src/baseline tools tests instructions
-```
-
-Do not enter G8_D, create G8_D tools or smoke, load validation pixels, run
-selection, or issue authorization. Expected amendment judgment is **No
-specification amendment**: G8_C executes the identities, parameters,
-protocol, decoder and SNR convention already frozen by G8_A/B.
+Report all checkpoint SHAs, work-unit and identity counts, completed IDs,
+trial/error totals, seeds, merge/table/source hashes, complete-coverage proof,
+no-extrapolation proof, zero validation/training/test counters, verification
+results, parity, clean worktree, and G8_D D0 as next action.
 
 ## Terminal verdicts
 
-```text
-G8_C GREEN — G-8 BLER TABLE FROZEN; COMPLETE COVERAGE VERIFIED; G8_D READY
-```
+`G8_C GREEN — G-8 BLER TABLE FROZEN; COMPLETE COVERAGE VERIFIED; G8_D READY`
 
-```text
-G8_C INCOMPLETE — RESUME AT <exact checkpoint, exact work-unit suffix and exact command>
-```
+`G8_C INCOMPLETE — RESUME AT <checkpoint and exact command>`
 
-```text
-G8_C HOLD — <precise authority, provenance, scientific or unrecoverable execution contradiction>
-```
+`G8_C HOLD — <precise blocking condition>`
