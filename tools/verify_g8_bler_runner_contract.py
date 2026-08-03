@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently verify the G8_B runner contract.
+"""Independently verify the corrected G8_B runner contract.
 
 This verifier intentionally does not import the runner or the generator.  It
 reconstructs the expected bindings from the frozen B1C/B2C/B3 artifacts,
@@ -34,7 +34,7 @@ from config.params import get  # noqa: E402
 CONTRACT_PATH = REPO_ROOT / "results/baseline/g8/bler_runner_contract.json"
 EXPECTED_PHASE = "G8_B"
 EXPECTED_CHECKPOINT = "B4"
-EXPECTED_SCHEMA_VERSION = 2
+EXPECTED_SCHEMA_VERSION = 3
 EXPECTED_ROLE = "g8_bler_runner_contract"
 EXPECTED_ID_PREFIX = "g8runner"
 EXPECTED_SOURCE_ROLE = "g8b_b4_runner_contract_source"
@@ -64,11 +64,31 @@ EXPECTED_B4_COMMAND = (
     'tooling_smoke_complete" src/baseline tools tests instructions'
 )
 EXPECTED_SUPERSEDES = {
-    "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
-    "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
-    "contract_bytes": 15317,
-    "reason": "bounded-smoke verifier referenced fields absent from the closed campaign-state schema",
+    "contract_id": "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5",
+    "contract_sha256": "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268",
+    "contract_bytes": 17597,
+    "reason": "complete SR-1 literal compliance for infrastructure-only staging-name entropy and provide recoverable registered-smoke rebinding; no scientific or physical-layer semantics changed",
 }
+EXPECTED_SUPERSESSION_HISTORY = [
+    {
+        "schema_version": 2,
+        "contract_id": EXPECTED_SUPERSEDES["contract_id"],
+        "contract_sha256": EXPECTED_SUPERSEDES["contract_sha256"],
+        "contract_bytes": EXPECTED_SUPERSEDES["contract_bytes"],
+        "supersedes": {
+            "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+            "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
+            "contract_bytes": 15317,
+            "reason": "bounded-smoke verifier referenced fields absent from the closed campaign-state schema",
+        },
+    },
+    {
+        "schema_version": 1,
+        "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+        "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
+        "contract_bytes": 15317,
+    },
+]
 
 
 class RunnerContractVerificationError(RuntimeError):
@@ -425,46 +445,47 @@ def verify(path: Path = CONTRACT_PATH, *, require_registered: bool = False) -> d
     _require(raw == rendered_json(payload), "B4 runner contract is not canonical rendered JSON")
     expected_top = {
         "schema_version", "artifact_role", "campaign", "phase", "checkpoint",
-        "supersedes",
+        "supersedes", "supersession_history",
         "scientific_execution_performed", "characterization_started", "bounded_smoke_started",
         "contract_sources", "authority_bindings", "dependencies", "schemas", "authorization",
         "rng", "physical_layer", "transaction", "publication", "count_semantics",
         "bounded_smoke", "authenticated_hot_path", "no_science_boundary", "g8_c_handoff", "contract_id",
     }
     _require(set(payload) == expected_top, "B4 runner contract top-level fields changed")
-    _require(payload["schema_version"] == EXPECTED_SCHEMA_VERSION, "B4 runner contract schema changed")
+    _require(payload["schema_version"] == EXPECTED_SCHEMA_VERSION, "B5 runner contract schema changed")
     _require(payload["artifact_role"] == EXPECTED_ROLE, "B4 runner contract role changed")
     _require(payload["campaign"] == EXPECTED_CAMPAIGN, "B4 runner contract campaign changed")
     _require(payload["phase"] == EXPECTED_PHASE and payload["checkpoint"] == EXPECTED_CHECKPOINT, "B4 phase/checkpoint changed")
-    _require(payload["supersedes"] == EXPECTED_SUPERSEDES, "B4 supersession relationship changed")
-    _require(payload["scientific_execution_performed"] is False, "B4 contract claims scientific execution")
-    _require(payload["characterization_started"] is False, "B4 contract claims characterization")
-    _require(payload["bounded_smoke_started"] is False, "B4 contract claims smoke has started")
-    _require(payload["contract_sources"] == _source_bindings(), "B4 bound source bytes changed")
-    _require([entry["path"] for entry in payload["contract_sources"]] == list(EXPECTED_SOURCE_PATHS), "B4 source order changed")
-    _require(all(entry["path"] != EXPECTED_OUTPUT_PATH for entry in payload["contract_sources"]), "B4 binds its own output path")
-    _require(payload["authority_bindings"] == _authority(), "B4 authority bindings changed")
-    _require(payload["dependencies"] == _dependencies(), "B4 dependency or LDPC source bindings changed")
-    _require(payload["schemas"] == _schemas(), "B4 schema bindings changed")
-    _require(payload["authorization"] == _expected_authorization(), "B4 authorization gates changed")
-    _require(payload["rng"] == _expected_rng(), "B4 RNG rules changed")
-    _require(payload["physical_layer"] == _expected_physical_layer(), "B4 physical-layer pipeline changed")
-    _require(payload["transaction"] == _expected_transaction(), "B4 transaction order changed")
-    _require(payload["publication"] == _expected_publication(), "B4 publication rules changed")
-    _require(payload["count_semantics"] == _expected_counts(), "B4 count semantics changed")
-    _require(payload["bounded_smoke"] == _expected_bounded(), "B4 bounded-smoke rules changed")
-    _require(payload["authenticated_hot_path"] == _expected_hot_path(), "B4 authenticated hot path changed")
-    _require(payload["no_science_boundary"] == _expected_no_science(), "B4 no-science boundary changed")
-    _require(payload["g8_c_handoff"] == _expected_handoff(), "B4 G8_C handoff changed")
-    _require(payload["contract_id"] == _contract_id(payload), "B4 contract ID does not reproduce")
+    _require(payload["supersedes"] == EXPECTED_SUPERSEDES, "B5 immediate supersession relationship changed")
+    _require(payload["supersession_history"] == EXPECTED_SUPERSESSION_HISTORY, "B5 supersession history is incomplete or changed")
+    _require(payload["scientific_execution_performed"] is False, "B5 contract claims scientific execution")
+    _require(payload["characterization_started"] is False, "B5 contract claims characterization")
+    _require(payload["bounded_smoke_started"] is False, "B5 contract claims smoke has started")
+    _require(payload["contract_sources"] == _source_bindings(), "B5 bound source bytes changed")
+    _require([entry["path"] for entry in payload["contract_sources"]] == list(EXPECTED_SOURCE_PATHS), "B5 source order changed")
+    _require(all(entry["path"] != EXPECTED_OUTPUT_PATH for entry in payload["contract_sources"]), "B5 binds its own output path")
+    _require(payload["authority_bindings"] == _authority(), "B5 scientific authority bindings changed")
+    _require(payload["dependencies"] == _dependencies(), "B5 dependency or LDPC source bindings changed")
+    _require(payload["schemas"] == _schemas(), "B5 request/result/state schema bindings changed")
+    _require(payload["authorization"] == _expected_authorization(), "B5 authorization gates changed")
+    _require(payload["rng"] == _expected_rng(), "B5 RNG rules changed")
+    _require(payload["physical_layer"] == _expected_physical_layer(), "B5 physical-layer pipeline changed")
+    _require(payload["transaction"] == _expected_transaction(), "B5 transaction order changed")
+    _require(payload["publication"] == _expected_publication(), "B5 publication rules changed")
+    _require(payload["count_semantics"] == _expected_counts(), "B5 count semantics changed")
+    _require(payload["bounded_smoke"] == _expected_bounded(), "B5 bounded-smoke rules changed")
+    _require(payload["authenticated_hot_path"] == _expected_hot_path(), "B5 authenticated hot path changed")
+    _require(payload["no_science_boundary"] == _expected_no_science(), "B5 no-science boundary changed")
+    _require(payload["g8_c_handoff"] == _expected_handoff(), "B5 G8_C handoff changed")
+    _require(payload["contract_id"] == _contract_id(payload), "B5 contract ID does not reproduce")
     _assert_no_absolute_paths(payload)
-    _require(_sha256(raw) not in raw.decode("utf-8"), "B4 contract binds its own SHA-256")
+    _require(_sha256(raw) not in raw.decode("utf-8"), "B5 contract binds its own SHA-256")
 
     if require_registered:
         state, _state_raw = _read_json(CAMPAIGN_STATE, "campaign state")
         matches = [entry for entry in state["identity"]["produced_artifacts"] if entry["path"] == EXPECTED_OUTPUT_PATH]
-        _require(len(matches) == 1, "B4 runner contract is not registered exactly once")
-        _require(matches[0]["sha256"] == _sha256(raw) and matches[0]["bytes"] == len(raw), "registered B4 bytes do not match")
+        _require(len(matches) == 1, "B5 runner contract is not registered exactly once")
+        _require(matches[0]["sha256"] == _sha256(raw) and matches[0]["bytes"] == len(raw), "registered B5 bytes do not match")
     return payload
 
 
@@ -476,9 +497,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         payload = verify(args.path, require_registered=args.require_registered)
     except RunnerContractVerificationError as exc:
-        raise SystemExit(f"G8 B4 runner contract verification HOLD: {exc}") from exc
+        raise SystemExit(f"G8 B5 runner contract verification HOLD: {exc}") from exc
     print(
-        "G8 B4 runner contract verification PASS: "
+        "G8 B5 runner contract verification PASS: "
         f"contract_id={payload['contract_id']} sha256={_sha256(args.path.read_bytes())} bytes={args.path.stat().st_size}"
     )
     return 0

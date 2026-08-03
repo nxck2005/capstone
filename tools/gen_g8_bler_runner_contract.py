@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the deterministic G8_B runner contract before B4 registration."""
+"""Generate the deterministic G8_B runner contract after B5 correction."""
 
 from __future__ import annotations
 
@@ -161,11 +161,12 @@ def _build_without_id(context: AuthenticatedResumeContext) -> dict[str, Any]:
         "phase": "G8_B",
         "checkpoint": "B4",
         "supersedes": {
-            "contract_id": runner.SUPERSEDED_RUNNER_CONTRACT_ID,
-            "contract_sha256": runner.SUPERSEDED_RUNNER_CONTRACT_SHA256,
-            "contract_bytes": runner.SUPERSEDED_RUNNER_CONTRACT_BYTES,
+            "contract_id": runner.V2_RUNNER_CONTRACT_ID,
+            "contract_sha256": runner.V2_RUNNER_CONTRACT_SHA256,
+            "contract_bytes": runner.V2_RUNNER_CONTRACT_BYTES,
             "reason": runner.RUNNER_CONTRACT_SUPERSESSION_REASON,
         },
+        "supersession_history": runner.RUNNER_CONTRACT_SUPERSESSION_HISTORY,
         "scientific_execution_performed": False,
         "characterization_started": False,
         "bounded_smoke_started": False,

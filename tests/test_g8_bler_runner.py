@@ -6,9 +6,11 @@ import json
 import os
 import ast
 import copy
+import io
 from pathlib import Path
 import subprocess
 import sys
+import tokenize
 
 import numpy as np
 import pytest
@@ -20,11 +22,41 @@ from baseline.ldpc import adapter as adapter_module
 from baseline.g8_campaign import canonical_json, rendered_json, CAMPAIGN_STATE, REPO_ROOT, sha256_bytes
 from config.params import get
 import migrate_g8_bler_runner_contract as runner_migration
+import verify_g8_bounded_smoke as smoke_verifier
+import gen_g8_bler_runner_contract as runner_generator
 
 
 @pytest.fixture(scope="module")
-def auth_context() -> runner.AuthenticatedRunnerContext:
-    return runner.AuthenticatedRunnerContext()
+def auth_context(tmp_path_factory) -> runner.AuthenticatedRunnerContext:
+    # Before the live v2 -> v3 migration, all execution tests use a generated
+    # candidate and an isolated state projection.  The registered v2 artifact
+    # remains untouched until the complete B5 production test block is green.
+    root = tmp_path_factory.mktemp("runner-candidate")
+    candidate_path = root / "bler_runner_contract.json"
+    candidate = runner_generator.build()
+    candidate_path.write_bytes(rendered_json(candidate))
+    state = json.loads(CAMPAIGN_STATE.read_bytes())
+    binding = {
+        "path": runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH,
+        "sha256": sha256_bytes(candidate_path.read_bytes()),
+        "bytes": candidate_path.stat().st_size,
+    }
+    for entry in state["identity"]["produced_artifacts"]:
+        if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
+            entry.update(binding)
+    state_path = root / "campaign_state.json"
+    state_path.write_bytes(rendered_json(state))
+    from baseline.g8_bler_resume import AuthenticatedResumeContext
+
+    resume_context = AuthenticatedResumeContext(
+        campaign_state_path=state_path,
+        require_resume_contract=True,
+    )
+    return runner.AuthenticatedRunnerContext(
+        resume_context=resume_context,
+        runner_contract_path=candidate_path,
+        require_registered_runner_contract=True,
+    )
 
 
 def _first_unit(context: runner.AuthenticatedRunnerContext) -> tuple[str, dict]:
@@ -365,6 +397,68 @@ def test_smoke_record_builder_is_path_and_time_free(auth_context, tmp_path, monk
     assert record["selected_work_units"][0]["required_coverage_contribution"] == 0
 
 
+def _parse_without_comments(source: str) -> ast.AST:
+    tokens = []
+    for token in tokenize.generate_tokens(io.StringIO(source).readline):
+        if token.type == tokenize.COMMENT:
+            token = tokenize.TokenInfo(
+                token.type,
+                "",
+                token.start,
+                token.end,
+                token.line,
+            )
+        tokens.append(token)
+    return ast.parse(tokenize.untokenize(tokens))
+
+
+def test_staging_entropy_annotation_preserves_executable_ast():
+    source_path = REPO_ROOT / "src/baseline/g8_bler_runner.py"
+    before = subprocess.run(
+        ["git", "show", "16377bd613ee89c1091688ad59cd527665757e33:src/baseline/g8_bler_runner.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+    ).stdout.decode("utf-8")
+    corrected_line = (
+        '    staging = f".{target.name}.{os.getpid()}.{secrets.token_hex(12)}{_STAGING_SUFFIX}"  '
+        "# literal-ok: cryptographic staging-name entropy bytes; filesystem uniqueness only, not a scientific parameter\n"
+    )
+    after = before.replace(
+        '    staging = f".{target.name}.{os.getpid()}.{secrets.token_hex(12)}{_STAGING_SUFFIX}"\n',
+        corrected_line,
+    )
+    assert after != before
+    assert ast.dump(_parse_without_comments(before), include_attributes=False) == ast.dump(
+        _parse_without_comments(after), include_attributes=False
+    )
+    assert corrected_line.rstrip() in source_path.read_text(encoding="utf-8")
+
+
+def test_both_staging_entropy_literals_have_reasoned_annotations_and_no_global_exemption():
+    source_path = REPO_ROOT / "src/baseline/g8_bler_runner.py"
+    lines = [line for line in source_path.read_text(encoding="utf-8").splitlines() if "token_hex(12)" in line]
+    assert len(lines) == 2
+    assert all("literal-ok:" in line and line.split("literal-ok:", 1)[1].strip() for line in lines)
+    assert 12 not in get("config.literal_lint_exempt_values")
+
+
+@pytest.mark.parametrize("line_index", [0, 1])
+def test_removing_either_staging_entropy_annotation_fails_literal_lint(tmp_path, monkeypatch, line_index):
+    import check_literals as literals
+
+    relative = Path("src/baseline/g8_bler_runner.py")
+    target = tmp_path / relative
+    target.parent.mkdir(parents=True)
+    lines = (REPO_ROOT / relative).read_text(encoding="utf-8").splitlines(keepends=True)
+    staging_lines = [index for index, line in enumerate(lines) if "token_hex(12)" in line]
+    lines[staging_lines[line_index]] = lines[staging_lines[line_index]].split("  # literal-ok:", 1)[0].rstrip() + "\n"
+    target.write_text("".join(lines), encoding="utf-8")
+    monkeypatch.setattr(literals, "REPO", tmp_path)
+    result = literals.check()
+    assert any(finding.path == relative and finding.line == staging_lines[line_index] + 1 for finding in result.findings)
+
+
 def test_runner_contract_verifier_is_independent_and_rejects_mutations(tmp_path):
     verifier_path = Path(__file__).resolve().parents[1] / "tools/verify_g8_bler_runner_contract.py"
     tree = ast.parse(verifier_path.read_text(encoding="utf-8"))
@@ -399,23 +493,49 @@ def test_runner_contract_verifier_is_independent_and_rejects_mutations(tmp_path)
         assert completed.returncode != 0, mutation
 
 
+def test_candidate_v3_runner_contract_verifies_independently_before_registration(tmp_path):
+    candidate = tmp_path / "bler_runner_contract-v3.json"
+    candidate.write_bytes(rendered_json(runner_generator.build()))
+    completed = subprocess.run(
+        [sys.executable, "tools/verify_g8_bler_runner_contract.py", "--path", str(candidate)],
+        cwd=REPO_ROOT,
+        env=_child_env(),
+        check=False,
+    )
+    assert completed.returncode == 0
+    payload = json.loads(candidate.read_bytes())
+    assert payload["schema_version"] == 3
+    assert payload["supersedes"] == {
+        "contract_id": runner.V2_RUNNER_CONTRACT_ID,
+        "contract_sha256": runner.V2_RUNNER_CONTRACT_SHA256,
+        "contract_bytes": runner.V2_RUNNER_CONTRACT_BYTES,
+        "reason": runner.RUNNER_CONTRACT_SUPERSESSION_REASON,
+    }
+    assert payload["supersession_history"][0]["schema_version"] == 2
+    assert payload["supersession_history"][1]["schema_version"] == 1
+
+
 def test_candidate_runner_contract_registers_against_isolated_campaign_state(tmp_path):
     from baseline.g8_bler_resume import AuthenticatedResumeContext
-    from register_g8_artifact import register
 
+    candidate_path = tmp_path / "bler_runner_contract.json"
+    candidate_path.write_bytes(rendered_json(runner_generator.build()))
+    state = json.loads(CAMPAIGN_STATE.read_bytes())
+    for entry in state["identity"]["produced_artifacts"]:
+        if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
+            entry.update(
+                bytes=candidate_path.stat().st_size,
+                sha256=sha256_bytes(candidate_path.read_bytes()),
+            )
     state_path = tmp_path / "campaign_state.json"
-    state_path.write_bytes(CAMPAIGN_STATE.read_bytes())
-    register(
-        "results/baseline/g8/bler_runner_contract.json",
-        "bounded smoke candidate",
-        state_path=state_path,
-    )
+    state_path.write_bytes(rendered_json(state))
     resume_context = AuthenticatedResumeContext(
         campaign_state_path=state_path,
         require_resume_contract=True,
     )
     context = runner.AuthenticatedRunnerContext(
         resume_context=resume_context,
+        runner_contract_path=candidate_path,
         require_registered_runner_contract=True,
     )
     assert context.runner_contract_binding()["bler_runner_contract_id"].startswith("g8runner-")
@@ -426,8 +546,13 @@ def _old_runner_state_payload() -> dict:
     for entry in payload["identity"]["produced_artifacts"]:
         if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
             entry.update(
-                bytes=runner.SUPERSEDED_RUNNER_CONTRACT_BYTES,
-                sha256=runner.SUPERSEDED_RUNNER_CONTRACT_SHA256,
+                bytes=runner.V2_RUNNER_CONTRACT_BYTES,
+                sha256=runner.V2_RUNNER_CONTRACT_SHA256,
+            )
+        elif entry["path"] == runner.SMOKE_RECORD_REPO_RELATIVE_PATH:
+            entry.update(
+                bytes=runner_migration.OLD_SMOKE_BYTES,
+                sha256=runner_migration.OLD_SMOKE_SHA256,
             )
     return payload
 
@@ -435,6 +560,12 @@ def _old_runner_state_payload() -> dict:
 def _isolated_old_runner_state(tmp_path: Path) -> Path:
     path = tmp_path / "campaign_state.json"
     path.write_bytes(rendered_json(_old_runner_state_payload()))
+    return path
+
+
+def _candidate_v3_runner(tmp_path: Path) -> Path:
+    path = tmp_path / "bler_runner_contract-v3.json"
+    path.write_bytes(rendered_json(runner_generator.build()))
     return path
 
 
@@ -459,12 +590,13 @@ def test_campaign_state_identity_remains_closed_after_runner_correction():
 def test_runner_contract_migration_replaces_exactly_one_binding(tmp_path):
     state_path = _isolated_old_runner_state(tmp_path)
     before = json.loads(state_path.read_bytes())
+    candidate_path = _candidate_v3_runner(tmp_path)
     installed = runner_migration.migrate(
-        contract_path=runner.DEFAULT_RUNNER_CONTRACT_PATH,
+        contract_path=candidate_path,
         state_path=state_path,
     )
     after = installed["identity"]
-    assert len(after["produced_artifacts"]) == 6
+    assert len(after["produced_artifacts"]) == 7
     assert sum(entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH for entry in after["produced_artifacts"]) == 1
     assert after["produced_artifacts"] != before["identity"]["produced_artifacts"]
     assert [entry for entry in after["produced_artifacts"] if entry["path"] != runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH] == [
@@ -472,14 +604,14 @@ def test_runner_contract_migration_replaces_exactly_one_binding(tmp_path):
         if entry["path"] != runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH
     ]
     new_binding = next(entry for entry in after["produced_artifacts"] if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH)
-    assert new_binding["sha256"] == sha256_bytes(runner.DEFAULT_RUNNER_CONTRACT_PATH.read_bytes())
+    assert new_binding["sha256"] == sha256_bytes(candidate_path.read_bytes())
 
 
 @pytest.mark.parametrize(
     "mutation,match",
     [
-        (lambda payload: next(entry for entry in payload["identity"]["produced_artifacts"] if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH).__setitem__("sha256", "0" * 64), "exact superseded"),
-        (lambda payload: payload["identity"]["produced_artifacts"].append({"path": runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH, "sha256": runner.SUPERSEDED_RUNNER_CONTRACT_SHA256, "bytes": runner.SUPERSEDED_RUNNER_CONTRACT_BYTES}), "exactly six"),
+        (lambda payload: next(entry for entry in payload["identity"]["produced_artifacts"] if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH).__setitem__("sha256", "0" * 64), "state runner binding"),
+        (lambda payload: payload["identity"]["produced_artifacts"].append({"path": runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH, "sha256": runner.V2_RUNNER_CONTRACT_SHA256, "bytes": runner.V2_RUNNER_CONTRACT_BYTES}), "exactly seven"),
         (lambda payload: payload["identity"].__setitem__("stage", "tooling_smoke_complete"), "tooling_open"),
         (lambda payload: payload["identity"]["counters"].__setitem__("inference", 1), "zero counters"),
         (lambda payload: payload["identity"].__setitem__("completed_work_unit_ids", ["u"]), "no completed"),
@@ -492,7 +624,7 @@ def test_runner_contract_migration_rejects_state_mutations(tmp_path, mutation, m
     state_path = tmp_path / "campaign_state.json"
     state_path.write_bytes(rendered_json(payload))
     with pytest.raises(runner_migration.RunnerContractMigrationError, match=match):
-        runner_migration.migrate(contract_path=runner.DEFAULT_RUNNER_CONTRACT_PATH, state_path=state_path)
+        runner_migration.migrate(contract_path=_candidate_v3_runner(tmp_path), state_path=state_path)
 
 
 def test_runner_contract_migration_rejects_unrelated_artifact_mutation(tmp_path):
@@ -500,12 +632,12 @@ def test_runner_contract_migration_rejects_unrelated_artifact_mutation(tmp_path)
     next(entry for entry in payload["identity"]["produced_artifacts"] if entry["path"] == "results/baseline/g8/bler_tooling_contract.json")["sha256"] = "0" * 64
     state_path = tmp_path / "campaign_state.json"
     state_path.write_bytes(rendered_json(payload))
-    with pytest.raises(runner_migration.RunnerContractMigrationError, match="strict pre-migration"):
-        runner_migration.migrate(contract_path=runner.DEFAULT_RUNNER_CONTRACT_PATH, state_path=state_path)
+    with pytest.raises(runner_migration.RunnerContractMigrationError, match="strict projected validation"):
+        runner_migration.migrate(contract_path=_candidate_v3_runner(tmp_path), state_path=state_path)
 
 
 def test_runner_contract_migration_rejects_malformed_supersession(tmp_path):
-    candidate = json.loads(runner.DEFAULT_RUNNER_CONTRACT_PATH.read_bytes())
+    candidate = runner_generator.build()
     candidate["supersedes"]["contract_id"] = "g8runner-" + "0" * 64
     candidate_path = tmp_path / "bler_runner_contract.json"
     candidate_path.write_bytes(rendered_json(candidate))
@@ -517,13 +649,14 @@ def test_runner_contract_migration_rejects_malformed_supersession(tmp_path):
 def test_runner_contract_migration_preserves_state_on_interrupted_publication(tmp_path, monkeypatch):
     state_path = _isolated_old_runner_state(tmp_path)
     before = state_path.read_bytes()
+    candidate_path = _candidate_v3_runner(tmp_path)
 
     def interrupted(*args, **kwargs):
         raise OSError("injected interrupted publication")
 
-    monkeypatch.setattr(runner_migration, "write_campaign_state_atomically", interrupted)
+    monkeypatch.setattr(runner_migration, "_publish_state", interrupted)
     with pytest.raises(OSError, match="interrupted"):
-        runner_migration.migrate(contract_path=runner.DEFAULT_RUNNER_CONTRACT_PATH, state_path=state_path)
+        runner_migration.migrate(contract_path=candidate_path, state_path=state_path)
     assert state_path.read_bytes() == before
 
 
@@ -632,3 +765,65 @@ def test_smoke_verifier_does_not_import_runner_or_expect_campaign_identity_field
     source = verifier_path.read_text(encoding="utf-8")
     assert 'identity["required_bler_artifact_sha256"]' not in source
     assert 'identity["selection_policy_sha256"]' not in source
+
+
+def test_smoke_record_publication_survives_hard_exit_before_and_after_install(tmp_path):
+    env = _child_env()
+    script_before = (
+        "import os,sys\n"
+        "from pathlib import Path\n"
+        "from baseline import g8_bler_runner as r\n"
+        "root=Path(sys.argv[1]); target=root/'results'/'baseline'/'g8'/'bounded_smoke_record.json'\n"
+        "target.parent.mkdir(parents=True); r.REPO_ROOT=root\n"
+        "def die(*args,**kwargs): os._exit(73)\n"
+        "r._renameat2=die\n"
+        "r.publish_smoke_record_atomic(target, {'schema_version':2})\n"
+    )
+    before_root = tmp_path / "before"
+    completed = subprocess.run([sys.executable, "-c", script_before, str(before_root)], env=env, check=False)
+    assert completed.returncode == 73
+    before_dir = before_root / "results" / "baseline" / "g8"
+    assert not (before_dir / "bounded_smoke_record.json").exists()
+    assert list(before_dir.glob("*.staging"))
+
+    script_after = (
+        "import os,sys\n"
+        "from pathlib import Path\n"
+        "from baseline import g8_bler_runner as r\n"
+        "root=Path(sys.argv[1]); target=root/'results'/'baseline'/'g8'/'bounded_smoke_record.json'\n"
+        "target.parent.mkdir(parents=True); r.REPO_ROOT=root\n"
+        "original=r._renameat2\n"
+        "def install_then_die(*args,**kwargs):\n"
+        "    original(*args,**kwargs); os._exit(74)\n"
+        "r._renameat2=install_then_die\n"
+        "r.publish_smoke_record_atomic(target, {'schema_version':2})\n"
+    )
+    after_root = tmp_path / "after"
+    completed = subprocess.run([sys.executable, "-c", script_after, str(after_root)], env=env, check=False)
+    assert completed.returncode == 74
+    assert (after_root / "results" / "baseline" / "g8" / "bounded_smoke_record.json").read_bytes() == rendered_json({"schema_version": 2})
+
+
+def test_cli_returns_hold_when_post_publication_verifier_fails(tmp_path, monkeypatch):
+    import run_g8_bler
+
+    root = tmp_path / "smoke-root"
+    monkeypatch.setattr(run_g8_bler.runner, "AuthenticatedRunnerContext", lambda: object())
+    monkeypatch.setattr(run_g8_bler.runner, "run_bounded_smoke", lambda *args, **kwargs: ([], root))
+    monkeypatch.setattr(run_g8_bler.runner, "build_bounded_smoke_record", lambda *args, **kwargs: {"schema_version": 2})
+    monkeypatch.setattr(run_g8_bler, "_remove_isolated_root", lambda *args, **kwargs: None)
+    monkeypatch.setattr(run_g8_bler, "_write_smoke_record", lambda record: (tmp_path / "record.json", "0" * 64))
+    monkeypatch.setattr(
+        run_g8_bler.smoke_verifier,
+        "verify",
+        lambda *args, **kwargs: (_ for _ in ()).throw(smoke_verifier.SmokeVerificationError("injected verifier failure")),
+    )
+    assert run_g8_bler.main([
+        "--execution-class", "bounded_smoke",
+        "--root", str(root),
+        "--device", "cpu",
+        "--shard-count", "1",
+        "--shard-index", "0",
+        "--batch-size", "1",
+        "--max-units", "3",
+    ]) == run_g8_bler.EXIT_HOLD

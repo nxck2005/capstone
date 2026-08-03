@@ -82,43 +82,43 @@
   "campaign": "G-8",
   "characterization_started": false,
   "checkpoint": "B4",
-  "contract_id": "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5",
+  "contract_id": "g8runner-49e4facbe266117c74ff802b4252bcba87a7331c34a7ffe228b4648469728583",
   "contract_sources": [
     {
-      "bytes": 59324,
+      "bytes": 61398,
       "path": "src/baseline/g8_bler_runner.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "e2d56c42516b3ffdc06f99f3b82806a7182479ea77edbd205d444f80a088607b"
+      "sha256": "9ebcfde359308a1f6393997192a6da59ff6bb1d5ccbc00b4ea83cbcf2873089f"
     },
     {
-      "bytes": 7549,
+      "bytes": 12956,
       "path": "tools/run_g8_bler.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "2974287a678d74028ae3365fba33a88001672a914cc4c75688d6232822cad836"
+      "sha256": "deade04ac4475dbdd6d46039e26ce4ae31e0ab696006b77659b13bf4c3cf6f60"
     },
     {
-      "bytes": 18109,
+      "bytes": 18159,
       "path": "tools/gen_g8_bler_runner_contract.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "410f331d3a73fd27dce6c9425d1fd0cd1c205f7e1565dc0046f97b7e38df9dd2"
+      "sha256": "121b4b0c81767e447fb700e8fb97b47571c29b71946f97eadec419dbf1b57e28"
     },
     {
-      "bytes": 22740,
+      "bytes": 23966,
       "path": "tools/verify_g8_bler_runner_contract.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "be2c6208578426f49bbe302876fc5aeeffb404a8c155df4698c6627937a4e2a3"
+      "sha256": "e83e76cf009d3f543ff42d6ac4648b989be0c7069e652f0655e960632aa34d2b"
     },
     {
-      "bytes": 26615,
+      "bytes": 31678,
       "path": "tools/verify_g8_bounded_smoke.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "ee1f9c1079cdcdf6a74142fe7448e6e7f497731ecd061ac8619a9d695b3611d7"
+      "sha256": "d3534962cc0a879820b36a4321944b23d99544c8a15ff13c06467017b6c9a83c"
     },
     {
-      "bytes": 9110,
+      "bytes": 21155,
       "path": "tools/migrate_g8_bler_runner_contract.py",
       "role": "g8b_b4_runner_contract_source",
-      "sha256": "68b0d2691ad88926919cd338995c41b8d852c5e7f398d49dc9987a916d369fc5"
+      "sha256": "0f5d9b7a5c866f8d2657c0eb0650d50dee3874e23c896323a6ca788d3667fd85"
     }
   ],
   "count_semantics": {
@@ -262,7 +262,7 @@
     "shard_enters_seed_derivation": false,
     "stream_chunk_boundary_invariant": true
   },
-  "schema_version": 2,
+  "schema_version": 3,
   "schemas": {
     "bounded_smoke_record": {
       "artifact_role": "g8_bounded_smoke_record",
@@ -461,11 +461,31 @@
   },
   "scientific_execution_performed": false,
   "supersedes": {
-    "contract_bytes": 15317,
-    "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
-    "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
-    "reason": "bounded-smoke verifier referenced fields absent from the closed campaign-state schema"
+    "contract_bytes": 17597,
+    "contract_id": "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5",
+    "contract_sha256": "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268",
+    "reason": "complete SR-1 literal compliance for infrastructure-only staging-name entropy and provide recoverable registered-smoke rebinding; no scientific or physical-layer semantics changed"
   },
+  "supersession_history": [
+    {
+      "contract_bytes": 17597,
+      "contract_id": "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5",
+      "contract_sha256": "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268",
+      "schema_version": 2,
+      "supersedes": {
+        "contract_bytes": 15317,
+        "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+        "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
+        "reason": "bounded-smoke verifier referenced fields absent from the closed campaign-state schema"
+      }
+    },
+    {
+      "contract_bytes": 15317,
+      "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+      "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
+      "schema_version": 1
+    }
+  ],
   "transaction": {
     "complete_result_recovery": "B3 recovery links a published complete result",
     "failed_result_recovery": "B3 recovery transitions a published failed result to failed",

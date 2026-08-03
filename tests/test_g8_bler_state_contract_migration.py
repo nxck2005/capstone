@@ -76,6 +76,7 @@ def new_state_bytes() -> bytes:
         if entry["path"] not in {
             "results/baseline/g8/bler_resume_contract.json",
             "results/baseline/g8/bler_runner_contract.json",
+            "results/baseline/g8/bounded_smoke_record.json",
         }
     ]
     return rendered_json(state)

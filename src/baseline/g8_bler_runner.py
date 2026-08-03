@@ -35,7 +35,7 @@ from config.params import REPO_ROOT, get
 
 PHASE = "G8_B"
 CHECKPOINT = "B4"
-RUNNER_CONTRACT_SCHEMA_VERSION = 2
+RUNNER_CONTRACT_SCHEMA_VERSION = 3
 RUNNER_CONTRACT_ARTIFACT_ROLE = "g8_bler_runner_contract"
 RUNNER_CONTRACT_ID_PREFIX = "g8runner"
 RUNNER_CONTRACT_REPO_RELATIVE_PATH = "results/baseline/g8/bler_runner_contract.json"
@@ -50,16 +50,59 @@ RUNNER_CONTRACT_SOURCE_PATHS = (
 )
 DEFAULT_RUNNER_CONTRACT_PATH = REPO_ROOT / RUNNER_CONTRACT_REPO_RELATIVE_PATH
 
-SUPERSEDED_RUNNER_CONTRACT_ID = (
+V2_RUNNER_CONTRACT_ID = (
+    "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5"
+)
+V2_RUNNER_CONTRACT_SHA256 = (
+    "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268"
+)
+V2_RUNNER_CONTRACT_BYTES = 17597
+V2_RUNNER_CONTRACT_SUPERSEDES = {
+    "contract_id": "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5",
+    "contract_sha256": "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40",
+    "contract_bytes": 15317,
+    "reason": "bounded-smoke verifier referenced fields absent from the closed campaign-state schema",
+}
+V1_RUNNER_CONTRACT_ID = (
     "g8runner-f5bd7abab06f88f879f460c33bec03bc76a7e1e5d47fa84bda5c31dc51bc5ec5"
 )
-SUPERSEDED_RUNNER_CONTRACT_SHA256 = (
+V1_RUNNER_CONTRACT_SHA256 = (
     "d35bcce439eef232da58932406531133ac6261eb353722669c1712be89844d40"
 )
-SUPERSEDED_RUNNER_CONTRACT_BYTES = 15317
-RUNNER_CONTRACT_SUPERSESSION_REASON = (
+V1_RUNNER_CONTRACT_BYTES = 15317
+V2_RUNNER_CONTRACT_SUPERSESSION_REASON = (
     "bounded-smoke verifier referenced fields absent from the closed campaign-state schema"
 )
+RUNNER_CONTRACT_SUPERSESSION_REASON = (
+    "complete SR-1 literal compliance for infrastructure-only staging-name entropy and provide "
+    "recoverable registered-smoke rebinding; no scientific or physical-layer semantics changed"
+)
+RUNNER_CONTRACT_SUPERSESSION_HISTORY = [
+    {
+        "schema_version": 2,
+        "contract_id": V2_RUNNER_CONTRACT_ID,
+        "contract_sha256": V2_RUNNER_CONTRACT_SHA256,
+        "contract_bytes": V2_RUNNER_CONTRACT_BYTES,
+        "supersedes": {
+            "contract_id": V1_RUNNER_CONTRACT_ID,
+            "contract_sha256": V1_RUNNER_CONTRACT_SHA256,
+            "contract_bytes": V1_RUNNER_CONTRACT_BYTES,
+            "reason": V2_RUNNER_CONTRACT_SUPERSESSION_REASON,
+        },
+    },
+    {
+        "schema_version": 1,
+        "contract_id": V1_RUNNER_CONTRACT_ID,
+        "contract_sha256": V1_RUNNER_CONTRACT_SHA256,
+        "contract_bytes": V1_RUNNER_CONTRACT_BYTES,
+    },
+]
+
+# Historical names remain available to migration tests and audit tooling; the
+# live runner contract now authenticates the exact v2 -> v3 predecessor above.
+SUPERSEDED_RUNNER_CONTRACT_ID = V1_RUNNER_CONTRACT_ID
+SUPERSEDED_RUNNER_CONTRACT_SHA256 = V1_RUNNER_CONTRACT_SHA256
+SUPERSEDED_RUNNER_CONTRACT_BYTES = V1_RUNNER_CONTRACT_BYTES
 
 EXECUTION_CLASS_FULL_STRENGTH = bler_contract.EXECUTION_CLASS_FULL_STRENGTH
 EXECUTION_CLASS_BOUNDED_SMOKE = bler_contract.EXECUTION_CLASS_BOUNDED_SMOKE
@@ -69,6 +112,8 @@ BOUNDED_SMOKE_MAX_TRIALS = bler_contract.BOUNDED_SMOKE_MAX_TRIALS_PER_UNIT
 
 SMOKE_RECORD_SCHEMA_VERSION = 2
 SMOKE_RECORD_ARTIFACT_ROLE = "g8_bounded_smoke_record"
+SMOKE_RECORD_REPO_RELATIVE_PATH = "results/baseline/g8/bounded_smoke_record.json"
+DEFAULT_SMOKE_RECORD_PATH = REPO_ROOT / SMOKE_RECORD_REPO_RELATIVE_PATH
 
 _FILE_MODE = stat.S_IRUSR | stat.S_IWUSR
 _DIRECTORY_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
@@ -234,22 +279,20 @@ class AuthenticatedRunnerContext:
         if raw != rendered_json(payload):
             raise RunnerAuthorizationError("B4 runner contract is not canonical rendered JSON")
         if payload.get("schema_version") != RUNNER_CONTRACT_SCHEMA_VERSION:
-            raise RunnerAuthorizationError("B4 runner contract schema version changed")
+            raise RunnerAuthorizationError("B5 runner contract schema version changed")
         if payload.get("artifact_role") != RUNNER_CONTRACT_ARTIFACT_ROLE:
             raise RunnerAuthorizationError("B4 runner contract artifact role changed")
         if payload.get("phase") != PHASE or payload.get("checkpoint") != CHECKPOINT:
             raise RunnerAuthorizationError("B4 runner contract phase/checkpoint changed")
-        supersedes = payload.get("supersedes")
-        if RUNNER_CONTRACT_SCHEMA_VERSION == 2:
-            if supersedes != {
-                "contract_id": SUPERSEDED_RUNNER_CONTRACT_ID,
-                "contract_sha256": SUPERSEDED_RUNNER_CONTRACT_SHA256,
-                "contract_bytes": SUPERSEDED_RUNNER_CONTRACT_BYTES,
-                "reason": RUNNER_CONTRACT_SUPERSESSION_REASON,
-            }:
-                raise RunnerAuthorizationError("B4 runner contract supersession is not exact")
-        elif "supersedes" in payload:
-            raise RunnerAuthorizationError("B4 runner contract unexpectedly contains supersession")
+        if payload.get("supersedes") != {
+            "contract_id": V2_RUNNER_CONTRACT_ID,
+            "contract_sha256": V2_RUNNER_CONTRACT_SHA256,
+            "contract_bytes": V2_RUNNER_CONTRACT_BYTES,
+            "reason": RUNNER_CONTRACT_SUPERSESSION_REASON,
+        }:
+            raise RunnerAuthorizationError("B5 runner contract immediate supersession is not exact")
+        if payload.get("supersession_history") != RUNNER_CONTRACT_SUPERSESSION_HISTORY:
+            raise RunnerAuthorizationError("B5 runner contract supersession history is not complete")
         contract_id = payload.get("contract_id")
         if not isinstance(contract_id, str) or contract_id != runner_contract_identifier(payload):
             raise RunnerAuthorizationError("B4 runner contract ID does not reproduce")
@@ -660,7 +703,7 @@ def publish_smoke_record_atomic(
     body = rendered_json(dict(payload))
     digest = sha256_bytes(body)
     directory_fd = os.open(target.parent, _DIRECTORY_FLAGS)
-    staging = f".{target.name}.{os.getpid()}.{secrets.token_hex(12)}{_STAGING_SUFFIX}"
+    staging = f".{target.name}.{os.getpid()}.{secrets.token_hex(12)}{_STAGING_SUFFIX}"  # literal-ok: cryptographic staging-name entropy bytes; filesystem uniqueness only, not a scientific parameter
     try:
         existing = _read_installed(directory_fd, target.name)
         if existing is not None:
@@ -1390,6 +1433,7 @@ __all__ = [
     "RUNNER_CONTRACT_SOURCE_PATHS",
     "RUNNER_CONTRACT_SOURCE_ROLE",
     "SMOKE_RECORD_ARTIFACT_ROLE",
+    "SMOKE_RECORD_REPO_RELATIVE_PATH",
     "SMOKE_RECORD_SCHEMA_VERSION",
     "authorize_execution",
     "build_bounded_smoke_record",

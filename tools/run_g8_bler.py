@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -14,8 +16,9 @@ sys.path.insert(0, str(REPO / "tools"))
 
 from baseline import g8_bler_contract as bler_contract  # noqa: E402
 from baseline import g8_bler_runner as runner  # noqa: E402
-from baseline.g8_campaign import REPO_ROOT, rendered_json  # noqa: E402
+from baseline.g8_campaign import CAMPAIGN_STATE, REPO_ROOT, rendered_json  # noqa: E402
 import verify_g8_bounded_smoke as smoke_verifier  # noqa: E402
+import migrate_g8_bler_runner_contract as runner_migration  # noqa: E402
 
 
 EXIT_SUCCESS = 0
@@ -44,25 +47,112 @@ def _parser() -> argparse.ArgumentParser:
 
 def _write_smoke_record(record: dict) -> tuple[Path, str]:
     path = REPO_ROOT / "results/baseline/g8/bounded_smoke_record.json"
-    provisional_sha = None
+    expected_existing_sha256 = None
+    expected_existing_runner_contract_id = None
+    expected_existing_runner_contract_sha256 = None
     if path.exists():
         existing = path.read_bytes()
-        provisional_sha = bler_contract.sha256_bytes(existing)
+        existing_sha256 = bler_contract.sha256_bytes(existing)
         try:
-            provisional = __import__("json").loads(existing)
+            provisional = json.loads(existing)
         except (TypeError, ValueError):
             raise runner.RunnerConflictError("existing smoke record is not decodable JSON")
         if not isinstance(provisional, dict):
             raise runner.RunnerConflictError("existing smoke record is not an object")
-        if provisional.get("schema_version") != 1:
-            provisional_sha = None
+        if provisional.get("schema_version") == 1:
+            # The old provisional path is retained for historical tests only;
+            # the official registered replacement below is schema-2 -> v3.
+            expected_existing_sha256 = existing_sha256
+        elif (
+            provisional.get("schema_version") == runner.SMOKE_RECORD_SCHEMA_VERSION
+            and existing_sha256 == runner_migration.OLD_SMOKE_SHA256
+            and len(existing) == runner_migration.OLD_SMOKE_BYTES
+            and provisional.get("bler_runner_contract_id") == runner_migration.OLD_SMOKE_RUNNER_ID
+            and provisional.get("bler_runner_contract_sha256") == runner_migration.OLD_SMOKE_RUNNER_SHA256
+        ):
+            expected_existing_sha256 = runner_migration.OLD_SMOKE_SHA256
+            expected_existing_runner_contract_id = runner_migration.OLD_SMOKE_RUNNER_ID
+            expected_existing_runner_contract_sha256 = runner_migration.OLD_SMOKE_RUNNER_SHA256
+        else:
+            raise runner.RunnerConflictError("existing smoke record is not the exact guarded v2 record")
     body = rendered_json(record)
     digest = runner.publish_smoke_record_atomic(
         path,
         record,
-        expected_provisional_sha256=provisional_sha,
+        expected_provisional_sha256=expected_existing_sha256 if expected_existing_runner_contract_id is None else None,
+        expected_existing_sha256=expected_existing_sha256 if expected_existing_runner_contract_id is not None else None,
+        expected_existing_runner_contract_id=expected_existing_runner_contract_id,
+        expected_existing_runner_contract_sha256=expected_existing_runner_contract_sha256,
     )
     return path, digest
+
+
+def _verify_candidate_smoke(record: dict, context: runner.AuthenticatedRunnerContext) -> None:
+    """Verify a complete candidate against a projected v3-bound state."""
+
+    runner_path = context.runner_contract_path
+    runner_raw = runner_path.read_bytes()
+    candidate_binding = {
+        "path": runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH,
+        "sha256": bler_contract.sha256_bytes(runner_raw),
+        "bytes": len(runner_raw),
+    }
+    record_raw = rendered_json(record)
+    smoke_binding = {
+        "path": runner.SMOKE_RECORD_REPO_RELATIVE_PATH,
+        "sha256": bler_contract.sha256_bytes(record_raw),
+        "bytes": len(record_raw),
+    }
+    with tempfile.TemporaryDirectory(prefix="g8-b5-smoke-candidate-") as directory:
+        candidate_root = Path(directory)
+        candidate_record = candidate_root / "bounded_smoke_record.json"
+        candidate_record.write_bytes(record_raw)
+        state = json.loads(CAMPAIGN_STATE.read_bytes())
+        for entry in state["identity"]["produced_artifacts"]:
+            if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
+                entry.update(candidate_binding)
+            elif entry["path"] == runner.SMOKE_RECORD_REPO_RELATIVE_PATH:
+                entry.update(smoke_binding)
+        projected_state = candidate_root / "campaign_state.json"
+        projected_state.write_bytes(rendered_json(state))
+        smoke_verifier.verify(
+            candidate_record,
+            campaign_state_path=projected_state,
+            runner_contract_path=runner_path,
+        )
+
+
+def _finish_installed_v3_smoke() -> bool:
+    """Recover the post-replacement/pre-state-publication interruption."""
+
+    record_path = REPO_ROOT / runner.SMOKE_RECORD_REPO_RELATIVE_PATH
+    contract_path = runner.DEFAULT_RUNNER_CONTRACT_PATH
+    if not record_path.exists() or not contract_path.exists():
+        return False
+    try:
+        contract = json.loads(contract_path.read_bytes())
+        record = json.loads(record_path.read_bytes())
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
+        return False
+    if not isinstance(contract, dict) or not isinstance(record, dict):
+        return False
+    if contract.get("schema_version") != runner.RUNNER_CONTRACT_SCHEMA_VERSION:
+        return False
+    if record.get("schema_version") != runner.SMOKE_RECORD_SCHEMA_VERSION:
+        return False
+    if record.get("bler_runner_contract_id") != contract.get("contract_id") or record.get("bler_runner_contract_sha256") != bler_contract.sha256_bytes(contract_path.read_bytes()):
+        return False
+    try:
+        runner_migration.migrate()
+        verified = smoke_verifier.verify(record_path)
+    except Exception as exc:
+        raise runner.RunnerAuthorizationError(f"installed v3 smoke recovery failed: {exc}") from exc
+    print(
+        "G8 bounded smoke PASS: "
+        f"units={len(verified['selected_work_units'])} trials_per_unit={runner.BOUNDED_SMOKE_MAX_TRIALS} "
+        f"record={record_path.relative_to(REPO_ROOT)} sha256={bler_contract.sha256_bytes(record_path.read_bytes())} recovered_existing=true"
+    )
+    return True
 
 
 def _remove_isolated_root(root: Path) -> None:
@@ -96,6 +186,12 @@ def main(argv: list[str] | None = None) -> int:
                 f"{runner.official_smoke_unit_count()} units",
                 file=sys.stderr,
             )
+            return EXIT_HOLD
+        try:
+            if _finish_installed_v3_smoke():
+                return EXIT_SUCCESS
+        except runner.G8BlerRunnerError as exc:
+            print(f"G8 B5 runner HOLD: {exc}", file=sys.stderr)
             return EXIT_HOLD
     elif args.max_units != runner.BOUNDED_SMOKE_MAX_WORK_UNITS:
         print("G8 B4 runner HOLD: --max-units is smoke-only", file=sys.stderr)
@@ -157,7 +253,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         _remove_isolated_root(runtime_root)
         record["temporary_root_removed"] = True
+        try:
+            _verify_candidate_smoke(record, context)
+        except Exception as exc:
+            print(f"G8 B5 runner HOLD: candidate smoke failed independent verification: {exc}", file=sys.stderr)
+            return EXIT_HOLD
         path, digest = _write_smoke_record(record)
+        try:
+            runner_migration.migrate()
+        except Exception as exc:
+            print(f"G8 B5 runner HOLD: smoke installed but campaign binding migration failed: {exc}", file=sys.stderr)
+            return EXIT_HOLD
         try:
             smoke_verifier.verify(path)
         except smoke_verifier.SmokeVerificationError as exc:

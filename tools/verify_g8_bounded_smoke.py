@@ -61,7 +61,13 @@ def _read_json(path: Path, label: str) -> tuple[dict[str, Any], bytes]:
     return payload, raw
 
 
-def _artifact_binding(state: dict[str, Any], relative_path: str, label: str) -> tuple[dict[str, Any], bytes]:
+def _artifact_binding(
+    state: dict[str, Any],
+    relative_path: str,
+    label: str,
+    *,
+    actual_path: Path | None = None,
+) -> tuple[dict[str, Any], bytes]:
     entries = state["identity"]["produced_artifacts"]
     matches = [entry for entry in entries if entry.get("path") == relative_path]
     _require(len(matches) == 1, f"{label} is not registered exactly once")
@@ -69,7 +75,7 @@ def _artifact_binding(state: dict[str, Any], relative_path: str, label: str) -> 
     _require(set(binding) == {"path", "sha256", "bytes"}, f"{label} binding is not closed")
     _require(type(binding["bytes"]) is int and binding["bytes"] >= 0, f"{label} byte count is invalid")
     _require(isinstance(binding["sha256"], str) and len(binding["sha256"]) == 64, f"{label} SHA-256 is invalid")
-    path = REPO_ROOT / relative_path
+    path = REPO_ROOT / relative_path if actual_path is None else Path(actual_path)
     try:
         raw = path.read_bytes()
     except OSError as exc:
@@ -79,9 +85,14 @@ def _artifact_binding(state: dict[str, Any], relative_path: str, label: str) -> 
     return dict(binding), raw
 
 
-def _contract_binding(state: dict[str, Any], path: Path, label: str) -> tuple[dict[str, Any], str, str, int]:
-    relative = str(path.relative_to(REPO_ROOT))
-    binding, raw = _artifact_binding(state, relative, label)
+def _contract_binding(
+    state: dict[str, Any],
+    path: Path,
+    label: str,
+    *,
+    relative_path: str,
+) -> tuple[dict[str, Any], str, str, int]:
+    binding, raw = _artifact_binding(state, relative_path, label, actual_path=path)
     payload, parsed_raw = _read_json(path, label)
     _require(parsed_raw == raw, f"{label} changed during verification")
     _require(raw == rendered_json(payload), f"{label} is not canonical rendered JSON")
@@ -89,6 +100,57 @@ def _contract_binding(state: dict[str, Any], path: Path, label: str) -> tuple[di
     _require(isinstance(contract_id, str) and contract_id, f"{label} has no contract ID")
     _require(binding["sha256"] == sha256_bytes(raw) and binding["bytes"] == len(raw), f"{label} binding mismatch")
     return payload, contract_id, binding["sha256"], binding["bytes"]
+
+
+def _load_state_for_verification(
+    path: Path,
+    *,
+    overrides: dict[str, Path],
+) -> dict[str, Any]:
+    """Load a canonical state while allowing isolated candidate artifacts."""
+
+    try:
+        raw = path.read_bytes()
+        state = json.loads(raw)
+    except (OSError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise SmokeVerificationError(f"cannot read campaign state: {exc}") from exc
+    _require(raw == rendered_json(state), "campaign state is not canonical rendered JSON")
+    _require(
+        isinstance(state, dict)
+        and set(state) == {"schema_version", "identity", "metadata"}
+        and state["schema_version"] == 1,
+        "campaign state schema changed",
+    )
+    identity = state["identity"]
+    _require(
+        isinstance(identity, dict)
+        and set(identity)
+        == {
+            "campaign_id", "campaign_manifest_sha256", "phase", "stage",
+            "completed_work_unit_ids", "in_progress_work_unit_id", "produced_artifacts",
+            "restart_command", "seed_derivation_identity", "counters",
+        },
+        "campaign state identity schema changed",
+    )
+    _require(isinstance(state["metadata"], dict) and set(state["metadata"]) == {"last_successful_checkpoint_time"}, "campaign metadata schema changed")
+    _require(identity["campaign_id"] == load_campaign_manifest(CAMPAIGN_MANIFEST)["campaign_id"], "campaign state campaign ID changed")
+    _require(identity["campaign_manifest_sha256"] == sha256_bytes(CAMPAIGN_MANIFEST.read_bytes()), "campaign state manifest binding changed")
+    _require(identity["phase"] == "G8_B" and identity["stage"] in {"tooling_open", "tooling_smoke_complete"}, "smoke verifier requires a G8_B tooling stage")
+    _require(identity["completed_work_unit_ids"] == [] and identity["in_progress_work_unit_id"] is None, "smoke state contains work-unit progress")
+    _require(isinstance(identity["counters"], dict) and set(identity["counters"]) == {"validation_decoding", "inference", "training", "test_access"}, "campaign counter schema changed")
+    _require(all(type(value) is int and value >= 0 for value in identity["counters"].values()), "campaign counters are malformed")
+    artifacts = identity["produced_artifacts"]
+    _require(isinstance(artifacts, list) and [entry.get("path") for entry in artifacts] == sorted({entry.get("path") for entry in artifacts}), "campaign artifact list is malformed")
+    for entry in artifacts:
+        _require(isinstance(entry, dict) and set(entry) == {"path", "sha256", "bytes"} and not Path(entry["path"]).is_absolute(), "campaign artifact binding is malformed")
+        target = overrides.get(entry["path"], REPO_ROOT / entry["path"])
+        try:
+            body = target.read_bytes()
+        except OSError as exc:
+            raise SmokeVerificationError(f"cannot read registered campaign artifact {entry['path']}: {exc}") from exc
+        _require(type(entry["bytes"]) is int and entry["bytes"] == len(body), f"campaign artifact byte count changed: {entry['path']}")
+        _require(entry["sha256"] == sha256_bytes(body), f"campaign artifact SHA changed: {entry['path']}")
+    return state
 
 
 def _policy_fingerprint(manifest: dict[str, Any]) -> str:
@@ -126,8 +188,12 @@ def _policy_fingerprint(manifest: dict[str, Any]) -> str:
     return reproduced
 
 
-def _authenticated_authority(state_path: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], bytes]:
-    state = load_campaign_state(state_path)
+def _authenticated_authority(
+    state_path: Path,
+    *,
+    overrides: dict[str, Path],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], bytes]:
+    state = _load_state_for_verification(state_path, overrides=overrides)
     identity = state["identity"]
     _require(identity["phase"] == "G8_B" and identity["stage"] in {"tooling_open", "tooling_smoke_complete"}, "smoke verifier requires a G8_B tooling stage")
     _require(identity["completed_work_unit_ids"] == [], "smoke changed campaign completed IDs")
@@ -317,7 +383,15 @@ def verify(
     _require(record["shard_index"] == 0, "official smoke shard index changed")
     _require(type(record["batch_size"]) is int and record["batch_size"] == 1, "official smoke batch size changed")
 
-    state, manifest, required_payload, required_raw = _authenticated_authority(campaign_state_path)
+    overrides = {
+        REQUIRED_ARTIFACT_PATH: REPO_ROOT / REQUIRED_ARTIFACT_PATH,
+        "results/baseline/g8/bounded_smoke_record.json": path,
+        str(runner_contract_path.relative_to(REPO_ROOT)) if runner_contract_path.is_relative_to(REPO_ROOT) else "results/baseline/g8/bler_runner_contract.json": runner_contract_path,
+    }
+    state, manifest, required_payload, required_raw = _authenticated_authority(
+        campaign_state_path,
+        overrides=overrides,
+    )
     identity = state["identity"]
     required_binding = next(entry for entry in identity["produced_artifacts"] if entry["path"] == REQUIRED_ARTIFACT_PATH)
     _require(record["campaign_id"] == identity["campaign_id"], "smoke campaign ID mismatch")
@@ -327,11 +401,28 @@ def verify(
     _require(record["selection_policy_sha256"] == _policy_fingerprint(manifest), "smoke selection-policy fingerprint is not independently reproduced")
     _require(len(required_raw) == required_binding["bytes"] and sha256_bytes(required_raw) == required_binding["sha256"], "required-BLER binding changed")
 
-    tooling_payload, tooling_id, tooling_sha, tooling_bytes = _contract_binding(state, TOOLING_CONTRACT_PATH, "B1C tooling contract")
-    state_payload, state_id, state_sha, state_bytes = _contract_binding(state, STATE_CONTRACT_PATH, "B2C state contract")
-    resume_payload, resume_id, resume_sha, resume_bytes = _contract_binding(state, RESUME_CONTRACT_PATH, "B3 resume contract")
-    runner_payload, runner_id, runner_sha, runner_bytes = _contract_binding(state, runner_contract_path, "B4 runner contract")
-    _require(runner_payload.get("schema_version") == 2, "smoke is bound to the superseded B4 contract schema")
+    record_binding, bound_record_raw = _artifact_binding(
+        state,
+        "results/baseline/g8/bounded_smoke_record.json",
+        "bounded smoke record",
+        actual_path=path,
+    )
+    _require(bound_record_raw == raw and record_binding["sha256"] == sha256_bytes(raw), "smoke record is not the registered artifact")
+    tooling_payload, tooling_id, tooling_sha, tooling_bytes = _contract_binding(state, TOOLING_CONTRACT_PATH, "B1C tooling contract", relative_path="results/baseline/g8/bler_tooling_contract.json")
+    state_payload, state_id, state_sha, state_bytes = _contract_binding(state, STATE_CONTRACT_PATH, "B2C state contract", relative_path="results/baseline/g8/bler_state_contract.json")
+    resume_payload, resume_id, resume_sha, resume_bytes = _contract_binding(state, RESUME_CONTRACT_PATH, "B3 resume contract", relative_path="results/baseline/g8/bler_resume_contract.json")
+    runner_payload, runner_id, runner_sha, runner_bytes = _contract_binding(state, runner_contract_path, "B5 runner contract", relative_path="results/baseline/g8/bler_runner_contract.json")
+    _require(runner_payload.get("schema_version") == 3, "smoke is not bound to the v3 runner contract")
+    _require(
+        runner_payload.get("supersedes") == {
+            "contract_id": "g8runner-3e4c870966837d255829dbca6afc4d1e3ce5ccf4754618460c939607d9c1c7e5",
+            "contract_sha256": "21ec8ae9c3c0787fa0a43bfdc12b4362bd26534a4774ee682070d94449e11268",
+            "contract_bytes": 17597,
+            "reason": "complete SR-1 literal compliance for infrastructure-only staging-name entropy and provide recoverable registered-smoke rebinding; no scientific or physical-layer semantics changed",
+        },
+        "runner contract immediate predecessor changed",
+    )
+    _require(isinstance(runner_payload.get("supersession_history"), list) and len(runner_payload["supersession_history"]) == 2, "runner supersession history is incomplete")
     _require(record["bler_tooling_contract_id"] == tooling_id and record["bler_tooling_contract_sha256"] == tooling_sha, "smoke tooling binding mismatch")
     _require(record["bler_state_contract_id"] == state_id and record["bler_state_contract_sha256"] == state_sha, "smoke state binding mismatch")
     _require(record["bler_resume_contract_id"] == resume_id and record["bler_resume_contract_sha256"] == resume_sha, "smoke resume binding mismatch")
