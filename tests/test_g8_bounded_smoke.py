@@ -31,6 +31,12 @@ def _candidate(tmp_path: Path, mutation) -> tuple[Path, Path, Path]:
     record_bytes = rendered_json(payload)
     record_path.write_bytes(record_bytes)
     state = json.loads(CAMPAIGN_STATE.read_bytes())
+    # The live campaign is now G8_C/open.  This isolated candidate deliberately
+    # projects the historical G8_B smoke boundary so the frozen smoke verifier
+    # can continue testing its own contract without reopening the live phase.
+    state["identity"]["phase"] = "G8_B"
+    state["identity"]["stage"] = "tooling_smoke_complete"
+    state["identity"]["restart_command"] = ".venv/bin/python tools/run_g8_bler.py --execution-class bounded_smoke"
     for entry in state["identity"]["produced_artifacts"]:
         if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
             entry.update(sha256=contract_sha, bytes=len(contract_path.read_bytes()))

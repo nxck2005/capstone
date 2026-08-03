@@ -13,6 +13,11 @@
     "phase": "G8_C",
     "produced_artifacts": [
       {
+        "bytes": 6672,
+        "path": "results/baseline/g8/bler_characterization_source_manifest.json",
+        "sha256": "a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e"
+      },
+      {
         "bytes": 24284,
         "path": "results/baseline/g8/bler_resume_contract.json",
         "sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41"

@@ -507,9 +507,9 @@ def test_registration_refuses_a_wrong_phase_or_stage(tmp_path: Path) -> None:
 # --------------------------------------------------------------------------
 
 
-def test_frozen_g8a_verifier_rejects_the_real_live_g8b_cursor() -> None:
+def test_frozen_g8a_verifier_rejects_the_real_live_later_phase_cursor() -> None:
     live = load_campaign_state()
-    assert live["identity"]["phase"] == "G8_B"
+    assert live["identity"]["phase"] == "G8_C"
     with pytest.raises(preflight.G8PreflightError, match="campaign state exposes a later phase"):
         preflight.verify()
 

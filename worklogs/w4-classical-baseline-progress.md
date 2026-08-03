@@ -1505,3 +1505,31 @@ bindings, empty completed IDs, null in-progress ID and four zero counters. No fu
 selection, authorization, test access, `BlerTable`, inference or training occurred. Frozen G8_A,
 B1C, B2C, B3, LDPC, G-2, W4, dataset, parameter and specification files remain byte-identical to
 the B5 starting boundary. **No specification amendment.**
+
+## G8_C C0/C1 — open and freeze characterization before data
+
+C0 resolved the prior HOLD without reopening any frozen authority. The manifest-bound
+`instructions/G8_C.txt` was restored from the authenticated G8_B green commit byte-for-byte:
+2,820 bytes, SHA-256
+`c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815`. The withdrawn requirement
+to expand that file in place was recorded as an operational correction; the campaign manifest,
+campaign ID, G8_A/B contracts, scientific parameters and evidence were unchanged. Signed commits
+`490138ef3ecc1a96c528d0f75ca90fadeb8db14f` and
+`1363fa73338e9d44151f751bf1bba47f73812ebb` restored the instruction and atomically opened
+`G8_C/characterization_open`. No runtime root or full-strength artifact existed and all protected
+counters remained zero.
+
+C1 froze the C-owned orchestration and registered the pre-data source manifest before any
+full-strength trial. The manifest is
+`g8charsrc-6926319673ca1f55b95f8746062518c12cfa499aa827448e67850b5a1f74702a`, SHA-256
+`a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e`, 6,672 bytes. It binds six
+G8_C sources and the frozen B1C/B2C/B3/runner/classical-composition dependencies, but not the
+historical expanded instruction or an operational note. The coordinator validates the exact
+production root, resolves one worker per supported GPU, authenticates one runner context per
+worker process, rebuilds a fresh B3 plan before each unit, and leaves campaign-state publication
+to the coordinator. The measured-only table loader reconstructs curves from the accepted merge
+rows and the independent verifier has explicit C4 merge-registration and C5 table-registration
+modes. C1 state SHA-256 is
+`0ac72d8c6e0c8459b78f0c97a45db517e59da4d30a521522fb4f445d80482153`, with eight artifacts,
+empty completed IDs, null in-progress ID, zero counters and an absent production root. The final
+pre-data gates are being rerun before C2. **No specification amendment.**

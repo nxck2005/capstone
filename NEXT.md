@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-03 · **Phase:** **G8_B complete through B6; G8_C C0 is complete and C1 is next. The live cursor is `G8_C/characterization_open`. No full-strength characterization, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-03 · **Phase:** **G8_B complete through B6; G8_C C0 and C1 are complete and C2 is next. The live cursor is `G8_C/characterization_open`. The C1 source manifest is registered; no full-strength characterization, selection, authorization, inference, training, validation decoding or test access has occurred.**
 
 > **B3.H1 complete — the B3.2 HOLD is resolved (read this first).** B3.0 (durable instruction) and B3.1 (authenticated B3
 > context, runtime path grammar, global reconciliation lock, no-follow census) remain complete. **B2C clean-claim semantics
@@ -38,16 +38,16 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 > live cursor has advanced through B4, B5 and B6 and must now be read from the final rows in
 > `instructions/RESUME.md`.
 >
-> Still true at the final B6 boundary: **no full-strength work, characterization table, selection,
+> Historical B6 boundary record: **no full-strength work, characterization table, selection,
 > authorization, inference, training, validation decoding or test access exists.** The bounded smoke
 > is tracked as non-scientific, nonmergeable and zero-coverage only. `completed_work_unit_ids = []`,
 > `in_progress_work_unit_id = null`, all four counters are 0, produced artifacts are 7, and the
-> phase/stage is now `G8_C/characterization_open`. The exact G8_C restart command is stored in
-> the campaign state and C1 is the next action; no full-strength unit has executed.
+> phase/stage was then `G8_B/tooling_smoke_complete`. The exact G8_C restart command was subsequently
+> installed by C0; C1 is now complete and no full-strength unit has executed.
 
 ## Single next task
 
-**Next task:** G8_C C1 — freeze the characterization sources, schemas and orchestration, register the source manifest, and run all pre-data gates before any full-strength trial.
+**Next task:** G8_C C2 — execute the exact resumable full-strength BLER work-unit suffix in durable batches of at most 128 after the pushed C1 freeze.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -64,15 +64,15 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next — G8_C C1: freeze sources and orchestration before full-strength execution** |
-| G8_B–G8_G | **G8_B complete; G8_C open at characterization_open; C1 follows; no full-strength characterization or later phase has executed.** |
+| G-8 classical validation work | **next — G8_C C2: execute the resumable full-strength characterization suffix** |
+| G8_B–G8_G | **G8_B complete; G8_C C0/C1 complete at characterization_open; C2 follows; no full-strength characterization or later phase has executed.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B is complete through B6 and C0 has legally opened G8_C.** B0 opened the phase; B1C, B2C and B3 remain frozen historical foundations; B4 supplied the runner and bounded-smoke path; B5 corrected the SR-1 staging literal, authenticated the v2→v3 runner migration, proved exact resume/publication recovery and replaced the registered schema-2 smoke under guarded exchange; B6 reran every generator, verifier, integration gate, CPU lock and test suite, then atomically advanced only to `G8_B/tooling_smoke_complete`. C0 restored the manifest-bound instruction and installed only `G8_C/characterization_open`. The v3 runner and smoke bindings are live, all seven artifacts are present, all scientific counters and IDs remain zero/empty/null, and the production runtime root is absent. **C1 is next; do not create authorization or execute a full-strength unit before C1 registration.**
+**G8_B is complete through B6 and C0/C1 have legally opened and frozen G8_C.** B0 opened the phase; B1C, B2C and B3 remain frozen historical foundations; B4 supplied the runner and bounded-smoke path; B5 corrected the SR-1 staging literal, authenticated the v2→v3 runner migration, proved exact resume/publication recovery and replaced the registered schema-2 smoke under guarded exchange; B6 reran every generator, verifier, integration gate, CPU lock and test suite, then atomically advanced only to `G8_B/tooling_smoke_complete`. C0 restored the manifest-bound instruction and installed only `G8_C/characterization_open`; C1 registered the six-source characterization manifest and froze the orchestration before data. Eight artifacts are present, all scientific counters and IDs remain zero/empty/null, and the production runtime root is absent. **C2 is next; do not execute a full-strength unit before the durable C1 commit is pushed.**
 Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 

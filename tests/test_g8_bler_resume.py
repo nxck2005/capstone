@@ -2491,6 +2491,22 @@ def _context_with_campaign_copy(
     in_progress: str | None = None,
 ) -> resume.AuthenticatedResumeContext:
     state = json.loads(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
+    # These tests exercise the historical B3 campaign-reconciliation API. The
+    # live cursor is now G8_C, so project an isolated pre-C1 G8_B/tooling_open
+    # state rather than weakening the frozen B3 phase guard.
+    state["identity"]["phase"] = "G8_B"
+    state["identity"]["stage"] = "tooling_open"
+    state["identity"]["restart_command"] = units.B3_RESTART_COMMAND
+    state["identity"]["produced_artifacts"] = [
+        entry
+        for entry in state["identity"]["produced_artifacts"]
+        if entry["path"] not in {
+            "results/baseline/g8/bler_resume_contract.json",
+            "results/baseline/g8/bler_runner_contract.json",
+            "results/baseline/g8/bounded_smoke_record.json",
+            "results/baseline/g8/bler_characterization_source_manifest.json",
+        }
+    ]
     state["identity"]["completed_work_unit_ids"] = (
         list(completed) if completed is not None else []
     )
@@ -2555,19 +2571,21 @@ def _publish_bounded_complete(
 def test_live_b3_closeout_reconciliation_is_an_exact_noop(
     context: resume.AuthenticatedResumeContext,
     root: Path,
+    tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    _stub_registered_b3_binding(context, monkeypatch)
-    before = context.campaign_state_path.read_bytes()
-    proposal = resume.propose_campaign_reconciliation(context, root=root)
+    candidate = _context_with_campaign_copy(context.execution_context, tmp_path / "campaign_state.json")
+    _stub_registered_b3_binding(candidate, monkeypatch)
+    before = candidate.campaign_state_path.read_bytes()
+    proposal = resume.propose_campaign_reconciliation(candidate, root=root)
     assert proposal["campaign_completed_work_unit_ids"] == []
     assert proposal["validated_completed_work_unit_ids"] == []
     assert proposal["lagging_work_unit_ids"] == []
     assert proposal["proposed_completed_work_unit_ids"] == []
     assert proposal["changed"] is False
-    result = resume.apply_campaign_reconciliation(context, proposal, root=root)
+    result = resume.apply_campaign_reconciliation(candidate, proposal, root=root)
     assert result["applied"] is False
-    assert context.campaign_state_path.read_bytes() == before
+    assert candidate.campaign_state_path.read_bytes() == before
 
 
 def test_reconciliation_projects_only_validated_terminal_evidence_and_preserves_counters(

@@ -79,6 +79,7 @@ def new_state_bytes() -> bytes:
             "results/baseline/g8/bler_resume_contract.json",
             "results/baseline/g8/bler_runner_contract.json",
             "results/baseline/g8/bounded_smoke_record.json",
+            "results/baseline/g8/bler_characterization_source_manifest.json",
         }
     ]
     return rendered_json(state)

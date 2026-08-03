@@ -573,6 +573,11 @@ def _old_runner_state_payload() -> dict:
     payload["identity"]["phase"] = "G8_B"
     payload["identity"]["stage"] = "tooling_open"
     payload["identity"]["restart_command"] = resume.B4_RESTART_COMMAND
+    payload["identity"]["produced_artifacts"] = [
+        entry
+        for entry in payload["identity"]["produced_artifacts"]
+        if entry["path"] != "results/baseline/g8/bler_characterization_source_manifest.json"
+    ]
     for entry in payload["identity"]["produced_artifacts"]:
         if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
             entry.update(
