@@ -837,21 +837,21 @@ C rows below are updated in the same commit as their checkpoint. C0 is the
 state-only opening step and has no full-strength execution.
 
 Current C2 durable checkpoint detail: the authenticated production census after
-the next frozen-CLI suffix reports 85 `completed_full_strength` units and 3,128
+the frozen-CLI suffix reports 117 `completed_full_strength` units and 3,096
 absent/remaining units, with zero recoverable, retryable-failed,
 terminal-nonmergeable, unknown, duplicate or missing units. Authority ordinals
-53–84 are `bler-03d6e36ebe2ec8c69ab68010` through
-`bler-05a588314336009da0769e55`, all attempt 1 with exactly 5,000 trials;
+85–116 are `bler-05aad0f21238088183ca27ac` through
+`bler-091d040b92ab672d4c895444`, all attempt 1 with exactly 5,000 trials;
 `test_split_access=0` and every protected counter remains zero. The
 reconciled campaign-state is SHA-256
-`5538b942ab73fd9f9136c6ed50d15aed2de4dac6281166e4a17b7bad4f0aa1254`,
-5,766 bytes. The frozen worker summary still raises `KeyError: measurement`
+`0c6f6c96af73c2875d556c713c947c90ab0ca178078cac0f5f318ccff647b7ec`,
+7,014 bytes. The frozen worker summary still raises `KeyError: measurement`
 after valid result publication; B3 reconciliation validates and retains each
 complete terminal chain. This suffix is the next signed raw-evidence
 checkpoint; coordination locks remain untracked. No specification amendment.
 
-Next C2 durable batch marker: ordinals 85–116, intended IDs
-`bler-05aad0f21238088183ca27ac` through `bler-091d040b92ab672d4c895444`,
+Next C2 durable batch marker: ordinals 117–148, intended IDs
+`bler-0922d808f9a6de5709feebaf` through `bler-0b3f1deb304cbcaf3cc9509c`,
 32 newly completed units maximum. Resolved topology remains CUDA on one
 `NVIDIA GeForce RTX 4060 Laptop GPU`, one worker, shard `1/0`, auto batch 64,
 and the exact restart command is the registered characterization CLI recorded
