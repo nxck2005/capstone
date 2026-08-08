@@ -1690,6 +1690,36 @@ legal suffix is authority ordinal 307,
 Epoch 1 remains byte-identical and no validation, inference, training,
 selection or test access occurred. **No specification amendment.**
 
+## G8_C C2 — corrected epoch-2 batch 435–562 (2026-08-09)
+
+Before launch, marker commit `2c596104d73e57336e31d18277e18ba951d2b27f`
+was pushed with the exact next suffix: authority ordinals 435–562,
+`bler-24190af4a7cb75332fd06afc` through
+`bler-2e42db570c413c4a7986f0f2`, attempt 1, fresh B3 plan digest
+`d6e75c6b0f9ccd04794aa6539aa4e73e94304f9992af3c688fe9bc7fb2072005`, one
+CUDA worker, shard `1/0`, auto batch 64 and max 128 units. The unique tmux
+session `g8c_epoch2_remaining` ran the merged epoch-2 coordinator against the
+production root with the v2 runner.
+
+The coordinator completed all 128 new full-strength units, authority ordinals
+435–562, each with exactly 5,000 trials and `test_split_access=0`. The worker
+remained one authenticated runner context per worker process and completed the
+whole sequential batch without the old post-publication `KeyError: measurement`.
+The durable wrapper recorded exit status 0. The two historical request-only
+attempts at ordinal 179 remain preserved; no failed result was fabricated.
+
+The post-batch read-only B3 census classified 563 units as
+`completed_full_strength` and 2,650 as `absent`; recoverable,
+failed-retryable, terminal-nonmergeable, unknown and duplicate were all zero.
+Campaign reconciliation installed state SHA
+`8a20a61b62f2ecaad6118483e0ef1eca120a36d32bf765117f6b4ab65320703e`, with 563
+completed IDs, null in-progress ID and all protected counters zero. The
+independent epoch-2 source-manifest verifier passed with 563 completed and
+2,650 remaining. The next legal suffix is authority ordinal 563,
+`bler-2e43aa16beb1b1b0e0042b88`, attempt 1; it has not been launched yet.
+Epoch 1 remains byte-identical and no validation, inference, training,
+selection or test access occurred. **No specification amendment.**
+
 ## G8_C C2 — corrected epoch-2 batch 307–434 (2026-08-09)
 
 Before launch, marker commit `7f3f4e99894c788809aa2eadf99622c27a0df63f`
