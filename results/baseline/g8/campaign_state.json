@@ -198,6 +198,11 @@
         "sha256": "a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e"
       },
       {
+        "bytes": 9051,
+        "path": "results/baseline/g8/bler_characterization_source_manifest_v2.json",
+        "sha256": "b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660"
+      },
+      {
         "bytes": 24284,
         "path": "results/baseline/g8/bler_resume_contract.json",
         "sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41"
@@ -233,7 +238,7 @@
         "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
       }
     ],
-    "restart_command": ".venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128",
+    "restart_command": ".venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128",
     "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
     "stage": "characterization_open"
   },

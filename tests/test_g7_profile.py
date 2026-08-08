@@ -18,12 +18,37 @@ from profile_djscc_g7 import (
     _source_record,
     profile,
 )
+import verify_g7_profile as verifier
 from verify_g7_profile import VerificationError, verify
+
+
+def _historical_report_repo() -> Path:
+    report = REPO_ROOT / "results/profiling/g7_djscc_profile.json"
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    profile_tool = Path(
+        payload["execution_sources"]["profile_tool_source"]["resolved_runtime_path"]
+    )
+    return profile_tool.parents[1]
+
+
+@pytest.fixture(autouse=True)
+def bind_archived_report_to_its_source_checkout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Absolute provenance paths belong to the checkout that produced G-7."""
+
+    historical_repo = _historical_report_repo()
+    monkeypatch.setattr(verifier, "REPO", historical_repo)
+    monkeypatch.setattr(
+        verifier,
+        "REPORT_PATH",
+        historical_repo / "results/profiling/g7_djscc_profile.json",
+    )
 
 
 @pytest.fixture
 def profile_report(tmp_path: Path) -> Path:
-    source = REPO_ROOT / "results/profiling/g7_djscc_profile.json"
+    source = _historical_report_repo() / "results/profiling/g7_djscc_profile.json"
     destination = tmp_path / source.name
     destination.write_bytes(source.read_bytes())
     return destination
@@ -39,7 +64,7 @@ def _mutate(path: Path, mutation) -> None:
 
 
 def test_committed_g7_report_is_canonical_and_verifies():
-    path = REPO_ROOT / "results/profiling/g7_djscc_profile.json"
+    path = _historical_report_repo() / "results/profiling/g7_djscc_profile.json"
     raw = path.read_text(encoding="utf-8")
 
     assert raw.endswith("\n")

@@ -44,7 +44,7 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_C is open; C0 and C1 are complete and C2 is next.**
+**Current phase:** **G8_C is open; C0, C1 and the additive C1C correction are complete and C2 is next.**
 The live state is the authenticated `G8_C/characterization_open` cursor. No
 full-strength characterization, selection, authorization, inference, training,
 validation decoding or test access has started. B1 remains historical; B1C is
@@ -72,10 +72,8 @@ adjudication of existing evidence rather than new measurement. The provisional P
 **invalidated**; the corrected bounded evidence was regenerated at
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** the signed correction `490138ef3ecc1a96c528d0f75ca90fadeb8db14f`; the legal C0 transition is now installed and is being closed in the next signed checkpoint. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
-**Next action:** **mark C1 in-progress, freeze the characterization sources and
-orchestration, register the C1 source manifest, and run all pre-data gates before
-the first full-strength unit.**
+**Last durable checkpoint:** the C1C correction checkpoint in the epoch-2 fix branch; its registered campaign-state SHA is `4ec3ae291de0f4c24426b574f4022a6ab56485b00af4a341bee4f71509c38660`. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
+**Next action:** **merge the C1C correction, write and push the required pre-launch marker, then resume C2 at ordinal 179 attempt 3 with the epoch-2 coordinator.**
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
@@ -836,7 +834,7 @@ Durable instruction: `instructions/G8_C.txt`. This is the only live C cursor; th
 C rows below are updated in the same commit as their checkpoint. C0 is the
 state-only opening step and has no full-strength execution.
 
-Current C2 durable checkpoint detail: the authenticated production census after
+Current C1C durable checkpoint detail: the authenticated production census after
 the interrupted frozen-CLI suffix reports 179 `completed_full_strength` units,
 one `claimed_request_published` remaining transaction, and 3,033 absent units.
 The request-only transaction is not accepted evidence and contributes zero; it
@@ -850,19 +848,20 @@ remains zero. The reconciled campaign-state is SHA-256
 `bler-0e7c3102fbf553ba90fc5458`, attempt 2, with request SHA
 `42062b62a4f88e08193b00fee25ed998ccbcd502782a206f231d10aae4c1b1c6` and
 state SHA `e4b90d82fdc5760bd6298e82650e266ad759e2271e807be57a258bc6678b9361`.
-The frozen worker summary still raises `KeyError: measurement` after valid
-result publication; B3 reconciliation validates and retains each complete
-terminal chain. Coordination locks remain untracked. No specification
-amendment.
+The historical worker summary defect is corrected additively in source epoch 2:
+the worker reads the authenticated runner's top-level `measurement` field, and
+the epoch-aware merge distinguishes request-only attempts from failed results.
+Source epoch 2 is registered before attempt 3; epoch 1 remains byte-identical.
+Coordination locks remain untracked. No specification amendment.
 
 Next C2 durable batch marker: ordinals 179–306, intended IDs
 `bler-0e7c3102fbf553ba90fc5458` through `bler-19d066588180619553c8f9c1`,
 128 newly completed units maximum. Resolved topology remains CUDA on one
 `NVIDIA GeForce RTX 4060 Laptop GPU`, one worker, shard `1/0`, auto batch 64,
-and the exact restart command is the registered characterization CLI recorded
-in the C2 row above. The previous marker was interrupted after ordinal 178;
+and the exact restart command is the registered epoch-2 characterization CLI
+recorded in the C1C checkpoint below. The previous marker was interrupted after ordinal 178;
 the request-only ordinal 179 is included here for its legal clean retry.
-Launch only after this marker is signed and pushed; at the next boundary
+Launch only after this marker is pushed; at the next boundary
 reconcile before staging. No specification amendment.
 
 Interrupted C2 execution checkpoint (2026-08-04T00:59:18+05:30): the active
@@ -902,8 +901,9 @@ CLI in the C2 row above; it must begin from a fresh B3 plan and retry ordinal
 | Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
 |---|---|---|---|---|---|---|---|
 | C0 verify and open G8_C | done | `d95da8e0f6ded31fab7ee37d571d39cba509f522` | first: `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; restart: the exact `run_g8_bler_characterization.py` command in `instructions/G8_C.txt` | handoff docs, campaign state only; no runtime root, unit evidence or characterization | C0 HOLD resolved: the manifest-bound `instructions/G8_C.txt` was restored byte-for-byte to 2,820 bytes / `c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815`; the in-place expansion requirement was withdrawn; the detailed execution brief remains operational and subordinate to frozen authority; no manifest, campaign ID, registered contract, scientific parameter or evidence changed; canonical state transition PASS with state SHA `9627dd772585dd3047c02e395ea448908ffca9f7877da1ed0450bdf7fb7cb22d` | correction `490138ef3ecc1a96c528d0f75ca90fadeb8db14f` signed/pushed; transition `1363fa73338e9d44151f751bf1bba47f73812ebb` signed/pushed; local/origin/remote parity confirmed | IDs empty/null; all four counters 0; No specification amendment, campaign-manifest supersession or contract supersession |
-| C1 freeze characterization sources, schemas and orchestration | done | `1363fa73338e9d44151f751bf1bba47f73812ebb` | first: `.venv/bin/python tools/gen_g8_bler_characterization_manifest.py`; restart: `.venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128` | six C-owned sources, source manifest, tests and ledger; frozen B1C/B2C/B3/runner and `instructions/G8_C.txt` untouched; no full-strength unit before registration | final pre-data source manifest `g8charsrc-6926319673ca1f55b95f8746062518c12cfa499aa827448e67850b5a1f74702a`, SHA-256 `a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e`, 6,672 bytes; registered state SHA-256 `0ac72d8c6e0c8459b78f0c97a45db517e59da4d30a521522fb4f445d80482153`; source-manifest verifier PASS; C1 focused tests 10 passed; smoke 24, state migration 20, resume 218 and runner 49 passed; full suite `1963 passed, 0 failed, 0 skipped in 301.60 s`; all pre-data gates green | C1 completion `50a62bba4c806f88066993a0cfcf99fd979e5d22` signed/pushed; local/origin/remote parity confirmed | physical-layer characterization not started; root absent; IDs empty/null; all four counters 0; no specification amendment |
-| C2 execute resumable full-strength characterization | in-progress | `50a62bba4c806f88066993a0cfcf99fd979e5d22` | first/restart: `.venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128` with fresh B3 plan; read-only plan probe: same command plus `--plan-only` | production root and authoritative request/result/state evidence only; no validation, codec, inference, training, selection or test | initial plan digest `9ff51133ea1b2ade32838668c9a6a0b7c40a2aee9ce41b881e592a81ce17e674`; shard `1/0`; CUDA `cuda`, one `NVIDIA GeForce RTX 4060 Laptop GPU`, one worker, batch `64` auto, max durable batch `128`; frozen-CLI transactions completed authority ordinals 0–52 (IDs `bler-0020cd25150d4f59a8fbb7c0` through `bler-03922fa92259b91c0d4597f4`), each at attempt 1 with exactly 5,000 trials; the worker summary raises `KeyError: measurement` after each valid publication, so each CLI exits 2 and the coordinator reconciles the completed terminal chain; completed `53`, remaining `3160`, no recoverable/failed/unknown/duplicate/missing items; current campaign-state SHA-256 `3de106acd5b95aa9870b16b60bc50ac85fd3e40f7761226e4a17b7bad4f4a9ab`, 4,518 bytes; lock files remain untracked | C2 marker `04e04529532b26f4e5239a4096f42d14ca179267` signed/pushed; durable batch checkpoint pending | physical-layer characterization active; protected counters remain 0; no amendment |
+| C1 freeze characterization sources, schemas and orchestration | superseded by C1C | `1363fa73338e9d44151f751bf1bba47f73812ebb` | historical: `.venv/bin/python tools/gen_g8_bler_characterization_manifest.py`; epoch-1 restart remains frozen v1 history | epoch-1 six C-owned sources and manifest remain byte-identical; no epoch-1 file was edited | epoch-1 manifest `g8charsrc-6926319673ca1f55b95f8746062518c12cfa499aa827448e67850b5a1f74702a`, SHA-256 `a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e`, 6,672 bytes | historical C1 completion `50a62bba4c806f88066993a0cfcf99fd979e5d22`; preserved as history | epoch 1 accepted ordinals 0–178; no amendment |
+| C1C add source epoch 2 and repair orchestration/provenance | done | `979bb5cc4f1bc36b3e46e0c5fccb219ae1c83d67` | `.venv/bin/python tools/gen_g8_bler_characterization_manifest_v2.py --register`; corrected restart: `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128` | additive v2 sources, v2 manifest, tests and harness isolation; v1 sources/manifest, runner, contracts and raw evidence unchanged | epoch-2 manifest `g8charsrc2-d9a56b9a0c01c877379fad42c10a1d043329f2e3e47263f7ce05874d440db998`, SHA-256 `b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660`, 9,051 bytes; registered state SHA `4ec3ae291de0f4c24426b574f4022a6ab56485b00af4a341bee4f71509c38660`; focused epoch-1/epoch-2/harness tests green; post-data independent verifier PASS at 179/3213 | durable checkpoint pending PR-1 merge; no scientific attempt after registration | 179 accepted under epoch 1; ordinal 179 request-only attempts 1,2; next legal attempt 3; protected counters 0; no specification amendment |
+| C2 execute resumable full-strength characterization | not-started | after C1C merge | write and push a fresh marker, then run the exact epoch-2 command above with a fresh B3 plan | production root and authenticated request/result/state evidence only; no validation, codec, inference, training, selection or test | pending; first corrected unit is ordinal 179 `bler-0e7c3102fbf553ba90fc5458`, attempt 3 | pending | 179/3213 accepted; 3034 remaining; protected counters 0; no amendment |
 | C3 independently merge all work-unit evidence | not-started | after C2 | first: merge tool in validation-only mode; restart: same merge command | merge report and verifier only; no simulation or retry | pending | pending | no interpolation/extrapolation; no amendment |
 | C4 verify exact complete required coverage | not-started | after C3 | first: independent coverage verifier/mutation matrix; restart: same verifier | merge registration only after 3,213/3,213 proof | pending | pending | 16,065,000 accepted trials required; no amendment |
 | C5 build and freeze the G-8 BlerTable | not-started | after C4 | first: table construction/check; restart: same table command | table, loader and verifier; no G-2 substitution or selection | pending | pending | measured points only; no amendment |

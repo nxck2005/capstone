@@ -19,6 +19,7 @@ import errno
 import hashlib
 import json
 import os
+import subprocess
 import warnings
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -35,6 +36,28 @@ from baseline.g8_campaign import rendered_json, sha256_bytes
 
 RACERS = 8
 STRESS_ROUNDS = 5
+SUPERSEDED_CAMPAIGN_COMMIT = "6193dfda2bd2cc91e090eb3cfd57d46a3a0a9726"
+
+
+@pytest.fixture(autouse=True)
+def isolated_predata_git_tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run historical B2C closeout checks against an empty synthetic checkout."""
+
+    empty_repo = tmp_path / "predata-repository"
+    empty_repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=empty_repo, check=True)
+
+    def verify_no_tracked_state() -> None:
+        result = subprocess.run(
+            ["git", "ls-files", "results/baseline/g8/work_units"],
+            cwd=empty_repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert result.stdout.strip() == ""
+
+    monkeypatch.setattr(state_verifier, "_verify_no_tracked_state", verify_no_tracked_state)
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +191,19 @@ def _staged_contract(tmp_path: Path, payload: dict[str, Any]) -> tuple[Path, Pat
     body = rendered_json(payload)
     contract_path = tmp_path / "bler_state_contract.json"
     contract_path.write_bytes(body)
-    state = json.loads(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
+    state = json.loads(
+        subprocess.run(
+            [
+                "git",
+                "show",
+                f"{SUPERSEDED_CAMPAIGN_COMMIT}:results/baseline/g8/campaign_state.json",
+            ],
+            cwd=Path(__file__).parents[1],
+            check=True,
+            capture_output=True,
+        ).stdout
+    )
+    state["identity"]["restart_command"] = units.B3_RESTART_COMMAND
     for entry in state["identity"]["produced_artifacts"]:
         if entry["path"] == units.STATE_CONTRACT_REPO_RELATIVE_PATH:
             entry["sha256"] = sha256_bytes(body)
@@ -1449,8 +1484,12 @@ def test_scope_guard_inspects_ast_not_strings_or_comments() -> None:
     assert "checkpoint" in ast.get_docstring(tree)
 
 
-def test_generated_b2c_contract_is_canonical_and_independently_verified() -> None:
-    payload = state_verifier.verify()
+def test_generated_b2c_contract_is_canonical_and_independently_verified(
+    tmp_path: Path,
+) -> None:
+    contract = state_generator.build()
+    contract_path, state_path = _staged_contract(tmp_path, contract)
+    payload = state_verifier.verify(contract_path, campaign_state_path=state_path)
     assert payload["contract_id"] == state_generator.contract_identifier(payload)
     assert payload["checkpoint"] == "B2C"
     assert payload["schema_version"] == 2
@@ -1541,12 +1580,22 @@ def test_require_no_live_state_is_an_explicit_option(
     (live_root / "ab").mkdir()
     monkeypatch.setattr(state_verifier, "LIVE_STATE_TREE_PATH", live_root)
 
+    contract = state_generator.build()
+    contract_path, state_path = _staged_contract(tmp_path, contract)
+
     # Default mode tolerates the runtime tree; B3 and B4 depend on this.
-    assert state_verifier.verify()["checkpoint"] == "B2C"
+    assert (
+        state_verifier.verify(contract_path, campaign_state_path=state_path)["checkpoint"]
+        == "B2C"
+    )
 
     # The explicit closeout option rejects it.
     with pytest.raises(state_verifier.G8BlerStateContractError, match="live work-unit state tree"):
-        state_verifier.verify(require_no_live_state=True)
+        state_verifier.verify(
+            contract_path,
+            campaign_state_path=state_path,
+            require_no_live_state=True,
+        )
 
 
 def test_no_tracked_unit_state_or_lock_files_exist() -> None:

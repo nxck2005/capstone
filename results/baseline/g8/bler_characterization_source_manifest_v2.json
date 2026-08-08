@@ -1,0 +1,224 @@
+{
+  "activation_boundary": {
+    "epoch_1_accepted_result_count": 179,
+    "epoch_1_accepted_result_end_ordinal": 178,
+    "epoch_1_accepted_result_start_ordinal": 0,
+    "first_epoch_2_work_unit_id": "bler-0e7c3102fbf553ba90fc5458",
+    "first_legal_epoch_2_attempt": 3,
+    "first_possible_epoch_2_accepted_ordinal": 179,
+    "ordinal_179_request_attempts": [
+      1,
+      2
+    ],
+    "ordinal_179_request_sha256": "42062b62a4f88e08193b00fee25ed998ccbcd502782a206f231d10aae4c1b1c6",
+    "ordinal_179_result_attempts": [],
+    "ordinal_179_state_sha256": "e4b90d82fdc5760bd6298e82650e266ad759e2271e807be57a258bc6678b9361",
+    "protected_counters": {
+      "inference": 0,
+      "test_access": 0,
+      "training": 0,
+      "validation_decoding": 0
+    },
+    "test_split_access": 0
+  },
+  "artifact_role": "g8_bler_characterization_source_manifest_v2",
+  "bler_resume_contract_id": "g8resume-7bf4935ed82aa1eea6514208cdd82f9b60f73e4ba58b280642b493444f5364c0",
+  "bler_resume_contract_sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41",
+  "bler_runner_contract_id": "g8runner-49e4facbe266117c74ff802b4252bcba87a7331c34a7ffe228b4648469728583",
+  "bler_runner_contract_sha256": "a238478eb9f231c984258e1f99c4c54d1a0fba353faa683908bca460c6c03763",
+  "bler_state_contract_id": "g8state-a36b37f3c21d4254a50ffe5e893237ee4738c68c7b3e9d76b473856ca7605deb",
+  "bler_state_contract_sha256": "cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583",
+  "bler_tooling_contract_id": "g8bler-fa7b64abd2b20078668b5f251ea75dd3264f9293941657f70d2979bc83907975",
+  "bler_tooling_contract_sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866",
+  "campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+  "campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+  "characterization_started": false,
+  "checkpoint": "C1",
+  "count_semantics": {
+    "ber": "bit_errors / information_bits",
+    "bit_errors": "complete K-vector Hamming distance sum",
+    "bler": "block_errors / trials_completed",
+    "block_errors": "one for any differing K-bit vector",
+    "confidence_interval": "wilson_score",
+    "confidence_interval_role": "diagnostic_only",
+    "information_bits": "trials_completed * K"
+  },
+  "dependencies": [
+    {
+      "bytes": 72000,
+      "path": "src/baseline/classical/composition.py",
+      "role": "g8_c_frozen_dependency",
+      "sha256": "e3135ecefd612c5505bd1137bbf9a8a8212cf338080dde24bf5b25e07212b744"
+    },
+    {
+      "bytes": 14231,
+      "path": "results/baseline/g8/bler_tooling_contract.json",
+      "role": "g8_c_frozen_dependency",
+      "sha256": "bc0db0a8ffe7b62238fa13e83ac9e82dec257816c98edce9a15cd3b226132866"
+    },
+    {
+      "bytes": 18394,
+      "path": "results/baseline/g8/bler_state_contract.json",
+      "role": "g8_c_frozen_dependency",
+      "sha256": "cac1dcf803d435de7b483db04d12afc30bea4180a835d8c0476de65540fbf583"
+    },
+    {
+      "bytes": 24284,
+      "path": "results/baseline/g8/bler_resume_contract.json",
+      "role": "g8_c_frozen_dependency",
+      "sha256": "de767deef746e8b5cbc988994a18a72e50dda816ce432781aa95ee18a48acd41"
+    },
+    {
+      "bytes": 18612,
+      "path": "results/baseline/g8/bler_runner_contract.json",
+      "role": "g8_c_frozen_dependency",
+      "sha256": "a238478eb9f231c984258e1f99c4c54d1a0fba353faa683908bca460c6c03763"
+    }
+  ],
+  "epoch": 2,
+  "execution": {
+    "default_max_units_per_worker_batch": 128,
+    "device_and_batch_size_are_provenance_only": true,
+    "execution_class": "full_strength",
+    "one_worker_per_supported_physical_gpu": true,
+    "request_bytes_are_identity_across_attempts": true,
+    "required_ordering": "required_bler_identities.json required_bler_work_units array order",
+    "shard_formula": "ordinal % shard_count == shard_index",
+    "sharding_algorithm": "canonical_ordinal_modulo_v1"
+  },
+  "full_strength_trials": 5000,
+  "handoff": {
+    "exact_restart_command": "rg -n \"G8_D|measurement_tooling_open|codec|reconstruction|BR-11|clean_classifier|bler_table|characterization_complete\" src/baseline tools tests instructions",
+    "g8_d_execution": false,
+    "next_phase": "G8_D",
+    "next_stage": "measurement_tooling_open"
+  },
+  "manifest_id": "g8charsrc2-d9a56b9a0c01c877379fad42c10a1d043329f2e3e47263f7ce05874d440db998",
+  "merge_attribution": {
+    "no_gap": true,
+    "no_overlap": true,
+    "one_final_complete_result_per_required_id": true,
+    "request_only_attempts_are_not_failed_results": true,
+    "rule": "accepted authority ordinal 0..178 maps only to epoch 1; 179..3212 maps only to epoch 2"
+  },
+  "merge_completeness_predicate": {
+    "coverage_contribution_per_accepted_result": 1,
+    "extrapolation_used": false,
+    "interpolation_used": false,
+    "one_accepted_terminal_result_per_id": true,
+    "required_ids": 3213,
+    "sum_coverage_contribution": 3213,
+    "test_split_access": 0,
+    "trials_completed_per_accepted_result": 5000,
+    "unknown_duplicate_missing_recoverable_failed_terminal_nonmergeable": 0
+  },
+  "phase": "G8_C",
+  "predecessor": {
+    "bytes": 6672,
+    "manifest_id": "g8charsrc-6926319673ca1f55b95f8746062518c12cfa499aa827448e67850b5a1f74702a",
+    "path": "results/baseline/g8/bler_characterization_source_manifest.json",
+    "sha256": "a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e"
+  },
+  "request_schema_version": 2,
+  "required_bler_artifact_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
+  "required_work_unit_count": 3213,
+  "result_schema_version": 2,
+  "retry_policy": {
+    "failed_attempts_preserved": true,
+    "next_attempt_is_clean": true,
+    "no_mid_unit_resume": true,
+    "recoverable_repairs_only": [
+      "recoverable_failed_result",
+      "recoverable_complete_result"
+    ],
+    "retry_only_frozen_b3_next_attempt": true
+  },
+  "runtime": {
+    "absolute_paths_bound": false,
+    "logical_root": "results/baseline/g8/work_units"
+  },
+  "schema_version": 2,
+  "scientific_execution_performed": false,
+  "seed_derivation_identity": "sha256(campaign_id,work_unit_id,purpose)-v1",
+  "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+  "source_epochs": [
+    {
+      "accepted_result_count": 179,
+      "accepted_result_ordinals": [
+        0,
+        178
+      ],
+      "epoch": 1,
+      "manifest_id": "g8charsrc-6926319673ca1f55b95f8746062518c12cfa499aa827448e67850b5a1f74702a",
+      "manifest_path": "results/baseline/g8/bler_characterization_source_manifest.json",
+      "manifest_sha256": "a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e"
+    },
+    {
+      "accepted_result_count": 3034,
+      "accepted_result_ordinals": [
+        179,
+        3212
+      ],
+      "epoch": 2,
+      "manifest_id": null,
+      "manifest_path": "results/baseline/g8/bler_characterization_source_manifest_v2.json",
+      "manifest_sha256": null
+    }
+  ],
+  "sources": [
+    {
+      "bytes": 58216,
+      "path": "src/baseline/g8_bler_characterization_v2.py",
+      "role": "g8_c_characterization_source",
+      "sha256": "84fe92edfdd2f7321f52c965cca30fa24933f6aa9f35a321122c27d1fcc62775"
+    },
+    {
+      "bytes": 12768,
+      "path": "tools/run_g8_bler_characterization_v2.py",
+      "role": "g8_c_characterization_source",
+      "sha256": "58a11594816d9e2859f29a82fcf4a77f435090b2bf7900907296bd5652e8b2a0"
+    },
+    {
+      "bytes": 2805,
+      "path": "tools/gen_g8_bler_characterization_manifest_v2.py",
+      "role": "g8_c_characterization_source",
+      "sha256": "ffd899874e9f4be89cb8eca3c7f31e380b3b9a46084b34e5cd6742dd225cbfdb"
+    },
+    {
+      "bytes": 21497,
+      "path": "tools/verify_g8_bler_characterization_manifest_v2.py",
+      "role": "g8_c_characterization_source",
+      "sha256": "fe4a5abb25d1068d5b5590e7b3f35b6ad098bf4ee71fd2ab08986c30ae8908ba"
+    },
+    {
+      "bytes": 15587,
+      "path": "tools/merge_g8_bler_characterization_v2.py",
+      "role": "g8_c_characterization_source",
+      "sha256": "d298c02378860702d96ecb6a3b7f393066de67b8fd06e71d8ca04e5204f4a7fc"
+    },
+    {
+      "bytes": 22696,
+      "path": "tools/verify_g8_bler_table_v2.py",
+      "role": "g8_c_characterization_source",
+      "sha256": "79e33ae29ce337211035b09b4fe5c73cea7e5a50965ee06f78f978fd3dfb80c8"
+    }
+  ],
+  "table_attribution": {
+    "extrapolation": false,
+    "interpolation_during_construction": false,
+    "measured_zero_bler_preserved": true,
+    "rule": "measured points are projected only from epoch-aware accepted merge units"
+  },
+  "table_schema": {
+    "artifact_role": "g8_bler_table_v2",
+    "construction": "accepted merge-report points only",
+    "curves_in": "complete BlerIdentity canonical order",
+    "extrapolation": false,
+    "id_field": "table_id",
+    "id_rule": "sha256(canonical JSON over complete table content excluding table_id)",
+    "interpolation_during_construction": false,
+    "points_in": "ascending exact measured SNR order",
+    "schema_version": 2
+  },
+  "unit_state_schema_version": 2
+}

@@ -24,7 +24,6 @@ from baseline.g8_campaign import rendered_json, sha256_bytes
 
 REPO = Path(__file__).parents[1]
 LIVE_CONTRACT = REPO / "results/baseline/g8/bler_state_contract.json"
-LIVE_STATE = REPO / "results/baseline/g8/campaign_state.json"
 
 # The B2 commit is immutable, pushed history; its blob is the only source of
 # the exact superseded artifact bytes, and fabricating them is impossible.
@@ -40,6 +39,36 @@ def _blob(path: str) -> bytes:
         check=True,
         capture_output=True,
     ).stdout
+
+
+@pytest.fixture(autouse=True)
+def isolated_predata_git_tree(
+    tmp_path: Path,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Keep the historical B2C verifier check independent of live C2 evidence."""
+
+    empty_repo = tmp_path / "predata-repository"
+    empty_repo.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=empty_repo, check=True)
+
+    def verify_no_tracked_state() -> None:
+        result = subprocess.run(
+            ["git", "ls-files", "results/baseline/g8/work_units"],
+            cwd=empty_repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert result.stdout.strip() == ""
+
+    patcher = pytest.MonkeyPatch()
+    patcher.setattr(
+        migration.independent_verifier,
+        "_verify_no_tracked_state",
+        verify_no_tracked_state,
+    )
+    request.addfinalizer(patcher.undo)
 
 
 @pytest.fixture(scope="module")
@@ -62,26 +91,11 @@ def new_contract_bytes() -> bytes:
 
 @pytest.fixture(scope="module")
 def new_state_bytes() -> bytes:
-    # This migration fixture is the B2C-era pair.  The live campaign advances
-    # its restart command and registers B3 and B4 artifacts after the frozen
-    # B2C migration, so reconstruct the exact four-artifact tooling-open state
-    # that the frozen migration utility is designed to recover.  The live
-    # state itself remains authoritative and is never edited by this fixture.
-    state = json.loads(LIVE_STATE.read_bytes())
+    # This migration fixture is the B2C-era pair.  Reconstruct it from the
+    # immutable pre-data B2 state rather than borrowing the live C2 cursor.
+    state = json.loads(_blob(SUPERSEDED_STATE_BLOB_PATH))
     identity = state["identity"]
-    identity["phase"] = "G8_B"
-    identity["stage"] = "tooling_open"
     identity["restart_command"] = units.B3_RESTART_COMMAND
-    identity["produced_artifacts"] = [
-        entry
-        for entry in identity["produced_artifacts"]
-        if entry["path"] not in {
-            "results/baseline/g8/bler_resume_contract.json",
-            "results/baseline/g8/bler_runner_contract.json",
-            "results/baseline/g8/bounded_smoke_record.json",
-            "results/baseline/g8/bler_characterization_source_manifest.json",
-        }
-    ]
     return rendered_json(state)
 
 
@@ -376,7 +390,10 @@ def test_migration_refuses_a_changed_unrelated_artifact(
         _migrate(contract_path, state_path)
 
 
-def test_migration_performs_no_per_unit_migration() -> None:
+def test_migration_performs_no_per_unit_migration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """No unit-state file has ever existed, so none may be migrated."""
 
     source = (REPO / "tools/migrate_g8_bler_state_contract.py").read_text(encoding="utf-8")
@@ -388,7 +405,9 @@ def test_migration_performs_no_per_unit_migration() -> None:
         "work_units/",
     ):
         assert forbidden not in source, forbidden
-    assert not units.DEFAULT_WORK_UNIT_ROOT.exists()
+    isolated_root = tmp_path / "work_units"
+    monkeypatch.setattr(units, "DEFAULT_WORK_UNIT_ROOT", isolated_root)
+    assert not isolated_root.exists()
 
 
 def test_live_pair_authenticates_through_the_normal_loader() -> None:

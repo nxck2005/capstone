@@ -1486,6 +1486,9 @@ def test_candidate_b3_contract_authenticates_operations_in_an_isolated_registere
     historical_state = json.loads(units.DEFAULT_CAMPAIGN_STATE_PATH.read_bytes())
     historical_state["identity"]["phase"] = "G8_B"
     historical_state["identity"]["stage"] = "tooling_open"
+    historical_state["identity"]["completed_work_unit_ids"] = []
+    historical_state["identity"]["in_progress_work_unit_id"] = None
+    historical_state["identity"]["counters"] = {name: 0 for name in g8_campaign.COUNTER_FIELDS}
     historical_state["identity"]["restart_command"] = resume.B4_RESTART_COMMAND
     campaign_state.write_bytes(g8_campaign.rendered_json(historical_state))
     registrar.register(

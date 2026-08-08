@@ -18,6 +18,16 @@ REPO = Path(__file__).parents[1]
 RECORD = REPO / "results/baseline/g8/bounded_smoke_record.json"
 
 
+@pytest.fixture(autouse=True)
+def isolated_predata_runtime_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep the historical smoke verifier independent of live C2 state."""
+
+    monkeypatch.setattr(verifier.work_units, "DEFAULT_WORK_UNIT_ROOT", tmp_path / "work_units")
+
+
 def _candidate(tmp_path: Path, mutation) -> tuple[Path, Path, Path]:
     payload = json.loads(RECORD.read_bytes())
     contract_path = tmp_path / "bler_runner_contract.json"
@@ -37,6 +47,14 @@ def _candidate(tmp_path: Path, mutation) -> tuple[Path, Path, Path]:
     state["identity"]["phase"] = "G8_B"
     state["identity"]["stage"] = "tooling_smoke_complete"
     state["identity"]["restart_command"] = ".venv/bin/python tools/run_g8_bler.py --execution-class bounded_smoke"
+    state["identity"]["completed_work_unit_ids"] = []
+    state["identity"]["in_progress_work_unit_id"] = None
+    state["identity"]["counters"] = {
+        "validation_decoding": 0,
+        "inference": 0,
+        "training": 0,
+        "test_access": 0,
+    }
     for entry in state["identity"]["produced_artifacts"]:
         if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
             entry.update(sha256=contract_sha, bytes=len(contract_path.read_bytes()))
