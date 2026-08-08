@@ -1689,3 +1689,33 @@ legal suffix is authority ordinal 307,
 `bler-19df11eae06268fb330d8b75`, attempt 1; it has not been launched yet.
 Epoch 1 remains byte-identical and no validation, inference, training,
 selection or test access occurred. **No specification amendment.**
+
+## G8_C C2 — corrected epoch-2 batch 307–434 (2026-08-09)
+
+Before launch, marker commit `7f3f4e99894c788809aa2eadf99622c27a0df63f`
+was pushed with the exact next suffix: authority ordinals 307–434,
+`bler-19df11eae06268fb330d8b75` through `bler-23fa7152b0fd7aec306c06f4`,
+attempt 1, fresh B3 plan digest
+`9cbdc6fa25cfa87f3ce9e760086771691a0a3072880145e37881c7de92a820e2`,
+one CUDA worker, shard `1/0`, auto batch 64 and max 128 units. The unique
+tmux session `g8c_epoch2_remaining` ran the merged epoch-2 coordinator against
+the production root with the v2 runner.
+
+The coordinator completed all 128 new full-strength units, authority ordinals
+307–434, each with exactly 5,000 trials and `test_split_access=0`. The worker
+remained one authenticated runner context per worker process and completed the
+whole sequential batch without the old post-publication `KeyError: measurement`.
+The durable wrapper recorded exit status 0. The two historical request-only
+attempts at ordinal 179 remain preserved; no failed result was fabricated.
+
+The post-batch read-only B3 census classified 435 units as
+`completed_full_strength` and 2,778 as `absent`; recoverable,
+failed-retryable, terminal-nonmergeable, unknown and duplicate were all zero.
+Campaign reconciliation installed state SHA
+`4c4d0408db6adff8a895e878a919ced892b150663355bc4a3b30b6a4738cc2c1`, with 435
+completed IDs, null in-progress ID and all protected counters zero. The
+independent epoch-2 source-manifest verifier passed with 435 completed and
+2,778 remaining. The next legal suffix is authority ordinal 435,
+`bler-24190af4a7cb75332fd06afc`, attempt 1; it has not been launched yet.
+Epoch 1 remains byte-identical and no validation, inference, training,
+selection or test access occurred. **No specification amendment.**

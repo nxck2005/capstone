@@ -44,10 +44,12 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_C is open; C0, C1 and the additive C1C correction are complete and C2 is next.**
-The live state is the authenticated `G8_C/characterization_open` cursor. No
-full-strength characterization, selection, authorization, inference, training,
-validation decoding or test access has started. B1 remains historical; B1C is
+**Current phase:** **G8_C is open; C0, C1 and the additive C1C correction are complete and C2 is active.**
+The live state is the authenticated `G8_C/characterization_open` cursor. Source
+epoch 2 is registered and merged before the first accepted ordinal 179 result.
+The corrected C2 suffix has durably accepted ordinals 179–434; the next legal
+unit is ordinal 435. Selection, authorization, inference, training, validation
+decoding and test access remain prohibited. B1 remains historical; B1C is
 the pre-execution corrective contract checkpoint. The corrected tooling,
 request and result schemas are version 2, no version-1 request or result exists,
 and no production G8_B/G8_C source may use the stale version-1 contract. PB_3C
@@ -72,8 +74,16 @@ adjudication of existing evidence rather than new measurement. The provisional P
 **invalidated**; the corrected bounded evidence was regenerated at
 `76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
 `4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** the C1C correction checkpoint in the epoch-2 fix branch; its registered campaign-state SHA is `4ec3ae291de0f4c24426b574f4022a6ab56485b00af4a341bee4f71509c38660`. The PB_3C terminal handoff remains `39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
-**Next action:** **merge the C1C correction, write and push the required pre-launch marker, then resume C2 at ordinal 179 attempt 3 with the epoch-2 coordinator.**
+**Last durable checkpoint:** the corrected epoch-2 batch 307–434 is being committed from
+campaign-state SHA `4c4d0408db6adff8a895e878a919ced892b150663355bc4a3b30b6a4738cc2c1`.
+The authenticated census is 435 completed and 2,778 absent; all recoverable,
+failed-retryable, terminal-nonmergeable, unknown and duplicate counts are zero,
+with a null in-progress ID and zero protected counters. The epoch-2 manifest is
+`g8charsrc2-d9a56b9a0c01c877379fad42c10a1d043329f2e3e47263f7ce05874d440db998`,
+SHA-256 `b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660`,
+9,051 bytes. The PB_3C terminal handoff remains
+`39c43e327573f33011c561c6de22bd05ff93c068` and is bound as G8_A's scientific base.
+**Next action:** **checkpoint this authenticated batch, write and push the next marker, then resume C2 at ordinal 435 attempt 1 with the epoch-2 coordinator.**
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
