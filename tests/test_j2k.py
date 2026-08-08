@@ -28,6 +28,7 @@ def _identity(image: np.ndarray) -> str:
     return hashlib.sha256(image.tobytes()).hexdigest()
 
 
+@pytest.mark.external_codec_runtime
 def test_raw_codestream_search_decode_budget_and_cache(tmp_path: Path):
     image = _image()
     codec = J2KCodec(tmp_path / "cache")
@@ -77,6 +78,7 @@ def test_runtime_failure_precedes_cache_artifact_creation(
     assert not cache_root.exists()
 
 
+@pytest.mark.external_codec_runtime
 def test_nonmonotone_search_keeps_largest_observed_fitting_codestream(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -109,6 +111,7 @@ def test_nonmonotone_search_keeps_largest_observed_fitting_codestream(
     ]
 
 
+@pytest.mark.external_codec_runtime
 def test_explicit_infeasible_result_is_cached(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -137,6 +140,7 @@ def test_explicit_infeasible_result_is_cached(
     assert second.cache_hit and not second.feasible
 
 
+@pytest.mark.external_codec_runtime
 def test_partial_cache_entry_is_rejected(tmp_path: Path):
     image = _image()
     codec = J2KCodec(tmp_path / "cache")
@@ -158,6 +162,7 @@ def test_partial_cache_entry_is_rejected(tmp_path: Path):
         )
 
 
+@pytest.mark.external_codec_runtime
 def test_jp2_container_and_invalid_pixels_are_rejected(tmp_path: Path):
     codec = J2KCodec(tmp_path / "cache")
     with pytest.raises(J2KCodecError, match="JP2 container"):

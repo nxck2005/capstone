@@ -28,10 +28,12 @@ def test_cpu_profile_excludes_only_audited_nonportable_categories(monkeypatch):
     commands = _joined("ci-cpu")
     assert "not primary_runtime and not external_ldpc_fixture" in commands
     assert "not external_dataset and not frozen_checkpoint" in commands
+    assert "not external_codec_runtime and not historical_profile_artifact" in commands
 
 
 def test_weekly_cpu_profile_adds_only_the_external_ldpc_fixture(monkeypatch):
     monkeypatch.setenv("CAPSTONE_INCLUDE_EXTERNAL_LDPC_FIXTURE", "1")
     commands = _joined("ci-cpu")
-    assert "not primary_runtime and not external_dataset and not frozen_checkpoint" in commands
+    assert "not primary_runtime and not external_dataset" in commands
+    assert "not external_codec_runtime and not historical_profile_artifact" in commands
     assert "external_ldpc_fixture" not in commands

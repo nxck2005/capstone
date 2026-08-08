@@ -117,6 +117,7 @@ def test_determinism_values_must_be_boolean(monkeypatch):
 # --- run metadata (SR-21, SR-13) ---------------------------------------------
 
 
+@pytest.mark.external_codec_runtime
 def test_environment_record_keys_match_params():
     """Set equality, both directions: no missing field, no extra field."""
     record = env.environment_record()
@@ -142,6 +143,7 @@ def test_unknown_metadata_field_raises(monkeypatch):
         env.environment_record()
 
 
+@pytest.mark.external_codec_runtime
 def test_lock_file_hash_matches():
     """The recorded hash is of the lockfile actually in the checkout.
 

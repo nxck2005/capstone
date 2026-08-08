@@ -18,7 +18,8 @@ REPO = Path(__file__).resolve().parent.parent
 PYTHON = sys.executable
 CPU_TEST_SELECTION = (
     "not primary_runtime and not external_ldpc_fixture "
-    "and not external_dataset and not frozen_checkpoint"
+    "and not external_dataset and not frozen_checkpoint "
+    "and not external_codec_runtime and not historical_profile_artifact"
 )
 
 
@@ -51,7 +52,11 @@ def profile_commands(profile: str) -> tuple[list[str], ...]:
     if profile == "ci-cpu":
         selection = CPU_TEST_SELECTION
         if os.environ.get("CAPSTONE_INCLUDE_EXTERNAL_LDPC_FIXTURE") == "1":
-            selection = "not primary_runtime and not external_dataset and not frozen_checkpoint"
+            selection = (
+                "not primary_runtime and not external_dataset "
+                "and not frozen_checkpoint and not external_codec_runtime "
+                "and not historical_profile_artifact"
+            )
         return (*_static_commands(), [PYTHON, "-m", "pytest", "-q", "-m", selection])
     if profile == "evidence":
         return (_python_tool("tools/verify_g8_evidence_readonly.py"), ["git", "diff", "--check"])

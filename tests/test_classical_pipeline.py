@@ -91,6 +91,7 @@ def _run(product, codec, identity, **kwargs):
 # --- the three-way failure taxonomy ------------------------------------------
 
 
+@pytest.mark.external_codec_runtime
 def test_high_snr_round_trip_delivers_a_decoded_canonical_image(
     product, codec, identity
 ):
@@ -123,6 +124,7 @@ def test_structural_infeasibility_is_detected_before_any_encoding(
     assert not tuple((codec.cache_root).glob("*.j2kcache")) if codec.cache_root.exists() else True
 
 
+@pytest.mark.external_codec_runtime
 def test_codec_infeasibility_is_distinct_from_structural_infeasibility(
     product, codec, identity
 ):
@@ -147,6 +149,7 @@ def test_codec_infeasibility_is_distinct_from_structural_infeasibility(
     )
 
 
+@pytest.mark.external_codec_runtime
 def test_j2k_resolutions_cannot_encode_cifar10s_small_axes(product, codec, identity):
     """The `j2k_resolutions`/CIFAR-10 conflict, as **resolved** by AM-80.
 
@@ -207,6 +210,7 @@ def test_j2k_resolutions_cannot_encode_cifar10s_small_axes(product, codec, ident
     assert generous.source_coding is not None and generous.source_coding.feasible
 
 
+@pytest.mark.external_codec_runtime
 def test_decode_failure_is_its_own_verdict_after_a_real_transmission(
     product, codec, identity
 ):
@@ -222,6 +226,7 @@ def test_decode_failure_is_its_own_verdict_after_a_real_transmission(
     assert result.noise_id is not None
 
 
+@pytest.mark.external_codec_runtime
 def test_every_verdict_is_one_of_the_declared_four(product, codec, identity):
     observed = set()
     for k_symbols, modulation, rate, snr in (
@@ -242,6 +247,7 @@ def test_every_verdict_is_one_of_the_declared_four(product, codec, identity):
 # --- budgets, filler and the emitted-byte authority ---------------------------
 
 
+@pytest.mark.external_codec_runtime
 def test_emitted_codestream_is_authoritative_and_slack_becomes_filler(
     product, codec, identity
 ):
@@ -261,6 +267,7 @@ def test_emitted_codestream_is_authoritative_and_slack_becomes_filler(
     assert source.payload_filler_bits + source.emitted_bytes * 8 == accounting.payload_bits
 
 
+@pytest.mark.external_codec_runtime
 def test_j2k_cache_identity_binds_exactly_the_configured_cache_key(product, codec):
     """Every ``baseline.j2k_cache_key`` field is bound, and each one moves the key.
 
@@ -295,6 +302,7 @@ def test_j2k_cache_identity_binds_exactly_the_configured_cache_key(product, code
         assert other != key, field
 
 
+@pytest.mark.external_codec_runtime
 def test_repeated_invocation_hits_the_cache_and_is_byte_identical(
     product, codec, identity
 ):
@@ -329,6 +337,7 @@ def test_requested_axis_may_not_upscale_the_source(product, codec, identity):
 # --- explicit encode axes are a selection, not a second configuration source ---
 
 
+@pytest.mark.external_codec_runtime
 def test_configured_explicit_axis_is_accepted(product, codec, identity):
     assert 32 in configured_axes("cifar10", 32)
     outcome = _run(product, codec, identity, encode_axis_px=32)
@@ -365,6 +374,7 @@ def test_unconfigured_explicit_axis_is_rejected_before_the_codec_runs(
         _run(product, codec, identity, encode_axis_px=64)
 
 
+@pytest.mark.external_codec_runtime
 def test_automatic_axis_iteration_is_descending_and_only_configured_axes(
     product, codec, identity, monkeypatch
 ):
