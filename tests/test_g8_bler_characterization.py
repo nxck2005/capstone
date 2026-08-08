@@ -17,13 +17,28 @@ from baseline.g8_campaign import rendered_json, sha256_bytes
 REPO = Path(__file__).resolve().parents[1]
 
 
+@pytest.fixture(autouse=True)
+def isolated_historical_c1_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Keep historical C1 tests independent of the live C2 evidence tree."""
+
+    captured = copy.deepcopy(characterization.load_campaign_state())
+    identity = captured["identity"]
+    identity["stage"] = "characterization_open"
+    identity["completed_work_unit_ids"] = []
+    identity["in_progress_work_unit_id"] = None
+    identity["counters"] = {key: 0 for key in identity["counters"]}
+    synthetic_root = f"results/baseline/g8/.synthetic-c1-root-{tmp_path.name}"
+    monkeypatch.setattr(characterization, "LOGICAL_ROOT", synthetic_root)
+    monkeypatch.setattr(characterization, "load_campaign_state", lambda _path=None: copy.deepcopy(captured))
+
+
 def test_source_manifest_reconstructs_before_registration() -> None:
     payload = characterization.build_source_manifest()
     assert payload["manifest_id"].startswith("g8charsrc-")
     assert payload["scientific_execution_performed"] is False
     assert payload["characterization_started"] is False
     assert payload["runtime"] == {
-        "logical_root": "results/baseline/g8/work_units",
+        "logical_root": characterization.LOGICAL_ROOT,
         "absolute_paths_bound": False,
     }
     characterization.validate_source_manifest(payload)
@@ -96,7 +111,7 @@ def test_characterization_sources_have_no_prohibited_data_boundary_imports() -> 
 
 
 def test_worker_authenticates_once_for_multiple_units(monkeypatch: pytest.MonkeyPatch) -> None:
-    import run_g8_bler_characterization as cli
+    import run_g8_bler_characterization_v2 as cli
 
     calls = {"contexts": 0, "units": []}
 
@@ -112,12 +127,14 @@ def test_worker_authenticates_once_for_multiple_units(monkeypatch: pytest.Monkey
 
     def fake_run(context, **kwargs):
         calls["units"].append(kwargs["work_unit_id"])
+        measurement = {"trials_completed": 5000}
         return {
             "attempt": 1,
             "request_sha256": "1" * 64,
             "result_sha256": "2" * 64,
             "state_sha256": "3" * 64,
-            "result": {"status": "complete", "measurement": {"trials_completed": 5000}},
+            "result": {"status": "complete", "result": {"measurement": measurement}},
+            "measurement": measurement,
         }
 
     monkeypatch.setattr(cli.runner, "AuthenticatedRunnerContext", fake_context)

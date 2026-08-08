@@ -20,7 +20,7 @@ from baseline import g8_bler_runner as runner
 from baseline import g8_bler_resume as resume
 from baseline import g8_bler_work_units as work_units
 from baseline.ldpc import adapter as adapter_module
-from baseline.g8_campaign import canonical_json, rendered_json, CAMPAIGN_STATE, REPO_ROOT, sha256_bytes
+from baseline.g8_campaign import canonical_json, rendered_json, CAMPAIGN_STATE, COUNTER_FIELDS, REPO_ROOT, sha256_bytes
 from config.params import get
 import migrate_g8_bler_runner_contract as runner_migration
 import verify_g8_bounded_smoke as smoke_verifier
@@ -572,11 +572,17 @@ def _old_runner_state_payload() -> dict:
     payload = json.loads(CAMPAIGN_STATE.read_bytes())
     payload["identity"]["phase"] = "G8_B"
     payload["identity"]["stage"] = "tooling_open"
+    payload["identity"]["completed_work_unit_ids"] = []
+    payload["identity"]["in_progress_work_unit_id"] = None
+    payload["identity"]["counters"] = {name: 0 for name in COUNTER_FIELDS}
     payload["identity"]["restart_command"] = resume.B4_RESTART_COMMAND
     payload["identity"]["produced_artifacts"] = [
         entry
         for entry in payload["identity"]["produced_artifacts"]
-        if entry["path"] != "results/baseline/g8/bler_characterization_source_manifest.json"
+        if entry["path"] not in {
+            "results/baseline/g8/bler_characterization_source_manifest.json",
+            "results/baseline/g8/bler_characterization_source_manifest_v2.json",
+        }
     ]
     for entry in payload["identity"]["produced_artifacts"]:
         if entry["path"] == runner.RUNNER_CONTRACT_REPO_RELATIVE_PATH:
@@ -729,7 +735,11 @@ def test_runner_contract_migration_preserves_state_on_interrupted_publication(tm
     assert state_path.read_bytes() == before
 
 
-def test_runner_contract_migration_recovers_the_complete_v2_v3_matrix(tmp_path):
+def test_runner_contract_migration_recovers_the_complete_v2_v3_matrix(tmp_path, monkeypatch):
+    # The historical bounded-smoke verifier requires an absent production
+    # root; use an isolated synthetic root now that the live checkout contains
+    # the C2 evidence snapshot.
+    monkeypatch.setattr(work_units, "DEFAULT_WORK_UNIT_ROOT", tmp_path / "absent-production-root")
     v2_contract = tmp_path / "bler_runner_contract-v2.json"
     v2_contract.write_bytes(
         subprocess.run(
