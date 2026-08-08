@@ -834,29 +834,34 @@ Durable instruction: `instructions/G8_C.txt`. This is the only live C cursor; th
 C rows below are updated in the same commit as their checkpoint. C0 is the
 state-only opening step and has no full-strength execution.
 
-Current C2 pre-launch marker: phase/stage `G8_C/characterization_open` at
-scientific main HEAD `6e05e4c007ef001d05df0f369156b1eeec0ddd8e`; campaign-state
-SHA-256 `4ec3ae291de0f4c24426b574f4022a6ab56485b00af4a341bee4f71509c38660`.
-Source epoch 2 is registered as
+Current C2 durable checkpoint: phase/stage `G8_C/characterization_open` at
+scientific main HEAD `eb79955fa6a4e84259b3d4eaae48be5bd791b778`; the checkpoint
+commit below records the resulting campaign state. Campaign-state SHA-256 is
+`c21c70a00a7a6499e46bb55f85a0d8de01d52a801501489da3879c42e36171c0`.
+Source epoch 2 remains registered as
 `g8charsrc2-d9a56b9a0c01c877379fad42c10a1d043329f2e3e47263f7ce05874d440db998`,
 SHA-256 `b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660`,
-9,051 bytes. Accepted count before the first epoch-2 result is 179 under
-epoch 1; 3,034 remain. The next legal unit is authority ordinal 179,
-`bler-0e7c3102fbf553ba90fc5458`, attempt 3. The intended first batch ends at
-ordinal 306, for at most 128 newly completed units. The historical worker
-summary defect is corrected additively: the worker reads the authenticated
-runner's top-level `measurement` field, and the epoch-aware merge distinguishes
-request-only attempts from failed results. Epoch 1 remains byte-identical.
+9,051 bytes. Authenticated coverage is 307/3213, exactly authority ordinals
+0..306; 2,906 remain. The next legal unit is ordinal 307,
+`bler-19df11eae06268fb330d8b75`, attempt 1. The first corrected batch covered
+ordinals 179–306, including ordinal 179 attempt 3. Its request history is
+`[1, 2, 3]`, result history is `[3]`, and attempts 1 and 2 remain request-only
+operational history. The corrected multi-unit worker passed the old
+post-publication failure point: all 128 summaries completed and the tmux
+wrapper exited 0. Epoch 1 remains byte-identical. B3 classification is
+307 `completed_full_strength` and 2,906 `absent`, with recoverable,
+failed-retryable, terminal-nonmergeable, unknown and duplicate all zero.
 All protected counters are zero, `test_split_access=0`, and no validation,
-inference, training, selection or test access is permitted.
+inference, training, selection or test access occurred.
 
-Next C2 durable batch marker: ordinals 179–306, intended IDs
-`bler-0e7c3102fbf553ba90fc5458` through `bler-19d066588180619553c8f9c1`,
-128 newly completed units maximum. Resolved topology remains CUDA on one
-`NVIDIA GeForce RTX 4060 Laptop GPU`, one worker, shard `1/0`, auto batch 64,
-and the exact restart command is the registered epoch-2 characterization CLI
-recorded in the C1C checkpoint below. The previous marker was interrupted after ordinal 178;
-the request-only ordinal 179 is included here for its legal clean retry.
+Next C2 durable batch marker: ordinals 307–434, intended IDs
+`bler-19df11eae06268fb330d8b75` through
+`bler-23fa7152b0fd7aec306c06f4`, 128 newly completed units maximum. The
+resolved topology remains CUDA on one `NVIDIA GeForce RTX 4060 Laptop GPU`,
+one worker, shard `1/0`, auto batch 64, and the exact restart command is the
+registered epoch-2 characterization CLI recorded in the C1C checkpoint below.
+The next marker must be pushed before launching this suffix. Its current B3
+plan digest is `9cbdc6fa25cfa87f3ce9e760086771691a0a3072880145e37881c7de92a820e2`.
 Exact production command:
 `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`.
 The one intended tmux session is `g8c_epoch2_remaining`; operational log is
@@ -902,12 +907,32 @@ SHA `e39b4090a5a1f65b4228aa423de52a6a59bda7912476d1fb28247e8610e274da`,
 CLI in the C2 row above; it must begin from a fresh B3 plan and retry ordinal
 179 only through attempt 3. No specification amendment.
 
+C2 durable batch checkpoint (2026-08-09T02:58:14+05:30): the unique tmux
+session `g8c_epoch2_remaining` ran the epoch-2 coordinator on the production
+root with `device=auto`, one CUDA GPU, shard `1/0`, auto batch 64 and maximum
+128 units. It published and authenticated 128 new complete full-strength
+units, authority ordinals 179–306, all with 5,000 completed trials and zero
+test access. The first unit, ordinal 179
+`bler-0e7c3102fbf553ba90fc5458`, completed legally at attempt 3; the two
+historical attempts 1 and 2 have requests but no results and were not
+fabricated as failures. The worker reused one authenticated runner context
+for its sequential units, crossed the former `KeyError: measurement` point,
+returned all 128 summaries successfully, and the durable shell recorded exit
+status 0. The authenticated B3 read-only census then reported 307 complete
+chains and 2,906 absent units, with every recoverable, failed-retryable,
+terminal-nonmergeable, unknown and duplicate count at zero. Campaign-state
+reconciliation installed the exact state SHA
+`c21c70a00a7a6499e46bb55f85a0d8de01d52a801501489da3879c42e36171c0`, with
+307 completed IDs, null in-progress ID and all protected counters zero. The
+next legal suffix is ordinal 307 attempt 1; no next worker has been launched
+yet. No specification amendment.
+
 | Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
 |---|---|---|---|---|---|---|---|
 | C0 verify and open G8_C | done | `d95da8e0f6ded31fab7ee37d571d39cba509f522` | first: `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; restart: the exact `run_g8_bler_characterization.py` command in `instructions/G8_C.txt` | handoff docs, campaign state only; no runtime root, unit evidence or characterization | C0 HOLD resolved: the manifest-bound `instructions/G8_C.txt` was restored byte-for-byte to 2,820 bytes / `c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815`; the in-place expansion requirement was withdrawn; the detailed execution brief remains operational and subordinate to frozen authority; no manifest, campaign ID, registered contract, scientific parameter or evidence changed; canonical state transition PASS with state SHA `9627dd772585dd3047c02e395ea448908ffca9f7877da1ed0450bdf7fb7cb22d` | correction `490138ef3ecc1a96c528d0f75ca90fadeb8db14f` signed/pushed; transition `1363fa73338e9d44151f751bf1bba47f73812ebb` signed/pushed; local/origin/remote parity confirmed | IDs empty/null; all four counters 0; No specification amendment, campaign-manifest supersession or contract supersession |
 | C1 freeze characterization sources, schemas and orchestration | superseded by C1C | `1363fa73338e9d44151f751bf1bba47f73812ebb` | historical: `.venv/bin/python tools/gen_g8_bler_characterization_manifest.py`; epoch-1 restart remains frozen v1 history | epoch-1 six C-owned sources and manifest remain byte-identical; no epoch-1 file was edited | epoch-1 manifest `g8charsrc-6926319673ca1f55b95f8746062518c12cfa499aa827448e67850b5a1f74702a`, SHA-256 `a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e`, 6,672 bytes | historical C1 completion `50a62bba4c806f88066993a0cfcf99fd979e5d22`; preserved as history | epoch 1 accepted ordinals 0–178; no amendment |
 | C1C add source epoch 2 and repair orchestration/provenance | merged | `979bb5cc4f1bc36b3e46e0c5fccb219ae1c83d67` | `.venv/bin/python tools/gen_g8_bler_characterization_manifest_v2.py --register`; corrected restart: `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128` | additive v2 sources, v2 manifest, tests and harness isolation; v1 sources/manifest, runner, contracts and raw evidence unchanged | epoch-2 manifest `g8charsrc2-d9a56b9a0c01c877379fad42c10a1d043329f2e3e47263f7ce05874d440db998`, SHA-256 `b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660`, 9,051 bytes; registered state SHA `4ec3ae291de0f4c24426b574f4022a6ab56485b00af4a341bee4f71509c38660`; focused tests, full suite, post-data verifier and CPU-lock check green | PR-1 `#1` merged by normal merge at `6e05e4c007ef001d05df0f369156b1eeec0ddd8e`; local/origin/remote parity confirmed | 179 accepted under epoch 1; ordinal 179 request-only attempts 1,2; next legal attempt 3; protected counters 0; no specification amendment |
-| C2 execute resumable full-strength characterization | marker-pushed | `6e05e4c007ef001d05df0f369156b1eeec0ddd8e` | `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`; tmux `g8c_epoch2_remaining` | production root and authenticated request/result/state evidence only; no validation, codec, inference, training, selection or test | pending launch; first corrected unit is ordinal 179 `bler-0e7c3102fbf553ba90fc5458`, attempt 3; intended first batch ordinals 179–306 | marker commit pending; parity required before launch | 179/3213 accepted; 3034 remaining; protected counters 0; no amendment |
+| C2 execute resumable full-strength characterization | checkpointed; next marker pending | `eb79955fa6a4e84259b3d4eaae48be5bd791b778` | `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`; tmux `g8c_epoch2_remaining`; next suffix ordinals 307–434 | production root and authenticated request/result/state evidence only; no validation, codec, inference, training, selection or test | 128 new complete units, ordinals 179–306, 5,000 trials each; actual multi-unit worker passed the old failure point; exit 0; B3 classifications: 307 complete, 2,906 absent, all other classes 0; campaign-state SHA `c21c70a00a7a6499e46bb55f85a0d8de01d52a801501489da3879c42e36171c0` | this unsigned subject-only checkpoint commit; parity required before next marker | 307/3213 accepted; 2906 remaining; ordinal 179 request-only attempts 1,2 and result attempt 3; protected counters 0; no amendment |
 | C3 independently merge all work-unit evidence | not-started | after C2 | first: merge tool in validation-only mode; restart: same merge command | merge report and verifier only; no simulation or retry | pending | pending | no interpolation/extrapolation; no amendment |
 | C4 verify exact complete required coverage | not-started | after C3 | first: independent coverage verifier/mutation matrix; restart: same verifier | merge registration only after 3,213/3,213 proof | pending | pending | 16,065,000 accepted trials required; no amendment |
 | C5 build and freeze the G-8 BlerTable | not-started | after C4 | first: table construction/check; restart: same table command | table, loader and verifier; no G-2 substitution or selection | pending | pending | measured points only; no amendment |

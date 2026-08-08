@@ -1660,3 +1660,32 @@ bytes, with 179 completed IDs, null in-progress ID and all protected counters
 zero. The exact registered characterization CLI is the next restart command;
 it must reauthenticate and derive a fresh plan before retrying ordinal 179.
 **No specification amendment.**
+
+## G8_C C2 — corrected epoch-2 batch 179–306 (2026-08-09)
+
+The additive source epoch-2 correction is merged at PR-1 merge SHA
+`6e05e4c007ef001d05df0f369156b1eeec0ddd8e`, with source manifest
+`g8charsrc2-d9a56b9a0c01c877379fad42c10a1d043329f2e3e47263f7ce05874d440db998`,
+SHA-256 `b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660`,
+9,051 bytes. The required marker was pushed before launching the unique tmux
+session `g8c_epoch2_remaining` with the v2 coordinator, production root,
+`device=auto`, one CUDA GPU, shard `1/0`, auto batch 64 and max 128 units.
+
+The coordinator completed 128 new full-strength units, authority ordinals
+179–306, each with 5,000 trials and `test_split_access=0`. Ordinal 179,
+`bler-0e7c3102fbf553ba90fc5458`, completed legally on attempt 3; attempts 1
+and 2 remain request-only and no failed result was fabricated. The worker
+reused one authenticated runner context across its sequential units, crossed
+the former post-publication `KeyError: measurement` point, returned all 128
+summaries, and the durable wrapper recorded exit status 0.
+
+The post-batch read-only B3 census classified 307 units as
+`completed_full_strength` and 2,906 as `absent`; recoverable,
+failed-retryable, terminal-nonmergeable, unknown and duplicate were all zero.
+Campaign reconciliation installed state SHA
+`c21c70a00a7a6499e46bb55f85a0d8de01d52a801501489da3879c42e36171c0`, with 307
+completed IDs, null in-progress ID and all protected counters zero. The next
+legal suffix is authority ordinal 307,
+`bler-19df11eae06268fb330d8b75`, attempt 1; it has not been launched yet.
+Epoch 1 remains byte-identical and no validation, inference, training,
+selection or test access occurred. **No specification amendment.**
