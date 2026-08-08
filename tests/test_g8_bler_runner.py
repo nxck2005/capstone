@@ -79,6 +79,7 @@ def _bounded_request(context: runner.AuthenticatedRunnerContext, *, trials: int 
     )
 
 
+@pytest.mark.primary_runtime
 def test_context_authenticates_registered_candidate_once(auth_context):
     binding = auth_context.runner_contract_binding()
     assert binding["bler_runner_contract_id"].startswith("g8runner-")
@@ -89,6 +90,7 @@ def test_context_authenticates_registered_candidate_once(auth_context):
     assert len(auth_context.ordered_work_unit_ids()) == 3213
 
 
+@pytest.mark.primary_runtime
 def test_full_strength_is_rejected_before_root_or_adapter(auth_context, tmp_path, monkeypatch):
     root = tmp_path / "full-runtime"
     work_unit_id, _unit = _first_unit(auth_context)
@@ -115,6 +117,7 @@ def test_full_strength_is_rejected_before_root_or_adapter(auth_context, tmp_path
     assert called == []
 
 
+@pytest.mark.primary_runtime
 def test_bounded_authorization_requires_explicit_fresh_nonproduction_root(auth_context, tmp_path):
     with pytest.raises(runner.RunnerAuthorizationError):
         runner.authorize_execution(
@@ -146,6 +149,7 @@ def test_bounded_authorization_requires_explicit_fresh_nonproduction_root(auth_c
         )
 
 
+@pytest.mark.primary_runtime
 def test_shard_bounds_and_unknown_execution_class_are_closed(auth_context, tmp_path):
     with pytest.raises(runner.RunnerAuthorizationError, match="shard_index"):
         runner.run_one_unit(
@@ -191,6 +195,7 @@ class _DeterministicAdapter:
 
 
 @pytest.mark.parametrize("batch_size", [1, 2, 3, 7, 32])
+@pytest.mark.primary_runtime
 def test_measurement_is_batch_partition_invariant(auth_context, monkeypatch, batch_size):
     request = _bounded_request(auth_context, trials=13)
     monkeypatch.setattr(adapter_module, "SionnaLDPCAdapter", _DeterministicAdapter)
@@ -201,6 +206,7 @@ def test_measurement_is_batch_partition_invariant(auth_context, monkeypatch, bat
     assert observed["block_errors"] == 13
 
 
+@pytest.mark.primary_runtime
 def test_measurement_rejects_bad_batch_size(auth_context):
     request = _bounded_request(auth_context, trials=2)
     with pytest.raises((ValueError, runner.G8BlerRunnerError)):
@@ -350,6 +356,7 @@ def test_uncertain_publication_rejects_nonexact_installed_bytes(tmp_path, monkey
         runner._publish_immutable_json(target, {"exact": False}, root=root)
 
 
+@pytest.mark.primary_runtime
 def test_one_bounded_unit_uses_claim_request_result_link_transaction(
     auth_context, tmp_path, monkeypatch
 ):
@@ -372,6 +379,7 @@ def test_one_bounded_unit_uses_claim_request_result_link_transaction(
     assert outcome["measurement"]["trials_completed"] == 16
 
 
+@pytest.mark.primary_runtime
 def test_smoke_record_builder_is_path_and_time_free(auth_context, tmp_path, monkeypatch):
     monkeypatch.setattr(adapter_module, "SionnaLDPCAdapter", _DeterministicAdapter)
     work_unit_id, _unit = _first_unit(auth_context)
@@ -542,6 +550,7 @@ def test_candidate_v3_runner_contract_verifies_independently_before_registration
     assert payload["supersession_history"][1]["schema_version"] == 1
 
 
+@pytest.mark.primary_runtime
 def test_candidate_runner_contract_registers_against_isolated_campaign_state(tmp_path):
     from baseline.g8_bler_resume import AuthenticatedResumeContext
 
@@ -735,6 +744,7 @@ def test_runner_contract_migration_preserves_state_on_interrupted_publication(tm
     assert state_path.read_bytes() == before
 
 
+@pytest.mark.primary_runtime
 def test_runner_contract_migration_recovers_the_complete_v2_v3_matrix(tmp_path, monkeypatch):
     # The historical bounded-smoke verifier requires an absent production
     # root; use an isolated synthetic root now that the live checkout contains
@@ -861,6 +871,7 @@ def test_old_runner_contract_is_rejected_after_supersession(tmp_path):
         runner.AuthenticatedRunnerContext(runner_contract_path=old_path, require_registered_runner_contract=True)
 
 
+@pytest.mark.primary_runtime
 def test_cached_request_and_result_validation_does_not_reauthenticate_large_artifacts(auth_context, monkeypatch):
     request = _bounded_request(auth_context, trials=7)
     result = runner._build_result(

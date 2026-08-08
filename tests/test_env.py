@@ -25,6 +25,7 @@ import env
 from config.params import REPO_ROOT, get
 
 
+@pytest.mark.primary_runtime
 def test_cuda_build():
     """`params.environment.cuda_assertion` -- the AM-23 trap.
 
@@ -38,6 +39,7 @@ def test_cuda_build():
     )
 
 
+@pytest.mark.primary_runtime
 def test_assert_cuda_helper_agrees():
     """The helper the training entrypoints call must agree with the raw check."""
     env.assert_cuda()
@@ -52,6 +54,7 @@ def test_cuda_assertion_matches_params():
     assert env.CUDA_ASSERTION == get("environment.cuda_assertion")
 
 
+@pytest.mark.primary_runtime
 def test_torch_version_matches_params():
     """Catches a resolve that quietly took a different build or version."""
     import torch
@@ -59,6 +62,7 @@ def test_torch_version_matches_params():
     assert torch.__version__ == get("environment.torch")
 
 
+@pytest.mark.primary_runtime
 def test_torchvision_version_matches_params():
     import torchvision
 
@@ -69,6 +73,7 @@ def test_python_version_matches_params():
     assert platform.python_version() == get("environment.python_version")
 
 
+@pytest.mark.primary_runtime
 def test_cuda_is_available():
     """A CUDA build with no visible device would still pass `test_cuda_build`."""
     import torch
@@ -119,6 +124,7 @@ def test_environment_record_keys_match_params():
     assert record["openjpeg_version"] == get("environment.openjpeg")
 
 
+@pytest.mark.primary_runtime
 def test_environment_record_is_fully_populated():
     """Every field resolves to something on the primary device.
 

@@ -45,6 +45,7 @@ def committed_config():
     )
 
 
+@pytest.mark.frozen_checkpoint
 def test_exact_checkpoint_is_accepted_and_frozen(monkeypatch: pytest.MonkeyPatch):
     def forbidden_download(**kwargs):
         raise AssertionError("valid local checkpoint must not trigger a download")
@@ -57,6 +58,7 @@ def test_exact_checkpoint_is_accepted_and_frozen(monkeypatch: pytest.MonkeyPatch
     assert model.total_parameter_count == 11_181_642
 
 
+@pytest.mark.frozen_checkpoint
 def test_wrong_checkpoint_hash_is_rejected(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -79,6 +81,7 @@ def test_wrong_checkpoint_hash_is_rejected(
         ("split_manifest_hash", "0" * 64, "split_manifest_hash"),
     ],
 )
+@pytest.mark.frozen_checkpoint
 def test_wrong_config_or_manifest_identity_is_rejected(
     checkpoint_payload,
     adjudication,
@@ -99,6 +102,7 @@ def test_wrong_config_or_manifest_identity_is_rejected(
 
 
 @pytest.mark.parametrize("mutation", ["missing", "extra"])
+@pytest.mark.frozen_checkpoint
 def test_missing_or_extra_state_dict_key_is_rejected(
     checkpoint_payload,
     adjudication,
@@ -121,6 +125,7 @@ def test_missing_or_extra_state_dict_key_is_rejected(
         )
 
 
+@pytest.mark.frozen_checkpoint
 def test_smoke_or_non_g1_checkpoint_is_rejected(
     checkpoint_payload,
     adjudication,
@@ -145,6 +150,7 @@ def test_smoke_or_non_g1_checkpoint_is_rejected(
         )
 
 
+@pytest.mark.frozen_checkpoint
 def test_incomplete_full_run_lineage_is_rejected(
     checkpoint_payload,
     adjudication,

@@ -140,6 +140,7 @@ def test_cifar_is_never_task_scored_in_the_plan(plan: dict) -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.external_dataset
 def test_worklist_is_deterministic_and_free_of_duplicate_identities(plan: dict) -> None:
     first = runner.build_worklist(plan)
     second = runner.build_worklist(plan)
@@ -148,6 +149,7 @@ def test_worklist_is_deterministic_and_free_of_duplicate_identities(plan: dict) 
     assert runner.worklist_hash(first) == runner.worklist_hash(second)
 
 
+@pytest.mark.external_dataset
 def test_worklist_is_ordered_by_stable_sample_id_not_loader_order(plan: dict) -> None:
     work = runner.build_worklist(plan)
     task_rows = [
@@ -159,6 +161,7 @@ def test_worklist_is_ordered_by_stable_sample_id_not_loader_order(plan: dict) ->
     assert identifiers == sorted(identifiers)
 
 
+@pytest.mark.external_dataset
 def test_a_cifar_worklist_row_is_never_task_scored(plan: dict) -> None:
     work = runner.build_worklist(plan)
     for item in work:
@@ -382,12 +385,14 @@ def _hash_for(cell_configs, *, group_source: str, snr: float) -> str:
     return cell_configs[key][1]
 
 
+@pytest.mark.external_dataset
 def test_every_distinct_cell_has_its_own_config_hash(plan: dict, cell_configs) -> None:
     digests = [digest for _config, digest in cell_configs.values()]
     assert len(digests) == len(set(digests)) == len(cell_configs)
     assert len(cell_configs) == 5, "4 groups, with Imagenette at two SNR points"
 
 
+@pytest.mark.external_dataset
 def test_the_two_snr_points_do_not_share_a_config_hash(cell_configs) -> None:
     """The defect, stated directly: 18 dB and -8 dB had one hash."""
 
@@ -404,6 +409,7 @@ def test_the_two_snr_points_do_not_share_a_config_hash(cell_configs) -> None:
         ("w4-cifar.yaml", "w4-structural-fixture.yaml"),
     ],
 )
+@pytest.mark.external_dataset
 def test_groups_differing_in_dataset_ratio_modulation_or_rate_differ(
     cell_configs, left: str, right: str
 ) -> None:
@@ -416,6 +422,7 @@ def test_groups_differing_in_dataset_ratio_modulation_or_rate_differ(
     assert left_hashes and right_hashes and not (left_hashes & right_hashes)
 
 
+@pytest.mark.external_dataset
 def test_every_row_of_one_cell_shares_that_cell_s_hash(plan: dict, cell_configs) -> None:
     work = runner.build_worklist(plan)
     by_cell: dict[tuple, set[str]] = {}
@@ -426,6 +433,7 @@ def test_every_row_of_one_cell_shares_that_cell_s_hash(plan: dict, cell_configs)
     assert set(by_cell) == set(cell_configs)
 
 
+@pytest.mark.external_dataset
 def test_resolved_selections_must_agree_with_the_plan_row(plan: dict) -> None:
     """A config describing a different cell than the row it runs is refused."""
 
@@ -444,6 +452,7 @@ def test_resolved_selections_must_agree_with_the_plan_row(plan: dict) -> None:
             runner.resolve_cell_configs(mutated)
 
 
+@pytest.mark.external_dataset
 def test_archived_run_configs_round_trip_and_reproduce_their_own_hash(
     tmp_path, cell_configs
 ) -> None:
@@ -477,6 +486,7 @@ def test_archived_run_configs_round_trip_and_reproduce_their_own_hash(
             assert entry[field] == rebuilt.resolved[field]
 
 
+@pytest.mark.external_dataset
 def test_the_index_covers_every_cell_and_names_no_duplicate_hash(
     tmp_path, cell_configs
 ) -> None:
@@ -487,6 +497,7 @@ def test_the_index_covers_every_cell_and_names_no_duplicate_hash(
     assert set(digests) == {digest for _c, digest in cell_configs.values()}
 
 
+@pytest.mark.external_dataset
 def test_the_root_digest_is_not_usable_as_a_cell_config_hash(cell_configs) -> None:
     """Substituting the execution-level digest for a concrete one must be visible."""
 
@@ -494,6 +505,7 @@ def test_the_root_digest_is_not_usable_as_a_cell_config_hash(cell_configs) -> No
     assert root not in {digest for _c, digest in cell_configs.values()}
 
 
+@pytest.mark.external_dataset
 def test_the_root_digest_changes_when_any_cell_changes(plan: dict, cell_configs) -> None:
     root = runner.config_hash_root(cell_configs)
     reduced = dict(list(cell_configs.items())[:-1])
