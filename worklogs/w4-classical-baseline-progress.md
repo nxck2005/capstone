@@ -1749,3 +1749,35 @@ independent epoch-2 source-manifest verifier passed with 435 completed and
 `bler-24190af4a7cb75332fd06afc`, attempt 1; it has not been launched yet.
 Epoch 1 remains byte-identical and no validation, inference, training,
 selection or test access occurred. **No specification amendment.**
+
+## G8_C C2 — corrected epoch-2 batch 563–690 (2026-08-09)
+
+Before launch, marker commit `bd2c913d1f288df5b72fa2db019c742f12e31b63`
+was pushed with the exact suffix: authority ordinals 563–690,
+`bler-2e43aa16beb1b1b0e0042b88` through
+`bler-37bf187c3951d2f90acf590b`, attempt 1, B3 plan digest
+`d6e75c6b0f9ccd04794aa6539aa4e73e94304f9992af3c688fe9bc7fb2072005`, one
+CUDA worker, shard `1/0`, auto batch 64 and max 128 units. The unique tmux
+session `g8c_epoch2_remaining` ran the merged epoch-2 coordinator against the
+production root with the v2 runner.
+
+The coordinator completed all 128 new full-strength units, authority ordinals
+563–690, each with exactly 5,000 trials and `test_split_access=0`. The worker
+reused one authenticated runner context per worker process and completed the
+whole sequential batch without the old post-publication `KeyError: measurement`.
+The durable wrapper recorded exit status 0. The two historical request-only
+attempts at ordinal 179 remain preserved; no failed result was fabricated.
+
+The post-batch read-only B3 census classified 691 units as
+`completed_full_strength` and 2,522 as `absent`; recoverable,
+failed-retryable, terminal-nonmergeable, unknown and duplicate were all zero.
+Campaign reconciliation installed state SHA
+`3a203da7801d6f48e0d68062e675642a02b97a6fa73b6d4fa93d898fc13d1b45`, with 691
+completed IDs, null in-progress ID and all protected counters zero. The
+independent epoch-2 source-manifest verifier passed with 691 completed and
+2,522 remaining. The fresh next-suffix plan digest is
+`d8e24c43ae62d3b4dba6af2389a24b8d9f0fb512798cebcebb25bc0ab7f13118`; the next
+legal suffix is authority ordinal 691,
+`bler-37cd77dc86cd8f621c841645`, attempt 1; it has not been launched yet.
+Epoch 1 remains byte-identical and no validation, inference, training,
+selection or test access occurred. **No specification amendment.**
