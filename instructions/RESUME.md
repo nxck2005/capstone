@@ -972,6 +972,18 @@ test access occurred. Fresh plan digest
 `aa29222b42dfa23cadc11b1a87005c9b573ef3c12034dae6c356f58657a4934e`
 starts at ordinal 743 attempt 2. No specification amendment.
 
+Operational reporting note found during this recovery: the frozen resume plan
+field `terminal_nonmergeable_work_unit_ids` is populated from
+`TERMINAL_CLASSIFICATIONS`, which contains both `completed_full_strength` and
+`terminal_nonmergeable`. Consequently the v2 coordinator's `--plan-only`
+summary reported `terminal_nonmergeable_count=743` while the authenticated
+census and merge report correctly reported zero nonmergeable units. Execution
+does not consume that summary field: selection uses `remaining_work_unit_ids`
+and the merge report tests the exact nonmergeable classification. The
+contract-bound resume source is not rewritten mid-C2 for a reporting-only name;
+C2/C3 records use the census and merge-report count. No scientific result,
+coverage decision or specification item changes.
+
 | Checkpoint | Status | Start SHA | Exact first/restart command | Intended/prohibited files | Observed outputs and tests | Completion SHA / signature / parity | Counters / amendment |
 |---|---|---|---|---|---|---|---|
 | C0 verify and open G8_C | done | `d95da8e0f6ded31fab7ee37d571d39cba509f522` | first: `.venv/bin/python tools/gen_g8_campaign_manifest.py --check`; restart: the exact `run_g8_bler_characterization.py` command in `instructions/G8_C.txt` | handoff docs, campaign state only; no runtime root, unit evidence or characterization | C0 HOLD resolved: the manifest-bound `instructions/G8_C.txt` was restored byte-for-byte to 2,820 bytes / `c0846909c30895780c03269486c154e58c2f9987a46b6699bfc521be46a38815`; the in-place expansion requirement was withdrawn; the detailed execution brief remains operational and subordinate to frozen authority; no manifest, campaign ID, registered contract, scientific parameter or evidence changed; canonical state transition PASS with state SHA `9627dd772585dd3047c02e395ea448908ffca9f7877da1ed0450bdf7fb7cb22d` | correction `490138ef3ecc1a96c528d0f75ca90fadeb8db14f` signed/pushed; transition `1363fa73338e9d44151f751bf1bba47f73812ebb` signed/pushed; local/origin/remote parity confirmed | IDs empty/null; all four counters 0; No specification amendment, campaign-manifest supersession or contract supersession |

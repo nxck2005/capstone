@@ -117,18 +117,31 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: G8_C C2 — execute the exact resumable full-strength characterization suffix.** On resumption, follow the single cursor in `instructions/RESUME.md`. The live state is `G8_C/characterization_open` with eight artifacts, empty/null work-unit IDs and zero protected counters. C0 restored the manifest-bound `instructions/G8_C.txt`; C1 registered the six-source characterization manifest and froze the coordinator before data. No full-strength characterization, BLER table, selection, authorization, inference, training, validation decoding or test access has occurred. The exact G8_C restart command is `.venv/bin/python tools/run_g8_bler_characterization.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`.
+**Current action: G8_C C2 — full-strength physical-layer BLER
+characterization is active.** `instructions/RESUME.md` is the single
+operational cursor and carries the exact authenticated coverage, legal attempt,
+pushed marker and restart command. Those volatile details are deliberately not
+duplicated here. C1C registered additive source epoch 2 without rewriting
+epoch 1; C2 may run only through that registered coordinator and the
+authenticated runner. No G-8 `BlerTable`, selection, authorization, validation
+measurement, inference, training or test access has occurred.
 
-**W4 and G8_A are complete. G8_B is complete through B6 and G8_C C0/C1 are complete**, following the frozen phase instructions and the single cursor in `instructions/RESUME.md`. G8_A froze the contract, policy bindings, 12,096 structural candidates, 3,213 required BLER work units and state primitives before data. G8_B built and independently verified the authenticated runner, exact resume/merge machinery, crash-atomic publication and bounded smoke. C1 added the registered six-source characterization manifest, coordinator/worker orchestration, independent merge/coverage verifier and measured-only table loader/verifier. **No full-strength characterization, BLER table, selection, authorization, validation measurement, inference, training or test access has started. G8_C C2 is next.** The committed G-2 BLER evidence
-characterises one physical-layer identity at four SNR points per modulation: that is a conformance
-artifact, it stays valid for G-2, and it **must not be extrapolated** into the BR-4 characterization
-table. G-8 has to enumerate the structural candidate/configuration and code-block identity grids,
-run and archive full-strength BR-4 physical-layer BLER characterization, build a hash-bound G-8
-`BlerTable` and verify complete coverage, and derive measured codec and clean-classifier accuracies
-from verified artifacts — before pass one, the training-only artifact corpus, the artifact-classifier
-fine-tune, the single pass two and the adjudication. None of those scientific phases has started:
-the selection entry point refuses any workload above its bounded budget unless an explicit
-`G8Authorization` is constructed, and nothing in this repository constructs one.
+W4, G8_A and G8_B are complete. G8_A froze the contract, policy bindings,
+12,096 structural candidates, 3,213 required BLER work units and state
+primitives before data. G8_B built and independently verified the authenticated
+runner, exact resume/merge machinery, crash-atomic publication and bounded
+smoke. G8_C now executes and archives the required physical-layer
+characterization before its independent merge, exact-coverage proof and
+measured-only table freeze.
+
+The committed G-2 BLER evidence characterises one physical-layer identity at
+four SNR points per modulation. It is a conformance artifact, remains valid for
+G-2, and **must not be extrapolated** into the BR-4 characterization table.
+After G8_C freezes complete measured coverage, later phases must still derive
+codec and clean-classifier validation measurements before pass one, the
+training-only artifact corpus, classifier fine-tune, pass two and adjudication.
+The selection entry point remains closed unless an explicit typed
+`G8Authorization` is constructed; no tracked non-test file constructs one.
 **PB_3C** corrected the `classical_fixed_mod` curve to *read* `params.baseline.core_modulation`
 instead of searching for a modulation (BR-9), made resumed campaign state an exact ordered prefix of
 the permitted passes instead of trusting stored results, and froze the selection tie-break order
@@ -137,7 +150,7 @@ complete **including its PB_1C correction**, which
 removed a duplicated TS 38.212 §5.4.2.2 modulation bit interleaver from the classical transmit path
 — Sionna already applies it after rate matching, so the project layer must not. No `src/baseline/ldpc/`
 file changed, so G-2 is unaffected. See `worklogs/w4-classical-baseline-progress.md`.
-PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose actual subject is `fix: fix push failure due to gpg for resume.md`; its implementation/adjudication checkpoint is `08dd358c0f1bd55c70152af900f2932f50d95d19`. PB_3's implementation green is `32edbbb…`, while PB_2C `3324393…` remains the latest scientific-measurement green.
+PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose actual subject is `fix: fix push failure due to gpg for resume.md`; its implementation/adjudication checkpoint is `08dd358c0f1bd55c70152af900f2932f50d95d19`. PB_3's implementation green is `32edbbb…`, while PB_2C `3324393…` remains the pre-G8 scientific-measurement green.
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17

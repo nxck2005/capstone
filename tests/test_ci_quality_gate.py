@@ -14,6 +14,7 @@ def test_evidence_profile_has_no_execution_entrypoints():
     assert "run_one_unit" not in commands
     assert "run_g8_bler_characterization" not in commands
     assert "verify_g8_evidence_readonly.py" in commands
+    assert "tests/test_g8_bler_characterization_v2.py" in commands
 
 
 def test_software_profile_uses_offline_runner_verification():

@@ -2,7 +2,8 @@
 """Run the repository-owned CI profiles locally or in GitHub Actions.
 
 Profiles are intentionally explicit.  The evidence profile calls only the
-offline evidence verifier; it never starts a characterization coordinator.
+offline evidence verifier and its focused regression tests; it never starts a
+characterization coordinator.
 """
 
 from __future__ import annotations
@@ -59,7 +60,11 @@ def profile_commands(profile: str) -> tuple[list[str], ...]:
             )
         return (*_static_commands(), [PYTHON, "-m", "pytest", "-q", "-m", selection])
     if profile == "evidence":
-        return (_python_tool("tools/verify_g8_evidence_readonly.py"), ["git", "diff", "--check"])
+        return (
+            _python_tool("tools/verify_g8_evidence_readonly.py"),
+            [PYTHON, "-m", "pytest", "-q", "tests/test_g8_bler_characterization_v2.py"],
+            ["git", "diff", "--check"],
+        )
     if profile == "full-local":
         return (*_static_commands(), [PYTHON, "-m", "pytest", "-q"])
     raise ValueError(f"unknown quality-gate profile: {profile}")

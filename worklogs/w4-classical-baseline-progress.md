@@ -1803,3 +1803,13 @@ starts at ordinal 743 attempt 2; request-only attempt 1 remains immutable
 operational history and no repair or fabricated failure was applied. Epoch 1
 remains byte-identical and no validation, inference, training, selection,
 authorization or test access occurred. **No specification amendment.**
+
+Recovery also exposed a reporting-only defect in the frozen resume-plan schema:
+`terminal_nonmergeable_work_unit_ids` contains both terminal classes,
+`completed_full_strength` and `terminal_nonmergeable`. Thus `--plan-only`
+reported 743 under the misleading `terminal_nonmergeable_count` label while the
+authenticated census and merge report correctly reported zero. No execution
+branch consumes the summary field; work selection uses `remaining_work_unit_ids`
+and merge readiness counts only the exact nonmergeable classification. The
+contract-bound source remains unchanged during C2, and all phase records use
+the census/merge count. No scientific result or requirement changes.

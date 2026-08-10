@@ -4,9 +4,24 @@ This file provides guidance to coding agents (Claude Code, and any other agent t
 
 ## Repository status
 
-**Implementation started 2026-07-28. W1, W2 and W3 are complete; G-9, G-1, G-7 and G-2 passed; the validation-only transparency-bitrate probe is complete and lineage-bound.** W4 and G8_A are complete. **G8_B is complete through B6, and G8_C C0/C1C are complete:** epoch 1 remains byte-immutable, the additive epoch-2 source manifest and post-data verifier are registered before the first corrected result, and `G8_C/characterization_open` is the live cursor. Exactly 179/3213 full-strength units are accepted under epoch 1; ordinal 179 has request-only attempts 1 and 2, and the next legal corrected attempt is 3. No corrected epoch-2 result, BLER table, selection, authorization, inference, training, validation decoding or test access has occurred. The test split remains sealed, and G8_C C2–G8_G remain gated by the existing phase protocol. The committed G-2 BLER evidence remains a narrow conformance artifact and must not be extrapolated into the BR-4 characterization table. Do not calibrate λ, train learned models, implement ER-9 or evaluate on test before their gates.
+**Implementation started 2026-07-28. W1, W2 and W3 are complete; G-9, G-1,
+G-7 and G-2 passed; the validation-only transparency-bitrate probe is complete
+and lineage-bound.** W4, G8_A and G8_B are complete. **G8_C C0/C1C are complete
+and C2 full-strength characterization is active:** epoch 1 remains
+byte-immutable, source epoch 2 is registered, and
+`G8_C/characterization_open` is the live cursor. Exact coverage, attempt and
+restart-command details are intentionally maintained only in
+`instructions/RESUME.md` and the authenticated campaign state; volatile counts
+in this summary are not an execution authority. No BLER table, selection,
+authorization, inference, training, validation decoding or test access has
+occurred. The test split remains sealed, and G8_C C3–G8_G remain gated by the
+existing phase protocol.
 
-**Current action: G8_C C2 — execute the exact resumable full-strength characterization suffix.** On resumption, `instructions/RESUME.md` remains the single operational cursor. The exact G8_C restart command stored in campaign state is `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`. Epoch 2 is registered before attempt 3; C2 may execute only through the additive coordinator and the authenticated v3 runner. Do not create authorization, access validation/test data or enter G8_D.
+**Current action: G8_C C2 — continue only from the exact pushed marker and
+restart command in `instructions/RESUME.md`, through the additive v2
+coordinator and authenticated v3 runner.** Never use the superseded v1
+coordinator, create authorization, access validation/test data or enter G8_D
+early.
 
 **Historical final G8_B handoff:** the prior live cursor was `G8_B/tooling_smoke_complete` with campaign-state
 SHA-256 `09f1655f570fe947f93bf2477b7bb3b3a7e871c32a98addde0b9d1e7b3400a77`. The seven registered

@@ -27,10 +27,11 @@ def test_registered_epoch2_manifest_has_exact_activation_boundary() -> None:
     assert validated["source_epochs"][1]["accepted_result_ordinals"] == [179, 3212]
 
 
-def test_post_data_independent_verifier_passes_at_activation_boundary() -> None:
+def test_post_data_independent_verifier_tracks_registered_progress() -> None:
     result = provenance.verify()
-    assert result["completed_count"] == 179
-    assert result["remaining_count"] == 3034
+    completed = result["completed_count"]
+    assert provenance.EXPECTED_ACTIVATION["epoch_1_accepted_result_count"] <= completed <= characterization.REQUIRED_COUNT
+    assert result["remaining_count"] == characterization.REQUIRED_COUNT - completed
     assert result["test_split_access"] == 0
 
 

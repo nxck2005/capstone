@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-09 · **Phase:** **G8_B complete through B6; G8_C C0/C1C are complete and C2 is next. The live cursor is `G8_C/characterization_open`. Exactly 179/3213 results are accepted under immutable source epoch 1; ordinal 179 has request-only attempts 1 and 2, and epoch 2 is registered before its next legal attempt 3. No corrected epoch-2 result, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-11 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is active at `G8_C/characterization_open`. Exact coverage, attempt and restart-command details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
 
 > **B3.H1 complete — the B3.2 HOLD is resolved (read this first).** B3.0 (durable instruction) and B3.1 (authenticated B3
 > context, runtime path grammar, global reconciliation lock, no-follow census) remain complete. **B2C clean-claim semantics
@@ -47,7 +47,7 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Single next task
 
-**Next task:** G8_C C2 — execute the exact resumable full-strength BLER work-unit suffix in durable batches of at most 128 after the pushed C1 freeze.
+**Next task:** G8_C C2 — continue the exact resumable full-strength BLER suffix from the pushed marker in `instructions/RESUME.md`, checkpointing at most 128 newly completed units before the next launch.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -64,15 +64,15 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next — G8_C C2: execute the resumable full-strength characterization suffix** |
-| G8_B–G8_G | **G8_B complete; G8_C C0/C1 complete at characterization_open; C2 follows; no full-strength characterization or later phase has executed.** |
+| G-8 classical validation work | **next and active — G8_C C2: resumable full-strength physical-layer characterization** |
+| G8_B–G8_G | **G8_B complete; G8_C C0/C1C complete and C2 active at `characterization_open`; C3 and all later phases remain gated.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B is complete through B6 and C0/C1C have legally opened and corrected G8_C.** B0 opened the phase; B1C, B2C and B3 remain frozen historical foundations; B4 supplied the runner and bounded-smoke path; B5 corrected the SR-1 staging literal, authenticated the v2→v3 runner migration, proved exact resume/publication recovery and replaced the registered schema-2 smoke under guarded exchange; B6 reran every generator, verifier, integration gate, CPU lock and test suite, then atomically advanced only to `G8_B/tooling_smoke_complete`. C0 restored the manifest-bound instruction and installed only `G8_C/characterization_open`; C1C added and registered source epoch 2 without rewriting epoch 1, repaired the coordinator result-shape/history defects, and isolated historical pre-data tests. Nine artifacts are present, 179 accepted IDs are retained, ordinal 179 has request-only attempts 1 and 2, in-progress is null, all protected counters are zero, and no corrected result has been accepted. **C2 is next; attempt 3 is the exact next legal scientific attempt.**
+**G8_B is complete through B6 and C0/C1C legally opened and corrected G8_C.** C2 full-strength characterization is active under the additive epoch-2 source manifest. Exact accepted coverage and the next legal attempt are intentionally maintained only in `instructions/RESUME.md` and authenticated campaign state, rather than duplicated in this handoff. The test split and every later scientific phase remain closed.
 Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 
@@ -155,11 +155,11 @@ supplied and never sorted, with both paths sharing one set of helpers. (3) The t
 hand-off was corrected. PB_3C needed **no amendment** either: it restores BR-9's existing semantics,
 and the spec defines no BR-4 selection tie-break to contradict.
 
-**PB_3C provenance correction.** The terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, and its actual subject is `fix: fix push failure due to gpg for resume.md`. The PB_3C implementation/adjudication checkpoint is `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3's implementation green is `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; the latest scientific-measurement green remains `3324393a3e1692478bba8cf1020708bf52947f6d`. Do not claim that `39c43e3` has the subject `fix(classical): correct PB_3 selection and resume semantics`.
+**PB_3C provenance correction.** The terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, and its actual subject is `fix: fix push failure due to gpg for resume.md`. The PB_3C implementation/adjudication checkpoint is `08dd358c0f1bd55c70152af900f2932f50d95d19`; PB_3's implementation green is `32edbbb58983e54103b2f252c4d8d8f30aa2378e`; the pre-G8 scientific-measurement green is `3324393a3e1692478bba8cf1020708bf52947f6d`. Do not claim that `39c43e3` has the subject `fix(classical): correct PB_3 selection and resume semantics`.
 
 ### Durable G-8 phase partition
 
-The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**active; B0, B1, B1C, B2 and B2C complete, B3 open at B3.4**); G8_C full BLER characterization and table freeze; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**complete through B6**); G8_C full BLER characterization and table freeze (**active at C2**); G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
 ### What G-8 actually has to build — read this before starting it
 
@@ -372,9 +372,10 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 7. ~~**W4 PB_2, including the PB_2C correction — outage policy, records and bounded evidence.**~~
    **Complete.**
 8. ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication.**~~ **Complete.**
-9. **G-8 classical validation work — campaign implementation and preflight, then the full BR-4
-   validation sweep and the operating-point decision. G8_B is active; B0, B1, B1C, B2 and B2C are complete; B3 is next — exact resume and merge validation.** The sweep is step eight
-   of twelve; see "What G-8 actually has to build".
+9. **G-8 classical validation work — active at G8_C C2 full-strength physical-layer
+   characterization. G8_A and G8_B are complete; C3 merge, C4 coverage, C5 table
+   freeze and every validation/selection phase remain gated.** See
+   `instructions/RESUME.md` for the exact live suffix.
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
