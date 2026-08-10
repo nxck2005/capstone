@@ -1813,3 +1813,36 @@ branch consumes the summary field; work selection uses `remaining_work_unit_ids`
 and merge readiness counts only the exact nonmergeable classification. The
 contract-bound source remains unchanged during C2, and all phase records use
 the census/merge count. No scientific result or requirement changes.
+
+## G8_C C2 — user-requested pause at ordinal 748 (2026-08-11)
+
+Pushed marker `d7f0fe82408f976251d017a4b2aa727390b5cf41` authorized
+ordinals 743–870, beginning with ordinal 743 attempt 2. After remote parity, the
+registered epoch-2 command ran in the harness process
+`g8c_epoch2_remaining` on one CUDA worker, shard `1/0`, auto batch 64 and
+maximum 128 units. The First Review package commit
+`18c1e710f2eb3f24e7378ff1e71ccba982e078f0` landed while it ran but changed no
+contract-bound source or scientific evidence.
+
+At the user's requested session stop, the process tree was terminated
+deliberately with exit 143 after 11 minutes 50 seconds. Crash-atomic
+transactions preserved five new complete full-strength units, authority
+ordinals 743–747. Ordinal 743 completed legally at attempt 2; its attempt-1
+request remains immutable operational history. Ordinal 748
+`bler-3d67593f9deb3cfaab668644` retained a request-only attempt 1 with no result
+and therefore next proposes attempt 2.
+
+Post-stop read-only B3 inspection classified 748 units as
+`completed_full_strength`, one as `claimed_request_published` and 2,464 as
+`absent`; recoverable, failed-retryable, terminal-nonmergeable, unknown and
+duplicate counts were zero, and no repair was applied. Reconciliation installed
+campaign-state SHA
+`4a285ee7746f197a96c23230a0aac945c581c4ec8d40bc98bb3fa86b46f68ddd`,
+with 748 completed IDs, null in-progress ID and all protected counters zero.
+The independent epoch-2 verifier passed with 748 completed and 2,465 remaining.
+Fresh plan digest
+`82e5dd2bd5a78c1f1f6e44a201ee1d0df47ed4e1a59035cdebfe721aa5232c2c`
+begins at ordinal 748 attempt 2. No next marker was written, no worker remains
+active, epoch 1 remains byte-identical, and no validation, inference, training,
+selection, authorization or test access occurred. **No specification
+amendment.**

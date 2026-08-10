@@ -117,14 +117,15 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: G8_C C2 — full-strength physical-layer BLER
-characterization is active.** `instructions/RESUME.md` is the single
-operational cursor and carries the exact authenticated coverage, legal attempt,
-pushed marker and restart command. Those volatile details are deliberately not
-duplicated here. C1C registered additive source epoch 2 without rewriting
-epoch 1; C2 may run only through that registered coordinator and the
-authenticated runner. No G-8 `BlerTable`, selection, authorization, validation
-measurement, inference, training or test access has occurred.
+**Current action: G8_C C2 is paused at a user-requested durable
+checkpoint.** `instructions/RESUME.md` is the single operational cursor and
+carries the exact authenticated coverage, legal attempt and next-session
+inspect/reconcile/marker sequence. No worker is running, and those volatile
+details are deliberately not duplicated here. C1C registered additive source
+epoch 2 without rewriting epoch 1; C2 may resume only through that registered
+coordinator and the authenticated runner. No G-8 `BlerTable`, selection,
+authorization, validation measurement, inference, training or test access has
+occurred.
 
 W4, G8_A and G8_B are complete. G8_A froze the contract, policy bindings,
 12,096 structural candidates, 3,213 required BLER work units and state

@@ -24,7 +24,7 @@ gantt
     W4 bounded classical integration                :done, w4, 2026-08-01, 2026-08-09
 
     section Current critical path
-    G8_C full-strength BLER characterization        :active, crit, g8c, 2026-08-09, 2026-08-15
+    G8_C full-strength BLER characterization        :crit, g8c, 2026-08-09, 2026-08-15
     G8_D-G validation sweep and G-8                 :crit, g8rest, after g8c, 6d
     First Review artifacts PR-1, PR-2, PR-3, PR-9  :active, reviewdocs, 2026-08-11, 2026-08-21
     First Review window                             :milestone, r1, 2026-08-22, 0d
@@ -62,9 +62,9 @@ gantt
 | W2 learned-system feasibility | 29–30 Jul | W1 | G-7 profile: batch 32, 1.004 GiB peak reserved VRAM, 48.68 s measured epoch | Complete |
 | W3 digital physical layer | 30 Jul–2 Aug | W1 | G-2; exact packetisation and independent BLER agreement | Complete |
 | W4 baseline integration | 1–9 Aug | W3 | Bounded JPEG 2000 + LDPC path; BR-4 selection machinery | Complete |
-| G8_C BLER characterization | 9–15 Aug | G8_A/B contracts and manifests | Exactly 3,213 authenticated 5,000-trial work-unit results | Active; 743/3,213 accepted at 11 Aug baseline |
+| G8_C BLER characterization | 9–15 Aug | G8_A/B contracts and manifests | Exactly 3,213 authenticated 5,000-trial work-unit results | Paused at user-requested checkpoint; 748/3,213 accepted at 11 Aug baseline |
 | G8_D–G classical validation | 15–21 Aug | G8_C exact coverage | Frozen BLER table, full validation sweep, operating-point decision, G-8 | Not started; gated |
-| First Review package | 11–21 Aug | W0–W4 evidence | Literature review, Gantt, standards register, deployment dossier, review slides | In progress |
+| First Review package | 11–21 Aug | W0–W4 evidence | Literature review, Gantt, standards register, deployment dossier, review slides | Baseline documents/package complete; template export and rehearsal remain |
 | W5 training system | 24–30 Aug | G-8 operating ratios | Checkpoint/resume training loop and schema-exact records | Not started |
 | W6 operating-point closure | 31 Aug–6 Sep | G-8 evidence | Classical-only sweep closed; artifact corpus available | Not started |
 | W7 pilot and λ calibration | 7–13 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
@@ -110,6 +110,6 @@ These are observed repository records, not forecasts:
 - G-7: the 1.64 M-parameter DJSCC profile ran a full 8,469-image epoch at batch size 32 in 48.68 s, reserving 1.004 GiB VRAM; 100 epochs projected to 1.35 h on the profiled device.
 - G-2: golden vectors and all three independent BLER waterfall comparisons passed the 0.5 dB tolerance.
 - W4: a bounded end-to-end classical run and its source-bound verifier pass; the full G-8 validation sweep has not run.
-- G8_C at this baseline: 743 of 3,213 required BLER units are authenticated; later-phase counters and test access remain zero.
+- G8_C at this baseline: 748 of 3,213 required BLER units are authenticated and execution is paused; later-phase counters and test access remain zero.
 
 No learned-vs-classical headline result exists yet. The First Review must not present bounded smoke data as a scientific comparison.

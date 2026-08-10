@@ -7,7 +7,9 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-11 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is active at `G8_C/characterization_open`. Exact coverage, attempt and restart-command details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-11 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is paused at a user-requested durable checkpoint under `G8_C/characterization_open`. No worker is running. Exact coverage, attempt and next-session restart details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+
+**First Review programme baseline complete:** PR-1 literature review, PR-2 Gantt plan, PR-3 standards/tools register, PR-9 deployment dossier and the PR-8 review package are committed under `docs/`. Final template export and rehearsal remain presentation work, not scientific execution.
 
 > **B3.H1 complete — the B3.2 HOLD is resolved (read this first).** B3.0 (durable instruction) and B3.1 (authenticated B3
 > context, runtime path grammar, global reconciliation lock, no-follow census) remain complete. **B2C clean-claim semantics
@@ -47,7 +49,7 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 ## Single next task
 
-**Next task:** G8_C C2 — continue the exact resumable full-strength BLER suffix from the pushed marker in `instructions/RESUME.md`, checkpointing at most 128 newly completed units before the next launch.
+**Next-session task:** G8_C C2 — authenticate the durable stop checkpoint, run the exact read-only inspection and reconciliation in `instructions/RESUME.md`, then write and push a fresh at-most-128-unit marker before resuming the full-strength BLER suffix.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -64,16 +66,21 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next and active — G8_C C2: resumable full-strength physical-layer characterization** |
-| G8_B–G8_G | **G8_B complete; G8_C C0/C1C complete and C2 active at `characterization_open`; C3 and all later phases remain gated.** |
+| G-8 classical validation work | **paused at a durable G8_C C2 checkpoint; resume next session only through the ledgered inspect/reconcile/marker sequence** |
+| G8_B–G8_G | **G8_B complete; G8_C C0/C1C complete and C2 paused at `characterization_open`; C3 and all later phases remain gated.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B is complete through B6 and C0/C1C legally opened and corrected G8_C.** C2 full-strength characterization is active under the additive epoch-2 source manifest. Exact accepted coverage and the next legal attempt are intentionally maintained only in `instructions/RESUME.md` and authenticated campaign state, rather than duplicated in this handoff. The test split and every later scientific phase remain closed.
-Everything else stays behind its own gate — do not calibrate λ, train learned models, implement
+**G8_B is complete through B6 and C0/C1C legally opened and corrected G8_C.**
+C2 full-strength characterization is durably paused under the additive epoch-2
+source manifest; no worker is running. Exact accepted coverage and the next
+legal attempt are intentionally maintained only in `instructions/RESUME.md`
+and authenticated campaign state, rather than duplicated in this handoff. The
+test split and every later scientific phase remain closed. Everything else
+stays behind its own gate — do not calibrate λ, train learned models, implement
 ER-9, or access the test split until theirs.
 
 ⚠️ **It does not begin by constructing a `G8Authorization` and calling `select_operating_points()`.**
@@ -89,16 +96,21 @@ a canonical image to a decoded image plus one of four verdicts (`structural_infe
 exact bit accounting. **PB_2, including its PB_2C correction**, added the frozen constant-class
 outage policy, schema-exact per-image and aggregate records, a crash-resumable bounded runner,
 committed bounded evidence and the W4 integration verifier. **PB_3 built the BR-4 selection
-machinery and deliberately did not run it** — see the section below. What remains after W4 is G-8:
-the full BR-4 validation sweep and the operating-point decision. PR-1, PR-2 and PR-9 remain
-outstanding programme deliverables and are unblocked by all of this.
+machinery and deliberately did not run it** — see the section below. What
+remains after W4 is G-8: complete C2, then the full BR-4 validation sweep and
+the operating-point decision. The First Review baseline artifacts are now
+committed as `docs/literature-review.md`, `docs/gantt-plan.md`,
+`docs/standards-and-tools-register.md`, `docs/deployment-dossier.md` and
+`docs/first-review-package.md`; final template export and rehearsal remain.
 
-**Three items recorded during B2C, none of them B2C work.** (i) **DJSCC training infrastructure
-remains a later W5 task** — it is not part of G-8 and must not be started to "unblock" anything
-here. (ii) **PR-1, PR-2, PR-3 and PR-9 remain outstanding**, and their urgency is governed by the
-actual calendar review deadline in `params.deliverables.review_dates`, **not** by the fact that the
-engineering work package called W4 is complete. Finishing W4 did not move a review date; do not
-read "W4 complete" as slack on these. (iii) **`er1_projected_total_hours_status` remains an open
+**Three items recorded during B2C, none of them B2C work.** (i) **DJSCC training
+infrastructure remains a later W5 task** — it is not part of G-8 and must not be
+started to “unblock” anything here. (ii) **The PR-1, PR-2, PR-3 and PR-9
+baseline artifacts are now complete**; presentation export/rehearsal remains
+governed by the actual calendar review deadline in
+`params.deliverables.review_dates`. Finishing W4 did not move a review date;
+do not read “W4 complete” as slack on these. (iii)
+**`er1_projected_total_hours_status` remains an open
 profiling/governance item** — it is unresolved, it was not touched by B2C, and it still needs a
 profiling pass plus a recorded governance decision.
 

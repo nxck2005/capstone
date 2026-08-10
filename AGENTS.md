@@ -7,21 +7,21 @@ This file provides guidance to coding agents (Claude Code, and any other agent t
 **Implementation started 2026-07-28. W1, W2 and W3 are complete; G-9, G-1,
 G-7 and G-2 passed; the validation-only transparency-bitrate probe is complete
 and lineage-bound.** W4, G8_A and G8_B are complete. **G8_C C0/C1C are complete
-and C2 full-strength characterization is active:** epoch 1 remains
-byte-immutable, source epoch 2 is registered, and
-`G8_C/characterization_open` is the live cursor. Exact coverage, attempt and
-restart-command details are intentionally maintained only in
-`instructions/RESUME.md` and the authenticated campaign state; volatile counts
-in this summary are not an execution authority. No BLER table, selection,
-authorization, inference, training, validation decoding or test access has
-occurred. The test split remains sealed, and G8_C C3–G8_G remain gated by the
-existing phase protocol.
+and C2 full-strength characterization is paused at a user-requested durable
+checkpoint:** epoch 1 remains byte-immutable, source epoch 2 is registered, and
+`G8_C/characterization_open` is the live cursor. No worker is running. Exact
+coverage, attempt and restart-command details are intentionally maintained only
+in `instructions/RESUME.md` and the authenticated campaign state; volatile
+counts in this summary are not an execution authority. No BLER table,
+selection, authorization, inference, training, validation decoding or test
+access has occurred. The test split remains sealed, and G8_C C3–G8_G remain
+gated by the existing phase protocol.
 
-**Current action: G8_C C2 — continue only from the exact pushed marker and
-restart command in `instructions/RESUME.md`, through the additive v2
-coordinator and authenticated v3 runner.** Never use the superseded v1
-coordinator, create authorization, access validation/test data or enter G8_D
-early.
+**Current action: stop here for this session. On the next session, resume G8_C
+C2 only through the exact inspect/reconcile/marker sequence in
+`instructions/RESUME.md`, the additive v2 coordinator and authenticated v3
+runner.** Never use the superseded v1 coordinator, create authorization, access
+validation/test data or enter G8_D early.
 
 **Historical final G8_B handoff:** the prior live cursor was `G8_B/tooling_smoke_complete` with campaign-state
 SHA-256 `09f1655f570fe947f93bf2477b7bb3b3a7e871c32a98addde0b9d1e7b3400a77`. The seven registered
