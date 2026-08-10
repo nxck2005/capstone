@@ -99,6 +99,7 @@ def _refresh_file_hash(evidence: Path, name: str) -> None:
     )
 
 
+@pytest.mark.external_dataset
 def test_committed_probe_evidence_verifies():
     result = verify()
     assert result["status"] == "COMPLETE"
@@ -110,6 +111,7 @@ def test_committed_probe_evidence_verifies():
 
 
 @pytest.mark.parametrize("mutation", ["missing", "unexpected"])
+@pytest.mark.external_dataset
 def test_missing_or_unexpected_summary_field_fails(tmp_path: Path, mutation: str):
     evidence = _evidence(tmp_path, copy=("summary.json",))
     if mutation == "missing":
@@ -172,6 +174,7 @@ def test_missing_or_unexpected_summary_field_fails(tmp_path: Path, mutation: str
         ),
     ],
 )
+@pytest.mark.external_dataset
 def test_summary_identity_and_scope_mutations_fail(
     tmp_path: Path, mutation, message: str
 ):
@@ -181,6 +184,7 @@ def test_summary_identity_and_scope_mutations_fail(
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_missing_validation_cell_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("per_image.csv",))
     _mutate_csv(evidence / "per_image.csv", lambda rows: rows.pop())
@@ -189,6 +193,7 @@ def test_missing_validation_cell_fails(tmp_path: Path):
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_duplicate_budget_axis_sample_cell_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("per_image.csv",))
 
@@ -201,6 +206,7 @@ def test_duplicate_budget_axis_sample_cell_fails(tmp_path: Path):
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_stable_id_outside_validation_manifest_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("per_image.csv",))
     _mutate_csv(
@@ -224,6 +230,7 @@ def test_stable_id_outside_validation_manifest_fails(tmp_path: Path):
         ("ssim", "2.0", "PSNR/SSIM"),
     ],
 )
+@pytest.mark.external_dataset
 def test_per_image_numeric_and_status_mutations_fail(
     tmp_path: Path,
     field: str,
@@ -251,6 +258,7 @@ def test_per_image_numeric_and_status_mutations_fail(
         ("mean_ssim", "0", "mean_ssim"),
     ],
 )
+@pytest.mark.external_dataset
 def test_accuracy_and_metric_aggregate_mutations_fail(
     tmp_path: Path,
     field: str,
@@ -267,6 +275,7 @@ def test_accuracy_and_metric_aggregate_mutations_fail(
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_best_axis_mutation_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("summary.json",))
     _mutate_json(
@@ -277,6 +286,7 @@ def test_best_axis_mutation_fails(tmp_path: Path):
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_file_hash_disagreement_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("summary.json",))
     _mutate_json(
@@ -287,6 +297,7 @@ def test_file_hash_disagreement_fails(tmp_path: Path):
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_bootstrap_result_mutation_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("summary.json",))
     _mutate_json(
@@ -306,6 +317,7 @@ def test_bootstrap_result_mutation_fails(tmp_path: Path):
         ("probe_crossover_threshold", "2 pp"),
     ],
 )
+@pytest.mark.external_dataset
 def test_threshold_forecast_mutation_fails(
     tmp_path: Path, field: str, message: str
 ):
@@ -318,6 +330,7 @@ def test_threshold_forecast_mutation_fails(
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_cache_manifest_missing_entry_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("cache_manifest.json",))
 
@@ -331,6 +344,7 @@ def test_cache_manifest_missing_entry_fails(tmp_path: Path):
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_cache_manifest_root_mutation_fails(tmp_path: Path):
     evidence = _evidence(tmp_path, copy=("cache_manifest.json",))
     _mutate_json(
@@ -361,6 +375,7 @@ def _mutate_resolved_lineage(
     _refresh_file_hash(evidence, "resolved_config.json")
 
 
+@pytest.mark.external_dataset
 def test_unreachable_implementation_commit_fails(tmp_path: Path):
     config = tmp_path / "probe.yaml"
     config.write_text(
@@ -376,6 +391,7 @@ def test_unreachable_implementation_commit_fails(tmp_path: Path):
         verify(config_path=config)
 
 
+@pytest.mark.external_dataset
 def test_unreachable_measurement_commit_fails(tmp_path: Path):
     evidence = _evidence(
         tmp_path,
@@ -396,6 +412,7 @@ def test_unreachable_measurement_commit_fails(tmp_path: Path):
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_wrong_commit_ancestry_fails(tmp_path: Path):
     evidence = _evidence(
         tmp_path,
@@ -419,6 +436,7 @@ def test_wrong_commit_ancestry_fails(tmp_path: Path):
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_critical_source_changed_between_a_and_b_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -465,6 +483,7 @@ def test_critical_source_changed_between_a_and_b_fails(
         ),
     ],
 )
+@pytest.mark.external_dataset
 def test_execution_source_identity_mutations_fail(
     tmp_path: Path,
     mutation,
@@ -483,6 +502,7 @@ def test_execution_source_identity_mutations_fail(
 
 
 @pytest.mark.parametrize("kind", ["missing", "unexpected"])
+@pytest.mark.external_dataset
 def test_missing_or_unexpected_execution_source_fails(
     tmp_path: Path,
     kind: str,
@@ -501,6 +521,7 @@ def test_missing_or_unexpected_execution_source_fails(
         verify(evidence_dir=evidence)
 
 
+@pytest.mark.external_dataset
 def test_shards_from_differing_commits_fail():
     resolved = json.loads(
         (SOURCE / "resolved_config.json").read_text(encoding="utf-8")
@@ -517,6 +538,7 @@ def test_shards_from_differing_commits_fail():
         _consistent_shard_lineage([first, second])
 
 
+@pytest.mark.external_dataset
 def test_tracked_cache_or_codestream_is_rejected(
     monkeypatch: pytest.MonkeyPatch,
 ):
@@ -591,6 +613,7 @@ def _record(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation=None) -> N
     monkeypatch.setattr(verifier, "READJUDICATION", path)
 
 
+@pytest.mark.external_dataset
 def test_codec_binding_accepts_the_declared_am80_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -600,6 +623,7 @@ def test_codec_binding_accepts_the_declared_am80_drift(
     )
 
 
+@pytest.mark.external_dataset
 def test_codec_binding_accepts_no_drift_without_a_record(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -610,6 +634,7 @@ def test_codec_binding_accepts_no_drift_without_a_record(
     )
 
 
+@pytest.mark.external_dataset
 def test_codec_binding_rejects_a_stale_record_when_nothing_drifted(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -623,6 +648,7 @@ def test_codec_binding_rejects_a_stale_record_when_nothing_drifted(
         )
 
 
+@pytest.mark.external_dataset
 def test_codec_binding_rejects_undeclared_drift_without_a_record(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -633,6 +659,7 @@ def test_codec_binding_rejects_undeclared_drift_without_a_record(
         )
 
 
+@pytest.mark.external_dataset
 def test_codec_binding_rejects_an_archive_that_fails_its_own_hash(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -662,6 +689,7 @@ def test_codec_binding_rejects_an_archive_that_fails_its_own_hash(
         (("environment", "openjpeg"), "2.5.3"),
     ],
 )
+@pytest.mark.external_dataset
 def test_codec_binding_rejects_any_additional_codec_drift(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, path: tuple[str, ...], value
 ):
@@ -676,6 +704,7 @@ def test_codec_binding_rejects_any_additional_codec_drift(
         )
 
 
+@pytest.mark.external_dataset
 def test_codec_binding_rejects_a_change_to_the_probes_own_axis_ladder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ):
@@ -763,6 +792,7 @@ def test_codec_binding_rejects_a_change_to_the_probes_own_axis_ladder(
         ),
     ],
 )
+@pytest.mark.external_dataset
 def test_codec_binding_rejects_a_defective_record(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation, message: str
 ):

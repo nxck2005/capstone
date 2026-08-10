@@ -124,6 +124,7 @@ def test_offline_floor_fixture_is_unconditional_and_exact():
     assert np.array_equal(actual, expected)
 
 
+@pytest.mark.external_ldpc_fixture
 def test_srsran_encoder_and_rate_matched_fixture_exact():
     fixture_path = ROOT / "tests/fixtures/ldpc_ts38212_golden.npz"
     assert fixture_path.exists(), (
@@ -179,6 +180,7 @@ def test_runtime_packetisation_matches_every_solver_row():
     assert infeasible == ["cifar10/r_1_48/bpsk/1/3"]
 
 
+@pytest.mark.primary_runtime
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA conformance is enforced elsewhere")
 @pytest.mark.parametrize(("modulation", "q_m"), [("bpsk", 1), ("qpsk", 2), ("qam16", 4)])
 def test_adapter_clean_high_snr_all_modulations(modulation, q_m):

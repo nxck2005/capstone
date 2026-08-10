@@ -513,6 +513,7 @@ def test_classifier_inference_takes_no_gradient() -> None:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.external_codec_runtime
 def test_codestream_byte_split_reconciles_on_a_real_encode(tmp_path: Path) -> None:
     from baseline.j2k import J2KCodec
 
@@ -990,6 +991,7 @@ def test_an_out_of_range_psot_is_rejected(psot: int) -> None:
         codestream_byte_split(codestream)
 
 
+@pytest.mark.external_codec_runtime
 def test_a_real_openjpeg_encode_reconciles_exactly(tmp_path) -> None:
     """The hand-built fixtures above must agree with a real codestream."""
 

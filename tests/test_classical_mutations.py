@@ -256,6 +256,7 @@ def test_dropped_ldpc_filler_fails_reconciliation():
     assert not mutated.systematic_reconciles and not mutated.reconciles
 
 
+@pytest.mark.external_codec_runtime
 def test_dropped_payload_filler_is_caught_before_transmission(
     product, codec, identity, monkeypatch: pytest.MonkeyPatch
 ):
@@ -302,6 +303,7 @@ def test_unaccounted_code_block_crc_fails_reconciliation():
 # 6 --- codec size above budget ------------------------------------------------
 
 
+@pytest.mark.external_codec_runtime
 def test_codestream_above_the_payload_budget_is_refused(
     product, codec, identity, monkeypatch: pytest.MonkeyPatch
 ):
@@ -324,6 +326,7 @@ def test_codestream_above_the_payload_budget_is_refused(
         _run(product, codec, identity)
 
 
+@pytest.mark.external_codec_runtime
 def test_every_delivered_codestream_is_within_its_budget(product, codec, identity):
     result = _run(product, codec, identity)
     source = result.source_coding
@@ -354,6 +357,7 @@ def test_infeasible_configurations_return_a_verdict_and_are_never_skipped(
         )
 
 
+@pytest.mark.external_codec_runtime
 def test_codec_infeasibility_records_a_reason_for_every_axis_it_tried(
     product, codec, identity
 ):

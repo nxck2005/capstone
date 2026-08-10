@@ -17,3 +17,11 @@
 pythonpath = ["src", "tools"]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+markers = [
+    "primary_runtime: requires the authenticated primary CUDA build or device",
+    "external_ldpc_fixture: requires the authenticated non-vendored LDPC fixture",
+    "external_dataset: requires an authenticated project dataset archive",
+    "frozen_checkpoint: requires the committed G-1 reference checkpoint",
+    "external_codec_runtime: requires the exact system OpenJPEG runtime",
+    "historical_profile_artifact: requires the archived G-7 profiling report",
+]

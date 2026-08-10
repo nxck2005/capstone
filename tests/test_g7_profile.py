@@ -33,9 +33,13 @@ def _historical_report_repo() -> Path:
 
 @pytest.fixture(autouse=True)
 def bind_archived_report_to_its_source_checkout(
+    request: pytest.FixtureRequest,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Absolute provenance paths belong to the checkout that produced G-7."""
+
+    if "historical_profile_artifact" not in request.node.keywords:
+        return
 
     historical_repo = _historical_report_repo()
     monkeypatch.setattr(verifier, "REPO", historical_repo)
@@ -63,6 +67,7 @@ def _mutate(path: Path, mutation) -> None:
     )
 
 
+@pytest.mark.historical_profile_artifact
 def test_committed_g7_report_is_canonical_and_verifies():
     path = _historical_report_repo() / "results/profiling/g7_djscc_profile.json"
     raw = path.read_text(encoding="utf-8")
@@ -73,6 +78,7 @@ def test_committed_g7_report_is_canonical_and_verifies():
 
 
 @pytest.mark.parametrize("mutation", ["missing", "unexpected"])
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_missing_or_unexpected_required_field(
     profile_report: Path,
     mutation: str,
@@ -86,6 +92,7 @@ def test_verifier_rejects_missing_or_unexpected_required_field(
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_dirty_implementation(profile_report: Path):
     _mutate(profile_report, lambda value: value.update(git_dirty=True))
 
@@ -93,6 +100,7 @@ def test_verifier_rejects_dirty_implementation(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_wrong_implementation_commit(profile_report: Path):
     _mutate(profile_report, lambda value: value.update(implementation_commit="0" * 40))
 
@@ -115,6 +123,7 @@ def test_verifier_rejects_wrong_implementation_commit(profile_report: Path):
         (lambda value: value["model"].update(k=1), "wrong complex-symbol budget"),
     ],
 )
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_wrong_profile_selector(
     profile_report: Path,
     mutation,
@@ -147,6 +156,7 @@ def test_verifier_rejects_wrong_profile_selector(
         ),
     ],
 )
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_incorrect_parameter_caps(
     profile_report: Path,
     mutation,
@@ -158,6 +168,7 @@ def test_verifier_rejects_incorrect_parameter_caps(
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_batch_below_32(profile_report: Path):
     _mutate(profile_report, lambda value: value["training"].update(batch_size=31))
 
@@ -173,6 +184,7 @@ def test_verifier_rejects_batch_below_32(profile_report: Path):
         lambda value: value["training"].update(num_batches=264),
     ],
 )
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_incomplete_epoch(profile_report: Path, mutation):
     _mutate(profile_report, mutation)
 
@@ -180,6 +192,7 @@ def test_verifier_rejects_incomplete_epoch(profile_report: Path, mutation):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_missing_cuda_environment_data(profile_report: Path):
     _mutate(
         profile_report,
@@ -190,6 +203,7 @@ def test_verifier_rejects_missing_cuda_environment_data(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_cpu_projection(profile_report: Path):
     _mutate(
         profile_report,
@@ -200,6 +214,7 @@ def test_verifier_rejects_cpu_projection(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_peak_vram_above_limit(profile_report: Path):
     gib = 1024**3
 
@@ -213,6 +228,7 @@ def test_verifier_rejects_peak_vram_above_limit(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_projected_runtime_above_limit(profile_report: Path):
     def mutation(value):
         value["training"]["epoch_time_s"] = 180.0
@@ -227,6 +243,7 @@ def test_verifier_rejects_projected_runtime_above_limit(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_inconsistent_pass_component(profile_report: Path):
     _mutate(
         profile_report,
@@ -237,6 +254,7 @@ def test_verifier_rejects_inconsistent_pass_component(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_overall_pass_inconsistency(profile_report: Path):
     _mutate(profile_report, lambda value: value.update(verdict="HOLD"))
 
@@ -244,6 +262,7 @@ def test_verifier_rejects_overall_pass_inconsistency(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_any_test_split_claim(profile_report: Path):
     _mutate(
         profile_report,
@@ -254,6 +273,7 @@ def test_verifier_rejects_any_test_split_claim(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_config_hash_disagreement(profile_report: Path):
     _mutate(profile_report, lambda value: value.update(config_hash="0" * 64))
 
@@ -261,6 +281,7 @@ def test_verifier_rejects_config_hash_disagreement(profile_report: Path):
         verify(profile_report)
 
 
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_manifest_disagreement(profile_report: Path):
     _mutate(
         profile_report,
@@ -366,6 +387,7 @@ def test_critical_module_imported_outside_worktree_is_rejected(tmp_path: Path):
 
 
 @pytest.mark.parametrize("field", ["sha256", "git_blob_sha"])
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_wrong_execution_source_identity(
     profile_report: Path, field: str
 ):
@@ -379,6 +401,7 @@ def test_verifier_rejects_wrong_execution_source_identity(
 
 
 @pytest.mark.parametrize("mutation", ["missing", "unexpected"])
+@pytest.mark.historical_profile_artifact
 def test_verifier_rejects_missing_or_unexpected_execution_source(
     profile_report: Path, mutation: str
 ):
