@@ -1781,3 +1781,25 @@ legal suffix is authority ordinal 691,
 `bler-37cd77dc86cd8f621c841645`, attempt 1; it has not been launched yet.
 Epoch 1 remains byte-identical and no validation, inference, training,
 selection or test access occurred. **No specification amendment.**
+
+## G8_C C2 — interrupted batch recovery at ordinal 743 (2026-08-11)
+
+Marker `a2faf93c7bc82a44fd872661030e5945e64e270c` authorized authority ordinals
+691–818. On recovery no coordinator process or tmux session remained, and the
+intended `/tmp/g8c_epoch2_remaining.log` and `.exit` files were absent. The
+authenticated read-only census found 52 new complete units, ordinals 691–742,
+plus ordinal 743 `bler-3cec8e7af0e08f49ba8f887e` as
+`claimed_request_published` at attempt 1 with no result. All 743 accepted units
+carry exactly 5,000 completed trials; recoverable, failed-retryable,
+terminal-nonmergeable, unknown and duplicate counts are zero.
+
+Reconciliation installed campaign-state SHA
+`8feb2de756945832578d3ad2f576ad50716677d6a44546ffb34ed272e5f79985`, with
+743 completed IDs, null in-progress ID and all protected counters zero. The
+independent epoch-2 verifier passed with 743 completed and 2,470 remaining.
+Fresh plan digest
+`aa29222b42dfa23cadc11b1a87005c9b573ef3c12034dae6c356f58657a4934e`
+starts at ordinal 743 attempt 2; request-only attempt 1 remains immutable
+operational history and no repair or fabricated failure was applied. Epoch 1
+remains byte-identical and no validation, inference, training, selection,
+authorization or test access occurred. **No specification amendment.**
