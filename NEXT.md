@@ -7,9 +7,11 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-11 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is paused at a user-requested durable checkpoint under `G8_C/characterization_open`. No worker is running. Exact coverage, attempt and next-session restart details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-12 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is paused at a user-requested durable checkpoint under `G8_C/characterization_open`. No worker is running. Exact coverage, attempt and next-session restart details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
 
-**First Review programme baseline complete:** PR-1 literature review, PR-2 Gantt plan, PR-3 standards/tools register, PR-9 deployment dossier and the PR-8 review package are committed under `docs/`. Final template export and rehearsal remain presentation work, not scientific execution.
+**First Review delivery contract — user-fixed; do not ask for it again or reinterpret it.** The maintained checklist is [`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md). Completion requires the polished approximately 10–12-slide PPT covering all six rubric categories; ≥25-reference review; corrected Gantt; technical readiness across all four members; G-1 and existing implementation evidence ready for viva; deployment dossier plus the guide's dated acknowledgement of the simulation-first Tier-1/no-required-hardware path; exact corrected H1 wording and 18–22 August dates; the final package under `deliverables/review-1/`; and the annotated `review-1-basis` snapshot cut from that final basis. The backing documents are complete; the final deck/export, four-member rehearsal, guide acknowledgement and snapshot remain.
+
+**Review boundary:** the deck must explicitly map to the six rubric criteria; the literature must synthesize rather than list; the Gantt must show later work as unfinished; and four-member understanding plus the guide response are human facts agents cannot fabricate. Current valid evidence is enough. G8_C completion, a final BLER table, neural training, learned-versus-classical results, demo, thesis chapters, paper, poster, plagiarism report, hardware purchase and SDR implementation are not First Review gates. Do not rerun or weaken science for graphs and do not rewrite provenance. Use the readiness matrix at the end of the package; the prepared guide record remains `PENDING` until the author supplies a real response.
 
 > **B3.H1 complete — the B3.2 HOLD is resolved (read this first).** B3.0 (durable instruction) and B3.1 (authenticated B3
 > context, runtime path grammar, global reconciliation lock, no-follow census) remain complete. **B2C clean-claim semantics
@@ -98,18 +100,18 @@ outage policy, schema-exact per-image and aggregate records, a crash-resumable b
 committed bounded evidence and the W4 integration verifier. **PB_3 built the BR-4 selection
 machinery and deliberately did not run it** — see the section below. What
 remains after W4 is G-8: complete C2, then the full BR-4 validation sweep and
-the operating-point decision. The First Review baseline artifacts are now
-committed as `docs/literature-review.md`, `docs/gantt-plan.md`,
+the operating-point decision. The First Review backing artifacts are committed as
+`docs/literature-review.md`, `docs/gantt-plan.md`,
 `docs/standards-and-tools-register.md`, `docs/deployment-dossier.md` and
-`docs/first-review-package.md`; final template export and rehearsal remain.
+`deliverables/review-1/first-review-package.md`. They do not by themselves complete the
+user-fixed delivery contract above.
 
 **Three items recorded during B2C, none of them B2C work.** (i) **DJSCC training
 infrastructure remains a later W5 task** — it is not part of G-8 and must not be
 started to “unblock” anything here. (ii) **The PR-1, PR-2, PR-3 and PR-9
-baseline artifacts are now complete**; presentation export/rehearsal remains
-governed by the actual calendar review deadline in
-`params.deliverables.review_dates`. Finishing W4 did not move a review date;
-do not read “W4 complete” as slack on these. (iii)
+backing documents are complete**; the final deck/export, four-member rehearsal,
+guide acknowledgement, final package and snapshot remain due before the
+18–22 August First Review window. Finishing W4 did not move the review date. (iii)
 **`er1_projected_total_hours_status` remains an open
 profiling/governance item** — it is unresolved, it was not touched by B2C, and it still needs a
 profiling pass plus a recorded governance decision.
@@ -570,35 +572,23 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
-### ⏰ Standing trigger — First Review package (check this every session)
+### ⏰ First Review delivery contract (check this every session)
 
-**Fires when all three are true: PR-1 committed · PR-2 committed · G-1 passed.**
-(`params.deliverables.review_1_ready_when`. As of 2026-07-29: **G-1 passed; PR-1 and PR-2 remain**.)
+The readiness trigger (`PR-1` committed · `PR-2` committed · `G-1` passed) has fired. It authorises package preparation; it does not mean the package is complete. The user-fixed acceptance checklist is [`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md) and MUST NOT be re-elicited from the user.
 
-When it fires, do two things and do them in this order:
+Remaining delivery work:
 
-1. **Cut the snapshot tag** — a tag, deliberately not a branch (AM-64):
-   ```bash
-   git tag -a review-1-basis -m "State the First Review package is derived from"
-   ```
-2. **Tell Nick to start the review package.** He asked to be reminded, and it is not something he
-   should have to remember on the right week. It lives in `deliverables/review-1/`.
+1. produce and polish the approximately 10–12-slide deck covering Motivation, Objectives, Hypothesis, Problem Survey, Subject Knowledge and Time Plan;
+2. rehearse until all four members can independently explain the architecture, methodology, fairness controls, data isolation, exact H1 rule, evidence boundaries and current implementation state;
+3. obtain and record the guide's dated acknowledgement of the simulation-first Tier-1/no-required-hardware path;
+4. place the editable deck, PDF and supporting package under `deliverables/review-1/`; and
+5. only then cut the annotated `review-1-basis` tag from that final review basis.
 
-**Why those three gate it.** The rubric scores the First Review as six criteria × 5 sub-marks = 30,
-scaled to 10: Motivation · Objectives · Hypothesis · Problem Survey · Subject Knowledge · Time Plan.
-**Problem Survey *is* PR-1 and Time Plan *is* PR-2** — a third of the review, with nothing behind it
-today. G-1 is in the list because Subject Knowledge is assessed by general viva and Hypothesis by
-whether a real proposal exists; a measured clean-accuracy number makes both concrete.
+The supporting ≥25-reference literature review, corrected Gantt, standards/tools register, deployment dossier and viva evidence map are already available. The First Review window is **18–22 August 2026**, not the obsolete 22–26 August dates from the 2023 rubric sheet.
 
-⚠️ **The one way to lose marks at W17 by what you say at W4.** PR-8 requires objectives stated in
-§2's **completion** terms — build, validate, bandwidth-match, bit-account, evaluate at the
-learned-blind operating point, report with paired inference — and **never** as an outcome such as
-"show the learned system beats the classical one". The Third Review scores `Objectives Met` against
-whatever is set here, so an outcome-phrased objective turns DEC-16's perfectly valid dominance
-fallback into a visible failure. Check the objectives slide against §2 before it is shown.
+The objectives slide MUST use §2's **completion** terms — build, validate, bandwidth-match, bit-account, evaluate at the learned-blind operating point, and report with paired inference — never an outcome promise such as “show the learned system beats the classical one.” H1 MUST use the repaired decision rule: a point qualifies when the studentized paired mean exceeds 1.96; support requires both `R_obs ≥ 3` consecutive qualifying points at or below the training SNR and calibrated run p-value ≤ 0.05. A crossing is not required.
 
-Two smaller facts: the slot is **15 minutes**, so ~10–12 slides; and **Presentation is not a First
-Review criterion** — it first appears at the Second — so these marks are for substance, not delivery.
+The slot is **15 minutes**. The rubric scores six criteria × 5 sub-marks = 30, scaled to 10. `Presentation` is not itself a First Review criterion, but the user requires a polished deck and all four members ready for the viva.
 
 ---
 
@@ -616,8 +606,8 @@ must not be extrapolated. Read "What G-8 actually has to build" above before sta
 `instructions/RESUME.md` for the facts that work needs. Note also: the sweep entry point refuses any
 workload above 64 candidates / 25 samples / 512 cells unless an explicit `G8Authorization` is
 constructed, which nothing in this repository does today.
-Registration remains confirmed (AM-63), and PR-9's author-owned hardware-alternative acknowledgement
-remains non-blocking.
+Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
+does not gate G8, but it is required to complete the user-fixed First Review package.
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
 produced from that exact clean commit. `results/reference_classifier/` holds the four original
@@ -898,15 +888,15 @@ probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The si
 task is the **G-8 classical validation work**: campaign implementation and preflight, then the full
 BR-4 validation sweep and the operating-point decision. W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
-selection policy. PR-1 and PR-2 remain parallel First Review work, and the author-owned
-PR-9 acknowledgement remains open.
+selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed
+First Review deck, four-member rehearsal, PR-9 guide acknowledgement, final package and snapshot remain.
 
 | # | Do | Owner | Why now | Blocks |
 |---|---|---|---|---|
 | ~~0~~ | ~~**Commit `AM-57`..`AM-60`**~~ **DONE** — `37a02dd` | — | — | — |
 | ~~3~~ | ~~**Fetch/archive the srsRAN vectors**~~ **DONE 2026-07-28** — 276 files, 7.2 MB, 3 checksums OK | — | Upstream archived; window now closed in our favour | ~~G-2 at W3~~ |
 | ~~1~~ | ~~**Verify proposal registration** (PR-10)~~ **DONE 2026-07-28** — confirmed complete (AM-63) | — | Was the only risk with no graceful degradation | — |
-| 2 | **Hardware-alternative acknowledgement** (PR-9) | **author** | Circular clause 5. The *decision* is due before W4; the recorded acknowledgement is PR-9's acceptance criterion, so it lands with the dossier | |
+| 2 | **Guide acknowledgement of simulation-first Tier-1/no-required-hardware path** (PR-9) | **author** | Required by the user-fixed First Review contract; record the guide's acknowledgement and date without expanding Tier 2/3 scope | First Review package |
 | ~~4~~ | ~~**Run W1(f) and adjudicate G-1**~~ **DONE 2026-07-29** — 0.898 at epoch 99, G-1 PASS | — | Full validation-only evidence verified; test stayed sealed | ~~all of W2+~~ |
 | ~~5~~ | ~~**Build W2 through G-7**~~ **DONE 2026-07-29** — primary model, batch 32, G-7 PASS | — | Corrected implementation-bound full training-only CUDA epoch; 48.684 s, 1.004 GiB reserved, 1.352 h projected | ~~W3+~~ |
 | ~~5a~~ | ~~**Transparency-bitrate probe with the frozen classifier**~~ **DONE 2026-07-30** — 68,000 validation cells, 0 infeasible, 0 decode failures | — | Frozen classifier reproduced 898/1000; forecasts only, G-8 unresolved | ~~W3/W4~~ |
@@ -914,8 +904,9 @@ PR-9 acknowledgement remains open.
 | ~~5c~~ | ~~**W4 PA / PB_1 / PB_2 bounded classical-baseline integration**~~ **DONE 2026-07-31 — including the PB_1C and PB_2C corrections** | — | Validated physical layer integrated; no sweep started | ~~PB_3~~ |
 | ~~5d~~ | ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication**~~ **DONE 2026-08-01** | — | Selection machinery built and verified; nothing run at scale, no amendment needed | ~~G-8~~ |
 | 5e | **G-8 classical validation work — campaign implementation and preflight, then the full BR-4 validation sweep and the operating-point decision** | agent | W4 closed and PB_3C corrected the selection machinery; the characterization the sweep selects from still has to be built | ER-1, H1–H4, the learned arms |
-| 6 | **PR-1 literature review, in parallel** | either | Due W4, ≥25 refs, needs no code — and it **is** the First Review's `Problem Survey` criterion, 5 of its 30 sub-marks | First Review; DEC-13's novelty claim (AM-10 makes it *conditional* on PR-1) |
-| 7 | **PR-2 Gantt, with the real dates** | either | The First Review's `Time Plan` criterion, another 5 sub-marks. Must use `params.deliverables.review_dates` — W4 / W10 / **W17** — not the spreadsheet's 2023 template | First Review; §13's schedule is its source |
+| ~~6~~ | ~~**PR-1 literature review, in parallel**~~ **DONE 2026-08-11 — 30 references** | — | First Review `Problem Survey` backing material and DEC-13 novelty basis | ~~First Review backing material~~ |
+| ~~7~~ | ~~**PR-2 Gantt, with the real dates**~~ **DONE; corrected 2026-08-12 to 18–22 Aug** | — | First Review `Time Plan` criterion; current circular overrides the 2023 rubric dates | ~~First Review backing material~~ |
+| 8 | **Finish First Review delivery contract** | author/team | Polished 10–12-slide deck, all four members ready, guide acknowledgement recorded, final files under `deliverables/review-1/`, then `review-1-basis` tag | First Review |
 
 **Two G-1 guardrails that remain binding downstream:**
 

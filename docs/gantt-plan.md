@@ -3,7 +3,7 @@
 **Baseline date:** 2026-08-11  
 **Owner:** project author  
 **Control source:** [`spec/SPEC.md` §13](../spec/SPEC.md#13-schedule--gates)  
-**Fixed review windows:** First 2026-08-22–26; Second 2026-09-29–10-03; Final 2026-11-17–21  
+**Fixed review windows:** First 2026-08-18–22; Second 2026-09-29–10-03; Final 2026-11-17–21
 **Final report and supporting material:** 2026-11-20
 
 This is the maintained PR-2 time-plan artifact. `spec/SPEC.md` governs sequence and gates if this chart ever disagrees. Engineering checkpoints W0–W4 were completed ahead of the nominal teaching-week windows; the remaining bars preserve the normative gate order. Status reflects authenticated repository evidence, not percentage estimates.
@@ -26,8 +26,8 @@ gantt
     section Current critical path
     G8_C full-strength BLER characterization        :crit, g8c, 2026-08-09, 2026-08-15
     G8_D-G validation sweep and G-8                 :crit, g8rest, after g8c, 6d
-    First Review artifacts PR-1, PR-2, PR-3, PR-9  :active, reviewdocs, 2026-08-11, 2026-08-21
-    First Review window                             :milestone, r1, 2026-08-22, 0d
+    First Review deliverables and rehearsal         :active, reviewdocs, 2026-08-11, 2026-08-17
+    First Review window                             :crit, r1, 2026-08-18, 5d
 
     section Learned system and validation
     W5 training loop, dual head, resume             :w5, 2026-08-24, 7d
@@ -64,7 +64,7 @@ gantt
 | W4 baseline integration | 1–9 Aug | W3 | Bounded JPEG 2000 + LDPC path; BR-4 selection machinery | Complete |
 | G8_C BLER characterization | 9–15 Aug | G8_A/B contracts and manifests | Exactly 3,213 authenticated 5,000-trial work-unit results | Paused at user-requested checkpoint; 748/3,213 accepted at 11 Aug baseline |
 | G8_D–G classical validation | 15–21 Aug | G8_C exact coverage | Frozen BLER table, full validation sweep, operating-point decision, G-8 | Not started; gated |
-| First Review package | 11–21 Aug | W0–W4 evidence | Literature review, Gantt, standards register, deployment dossier, review slides | Baseline documents/package complete; template export and rehearsal remain |
+| First Review package | 11–17 Aug | W0–W4 evidence | Polished 10–12-slide deck; ≥25-reference review; corrected Gantt; four-member technical readiness; viva evidence; deployment dossier plus guide acknowledgement; final package under `deliverables/review-1/`; `review-1-basis` tag | Backing documents complete; deck/export, four-member rehearsal, guide acknowledgement, final package and snapshot remain |
 | W5 training system | 24–30 Aug | G-8 operating ratios | Checkpoint/resume training loop and schema-exact records | Not started |
 | W6 operating-point closure | 31 Aug–6 Sep | G-8 evidence | Classical-only sweep closed; artifact corpus available | Not started |
 | W7 pilot and λ calibration | 7–13 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
@@ -93,12 +93,13 @@ Control rules:
 4. **W16 is allocated contingency, not feature capacity.** It absorbs report completion and results-audit variance.
 5. **Review dates do not move.** If scientific work slips, the review reports the actual state; it does not bypass a gate to manufacture a figure.
 6. **The chart is revised at each review.** Changes record baseline date, changed bar, cause, effect on the critical path, and accepted fallback.
+7. **First Review does not gate on later experiments.** G8_C completion, the final BLER table, learned training/results, demo, thesis, poster, plagiarism workflow, hardware purchase and SDR work remain later tasks. Review 1 reports their real status rather than accelerating, weakening or bypassing them for presentation evidence.
 
 ## 4. Review checkpoints
 
 | Review | Fixed window | Minimum evidence shown | Decision sought |
 |---|---:|---|---|
-| First | 22–26 Aug | Problem/literature synthesis; objectives; maintained Gantt; standards/tools register; G-1/G-2/G-7 evidence; classical pipeline status | Confirm technical direction, task boundary, and remaining execution plan |
+| First | 18–22 Aug | All six rubric categories; problem/literature synthesis; completion objectives; exact corrected H1 rule; maintained Gantt; standards/tools register; G-1/G-2/G-7/W4 evidence; current G8_C status; deployment path | Confirm technical direction, task boundary, simulation-first Tier-1 path, and remaining execution plan |
 | Second | 29 Sep–3 Oct | Frozen validation curves; G-10 crossover disposition; ER-9 design; validation-strength rehearsal; revised Gantt | Approve any objective restatement required by observed validation behavior |
 | Final | 17–21 Nov | Frozen test results; hypothesis decisions; attribution control; demo; report/poster/supporting evidence | Final assessment and viva |
 

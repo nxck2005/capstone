@@ -23,6 +23,33 @@ C2 only through the exact inspect/reconcile/marker sequence in
 runner.** Never use the superseded v1 coordinator, create authorization, access
 validation/test data or enter G8_D early.
 
+**First Review delivery contract — user-fixed; do not ask the user to restate or
+reinterpret it.** The maintained acceptance checklist is
+[`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md).
+Review 1 requires: a polished approximately 10–12-slide PPT covering all six
+rubric categories; the ≥25-reference literature review; the corrected Gantt;
+architecture/methodology readiness across all four team members; G-1 and
+existing implementation evidence ready for viva; the deployment dossier plus a
+dated guide acknowledgement of the simulation-first Tier-1/no-required-hardware
+path; exact corrected H1 wording and the 18–22 August 2026 dates; the final
+package under `deliverables/review-1/`; and an annotated `review-1-basis`
+snapshot cut only from that final review basis. Backing documents do not by
+themselves complete the package.
+
+**First Review scope boundary.** The PPT is the main artifact and MUST expose
+the six-criterion mapping; a generic project deck is insufficient. PR-1 must be
+synthesis, not a bibliography dump. The Gantt must show unfinished later work
+honestly. Four-member technical readiness and the guide response are human
+facts: agents may prepare notes, viva questions and the exact
+[`PENDING` acknowledgement record](deliverables/review-1/guide-hardware-alternative-acknowledgement.md),
+but MUST NOT fabricate either. Current valid evidence is sufficient; G8_C
+completion, the final BLER table, neural training, learned-versus-classical
+results, demo, thesis chapters, paper, poster, plagiarism report, hardware
+purchase and SDR implementation are **not** First Review prerequisites. NEVER
+rerun, weaken, bypass or reinterpret science to produce more review graphs, and
+NEVER rewrite provenance history to clean it up. The evidence-based readiness
+matrix at the end of the package is the final gate.
+
 **Historical final G8_B handoff:** the prior live cursor was `G8_B/tooling_smoke_complete` with campaign-state
 SHA-256 `09f1655f570fe947f93bf2477b7bb3b3a7e871c32a98addde0b9d1e7b3400a77`. The seven registered
 artifacts are unchanged except for the authenticated v3 runner binding

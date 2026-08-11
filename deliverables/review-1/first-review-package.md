@@ -1,16 +1,31 @@
 # First Review Package
 
-**Review window:** 2026-08-22–26  
+**Review window:** 2026-08-18–22  
 **Presentation slot:** 15 minutes  
-**Package baseline:** 2026-08-11  
-**Normative project source:** [`spec/SPEC.md`](../spec/SPEC.md)
+**Package baseline:** 2026-08-12  
+**Normative project source:** [`spec/SPEC.md`](../../spec/SPEC.md)  
+**Final package directory:** `deliverables/review-1/`
 
-This is the maintained PR-8 First Review package. It is an evidence map and presentation script, not a replacement for the prescribed review template. The companion artifacts are:
+This is the maintained PR-8 First Review package. It is the delivery contract, evidence map and presentation script, not a replacement for a university-prescribed review template. The companion backing artifacts are:
 
-- [PR-1 literature review](literature-review.md)
-- [PR-2 Gantt plan](gantt-plan.md)
-- [PR-3 standards and tools register](standards-and-tools-register.md)
-- [PR-9 deployment dossier](deployment-dossier.md)
+- [PR-1 literature review](../../docs/literature-review.md)
+- [PR-2 Gantt plan](../../docs/gantt-plan.md)
+- [PR-3 standards and tools register](../../docs/standards-and-tools-register.md)
+- [PR-9 deployment dossier](../../docs/deployment-dossier.md)
+- [Guide hardware-alternative acknowledgement status](guide-hardware-alternative-acknowledgement.md)
+
+## Delivery acceptance contract
+
+The First Review package is complete only when all of the following are true. This list is user-fixed; agents MUST use it without asking the user to restate or reinterpret it.
+
+1. **PPT:** the main review artifact is a polished approximately 10–12-slide deck that explicitly maps its content to all six First Review rubric categories: Motivation, Objectives, Hypothesis, Problem Survey, Subject Knowledge and Time Plan. A generic project presentation does not pass.
+2. **Literature:** the backing problem survey contains at least 25 credible references, synthesizes what the literature establishes and leaves unresolved, and is available for citations and viva questions. A bibliography dump does not pass.
+3. **Plan:** the Gantt chart uses the current circular's dates, shows realistic remaining work and gates, and does not imply that unfinished later experimental stages are complete.
+4. **Technical readiness:** all four team members can independently explain the three-arm architecture, channel and bandwidth-matching methodology, fairness controls, data isolation, hypothesis protocol and current implementation boundary. Agents may prepare notes and viva questions, but repository artifacts cannot substitute for the four members' understanding.
+5. **Evidence:** G-1/reference-classifier evidence and the existing valid G-2, G-7, W4 and current G8_C implementation evidence are available and correctly labelled for viva. G8_C completion is not a First Review prerequisite; no experiment is rerun, weakened or reframed merely to produce more graphs, and bounded smoke is never presented as a headline comparison.
+6. **Deployment:** the deployment dossier is preparation. The guide's real acknowledgement of the simulation-first Tier-1 path with no required hardware implementation must be obtained and recorded with its date. Agents may prepare the exact request and status record but MUST NOT fabricate, infer or mark the guide's response as recorded. Tier 2/3 remain gated stretch goals.
+7. **Protocol housekeeping:** the deck uses the exact corrected H1 decision rule from `spec/SPEC.md`, uses the 18–22 August 2026 First Review window, and states completion objectives rather than promising a positive outcome. Current corrections preserve the authenticated provenance record; history is never rewritten to make it look cleaner.
+8. **Frozen delivery:** the editable deck, exported PDF and supporting package are committed under `deliverables/review-1/`, then the annotated `review-1-basis` snapshot tag is cut from that final review basis.
 
 ## 1. Review objective
 
@@ -22,13 +37,15 @@ The requested supervisor/panel decision is:
 
 No learned-vs-classical headline result exists at the First Review baseline. Bounded smoke evidence must not be shown as if it were the final experiment.
 
+Review 1 presents the valid state reached by the review date. It does not manufacture later-stage results to make the project appear further advanced.
+
 ## 2. Rubric coverage
 
 | First Review criterion | Evidence in package | Presentation location |
 |---|---|---|
 | Motivation | Short-packet edge/IoT links; task success rather than faithful bit recovery; finite-blocklength cost | Slides 2–3; literature §§2 and 6 |
 | Objectives | Build, verify, and compare three systems at identical `k` and SNR; retain paired outcomes and explicit failures | Slides 3 and 6–7 |
-| Hypotheses | Preregistered H1–H4; primary positive paired interval at three consecutive low-SNR points; crossover not required | Slide 5; `spec/SPEC.md` §2 |
+| Hypotheses | Preregistered H1–H4; for H1 a point qualifies when the studentized paired mean exceeds 1.96, and support requires both a run of at least three consecutive qualifying points at or below the training SNR and the calibrated run p-value ≤ 0.05; crossover not required | Slide 5; `spec/SPEC.md` §2 |
 | Problem survey | Information theory, learned compression, neural JSCC, task-oriented communication, fair baseline gap | Slide 4; literature review |
 | Subject knowledge | AWGN normalization, finite blocklength, JPEG 2000, TS 38.212 LDPC, modulation, task-aware attribution | Slides 4, 6–7; standards register |
 | Time plan | Gate-ordered critical path through G-8, training, test freeze, reporting, and hardware fallback | Slide 9; Gantt plan |
@@ -99,7 +116,7 @@ Objectives:
 - evaluate paired image-level outcomes once on the sealed test split; and
 - report positive, null, or negative outcomes under the same protocol.
 
-State H1–H4 exactly from the spec on the final slide version. The primary criterion is a paired interval above zero at three consecutive low-SNR points. A curve crossing is descriptive, not required.
+State H1–H4 exactly from the spec on the final slide version. For H1, a point qualifies when the studentized paired mean exceeds 1.96; support requires both `R_obs ≥ 3` consecutive qualifying points at or below the training SNR and the calibrated run p-value ≤ 0.05. The run rule decides H1, while the mean paired accuracy difference over the full low-SNR region is the effect size of record. A curve crossing is descriptive, not required.
 
 ### Slide 6 — Architecture and data isolation
 
@@ -145,7 +162,7 @@ Show the critical path from the Gantt:
 
 `G8_C → G-8 → training loop → λ calibration/G-4 → final training → ER-9/G-11 → validation rehearsal → freeze/G-12 → one test campaign → G-5 → demo/report`.
 
-State the hard dates: First Review 22–26 Aug, Second Review 29 Sep–3 Oct, Final Review 17–21 Nov, report due 20 Nov. State that W16 is allocated report contingency, not room for new experiment scope.
+State the hard dates: First Review 18–22 Aug, Second Review 29 Sep–3 Oct, Final Review 17–21 Nov, report due 20 Nov. State that W16 is allocated report contingency, not room for new experiment scope.
 
 ### Slide 10 — Standards, deployment, and decision
 
@@ -188,14 +205,18 @@ Do not manually transcribe a metric without its denominator, split, and evidence
 Before submission:
 
 - [ ] Use the university-prescribed First Review template if one is supplied.
-- [ ] Keep the main sequence within 15 minutes in a timed rehearsal.
-- [ ] Put citations on the literature slide and a compact references slide/appendix.
+- [ ] Keep the polished main sequence to approximately 10–12 slides and within 15 minutes in a timed rehearsal.
+- [ ] Include an explicit slide-to-criterion map for all six First Review rubric categories; do not rely on an implicit generic-project narrative.
+- [ ] Put citations on the literature slide and a compact references slide/appendix backed by the ≥25-reference synthesized review.
+- [ ] Have all four members rehearse the architecture, methodology, fairness controls, H1 rule, evidence boundaries and current implementation status; record team confirmation only after that human check occurs.
 - [ ] Label every metric as measured, projected, bounded smoke, or planned.
 - [ ] State that the test split is sealed and no learned-vs-classical result exists yet.
 - [ ] State that the baseline adapts per SNR and that ER-9 is the attribution control.
 - [ ] State the exact standards boundary and exclusions.
+- [ ] Obtain and record the guide's dated acknowledgement of the simulation-first Tier-1/no-required-hardware path.
 - [ ] Confirm all artifact links and current G8_C status against `instructions/RESUME.md` on the submission day.
-- [ ] Export a PDF and retain the editable source.
+- [ ] Put the editable deck, exported PDF and supporting package under `deliverables/review-1/`.
+- [ ] Cut annotated tag `review-1-basis` only from the final package basis.
 - [ ] Record supervisor/panel feedback and any accepted objective change through the spec amendment process.
 
 ## 8. Anticipated questions
@@ -217,3 +238,42 @@ The project is complete if the preregistered protocol is executed correctly. A n
 
 **Why no curve-crossing pass criterion?**  
 At low bandwidth the learned system could dominate across the grid. Requiring a crossing would perversely treat stronger learned performance as failure. The protocol reports a crossing if observed and tests the paired low-SNR difference directly.
+
+## 9. First Review scope boundary
+
+The First Review requires a defensible proposal, technical foundation, current valid evidence and realistic plan. It does **not** require any of the following, and agents MUST NOT add them as readiness gates:
+
+- completion of all 3,213 G8_C work units;
+- a final `BlerTable`;
+- neural-model training;
+- learned-versus-classical results;
+- a complete demo;
+- thesis chapters;
+- a paper draft;
+- a poster;
+- a plagiarism report;
+- hardware purchase; or
+- SDR implementation.
+
+No scientific run is repeated, weakened, bypassed or reinterpreted merely to create Review 1 graphs. No provenance history is rewritten to make the timeline look cleaner. The deck reports unfinished stages as unfinished and uses only valid evidence already available at the frozen review basis.
+
+## 10. Review-1 readiness matrix
+
+This matrix is the final gate and remains evidence-based. A row becomes `PASS` only after the actual deck or human rehearsal demonstrates it; backing material alone is not enough.
+
+| Rubric criterion | Slide(s) | Supporting artifact | Status |
+|---|---:|---|---|
+| Motivation | 2–3 | — | PENDING — final PPT not yet present |
+| Objectives | 3, 6–7 | `spec/SPEC.md`; this review package | PENDING — final PPT not yet present |
+| Hypothesis | 5 | `spec/SPEC.md` §2 preregistration | PENDING — final PPT not yet present |
+| Problem Survey | 4; references appendix | `docs/literature-review.md` (30 synthesized references) | PENDING — backing artifact passes; final PPT not yet present |
+| Subject Knowledge | 4, 6–8 | Architecture notes; G-1/G-2/G-7/W4/current G8_C evidence | PENDING — requires four-member human confirmation |
+| Time Plan | 9 | `docs/gantt-plan.md` | PENDING — corrected backing artifact passes; final PPT not yet present |
+
+Separate final checks:
+
+| Gate | Status |
+|---|---|
+| Guide hardware-alternative acknowledgement | **PENDING** — only a real, dated guide response can change this to `RECORDED` |
+| Review snapshot | **PENDING** — `review-1-basis` must exist, be annotated and point to the final package basis |
+| Package-of-record | **PASS (location only)** — `deliverables/review-1/` exists; editable PPT and exported PDF remain pending |
