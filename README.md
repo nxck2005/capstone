@@ -35,9 +35,12 @@ non-goals, and an open-items register. The other files under `spec/` are **gener
 - `spec/params.generated.yaml` — machine-readable parameters, consumed by the implementation.
 
 [`docs/`](docs/) holds hand-written background notes that are *not* generated and *not* normative —
-currently [`crossover-explained.md`](docs/crossover-explained.md), which explains in plain language
-and then technically why the success criterion changed, and how the comparison is set up so that a
-crossover is observable if one exists.
+start with [`PROJECT-KNOWLEDGE-TRANSFER.md`](docs/PROJECT-KNOWLEDGE-TRANSFER.md) if you are new to
+the project. It explains the idea, experiment, codebase, current status and safe contribution path
+without assuming communications or machine-learning knowledge. The directory also contains
+[`crossover-explained.md`](docs/crossover-explained.md), which explains in plain language and then
+technically why the success criterion changed, and how the comparison is set up so that a crossover
+is observable if one exists.
 
 ## Working with the spec
 

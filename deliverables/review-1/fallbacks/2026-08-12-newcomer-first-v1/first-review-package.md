@@ -6,21 +6,15 @@
 **Normative project source:** [`spec/SPEC.md`](../../spec/SPEC.md)  
 **Final package directory:** `deliverables/review-1/`
 
-**Presentation draft (2026-08-12 proposal-flow revision; awaiting author review):**
+**Presentation draft (2026-08-12 newcomer-first revision; awaiting author review):**
 [editable PPTX](semantic-communication-first-review.pptx) ·
 [PDF review copy](semantic-communication-first-review.pdf) ·
 [contact sheet](semantic-communication-first-review-contact-sheet.png)
 
-**Academic companion:**
-[editable PPTX](semantic-communication-first-review-academic-v2.pptx) ·
-[PDF review copy](semantic-communication-first-review-academic-v2.pdf) ·
-[contact sheet](semantic-communication-first-review-academic-v2-contact-sheet.png)
-
 **Revision support:**
 [presenter guide](review-1-presenter-guide.md) ·
 [iteration notes](ITERATION-NOTES.md) ·
-[first newcomer version](fallbacks/2026-08-12-newcomer-first-v1/README.md) ·
-[pre-knowledge-transfer fallback](fallbacks/2026-08-12-pre-knowledge-transfer/README.md)
+[pre-revision fallback](fallbacks/2026-08-12-pre-knowledge-transfer/README.md)
 
 This is the maintained PR-8 First Review package. It is the delivery contract, evidence map and presentation script, not a replacement for a university-prescribed review template. The companion backing artifacts are:
 
@@ -48,9 +42,9 @@ The First Review package is complete only when all of the following are true. Th
 
 Demonstrate that the project has a precise research question, a fair and executable comparison protocol, a reproducible implementation foundation, and a gated plan to complete the experiment without adapting the claim to preliminary outcomes.
 
-The presentation should establish:
+The requested supervisor/panel decision is:
 
-> A supervised AI/ML method and fair-comparison protocol: learn a channel-robust neural representation for edge inference over normalized AWGN, then measure image-classification accuracy at matched complex-symbol budget against adaptive JPEG 2000 + 5G NR LDPC and a task-aware digital feature control.
+> Confirm the task boundary and fair-comparison protocol: image-classification accuracy over normalized AWGN at matched complex-symbol budget, comparing adaptive JPEG 2000 + 5G NR LDPC, continuous task-aware DJSCC, and a task-aware digital feature control.
 
 No learned-vs-classical headline result exists at the First Review baseline. Bounded smoke evidence must not be shown as if it were the final experiment.
 
@@ -60,11 +54,11 @@ Review 1 presents the valid state reached by the review date. It does not manufa
 
 | First Review criterion | Evidence in package | Presentation location |
 |---|---|---|
-| Motivation | Limited noisy links, edge AI inference, ordinary image transmission and its task-level limitation | Slides 1–4, 6 and 11 |
-| Objectives | Build, verify and compare three systems at identical `k` and SNR; retain paired outcomes and explicit failures | Slides 6–7 and 11–12 |
-| Hypotheses | Preregistered H1–H4; for H1 a point qualifies when the studentized paired mean exceeds 1.96, and support requires both a run of at least three consecutive qualifying points at or below the training SNR and the calibrated run p-value ≤ 0.05; crossover not required | Slide 8; `spec/SPEC.md` §2 |
-| Problem survey | Information theory, learned compression, neural JSCC, task-oriented communication and the attribution gap | Slide 5; literature review |
-| Subject knowledge | Neural representation learning, residual CNN, dual-head decoder, CE + λMSE, differentiable AWGN, ResNet-18, digital feature attribution, LDPC, resource matching and evidence boundaries | Slides 1–5, 7–9 and 11; architecture notes and standards register |
+| Motivation | Limited noisy links, remote classification, ordinary image transmission and its task-level limitation | Slides 2–4; literature §§2 and 6 |
+| Objectives | Build, verify and compare three systems at identical `k` and SNR; retain paired outcomes and explicit failures | Slides 1–2, 5, 8 and 11 |
+| Hypotheses | Preregistered H1–H4; for H1 a point qualifies when the studentized paired mean exceeds 1.96, and support requires both a run of at least three consecutive qualifying points at or below the training SNR and the calibrated run p-value ≤ 0.05; crossover not required | Slides 8 and 12; `spec/SPEC.md` §2 |
+| Problem survey | Information theory, learned compression, neural JSCC, task-oriented communication and the attribution gap | Slide 6; literature review |
+| Subject knowledge | Compression, LDPC, modulation, AWGN, DJSCC, resource matching, data isolation and evidence boundaries | Slides 3–7, 9 and 11–12; standards register |
 | Time plan | Gate-ordered critical path through G-8, training, test freeze, reporting and hardware fallback | Slide 10; Gantt plan |
 
 ## 3. Narrative contract for this and future iterations
@@ -75,22 +69,11 @@ The presentation must work for a panel member who knows neither communications n
 2. explain the conventional solution in plain language;
 3. explain its limitation relative to the task metric;
 4. introduce the learned change;
-5. establish what prior work already shows and the remaining gap;
-6. state the problem, research question and completion objectives;
-7. present the three-system methodology and fairness controls;
-8. state the hypotheses and evaluation plan;
-9. show feasibility evidence, unfinished work, application and risks; and
-10. close with the project summary, next steps and rubric map.
+5. explain why three systems are required for a fair scientific claim;
+6. establish the literature gap, methodology and hypotheses;
+7. show evidence, unfinished work and the requested decision.
 
 Do not begin with acronyms, gate names, equations or repository machinery. Introduce a term only when the audience needs it. Prefer short, literal prose. Do not use aphorisms, slogans or decorative themes. The visual default is black text on white, light rules, simple tables and only the diagrams needed to explain a flow.
-
-Do not front-load AI/ML buzzwords merely to signal the specialization. Slides
-1–2 establish the ordinary camera–link–receiver problem. Slide 3 explains the
-conventional solution. Slide 4 introduces the learned sender and receiver,
-then names DJSCC and supervised end-to-end learning. The methodology section
-provides the residual CNN, dual-head decoder, differentiable AWGN and `CE +
-λMSE` details. This order keeps the AIML contribution clear without sacrificing
-knowledge transfer.
 
 This is a knowledge-transfer rule, not a reduction in technical substance. The deck must still expose all six rubric criteria, the three-system attribution design, the fairness controls, the exact corrected H1 rule, evidence boundaries and the honest remaining plan.
 
@@ -98,24 +81,24 @@ This is a knowledge-transfer rule, not a reduction in technical substance. The d
 
 | Time | Slide | Audience question answered | Content |
 |---:|---:|---|---|
-| 0:00–0:30 | 1 | What is the project? | A camera, a limited noisy link and a remote classification task |
-| 0:30–1:35 | 2 | What problem are we solving? | Observe → communicate → classify; why sending every image detail may be unnecessary |
-| 1:35–2:50 | 3 | How is this normally done? | Compression, error correction, modulation, noisy channel and classifier |
-| 2:50–4:05 | 4 | What changes in the learned system? | Joint encoder/decoder training; fixed deployment split; not RL or an LLM |
-| 4:05–5:25 | 5 | What does prior work leave unresolved? | Four literature families and the attribution gap |
-| 5:25–6:45 | 6 | What problem will the project solve? | Problem statement, research question and completion objectives |
-| 6:45–8:35 | 7 | How will the project answer it? | Three-system methodology, shared inputs and evaluation controls |
-| 8:35–10:10 | 8 | What exactly will be tested? | Exact H1 rule, H2–H4 and outcome-independent reporting |
-| 10:10–11:35 | 9 | Is the proposed work feasible? | G-1, G-7, G-2, W4 and paused G8_C evidence with explicit boundaries |
-| 11:35–12:45 | 10 | What remains? | Gate-ordered plan and hard review/report dates |
-| 12:45–13:50 | 11 | Is the scope practical and applicable? | Real-world application, required scope, risks, standards and guide item |
-| 13:50–15:00 | 12 | What should the audience retain? | Project summary, immediate next steps and explicit six-criterion map |
+| 0:00–0:35 | 1 | What is the project? | Formal title and one plain-language scope statement |
+| 0:35–1:45 | 2 | What happens from camera to decision? | Observe → send → decide → compare; definition of semantic communication |
+| 1:45–3:05 | 3 | How is this normally done? | Compression, error correction, modulation, noisy channel and classifier |
+| 3:05–4:20 | 4 | What changes in the learned system? | Joint encoder/decoder training; fixed deployment split; not RL or an LLM |
+| 4:20–5:35 | 5 | Why are there three systems? | Classical image link, digital feature control and learned joint link |
+| 5:35–7:00 | 6 | What does prior work leave unresolved? | Four literature families and the attribution gap |
+| 7:00–8:30 | 7 | How is the comparison fair? | Shared image, budget, SNR/noise, tuning boundary, failures and accounting |
+| 8:30–9:50 | 8 | What will be completed and tested? | Objectives, H1–H4 in plain language and outcome-independent completion |
+| 9:50–11:25 | 9 | What is already demonstrated? | G-1, G-7, G-2, W4 and paused G8_C evidence with explicit boundaries |
+| 11:25–12:45 | 10 | What remains? | Gate-ordered plan and hard review/report dates |
+| 12:45–14:10 | 11 | What should the panel confirm? | Research, standards and deployment boundaries; guide item |
+| 14:10–15:00 | 12 | Where is the formal rule and rubric coverage? | Exact corrected H1 wording and explicit six-criterion map |
 
 ## 5. Slide content contract
 
 ### Slides 1–2 — Establish the task
 
-Use the formal title, then explain the setting without model terminology: an edge camera sees an image, a limited noisy link separates it from the receiver, and the receiver must classify the image. Ask whether every image detail must be sent. Do not introduce residual CNNs, differentiable channels or the loss function yet.
+Use the formal title, then explain the project as a four-step process: an edge device observes an image, sends through a limited noisy link, the receiver predicts a class, and the systems are compared at the same channel budget. Define semantic communication as preserving the information needed for the task rather than requiring every original pixel.
 
 ### Slide 3 — Explain the conventional approach first
 
@@ -127,37 +110,29 @@ Define compression, error correction, modulation and classifier in one sentence 
 
 ### Slide 4 — Introduce DJSCC in context
 
-First show the plain flow:
+Show:
 
-`image → learned sender → noisy link → learned receiver → class`.
-
-Then give its technical form:
-
-`image → residual CNN encoder → differentiable AWGN → dual-head decoder → class logits + reconstruction`.
+`image → neural encoder → noisy channel → neural decoder/classifier → class`.
 
 Explain that the sender and receiver train together through the channel. State that the sender does not simply transmit a class label because the deployment split fixes an encoder at the sender and the decoder/classifier at the receiver. State that the method is supervised end-to-end learning, not reinforcement learning or an LLM.
 
-Name the multi-task objective: cross-entropy for the class head plus `λ × MSE`
-for reconstruction. The architecture and loss are the clearest immediate
-evidence that this is an AIML project rather than a classification-only topic.
+### Slide 5 — Establish the three-system attribution design
 
-### Slide 5 — Synthesize the literature
+Explain the purpose of each arm, not only its components:
+
+1. the classical image link measures a strong conventional separated system;
+2. the digital feature link measures task-aware representation over the same digital physical layer; and
+3. the learned joint link measures the combined task-aware and joint-coding method.
+
+The research question compares systems at identical bandwidth and channel conditions and asks both whether a performance difference exists and whether it is specifically consistent with joint coding.
+
+### Slide 6 — Synthesize the literature
 
 For finite-blocklength communication, learned compression, DeepJSCC and task-oriented communication, state one established result and one unresolved issue. The carried gap is a fair three-way image-classification comparison that retains failures and separates task awareness from joint coding.
 
-### Slide 6 — State the problem, research question and objectives
+### Slide 7 — Explain fairness as cause and effect
 
-State the gap as a problem the project can solve. Ask whether neural DJSCC learns channel-robust representations that preserve AI inference accuracy under matched bandwidth and channel conditions, and whether any remaining difference is attributable to joint coding. Objectives must be build-and-evaluate commitments, not promised positive outcomes.
-
-### Slide 7 — Present the proposed methodology
-
-Show all three arms and their scientific roles:
-
-1. the classical image link is the strong conventional reference;
-2. the digital feature link separates task awareness from joint coding; and
-3. the learned joint link tests end-to-end joint coding.
-
-Place the shared inputs above the table and the evaluation controls below it:
+Each control must state what is held equal and why:
 
 - same image and split prevent sample imbalance;
 - same complex-symbol budget matches bandwidth;
@@ -166,9 +141,9 @@ Place the shared inputs above the table and the evaluation controls below it:
 - failed transmissions remain in the denominator; and
 - complete byte and physical-layer identity prevent hidden overhead or missing BLER evidence from helping a system.
 
-### Slide 8 — State the hypotheses and evaluation plan
+### Slide 8 — State completion objectives before statistical machinery
 
-Include the exact corrected H1 decision rule here: a point qualifies when the studentized paired mean exceeds 1.96; `R_obs` is the longest consecutive qualifying run at or below the training SNR; H1 is supported only if `R_obs ≥ 3` and the calibrated run p-value is at most 0.05. State that the whole-region mean paired difference is the effect size of record and that a crossover is descriptive, not required. Summarize H2–H4 in plain language and state that support, no support and adverse outcomes are all valid findings.
+The project will build all three systems, match their resources, freeze choices, run one paired test campaign and report the result either way. State H1–H4 as questions in plain language. Point to slide 12 for the exact H1 rule.
 
 ### Slide 9 — Translate every evidence item
 
@@ -176,27 +151,19 @@ Show the evidence and its meaning, then state what it does not prove. The curren
 
 ### Slide 10 — Show unfinished work honestly
 
-Use a graphical Gantt with calendar-scaled bars from August through November.
-It must show BLER characterization as the sole in-progress scientific
-workstream, followed by planned DJSCC training and calibration, digital control
-and validation, freeze plus the one test campaign, demo/optional replay, and
-report/final-review work. Mark the fixed review and report dates and show W16
-as report contingency. Do not show Review 1 document preparation as a second
-active experiment bar.
-
-The bar order must preserve the critical path:
+Use the critical path:
 
 `G8_C → G-8 → DJSCC training and calibration → ER-9/G-11 → validation rehearsal → freeze/G-12 → one test campaign → demo/report`.
 
 State the hard dates: First Review 18–22 Aug, Second Review 29 Sep–3 Oct, Final Review 17–21 Nov and report due 20 Nov. W16 is report contingency, not new experiment scope.
 
-### Slide 11 — Show application, scope and risks
+### Slide 11 — End with scope and the requested decision
 
-Explain the remote-camera and split edge/cloud inference application. Name the AI/ML contribution: channel-robust representation learning, residual encoder, dual-head decoder, supervised multi-task loss, and the digital feature attribution control. State that simulation-first Tier 1 is the required scope and that SDR/edge deployment is optional stretch work. Show the main risks and controls: authenticated resumption for incomplete BLER work, outcome-independent reporting for an unsupported hypothesis, and a gated hardware path to avoid radio confounders. Claim only TS 38.212-derived LDPC/rate matching over abstract AWGN, not a complete 5G NR link. Keep the real guide acknowledgement visibly pending until recorded.
+Claim only TS 38.212-derived LDPC/rate matching over abstract AWGN, not a complete 5G NR link. Tier 1 is simulation-first and sufficient. SDR replay and edge deployment remain optional stretch work. Ask the panel to confirm the task boundary, three-system comparison, fairness controls and simulation-first completion path. Keep the real guide acknowledgement visibly pending until recorded.
 
-### Slide 12 — Summarize and state next steps
+### Slide 12 — Preserve the formal contract
 
-Summarize the problem, proposal, current readiness and next work. State that the research question, three-system methodology, feasibility evidence and completion plan are defined, while the final learned-versus-classical result remains future work. Map all six rubric criteria to slide numbers explicitly.
+Include the exact corrected H1 decision rule: a point qualifies when the studentized paired mean exceeds 1.96; `R_obs` is the longest consecutive qualifying run at or below the training SNR; H1 is supported only if `R_obs ≥ 3` and the calibrated run p-value is at most 0.05. State that the whole-region mean paired difference is the effect size of record and that a crossover is descriptive, not required. Map all six rubric criteria to slide numbers explicitly.
 
 ## 6. Backup slides
 
@@ -284,45 +251,21 @@ No scientific run is repeated, weakened, bypassed or reinterpreted merely to cre
 
 ## 11. Review-1 readiness matrix
 
-This matrix separates artifact readiness from human confirmation. `CONTENT READY`
-means the required material exists in the active deck and is backed by a named
-source. It does not mean the author has approved the wording or that all four
-members have demonstrated viva readiness.
+This matrix is the final gate and remains evidence-based. A row becomes `PASS` only after the actual deck or human rehearsal demonstrates it; backing material alone is not enough.
 
-**Current result:** rubric content is present for all six criteria. Final Review
-1 acceptance remains **HOLD** on the human and package-freeze gates below.
+| Rubric criterion | Slide(s) | Supporting artifact | Status |
+|---|---:|---|---|
+| Motivation | 2–4 | — | PENDING — newcomer-first draft present; awaiting author review |
+| Objectives | 1–2, 5, 8, 11 | `spec/SPEC.md`; this review package | PENDING — newcomer-first draft present; awaiting author review |
+| Hypothesis | 8, 12 | `spec/SPEC.md` §2 preregistration | PENDING — exact rule is present; awaiting author review |
+| Problem Survey | 6 | `docs/literature-review.md` (30 synthesized references) | PENDING — backing artifact passes; draft PPT awaits author review |
+| Subject Knowledge | 3–7, 9, 11–12 | Architecture notes; G-1/G-2/G-7/W4/current G8_C evidence | PENDING — draft PPT present; requires four-member human confirmation |
+| Time Plan | 10 | `docs/gantt-plan.md` | PENDING — corrected backing artifact passes; draft PPT awaits author review |
 
-### 11.1 Rubric-content matrix
+Separate final checks:
 
-| Rubric criterion | What the examiner is checking | Slide(s) | Backing evidence | Artifact state | Remaining confirmation |
-|---|---|---:|---|---|---|
-| Motivation | Importance of the problem and a genuine domain-based reason for choosing it | 2–4, 6, 11 | Project premise; deployment scenario; literature motivation | **CONTENT READY** | Author confirms the framing reflects the team's real motivation |
-| Objectives | The problems to be solved are identified as achievable project work | 6–7, 11–12 | `spec/SPEC.md` §2; completion criterion; scope boundary | **CONTENT READY** | Author approves the objective wording before it becomes the Review 1 baseline |
-| Hypothesis | A proposal exists for testing whether the objectives are achieved | 8 | Exact preregistered H1–H4 protocol in `spec/SPEC.md` §2 | **CONTENT READY** | All four members can explain H1 in plain language and state why a crossover is not required |
-| Problem Survey | Prior work has been reviewed and the proposal follows from a defensible gap | 5 | `docs/literature-review.md`: 30 synthesized references | **CONTENT READY** | Team can explain the four literature families and the specific three-system gap without reading the slide |
-| Subject Knowledge | The team understands the AI/ML, communications and experimental-design choices | 1–5, 7–9, 11 | Residual CNN encoder; dual-head decoder; CE + λMSE; differentiable AWGN; ResNet-18; digital feature attribution; standards register; G-1/G-2/G-7/W4 and current G8_C evidence | **MATERIAL READY** | **HUMAN PENDING:** all four members independently explain the AI model, training objective, three-arm attribution and evidence boundary |
-| Time Plan | The remaining work is practical, ordered and shown in a Gantt chart | 10 | `docs/gantt-plan.md`; fixed review dates and gate dependencies | **CONTENT READY** | Author confirms the workload and ownership plan; team can explain the critical path |
-
-### 11.2 Package and human gates
-
-| Gate | Owner | Evidence required to close | Current state |
-|---|---|---|---|
-| Author deck review | Project author | Explicit approval of the active PPTX/PDF content or a completed correction list | **AWAITING REVIEW** |
-| Four-member technical readiness | Full team | Each member can independently explain the task, three systems, methodology, H1, current evidence and remaining plan | **HUMAN PENDING** |
-| Guide hardware-alternative acknowledgement | Author and guide | Real response recorded with date, channel, guide identity and evidence location | **HUMAN PENDING** — the prepared record remains `PENDING` |
-| Package-of-record freeze | Author, assisted by agent | Approved PPTX, PDF, literature review, Gantt, standards register, deployment dossier and acknowledgement are all under the final package basis | **FREEZE PENDING** |
-| Annotated review snapshot | Author, assisted by agent | Annotated `review-1-basis` tag points to the approved package basis | **FREEZE PENDING** — do this only after every preceding gate closes |
-
-### 11.3 Overall interpretation
-
-- Nothing in the six rubric categories is currently missing as a repository
-  artifact.
-- Subject-knowledge readiness cannot be inferred from documents; it requires
-  the four-member rehearsal.
-- The guide acknowledgement cannot be inferred from silence or from the
-  deployment dossier.
-- The active deck remains a draft until the author finishes the review now in
-  progress.
-- G8_C completion, a final BLER table, learned training and comparative results
-  are not First Review prerequisites and do not appear as blockers in this
-  matrix.
+| Gate | Status |
+|---|---|
+| Guide hardware-alternative acknowledgement | **PENDING** — only a real, dated guide response can change this to `RECORDED` |
+| Review snapshot | **PENDING** — `review-1-basis` must exist, be annotated and point to the final package basis |
+| Package-of-record | **PENDING** — editable PPTX and PDF draft are present; final author approval and frozen package remain pending |

@@ -50,7 +50,7 @@ Demonstrate that the project has a precise research question, a fair and executa
 
 The presentation should establish:
 
-> A supervised AI/ML method and fair-comparison protocol: learn a channel-robust neural representation for edge inference over normalized AWGN, then measure image-classification accuracy at matched complex-symbol budget against adaptive JPEG 2000 + 5G NR LDPC and a task-aware digital feature control.
+> A defined task boundary and fair-comparison protocol: image-classification accuracy over normalized AWGN at matched complex-symbol budget, comparing adaptive JPEG 2000 + 5G NR LDPC, continuous task-aware DJSCC, and a task-aware digital feature control.
 
 No learned-vs-classical headline result exists at the First Review baseline. Bounded smoke evidence must not be shown as if it were the final experiment.
 
@@ -60,11 +60,11 @@ Review 1 presents the valid state reached by the review date. It does not manufa
 
 | First Review criterion | Evidence in package | Presentation location |
 |---|---|---|
-| Motivation | Limited noisy links, edge AI inference, ordinary image transmission and its task-level limitation | Slides 1–4, 6 and 11 |
+| Motivation | Limited noisy links, remote classification, ordinary image transmission and its task-level limitation | Slides 2–4, 6 and 11 |
 | Objectives | Build, verify and compare three systems at identical `k` and SNR; retain paired outcomes and explicit failures | Slides 6–7 and 11–12 |
 | Hypotheses | Preregistered H1–H4; for H1 a point qualifies when the studentized paired mean exceeds 1.96, and support requires both a run of at least three consecutive qualifying points at or below the training SNR and the calibrated run p-value ≤ 0.05; crossover not required | Slide 8; `spec/SPEC.md` §2 |
 | Problem survey | Information theory, learned compression, neural JSCC, task-oriented communication and the attribution gap | Slide 5; literature review |
-| Subject knowledge | Neural representation learning, residual CNN, dual-head decoder, CE + λMSE, differentiable AWGN, ResNet-18, digital feature attribution, LDPC, resource matching and evidence boundaries | Slides 1–5, 7–9 and 11; architecture notes and standards register |
+| Subject knowledge | Compression, LDPC, modulation, AWGN, DJSCC, resource matching, data isolation and evidence boundaries | Slides 3–5, 7–9 and 11; standards register |
 | Time plan | Gate-ordered critical path through G-8, training, test freeze, reporting and hardware fallback | Slide 10; Gantt plan |
 
 ## 3. Narrative contract for this and future iterations
@@ -84,22 +84,14 @@ The presentation must work for a panel member who knows neither communications n
 
 Do not begin with acronyms, gate names, equations or repository machinery. Introduce a term only when the audience needs it. Prefer short, literal prose. Do not use aphorisms, slogans or decorative themes. The visual default is black text on white, light rules, simple tables and only the diagrams needed to explain a flow.
 
-Do not front-load AI/ML buzzwords merely to signal the specialization. Slides
-1–2 establish the ordinary camera–link–receiver problem. Slide 3 explains the
-conventional solution. Slide 4 introduces the learned sender and receiver,
-then names DJSCC and supervised end-to-end learning. The methodology section
-provides the residual CNN, dual-head decoder, differentiable AWGN and `CE +
-λMSE` details. This order keeps the AIML contribution clear without sacrificing
-knowledge transfer.
-
 This is a knowledge-transfer rule, not a reduction in technical substance. The deck must still expose all six rubric criteria, the three-system attribution design, the fairness controls, the exact corrected H1 rule, evidence boundaries and the honest remaining plan.
 
 ## 4. Fifteen-minute presentation plan
 
 | Time | Slide | Audience question answered | Content |
 |---:|---:|---|---|
-| 0:00–0:30 | 1 | What is the project? | A camera, a limited noisy link and a remote classification task |
-| 0:30–1:35 | 2 | What problem are we solving? | Observe → communicate → classify; why sending every image detail may be unnecessary |
+| 0:00–0:30 | 1 | What is the project? | Formal title and one plain-language scope statement |
+| 0:30–1:35 | 2 | What happens from camera to decision? | Observe → send → decide → compare; definition of semantic communication |
 | 1:35–2:50 | 3 | How is this normally done? | Compression, error correction, modulation, noisy channel and classifier |
 | 2:50–4:05 | 4 | What changes in the learned system? | Joint encoder/decoder training; fixed deployment split; not RL or an LLM |
 | 4:05–5:25 | 5 | What does prior work leave unresolved? | Four literature families and the attribution gap |
@@ -115,7 +107,7 @@ This is a knowledge-transfer rule, not a reduction in technical substance. The d
 
 ### Slides 1–2 — Establish the task
 
-Use the formal title, then explain the setting without model terminology: an edge camera sees an image, a limited noisy link separates it from the receiver, and the receiver must classify the image. Ask whether every image detail must be sent. Do not introduce residual CNNs, differentiable channels or the loss function yet.
+Use the formal title, then explain the project as a four-step process: an edge device observes an image, sends through a limited noisy link, the receiver predicts a class, and the systems are compared at the same channel budget. Define semantic communication as preserving the information needed for the task rather than requiring every original pixel.
 
 ### Slide 3 — Explain the conventional approach first
 
@@ -127,19 +119,11 @@ Define compression, error correction, modulation and classifier in one sentence 
 
 ### Slide 4 — Introduce DJSCC in context
 
-First show the plain flow:
+Show:
 
-`image → learned sender → noisy link → learned receiver → class`.
-
-Then give its technical form:
-
-`image → residual CNN encoder → differentiable AWGN → dual-head decoder → class logits + reconstruction`.
+`image → neural encoder → noisy channel → neural decoder/classifier → class`.
 
 Explain that the sender and receiver train together through the channel. State that the sender does not simply transmit a class label because the deployment split fixes an encoder at the sender and the decoder/classifier at the receiver. State that the method is supervised end-to-end learning, not reinforcement learning or an LLM.
-
-Name the multi-task objective: cross-entropy for the class head plus `λ × MSE`
-for reconstruction. The architecture and loss are the clearest immediate
-evidence that this is an AIML project rather than a classification-only topic.
 
 ### Slide 5 — Synthesize the literature
 
@@ -147,7 +131,7 @@ For finite-blocklength communication, learned compression, DeepJSCC and task-ori
 
 ### Slide 6 — State the problem, research question and objectives
 
-State the gap as a problem the project can solve. Ask whether neural DJSCC learns channel-robust representations that preserve AI inference accuracy under matched bandwidth and channel conditions, and whether any remaining difference is attributable to joint coding. Objectives must be build-and-evaluate commitments, not promised positive outcomes.
+State the gap as a problem the project can solve. Ask whether learned joint coding preserves classification accuracy better under matched bandwidth and channel conditions, and whether any remaining difference is consistent with joint coding. Objectives must be build-and-evaluate commitments, not promised positive outcomes.
 
 ### Slide 7 — Present the proposed methodology
 
@@ -177,12 +161,10 @@ Show the evidence and its meaning, then state what it does not prove. The curren
 ### Slide 10 — Show unfinished work honestly
 
 Use a graphical Gantt with calendar-scaled bars from August through November.
-It must show BLER characterization as the sole in-progress scientific
-workstream, followed by planned DJSCC training and calibration, digital control
-and validation, freeze plus the one test campaign, demo/optional replay, and
-report/final-review work. Mark the fixed review and report dates and show W16
-as report contingency. Do not show Review 1 document preparation as a second
-active experiment bar.
+It must show the current/paused baseline work, First Review package, DJSCC
+training and calibration, digital control and validation, freeze plus the one
+test campaign, demo/optional replay, and report/final-review work. Mark the
+fixed review and report dates and show W16 as report contingency.
 
 The bar order must preserve the critical path:
 
@@ -192,7 +174,7 @@ State the hard dates: First Review 18–22 Aug, Second Review 29 Sep–3 Oct, Fi
 
 ### Slide 11 — Show application, scope and risks
 
-Explain the remote-camera and split edge/cloud inference application. Name the AI/ML contribution: channel-robust representation learning, residual encoder, dual-head decoder, supervised multi-task loss, and the digital feature attribution control. State that simulation-first Tier 1 is the required scope and that SDR/edge deployment is optional stretch work. Show the main risks and controls: authenticated resumption for incomplete BLER work, outcome-independent reporting for an unsupported hypothesis, and a gated hardware path to avoid radio confounders. Claim only TS 38.212-derived LDPC/rate matching over abstract AWGN, not a complete 5G NR link. Keep the real guide acknowledgement visibly pending until recorded.
+Explain the remote-camera and split edge/cloud inference application. State that simulation-first Tier 1 is the required scope and that SDR/edge deployment is optional stretch work. Show the main risks and controls: authenticated resumption for incomplete BLER work, outcome-independent reporting for an unsupported hypothesis, and a gated hardware path to avoid radio confounders. Claim only TS 38.212-derived LDPC/rate matching over abstract AWGN, not a complete 5G NR link. Keep the real guide acknowledgement visibly pending until recorded.
 
 ### Slide 12 — Summarize and state next steps
 
@@ -300,7 +282,7 @@ members have demonstrated viva readiness.
 | Objectives | The problems to be solved are identified as achievable project work | 6–7, 11–12 | `spec/SPEC.md` §2; completion criterion; scope boundary | **CONTENT READY** | Author approves the objective wording before it becomes the Review 1 baseline |
 | Hypothesis | A proposal exists for testing whether the objectives are achieved | 8 | Exact preregistered H1–H4 protocol in `spec/SPEC.md` §2 | **CONTENT READY** | All four members can explain H1 in plain language and state why a crossover is not required |
 | Problem Survey | Prior work has been reviewed and the proposal follows from a defensible gap | 5 | `docs/literature-review.md`: 30 synthesized references | **CONTENT READY** | Team can explain the four literature families and the specific three-system gap without reading the slide |
-| Subject Knowledge | The team understands the AI/ML, communications and experimental-design choices | 1–5, 7–9, 11 | Residual CNN encoder; dual-head decoder; CE + λMSE; differentiable AWGN; ResNet-18; digital feature attribution; standards register; G-1/G-2/G-7/W4 and current G8_C evidence | **MATERIAL READY** | **HUMAN PENDING:** all four members independently explain the AI model, training objective, three-arm attribution and evidence boundary |
+| Subject Knowledge | The team understands the communications, ML and experimental-design choices | 3–5, 7–9, 11 | Architecture notes; standards register; G-1/G-2/G-7/W4 and current G8_C evidence | **MATERIAL READY** | **HUMAN PENDING:** four-member viva rehearsal and confirmation |
 | Time Plan | The remaining work is practical, ordered and shown in a Gantt chart | 10 | `docs/gantt-plan.md`; fixed review dates and gate dependencies | **CONTENT READY** | Author confirms the workload and ownership plan; team can explain the critical path |
 
 ### 11.2 Package and human gates

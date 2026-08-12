@@ -84,13 +84,10 @@ The presentation must work for a panel member who knows neither communications n
 
 Do not begin with acronyms, gate names, equations or repository machinery. Introduce a term only when the audience needs it. Prefer short, literal prose. Do not use aphorisms, slogans or decorative themes. The visual default is black text on white, light rules, simple tables and only the diagrams needed to explain a flow.
 
-Do not front-load AI/ML buzzwords merely to signal the specialization. Slides
-1–2 establish the ordinary camera–link–receiver problem. Slide 3 explains the
-conventional solution. Slide 4 introduces the learned sender and receiver,
-then names DJSCC and supervised end-to-end learning. The methodology section
-provides the residual CNN, dual-head decoder, differentiable AWGN and `CE +
-λMSE` details. This order keeps the AIML contribution clear without sacrificing
-knowledge transfer.
+The AI/ML identity must be obvious from the first slide. Describe the project
+as supervised neural representation learning for edge AI over a noisy link.
+Image classification is the downstream evaluation task. It must not replace
+the project identity in titles, summaries or spoken transitions.
 
 This is a knowledge-transfer rule, not a reduction in technical substance. The deck must still expose all six rubric criteria, the three-system attribution design, the fairness controls, the exact corrected H1 rule, evidence boundaries and the honest remaining plan.
 
@@ -98,8 +95,8 @@ This is a knowledge-transfer rule, not a reduction in technical substance. The d
 
 | Time | Slide | Audience question answered | Content |
 |---:|---:|---|---|
-| 0:00–0:30 | 1 | What is the project? | A camera, a limited noisy link and a remote classification task |
-| 0:30–1:35 | 2 | What problem are we solving? | Observe → communicate → classify; why sending every image detail may be unnecessary |
+| 0:00–0:30 | 1 | What is the project? | Edge AI, neural representation learning and the classification evaluation task |
+| 0:30–1:35 | 2 | What happens from camera to decision? | Observe → neural encode → communicate → infer; definition of the AI/ML core |
 | 1:35–2:50 | 3 | How is this normally done? | Compression, error correction, modulation, noisy channel and classifier |
 | 2:50–4:05 | 4 | What changes in the learned system? | Joint encoder/decoder training; fixed deployment split; not RL or an LLM |
 | 4:05–5:25 | 5 | What does prior work leave unresolved? | Four literature families and the attribution gap |
@@ -115,7 +112,7 @@ This is a knowledge-transfer rule, not a reduction in technical substance. The d
 
 ### Slides 1–2 — Establish the task
 
-Use the formal title, then explain the setting without model terminology: an edge camera sees an image, a limited noisy link separates it from the receiver, and the receiver must classify the image. Ask whether every image detail must be sent. Do not introduce residual CNNs, differentiable channels or the loss function yet.
+Use the formal title, then state that this is supervised neural representation learning for edge AI. Explain the four-step process: an edge device observes an image, a neural encoder learns what to transmit, the representation crosses a limited noisy link, and the receiver AI predicts a class. State explicitly that classification is the evaluation task and the learned representation is the method.
 
 ### Slide 3 — Explain the conventional approach first
 
@@ -127,11 +124,7 @@ Define compression, error correction, modulation and classifier in one sentence 
 
 ### Slide 4 — Introduce DJSCC in context
 
-First show the plain flow:
-
-`image → learned sender → noisy link → learned receiver → class`.
-
-Then give its technical form:
+Show:
 
 `image → residual CNN encoder → differentiable AWGN → dual-head decoder → class logits + reconstruction`.
 
@@ -177,12 +170,10 @@ Show the evidence and its meaning, then state what it does not prove. The curren
 ### Slide 10 — Show unfinished work honestly
 
 Use a graphical Gantt with calendar-scaled bars from August through November.
-It must show BLER characterization as the sole in-progress scientific
-workstream, followed by planned DJSCC training and calibration, digital control
-and validation, freeze plus the one test campaign, demo/optional replay, and
-report/final-review work. Mark the fixed review and report dates and show W16
-as report contingency. Do not show Review 1 document preparation as a second
-active experiment bar.
+It must show the current/paused baseline work, First Review package, DJSCC
+training and calibration, digital control and validation, freeze plus the one
+test campaign, demo/optional replay, and report/final-review work. Mark the
+fixed review and report dates and show W16 as report contingency.
 
 The bar order must preserve the critical path:
 

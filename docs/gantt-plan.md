@@ -24,9 +24,9 @@ gantt
     W4 bounded classical integration                :done, w4, 2026-08-01, 2026-08-09
 
     section Current critical path
-    G8_C full-strength BLER characterization        :crit, g8c, 2026-08-09, 2026-08-15
-    G8_D-G validation sweep and G-8                 :crit, g8rest, after g8c, 6d
-    First Review deliverables and rehearsal         :active, reviewdocs, 2026-08-11, 2026-08-17
+    G8_C full-strength BLER characterization        :active, g8c, 2026-08-09, 2026-08-15
+    G8_D-G validation sweep and G-8                 :g8rest, after g8c, 6d
+    First Review deliverables and rehearsal         :reviewdocs, 2026-08-11, 2026-08-17
     First Review window                             :crit, r1, 2026-08-18, 5d
 
     section Learned system and validation
@@ -62,7 +62,7 @@ gantt
 | W2 learned-system feasibility | 29–30 Jul | W1 | G-7 profile: batch 32, 1.004 GiB peak reserved VRAM, 48.68 s measured epoch | Complete |
 | W3 digital physical layer | 30 Jul–2 Aug | W1 | G-2; exact packetisation and independent BLER agreement | Complete |
 | W4 baseline integration | 1–9 Aug | W3 | Bounded JPEG 2000 + LDPC path; BR-4 selection machinery | Complete |
-| G8_C BLER characterization | 9–15 Aug | G8_A/B contracts and manifests | Exactly 3,213 authenticated 5,000-trial work-unit results | Paused at user-requested checkpoint; 748/3,213 accepted at 11 Aug baseline |
+| G8_C BLER characterization | 9–15 Aug | G8_A/B contracts and manifests | Authenticated full-strength characterization coverage sufficient to freeze the BLER table | In-progress workstream; execution is paused at a user-requested durable checkpoint, with exact coverage and resume details only in `instructions/RESUME.md` |
 | G8_D–G classical validation | 15–21 Aug | G8_C exact coverage | Frozen BLER table, full validation sweep, operating-point decision, G-8 | Not started; gated |
 | First Review package | 11–17 Aug | W0–W4 evidence | Polished 10–12-slide deck; ≥25-reference review; corrected Gantt; four-member technical readiness; viva evidence; deployment dossier plus guide acknowledgement; final package under `deliverables/review-1/`; `review-1-basis` tag | Backing documents complete; deck/export, four-member rehearsal, guide acknowledgement, final package and snapshot remain |
 | W5 training system | 24–30 Aug | G-8 operating ratios | Checkpoint/resume training loop and schema-exact records | Not started |
@@ -97,10 +97,10 @@ Control rules:
 
 ## 4. Review checkpoints
 
-| Review | Fixed window | Minimum evidence shown | Decision sought |
+| Review | Fixed window | Minimum evidence shown | Review purpose |
 |---|---:|---|---|
-| First | 18–22 Aug | All six rubric categories; problem/literature synthesis; completion objectives; exact corrected H1 rule; maintained Gantt; standards/tools register; G-1/G-2/G-7/W4 evidence; current G8_C status; deployment path | Confirm technical direction, task boundary, simulation-first Tier-1 path, and remaining execution plan |
-| Second | 29 Sep–3 Oct | Frozen validation curves; G-10 crossover disposition; ER-9 design; validation-strength rehearsal; revised Gantt | Approve any objective restatement required by observed validation behavior |
+| First | 18–22 Aug | All six rubric categories; problem/literature synthesis; completion objectives; exact corrected H1 rule; maintained Gantt; standards/tools register; G-1/G-2/G-7/W4 evidence; current G8_C status; deployment path | Assess the motivation, proposal, subject understanding and practical execution plan |
+| Second | 29 Sep–3 Oct | Frozen validation curves; G-10 crossover disposition; ER-9 design; validation-strength rehearsal; revised Gantt | Review progress, results-driven methodology and any permitted objective restatement |
 | Final | 17–21 Nov | Frozen test results; hypothesis decisions; attribution control; demo; report/poster/supporting evidence | Final assessment and viva |
 
 ## 5. Current quantitative evidence available to the First Review
@@ -111,6 +111,6 @@ These are observed repository records, not forecasts:
 - G-7: the 1.64 M-parameter DJSCC profile ran a full 8,469-image epoch at batch size 32 in 48.68 s, reserving 1.004 GiB VRAM; 100 epochs projected to 1.35 h on the profiled device.
 - G-2: golden vectors and all three independent BLER waterfall comparisons passed the 0.5 dB tolerance.
 - W4: a bounded end-to-end classical run and its source-bound verifier pass; the full G-8 validation sweep has not run.
-- G8_C at this baseline: 748 of 3,213 required BLER units are authenticated and execution is paused; later-phase counters and test access remain zero.
+- G8_C is paused at a durable authenticated characterization checkpoint. Exact coverage and resume details live only in `instructions/RESUME.md`; the BLER table, selection, training and test access remain unfinished.
 
 No learned-vs-classical headline result exists yet. The First Review must not present bounded smoke data as a scientific comparison.
