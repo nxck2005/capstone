@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-15 · **Phase:** **G8_B is complete; the old local G8_C campaign is preserved as superseded historical evidence and the clean Pascal successor is prepared at 0/3213. No successor worker is running. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-15 · **Phase:** **G8_B is complete; the old local G8_C campaign is preserved as superseded historical evidence and the clean Pascal successor is ready at 0/3213. PR #4 merged at `9702c16`; confessor's merged-main qualification and authenticated HTTPS marker commit `9ec0883` are complete. No successor worker is running. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
 
 **Execution profiles:** the project now has two independently authenticated
 production profiles, `local_4060_cu130` and the qualified
@@ -63,13 +63,12 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** finish the execution-profile migration gate: merge the
-implementation PR, establish main parity, recreate `requirements-pascal.lock`
-on `confessor`, rerun the non-scientific qualification from merged bytes, prove
-authenticated HTTPS push and commit parity, then push the zero-coverage Pascal
-successor marker. Only after those gates may the owner explicitly open the new
-G8_C campaign. The old local suffix is not resumed and no old result may enter
-the successor table.
+**Next-session task:** owner review and explicit opening of the clean Pascal
+G8_C successor when ready. The migration gate is complete: PR #4 merged at
+`9702c16`, confessor recreated `requirements-pascal.lock`, final qualification
+passed from merged bytes, authenticated HTTPS push/parity passed, and marker
+commit `9ec0883` is pushed. Do not start a worker implicitly; the old local
+suffix is not resumed and no old result may enter the successor table.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -84,10 +83,10 @@ does not, it is wrong and this block is right.**
 | W4 · PA | complete |
 | W4 · PB_1 (incl. the PB_1C correction) | complete |
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
-| G-8 execution-profile migration gate | next |
+| G-8 successor campaign opening (owner action) | next |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **old local G8_C superseded; clean Pascal successor prepared at 0/3213; scientific launch gated on merge and pushed marker** |
+| G-8 classical validation work | **old local G8_C superseded; clean Pascal successor ready at 0/3213; scientific launch awaits explicit owner opening** |
 | G8_B–G8_G | **G8_B complete; Pascal G8_C successor is pre-science and C3 and all later phases remain gated.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |

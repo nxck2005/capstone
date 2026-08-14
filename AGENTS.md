@@ -30,12 +30,12 @@ valid superseded history (748 accepted units plus its request-only trailing
 attempt) and contributes zero successor `BlerTable` coverage. The clean
 `confessor_pascal_cu126` successor is 0/3213 with 5000 trials per identity,
 explicit UUID-bound `cuda:0`/`cuda:1` workers, and `confessor` as sole writer.
-Qualification and parity are non-scientific and zero-coverage. Do not launch
-full-strength G8_C until the migration PR is merged, main parity is established,
-the committed Pascal lock is recreated, final qualification is rerun, HTTPS
-push is proven and the zero-coverage marker is pushed. Never access test or
-validation data, train, infer, select, authorize, or mix old results into the
-successor.
+Qualification and parity are non-scientific and zero-coverage. PR #4 is merged
+at `9702c16`; confessor recreated the committed Pascal lock, reran final
+qualification from merged bytes, proved HTTPS push/parity, and pushed marker
+commit `9ec0883`. The owner may now explicitly open full-strength G8_C; no
+worker starts automatically. Never access test or validation data, train,
+infer, select, authorize, or mix old results into the successor.
 
 **First Review delivery contract — user-fixed; do not ask the user to restate or
 reinterpret it.** The maintained acceptance checklist is

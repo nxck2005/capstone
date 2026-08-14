@@ -14,12 +14,15 @@ The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
 The clean Pascal successor is `results/baseline/g8_pascal_successor/`, bound to
 `confessor_pascal_cu126`, 3,213 identities × 5,000 trials, explicit UUID-bound
-`cuda:0`/`cuda:1` workers, and zero accepted coverage. `confessor` is its sole
-scientific writer; no successor worker is running. Do not launch full-strength
-science until the migration PR is merged, main parity and lock recreation are
-proven, final qualification is rerun from merged bytes, HTTPS push is proven,
-and the zero-coverage marker is pushed. Never ingest old results, access test
-or validation data, train, infer, select or authorize during this handoff.
+`cuda:0`/`cuda:1` workers, and zero accepted coverage. PR #4 is merged at
+`9702c16`; confessor recreated the committed lock, reran final qualification
+from merged bytes, proved authenticated HTTPS push/parity, and pushed marker
+commit `9ec0883` (marker digest
+`7cf8f33db33f8f9f571cbf0926ececa56609e5f083a229954ce6625f46033bc8`).
+`confessor` is its sole scientific writer; no successor worker is running. The
+owner must explicitly open full-strength science; never ingest old results,
+access test or validation data, train, infer, select or authorize during this
+handoff.
 
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
