@@ -116,8 +116,10 @@ def build() -> None:
         "worker_count": 2,
         "partition_rule": WORK_UNIT_PARTITION,
         "workers": [
-            {"shard_index": 0, "shard_count": 2, "device": "cuda:0", "gpu_index": 0, "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b"},
-            {"shard_index": 1, "shard_count": 2, "device": "cuda:1", "gpu_index": 1, "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a"},
+            # CUDA's logical enumeration on confessor is the reverse of the
+            # nvidia-smi index order; bind the UUID, not a guessed ordinal.
+            {"shard_index": 0, "shard_count": 2, "device": "cuda:0", "gpu_index": 0, "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a"},
+            {"shard_index": 1, "shard_count": 2, "device": "cuda:1", "gpu_index": 1, "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b"},
         ],
         "generic_cuda_device_permitted": False,
         "old_root": "results/baseline/g8/work_units",

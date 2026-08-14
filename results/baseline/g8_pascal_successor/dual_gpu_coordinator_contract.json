@@ -1,6 +1,6 @@
 {
   "artifact_role": "g8_c_pascal_dual_gpu_coordinator_contract",
-  "contract_sha256": "b1cc5b591a65fb7904325261edf06ed84e10c208f37fa54ef2857a1706451475",
+  "contract_sha256": "69ab370a1fe51d14bd63e4c02be9889cf2bea7fa56cab8f35692f344d6c40a63",
   "duplicate_assignment_policy": "fail_closed_if_ordinal_or_gpu_repeats",
   "execution_profile_id": "confessor_pascal_cu126",
   "generic_cuda_device_permitted": false,
@@ -15,14 +15,14 @@
     {
       "device": "cuda:0",
       "gpu_index": 0,
-      "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+      "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
       "shard_count": 2,
       "shard_index": 0
     },
     {
       "device": "cuda:1",
       "gpu_index": 1,
-      "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+      "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
       "shard_count": 2,
       "shard_index": 1
     }

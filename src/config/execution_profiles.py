@@ -235,12 +235,16 @@ def authenticate_execution_profile(
     inventory = _gpu_inventory()
     if gpu_index not in inventory:
         raise ProfileAuthenticationError(f"nvidia-smi did not enumerate GPU {gpu_index}")
-    gpu = inventory[gpu_index]
+    properties = torch.cuda.get_device_properties(gpu_index)
+    torch_uuid = str(properties.uuid)
+    torch_uuid = torch_uuid if torch_uuid.startswith("GPU-") else f"GPU-{torch_uuid}"
+    gpu = next((item for item in inventory.values() if item["gpu_uuid"] == torch_uuid), None)
+    if gpu is None:
+        raise ProfileAuthenticationError("Torch UUID is absent from nvidia-smi inventory")
     if gpu["gpu_uuid"] not in profile["allowed_gpu_uuids"]:
         raise ProfileAuthenticationError("GPU UUID is not allowed by the profile")
     if gpu["gpu_name"] not in profile["allowed_gpu_names"]:
         raise ProfileAuthenticationError("GPU name is not allowed by the profile")
-    properties = torch.cuda.get_device_properties(gpu_index)
     compute_capability = f"{properties.major}.{properties.minor}"
     if compute_capability != str(profile["compute_capability"]):
         raise ProfileAuthenticationError("GPU compute capability differs from profile")
@@ -270,6 +274,7 @@ def authenticate_execution_profile(
         **gpu,
         "gpu_compute_capability": compute_capability,
         "gpu_index": gpu_index,
+        "nvidia_smi_index": int(next(index for index, item in inventory.items() if item is gpu)),
         "git_commit": git_commit,
         "git_dirty": git_dirty,
         "config_hash": config_hash,
