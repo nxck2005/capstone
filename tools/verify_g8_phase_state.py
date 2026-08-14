@@ -90,11 +90,16 @@ def _verify_manifest_and_required_artifact() -> tuple[dict[str, Any], dict[str, 
             == list(expected_paths),
             f"manifest {group} path set changed",
         )
-        for entry in entries:
-            try:
-                preflight._verify_binding(entry)
-            except preflight.G8PreflightError as exc:
-                raise G8PhaseStateError(str(exc)) from exc
+        try:
+            if group == "normative_sources":
+                preflight.verify_historical_normative_sources(entries)
+            elif group == "contract_sources":
+                preflight.verify_historical_contract_sources(entries)
+            else:
+                for entry in entries:
+                    preflight._verify_binding(entry)
+        except (preflight.G8PreflightError, G8ContractError) as exc:
+            raise G8PhaseStateError(str(exc)) from exc
 
     adjudication_binding = manifest.get("w4_adjudication")
     _require(isinstance(adjudication_binding, dict), "W4 adjudication binding is malformed")
