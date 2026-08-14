@@ -38,6 +38,6 @@
   "schema_version": 1,
   "scientific_validity": "valid_authenticated_immutable_historical_evidence",
   "successor_bler_table_eligibility": "none",
-  "successor_campaign_id": "pending_manifest_digest",
-  "supersession_id": "g8csup-5f4558d076816e9adcb9c774d8179e8f74911b84276c2d1a4656ec6df425f784"
+  "successor_campaign_id": "g8p-4f97596a0758c7f075729c65d6bd9a20b2a73e39a6ae0005adba8eadc41a927c",
+  "supersession_id": "g8csup-9db74f7e68af61bbab241321397d2de9b8c3a1222e9692ac2f3233b73d0c44eb"
 }

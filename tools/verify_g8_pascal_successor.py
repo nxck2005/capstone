@@ -29,6 +29,7 @@ from baseline.g8_pascal_successor import (  # noqa: E402
     validate_successor_manifest,
     validate_successor_state,
 )
+from baseline.g8_campaign import rendered_json  # noqa: E402
 
 
 def verify() -> dict[str, object]:
@@ -57,11 +58,42 @@ def verify() -> dict[str, object]:
         raise SuccessorContractError("old campaign profile/continuation status differs")
     if supersession["successor_bler_table_eligibility"] != "none":
         raise SuccessorContractError("old results can contribute to successor table")
-    if manifest["campaign_id"] != state["campaign_id"] or supersession["successor_campaign_id"] not in {manifest["campaign_id"], "pending_manifest_digest"}:
+    if manifest["campaign_id"] != state["campaign_id"] or supersession["successor_campaign_id"] != manifest["campaign_id"]:
         raise SuccessorContractError("successor IDs are not bound")
     parity = load_json(PARITY_PLAN)
     if parity.get("scientific_status") != "NON-SCIENTIFIC" or parity.get("paired_trial_count_per_cell") != 512:
         raise SuccessorContractError("parity plan is not preregistered non-scientific diagnostics")
+    if parity.get("selected_identity_ordinals") != [
+        441, 2990, 1765, 1383, 285, 395, 1376, 794, 539,
+        1195, 186, 2694, 2274, 2402, 1915,
+    ]:
+        raise SuccessorContractError("parity identity stratum changed after preregistration")
+    bindings = parity.get("selected_identity_bindings")
+    if not isinstance(bindings, list) or [item.get("ordinal") for item in bindings] != parity["selected_identity_ordinals"]:
+        raise SuccessorContractError("parity identity bindings are missing or reordered")
+    required_path = REPO / "results/baseline/g8/required_bler_identities.json"
+    required_raw = required_path.read_bytes()
+    required_payload = json.loads(required_raw)
+    if required_raw != rendered_json(required_payload) or parity.get("required_identity_sha256") != hashlib.sha256(required_raw).hexdigest():
+        raise SuccessorContractError("parity plan is not bound to the required identity bytes")
+    units = required_payload.get("required_bler_work_units")
+    if not isinstance(units, list) or len(units) != 3213:
+        raise SuccessorContractError("required G8 identity artifact is not the authenticated 3213-cell grid")
+    snr_values = sorted({float(unit["snr_db"]) for unit in units})
+    for binding in bindings:
+        ordinal = binding.get("ordinal")
+        if not isinstance(ordinal, int) or not 0 <= ordinal < len(units):
+            raise SuccessorContractError("parity identity ordinal is outside the required grid")
+        snr = float(units[ordinal]["snr_db"])
+        expected_stratum = "below_waterfall" if snr == snr_values[0] else "above_waterfall" if snr == snr_values[-1] else "near_waterfall"
+        if binding != {
+            "ordinal": ordinal,
+            "work_unit_id": units[ordinal]["work_unit_id"],
+            "identity": units[ordinal]["identity"],
+            "snr_db": units[ordinal]["snr_db"],
+            "stratum": expected_stratum,
+        }:
+            raise SuccessorContractError("parity identity binding differs from required grid")
     if parity.get("test_access") != 0 or parity.get("validation_decoding") != 0 or parity.get("training") != 0:
         raise SuccessorContractError("parity plan claims protected access")
     # This aggregate was authenticated during the live-state reconstruction

@@ -106,9 +106,6 @@ def build() -> None:
         "old_results_may_be_used_for": ["provenance", "diagnostics", "cross_profile_equivalence_checks"],
         "old_tree_aggregate_sha256": OLD_TRACKED_TREE_AGGREGATE,
     }
-    supersession["supersession_id"] = "g8csup-" + sha256_bytes(canonical_json({k: v for k, v in supersession.items() if k != "supersession_id"}))
-    _write(SUPERSESSION_ARTIFACT, supersession)
-
     coordinator = {
         "schema_version": 1,
         "artifact_role": "g8_c_pascal_dual_gpu_coordinator_contract",
@@ -180,6 +177,16 @@ def build() -> None:
     }
     manifest["campaign_id"] = "g8p-" + sha256_bytes(canonical_json({k: v for k, v in manifest.items() if k != "campaign_id"}))
     _write(SUCCESSOR_MANIFEST, manifest)
+
+    # The supersession record is written only after the successor identity is
+    # known.  A pending placeholder would leave the old/new campaign binding
+    # weaker than the rest of the authenticated record.
+    supersession["successor_campaign_id"] = manifest["campaign_id"]
+    supersession["supersession_id"] = "g8csup-" + sha256_bytes(
+        canonical_json({k: v for k, v in supersession.items() if k != "supersession_id"})
+    )
+    _write(SUPERSESSION_ARTIFACT, supersession)
+
     state = {
         "schema_version": 1,
         "artifact_role": "g8_c_pascal_successor_state",
@@ -198,6 +205,24 @@ def build() -> None:
     state["state_sha256"] = sha256_bytes(canonical_json(state))
     _write(SUCCESSOR_STATE, state)
 
+    selected_ordinals = [
+        441, 2990, 1765, 1383, 285, 395, 1376, 794, 539,
+        1195, 186, 2694, 2274, 2402, 1915,
+    ]
+    required_units = json.loads((REPO / "results/baseline/g8/required_bler_identities.json").read_bytes())["required_bler_work_units"]
+    snr_values = sorted({float(row["snr_db"]) for row in required_units})
+    selected_bindings = []
+    for ordinal in selected_ordinals:
+        row = required_units[ordinal]
+        snr = float(row["snr_db"])
+        stratum = "below_waterfall" if snr == snr_values[0] else "above_waterfall" if snr == snr_values[-1] else "near_waterfall"
+        selected_bindings.append({
+            "ordinal": ordinal,
+            "work_unit_id": row["work_unit_id"],
+            "identity": row["identity"],
+            "snr_db": row["snr_db"],
+            "stratum": stratum,
+        })
     parity = {
         "schema_version": 1,
         "artifact_role": "execution_profile_paired_parity_plan",
@@ -210,6 +235,12 @@ def build() -> None:
         "bler_ber_reporting": True,
         "waterfall_displacement_rule": "qualification-only hold if paired diagnostic displacement exceeds 0.5 dB",
         "gpu_pairs": ["local_4060_cu130↔confessor_pascal_cu126/cuda:0", "local_4060_cu130↔confessor_pascal_cu126/cuda:1", "cuda:0↔cuda:1"],
+        "selected_identity_rule": "fixed stratified identities from the committed required-BLER grid; selected ordinals are recorded before parity inspection",
+        "selected_identity_ordinals": selected_ordinals,
+        "selected_identity_bindings": selected_bindings,
+        "required_identity_sha256": hashlib.sha256(
+            (REPO / "results/baseline/g8/required_bler_identities.json").read_bytes()
+        ).hexdigest(),
         "test_access": 0,
         "validation_decoding": 0,
         "training": 0,

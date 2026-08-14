@@ -2,8 +2,8 @@
   "accepted_authority_ordinals": [],
   "accepted_count": 0,
   "artifact_role": "g8_c_pascal_successor_manifest",
-  "campaign_id": "g8p-8dbb592320330560f32f2dfb214f71606e9e8ad1068d1d58438ec06330425113",
-  "coordinator_contract_sha256": "3e699ccb893684a8adb0b2cae38b3005cd0661510cf88005ee206921b47e91f4",
+  "campaign_id": "g8p-4f97596a0758c7f075729c65d6bd9a20b2a73e39a6ae0005adba8eadc41a927c",
+  "coordinator_contract_sha256": "2870e9c7cb66d70d250507bf66621fd4986b4e7a579c38444138a24c7a2914cf",
   "execution_profile_id": "confessor_pascal_cu126",
   "physical_contract": {
     "count_and_interval_semantics": "predecessor_frozen_contract_unchanged",

@@ -8,7 +8,8 @@
     "cuda:0↔cuda:1"
   ],
   "paired_trial_count_per_cell": 512,
-  "plan_sha256": "b0ee88254c0456d97ad015366dea0450de3df784fcdc62bd19e57280fcb9086b",
+  "plan_sha256": "f6e2421f6863947a6ee4f1012957ce2ec1c548cb56b439004b674567ebeae2e7",
+  "required_identity_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
   "rng_hashes": [
     "information_bits_bytes",
     "awgn_real_float64_bytes",
@@ -16,6 +17,326 @@
   ],
   "schema_version": 1,
   "scientific_status": "NON-SCIENTIFIC",
+  "selected_identity_bindings": [
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          4608,
+          13824
+        ],
+        "lifting_size": 224,
+        "modulation": "bpsk",
+        "rate": "1/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 441,
+      "snr_db": 2,
+      "stratum": "near_waterfall",
+      "work_unit_id": "bler-24a4858aebc14722f58583dd"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          6424,
+          19200
+        ],
+        "lifting_size": 320,
+        "modulation": "qpsk",
+        "rate": "1/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 2990,
+      "snr_db": -8,
+      "stratum": "below_waterfall",
+      "work_unit_id": "bler-ed64b8d74430241abc3ab933"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          4288,
+          12800
+        ],
+        "lifting_size": 208,
+        "modulation": "qam16",
+        "rate": "1/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 1765,
+      "snr_db": 18,
+      "stratum": "above_waterfall",
+      "work_unit_id": "bler-9030ee1436287c6db74bd665"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          6912,
+          13824
+        ],
+        "lifting_size": 320,
+        "modulation": "bpsk",
+        "rate": "1/2",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 1383,
+      "snr_db": 18,
+      "stratum": "above_waterfall",
+      "work_unit_id": "bler-7002b813e42c433b9483ee35"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          4632,
+          9216
+        ],
+        "lifting_size": 224,
+        "modulation": "qpsk",
+        "rate": "1/2",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 285,
+      "snr_db": 2,
+      "stratum": "near_waterfall",
+      "work_unit_id": "bler-1846befa35aa649a8391e2af"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          6424,
+          12800
+        ],
+        "lifting_size": 320,
+        "modulation": "qam16",
+        "rate": "1/2",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 395,
+      "snr_db": -8,
+      "stratum": "below_waterfall",
+      "work_unit_id": "bler-20d58750fb6f2811ee2dfeb2"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          480,
+          576
+        ],
+        "lifting_size": 22,
+        "modulation": "bpsk",
+        "rate": "5/6",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 1376,
+      "snr_db": -8,
+      "stratum": "below_waterfall",
+      "work_unit_id": "bler-6f3cd0fc89dd3260ff3984b4"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          3840,
+          4608
+        ],
+        "lifting_size": 176,
+        "modulation": "qpsk",
+        "rate": "5/6",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 794,
+      "snr_db": 18,
+      "stratum": "above_waterfall",
+      "work_unit_id": "bler-4120288279029472ba257517"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          8024,
+          9600
+        ],
+        "lifting_size": 384,
+        "modulation": "qam16",
+        "rate": "5/6",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 539,
+      "snr_db": 2,
+      "stratum": "near_waterfall",
+      "work_unit_id": "bler-2ceb4a81be15fc82cca39bd6"
+    },
+    {
+      "identity": {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          3072,
+          9216
+        ],
+        "lifting_size": 320,
+        "modulation": "bpsk",
+        "rate": "1/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 1195,
+      "snr_db": 18,
+      "stratum": "above_waterfall",
+      "work_unit_id": "bler-6013076270ec901d59206fcc"
+    },
+    {
+      "identity": {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          384,
+          1152
+        ],
+        "lifting_size": 48,
+        "modulation": "qpsk",
+        "rate": "1/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 186,
+      "snr_db": 2,
+      "stratum": "near_waterfall",
+      "work_unit_id": "bler-0f2e3bcc774c08d6d892ca02"
+    },
+    {
+      "identity": {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          2128,
+          6400
+        ],
+        "lifting_size": 224,
+        "modulation": "qam16",
+        "rate": "1/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 2694,
+      "snr_db": -8,
+      "stratum": "below_waterfall",
+      "work_unit_id": "bler-d66877da55b7acb77d9af832"
+    },
+    {
+      "identity": {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          288,
+          576
+        ],
+        "lifting_size": 36,
+        "modulation": "bpsk",
+        "rate": "1/2",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 2274,
+      "snr_db": -8,
+      "stratum": "below_waterfall",
+      "work_unit_id": "bler-b68bcc76c5658952ed269239"
+    },
+    {
+      "identity": {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          1600,
+          3200
+        ],
+        "lifting_size": 160,
+        "modulation": "qpsk",
+        "rate": "1/2",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 2402,
+      "snr_db": 18,
+      "stratum": "above_waterfall",
+      "work_unit_id": "bler-c003773197208cf982877683"
+    },
+    {
+      "identity": {
+        "base_graph": 2,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          3200,
+          6400
+        ],
+        "lifting_size": 320,
+        "modulation": "qam16",
+        "rate": "1/2",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 1915,
+      "snr_db": 2,
+      "stratum": "near_waterfall",
+      "work_unit_id": "bler-9ce8f1c9919ee4ca7a6f6d83"
+    }
+  ],
+  "selected_identity_ordinals": [
+    441,
+    2990,
+    1765,
+    1383,
+    285,
+    395,
+    1376,
+    794,
+    539,
+    1195,
+    186,
+    2694,
+    2274,
+    2402,
+    1915
+  ],
+  "selected_identity_rule": "fixed stratified identities from the committed required-BLER grid; selected ordinals are recorded before parity inspection",
   "status": "preregistered_before_inspection",
   "stimulus_rule": "exact old G8 contract seed material; no result/state publication",
   "test_access": 0,

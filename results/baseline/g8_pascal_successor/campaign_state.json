@@ -1,6 +1,6 @@
 {
   "artifact_role": "g8_c_pascal_successor_state",
-  "campaign_id": "g8p-8dbb592320330560f32f2dfb214f71606e9e8ad1068d1d58438ec06330425113",
+  "campaign_id": "g8p-4f97596a0758c7f075729c65d6bd9a20b2a73e39a6ae0005adba8eadc41a927c",
   "completed_authority_ordinals": [],
   "execution_profile_id": "confessor_pascal_cu126",
   "failed_authority_ordinals": [],
@@ -15,7 +15,7 @@
   "required_identity_count": 3213,
   "schema_version": 1,
   "scientific_execution_performed": false,
-  "state_sha256": "2a34f3dee798d5b51fe0b42b48b4d08f317473ba26a72142aa7aa285535e83ee",
+  "state_sha256": "2e89bdbcb2c76edb94e8515a6a18e75cb407d4e753ab80145f16beaf9770a02f",
   "test_access": 0,
   "trials_per_identity": 5000
 }
