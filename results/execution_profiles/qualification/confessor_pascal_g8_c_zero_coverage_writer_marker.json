@@ -1,0 +1,39 @@
+{
+  "accepted_count": 0,
+  "artifact_kind": "confessor_pascal_g8_c_zero_coverage_writer_marker",
+  "branch": "ops/confessor-pascal-ready-9702c16",
+  "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+  "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
+  "campaign_state_sha256": "77f62d959a963db170051f8ac2cf405eb52145de6e19dc6fac6c650dd28721d3",
+  "commit_signing": "optional",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "final_qualification_reports": [
+    {
+      "path": "results/execution_profiles/qualification/final_merged_main/cuda0_titan_xp.json",
+      "sha256": "281522f3b974ec2c06a9c8d361f21832494fd003e16554490c43f76bbf355a61"
+    },
+    {
+      "path": "results/execution_profiles/qualification/final_merged_main/cuda1_gtx_1080ti.json",
+      "sha256": "49e1e2159224163e8858c9e52d35f327030a203c3ec95148a337bf73202b6ed3"
+    }
+  ],
+  "gh_authenticated_https": true,
+  "git_push_dry_run": true,
+  "host": "confessor",
+  "inference": 0,
+  "marker_sha256": "7cf8f33db33f8f9f571cbf0926ececa56609e5f083a229954ce6625f46033bc8",
+  "merge_commit": "9702c16d0fc324c35147f23817ce3a16eb6a2a42",
+  "old_result_ingest": false,
+  "parity_plan_sha256": "4cc02e4a6217464a19735835fcdde173484840dee48a3c081a41fd8f1b10ce67",
+  "private_signing_keys_provisioned": false,
+  "required_identity_count": 3213,
+  "runner_contract_sha256": "2a013eaede41f348f4e7a7688a3189d2bd5409cc8841e036836a5db4b6dca516",
+  "schema_version": 1,
+  "scientific_execution_performed": false,
+  "scientific_status": "NON_SCIENTIFIC_ZERO_COVERAGE_READY",
+  "selection": 0,
+  "source_manifest_sha256": "4acc8061d2c9c7e3556c23ca8469d4c69169dbb34deedb49129a3c043df071e2",
+  "test_access": 0,
+  "training": 0,
+  "validation_decoding": 0
+}
