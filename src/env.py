@@ -205,3 +205,30 @@ def environment_record() -> dict[str, Any]:
             "src/env.py cannot provide. Add a provider to _PROVIDERS."
         )
     return {f: _PROVIDERS[f]() for f in fields}
+
+
+def profile_environment_record(
+    execution_profile_id: str,
+    *,
+    device: str,
+    config_hash: str,
+    require_openjpeg: bool = False,
+    allow_pending_qualification: bool = False,
+) -> dict[str, Any]:
+    """Fail-closed metadata for new profile-aware scientific execution.
+
+    ``environment_record`` above remains the historical local-profile surface
+    used by completed artifacts.  New science calls this function and therefore
+    authenticates exact Torch/CUDA/package/lock/GPU identity rather than merely
+    checking that Torch has some CUDA build.
+    """
+
+    from config.execution_profiles import authenticate_execution_profile
+
+    return authenticate_execution_profile(
+        execution_profile_id,
+        device=device,
+        config_hash=config_hash,
+        require_openjpeg=require_openjpeg,
+        allow_pending_qualification=allow_pending_qualification,
+    )

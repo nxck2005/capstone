@@ -1,0 +1,28 @@
+# Python environment source pins for the qualified Pascal/cu126 execution
+# profile.  This is additive: requirements.in remains the local RTX 4060/cu130
+# profile and must not be overwritten or used to reinterpret historical runs.
+#
+# Compile with the repository-declared resolver policy:
+#
+#   uv pip compile requirements-pascal.in --python 3.14.6 --generate-hashes \
+#       --emit-index-url --index-strategy unsafe-best-match \
+#       -o requirements-pascal.lock
+#
+# Candidate A is intentionally the same user-space stack as the local profile
+# except for the official PyTorch cu126 wheels.  A fallback lock must have a
+# different filename and an archived qualification failure; it may not replace
+# these pins silently.
+
+--extra-index-url https://download.pytorch.org/whl/cu126
+
+torch==2.13.0+cu126
+torchvision==0.28.0+cu126
+numpy==2.5.1
+pillow==12.3.0
+scikit-image==0.26.0
+glymur==0.14.3
+pytest==9.1.1
+sionna-no-rt==2.0.1
+PyYAML==6.0.3
+
+# OpenJPEG 2.5.4 remains externally provisioned and is authenticated at use.

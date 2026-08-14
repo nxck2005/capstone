@@ -868,9 +868,26 @@ evaluation:
   - papr_db
 compute:
   primary_device: rtx_4060_mobile_8gb
+  primary_device_scope: historical_local_profile_and_G7_measurement_not_global_default
   overflow:
   - colab_free
   - kaggle_free
+  execution_profile_policy:
+    eligible_profiles:
+    - local_4060_cu130
+    - confessor_pascal_cu126
+    selection_scope: per_scientific_run_or_campaign
+    selection_time: before_first_scientific_measurement
+    implicit_mid_run_switching: forbidden
+    interrupted_run_switching: explicit_supersession_or_new_run_only
+    competing_sweep_profile_rule: same_profile_for_entire_sweep
+    architecture_comparison_rule: same_profile_or_preregistered_balanced_mapping
+    one_training_run_profile_rule: fixed_for_complete_run
+    multi_seed_rule: one_profile_preferred_or_preregistered_balanced_seed_mapping_applied_to_every_compared_system
+    final_test_rule: one_frozen_profile_for_complete_paired_campaign_unless_preregistered_balanced_design
+    writer_rule: selected_profile_host_is_sole_scientific_writer_for_that_task
+    shared_live_scientific_filesystem: forbidden
+    durable_handoff: verify_reconcile_commit_push_fetch
   vram_budget_gb: 7.0
   profiling_gate: G-7
   max_wall_clock_hours_per_run: 4
@@ -909,7 +926,7 @@ config:
   file_format: yaml
   experiment_file_policy: committed_choices_and_sweep_axes_only
   resolved_config_archive: beside_run_results
-  fingerprint_schema_version: 1
+  fingerprint_schema_version: 2
   fingerprint_parameter_roots:
   - project
   - datasets
@@ -1271,3 +1288,110 @@ environment:
   reproduction_tolerance:
     cpu_fixture: exact_hash
     gpu_same_seed_retrain_top1_pp: 0.1
+  execution_profile_registry_schema_version: 1
+  execution_profile_id_required_for_new_science: true
+  execution_profile_record_fields:
+  - execution_profile_id
+  - lock_file
+  - lock_file_sha256
+  - python_version
+  - torch_version
+  - torch_cuda_build
+  - torchvision_version
+  - numpy_version
+  - sionna_version
+  - openjpeg_version
+  - deterministic_backend
+  - amp
+  - gpu_name
+  - gpu_uuid
+  - gpu_compute_capability
+  - gpu_index
+  - git_commit
+  - git_dirty
+  - config_hash
+  execution_profiles:
+    local_4060_cu130:
+      role: eligible_production_execution_profile
+      host_class: local_wsl2
+      accelerator_class: rtx_4060_mobile
+      allowed_gpu_names:
+      - NVIDIA GeForce RTX 4060 Laptop GPU
+      allowed_gpu_uuids:
+      - GPU-607a5795-c53b-eab2-8c04-71164b173a32
+      compute_capability: '8.9'
+      python_version: 3.14.6
+      torch_version: 2.13.0+cu130
+      torch_cuda_build: '13.0'
+      torchvision_version: 0.28.0+cu130
+      numpy_version: 2.5.1
+      sionna_version: 2.0.1
+      openjpeg_version: 2.5.4
+      lock_source: requirements.in
+      lock_file: requirements.lock
+      lock_file_sha256: ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd
+      deterministic_backend:
+        cudnn_deterministic: true
+        cudnn_benchmark: false
+      amp: true
+      scientific_writer_host: local
+    confessor_pascal_cu126:
+      role: eligible_production_execution_profile_pending_qualification
+      host_class: remote_arch_linux
+      accelerator_class: pascal_gp102
+      allowed_gpu_names:
+      - NVIDIA GeForce GTX 1080 Ti
+      - NVIDIA TITAN Xp
+      allowed_gpu_uuids:
+      - GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b
+      - GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a
+      compute_capability: '6.1'
+      python_version: 3.14.6
+      torch_version: 2.13.0+cu126
+      torch_cuda_build: '12.6'
+      torchvision_version: 0.28.0+cu126
+      numpy_version: 2.5.1
+      sionna_version: 2.0.1
+      openjpeg_version: 2.5.4
+      lock_source: requirements-pascal.in
+      lock_file: requirements-pascal.lock
+      lock_file_sha256: d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82
+      deterministic_backend:
+        cudnn_deterministic: true
+        cudnn_benchmark: false
+      amp: true
+      scientific_writer_host: confessor
+  qualification:
+    scientific_status: non_scientific_zero_coverage
+    forbidden_activities:
+    - G8_coverage
+    - test_access
+    - validation
+    - selection
+    - training_campaign
+    both_devices_separate: true
+    parity_criterion: no_systematic_decoder_regression_no_material_waterfall_displacement_no_catastrophic_paired_disagreement
+    bit_identical_gpu_decoding_required: false
+    rng_byte_hashes:
+    - information_bits
+    - awgn_real_float64
+    - awgn_imag_float64
+    openjpeg_fixture_parity: required_for_codec_eligible_profiles
+  historical_profile_compatibility:
+    amendment: AM-83
+    accepted_fingerprint_schema_versions:
+    - 1
+    archived_profile: local_4060_cu130
+    rule: exact_archived_parameter_bytes_plus_additive_profile_registry_only
+    unrelated_parameter_drift: forbidden
+    reinterpret_as_other_profile: forbidden
+  scientific_writer_authentication:
+    github_transport: authenticated_https
+    github_cli_device_flow_permitted: true
+    commit_signing: optional
+    mandatory:
+    - authenticated_github_write
+    - internal_artifact_hashes_and_contracts
+    - durable_checkpoint_commits
+    - push_success
+    - local_remote_commit_parity
