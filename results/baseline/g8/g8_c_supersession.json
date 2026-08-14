@@ -1,0 +1,43 @@
+{
+  "artifact_role": "g8_c_campaign_supersession",
+  "continuation_status": "superseded",
+  "old_accepted_authority_prefix": [
+    0,
+    747
+  ],
+  "old_accepted_work_unit_count": 748,
+  "old_campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+  "old_campaign_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+  "old_campaign_state_sha256": "4a285ee7746f197a96c23230a0aac945c581c4ec8d40bc98bb3fa86b46f68ddd",
+  "old_execution_profile_id": "local_4060_cu130",
+  "old_next_incomplete": {
+    "attempt": 1,
+    "authority_ordinal": 748,
+    "request_only": true,
+    "result_published": false,
+    "status": "claimed_request_published",
+    "work_unit_id": "bler-3d67593f9deb3cfaab668644"
+  },
+  "old_results_may_be_used_for": [
+    "provenance",
+    "diagnostics",
+    "cross_profile_equivalence_checks"
+  ],
+  "old_source_epoch_ids": [
+    {
+      "path": "results/baseline/g8/bler_characterization_source_manifest.json",
+      "sha256": "a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e"
+    },
+    {
+      "path": "results/baseline/g8/bler_characterization_source_manifest_v2.json",
+      "sha256": "b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660"
+    }
+  ],
+  "old_tree_aggregate_sha256": "aee60ece7dc9d0ea7b6b0ed7769c2e35cf59bada99e56bf3d38f36447527b48c",
+  "reason": "owner-directed compute-host migration before G8_C BlerTable freeze",
+  "schema_version": 1,
+  "scientific_validity": "valid_authenticated_immutable_historical_evidence",
+  "successor_bler_table_eligibility": "none",
+  "successor_campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+  "supersession_id": "g8csup-4567a6c1ec960f2dcebdd9a5070d934c5dddc7858412cf2699ff854944286bc0"
+}

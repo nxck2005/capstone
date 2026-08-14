@@ -1,0 +1,55 @@
+{
+  "artifact_role": "g8_c_pascal_successor_source_manifest",
+  "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+  "coordinator_contract_sha256": "2870e9c7cb66d70d250507bf66621fd4986b4e7a579c38444138a24c7a2914cf",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "inference": 0,
+  "lock_file": "requirements-pascal.lock",
+  "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+  "old_result_ingest": false,
+  "predecessor_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+  "schema_version": 1,
+  "scientific_status": "NON-SCIENTIFIC_ZERO_COVERAGE",
+  "source_generation_commit": "ae5acd6589467f9e0d6890a8dcac2b5b51d50526",
+  "sources": [
+    {
+      "bytes": 13113,
+      "path": "src/baseline/g8_pascal_successor.py",
+      "role": "successor_contract",
+      "sha256": "66747ef06d6a2f150e0551103a38afcd174774303630f2f77818a69710d99210"
+    },
+    {
+      "bytes": 5135,
+      "path": "tools/run_g8_pascal_dual_gpu.py",
+      "role": "coordinator",
+      "sha256": "a239ebba8bfe153c1b02a5bc7c52bfd3b579bfbe841df253f2e858b66a04baf8"
+    },
+    {
+      "bytes": 10979,
+      "path": "tools/verify_g8_pascal_successor.py",
+      "role": "successor_verifier",
+      "sha256": "b8efb7fb4bd72cb43587742f94f3f6df1bd6cf65aa1329c868fe81a6ed11410d"
+    },
+    {
+      "bytes": 14922,
+      "path": "src/config/execution_profiles.py",
+      "role": "profile_authentication",
+      "sha256": "58c27e1eacb8f0fb57615d5f1cc1073db3655ae7604662e6f445156f51b5eb92"
+    },
+    {
+      "bytes": 82943,
+      "path": "requirements-pascal.lock",
+      "role": "environment_lock",
+      "sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
+    },
+    {
+      "bytes": 39786,
+      "path": "spec/params.generated.yaml",
+      "role": "generated_profile_registry",
+      "sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b"
+    }
+  ],
+  "test_access": 0,
+  "training": 0,
+  "validation_decoding": 0
+}

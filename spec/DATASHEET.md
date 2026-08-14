@@ -582,8 +582,22 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 
 | Parameter | Value | Cited by |
 | --- | --- | --- |
-| `compute.primary_device` | rtx_4060_mobile_8gb | AM-24, SR-11 |
+| `compute.primary_device` | rtx_4060_mobile_8gb | AM-24 |
+| `compute.primary_device_scope` | historical_local_profile_and_G7_measurement_not_global_default | AM-24 |
 | `compute.overflow` | colab_free, kaggle_free | AM-24 |
+| `compute.execution_profile_policy.eligible_profiles` | local_4060_cu130, confessor_pascal_cu126 | AM-24, SR-23 |
+| `compute.execution_profile_policy.selection_scope` | per_scientific_run_or_campaign | AM-24, SR-23 |
+| `compute.execution_profile_policy.selection_time` | before_first_scientific_measurement | AM-24, SR-23 |
+| `compute.execution_profile_policy.implicit_mid_run_switching` | forbidden | AM-24, SR-23 |
+| `compute.execution_profile_policy.interrupted_run_switching` | explicit_supersession_or_new_run_only | AM-24, SR-23 |
+| `compute.execution_profile_policy.competing_sweep_profile_rule` | same_profile_for_entire_sweep | AM-24, SR-23 |
+| `compute.execution_profile_policy.architecture_comparison_rule` | same_profile_or_preregistered_balanced_mapping | AM-24, SR-23 |
+| `compute.execution_profile_policy.one_training_run_profile_rule` | fixed_for_complete_run | AM-24, SR-23 |
+| `compute.execution_profile_policy.multi_seed_rule` | one_profile_preferred_or_preregistered_balanced_seed_mapping_applied_to_every_compared_system | AM-24, SR-23 |
+| `compute.execution_profile_policy.final_test_rule` | one_frozen_profile_for_complete_paired_campaign_unless_preregistered_balanced_design | AM-24, SR-23 |
+| `compute.execution_profile_policy.writer_rule` | selected_profile_host_is_sole_scientific_writer_for_that_task | AM-24, SR-23 |
+| `compute.execution_profile_policy.shared_live_scientific_filesystem` | forbidden | AM-24, SR-23 |
+| `compute.execution_profile_policy.durable_handoff` | verify_reconcile_commit_push_fetch | AM-24, SR-23 |
 | `compute.vram_budget_gb` | 7.0 | AM-24, SR-11 |
 | `compute.profiling_gate` | G-7 | AM-24, SR-11 |
 | `compute.max_wall_clock_hours_per_run` | 4 | AM-24, G-8, SR-11 |
@@ -620,7 +634,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `config.file_format` | yaml | AM-68, SR-1, SR-18 |
 | `config.experiment_file_policy` | committed_choices_and_sweep_axes_only | AM-68, SR-1, SR-18 |
 | `config.resolved_config_archive` | beside_run_results | AM-68, SR-1, SR-18 |
-| `config.fingerprint_schema_version` | 1 | AM-68, AM-72, SR-1, SR-18 |
+| `config.fingerprint_schema_version` | 2 | AM-68, AM-72, SR-1, SR-18 |
 | `config.fingerprint_parameter_roots` | project, datasets, preprocessing, bandwidth, channel, learned_system, baseline, reference_classifier, digital_semantic_control, evaluation, compute, artifacts, environment | AM-68, SR-1, SR-18 |
 | `config.fingerprint_excluded_roots` | config, demo, hardware_tier23, deliverables | AM-68, SR-1, SR-18 |
 | `config.run_config_hash_form` | sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json | AM-68, SR-1, SR-18 |
@@ -779,3 +793,65 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `environment.deterministic_backend.cudnn_benchmark` | false | AM-58, SR-12, SR-21 |
 | `environment.reproduction_tolerance.cpu_fixture` | exact_hash | AM-58, SR-21 |
 | `environment.reproduction_tolerance.gpu_same_seed_retrain_top1_pp` | 0.1 | AM-58, SR-21 |
+| `environment.execution_profile_registry_schema_version` | 1 | AM-58, SR-21 |
+| `environment.execution_profile_id_required_for_new_science` | true | AM-58, SR-21 |
+| `environment.execution_profile_record_fields` | execution_profile_id, lock_file, lock_file_sha256, python_version, torch_version, torch_cuda_build, torchvision_version, numpy_version, sionna_version, openjpeg_version, deterministic_backend, amp, gpu_name, gpu_uuid, gpu_compute_capability, gpu_index, git_commit, git_dirty, config_hash | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.role` | eligible_production_execution_profile | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.host_class` | local_wsl2 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.accelerator_class` | rtx_4060_mobile | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.allowed_gpu_names` | NVIDIA GeForce RTX 4060 Laptop GPU | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.allowed_gpu_uuids` | GPU-607a5795-c53b-eab2-8c04-71164b173a32 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.compute_capability` | 8.9 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.python_version` | 3.14.6 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.torch_version` | 2.13.0+cu130 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.torch_cuda_build` | 13.0 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.torchvision_version` | 0.28.0+cu130 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.numpy_version` | 2.5.1 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.sionna_version` | 2.0.1 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.openjpeg_version` | 2.5.4 | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.lock_source` | requirements.in | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.lock_file` | requirements.lock | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.lock_file_sha256` | ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.deterministic_backend.cudnn_deterministic` | true | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.deterministic_backend.cudnn_benchmark` | false | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.amp` | true | AM-58, SR-21 |
+| `environment.execution_profiles.local_4060_cu130.scientific_writer_host` | local | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.role` | eligible_production_execution_profile | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.host_class` | remote_arch_linux | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.accelerator_class` | pascal_gp102 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.allowed_gpu_names` | NVIDIA GeForce GTX 1080 Ti, NVIDIA TITAN Xp | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.allowed_gpu_uuids` | GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b, GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.compute_capability` | 6.1 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.python_version` | 3.14.6 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.torch_version` | 2.13.0+cu126 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.torch_cuda_build` | 12.6 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.torchvision_version` | 0.28.0+cu126 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.numpy_version` | 2.5.1 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.sionna_version` | 2.0.1 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.openjpeg_version` | 2.5.4 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.lock_source` | requirements-pascal.in | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.lock_file` | requirements-pascal.lock | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.lock_file_sha256` | d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82 | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.deterministic_backend.cudnn_deterministic` | true | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.deterministic_backend.cudnn_benchmark` | false | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.amp` | true | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.scientific_writer_host` | confessor | AM-58, SR-21 |
+| `environment.qualification.scientific_status` | non_scientific_zero_coverage | AM-58, SR-21, SR-23 |
+| `environment.qualification.pascal_eligibility_status` | qualified_both_registered_devices_and_cross_profile_parity | AM-58, SR-21, SR-23 |
+| `environment.qualification.pascal_qualification_artifacts` | results/execution_profiles/qualification | AM-58, SR-21, SR-23 |
+| `environment.qualification.forbidden_activities` | G8_coverage, test_access, validation, selection, training_campaign | AM-58, SR-21, SR-23 |
+| `environment.qualification.both_devices_separate` | true | AM-58, SR-21, SR-23 |
+| `environment.qualification.parity_criterion` | no_systematic_decoder_regression_no_material_waterfall_displacement_no_catastrophic_paired_disagreement | AM-58, SR-21, SR-23 |
+| `environment.qualification.bit_identical_gpu_decoding_required` | false | AM-58, SR-21, SR-23 |
+| `environment.qualification.rng_byte_hashes` | information_bits, awgn_real_float64, awgn_imag_float64 | AM-58, SR-21, SR-23 |
+| `environment.qualification.openjpeg_fixture_parity` | required_for_codec_eligible_profiles | AM-58, SR-21, SR-23 |
+| `environment.historical_profile_compatibility.amendment` | AM-83 | AM-58, SR-1, SR-21 |
+| `environment.historical_profile_compatibility.accepted_fingerprint_schema_versions` | 1 | AM-58, SR-1, SR-21 |
+| `environment.historical_profile_compatibility.archived_profile` | local_4060_cu130 | AM-58, SR-1, SR-21 |
+| `environment.historical_profile_compatibility.rule` | exact_archived_parameter_bytes_plus_additive_profile_registry_only | AM-58, SR-1, SR-21 |
+| `environment.historical_profile_compatibility.unrelated_parameter_drift` | forbidden | AM-58, SR-1, SR-21 |
+| `environment.historical_profile_compatibility.reinterpret_as_other_profile` | forbidden | AM-58, SR-1, SR-21 |
+| `environment.scientific_writer_authentication.github_transport` | authenticated_https | AM-58, SR-21, SR-23 |
+| `environment.scientific_writer_authentication.github_cli_device_flow_permitted` | true | AM-58, SR-21, SR-23 |
+| `environment.scientific_writer_authentication.commit_signing` | optional | AM-58, SR-21, SR-23 |
+| `environment.scientific_writer_authentication.mandatory` | authenticated_github_write, internal_artifact_hashes_and_contracts, durable_checkpoint_commits, push_success, local_remote_commit_parity | AM-58, SR-21, SR-23 |

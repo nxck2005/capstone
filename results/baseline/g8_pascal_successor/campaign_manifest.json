@@ -1,0 +1,26 @@
+{
+  "accepted_authority_ordinals": [],
+  "accepted_count": 0,
+  "artifact_role": "g8_c_pascal_successor_manifest",
+  "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+  "coordinator_contract_sha256": "2870e9c7cb66d70d250507bf66621fd4986b4e7a579c38444138a24c7a2914cf",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "physical_contract": {
+    "count_and_interval_semantics": "predecessor_frozen_contract_unchanged",
+    "decoder_and_demapper": "predecessor_frozen_contract_unchanged",
+    "grid_source": "results/baseline/g8/required_bler_identities.json exact physical identities only",
+    "required_identities": 3213,
+    "seed_semantics": "campaign-bound successor namespace with same Philox/NumPy stream contract",
+    "trials_per_identity": 5000
+  },
+  "predecessor_campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+  "predecessor_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+  "required_identity_count": 3213,
+  "schema_version": 1,
+  "scientific_execution_performed": false,
+  "source_manifest_sha256": "4acc8061d2c9c7e3556c23ca8469d4c69169dbb34deedb49129a3c043df071e2",
+  "status": "successor_open",
+  "successor_table_contribution": "successor_only_no_predecessor_results",
+  "test_access": 0,
+  "trials_per_identity": 5000
+}

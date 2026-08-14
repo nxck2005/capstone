@@ -7,22 +7,17 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-14 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is paused at a user-requested durable checkpoint under `G8_C/characterization_open`. No worker is running. Exact coverage, attempt and next-session restart details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-15 · **Phase:** **G8_B is complete; the old local G8_C campaign is preserved as superseded historical evidence and the clean Pascal successor is prepared at 0/3213. No successor worker is running. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
 
-**Cold-start side decision — dedicated Pascal worker; no delegation yet.** At
-the next cold start, ask the user whether to qualify the dedicated worker for
-future delegated work. User-supplied `lspci` enumerates a GeForce GTX 1080 Ti
-(11 GB), TITAN Xp (12 GB), and an Intel NVMe controller. Both GPUs are Pascal
-compute capability 6.1: technically usable with the official PyTorch
-`2.9.1+cu126` lane on Python 3.12, but not CUDA 13. The live G8_C campaign remains bound to
-the registered `torch 2.13.0+cu130` / Torch CUDA 13.0 runner contract, so the
-worker is **not eligible for the current G8_C suffix** and cu126 results must
-not be mixed into its evidence. Do not install, amend, supersede a contract,
-copy campaign evidence or dispatch work until the user decides. If the answer
-is yes, first scope a non-G8_C job and qualify driver/Python/CUDA on both GPUs,
-NVMe capacity and free space, dependency/deterministic parity, remote access,
-and artifact return. A later scientific cu126 lane requires an append-only
-spec amendment and a separate hashed lock; never replace the cu130 lane.
+**Execution profiles:** the project now has two independently authenticated
+production profiles, `local_4060_cu130` and the qualified
+`confessor_pascal_cu126`. A scientific run chooses one before its first
+measurement and cannot silently switch. The selected host is the sole writer;
+handoff is verify → reconcile → commit → authenticated HTTPS push → fetch/parity.
+Commit signing is optional prospectively; artifact hashes/contracts, durable
+commits, push success and parity remain mandatory. The old local G8_C results
+remain valid history but contribute zero successor-table coverage. The Pascal
+successor is the only current final G8_C path and `confessor` is its sole writer.
 Debate memos: [`audit/pascal-worker-adoption-audit-2026-08-14.md`](audit/pascal-worker-adoption-audit-2026-08-14.md)
 and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md).
 
@@ -68,7 +63,13 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** G8_C C2 — authenticate the durable stop checkpoint, run the exact read-only inspection and reconciliation in `instructions/RESUME.md`, then write and push a fresh at-most-128-unit marker before resuming the full-strength BLER suffix.
+**Next-session task:** finish the execution-profile migration gate: merge the
+implementation PR, establish main parity, recreate `requirements-pascal.lock`
+on `confessor`, rerun the non-scientific qualification from merged bytes, prove
+authenticated HTTPS push and commit parity, then push the zero-coverage Pascal
+successor marker. Only after those gates may the owner explicitly open the new
+G8_C campaign. The old local suffix is not resumed and no old result may enter
+the successor table.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -83,10 +84,11 @@ does not, it is wrong and this block is right.**
 | W4 · PA | complete |
 | W4 · PB_1 (incl. the PB_1C correction) | complete |
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
+| G-8 execution-profile migration gate | next |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **paused at a durable G8_C C2 checkpoint; resume next session only through the ledgered inspect/reconcile/marker sequence** |
-| G8_B–G8_G | **G8_B complete; G8_C C0/C1C complete and C2 paused at `characterization_open`; C3 and all later phases remain gated.** |
+| G-8 classical validation work | **old local G8_C superseded; clean Pascal successor prepared at 0/3213; scientific launch gated on merge and pushed marker** |
+| G8_B–G8_G | **G8_B complete; Pascal G8_C successor is pre-science and C3 and all later phases remain gated.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
@@ -639,7 +641,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted before starting the G-8 work:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 190 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 195 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: exit 0; the current-document count is whatever the checker reports
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures

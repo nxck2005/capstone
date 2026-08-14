@@ -1,5 +1,26 @@
 # Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C / G8
 
+## Current execution-profile handoff (AM-83–AM-85)
+
+Two eligible production profiles exist: `local_4060_cu130` and
+`confessor_pascal_cu126`. A new scientific run or campaign must freeze one
+profile before its first measurement and may not silently switch hosts. The
+selected host is the sole writer; custody is verify → reconcile → durable
+commit → authenticated GitHub HTTPS push → fetch/parity. Git commit signing is
+optional prospectively; internal hashes/contracts, durable commits, successful
+push and parity remain mandatory. Historical signing facts are unchanged.
+
+The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
+superseded before BLER-table freeze and contributes zero successor coverage.
+The clean Pascal successor is `results/baseline/g8_pascal_successor/`, bound to
+`confessor_pascal_cu126`, 3,213 identities × 5,000 trials, explicit UUID-bound
+`cuda:0`/`cuda:1` workers, and zero accepted coverage. `confessor` is its sole
+scientific writer; no successor worker is running. Do not launch full-strength
+science until the migration PR is merged, main parity and lock recreation are
+proven, final qualification is rerun from merged bytes, HTTPS push is proven,
+and the zero-coverage marker is pushed. Never ingest old results, access test
+or validation data, train, infer, select or authorize during this handoff.
+
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
 this file is the operational cursor. If they disagree, this file is right about progress and

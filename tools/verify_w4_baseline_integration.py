@@ -60,6 +60,10 @@ from artifacts.ids import (  # noqa: E402
     make_run_id,
 )
 from data.registry import manifest_sha256  # noqa: E402
+from config.execution_profiles import (  # noqa: E402
+    verify_historical_generated_params_bytes,
+    verify_historical_local_compatibility,
+)
 from config.run_config import RunConfig, canonical_sha256, config_hash  # noqa: E402
 from models.frozen_reference_classifier import (  # noqa: E402
     EXPECTED_CHECKPOINT_SHA256,
@@ -499,6 +503,20 @@ def check_sources(evidence: Path, summary: dict[str, Any]) -> dict[str, Any]:
         )
         if role != "record":
             current = _current_bytes(path)
+            if path == "spec/params.generated.yaml" and current != at_commit:
+                # AM-83 is the one narrow exception to byte identity: every
+                # archived schema-1 RunConfig below must independently prove
+                # that the current profile registry is additive and that no
+                # measurement parameter moved.  Validate the archived YAML
+                # itself here; otherwise this branch would be a broad escape
+                # hatch for any generated-parameter drift.
+                try:
+                    verify_historical_generated_params_bytes(at_commit)
+                except ValueError as exc:
+                    raise VerificationError(
+                        f"{path}: historical additive compatibility failed: {exc}"
+                    ) from None
+                continue
             _require(
                 sha256_bytes(current) == entry["sha256"],
                 f"{path} has drifted since the bounded evidence was produced; "
@@ -606,12 +624,20 @@ def check_configuration(
             f"{entry['relative_path']}: the parameter snapshot does not cover the "
             "fingerprint roots",
         )
-        for root in roots:
-            _require(
-                snapshot[root] == get(root),
-                f"{entry['relative_path']}: the recorded params.{root} snapshot "
-                "differs from the current spec",
-            )
+        if run_config.fingerprint_schema_version == 1:
+            try:
+                verify_historical_local_compatibility(run_config)
+            except ValueError as exc:
+                raise VerificationError(
+                    f"{entry['relative_path']}: historical compatibility failed: {exc}"
+                ) from None
+        else:
+            for root in roots:
+                _require(
+                    snapshot[root] == get(root),
+                    f"{entry['relative_path']}: the recorded params.{root} snapshot "
+                    "differs from the current spec",
+                )
         _require(
             digest not in hashes,
             f"config hash {digest[:12]} is archived twice",
