@@ -18,7 +18,7 @@
   "required_identity_count": 3213,
   "schema_version": 1,
   "scientific_execution_performed": false,
-  "source_manifest_sha256": "7921850bbd10c5366bbfd3e8867cc212f4a51ddcc23c5713432a7dccac985a58",
+  "source_manifest_sha256": "4acc8061d2c9c7e3556c23ca8469d4c69169dbb34deedb49129a3c043df071e2",
   "status": "successor_open",
   "successor_table_contribution": "successor_only_no_predecessor_results",
   "test_access": 0,

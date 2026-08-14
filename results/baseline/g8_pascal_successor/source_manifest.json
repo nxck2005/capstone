@@ -10,7 +10,7 @@
   "predecessor_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
   "schema_version": 1,
   "scientific_status": "NON-SCIENTIFIC_ZERO_COVERAGE",
-  "source_generation_commit": "2ed8e6cdb0cb7200d6341607d3735e1fb7a1e8ee",
+  "source_generation_commit": "ae5acd6589467f9e0d6890a8dcac2b5b51d50526",
   "sources": [
     {
       "bytes": 13113,
