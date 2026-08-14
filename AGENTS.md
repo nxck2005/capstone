@@ -23,6 +23,21 @@ C2 only through the exact inspect/reconcile/marker sequence in
 runner.** Never use the superseded v1 coordinator, create authorization, access
 validation/test data or enter G8_D early.
 
+**Next cold-start side decision — no delegation is authorized yet.** Ask the
+user whether to qualify the dedicated Pascal worker for future work. Supplied
+PCI enumeration confirms a GeForce GTX 1080 Ti, TITAN Xp and Intel NVMe
+controller. The researched viable lane is Python 3.12 + PyTorch 2.9.1 + CUDA 12.6
+lane, but the live G8_C suffix is runner-contract-bound to cu130/CUDA 13 and
+MUST NOT run there or ingest cu126 results. Do not install or dispatch anything
+until the user chooses. If adopted, select a non-G8_C task, qualify both GPUs,
+storage, remote access, dependency/deterministic parity and artifact return,
+then record any scientific environment change by amendment and a separate
+hashed cu126 lock. See `NEXT.md` and both
+`audit/pascal-worker-adoption-audit-2026-08-14*.md` discussion memos; never
+replace the cu130 lane. The two memos intentionally preserve different
+positions about G8_C migration and the exact candidate package tuple; resolve
+those questions with the user rather than silently choosing one.
+
 **First Review delivery contract — user-fixed; do not ask the user to restate or
 reinterpret it.** The maintained acceptance checklist is
 [`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md).
