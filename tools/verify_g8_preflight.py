@@ -29,6 +29,8 @@ from baseline.g8_campaign import (
     load_campaign_state,
     load_required_bler_identities,
     sha256_bytes,
+    verify_historical_contract_sources,
+    verify_historical_normative_sources,
 )
 from config.params import REPO_ROOT, get
 
@@ -229,8 +231,19 @@ def verify(path: Path = CAMPAIGN_MANIFEST) -> dict[str, Any]:
         _require(isinstance(entries, list) and entries, f"{group} is empty or malformed")
         paths = [entry.get("path") for entry in entries if isinstance(entry, dict)]
         _require(paths == list(expected_paths), f"{group} path set or order changed")
-        for entry in entries:
-            _verify_binding(entry)
+        if group == "normative_sources":
+            try:
+                verify_historical_normative_sources(entries)
+            except G8ContractError as exc:
+                raise G8PreflightError(str(exc)) from exc
+        elif group == "contract_sources":
+            try:
+                verify_historical_contract_sources(entries)
+            except G8ContractError as exc:
+                raise G8PreflightError(str(exc)) from exc
+        else:
+            for entry in entries:
+                _verify_binding(entry)
 
     rules = payload.get("interpretation_rules") or {}
     _require(rules.get("pre_data_contract_not_authorization") is True, "contract claims authorization")

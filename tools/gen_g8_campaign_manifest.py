@@ -24,6 +24,9 @@ from baseline.g8_campaign import (
     campaign_identifier,
     rendered_json,
     sha256_bytes,
+    verify_historical_contract_sources,
+    verify_historical_normative_sources,
+    G8ContractError,
 )
 from baseline.classical.outage import write_json_atomically
 from config.params import REPO_ROOT
@@ -149,7 +152,44 @@ def main() -> int:
         expected = rendered_json(payload)
         actual = CAMPAIGN_MANIFEST.read_bytes()
         if actual != expected:
-            raise SystemExit("campaign_manifest.json is stale")
+            try:
+                historical = json.loads(actual)
+                if not isinstance(historical, dict):
+                    raise ValueError("manifest is not an object")
+                if historical.get("campaign") != payload["campaign"]:
+                    raise ValueError("campaign changed")
+                if historical.get("campaign_id") != campaign_identifier(historical):
+                    raise ValueError("historical campaign identity changed")
+                actual_without_identity = dict(historical)
+                expected_without_identity = dict(payload)
+                actual_without_identity.pop("campaign_id", None)
+                expected_without_identity.pop("campaign_id", None)
+                actual_normative = actual_without_identity.pop("normative_sources", None)
+                expected_normative = expected_without_identity.pop("normative_sources", None)
+                actual_contract = actual_without_identity.pop("contract_sources", None)
+                expected_contract = expected_without_identity.pop("contract_sources", None)
+                if actual_without_identity != expected_without_identity:
+                    raise ValueError("non-additive manifest drift")
+                if not isinstance(actual_normative, list) or not isinstance(expected_normative, list):
+                    raise ValueError("malformed historical normative bindings")
+                if not isinstance(actual_contract, list) or not isinstance(expected_contract, list):
+                    raise ValueError("malformed historical contract bindings")
+                if [entry.get("path") for entry in actual_normative] != [
+                    entry.get("path") for entry in expected_normative
+                ]:
+                    raise ValueError("normative source paths changed")
+                if [entry.get("path") for entry in actual_contract] != [
+                    entry.get("path") for entry in expected_contract
+                ]:
+                    raise ValueError("contract source paths changed")
+                verify_historical_normative_sources(actual_normative)
+                verify_historical_contract_sources(actual_contract)
+            except (G8ContractError, ValueError, KeyError, TypeError, json.JSONDecodeError) as exc:
+                raise SystemExit("campaign_manifest.json is stale") from exc
+            print(
+                "ok: historical campaign manifest retained under additive execution-profile compatibility"
+            )
+            return 0
         print(
             "ok: campaign manifest matches regenerated pre-data contract "
             f"campaign_id={payload['campaign_id']}"

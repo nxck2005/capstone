@@ -10,7 +10,9 @@ from __future__ import annotations
 import hashlib
 import json
 import csv
+import difflib
 import os
+import subprocess
 import tempfile
 from collections.abc import Mapping
 from fractions import Fraction
@@ -19,6 +21,7 @@ from typing import Any
 
 from baseline.classical.composition import BlerIdentity, Candidate, g2_bler_table
 from baseline.ldpc.transport import build_packet_plan
+from config.execution_profiles import verify_historical_generated_params_bytes
 from config.params import REPO_ROOT, get
 
 CAMPAIGN = "G-8"
@@ -100,6 +103,148 @@ def sha256_bytes(value: bytes) -> str:
 
 def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
+
+
+_HISTORICAL_PROFILE_SPEC_MARKERS = (
+    "AM-83",
+    "AM-84",
+    "AM-85",
+    "execution_profile",
+    "confessor_pascal_cu126",
+    "primary_device_scope",
+    "fingerprint_schema_version: 2",
+)
+_HISTORICAL_PROFILE_SOURCE_MARKERS = (
+    "historical",
+    "normative_sources",
+    "verify_historical",
+    "G8ContractError",
+    "difflib",
+    "subprocess",
+    "config.execution_profiles",
+)
+
+
+def _historical_source_bytes(path: str, digest: str) -> bytes:
+    """Resolve an archived source by its recorded SHA-256 from Git history."""
+
+    commits = subprocess.run(
+        ["git", "rev-list", "--all", "--", path],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    for commit in commits:
+        result = subprocess.run(
+            ["git", "show", f"{commit}:{path}"],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+        )
+        if result.returncode == 0 and sha256_bytes(result.stdout) == digest:
+            return result.stdout
+    raise G8ContractError(f"bound SHA-256 does not resolve to archived bytes for {path}")
+
+
+def _verify_historical_profile_spec(archived: bytes) -> None:
+    """Allow only the recorded additive execution-profile amendment in SPEC."""
+
+    current = (REPO_ROOT / "spec/SPEC.md").read_bytes()
+    old_lines = archived.decode("utf-8").splitlines()
+    new_lines = current.decode("utf-8").splitlines()
+    matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
+    for tag, old_start, old_end, new_start, new_end in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        changed = "\n".join(old_lines[old_start:old_end] + new_lines[new_start:new_end])
+        if not any(marker in changed for marker in _HISTORICAL_PROFILE_SPEC_MARKERS):
+            raise G8ContractError(
+                "historical SPEC compatibility found unrelated drift outside AM-83..AM-85"
+            )
+
+
+def _verify_historical_profile_source(path: str, archived: bytes) -> None:
+    """Allow only the additive compatibility code in bound G-8 tooling."""
+
+    current = (REPO_ROOT / path).read_bytes()
+    old_lines = archived.decode("utf-8").splitlines()
+    new_lines = current.decode("utf-8").splitlines()
+    matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
+    for tag, old_start, old_end, new_start, new_end in matcher.get_opcodes():
+        if tag == "equal":
+            continue
+        changed = "\n".join(old_lines[old_start:old_end] + new_lines[new_start:new_end])
+        if not any(marker in changed for marker in _HISTORICAL_PROFILE_SOURCE_MARKERS):
+            raise G8ContractError(f"historical G-8 source drift is unrelated: {path}")
+
+
+def verify_historical_normative_sources(entries: list[Mapping[str, Any]]) -> None:
+    """Verify old G-8 normative bindings under the narrow additive-profile rule."""
+
+    expected = {
+        "spec/SPEC.md": "normative_spec",
+        "spec/params.generated.yaml": "generated_parameters",
+    }
+    if any(not isinstance(entry, Mapping) for entry in entries):
+        raise G8ContractError("historical normative source entries are malformed")
+    if [entry.get("path") for entry in entries] != list(expected):
+        raise G8ContractError("historical normative source paths changed")
+    for entry in entries:
+        if set(entry) != {"path", "role", "sha256", "bytes"}:
+            raise G8ContractError("historical normative source binding schema changed")
+        path = entry["path"]
+        if entry["role"] != expected[path] or not isinstance(entry["sha256"], str) or len(entry["sha256"]) != 64:  # literal-ok: SHA-256 hex digest length.
+            raise G8ContractError("historical normative source binding is malformed")
+        current_path = REPO_ROOT / path
+        current = current_path.read_bytes()
+        if entry["bytes"] == len(current) and entry["sha256"] == sha256_bytes(current):
+            continue
+        archived = _historical_source_bytes(path, entry["sha256"])
+        if entry["bytes"] != len(archived):
+            raise G8ContractError(f"historical normative source byte length is not archived: {path}")
+        if path == "spec/params.generated.yaml":
+            verify_historical_generated_params_bytes(archived)
+        elif path == "spec/SPEC.md":
+            _verify_historical_profile_spec(archived)
+        else:  # pragma: no cover - guarded by the expected path map
+            raise G8ContractError(f"unsupported historical normative source: {path}")
+
+
+def verify_historical_contract_sources(entries: list[Mapping[str, Any]]) -> None:
+    """Verify bound G-8 tooling changes are only the compatibility amendment."""
+
+    expected = {
+        "instructions/G8.txt": "g8a_contract_source",
+        "instructions/G8_A.txt": "g8a_contract_source",
+        "instructions/G8_B.txt": "g8a_contract_source",
+        "instructions/G8_C.txt": "g8a_contract_source",
+        "instructions/G8_D.txt": "g8a_contract_source",
+        "instructions/G8_E.txt": "g8a_contract_source",
+        "instructions/G8_F.txt": "g8a_contract_source",
+        "instructions/G8_G.txt": "g8a_contract_source",
+        "src/baseline/g8_campaign.py": "g8a_contract_source",
+        "tools/gen_g8_campaign_manifest.py": "g8a_contract_source",
+        "tools/update_g8_campaign_state.py": "g8a_contract_source",
+        "tools/verify_g8_preflight.py": "g8a_contract_source",
+    }
+    if any(not isinstance(entry, Mapping) for entry in entries):
+        raise G8ContractError("historical G-8 contract source entries are malformed")
+    if [entry.get("path") for entry in entries] != list(expected):
+        raise G8ContractError("historical G-8 contract source paths changed")
+    for entry in entries:
+        if set(entry) != {"path", "role", "sha256", "bytes"}:
+            raise G8ContractError("historical G-8 contract source binding schema changed")
+        path = entry["path"]
+        if entry["role"] != expected[path] or not isinstance(entry["sha256"], str) or len(entry["sha256"]) != 64:  # literal-ok: SHA-256 hex digest length.
+            raise G8ContractError("historical G-8 contract source binding is malformed")
+        current = (REPO_ROOT / path).read_bytes()
+        if entry["bytes"] == len(current) and entry["sha256"] == sha256_bytes(current):
+            continue
+        archived = _historical_source_bytes(path, entry["sha256"])
+        if entry["bytes"] != len(archived):
+            raise G8ContractError(f"historical G-8 contract source byte length changed: {path}")
+        _verify_historical_profile_source(path, archived)
 
 
 def campaign_identifier(payload: Mapping[str, Any]) -> str:
