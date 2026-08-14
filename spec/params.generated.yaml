@@ -1336,7 +1336,7 @@ environment:
       amp: true
       scientific_writer_host: local
     confessor_pascal_cu126:
-      role: eligible_production_execution_profile_pending_qualification
+      role: eligible_production_execution_profile
       host_class: remote_arch_linux
       accelerator_class: pascal_gp102
       allowed_gpu_names:
@@ -1363,6 +1363,8 @@ environment:
       scientific_writer_host: confessor
   qualification:
     scientific_status: non_scientific_zero_coverage
+    pascal_eligibility_status: qualified_both_registered_devices_and_cross_profile_parity
+    pascal_qualification_artifacts: results/execution_profiles/qualification
     forbidden_activities:
     - G8_coverage
     - test_access

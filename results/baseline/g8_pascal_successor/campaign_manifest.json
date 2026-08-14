@@ -2,7 +2,7 @@
   "accepted_authority_ordinals": [],
   "accepted_count": 0,
   "artifact_role": "g8_c_pascal_successor_manifest",
-  "campaign_id": "g8p-4f97596a0758c7f075729c65d6bd9a20b2a73e39a6ae0005adba8eadc41a927c",
+  "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
   "coordinator_contract_sha256": "2870e9c7cb66d70d250507bf66621fd4986b4e7a579c38444138a24c7a2914cf",
   "execution_profile_id": "confessor_pascal_cu126",
   "physical_contract": {
@@ -18,7 +18,7 @@
   "required_identity_count": 3213,
   "schema_version": 1,
   "scientific_execution_performed": false,
-  "source_manifest_sha256": "b09caf483100f3db37f72a76e6d5e66e5249d07b841dd9974473ca846b246eee",
+  "source_manifest_sha256": "7921850bbd10c5366bbfd3e8867cc212f4a51ddcc23c5713432a7dccac985a58",
   "status": "successor_open",
   "successor_table_contribution": "successor_only_no_predecessor_results",
   "test_access": 0,

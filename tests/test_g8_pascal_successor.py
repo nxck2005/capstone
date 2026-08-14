@@ -13,14 +13,15 @@ from baseline.g8_pascal_successor import (
     validate_coordinator_contract,
     validate_successor_manifest,
     validate_successor_state,
+    successor_campaign_identifier,
 )
 
 
 def _manifest():
-    return {
+    body = {
         "schema_version": 1,
         "artifact_role": "g8_c_pascal_successor_manifest",
-        "campaign_id": "g8p-test",
+        "campaign_id": "pending",
         "status": "successor_open",
         "predecessor_campaign_id": "g8-old",
         "predecessor_manifest_sha256": "a" * 64,
@@ -36,13 +37,16 @@ def _manifest():
         "coordinator_contract_sha256": "b" * 64,
         "source_manifest_sha256": "c" * 64,
     }
+    body["campaign_id"] = successor_campaign_identifier(body)
+    return body
 
 
 def _state():
+    campaign_id = _manifest()["campaign_id"]
     body = {
         "schema_version": 1,
         "artifact_role": "g8_c_pascal_successor_state",
-        "campaign_id": "g8p-test",
+        "campaign_id": campaign_id,
         "execution_profile_id": "confessor_pascal_cu126",
         "required_identity_count": REQUIRED_COUNT,
         "trials_per_identity": TRIALS_PER_IDENTITY,

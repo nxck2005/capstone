@@ -13,7 +13,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from config.params import REPO_ROOT
+from config.params import REPO_ROOT, get
 
 
 SUCCESSOR_ROOT = REPO_ROOT / "results/baseline/g8_pascal_successor"
@@ -22,11 +22,12 @@ SUCCESSOR_MANIFEST = SUCCESSOR_ROOT / "campaign_manifest.json"
 SUCCESSOR_STATE = SUCCESSOR_ROOT / "campaign_state.json"
 SUCCESSOR_COORDINATOR_CONTRACT = SUCCESSOR_ROOT / "dual_gpu_coordinator_contract.json"
 SUCCESSOR_SOURCE_MANIFEST = SUCCESSOR_ROOT / "source_manifest.json"
+SUCCESSOR_RUNNER_CONTRACT = SUCCESSOR_ROOT / "runner_contract.json"
 SUPERSESSION_ARTIFACT = REPO_ROOT / "results/baseline/g8/g8_c_supersession.json"
 PARITY_PLAN = REPO_ROOT / "results/baseline/g8/execution_profile_parity_plan.json"
 
 REQUIRED_COUNT = 3213
-TRIALS_PER_IDENTITY = 5000
+TRIALS_PER_IDENTITY = int(get("baseline.bler_characterisation_trials"))
 WORK_UNIT_PARTITION = "authority_ordinal_modulo_2"
 GPU_ASSIGNMENTS = (
     {"shard_index": 0, "shard_count": 2, "device": "cuda:0", "gpu_index": 0},
@@ -56,6 +57,15 @@ def digest_without_field(value: Mapping[str, Any], field: str) -> str:
     return sha256_bytes(canonical_json(body))
 
 
+def successor_campaign_identifier(payload: Mapping[str, Any]) -> str:
+    """Derive the successor ID without a circular source-manifest hash."""
+
+    basis = dict(payload)
+    basis.pop("campaign_id", None)
+    basis.pop("source_manifest_sha256", None)
+    return "g8p-" + sha256_bytes(canonical_json(basis))
+
+
 def load_json(path: Path) -> dict[str, Any]:
     try:
         raw = path.read_bytes()
@@ -79,6 +89,8 @@ def validate_successor_manifest(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise SuccessorContractError("successor manifest schema differs")
     if payload["schema_version"] != 1 or payload["artifact_role"] != "g8_c_pascal_successor_manifest":
         raise SuccessorContractError("unsupported successor manifest")
+    if payload["campaign_id"] != successor_campaign_identifier(payload):
+        raise SuccessorContractError("successor campaign ID does not reproduce from its identity basis")
     if payload["status"] != "successor_open" or payload["execution_profile_id"] != SUCCESSOR_PROFILE_ID:
         raise SuccessorContractError("successor status/profile is not frozen")
     if payload["required_identity_count"] != REQUIRED_COUNT or payload["trials_per_identity"] != TRIALS_PER_IDENTITY:
@@ -162,6 +174,50 @@ def validate_coordinator_contract(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise SuccessorContractError("coordinator launch status differs")
     if payload["contract_sha256"] != digest_without_field(payload, "contract_sha256"):
         raise SuccessorContractError("coordinator contract digest differs")
+    return dict(payload)
+
+
+def validate_runner_contract(payload: Mapping[str, Any]) -> dict[str, Any]:
+    required = {
+        "schema_version", "artifact_role", "campaign_id", "execution_profile_id",
+        "lock_file", "lock_file_sha256", "manifest_sha256", "state_sha256",
+        "coordinator_sha256", "source_manifest_sha256", "required_identity_count",
+        "trials_per_identity", "workers", "runner_source_paths", "old_result_ingest",
+        "test_access", "validation_decoding", "inference", "training", "scientific_status",
+        "contract_sha256",
+    }
+    if set(payload) != required:
+        raise SuccessorContractError("successor runner contract schema differs")
+    if payload["schema_version"] != 1 or payload["artifact_role"] != "g8_c_pascal_successor_runner_contract":
+        raise SuccessorContractError("unsupported successor runner contract")
+    if payload["execution_profile_id"] != SUCCESSOR_PROFILE_ID or payload["required_identity_count"] != REQUIRED_COUNT or payload["trials_per_identity"] != TRIALS_PER_IDENTITY:
+        raise SuccessorContractError("successor runner physical/profile binding differs")
+    if payload["old_result_ingest"] is not False or any(payload[key] != 0 for key in ("test_access", "validation_decoding", "inference", "training")):
+        raise SuccessorContractError("successor runner contract permits protected activity")
+    if payload["scientific_status"] != "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE":
+        raise SuccessorContractError("successor runner launch status differs")
+    workers = payload["workers"]
+    if not isinstance(workers, list) or len(workers) != 2 or {worker.get("device") for worker in workers} != {"cuda:0", "cuda:1"}:
+        raise SuccessorContractError("successor runner worker bindings differ")
+    for worker in workers:
+        if set(worker) != {"shard_index", "shard_count", "device", "gpu_uuid"} or worker["shard_count"] != 2:
+            raise SuccessorContractError("successor runner worker schema differs")
+    sources = payload["runner_source_paths"]
+    if not isinstance(sources, list) or not sources:
+        raise SuccessorContractError("successor runner source bindings are missing")
+    for source in sources:
+        valid_source = (
+            isinstance(source, Mapping)
+            and set(source) == {"path", "bytes", "sha256"}
+            and isinstance(source["path"], str)
+            and isinstance(source["bytes"], int)
+            and isinstance(source["sha256"], str)
+            and len(source["sha256"]) == 64  # literal-ok: SHA-256 hex digest length.
+        )
+        if not valid_source:
+            raise SuccessorContractError("successor runner source binding schema differs")
+    if payload["contract_sha256"] != digest_without_field(payload, "contract_sha256"):
+        raise SuccessorContractError("successor runner contract digest differs")
     return dict(payload)
 
 

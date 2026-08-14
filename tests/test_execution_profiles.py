@@ -11,6 +11,7 @@ from config.execution_profiles import (
     bind_execution_profile,
     canonical_json_bytes,
     selection_record,
+    verify_historical_generated_params_bytes,
     verify_historical_local_compatibility,
     verify_selection_record,
 )
@@ -27,8 +28,24 @@ def test_profile_selection_is_frozen_and_fingerprinted(run_config_factory):
         bind_execution_profile(local, "confessor_pascal_cu126")
 
 
-def test_pending_profile_cannot_open_science(run_config_factory):
+def test_qualified_pascal_profile_can_open_science(run_config_factory):
     run_config = run_config_factory()
+    pascal = bind_execution_profile(run_config, "confessor_pascal_cu126")
+    assert pascal.resolved["execution_profile_id"] == "confessor_pascal_cu126"
+
+
+def test_pending_role_mutation_cannot_open_science(run_config_factory, monkeypatch):
+    run_config = run_config_factory()
+    from config import execution_profiles
+
+    original = execution_profiles.profile_definition
+
+    def pending(profile_id):
+        profile = dict(original(profile_id))
+        profile["role"] = "eligible_production_execution_profile_pending_qualification"
+        return profile
+
+    monkeypatch.setattr(execution_profiles, "profile_definition", pending)
     with pytest.raises(ValueError, match="not production eligible"):
         bind_execution_profile(run_config, "confessor_pascal_cu126")
 
@@ -92,6 +109,26 @@ def test_historical_compatibility_rejects_profile_reinterpretation(run_config_fa
     )
     with pytest.raises(ValueError, match="reinterpretation"):
         verify_historical_local_compatibility(historical)
+
+
+def test_generated_params_compatibility_is_additive_only():
+    import subprocess
+
+    commit = subprocess.run(
+        ["git", "rev-parse", "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    archived = subprocess.run(
+        ["git", "show", f"{commit}:spec/params.generated.yaml"],
+        capture_output=True,
+        check=True,
+    ).stdout
+    verify_historical_generated_params_bytes(archived)
+    changed = archived.replace(b"train_snr_db_fixed: 7", b"train_snr_db_fixed: 8", 1)
+    with pytest.raises(ValueError, match="unrelated drift"):
+        verify_historical_generated_params_bytes(changed)
 
 
 def test_authentication_rejects_generic_cuda_before_runtime_probe(monkeypatch):

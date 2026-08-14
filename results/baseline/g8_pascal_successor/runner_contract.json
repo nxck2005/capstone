@@ -1,55 +1,67 @@
 {
-  "artifact_role": "g8_c_pascal_successor_source_manifest",
+  "artifact_role": "g8_c_pascal_successor_runner_contract",
   "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
-  "coordinator_contract_sha256": "2870e9c7cb66d70d250507bf66621fd4986b4e7a579c38444138a24c7a2914cf",
+  "contract_sha256": "399515cc28480b9f2e57168c48dfd3f34e5495dd1d995ed9318debbc3964b503",
+  "coordinator_sha256": "2870e9c7cb66d70d250507bf66621fd4986b4e7a579c38444138a24c7a2914cf",
   "execution_profile_id": "confessor_pascal_cu126",
   "inference": 0,
   "lock_file": "requirements-pascal.lock",
   "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+  "manifest_sha256": "b9b4f09fe99e24ff8a2a2e3b88979b2f1586d1dc86275a1287fe5d8a9a534096",
   "old_result_ingest": false,
-  "predecessor_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
-  "schema_version": 1,
-  "scientific_status": "NON-SCIENTIFIC_ZERO_COVERAGE",
-  "source_generation_commit": "2ed8e6cdb0cb7200d6341607d3735e1fb7a1e8ee",
-  "sources": [
+  "required_identity_count": 3213,
+  "runner_source_paths": [
     {
       "bytes": 13113,
       "path": "src/baseline/g8_pascal_successor.py",
-      "role": "successor_contract",
       "sha256": "66747ef06d6a2f150e0551103a38afcd174774303630f2f77818a69710d99210"
     },
     {
       "bytes": 5135,
       "path": "tools/run_g8_pascal_dual_gpu.py",
-      "role": "coordinator",
       "sha256": "a239ebba8bfe153c1b02a5bc7c52bfd3b579bfbe841df253f2e858b66a04baf8"
     },
     {
       "bytes": 10979,
       "path": "tools/verify_g8_pascal_successor.py",
-      "role": "successor_verifier",
       "sha256": "b8efb7fb4bd72cb43587742f94f3f6df1bd6cf65aa1329c868fe81a6ed11410d"
     },
     {
       "bytes": 14922,
       "path": "src/config/execution_profiles.py",
-      "role": "profile_authentication",
       "sha256": "58c27e1eacb8f0fb57615d5f1cc1073db3655ae7604662e6f445156f51b5eb92"
     },
     {
       "bytes": 82943,
       "path": "requirements-pascal.lock",
-      "role": "environment_lock",
       "sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
     },
     {
       "bytes": 39786,
       "path": "spec/params.generated.yaml",
-      "role": "generated_profile_registry",
       "sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b"
     }
   ],
+  "schema_version": 1,
+  "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
+  "source_manifest_sha256": "7921850bbd10c5366bbfd3e8867cc212f4a51ddcc23c5713432a7dccac985a58",
+  "state_sha256": "77f62d959a963db170051f8ac2cf405eb52145de6e19dc6fac6c650dd28721d3",
   "test_access": 0,
   "training": 0,
-  "validation_decoding": 0
+  "trials_per_identity": 5000,
+  "validation_decoding": 0,
+  "workers": [
+    {
+      "device": "cuda:0",
+      "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+      "shard_count": 2,
+      "shard_index": 0
+    },
+    {
+      "device": "cuda:1",
+      "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+      "shard_count": 2,
+      "shard_index": 1
+    }
+  ]
 }

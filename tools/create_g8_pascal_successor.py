@@ -28,12 +28,14 @@ from baseline.g8_pascal_successor import (  # noqa: E402
     SUCCESSOR_ROOT,
     SUCCESSOR_SOURCE_MANIFEST,
     SUCCESSOR_STATE,
+    SUCCESSOR_RUNNER_CONTRACT,
     SUPERSESSION_ARTIFACT,
     TRIALS_PER_IDENTITY,
     WORK_UNIT_PARTITION,
     canonical_json,
     rendered_json,
     sha256_bytes,
+    successor_campaign_identifier,
 )
 
 
@@ -128,18 +130,40 @@ def build() -> None:
     coordinator["contract_sha256"] = sha256_bytes(canonical_json(coordinator))
     coordinator_sha = _write(SUCCESSOR_COORDINATOR_CONTRACT, coordinator)
 
+    source_paths = [
+        ("src/baseline/g8_pascal_successor.py", "successor_contract"),
+        ("tools/run_g8_pascal_dual_gpu.py", "coordinator"),
+        ("tools/verify_g8_pascal_successor.py", "successor_verifier"),
+        ("src/config/execution_profiles.py", "profile_authentication"),
+        ("requirements-pascal.lock", "environment_lock"),
+        ("spec/params.generated.yaml", "generated_profile_registry"),
+    ]
     source_manifest = {
         "schema_version": 1,
         "artifact_role": "g8_c_pascal_successor_source_manifest",
-        "campaign_id": "pending_manifest_digest",
+        "campaign_id": "pending_successor_identity",
         "execution_profile_id": SUCCESSOR_PROFILE_ID,
         "scientific_status": "NON-SCIENTIFIC_ZERO_COVERAGE",
+        "lock_file": "requirements-pascal.lock",
+        "lock_file_sha256": hashlib.sha256((REPO / "requirements-pascal.lock").read_bytes()).hexdigest(),
         "sources": [
-            {"path": "src/baseline/g8_pascal_successor.py", "role": "successor_contract"},
-            {"path": "tools/run_g8_pascal_dual_gpu.py", "role": "coordinator"},
-            {"path": "src/config/execution_profiles.py", "role": "profile_authentication"},
-            {"path": "requirements-pascal.lock", "role": "environment_lock"},
+            {
+                "path": path,
+                "role": role,
+                "bytes": len((REPO / path).read_bytes()),
+                "sha256": hashlib.sha256((REPO / path).read_bytes()).hexdigest(),
+            }
+            for path, role in source_paths
         ],
+        "coordinator_contract_sha256": coordinator_sha,
+        "predecessor_manifest_sha256": old_manifest_sha,
+        "source_generation_commit": subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip(),
         "old_result_ingest": False,
         "test_access": 0,
         "validation_decoding": 0,
@@ -175,7 +199,13 @@ def build() -> None:
         "coordinator_contract_sha256": coordinator_sha,
         "source_manifest_sha256": source_sha,
     }
-    manifest["campaign_id"] = "g8p-" + sha256_bytes(canonical_json({k: v for k, v in manifest.items() if k != "campaign_id"}))
+    manifest["campaign_id"] = successor_campaign_identifier(manifest)
+
+    # Bind the source manifest to the same identity.  The campaign ID
+    # deliberately excludes the source-manifest digest to avoid a hash cycle.
+    source_manifest["campaign_id"] = manifest["campaign_id"]
+    source_sha = _write(SUCCESSOR_SOURCE_MANIFEST, source_manifest)
+    manifest["source_manifest_sha256"] = source_sha
     _write(SUCCESSOR_MANIFEST, manifest)
 
     # The supersession record is written only after the successor identity is
@@ -204,6 +234,45 @@ def build() -> None:
     }
     state["state_sha256"] = sha256_bytes(canonical_json(state))
     _write(SUCCESSOR_STATE, state)
+
+    runner_source_paths = [
+        "src/baseline/g8_pascal_successor.py",
+        "tools/run_g8_pascal_dual_gpu.py",
+        "tools/verify_g8_pascal_successor.py",
+        "src/config/execution_profiles.py",
+        "requirements-pascal.lock",
+        "spec/params.generated.yaml",
+    ]
+    runner = {
+        "schema_version": 1,
+        "artifact_role": "g8_c_pascal_successor_runner_contract",
+        "campaign_id": manifest["campaign_id"],
+        "execution_profile_id": SUCCESSOR_PROFILE_ID,
+        "lock_file": "requirements-pascal.lock",
+        "lock_file_sha256": hashlib.sha256((REPO / "requirements-pascal.lock").read_bytes()).hexdigest(),
+        "manifest_sha256": hashlib.sha256(SUCCESSOR_MANIFEST.read_bytes()).hexdigest(),
+        "state_sha256": hashlib.sha256(SUCCESSOR_STATE.read_bytes()).hexdigest(),
+        "coordinator_sha256": hashlib.sha256(SUCCESSOR_COORDINATOR_CONTRACT.read_bytes()).hexdigest(),
+        "source_manifest_sha256": hashlib.sha256(SUCCESSOR_SOURCE_MANIFEST.read_bytes()).hexdigest(),
+        "required_identity_count": REQUIRED_COUNT,
+        "trials_per_identity": TRIALS_PER_IDENTITY,
+        "workers": [
+            {"shard_index": 0, "shard_count": 2, "device": "cuda:0", "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a"},
+            {"shard_index": 1, "shard_count": 2, "device": "cuda:1", "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b"},
+        ],
+        "runner_source_paths": [
+            {"path": path, "bytes": len((REPO / path).read_bytes()), "sha256": hashlib.sha256((REPO / path).read_bytes()).hexdigest()}
+            for path in runner_source_paths
+        ],
+        "old_result_ingest": False,
+        "test_access": 0,
+        "validation_decoding": 0,
+        "inference": 0,
+        "training": 0,
+        "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
+    }
+    runner["contract_sha256"] = sha256_bytes(canonical_json(runner))
+    runner_sha = _write(SUCCESSOR_RUNNER_CONTRACT, runner)
 
     selected_ordinals = [
         441, 2990, 1765, 1383, 285, 395, 1376, 794, 539,
@@ -248,7 +317,7 @@ def build() -> None:
     }
     parity["plan_sha256"] = sha256_bytes(canonical_json(parity))
     _write(PARITY_PLAN, parity)
-    print(json.dumps({"campaign_id": manifest["campaign_id"], "state_sha256": state["state_sha256"], "supersession_id": supersession["supersession_id"], "source_manifest_sha256": source_sha, "parity_plan_sha256": parity["plan_sha256"]}, sort_keys=True))
+    print(json.dumps({"campaign_id": manifest["campaign_id"], "state_sha256": state["state_sha256"], "supersession_id": supersession["supersession_id"], "source_manifest_sha256": source_sha, "runner_contract_sha256": runner_sha, "parity_plan_sha256": parity["plan_sha256"]}, sort_keys=True))
 
 
 if __name__ == "__main__":

@@ -60,7 +60,10 @@ from artifacts.ids import (  # noqa: E402
     make_run_id,
 )
 from data.registry import manifest_sha256  # noqa: E402
-from config.execution_profiles import verify_historical_local_compatibility  # noqa: E402
+from config.execution_profiles import (  # noqa: E402
+    verify_historical_generated_params_bytes,
+    verify_historical_local_compatibility,
+)
 from config.run_config import RunConfig, canonical_sha256, config_hash  # noqa: E402
 from models.frozen_reference_classifier import (  # noqa: E402
     EXPECTED_CHECKPOINT_SHA256,
@@ -504,8 +507,15 @@ def check_sources(evidence: Path, summary: dict[str, Any]) -> dict[str, Any]:
                 # AM-83 is the one narrow exception to byte identity: every
                 # archived schema-1 RunConfig below must independently prove
                 # that the current profile registry is additive and that no
-                # measurement parameter moved.  Runtime sources and every
-                # other configuration remain byte-exact here.
+                # measurement parameter moved.  Validate the archived YAML
+                # itself here; otherwise this branch would be a broad escape
+                # hatch for any generated-parameter drift.
+                try:
+                    verify_historical_generated_params_bytes(at_commit)
+                except ValueError as exc:
+                    raise VerificationError(
+                        f"{path}: historical additive compatibility failed: {exc}"
+                    ) from None
                 continue
             _require(
                 sha256_bytes(current) == entry["sha256"],

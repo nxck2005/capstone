@@ -816,7 +816,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `environment.execution_profiles.local_4060_cu130.deterministic_backend.cudnn_benchmark` | false | AM-58, SR-21 |
 | `environment.execution_profiles.local_4060_cu130.amp` | true | AM-58, SR-21 |
 | `environment.execution_profiles.local_4060_cu130.scientific_writer_host` | local | AM-58, SR-21 |
-| `environment.execution_profiles.confessor_pascal_cu126.role` | eligible_production_execution_profile_pending_qualification | AM-58, SR-21 |
+| `environment.execution_profiles.confessor_pascal_cu126.role` | eligible_production_execution_profile | AM-58, SR-21 |
 | `environment.execution_profiles.confessor_pascal_cu126.host_class` | remote_arch_linux | AM-58, SR-21 |
 | `environment.execution_profiles.confessor_pascal_cu126.accelerator_class` | pascal_gp102 | AM-58, SR-21 |
 | `environment.execution_profiles.confessor_pascal_cu126.allowed_gpu_names` | NVIDIA GeForce GTX 1080 Ti, NVIDIA TITAN Xp | AM-58, SR-21 |
@@ -837,6 +837,8 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `environment.execution_profiles.confessor_pascal_cu126.amp` | true | AM-58, SR-21 |
 | `environment.execution_profiles.confessor_pascal_cu126.scientific_writer_host` | confessor | AM-58, SR-21 |
 | `environment.qualification.scientific_status` | non_scientific_zero_coverage | AM-58, SR-21, SR-23 |
+| `environment.qualification.pascal_eligibility_status` | qualified_both_registered_devices_and_cross_profile_parity | AM-58, SR-21, SR-23 |
+| `environment.qualification.pascal_qualification_artifacts` | results/execution_profiles/qualification | AM-58, SR-21, SR-23 |
 | `environment.qualification.forbidden_activities` | G8_coverage, test_access, validation, selection, training_campaign | AM-58, SR-21, SR-23 |
 | `environment.qualification.both_devices_separate` | true | AM-58, SR-21, SR-23 |
 | `environment.qualification.parity_criterion` | no_systematic_decoder_regression_no_material_waterfall_displacement_no_catastrophic_paired_disagreement | AM-58, SR-21, SR-23 |

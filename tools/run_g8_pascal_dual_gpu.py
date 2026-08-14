@@ -10,6 +10,7 @@ present; this tool cannot accidentally turn a structural plan into G8 data.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -24,14 +25,18 @@ from baseline.g8_pascal_successor import (  # noqa: E402
     SUCCESSOR_MANIFEST,
     SUCCESSOR_PROFILE_ID,
     SUCCESSOR_ROOT,
+    SUCCESSOR_SOURCE_MANIFEST,
+    SUCCESSOR_RUNNER_CONTRACT,
     SUCCESSOR_STATE,
     authority_shard,
     load_json,
     validate_coordinator_contract,
     validate_successor_manifest,
     validate_successor_state,
+    canonical_json,
+    validate_runner_contract,
 )
-from config.execution_profiles import profile_definition  # noqa: E402
+from config.execution_profiles import authenticate_execution_profile, profile_definition  # noqa: E402
 
 
 def _inventory() -> list[dict[str, str]]:
@@ -53,19 +58,40 @@ def build_plan() -> dict[str, object]:
     manifest = validate_successor_manifest(load_json(SUCCESSOR_MANIFEST))
     state = validate_successor_state(load_json(SUCCESSOR_STATE))
     contract = validate_coordinator_contract(load_json(SUCCESSOR_COORDINATOR_CONTRACT))
+    runner_contract = validate_runner_contract(load_json(SUCCESSOR_RUNNER_CONTRACT))
+    source_manifest = load_json(SUCCESSOR_SOURCE_MANIFEST)
+    if hashlib.sha256(SUCCESSOR_SOURCE_MANIFEST.read_bytes()).hexdigest() != manifest["source_manifest_sha256"]:
+        raise RuntimeError("successor source manifest hash differs from the manifest")
+    if source_manifest.get("campaign_id") != manifest["campaign_id"]:
+        raise RuntimeError("successor source manifest campaign differs")
+    if runner_contract["campaign_id"] != manifest["campaign_id"] or runner_contract["manifest_sha256"] != hashlib.sha256(SUCCESSOR_MANIFEST.read_bytes()).hexdigest():
+        raise RuntimeError("successor runner contract is not bound to the manifest")
     profile = profile_definition(SUCCESSOR_PROFILE_ID)
     inventory = _inventory()
-    by_index = {item["gpu_index"]: item for item in inventory}
+    by_uuid = {item["gpu_uuid"]: item for item in inventory}
     workers = []
+    config_hash = hashlib.sha256(canonical_json(manifest)).hexdigest()
     for worker in contract["workers"]:
-        gpu = by_index.get(worker["gpu_index"])
+        gpu = by_uuid.get(worker["gpu_uuid"])
         if gpu is None:
-            raise RuntimeError(f"required GPU index is missing: {worker['gpu_index']}")
-        if gpu["gpu_uuid"] != worker["gpu_uuid"]:
-            raise RuntimeError(f"GPU UUID mismatch on {worker['device']}")
+            raise RuntimeError(f"required GPU UUID is missing: {worker['gpu_uuid']}")
         if gpu["gpu_uuid"] not in profile["allowed_gpu_uuids"]:
             raise RuntimeError(f"GPU UUID is not allowed by {SUCCESSOR_PROFILE_ID}")
-        workers.append({**dict(worker), **gpu, "assigned_authority_ordinals": [ordinal for ordinal in range(REQUIRED_COUNT) if authority_shard(ordinal) == worker["shard_index"]]})
+        environment = authenticate_execution_profile(
+            SUCCESSOR_PROFILE_ID,
+            device=worker["device"],
+            config_hash=config_hash,
+            require_openjpeg=False,
+        )
+        if environment["gpu_uuid"] != worker["gpu_uuid"]:
+            raise RuntimeError(f"CUDA UUID mismatch on {worker['device']}")
+        workers.append({
+            **dict(worker),
+            **gpu,
+            "nvidia_smi_index": gpu["gpu_index"],
+            "assigned_authority_ordinals": [ordinal for ordinal in range(REQUIRED_COUNT) if authority_shard(ordinal) == worker["shard_index"]],
+            "environment": environment,
+        })
     return {
         "status": "NON-SCIENTIFIC_PLAN_ONLY",
         "campaign_id": manifest["campaign_id"],

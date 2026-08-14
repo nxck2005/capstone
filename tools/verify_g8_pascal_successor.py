@@ -19,6 +19,8 @@ from baseline.g8_pascal_successor import (  # noqa: E402
     SUCCESSOR_MANIFEST,
     SUCCESSOR_PROFILE_ID,
     SUCCESSOR_ROOT,
+    SUCCESSOR_SOURCE_MANIFEST,
+    SUCCESSOR_RUNNER_CONTRACT,
     SUCCESSOR_STATE,
     SUPERSESSION_ARTIFACT,
     SuccessorContractError,
@@ -28,6 +30,7 @@ from baseline.g8_pascal_successor import (  # noqa: E402
     validate_coordinator_contract,
     validate_successor_manifest,
     validate_successor_state,
+    validate_runner_contract,
 )
 from baseline.g8_campaign import rendered_json  # noqa: E402
 
@@ -36,6 +39,8 @@ def verify() -> dict[str, object]:
     manifest = validate_successor_manifest(load_json(SUCCESSOR_MANIFEST))
     state = validate_successor_state(load_json(SUCCESSOR_STATE))
     coordinator = validate_coordinator_contract(load_json(SUCCESSOR_COORDINATOR_CONTRACT))
+    source_manifest = load_json(REPO / "results/baseline/g8_pascal_successor/source_manifest.json")
+    runner_contract = validate_runner_contract(load_json(SUCCESSOR_RUNNER_CONTRACT))
     supersession = load_json(SUPERSESSION_ARTIFACT)
     required_supersession = {
         "schema_version", "artifact_role", "supersession_id", "old_campaign_id",
@@ -60,6 +65,36 @@ def verify() -> dict[str, object]:
         raise SuccessorContractError("old results can contribute to successor table")
     if manifest["campaign_id"] != state["campaign_id"] or supersession["successor_campaign_id"] != manifest["campaign_id"]:
         raise SuccessorContractError("successor IDs are not bound")
+    if hashlib.sha256(SUCCESSOR_SOURCE_MANIFEST.read_bytes()).hexdigest() != manifest["source_manifest_sha256"]:
+        raise SuccessorContractError("successor source manifest hash is not bound by the campaign")
+    source_required = {
+        "schema_version", "artifact_role", "campaign_id", "execution_profile_id", "scientific_status",
+        "lock_file", "lock_file_sha256", "sources", "coordinator_contract_sha256",
+        "predecessor_manifest_sha256", "source_generation_commit", "old_result_ingest", "test_access",
+        "validation_decoding", "inference", "training",
+    }
+    if set(source_manifest) != source_required or source_manifest["campaign_id"] != manifest["campaign_id"]:
+        raise SuccessorContractError("successor source manifest schema/campaign binding differs")
+    if source_manifest["execution_profile_id"] != SUCCESSOR_PROFILE_ID or source_manifest["scientific_status"] != "NON-SCIENTIFIC_ZERO_COVERAGE":
+        raise SuccessorContractError("successor source manifest status/profile differs")
+    if source_manifest["lock_file"] != "requirements-pascal.lock" or source_manifest["lock_file_sha256"] != hashlib.sha256((REPO / "requirements-pascal.lock").read_bytes()).hexdigest():
+        raise SuccessorContractError("successor source manifest lock binding differs")
+    if source_manifest["coordinator_contract_sha256"] != hashlib.sha256(SUCCESSOR_COORDINATOR_CONTRACT.read_bytes()).hexdigest() or source_manifest["predecessor_manifest_sha256"] != supersession["old_campaign_manifest_sha256"]:
+        raise SuccessorContractError("successor source manifest artifact binding differs")
+    for entry in source_manifest["sources"]:
+        if not isinstance(entry, dict) or set(entry) != {"path", "role", "bytes", "sha256"}:
+            raise SuccessorContractError("successor source entry schema differs")
+        path = REPO / entry["path"]
+        if not path.is_file() or len(path.read_bytes()) != entry["bytes"] or hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+            raise SuccessorContractError(f"successor source bytes differ: {entry.get('path')}")
+    if any(source_manifest[key] != 0 for key in ("test_access", "validation_decoding", "inference", "training")) or source_manifest["old_result_ingest"] is not False:
+        raise SuccessorContractError("successor source manifest claims protected activity")
+    if runner_contract["campaign_id"] != manifest["campaign_id"] or runner_contract["manifest_sha256"] != hashlib.sha256(SUCCESSOR_MANIFEST.read_bytes()).hexdigest() or runner_contract["state_sha256"] != hashlib.sha256(SUCCESSOR_STATE.read_bytes()).hexdigest() or runner_contract["coordinator_sha256"] != hashlib.sha256(SUCCESSOR_COORDINATOR_CONTRACT.read_bytes()).hexdigest() or runner_contract["source_manifest_sha256"] != hashlib.sha256(SUCCESSOR_SOURCE_MANIFEST.read_bytes()).hexdigest():
+        raise SuccessorContractError("successor runner artifact bindings differ")
+    for entry in runner_contract["runner_source_paths"]:
+        path = REPO / entry["path"]
+        if not path.is_file() or len(path.read_bytes()) != entry["bytes"] or hashlib.sha256(path.read_bytes()).hexdigest() != entry["sha256"]:
+            raise SuccessorContractError(f"successor runner source bytes differ: {entry.get('path')}")
     parity = load_json(PARITY_PLAN)
     if parity.get("scientific_status") != "NON-SCIENTIFIC" or parity.get("paired_trial_count_per_cell") != 512:
         raise SuccessorContractError("parity plan is not preregistered non-scientific diagnostics")

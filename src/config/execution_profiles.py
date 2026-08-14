@@ -17,6 +17,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from config.params import REPO_ROOT, get
 from config.run_config import FrozenMap, RunConfig, canonical_sha256
 
@@ -317,6 +319,43 @@ def verify_historical_local_compatibility(config: RunConfig) -> None:
         "local_4060_cu130"
     ):
         raise ValueError("historical profile reinterpretation is forbidden")
+
+
+def verify_historical_generated_params_bytes(archived_bytes: bytes) -> None:
+    """Admit only AM-83's additive generated-params registry drift.
+
+    This is intentionally separate from the RunConfig check because the W4
+    source manifest binds the generated YAML itself.  It compares every
+    fingerprinted root after dropping only the two explicitly additive roots;
+    it is not a general "ignore params.generated.yaml" escape hatch.
+    """
+
+    try:
+        archived = yaml.safe_load(archived_bytes)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"archived generated params are not YAML: {exc}") from None
+    current = yaml.safe_load((REPO_ROOT / "spec/params.generated.yaml").read_bytes())
+    if not isinstance(archived, Mapping) or not isinstance(current, Mapping):
+        raise ValueError("generated params root is not a mapping")
+    roots = list(get("config.fingerprint_parameter_roots"))
+    if set(archived) != set(current):
+        raise ValueError("generated params root set differs")
+    for root in roots:
+        if root not in archived:
+            raise ValueError(f"generated params is missing fingerprint root {root}")
+        old = archived[root]
+        new = current[root]
+        if root == "compute":
+            new = {key: value for key, value in new.items() if key not in _ADDITIVE_COMPUTE_KEYS}
+        elif root == "environment":
+            new = {key: value for key, value in new.items() if key not in _ADDITIVE_ENVIRONMENT_KEYS}
+        if old != new:
+            raise ValueError(f"generated params has unrelated drift under {root}")
+    old_schema = archived.get("config", {}).get("fingerprint_schema_version")
+    if old_schema != 1:
+        raise ValueError("generated params historical compatibility requires schema 1")
+    if current["environment"]["historical_profile_compatibility"]["archived_profile"] != "local_4060_cu130":
+        raise ValueError("generated params historical profile reinterpretation is forbidden")
 
 
 def canonical_json_bytes(value: Any) -> bytes:
