@@ -8,7 +8,7 @@
     "cuda:0↔cuda:1"
   ],
   "paired_trial_count_per_cell": 512,
-  "plan_sha256": "f6e2421f6863947a6ee4f1012957ce2ec1c548cb56b439004b674567ebeae2e7",
+  "plan_sha256": "9994f3ab5fa982f9e5e0cb949e587851261e95533e5948ee74c11b0a847e9bfd",
   "required_identity_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
   "rng_hashes": [
     "information_bits_bytes",
@@ -317,6 +317,66 @@
       "snr_db": 2,
       "stratum": "near_waterfall",
       "work_unit_id": "bler-9ce8f1c9919ee4ca7a6f6d83"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          4264,
+          6400
+        ],
+        "lifting_size": 208,
+        "modulation": "qam16",
+        "rate": "2/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 2509,
+      "snr_db": -8,
+      "stratum": "below_waterfall",
+      "work_unit_id": "bler-c8a1f90df7c090635ae2b7af"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          4264,
+          6400
+        ],
+        "lifting_size": 208,
+        "modulation": "qam16",
+        "rate": "2/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 2093,
+      "snr_db": 2,
+      "stratum": "near_waterfall",
+      "work_unit_id": "bler-aa821c49f45569bc6624cbd4"
+    },
+    {
+      "identity": {
+        "base_graph": 1,
+        "decoder_algorithm": "offset_min_sum",
+        "decoder_offset": 0.5,
+        "iterations": 50,
+        "k_and_n": [
+          4264,
+          6400
+        ],
+        "lifting_size": 208,
+        "modulation": "qam16",
+        "rate": "2/3",
+        "snr_convention": "es_n0_per_symbol"
+      },
+      "ordinal": 2554,
+      "snr_db": 18,
+      "stratum": "above_waterfall",
+      "work_unit_id": "bler-cb719f1afde6cdf95a169201"
     }
   ],
   "selected_identity_ordinals": [
@@ -334,7 +394,10 @@
     2694,
     2274,
     2402,
-    1915
+    1915,
+    2509,
+    2093,
+    2554
   ],
   "selected_identity_rule": "fixed stratified identities from the committed required-BLER grid; selected ordinals are recorded before parity inspection",
   "status": "preregistered_before_inspection",

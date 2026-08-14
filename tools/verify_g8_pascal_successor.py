@@ -66,6 +66,7 @@ def verify() -> dict[str, object]:
     if parity.get("selected_identity_ordinals") != [
         441, 2990, 1765, 1383, 285, 395, 1376, 794, 539,
         1195, 186, 2694, 2274, 2402, 1915,
+        2509, 2093, 2554,
     ]:
         raise SuccessorContractError("parity identity stratum changed after preregistration")
     bindings = parity.get("selected_identity_bindings")

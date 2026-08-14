@@ -208,6 +208,7 @@ def build() -> None:
     selected_ordinals = [
         441, 2990, 1765, 1383, 285, 395, 1376, 794, 539,
         1195, 186, 2694, 2274, 2402, 1915,
+        2509, 2093, 2554,
     ]
     required_units = json.loads((REPO / "results/baseline/g8/required_bler_identities.json").read_bytes())["required_bler_work_units"]
     snr_values = sorted({float(row["snr_db"]) for row in required_units})
