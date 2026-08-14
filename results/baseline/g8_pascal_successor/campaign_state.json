@@ -1,0 +1,21 @@
+{
+  "artifact_role": "g8_c_pascal_successor_state",
+  "campaign_id": "g8p-8dbb592320330560f32f2dfb214f71606e9e8ad1068d1d58438ec06330425113",
+  "completed_authority_ordinals": [],
+  "execution_profile_id": "confessor_pascal_cu126",
+  "failed_authority_ordinals": [],
+  "in_progress_authority_ordinals": [],
+  "old_result_ingest_permitted": false,
+  "protected_counters": {
+    "inference": 0,
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 0
+  },
+  "required_identity_count": 3213,
+  "schema_version": 1,
+  "scientific_execution_performed": false,
+  "state_sha256": "2a34f3dee798d5b51fe0b42b48b4d08f317473ba26a72142aa7aa285535e83ee",
+  "test_access": 0,
+  "trials_per_identity": 5000
+}

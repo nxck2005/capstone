@@ -1,0 +1,25 @@
+{
+  "artifact_role": "execution_profile_paired_parity_plan",
+  "bler_ber_reporting": true,
+  "disagreement_rule": "qualification-only hold if any cell >2 percent or aggregate >1 percent; no hypothesis test",
+  "gpu_pairs": [
+    "local_4060_cu130↔confessor_pascal_cu126/cuda:0",
+    "local_4060_cu130↔confessor_pascal_cu126/cuda:1",
+    "cuda:0↔cuda:1"
+  ],
+  "paired_trial_count_per_cell": 512,
+  "plan_sha256": "b0ee88254c0456d97ad015366dea0450de3df784fcdc62bd19e57280fcb9086b",
+  "rng_hashes": [
+    "information_bits_bytes",
+    "awgn_real_float64_bytes",
+    "awgn_imag_float64_bytes"
+  ],
+  "schema_version": 1,
+  "scientific_status": "NON-SCIENTIFIC",
+  "status": "preregistered_before_inspection",
+  "stimulus_rule": "exact old G8 contract seed material; no result/state publication",
+  "test_access": 0,
+  "training": 0,
+  "validation_decoding": 0,
+  "waterfall_displacement_rule": "qualification-only hold if paired diagnostic displacement exceeds 0.5 dB"
+}

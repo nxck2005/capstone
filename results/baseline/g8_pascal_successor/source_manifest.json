@@ -1,0 +1,30 @@
+{
+  "artifact_role": "g8_c_pascal_successor_source_manifest",
+  "campaign_id": "pending_manifest_digest",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "inference": 0,
+  "old_result_ingest": false,
+  "schema_version": 1,
+  "scientific_status": "NON-SCIENTIFIC_ZERO_COVERAGE",
+  "sources": [
+    {
+      "path": "src/baseline/g8_pascal_successor.py",
+      "role": "successor_contract"
+    },
+    {
+      "path": "tools/run_g8_pascal_dual_gpu.py",
+      "role": "coordinator"
+    },
+    {
+      "path": "src/config/execution_profiles.py",
+      "role": "profile_authentication"
+    },
+    {
+      "path": "requirements-pascal.lock",
+      "role": "environment_lock"
+    }
+  ],
+  "test_access": 0,
+  "training": 0,
+  "validation_decoding": 0
+}
