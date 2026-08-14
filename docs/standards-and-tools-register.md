@@ -1,6 +1,6 @@
 # Engineering Standards and Tools Register
 
-**Register baseline:** 2026-08-11  
+**Register baseline:** 2026-08-14
 **Normative source:** [`spec/SPEC.md`](../spec/SPEC.md)  
 **Environment pins:** [`spec/params.generated.yaml`](../spec/params.generated.yaml) and [`requirements.lock`](../requirements.lock)
 
@@ -77,10 +77,55 @@ These are project engineering controls rather than external standards, but they 
 | Item | Current state | Role | Constraint |
 |---|---|---|---|
 | NVIDIA GeForce RTX 4060 Laptop GPU | Available and profiled | Training and full-strength simulation | CUDA 13.0 PyTorch build; driver 592.82 recorded in evidence |
+| Dedicated Pascal worker: GeForce GTX 1080 Ti (11 GB) + TITAN Xp (12 GB) | Both GP102 devices enumerated by user-supplied `lspci`; not yet project-qualified | Candidate future independent experiment workers | Both cards require a Pascal-capable software lane; they are not authorized for the live G8_C suffix |
+| Dedicated-worker Intel NVMe controller | Enumerated by user-supplied `lspci`; capacity/filesystem not yet measured | Candidate local datasets, caches and checkpoints | Confirm mounted capacity, free space and health before delegation; `lspci` cannot exclude additional SATA disks |
 | WSL2 `/dev/dxg` CUDA path | Available | GPU access boundary | A visible adapter is insufficient; PyTorch CUDA initialization is the acceptance test |
 | HackRF One + RTL-SDR pair | Candidate only | Optional transmit/receive SDR replay | No purchase before G-5; at least 1 Msps required; candidate capability must be rechecked before procurement |
 | SMA attenuator/cable chain | Candidate only | Conducted loopback and safe receiver level | Must be specified before connecting transmitter to receiver; antenna-free bench replay preferred |
 | Raspberry Pi 4/5-class host | Candidate only | Optional Tier 3 edge demo | Attempt only if Tier 2 lands; otherwise prerecorded demonstration is the mandated fallback |
+
+### 5.1 Dedicated Pascal worker finding — 2026-08-14
+
+The worker's user-supplied PCI enumeration confirms a GeForce GTX 1080 Ti at
+`3b:00.0`, a TITAN Xp at `d8:00.0`, and an Intel NVMe controller at `5e:00.0`.
+The GPUs are Pascal compute-capability 6.1 devices. CUDA Toolkit 13 removed offline compilation and
+library support for Pascal. The researched compatible project lane is Python
+3.12 with `torch 2.9.1+cu126` and `torchvision 0.24.1+cu126`. The node is therefore technically viable through a
+separate CUDA 12.6 lane, subject to an on-node driver, CUDA initialization,
+real-kernel, dependency, deterministic-parity and memory qualification. See
+the [CUDA 13 release notes](https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html)
+and the [official PyTorch CUDA 12.6 wheel index](https://download.pytorch.org/whl/cu126/torch/).
+
+That technical viability does **not** authorize the node for the current G8_C
+campaign. The registered
+[`bler_runner_contract.json`](../results/baseline/g8/bler_runner_contract.json)
+records `torch 2.13.0+cu130` and Torch CUDA 13.0, and the active accepted suffix
+was produced on the recorded RTX 4060 path. G8_C's physical-layer algorithm
+does not inherently require CUDA 13, and its device and batch size are declared
+provenance-only by the epoch-2 coordinator. However,
+[`AuthenticatedRunnerContext._authenticate_dependencies()`](../src/baseline/g8_bler_runner.py)
+currently verifies the exact NumPy and Sionna versions but checks PyTorch only
+for a non-null CUDA build. A CUDA 12.6 build could therefore pass that runtime
+guard while contradicting the dependency versions recorded by the registered
+runner contract and the normative SR-21 environment pin. Treat this as a
+fail-closed provenance boundary: **do not execute or resume the live G8_C suffix
+on the Pascal worker and do not mix CUDA 12.6 results into its evidence.**
+
+Delegation is intentionally undecided. At the next cold start, decide whether
+to qualify and use the node and, if so, for which future phase. Before any
+scientific delegation, inventory its OS, Python, NVIDIA driver, mounted NVMe
+capacity/free space and remote-access path; prove CUDA initialization and a
+real kernel on each GPU; verify dependency and deterministic parity; and agree
+how artifacts return to the authenticated repository. If it is adopted for
+later W5 training, first record the environment change through the
+specification's append-only amendment process, add a separate hashed CUDA 12.6
+lock rather than replacing the CUDA 13 lane, qualify both GPUs, and define
+which hardware/environment fields enter run identity and metadata. No
+environment, campaign, contract, delegation or scientific result is changed
+by recording this finding.
+
+The complete read-only impact audit and cold-start debate questions are in
+[`audit/pascal-worker-adoption-audit-2026-08-14.md`](../audit/pascal-worker-adoption-audit-2026-08-14.md).
 
 ## 6. Register maintenance
 

@@ -7,7 +7,24 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-12 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is paused at a user-requested durable checkpoint under `G8_C/characterization_open`. No worker is running. Exact coverage, attempt and next-session restart details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-14 · **Phase:** **G8_B is complete; G8_C C0/C1C are complete and C2 full-strength characterization is paused at a user-requested durable checkpoint under `G8_C/characterization_open`. No worker is running. Exact coverage, attempt and next-session restart details live only in `instructions/RESUME.md` and authenticated campaign state. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+
+**Cold-start side decision — dedicated Pascal worker; no delegation yet.** At
+the next cold start, ask the user whether to qualify the dedicated worker for
+future delegated work. User-supplied `lspci` enumerates a GeForce GTX 1080 Ti
+(11 GB), TITAN Xp (12 GB), and an Intel NVMe controller. Both GPUs are Pascal
+compute capability 6.1: technically usable with the official PyTorch
+`2.9.1+cu126` lane on Python 3.12, but not CUDA 13. The live G8_C campaign remains bound to
+the registered `torch 2.13.0+cu130` / Torch CUDA 13.0 runner contract, so the
+worker is **not eligible for the current G8_C suffix** and cu126 results must
+not be mixed into its evidence. Do not install, amend, supersede a contract,
+copy campaign evidence or dispatch work until the user decides. If the answer
+is yes, first scope a non-G8_C job and qualify driver/Python/CUDA on both GPUs,
+NVMe capacity and free space, dependency/deterministic parity, remote access,
+and artifact return. A later scientific cu126 lane requires an append-only
+spec amendment and a separate hashed lock; never replace the cu130 lane.
+Debate memos: [`audit/pascal-worker-adoption-audit-2026-08-14.md`](audit/pascal-worker-adoption-audit-2026-08-14.md)
+and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md).
 
 **First Review delivery contract — user-fixed; do not ask for it again or reinterpret it.** The maintained checklist is [`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md). Completion requires the polished approximately 10–12-slide PPT covering all six rubric categories; ≥25-reference review; corrected Gantt; technical readiness across all four members; G-1 and existing implementation evidence ready for viva; deployment dossier plus the guide's dated acknowledgement of the simulation-first Tier-1/no-required-hardware path; exact corrected H1 wording and 18–22 August dates; the final package under `deliverables/review-1/`; and the annotated `review-1-basis` snapshot cut from that final basis. The backing documents are complete; both 12-slide presentation variants contain an editable, calendar-scaled Gantt. The active deck awaits author review. Future iterations must not front-load AIML buzzwords: slides 1–2 explain the camera, limited noisy link, receiver and classification task; slide 3 explains the conventional path; slide 4 introduces the learned sender/receiver and only then names DJSCC and supervised end-to-end learning. Architecture and loss details belong in methodology. Standard First Review pages must use literal titles so literature, problem/objectives, methodology, hypotheses, feasibility, Gantt, scope/risks and summary are immediately visible. In the Gantt, BLER characterization is the sole in-progress scientific workstream; all later stages are planned. Preserve the remaining rules in [`deliverables/review-1/ITERATION-NOTES.md`](deliverables/review-1/ITERATION-NOTES.md), the black-on-white default and prior versions under `deliverables/review-1/fallbacks/`. Final deck approval, four-member rehearsal, guide acknowledgement and snapshot remain.
 
@@ -1089,6 +1106,17 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Open questions for the user
 
+- **Delegate future work to the dedicated Pascal worker? — decide at the next
+  cold start; no current authorization.** Hardware enumeration confirms the
+  GTX 1080 Ti, TITAN Xp and an Intel NVMe controller. The candidate software
+  path is Python 3.12 + PyTorch 2.9.1 + CUDA 12.6. The worker cannot join the live G8_C
+  suffix because that evidence is contract-bound to cu130. If delegation is
+  wanted, choose the future task first, then qualify the node and record any
+  scientific environment change before execution. Do not let this side
+  decision bypass the exact G8_C inspect/reconcile/marker restart sequence.
+  Read both dated audit memos linked at the top before deciding: the second
+  memo frames the mixed-runtime continuation versus clean cu126 recampaign
+  tradeoff and preserves the unresolved exact-package-tuple disagreement.
 - ~~**srsRAN golden-vector licensing.**~~ **Delegated and decided 2026-07-27 (AM-25):** "do what's
   best, I don't have a preference". Chosen: **don't vendor.** The premise turned out to be wrong —
   srsRAN never committed the vector data, it ships as a per-release asset — so the fixture fetches
