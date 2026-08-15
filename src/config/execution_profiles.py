@@ -293,6 +293,33 @@ _ADDITIVE_ENVIRONMENT_KEYS = {
     "historical_profile_compatibility",
     "scientific_writer_authentication",
 }
+_HISTORICAL_ADDITIVE_PROJECTION_SHA256 = "7436fa0e2a6d4cf44439d51a7238b30cb137184b5b6ad01982ee6007f161f001"
+
+
+def _historical_additive_projection(compute: Mapping[str, Any], environment: Mapping[str, Any]) -> bytes:
+    """Return the exact AM-83..AM-85 additive subtree, never a substring diff."""
+
+    if set(compute) & _ADDITIVE_COMPUTE_KEYS != _ADDITIVE_COMPUTE_KEYS:
+        raise ValueError("current compute additive profile keys are incomplete")
+    if set(environment) & _ADDITIVE_ENVIRONMENT_KEYS != _ADDITIVE_ENVIRONMENT_KEYS:
+        raise ValueError("current environment additive profile keys are incomplete")
+    value = {
+        "compute": {key: compute[key] for key in sorted(_ADDITIVE_COMPUTE_KEYS)},
+        "environment": {key: environment[key] for key in sorted(_ADDITIVE_ENVIRONMENT_KEYS)},
+    }
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False).encode("ascii")
+
+
+def _verify_historical_additive_projection(compute: Mapping[str, Any], environment: Mapping[str, Any]) -> None:
+    if hashlib.sha256(_historical_additive_projection(compute, environment)).hexdigest() != _HISTORICAL_ADDITIVE_PROJECTION_SHA256:
+        raise ValueError("historical execution-profile additive registry was reinterpreted")
+
+
+def _remove_exact_historical_additions(root: str, value: Any) -> Any:
+    if not isinstance(value, Mapping):
+        raise ValueError(f"historical params.{root} snapshot is not a mapping")
+    forbidden = _ADDITIVE_COMPUTE_KEYS if root == "compute" else _ADDITIVE_ENVIRONMENT_KEYS if root == "environment" else set()
+    return {key: item for key, item in value.items() if key not in forbidden}
 
 
 def verify_historical_local_compatibility(config: RunConfig) -> None:
@@ -307,14 +334,9 @@ def verify_historical_local_compatibility(config: RunConfig) -> None:
     for root in roots:
         current = get(root)
         archived = snapshots[root]
-        if root == "compute":
-            current = {k: v for k, v in current.items() if k not in _ADDITIVE_COMPUTE_KEYS}
-        elif root == "environment":
-            current = {
-                k: v for k, v in current.items() if k not in _ADDITIVE_ENVIRONMENT_KEYS
-            }
-        if archived != current:
+        if _remove_exact_historical_additions(root, archived) != _remove_exact_historical_additions(root, current):
             raise ValueError(f"historical params.{root} snapshot has unrelated drift")
+    _verify_historical_additive_projection(get("compute"), get("environment"))
     if get("environment.historical_profile_compatibility.archived_profile") != (
         "local_4060_cu130"
     ):
@@ -345,15 +367,12 @@ def verify_historical_generated_params_bytes(archived_bytes: bytes) -> None:
             raise ValueError(f"generated params is missing fingerprint root {root}")
         old = archived[root]
         new = current[root]
-        if root == "compute":
-            new = {key: value for key, value in new.items() if key not in _ADDITIVE_COMPUTE_KEYS}
-        elif root == "environment":
-            new = {key: value for key, value in new.items() if key not in _ADDITIVE_ENVIRONMENT_KEYS}
-        if old != new:
+        if _remove_exact_historical_additions(root, old) != _remove_exact_historical_additions(root, new):
             raise ValueError(f"generated params has unrelated drift under {root}")
     old_schema = archived.get("config", {}).get("fingerprint_schema_version")
     if old_schema != 1:
         raise ValueError("generated params historical compatibility requires schema 1")
+    _verify_historical_additive_projection(current["compute"], current["environment"])
     if current["environment"]["historical_profile_compatibility"]["archived_profile"] != "local_4060_cu130":
         raise ValueError("generated params historical profile reinterpretation is forbidden")
 

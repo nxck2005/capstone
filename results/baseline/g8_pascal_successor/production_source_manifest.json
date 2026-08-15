@@ -1,0 +1,198 @@
+{
+  "artifact_role": "g8_c_pascal_successor_production_source_manifest",
+  "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+  "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
+  "coordinator_contract_sha256": "a5168c9cc1e62b22a1decd0a087a866915abc54833be610b3abccfe025df29df",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "lock_file": "requirements-pascal.lock",
+  "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+  "old_result_ingest": false,
+  "predecessor_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
+  "protected_counters": {
+    "inference": 0,
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 0
+  },
+  "readiness_state_sha256": "77f62d959a963db170051f8ac2cf405eb52145de6e19dc6fac6c650dd28721d3",
+  "required_bler_artifact": "results/baseline/g8/required_bler_identities.json",
+  "required_bler_artifact_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
+  "schema_version": 1,
+  "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
+  "sources": [
+    {
+      "bytes": 13113,
+      "path": "src/baseline/g8_pascal_successor.py",
+      "role": "successor_contract",
+      "sha256": "66747ef06d6a2f150e0551103a38afcd174774303630f2f77818a69710d99210"
+    },
+    {
+      "bytes": 102641,
+      "path": "src/baseline/g8_pascal_production.py",
+      "role": "successor_transaction_state_worker",
+      "sha256": "10b010e39edf1dc30df9c45dca5f472f4e378d99294e888ddce9593d9868965e"
+    },
+    {
+      "bytes": 16241,
+      "path": "tools/run_g8_pascal_dual_gpu.py",
+      "role": "dual_gpu_child_process_coordinator",
+      "sha256": "0c00ee04d2d993ce48712b369c1c23c1fb6671a388b4f0a0afca800369ad6f7a"
+    },
+    {
+      "bytes": 61398,
+      "path": "src/baseline/g8_bler_runner.py",
+      "role": "frozen_measurement_runner",
+      "sha256": "9ebcfde359308a1f6393997192a6da59ff6bb1d5ccbc00b4ea83cbcf2873089f"
+    },
+    {
+      "bytes": 145628,
+      "path": "src/baseline/g8_bler_resume.py",
+      "role": "frozen_runner_import_resume_contract",
+      "sha256": "c448d186cb7115e96553b50fd4dcd4ea025894563de3bc9d8402dcc0d91bb4fa"
+    },
+    {
+      "bytes": 80796,
+      "path": "src/baseline/g8_bler_work_units.py",
+      "role": "frozen_runner_import_transaction_contract",
+      "sha256": "583487c4b378473b39b0d055357cbb1b6bb99c625d0d529fb4a2591fb119a26e"
+    },
+    {
+      "bytes": 57997,
+      "path": "src/baseline/g8_bler_contract.py",
+      "role": "frozen_seed_count_interval_contract",
+      "sha256": "27718fcbef6e55b20d7f1dc8cef907d5e09fbb1254ace98f2a0cea6ec229e5d6"
+    },
+    {
+      "bytes": 34903,
+      "path": "src/baseline/g8_campaign.py",
+      "role": "frozen_campaign_identity_contract",
+      "sha256": "ed8211901a52a915abb28d9ff5fd8693f9d5e37556e978d8306109f5c09bc46f"
+    },
+    {
+      "bytes": 72000,
+      "path": "src/baseline/classical/composition.py",
+      "role": "bler_identity_type",
+      "sha256": "e3135ecefd612c5505bd1137bbf9a8a8212cf338080dde24bf5b25e07212b744"
+    },
+    {
+      "bytes": 22262,
+      "path": "src/baseline/classical/outage.py",
+      "role": "composition_import_closure",
+      "sha256": "54bd239d5d3ecfac8dd335453a68945a205e5b9574baa7144708141013b7dc0d"
+    },
+    {
+      "bytes": 3254,
+      "path": "src/artifacts/rng.py",
+      "role": "composition_import_rng_contract",
+      "sha256": "d886c0ec6a8e980b878dd4dbc69d14439dbc4c61f215fa37c49886a1a5efdad5"
+    },
+    {
+      "bytes": 11468,
+      "path": "src/data/manifests.py",
+      "role": "composition_import_manifest_contract",
+      "sha256": "28cb6de265b7f2cf5eff65e0da9bba3a35a592371924bb52a991b6682353bfdd"
+    },
+    {
+      "bytes": 14579,
+      "path": "src/data/adapters.py",
+      "role": "manifest_import_dataset_adapter_contract",
+      "sha256": "97f36eb4a226bedc8579a000b048119e15915495382c759b79fe0582209bcfca"
+    },
+    {
+      "bytes": 1056,
+      "path": "src/data/identity.py",
+      "role": "manifest_import_identity_contract",
+      "sha256": "e03e0033d6d0174584c2818fb4b6968d9e33c133527a8fbab1644f6a5850f249"
+    },
+    {
+      "bytes": 13608,
+      "path": "src/data/provenance.py",
+      "role": "manifest_import_provenance_contract",
+      "sha256": "24a74828fda74e337aaf865ff06974cd25e9ce11a8e014bef7d9a2cf1a961b33"
+    },
+    {
+      "bytes": 341,
+      "path": "src/baseline/ldpc/__init__.py",
+      "role": "ldpc_package_initialization",
+      "sha256": "37626acc9fbe91ed158bd61df2b22b2bb5852ff7136a7dadff8e3fef8f78bfd9"
+    },
+    {
+      "bytes": 2546,
+      "path": "src/baseline/ldpc/adapter.py",
+      "role": "sionna_ldpc_adapter",
+      "sha256": "1bc62ba6c5936c9095a97e0e9f989eb1f25efc2f29b2268f651d7a58fbd15de9"
+    },
+    {
+      "bytes": 3790,
+      "path": "src/baseline/ldpc/modulation.py",
+      "role": "modulation_and_max_log_llr",
+      "sha256": "eb3e7f05e453ea74ba099cfe5de5494ca9926f1333db16ee3d3dcc461ae011ad"
+    },
+    {
+      "bytes": 8673,
+      "path": "src/baseline/ldpc/transport.py",
+      "role": "campaign_import_closure_packet_transport",
+      "sha256": "f06a78104073ee9d8aa87e388d3389b43b94609830e5d0593555bb4bf768644c"
+    },
+    {
+      "bytes": 765,
+      "path": "src/baseline/ldpc/rate_matching.py",
+      "role": "transport_import_closure_rate_matching",
+      "sha256": "a24aea4057b555f335b4b8d930523b3e13ee5f6dbe717618461eb4abc01250f1"
+    },
+    {
+      "bytes": 3941,
+      "path": "src/baseline/ldpc/segmentation.py",
+      "role": "transport_import_closure_segmentation",
+      "sha256": "44f160a0db476e38a0dbac80c1eb6872c4a102d71c8e4ad84ed60672f7ff57cf"
+    },
+    {
+      "bytes": 2036,
+      "path": "src/baseline/ldpc/crc.py",
+      "role": "transport_import_closure_crc",
+      "sha256": "8f389a34510b6b3614e471c3ac648dd7ac8d8d9422ee4beaf7c591a012922c63"
+    },
+    {
+      "bytes": 16379,
+      "path": "src/config/execution_profiles.py",
+      "role": "execution_profile_authentication",
+      "sha256": "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+    },
+    {
+      "bytes": 1550,
+      "path": "src/config/params.py",
+      "role": "generated_parameter_loader",
+      "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc"
+    },
+    {
+      "bytes": 16293,
+      "path": "src/config/run_config.py",
+      "role": "profile_authentication_import_closure",
+      "sha256": "e18af6b2930cf0a1d2208860edc208cf0af7c24c63b87119e5e737efc350e505"
+    },
+    {
+      "bytes": 8308,
+      "path": "src/env.py",
+      "role": "deterministic_backend_and_openjpeg_authentication",
+      "sha256": "18f32856644b243ecafdb4dee07f17aeeb71c0ca15f3f9899539b229c6a296dc"
+    },
+    {
+      "bytes": 39786,
+      "path": "spec/params.generated.yaml",
+      "role": "generated_parameters_consumed_at_runtime",
+      "sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b"
+    },
+    {
+      "bytes": 82943,
+      "path": "requirements-pascal.lock",
+      "role": "authenticated_python_environment",
+      "sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
+    },
+    {
+      "bytes": 8610156,
+      "path": "results/baseline/g8/required_bler_identities.json",
+      "role": "exact_required_physical_grid",
+      "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
+    }
+  ]
+}

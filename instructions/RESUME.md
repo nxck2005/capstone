@@ -68,59 +68,21 @@ Then:
 
 ## Status
 
-**Current phase:** **G8_C is open; C0, C1 and the additive C1C correction are complete and C2 is paused at a user-requested durable checkpoint.**
-The live state is the authenticated `G8_C/characterization_open` cursor. Source
-epoch 2 is registered and merged before the first accepted ordinal 179 result.
-The corrected C2 suffix has durably accepted ordinals 179–747. Ordinal 748 has
-a request-only attempt 1 and its next legal execution is attempt 2. No
-characterization worker is running. Selection, authorization, inference,
-training, validation decoding and test access remain prohibited. B1 remains
-historical; B1C is the pre-execution corrective contract checkpoint. The
-corrected tooling, request and result schemas are version 2, no version-1
-request or result exists, and no production G8_B/G8_C source may use the stale
-version-1 contract. PB_3C
-was a narrow corrective
-phase between PB_3 and G-8: it fixed the fixed-modulation reference (BR-9), made resumed campaign
-state an exact ordered prefix of the permitted passes, froze the selection tie-break policy before
-G-8 behind an independently recomputed `selection_policy_sha256`, and corrected this hand-off. Its
-ledger is the **PB_3C** section at the end of this file. Durable instruction:
-`instructions/PB_3C.txt`.
-**Last green commit:** this `fix(classical): correct PB_3 selection and resume semantics` commit —
-the **PB_3C corrective green**, which supersedes the PB_3 green
-`32edbbb58983e54103b2f252c4d8d8f30aa2378e` as the latest green while leaving PB_3's work in place.
-The PB_3 green was `feat(classical): add BR-4 selection infrastructure and W4 adjudication` — the
-PB_3 implementation/evidence green, and therefore the W4 green. Written in the
-repository's non-self-referential form because a commit cannot contain its own SHA. The PB_3
-starting point was the PRE_B3 green `81372a5f1139bbfa9e086d229bf807c7cf6a8bce`.
-**Last pre-G8 scientific-evidence green:** `3324393a3e1692478bba8cf1020708bf52947f6d` —
-the PB_2C corrective green (`fix(classical): close PB_2 provenance and accounting
-corrections`). G8_C C2 now carries later physical-layer measurement checkpoints;
-none creates a selection, authorization, validation decode, inference, training
-result or test access. The provisional PB_2 green
-`50de80364c2546463918387a8f335ea36107bde0` is
-**invalidated**; the corrected bounded evidence was regenerated at
-`76e789c9f3d036427d5c1fe83bd95a61d655c5f0` and committed at
-`4c1642c9cf15d681a8de65d13a9fc1414c188b66`.
-**Last durable checkpoint:** this user-requested C2 session-stop checkpoint
-builds on pushed launch marker
-`d7f0fe82408f976251d017a4b2aa727390b5cf41`. The harness process
-`g8c_epoch2_remaining` was stopped deliberately with process-tree exit 143
-after accepting exactly five new units, ordinals 743–747. Ordinal 743 completed
-legally at attempt 2; its attempt-1 request remains immutable history. Ordinal
-748 `bler-3d67593f9deb3cfaab668644` has a request-only attempt 1 and next proposes
-attempt 2. The authenticated census is 748 completed, one
-`claimed_request_published`, and 2,464 absent; recoverable, failed-retryable,
-terminal-nonmergeable, unknown and duplicate counts are zero. Reconciliation
-installed campaign-state SHA-256
-`4a285ee7746f197a96c23230a0aac945c581c4ec8d40bc98bb3fa86b46f68ddd`,
-with a null in-progress ID and zero protected counters. The independent epoch-2
-verifier passed with 748 completed and 2,465 remaining. Epoch 1 and the
-registered epoch-2 manifest remain byte-immutable. The First Review programme
-artifacts and package are committed through
-`18c1e710f2eb3f24e7378ff1e71ccba982e078f0`; they changed no scientific source
-or evidence. **STOP HERE. Next session: verify repository parity, run a fresh
-read-only inspection and reconciliation, then write and push a new marker
-beginning at ordinal 748 attempt 2 before launching the epoch-2 coordinator.**
+**Current phase:** **Pascal G8_C production path is ready for owner opening at exactly 0/3213; no worker is running.**
+The single live path is successor campaign
+`g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
+`confessor_pascal_cu126`. `confessor` is the sole scientific writer. Its two
+workers are explicit `cuda:0`/`cuda:1` UUID-bound child processes, and the
+successor state can reconcile nonzero coverage without touching the old tree.
+The owner must separately provide launch authorization before any full-strength
+measurement. Selection, authorization construction, inference, training,
+validation decoding and test access remain prohibited in this task. The old
+local campaign is immutable history and contributes zero successor-table
+coverage.
+
+PB_3C remains the latest pre-G8 scientific-engineering green and its ledger is
+retained below. This production-readiness repair is additive and does not alter
+the frozen PHY computation, identity grid, trial count or historical evidence.
 
 This is *not* "construct a `G8Authorization` and call `select_operating_points()`". The
 authorization is the last obstacle, not the first. The committed G-2 BLER evidence characterises one
@@ -755,18 +717,19 @@ silently reinterpret earlier artifacts. This file remains the only operational
 cursor.
 
 **Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
-**Current phase:** G8_C is open; C0, C1 and C1C are complete, and C2 is active.
-Full-strength characterization has authenticated 743/3,213 required units;
-ordinal 743 has request-only attempt 1 and next legal attempt 2. Selection,
-authorization, inference, training, validation decoding and test access have
-not started.
-**Current scientific state:** characterization in progress; validation
-measurements not started; pass one not executed; training not started; pass two
-not executed; adjudication incomplete; test access zero; authorization not
-issued.
-**Exact next action:** make this interrupted evidence durable, repair the
-non-scientific CI/handoff defects, then write and push a fresh C2 marker before
-retrying ordinal 743 at attempt 2.
+**Current phase:** G8_C is the clean Pascal successor path; the production
+transaction/coordinator is ready at zero coverage and no worker is running.
+The successor campaign is `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`,
+with `confessor` as its sole scientific writer and the exact two-device mapping
+bound in its production contracts. Selection, authorization, inference,
+training, validation decoding and test access have not started.
+**Current scientific state:** successor coverage is `0/3213`; the old local
+RTX4060 campaign is valid immutable history but superseded and contributes zero
+successor-table coverage; all protected counters are zero.
+**Exact next action:** owner review and explicit launch authorization. Until
+that separate authorization exists, run only the read-only successor verifier,
+profile authentication and coordinator plan/dry-run checks; never resume old
+ordinal 748 or create a full-strength result.
 
 ## G8_A — contract, structural enumeration, state and preflight
 
@@ -881,11 +844,18 @@ The G8_A manifest, required-identity artifact, and all campaign contract sources
 byte-bound. The live state must carry the B1 restart command after the one permitted transition;
 the manifest's pre-data flags remain immutable and are not a live cursor.
 
-## G8_C — complete full-strength characterization and freeze the BLER table
+## ~~HISTORICAL — SUPERSEDED LOCAL G8_C — DO NOT RESUME~~
 
-Durable instruction: `instructions/G8_C.txt`. This is the only live C cursor; the
-C rows below are updated in the same commit as their checkpoint. C0 is the
-state-only opening step and has no full-strength execution.
+The following section is retained as immutable epoch-1/epoch-2 provenance only.
+Every command and next-action sentence in this section is archival and
+prohibited for a cold start; it is not the current G8_C cursor.
+
+## ~~G8_C — complete full-strength characterization and freeze the BLER table~~
+
+Durable instruction: `instructions/G8_C.txt` was the historical local cursor;
+the C rows below are retained as immutable checkpoint history. They are not a
+live restart instruction, and C0 was the state-only opening step with no
+full-strength execution.
 
 Paused C2 session-stop checkpoint (2026-08-11T03:04:03+05:30): phase/stage
 `G8_C/characterization_open`; pushed launch marker
