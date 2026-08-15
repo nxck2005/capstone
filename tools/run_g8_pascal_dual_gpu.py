@@ -26,9 +26,14 @@ sys.path.insert(0, str(REPO / "src"))
 from baseline.g8_pascal_production import (  # noqa: E402
     PRODUCTION_CONTRACT,
     ProductionContractError,
+    RecoveryError,
+    STATUS_ACCEPTED,
+    STATUS_FAILED,
+    STATUS_TERMINAL_INVALID,
     authenticate_worker_profile,
     ensure_runtime_root,
     exact_shard_partition,
+    inspect_unit,
     reconcile_campaign,
     run_unit,
     successor_bindings,
@@ -87,6 +92,11 @@ def _run_worker_batch(
     _validate_max_units(max_units)
     attempted = 0
     for ordinal in partition:
+        classification = inspect_unit(root, ordinal)["classification"]
+        if classification == STATUS_ACCEPTED:
+            continue
+        if classification == STATUS_TERMINAL_INVALID:
+            raise RecoveryError(f"successor unit {ordinal} is terminal-invalid")
         if max_units is not None and attempted >= max_units:
             break
         attempted += 1
@@ -100,9 +110,23 @@ def _run_worker_batch(
             profile=profile,
             batch_size=batch_size,
         )
-        if report["status"] != "accepted":
+        if report["status"] == STATUS_TERMINAL_INVALID:
+            raise RecoveryError(f"successor unit {ordinal} became terminal-invalid")
+        if report["status"] == STATUS_FAILED:
             break
+        if report["status"] != STATUS_ACCEPTED:
+            raise RecoveryError(f"successor unit {ordinal} returned unexpected status {report['status']!r}")
     return attempted
+
+
+def _summary_is_nonpass(summary: Mapping[str, Any]) -> bool:
+    """A worker/coordinator invocation is not PASS with unresolved evidence."""
+
+    return any(summary.get(key) for key in (
+        "failed_authority_ordinals",
+        "terminal_invalid_authority_ordinals",
+        "in_progress_authority_ordinals",
+    ))
 
 
 def _inventory() -> list[dict[str, str | int]]:
@@ -309,8 +333,9 @@ def _worker(args: argparse.Namespace) -> int:
         max_units=args.max_units,
     )
     summary = reconcile_campaign(root)
-    print(json.dumps({"worker": args.device, "shard_index": args.shard_index, "units_attempted": attempted, "reconciliation": summary}, sort_keys=True))
-    return 0
+    status = "FAIL" if _summary_is_nonpass(summary) else "PASS"
+    print(json.dumps({"status": status, "worker": args.device, "shard_index": args.shard_index, "units_attempted": attempted, "reconciliation": summary}, sort_keys=True))
+    return 1 if status != "PASS" else 0
 
 
 def _child_command(worker: Mapping[str, Any], *, root: Path, batch_size: int, max_units: int | None) -> list[str]:
@@ -411,9 +436,10 @@ def main() -> int:
         max_units=args.max_units,
     )
     reconciliation = reconcile_campaign(root)
-    result = {"status": "FAIL" if failures else "PASS", "workers_failed": failures, "reconciliation": reconciliation}
+    status = "FAIL" if failures or _summary_is_nonpass(reconciliation) else "PASS"
+    result = {"status": status, "workers_failed": failures, "reconciliation": reconciliation}
     print(json.dumps(result, sort_keys=True))
-    return 1 if failures else 0
+    return 1 if status != "PASS" else 0
 
 
 if __name__ == "__main__":

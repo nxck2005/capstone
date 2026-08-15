@@ -33,10 +33,10 @@
       "sha256": "768f0fa71320de8fd5bbe13c72c626d66e2aba44d8412be801adf88ff64c6412"
     },
     {
-      "bytes": 17509,
+      "bytes": 18687,
       "path": "tools/run_g8_pascal_dual_gpu.py",
       "role": "dual_gpu_child_process_coordinator",
-      "sha256": "cf3961ae1ce21d63de72cd199228bd177135a20342fc15537d79aa0e7c0f0afe"
+      "sha256": "b5f732afe2c2bb5575caaf4d0833a558f91ce93fba9701c938aa4e0d011bbdc9"
     },
     {
       "bytes": 61398,
