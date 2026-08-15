@@ -9,6 +9,8 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 **Last updated:** 2026-08-15 · **Phase:** **G8_B is complete; the old local G8_C campaign is preserved as superseded historical evidence and the clean Pascal successor is ready at 0/3213. PR #4 merged at `9702c16`; confessor's merged-main qualification and authenticated HTTPS marker commit `9ec0883` are complete. No successor worker is running. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
 
+**2026-08-15 pre-launch control repair:** the additive Pascal worker now treats `--max-units` as an attempted-unit cap and stops that worker's batch after a failed unit; successor-only coordination locks are ignored while requests, results, unit states and `campaign_state.json` remain durable; and `audit_campaign()` cross-checks terminal-invalid ordinals against reconstructed evidence. Contracts and hashes were regenerated. The successor campaign identity and zero-coverage readiness marker are unchanged, and no full-strength unit ran.
+
 **Execution profiles:** the project now has two independently authenticated
 production profiles, `local_4060_cu130` and the qualified
 `confessor_pascal_cu126`. A scientific run chooses one before its first

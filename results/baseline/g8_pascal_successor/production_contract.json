@@ -2,8 +2,8 @@
   "artifact_role": "g8_c_pascal_successor_production_contract",
   "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
   "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
-  "contract_sha256": "4d0ca3b7db9b490c1fa1d6f3664c7077c8babc2be2af59faf31adb806ed9a60f",
-  "coordinator_contract_sha256": "a5168c9cc1e62b22a1decd0a087a866915abc54833be610b3abccfe025df29df",
+  "contract_sha256": "7798b30f2dc60d33fa1d77263430e0bb8ca9feb208aaaa05775c2392f451db3e",
+  "coordinator_contract_sha256": "f085acc6a39c819a759ef7f11f8b320a6a47b3efd5468f9b88518d3bfee3bc39",
   "driver_version_required": true,
   "execution_profile_id": "confessor_pascal_cu126",
   "execution_profile_provenance_fields": [
@@ -43,7 +43,7 @@
     "seed_contract": "g8_bler_contract.stream_seed_records with successor campaign ID",
     "trial_count_source": "params.baseline.bler_characterisation_trials"
   },
-  "production_source_manifest_sha256": "27e95fbe3c121f80ace70f5c36e156a99f699e0349f560cf671369a5d030d3a0",
+  "production_source_manifest_sha256": "a270fa2eadad28d5d1791b67612bc02bbfdc736571405990d1cc59730e7c94cc",
   "protected_counters": {
     "inference": 0,
     "test_access": 0,
@@ -53,10 +53,14 @@
   "readiness_state_sha256": "77f62d959a963db170051f8ac2cf405eb52145de6e19dc6fac6c650dd28721d3",
   "required_bler_artifact_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
   "required_identity_count": 3213,
-  "runner_contract_sha256": "70a188ab582ec527d0f45f875a3036d33812c518e23600585e1cda997dc457d1",
+  "runner_contract_sha256": "b28204fd1d89a24f33480f29e39f984cb4b0d016764d77638021ef689d64e1f7",
   "schema_version": 1,
   "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
   "source_closure_role": "all result-affecting local imports and authenticated environment bytes are listed in production_source_manifest.json",
-  "source_manifest_sha256": "27e95fbe3c121f80ace70f5c36e156a99f699e0349f560cf671369a5d030d3a0",
-  "trials_per_identity": 5000
+  "source_manifest_sha256": "a270fa2eadad28d5d1791b67612bc02bbfdc736571405990d1cc59730e7c94cc",
+  "trials_per_identity": 5000,
+  "worker_batch_policy": {
+    "failed_work_unit": "failed_work_unit_counts_toward_cap_and_terminates_worker_batch",
+    "max_units": "maximum_attempted_work_units_per_worker_invocation"
+  }
 }

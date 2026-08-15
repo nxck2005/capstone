@@ -32,6 +32,10 @@ from baseline.g8_pascal_successor import (  # noqa: E402
     rendered_json,
     sha256_bytes,
 )
+from baseline.g8_pascal_production import (  # noqa: E402
+    FAILED_WORK_UNIT_POLICY,
+    MAX_UNITS_POLICY,
+)
 from config.params import get  # noqa: E402
 
 
@@ -148,6 +152,8 @@ def build(*, check: bool = False) -> dict[str, str]:
         "successor_work_unit_root": "results/baseline/g8_pascal_successor/runtime",
         "duplicate_assignment_policy": "fail_closed_on_overlap_or_omission",
         "failure_isolation": "published_evidence_is_immutable_and_other_worker_continues",
+        "max_units_policy": MAX_UNITS_POLICY,
+        "failed_work_unit_policy": FAILED_WORK_UNIT_POLICY,
         "recovery_policy": "reconcile_durable_requests_results_states_after_restart",
         "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
         "protected_counters": {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0},
@@ -195,6 +201,8 @@ def build(*, check: bool = False) -> dict[str, str]:
         "request_schema": "g8_c_pascal_successor_work_unit_request:v1",
         "result_schema": "g8_c_pascal_successor_work_unit_result:v1",
         "state_schema": "g8_c_pascal_successor_production_state:v1",
+        "max_units_policy": MAX_UNITS_POLICY,
+        "failed_work_unit_policy": FAILED_WORK_UNIT_POLICY,
         "runner_source_paths": [entry["path"] for entry in _source_entries()],
         "driver_version_required": True,
         "old_result_ingest": False,
@@ -235,6 +243,10 @@ def build(*, check: bool = False) -> dict[str, str]:
             "decoder_and_demapper": "frozen LDPC adapter and max-log-LLR path",
             "count_semantics": "frozen g8_bler_contract.recompute_measurements",
             "resume_granularity": "one complete work unit; restart incomplete unit from trial zero",
+        },
+        "worker_batch_policy": {
+            "max_units": MAX_UNITS_POLICY,
+            "failed_work_unit": FAILED_WORK_UNIT_POLICY,
         },
         "source_closure_role": "all result-affecting local imports and authenticated environment bytes are listed in production_source_manifest.json",
         "driver_version_required": True,

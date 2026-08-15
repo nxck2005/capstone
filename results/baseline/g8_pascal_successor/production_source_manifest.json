@@ -2,7 +2,7 @@
   "artifact_role": "g8_c_pascal_successor_production_source_manifest",
   "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
   "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
-  "coordinator_contract_sha256": "a5168c9cc1e62b22a1decd0a087a866915abc54833be610b3abccfe025df29df",
+  "coordinator_contract_sha256": "f085acc6a39c819a759ef7f11f8b320a6a47b3efd5468f9b88518d3bfee3bc39",
   "execution_profile_id": "confessor_pascal_cu126",
   "lock_file": "requirements-pascal.lock",
   "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
@@ -27,16 +27,16 @@
       "sha256": "66747ef06d6a2f150e0551103a38afcd174774303630f2f77818a69710d99210"
     },
     {
-      "bytes": 102641,
+      "bytes": 103845,
       "path": "src/baseline/g8_pascal_production.py",
       "role": "successor_transaction_state_worker",
-      "sha256": "10b010e39edf1dc30df9c45dca5f472f4e378d99294e888ddce9593d9868965e"
+      "sha256": "768f0fa71320de8fd5bbe13c72c626d66e2aba44d8412be801adf88ff64c6412"
     },
     {
-      "bytes": 16241,
+      "bytes": 17509,
       "path": "tools/run_g8_pascal_dual_gpu.py",
       "role": "dual_gpu_child_process_coordinator",
-      "sha256": "0c00ee04d2d993ce48712b369c1c23c1fb6671a388b4f0a0afca800369ad6f7a"
+      "sha256": "cf3961ae1ce21d63de72cd199228bd177135a20342fc15537d79aa0e7c0f0afe"
     },
     {
       "bytes": 61398,
