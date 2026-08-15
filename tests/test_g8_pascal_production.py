@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -347,6 +348,40 @@ def test_coordinator_launches_two_explicit_children_and_isolates_failure(monkeyp
     assert failures == [{"device": "cuda:0", "return_code": 143}]
 
 
+def test_worker_max_units_skips_accepted_ordinals_without_consuming_cap(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import run_g8_pascal_dual_gpu as coordinator
+
+    accepted: set[int] = set()
+    calls: list[int] = []
+
+    def inspect(root, ordinal):
+        return {"classification": production.STATUS_ACCEPTED if ordinal in accepted else "available"}
+
+    def complete_unit(root, *, ordinal, shard_index, shard_count, device, gpu_uuid, profile, batch_size):
+        calls.append(ordinal)
+        accepted.add(ordinal)
+        return {"status": production.STATUS_ACCEPTED}
+
+    monkeypatch.setattr(coordinator, "inspect_unit", inspect)
+    monkeypatch.setattr(coordinator, "run_unit", complete_unit)
+    root = tmp_path / "runtime"
+
+    for expected_calls, expected_ordinal in [([0], 0), ([0, 2], 2), ([0, 2, 4], 4), ([0, 2, 4, 6], 6)]:
+        assert coordinator._run_worker_batch(
+            root=root,
+            partition=[0, 2, 4, 6],
+            shard_index=0,
+            shard_count=2,
+            device="cuda:0",
+            gpu_uuid=str(production.PRODUCTION_WORKERS[0]["gpu_uuid"]),
+            profile={},
+            batch_size=32,
+            max_units=1,
+        ) == 1
+        assert calls == expected_calls
+        assert calls[-1] == expected_ordinal
+
+
 def test_worker_max_units_counts_failed_attempt_and_stops_batch(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     import run_g8_pascal_dual_gpu as coordinator
 
@@ -357,8 +392,10 @@ def test_worker_max_units_counts_failed_attempt_and_stops_batch(monkeypatch: pyt
         return {"status": production.STATUS_FAILED}
 
     monkeypatch.setattr(coordinator, "run_unit", failed_unit)
+    root = tmp_path / "runtime"
+    production.ensure_runtime_root(root)
     attempted = coordinator._run_worker_batch(
-        root=tmp_path / "runtime",
+        root=root,
         partition=[0, 2, 4],
         shard_index=0,
         shard_count=2,
@@ -370,3 +407,85 @@ def test_worker_max_units_counts_failed_attempt_and_stops_batch(monkeypatch: pyt
     )
     assert attempted == 1
     assert calls == [0]
+
+
+def test_worker_does_not_skip_terminal_invalid_evidence(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import run_g8_pascal_dual_gpu as coordinator
+
+    calls: list[int] = []
+
+    def terminal_invalid(root, ordinal):
+        return {"classification": production.STATUS_TERMINAL_INVALID}
+
+    def should_not_run(root, *, ordinal, shard_index, shard_count, device, gpu_uuid, profile, batch_size):
+        calls.append(ordinal)
+        return {"status": production.STATUS_ACCEPTED}
+
+    monkeypatch.setattr(coordinator, "inspect_unit", terminal_invalid)
+    monkeypatch.setattr(coordinator, "run_unit", should_not_run)
+    with pytest.raises(production.RecoveryError, match="terminal-invalid"):
+        coordinator._run_worker_batch(
+            root=tmp_path / "runtime",
+            partition=[0, 2],
+            shard_index=0,
+            shard_count=2,
+            device="cuda:0",
+            gpu_uuid=str(production.PRODUCTION_WORKERS[0]["gpu_uuid"]),
+            profile={},
+            batch_size=32,
+            max_units=1,
+        )
+    assert calls == []
+
+
+def test_failed_run_unit_makes_worker_and_coordinator_nonpass(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import run_g8_pascal_dual_gpu as coordinator
+
+    worker = production.PRODUCTION_WORKERS[0]
+    args = SimpleNamespace(
+        device=worker["device"],
+        gpu_uuid=worker["gpu_uuid"],
+        shard_index=worker["shard_index"],
+        shard_count=2,
+        root=tmp_path / "runtime",
+        batch_size=32,
+        max_units=1,
+    )
+    monkeypatch.setattr(coordinator, "load_json", lambda path: {})
+    monkeypatch.setattr(coordinator, "validate_successor_manifest", lambda payload: None)
+    monkeypatch.setattr(coordinator, "validate_successor_state", lambda payload: None)
+    monkeypatch.setattr(coordinator, "validate_production_contracts", lambda: {"workers": [dict(worker)]})
+    monkeypatch.setattr(coordinator, "authenticate_worker_profile", lambda **kwargs: {})
+    monkeypatch.setattr(coordinator, "ensure_runtime_root", lambda root: root)
+    monkeypatch.setattr(coordinator, "exact_shard_partition", lambda: {0: [0], 1: []})
+    monkeypatch.setattr(coordinator, "inspect_unit", lambda root, ordinal: {"classification": "available"})
+    monkeypatch.setattr(coordinator, "run_unit", lambda *args, **kwargs: {"status": production.STATUS_FAILED})
+    summaries = iter([
+        {"failed_authority_ordinals": [], "terminal_invalid_authority_ordinals": [], "in_progress_authority_ordinals": []},
+        {"failed_authority_ordinals": [0], "terminal_invalid_authority_ordinals": [], "in_progress_authority_ordinals": []},
+    ])
+    monkeypatch.setattr(coordinator, "reconcile_campaign", lambda root: next(summaries))
+
+    assert coordinator._worker(args) == 1
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "FAIL"
+
+
+def test_coordinator_reconciliation_failure_cannot_print_pass(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    import run_g8_pascal_dual_gpu as coordinator
+
+    root = tmp_path / "runtime"
+    monkeypatch.setattr(coordinator, "build_plan", lambda: {"workers": []})
+    monkeypatch.setattr(coordinator, "_validate_launch_gate", lambda root, authorization, dry_run: {})
+    monkeypatch.setattr(coordinator, "ensure_runtime_root", lambda path: path)
+    monkeypatch.setattr(coordinator, "launch_children", lambda plan, *, root, batch_size, max_units: [])
+    monkeypatch.setattr(coordinator, "reconcile_campaign", lambda path: {
+        "failed_authority_ordinals": [0],
+        "terminal_invalid_authority_ordinals": [],
+        "in_progress_authority_ordinals": [],
+    })
+    monkeypatch.setattr(sys, "argv", ["run_g8_pascal_dual_gpu.py", "--execute", "--root", str(root)])
+
+    assert coordinator.main() == 1
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "FAIL"

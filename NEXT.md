@@ -11,6 +11,8 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 **2026-08-15 pre-launch control repair:** the additive Pascal worker now treats `--max-units` as an attempted-unit cap and stops that worker's batch after a failed unit; successor-only coordination locks are ignored while requests, results, unit states and `campaign_state.json` remain durable; and `audit_campaign()` cross-checks terminal-invalid ordinals against reconstructed evidence. Contracts and hashes were regenerated. The successor campaign identity and zero-coverage readiness marker are unchanged, and no full-strength unit ran.
 
+**2026-08-15 final pre-launch coordinator repair:** terminal-accepted ordinals are inspected and skipped without consuming a worker attempt budget; terminal-invalid evidence fails closed; failed/retryable work remains retryable but makes both worker and coordinator invocations FAIL/nonzero. Regression coverage proves the fixed-shard progression, failed-unit cap/stop semantics, terminal-invalid hold and final-status signaling. The campaign ID, readiness marker, required grid, frozen PHY, and successor coverage remain unchanged at 0/3213; no real work unit ran.
+
 **Execution profiles:** the project now has two independently authenticated
 production profiles, `local_4060_cu130` and the qualified
 `confessor_pascal_cu126`. A scientific run chooses one before its first
