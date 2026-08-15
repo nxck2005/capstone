@@ -55,6 +55,56 @@ DEVICE_RE = re.compile(r"^cuda:[0-9]+$")
 LAUNCH_AUTHORIZATION_ROLE = "g8_c_pascal_successor_launch_authorization"
 
 
+def _positive_max_units(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("--max-units must be a positive integer") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("--max-units must be a positive integer")
+    return parsed
+
+
+def _validate_max_units(max_units: int | None) -> None:
+    if max_units is not None and (type(max_units) is not int or max_units <= 0):
+        raise RuntimeError("--max-units must be a positive integer")
+
+
+def _run_worker_batch(
+    *,
+    root: Path,
+    partition: list[int],
+    shard_index: int,
+    shard_count: int,
+    device: str,
+    gpu_uuid: str,
+    profile: Mapping[str, Any],
+    batch_size: int,
+    max_units: int | None,
+) -> int:
+    """Run at most ``max_units`` attempted units and stop the batch on failure."""
+
+    _validate_max_units(max_units)
+    attempted = 0
+    for ordinal in partition:
+        if max_units is not None and attempted >= max_units:
+            break
+        attempted += 1
+        report = run_unit(
+            root,
+            ordinal=ordinal,
+            shard_index=shard_index,
+            shard_count=shard_count,
+            device=device,
+            gpu_uuid=gpu_uuid,
+            profile=profile,
+            batch_size=batch_size,
+        )
+        if report["status"] != "accepted":
+            break
+    return attempted
+
+
 def _inventory() -> list[dict[str, str | int]]:
     try:
         output = subprocess.run(
@@ -247,24 +297,19 @@ def _worker(args: argparse.Namespace) -> int:
     root = ensure_runtime_root(args.root)
     reconcile_campaign(root)
     partition = exact_shard_partition()[args.shard_index]
-    completed = 0
-    for ordinal in partition:
-        if args.max_units is not None and completed >= args.max_units:
-            break
-        report = run_unit(
-            root,
-            ordinal=ordinal,
-            shard_index=args.shard_index,
-            shard_count=args.shard_count,
-            device=args.device,
-            gpu_uuid=args.gpu_uuid,
-            profile=profile,
-            batch_size=args.batch_size,
-        )
-        if report["status"] == "accepted":
-            completed += 1
+    attempted = _run_worker_batch(
+        root=root,
+        partition=partition,
+        shard_index=args.shard_index,
+        shard_count=args.shard_count,
+        device=args.device,
+        gpu_uuid=args.gpu_uuid,
+        profile=profile,
+        batch_size=args.batch_size,
+        max_units=args.max_units,
+    )
     summary = reconcile_campaign(root)
-    print(json.dumps({"worker": args.device, "shard_index": args.shard_index, "units_processed": completed, "reconciliation": summary}, sort_keys=True))
+    print(json.dumps({"worker": args.device, "shard_index": args.shard_index, "units_attempted": attempted, "reconciliation": summary}, sort_keys=True))
     return 0
 
 
@@ -300,6 +345,7 @@ def launch_children(
 ) -> list[dict[str, Any]]:
     """Launch one independent child per registered Pascal GPU and collect exits."""
 
+    _validate_max_units(max_units)
     children: list[tuple[Mapping[str, Any], subprocess.Popen[str]]] = []
     failures: list[dict[str, Any]] = []
     for worker in plan["workers"]:
@@ -325,7 +371,7 @@ def main() -> int:
     parser.add_argument("--root", type=Path)
     parser.add_argument("--authorization-file", type=Path)
     parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--max-units", type=int)
+    parser.add_argument("--max-units", type=_positive_max_units)
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--device")
     parser.add_argument("--gpu-uuid")

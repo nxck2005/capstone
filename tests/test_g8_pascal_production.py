@@ -83,7 +83,24 @@ def test_transaction_reaches_accepted_and_reconciles_nonzero_state(tmp_path: Pat
     summary = production.reconcile_campaign(root)
     assert summary["accepted_authority_ordinals"] == [0]
     assert summary["accepted_count"] == 1
-    assert production.audit_campaign(root)["accepted_count"] == 1
+    audited = production.audit_campaign(root)
+    assert audited["accepted_count"] == 1
+    assert audited["terminal_invalid_authority_ordinals"] == []
+
+
+def test_audit_rejects_stale_terminal_invalid_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _complete(monkeypatch)
+    root = tmp_path / "runtime"
+    _run(root)
+    production.reconcile_campaign(root)
+    state_path = root / production.PRODUCTION_STATE_FILENAME
+    state = json.loads(state_path.read_bytes())
+    state["terminal_invalid_authority_ordinals"] = [1]
+    state["scientific_execution_performed"] = True
+    state["state_sha256"] = production.digest_without_field(state, "state_sha256")
+    state_path.write_bytes(rendered_json(state))
+    with pytest.raises(production.RecoveryError, match="stale relative to durable evidence"):
+        production.audit_campaign(root)
 
 
 def test_request_only_crash_restarts_without_skipping_attempt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -328,3 +345,28 @@ def test_coordinator_launches_two_explicit_children_and_isolates_failure(monkeyp
     assert {command[command.index("--device") + 1] for command in commands} == {"cuda:0", "cuda:1"}
     assert all("cuda" not in command for command in commands)
     assert failures == [{"device": "cuda:0", "return_code": 143}]
+
+
+def test_worker_max_units_counts_failed_attempt_and_stops_batch(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    import run_g8_pascal_dual_gpu as coordinator
+
+    calls: list[int] = []
+
+    def failed_unit(root, *, ordinal, shard_index, shard_count, device, gpu_uuid, profile, batch_size):
+        calls.append(ordinal)
+        return {"status": production.STATUS_FAILED}
+
+    monkeypatch.setattr(coordinator, "run_unit", failed_unit)
+    attempted = coordinator._run_worker_batch(
+        root=tmp_path / "runtime",
+        partition=[0, 2, 4],
+        shard_index=0,
+        shard_count=2,
+        device="cuda:0",
+        gpu_uuid=str(production.PRODUCTION_WORKERS[0]["gpu_uuid"]),
+        profile={},
+        batch_size=32,
+        max_units=1,
+    )
+    assert attempted == 1
+    assert calls == [0]

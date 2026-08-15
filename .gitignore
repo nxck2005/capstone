@@ -206,6 +206,8 @@ tempCodeRunnerFile.py
 
 # G8_C runtime locks are coordination state, never scientific evidence.
 /results/baseline/g8/work_units/.locks/
+/results/baseline/g8_pascal_successor/runtime/.locks/
+/results/baseline/g8_pascal_successor/runtime/.campaign.lock
 
 # Ruff stuff:
 .ruff_cache/

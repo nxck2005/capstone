@@ -153,6 +153,9 @@ RESULT_ARTIFACT_ROLE = "g8_c_pascal_successor_work_unit_result"
 REQUEST_SCHEMA_VERSION = 1
 RESULT_SCHEMA_VERSION = 1
 
+MAX_UNITS_POLICY = "maximum_attempted_work_units_per_worker_invocation"
+FAILED_WORK_UNIT_POLICY = "failed_work_unit_counts_toward_cap_and_terminates_worker_batch"
+
 STATUS_CLAIMED = "claimed"
 STATUS_REQUEST_PUBLISHED = "request_published"
 STATUS_RESULT_PUBLISHED = "result_published"
@@ -1720,6 +1723,7 @@ def audit_campaign(root: Path | str) -> dict[str, Any]:
             "accepted_authority_ordinals": [],
             "accepted_count": 0,
             "required_identity_count": REQUIRED_COUNT,
+            "terminal_invalid_authority_ordinals": [],
             "runtime_exists": False,
             "test_access": 0,
         }
@@ -1728,9 +1732,10 @@ def audit_campaign(root: Path | str) -> dict[str, Any]:
     accepted = [report["ordinal"] for report in reports if report["accepted"]]
     failed = [report["ordinal"] for report in reports if report["retryable"]]
     in_progress = [report["ordinal"] for report in reports if report["classification"] in {STATUS_CLAIMED, STATUS_REQUEST_PUBLISHED, STATUS_RESULT_PUBLISHED}]
+    terminal_invalid = [report["ordinal"] for report in reports if report["classification"] == STATUS_TERMINAL_INVALID]
     state_raw = _read_regular(root_path / PRODUCTION_STATE_FILENAME, "successor campaign state")
     if state_raw is None:
-        if accepted or failed or in_progress:
+        if accepted or failed or in_progress or terminal_invalid:
             raise RecoveryError("successor evidence exists without a durable campaign state")
     else:
         try:
@@ -1741,6 +1746,7 @@ def audit_campaign(root: Path | str) -> dict[str, Any]:
             "accepted_authority_ordinals": accepted,
             "failed_authority_ordinals": failed,
             "in_progress_authority_ordinals": in_progress,
+            "terminal_invalid_authority_ordinals": terminal_invalid,
         }
         if any(state[key] != value for key, value in expected.items()):
             raise RecoveryError("successor campaign state is stale relative to durable evidence")
@@ -1752,6 +1758,7 @@ def audit_campaign(root: Path | str) -> dict[str, Any]:
         "required_identity_count": REQUIRED_COUNT,
         "in_progress_authority_ordinals": in_progress,
         "failed_authority_ordinals": failed,
+        "terminal_invalid_authority_ordinals": terminal_invalid,
         "runtime_exists": True,
         "test_access": 0,
         "old_result_ingest": False,
@@ -1869,6 +1876,8 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production coordinator topology differs")
     if coordinator.get("worker_count") != 2 or coordinator.get("partition_rule") != "authority_ordinal % 2 == shard_index" or coordinator.get("generic_cuda_device_permitted") is not False or coordinator.get("child_process_model") != "two_independent_child_processes_one_per_explicit_cuda_device":
         raise ProductionContractError("successor production coordinator process contract differs")
+    if coordinator.get("max_units_policy") != MAX_UNITS_POLICY or coordinator.get("failed_work_unit_policy") != FAILED_WORK_UNIT_POLICY:
+        raise ProductionContractError("successor production coordinator batch policy differs")
     if (
         coordinator.get("old_root") != "results/baseline/g8/work_units"
         or coordinator.get("successor_runtime_root") != SUCCESSOR_LOGICAL_RUNTIME_ROOT
@@ -1887,6 +1896,8 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production runner artifact binding differs")
     if runner.get("workers") != expected_workers or runner.get("runner_source_paths") != source_paths:
         raise ProductionContractError("successor production runner closure/topology differs")
+    if runner.get("max_units_policy") != MAX_UNITS_POLICY or runner.get("failed_work_unit_policy") != FAILED_WORK_UNIT_POLICY:
+        raise ProductionContractError("successor production runner batch policy differs")
     if runner.get("required_identity_count") != REQUIRED_COUNT or runner.get("trials_per_identity") != TRIALS_PER_IDENTITY or runner.get("lock_file_sha256") != _file_sha256(REPO_ROOT / "requirements-pascal.lock"):
         raise ProductionContractError("successor production runner physical/lock binding differs")
     if runner.get("driver_version_required") is not True or runner.get("old_result_ingest") is not False or runner.get("protected_counters") != {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0}:
@@ -1901,6 +1912,8 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production contract physical/lock binding differs")
     if contract.get("execution_profile_provenance_fields") != list(PRODUCTION_PROVENANCE_FIELDS):
         raise ProductionContractError("successor production profile provenance field closure differs")
+    if contract.get("worker_batch_policy") != {"max_units": MAX_UNITS_POLICY, "failed_work_unit": FAILED_WORK_UNIT_POLICY}:
+        raise ProductionContractError("successor production batch policy differs")
     if contract.get("driver_version_required") is not True or contract.get("old_result_ingest") is not False or contract.get("protected_counters") != {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0}:
         raise ProductionContractError("successor production contract safety/provenance binding differs")
     if contract.get("contract_sha256") != digest_without_field(contract, "contract_sha256"):
@@ -1934,6 +1947,8 @@ __all__ = [
     "STATUS_REQUEST_PUBLISHED",
     "STATUS_RESULT_PUBLISHED",
     "STATUS_TERMINAL_INVALID",
+    "MAX_UNITS_POLICY",
+    "FAILED_WORK_UNIT_POLICY",
     "SuccessorProductionError",
     "ProductionContractError",
     "PublicationConflict",
