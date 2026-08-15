@@ -273,6 +273,40 @@ def test_production_source_contract_drift_fails_closed(tmp_path: Path, monkeypat
     production._successor_bindings_json.cache_clear()
 
 
+def test_pascal_successor_custody_policy_is_narrow_and_final_publication_is_mandatory() -> None:
+    expected = production.PASCAL_SUCCESSOR_CUSTODY_POLICY
+    coordinator = json.loads(production.PRODUCTION_COORDINATOR_CONTRACT.read_bytes())
+    contract = json.loads(production.PRODUCTION_CONTRACT.read_bytes())
+    assert coordinator["evidence_custody_policy"] == expected
+    assert contract["evidence_custody_policy"] == expected
+    assert expected["scope"] == "owner_authorized_confessor_pascal_cu126_g8_c_successor_only"
+    assert expected["prepublication_loss_risk"] == "explicitly_accepted_by_owner"
+    assert "before_bler_table_freeze_or_g8_d" in expected["final_handoff"]
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "scope",
+        "local_evidence_accumulation",
+        "git_publication_timing",
+        "prepublication_loss_risk",
+        "scientific_validity_basis",
+        "final_handoff",
+    ],
+)
+def test_pascal_successor_custody_policy_mutation_fails_closed(field: str) -> None:
+    mutant = dict(production.PASCAL_SUCCESSOR_CUSTODY_POLICY)
+    mutant[field] = "broadened"
+    with pytest.raises(production.ProductionContractError, match="custody policy differs"):
+        production._validate_custody_policy(mutant)
+
+    mutant = dict(production.PASCAL_SUCCESSOR_CUSTODY_POLICY)
+    del mutant[field]
+    with pytest.raises(production.ProductionContractError, match="custody policy differs"):
+        production._validate_custody_policy(mutant)
+
+
 def test_nonzero_successor_verifier_reads_only_successor_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _complete(monkeypatch)
     root = tmp_path / "runtime"

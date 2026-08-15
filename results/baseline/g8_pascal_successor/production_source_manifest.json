@@ -2,7 +2,7 @@
   "artifact_role": "g8_c_pascal_successor_production_source_manifest",
   "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
   "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
-  "coordinator_contract_sha256": "f085acc6a39c819a759ef7f11f8b320a6a47b3efd5468f9b88518d3bfee3bc39",
+  "coordinator_contract_sha256": "0a78fd592f01d2a0fe5ec2cb919c8c28d8c8f0e0cfde88f4eba12ef21b50c32a",
   "execution_profile_id": "confessor_pascal_cu126",
   "lock_file": "requirements-pascal.lock",
   "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
@@ -27,10 +27,10 @@
       "sha256": "66747ef06d6a2f150e0551103a38afcd174774303630f2f77818a69710d99210"
     },
     {
-      "bytes": 103845,
+      "bytes": 104831,
       "path": "src/baseline/g8_pascal_production.py",
       "role": "successor_transaction_state_worker",
-      "sha256": "768f0fa71320de8fd5bbe13c72c626d66e2aba44d8412be801adf88ff64c6412"
+      "sha256": "7da46223cb90fa20b0e90213b8a9a0ec962448a9f77df4fea639b57121251af4"
     },
     {
       "bytes": 18687,
@@ -63,10 +63,10 @@
       "sha256": "27718fcbef6e55b20d7f1dc8cef907d5e09fbb1254ace98f2a0cea6ec229e5d6"
     },
     {
-      "bytes": 34903,
+      "bytes": 34998,
       "path": "src/baseline/g8_campaign.py",
       "role": "frozen_campaign_identity_contract",
-      "sha256": "ed8211901a52a915abb28d9ff5fd8693f9d5e37556e978d8306109f5c09bc46f"
+      "sha256": "b81de451bb7c856593d4465654551c8e33646332d75a261e5f47367f8386003c"
     },
     {
       "bytes": 72000,

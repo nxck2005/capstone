@@ -1,14 +1,20 @@
 # Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C / G8
 
-## Current execution-profile handoff (AM-83–AM-85)
+## Current execution-profile handoff (AM-83–AM-86)
 
 Two eligible production profiles exist: `local_4060_cu130` and
 `confessor_pascal_cu126`. A new scientific run or campaign must freeze one
 profile before its first measurement and may not silently switch hosts. The
-selected host is the sole writer; custody is verify → reconcile → durable
-commit → authenticated GitHub HTTPS push → fetch/parity. Git commit signing is
-optional prospectively; internal hashes/contracts, durable commits, successful
-push and parity remain mandatory. Historical signing facts are unchanged.
+selected host is the sole writer. The ordinary publication handoff is verify →
+reconcile → durable commit → authenticated GitHub HTTPS push → fetch/parity.
+For the owner-authorized Pascal G8_C successor only, AM-86 permits authenticated
+per-unit evidence to accumulate continuously in the separate mutable runtime on
+`confessor`; Git publication may occur after the unattended campaign or at an
+owner-selected manual checkpoint, with loss before publication explicitly
+accepted as an owner custody risk. Internal hashes/contracts and final
+verification determine validity, and complete commit/push/parity remains
+mandatory before table freeze or G8_D release. Git commit signing is optional
+prospectively. Historical signing facts are unchanged.
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -34,7 +40,10 @@ Read this before anything else. Update it in the same commit as the work it desc
 ## Rules
 
 1. **Commit at every checkpoint.** Never let more than one checkpoint's worth of work sit
-   uncommitted. Sessions end abruptly and without warning.
+   uncommitted. Sessions end abruptly and without warning. **AM-86 exception:** the
+   owner-authorized Pascal successor's separate runtime may accumulate authenticated per-unit
+   evidence until its unattended invocation exits or the owner selects a manual checkpoint;
+   unpublished loss is accepted, but final publication/parity remains mandatory.
 2. **Mark a step `in-progress` and commit that *before* starting it** if the step is long or
    expensive (a campaign, a sweep, a multi-file refactor). A crash then leaves evidence of where
    you were, not silence.

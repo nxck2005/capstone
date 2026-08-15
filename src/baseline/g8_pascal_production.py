@@ -155,6 +155,14 @@ RESULT_SCHEMA_VERSION = 1
 
 MAX_UNITS_POLICY = "maximum_attempted_work_units_per_worker_invocation"
 FAILED_WORK_UNIT_POLICY = "failed_work_unit_counts_toward_cap_and_terminates_worker_batch"
+PASCAL_SUCCESSOR_CUSTODY_POLICY = {
+    "scope": "owner_authorized_confessor_pascal_cu126_g8_c_successor_only",
+    "local_evidence_accumulation": "continuous_authenticated_per_unit_evidence_on_sole_writer_permitted",
+    "git_publication_timing": "after_unattended_campaign_or_owner_selected_manual_checkpoint",
+    "prepublication_loss_risk": "explicitly_accepted_by_owner",
+    "scientific_validity_basis": "authenticated_per_unit_evidence_and_final_complete_coverage_verification",
+    "final_handoff": "reconcile_commit_authenticated_https_push_fetch_parity_required_before_bler_table_freeze_or_g8_d",
+}
 
 STATUS_CLAIMED = "claimed"
 STATUS_REQUEST_PUBLISHED = "request_published"
@@ -1806,6 +1814,11 @@ def _file_sha256(path: Path) -> str:
         raise ProductionContractError(f"cannot hash successor contract file {path}: {exc}") from exc
 
 
+def _validate_custody_policy(value: Any) -> None:
+    if value != PASCAL_SUCCESSOR_CUSTODY_POLICY:
+        raise ProductionContractError("successor production evidence custody policy differs")
+
+
 def validate_production_contracts() -> dict[str, Any]:
     """Validate the complete additive contract family and live source closure."""
 
@@ -1878,6 +1891,7 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production coordinator process contract differs")
     if coordinator.get("max_units_policy") != MAX_UNITS_POLICY or coordinator.get("failed_work_unit_policy") != FAILED_WORK_UNIT_POLICY:
         raise ProductionContractError("successor production coordinator batch policy differs")
+    _validate_custody_policy(coordinator.get("evidence_custody_policy"))
     if (
         coordinator.get("old_root") != "results/baseline/g8/work_units"
         or coordinator.get("successor_runtime_root") != SUCCESSOR_LOGICAL_RUNTIME_ROOT
@@ -1914,6 +1928,7 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production profile provenance field closure differs")
     if contract.get("worker_batch_policy") != {"max_units": MAX_UNITS_POLICY, "failed_work_unit": FAILED_WORK_UNIT_POLICY}:
         raise ProductionContractError("successor production batch policy differs")
+    _validate_custody_policy(contract.get("evidence_custody_policy"))
     if contract.get("driver_version_required") is not True or contract.get("old_result_ingest") is not False or contract.get("protected_counters") != {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0}:
         raise ProductionContractError("successor production contract safety/provenance binding differs")
     if contract.get("contract_sha256") != digest_without_field(contract, "contract_sha256"):
@@ -1949,6 +1964,7 @@ __all__ = [
     "STATUS_TERMINAL_INVALID",
     "MAX_UNITS_POLICY",
     "FAILED_WORK_UNIT_POLICY",
+    "PASCAL_SUCCESSOR_CUSTODY_POLICY",
     "SuccessorProductionError",
     "ProductionContractError",
     "PublicationConflict",

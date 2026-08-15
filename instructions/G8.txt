@@ -46,6 +46,19 @@ mark it `done`, record the exact next command, create a non-empty checkpoint
 commit, push, and confirm parity. Never hold more than one coherent checkpoint
 uncommitted. Never amend, squash, rebase, or force-push.
 
+**Pascal successor custody exception (AM-86).** The paragraph above remains the
+default for every phase and for the historical local G8_C campaign. For the
+owner-authorized `confessor_pascal_cu126` successor only, its crash-atomic,
+campaign-bound per-unit request/result/state evidence may accumulate
+continuously in the separate mutable runtime on `confessor` while the dual-GPU
+campaign runs unattended. Git publication may occur after that invocation exits
+or at an owner-selected manual checkpoint; loss of evidence not yet published is
+an explicitly accepted owner custody risk. A manual checkpoint or final G8_C
+handoff still performs verify → reconcile → commit → authenticated HTTPS push →
+fetch/parity, and complete publication/parity is mandatory before BLER-table
+freeze or G8_D release. This is publication timing only: no other writer, host
+switch, old-result ingest, evidence weakening or later-phase access is allowed.
+
 If signing fails, preserve the staged tree and intended subject, record the
 failure and exact retry command in the ledger, and retry that subject when
 signing works. Do not replace it with a placeholder subject.

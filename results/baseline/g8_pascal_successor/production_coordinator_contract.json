@@ -3,9 +3,17 @@
   "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
   "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
   "child_process_model": "two_independent_child_processes_one_per_explicit_cuda_device",
-  "contract_sha256": "5edb77704e3c70ca3f5533a19933e4b0ebaddf6c8f3fd8754eee626b49fac159",
+  "contract_sha256": "ce5a0b4529797bc147965c91adc5fcc6618a82ea42329cb4e48277de08e5a30e",
   "cross_machine_ddp": false,
   "duplicate_assignment_policy": "fail_closed_on_overlap_or_omission",
+  "evidence_custody_policy": {
+    "final_handoff": "reconcile_commit_authenticated_https_push_fetch_parity_required_before_bler_table_freeze_or_g8_d",
+    "git_publication_timing": "after_unattended_campaign_or_owner_selected_manual_checkpoint",
+    "local_evidence_accumulation": "continuous_authenticated_per_unit_evidence_on_sole_writer_permitted",
+    "prepublication_loss_risk": "explicitly_accepted_by_owner",
+    "scientific_validity_basis": "authenticated_per_unit_evidence_and_final_complete_coverage_verification",
+    "scope": "owner_authorized_confessor_pascal_cu126_g8_c_successor_only"
+  },
   "execution_profile_id": "confessor_pascal_cu126",
   "failed_work_unit_policy": "failed_work_unit_counts_toward_cap_and_terminates_worker_batch",
   "failure_isolation": "published_evidence_is_immutable_and_other_worker_continues",

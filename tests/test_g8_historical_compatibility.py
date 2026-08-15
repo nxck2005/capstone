@@ -14,7 +14,7 @@ def _manifest() -> dict[str, object]:
     return json.loads((g8_campaign.REPO_ROOT / "results/baseline/g8/campaign_manifest.json").read_bytes())
 
 
-def test_historical_g8_artifacts_accept_the_exact_am83_to_am85_addition() -> None:
+def test_historical_g8_artifacts_accept_the_exact_am83_to_am86_addition() -> None:
     manifest = _manifest()
     g8_campaign.verify_historical_normative_sources(manifest["normative_sources"])
     g8_campaign.verify_historical_contract_sources(manifest["contract_sources"])
@@ -25,7 +25,7 @@ def test_historical_compatibility_rejects_unrelated_spec_drift(tmp_path: Path, m
     spec.mkdir()
     (spec / "SPEC.md").write_bytes((g8_campaign.REPO_ROOT / "spec/SPEC.md").read_bytes() + b"\nUnrelated drift.\n")
     monkeypatch.setattr(g8_campaign, "REPO_ROOT", tmp_path)
-    with pytest.raises(g8_campaign.G8ContractError, match="exact post-AM-85"):
+    with pytest.raises(g8_campaign.G8ContractError, match="exact post-AM-86"):
         g8_campaign._verify_historical_profile_spec(b"archived-spec")
 
 
@@ -35,6 +35,19 @@ def test_historical_compatibility_rejects_unrelated_g8_source_drift(tmp_path: Pa
     relative = "tools/verify_g8_preflight.py"
     current = (g8_campaign.REPO_ROOT / relative).read_bytes()
     (source / "verify_g8_preflight.py").write_bytes(current + b"\n# unrelated drift\n")
+    monkeypatch.setattr(g8_campaign, "REPO_ROOT", tmp_path)
+    with pytest.raises(g8_campaign.G8ContractError, match="exact AM-83"):
+        g8_campaign._verify_historical_profile_source(relative, b"archived-source")
+
+
+def test_historical_compatibility_rejects_unrelated_g8_instruction_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    destination = tmp_path / "instructions"
+    destination.mkdir()
+    relative = "instructions/G8.txt"
+    current = (g8_campaign.REPO_ROOT / relative).read_bytes()
+    (destination / "G8.txt").write_bytes(current + b"\nUnrelated drift.\n")
     monkeypatch.setattr(g8_campaign, "REPO_ROOT", tmp_path)
     with pytest.raises(g8_campaign.G8ContractError, match="exact AM-83"):
         g8_campaign._verify_historical_profile_source(relative, b"archived-source")

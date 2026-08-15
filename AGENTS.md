@@ -19,11 +19,18 @@ profiles exist: `local_4060_cu130` and the qualified
 or campaign selects exactly one eligible profile before its first measurement,
 freezes it in provenance, and keeps that profile for the complete run. A host
 cannot be changed opportunistically; an interruption requires explicit
-supersession or a new run. The selected host is the sole writer, and durable
-handoff is verify → reconcile → commit → authenticated GitHub HTTPS push →
-fetch/parity. Commit signing is optional prospectively; hashes, contracts,
-durable commits, push success and parity remain mandatory. Historical signing
-requirements and incidents remain historical facts.
+supersession or a new run. The selected host is the sole writer. The ordinary
+publication handoff is verify → reconcile → commit → authenticated GitHub HTTPS
+push → fetch/parity. **AM-86 adds one narrow cadence exception for the
+owner-authorized Pascal G8_C successor:** authenticated per-unit evidence may
+accumulate continuously in its separate mutable runtime on `confessor`, with
+Git publication after the unattended campaign or at an owner-selected manual
+checkpoint and prepublication loss accepted as an owner custody risk. Final
+verification plus complete commit/push/parity remain mandatory before table
+freeze or G8_D release. Commit signing is optional prospectively; hashes,
+contracts, durable commits, push success and parity remain mandatory at every
+actual publication. Historical signing requirements and incidents remain
+historical facts.
 
 **Current G8_C migration:** the old local RTX4060/cu130 campaign is preserved as
 valid superseded history (748 accepted units plus its request-only trailing
@@ -43,7 +50,9 @@ but remain pre-launch: the mutable successor runtime is absent, successor
 coverage is still exactly 0/3213, and no owner launch authorization exists.
 The schema-1 zero-coverage successor marker remains immutable readiness history;
 production evidence, when explicitly opened later, must use the separate
-versioned runtime/state contract and may never enter the old G8_C tree.
+versioned runtime/state contract and may never enter the old G8_C tree. Under
+AM-86 it may remain unpublished on the sole writer during an unattended
+campaign; that changes custody cadence, not scientific acceptance.
 
 **First Review delivery contract — user-fixed; do not ask the user to restate or
 reinterpret it.** The maintained acceptance checklist is
@@ -131,7 +140,7 @@ non-normative by design (`spec/SPEC.md` wins on any conflict), and it is **expec
 before a session ends** if the state changed. Promote anything durable out of it: decisions become a
 `DEC` in `SPEC.md` §3, risks and provisional values go to `SPEC.md` §16, explanations go to `docs/`.
 
-**Where the spec stands.** It now carries 195 requirements (2 retired), of which 85 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; PB_3's BR-4 selection infrastructure, still before G-8, is the current engineering frontier.
+**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; PB_3's BR-4 selection infrastructure, still before G-8, is the current engineering frontier.
 
 ### Commands
 

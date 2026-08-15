@@ -7,19 +7,25 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-15 · **Phase:** **G8_B is complete; the old local G8_C campaign is preserved as superseded historical evidence and the clean Pascal successor is ready at 0/3213. PR #4 merged at `9702c16`; confessor's merged-main qualification and authenticated HTTPS marker commit `9ec0883` are complete. No successor worker is running. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-16 · **Phase:** **G8_B is complete; the old local G8_C campaign is preserved as superseded historical evidence and the clean Pascal successor is ready at 0/3213. PR #4 merged at `9702c16`; confessor's merged-main qualification and authenticated HTTPS marker commit `9ec0883` are complete. No successor worker is running. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
 
 **2026-08-15 pre-launch control repair:** the additive Pascal worker now treats `--max-units` as an attempted-unit cap and stops that worker's batch after a failed unit; successor-only coordination locks are ignored while requests, results, unit states and `campaign_state.json` remain durable; and `audit_campaign()` cross-checks terminal-invalid ordinals against reconstructed evidence. Contracts and hashes were regenerated. The successor campaign identity and zero-coverage readiness marker are unchanged, and no full-strength unit ran.
 
 **2026-08-15 final pre-launch coordinator repair:** terminal-accepted ordinals are inspected and skipped without consuming a worker attempt budget; terminal-invalid evidence fails closed; failed/retryable work remains retryable but makes both worker and coordinator invocations FAIL/nonzero. Regression coverage proves the fixed-shard progression, failed-unit cap/stop semantics, terminal-invalid hold and final-status signaling. The campaign ID, readiness marker, required grid, frozen PHY, and successor coverage remain unchanged at 0/3213; no real work unit ran.
 
+**2026-08-16 owner custody decision (AM-86):** the owner-authorized Pascal successor may accumulate immutable authenticated per-unit evidence continuously in its separate mutable runtime on sole writer `confessor`; Git publication may occur after the unattended campaign or at an owner-selected manual checkpoint, and loss before publication is an explicitly accepted custody risk. Surviving evidence is scientifically eligible only through exact campaign/profile/contract authentication and final complete-coverage verification. Complete reconcile/commit/authenticated-HTTPS-push/fetch-parity remains mandatory before BLER-table freeze or G8_D release. This changes publication cadence only; successor coverage remains 0/3213 and no worker has started.
+
 **Execution profiles:** the project now has two independently authenticated
 production profiles, `local_4060_cu130` and the qualified
 `confessor_pascal_cu126`. A scientific run chooses one before its first
 measurement and cannot silently switch. The selected host is the sole writer;
-handoff is verify → reconcile → commit → authenticated HTTPS push → fetch/parity.
-Commit signing is optional prospectively; artifact hashes/contracts, durable
-commits, push success and parity remain mandatory. The old local G8_C results
+the ordinary publication handoff is verify → reconcile → commit → authenticated
+HTTPS push → fetch/parity. AM-86 permits only the Pascal successor to defer Git
+publication until its unattended campaign exits or an owner-selected manual
+checkpoint, accepting prepublication loss risk while retaining mandatory final
+publication/parity. Commit signing is optional prospectively; artifact
+hashes/contracts, durable commits, push success and parity remain mandatory at
+actual publication. The old local G8_C results
 remain valid history but contribute zero successor-table coverage. The Pascal
 successor is the only current final G8_C path and `confessor` is its sole writer.
 Debate memos: [`audit/pascal-worker-adoption-audit-2026-08-14.md`](audit/pascal-worker-adoption-audit-2026-08-14.md)
@@ -646,7 +652,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted before starting the G-8 work:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 195 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 196 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: exit 0; the current-document count is whatever the checker reports
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures

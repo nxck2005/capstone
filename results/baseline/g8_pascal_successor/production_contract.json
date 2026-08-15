@@ -2,9 +2,17 @@
   "artifact_role": "g8_c_pascal_successor_production_contract",
   "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
   "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
-  "contract_sha256": "37463c953196773ca8b00e7353b42edb2a57b13ccc6de86325c5d52919a690b7",
-  "coordinator_contract_sha256": "f085acc6a39c819a759ef7f11f8b320a6a47b3efd5468f9b88518d3bfee3bc39",
+  "contract_sha256": "e697042b3c1381e9e9254f7b853d8177baecf21254eb74a103ba868539eb7247",
+  "coordinator_contract_sha256": "0a78fd592f01d2a0fe5ec2cb919c8c28d8c8f0e0cfde88f4eba12ef21b50c32a",
   "driver_version_required": true,
+  "evidence_custody_policy": {
+    "final_handoff": "reconcile_commit_authenticated_https_push_fetch_parity_required_before_bler_table_freeze_or_g8_d",
+    "git_publication_timing": "after_unattended_campaign_or_owner_selected_manual_checkpoint",
+    "local_evidence_accumulation": "continuous_authenticated_per_unit_evidence_on_sole_writer_permitted",
+    "prepublication_loss_risk": "explicitly_accepted_by_owner",
+    "scientific_validity_basis": "authenticated_per_unit_evidence_and_final_complete_coverage_verification",
+    "scope": "owner_authorized_confessor_pascal_cu126_g8_c_successor_only"
+  },
   "execution_profile_id": "confessor_pascal_cu126",
   "execution_profile_provenance_fields": [
     "execution_profile_id",
@@ -43,7 +51,7 @@
     "seed_contract": "g8_bler_contract.stream_seed_records with successor campaign ID",
     "trial_count_source": "params.baseline.bler_characterisation_trials"
   },
-  "production_source_manifest_sha256": "25ae340073b0fbe2a8d88f104f9023334c7fab65182c6e48d7a864eec86a8599",
+  "production_source_manifest_sha256": "b1c641fbb41e6fb01bc64dcf3584ac78357c4656a01846b999c7df2a1dfb4f0c",
   "protected_counters": {
     "inference": 0,
     "test_access": 0,
@@ -53,11 +61,11 @@
   "readiness_state_sha256": "77f62d959a963db170051f8ac2cf405eb52145de6e19dc6fac6c650dd28721d3",
   "required_bler_artifact_sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77",
   "required_identity_count": 3213,
-  "runner_contract_sha256": "3f052759bc9158a4e955ea67476db2dc005e078bcee4b6ec98726f85f4b81465",
+  "runner_contract_sha256": "13f71d1b8ab238f2e6ac75db7500a8ace1a8c0274c868bca4f751bf032f0fcd6",
   "schema_version": 1,
   "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
   "source_closure_role": "all result-affecting local imports and authenticated environment bytes are listed in production_source_manifest.json",
-  "source_manifest_sha256": "25ae340073b0fbe2a8d88f104f9023334c7fab65182c6e48d7a864eec86a8599",
+  "source_manifest_sha256": "b1c641fbb41e6fb01bc64dcf3584ac78357c4656a01846b999c7df2a1dfb4f0c",
   "trials_per_identity": 5000,
   "worker_batch_policy": {
     "failed_work_unit": "failed_work_unit_counts_toward_cap_and_terminates_worker_batch",

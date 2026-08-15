@@ -105,14 +105,15 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
-_HISTORICAL_CURRENT_SPEC_SHA256 = "34866d6e282828c0bea24865685fb49d0cf3619b9a24a9f21af37e9c4fe53e1e"
+_HISTORICAL_CURRENT_SPEC_SHA256 = "4df456ec93742913803ed4c4bb958d0a9885e8065075c70807122e2ba3e9bf5b"
 _HISTORICAL_CURRENT_SOURCE_SHA256 = {
+    "instructions/G8.txt": "1a2fa4b62f5cffb2b2e37e6331763aa53916cbc9eda70b83976b486dce9a51bc",
     "tools/gen_g8_campaign_manifest.py": "b57f58ae36ac706e401ce366e64b5ab7023ba385614e4dffb2d14cd700887c31",
     "tools/update_g8_campaign_state.py": "29239c85981f294cdb8d6c492a8724c42166aa8fb15d92852681670ac4bc44f6",
     "tools/verify_g8_preflight.py": "06bd34354ea1237e3b3247f195dc440adb96f1a188654b0f2c44e759441c20d7",
 }
 _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256 = "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
-_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "4beb61247e4526bef3635ec3864af0bc7a0d55c3db376e0c7ff107f479e2a36a"
+_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "6b5b54474d33279c85333b32c28f3cdb4eda59b1ca826a2a7d5d70aa47b666da"
 
 
 def _historical_campaign_source_projection(source: bytes) -> bytes:
@@ -153,11 +154,11 @@ def _historical_source_bytes(path: str, digest: str) -> bytes:
 
 
 def _verify_historical_profile_spec(archived: bytes) -> None:
-    """Allow the one exact post-AM-85 SPEC byte image, and nothing else."""
+    """Allow the one exact post-AM-86 SPEC byte image, and nothing else."""
 
     current = (REPO_ROOT / "spec/SPEC.md").read_bytes()
     if sha256_bytes(current) != _HISTORICAL_CURRENT_SPEC_SHA256:
-        raise G8ContractError("historical SPEC compatibility requires the exact post-AM-85 bytes")
+        raise G8ContractError("historical SPEC compatibility requires the exact post-AM-86 bytes")
     if not archived:
         raise G8ContractError("historical SPEC archive is empty")
 
@@ -168,7 +169,7 @@ def _verify_historical_profile_source(path: str, archived: bytes) -> None:
     current = (REPO_ROOT / path).read_bytes()
     if path == "src/baseline/g8_campaign.py":
         if sha256_bytes(_historical_campaign_source_projection(current)) != _HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256:
-            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-85 image")
+            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-86 image")
         if sha256_bytes(archived) != _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256:
             raise G8ContractError("historical G-8 campaign source archive is not the bound pre-AM-83 image")
         return
@@ -179,7 +180,7 @@ def _verify_historical_profile_source(path: str, archived: bytes) -> None:
             raise G8ContractError(f"historical G-8 source drift is unrelated: {path}")
         return
     if current_sha != expected_sha:
-        raise G8ContractError(f"historical G-8 source is not the exact AM-83..AM-85 image: {path}")
+        raise G8ContractError(f"historical G-8 source is not the exact AM-83..AM-86 image: {path}")
 
 
 def verify_historical_normative_sources(entries: list[Mapping[str, Any]]) -> None:

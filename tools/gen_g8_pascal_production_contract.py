@@ -35,6 +35,7 @@ from baseline.g8_pascal_successor import (  # noqa: E402
 from baseline.g8_pascal_production import (  # noqa: E402
     FAILED_WORK_UNIT_POLICY,
     MAX_UNITS_POLICY,
+    PASCAL_SUCCESSOR_CUSTODY_POLICY,
 )
 from config.params import get  # noqa: E402
 
@@ -154,6 +155,7 @@ def build(*, check: bool = False) -> dict[str, str]:
         "failure_isolation": "published_evidence_is_immutable_and_other_worker_continues",
         "max_units_policy": MAX_UNITS_POLICY,
         "failed_work_unit_policy": FAILED_WORK_UNIT_POLICY,
+        "evidence_custody_policy": PASCAL_SUCCESSOR_CUSTODY_POLICY,
         "recovery_policy": "reconcile_durable_requests_results_states_after_restart",
         "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
         "protected_counters": {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0},
@@ -248,6 +250,7 @@ def build(*, check: bool = False) -> dict[str, str]:
             "max_units": MAX_UNITS_POLICY,
             "failed_work_unit": FAILED_WORK_UNIT_POLICY,
         },
+        "evidence_custody_policy": PASCAL_SUCCESSOR_CUSTODY_POLICY,
         "source_closure_role": "all result-affecting local imports and authenticated environment bytes are listed in production_source_manifest.json",
         "driver_version_required": True,
         "old_result_ingest": False,
