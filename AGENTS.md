@@ -37,6 +37,14 @@ commit `9ec0883`. The owner may now explicitly open full-strength G8_C; no
 worker starts automatically. Never access test or validation data, train,
 infer, select, authorize, or mix old results into the successor.
 
+The additive Pascal production transaction/state model, frozen PHY worker and
+true two-child dual-GPU coordinator are now implemented and contract-bound,
+but remain pre-launch: the mutable successor runtime is absent, successor
+coverage is still exactly 0/3213, and no owner launch authorization exists.
+The schema-1 zero-coverage successor marker remains immutable readiness history;
+production evidence, when explicitly opened later, must use the separate
+versioned runtime/state contract and may never enter the old G8_C tree.
+
 **First Review delivery contract — user-fixed; do not ask the user to restate or
 reinterpret it.** The maintained acceptance checklist is
 [`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md).

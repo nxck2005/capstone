@@ -1,0 +1,45 @@
+{
+  "artifact_role": "g8_c_pascal_successor_production_coordinator_contract",
+  "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+  "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
+  "child_process_model": "two_independent_child_processes_one_per_explicit_cuda_device",
+  "contract_sha256": "6f0f53fa3fdd051f965e48d789ea0f7de57a388780a5ec8bc9014e695d210097",
+  "cross_machine_ddp": false,
+  "duplicate_assignment_policy": "fail_closed_on_overlap_or_omission",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "failure_isolation": "published_evidence_is_immutable_and_other_worker_continues",
+  "generic_cuda_device_permitted": false,
+  "old_result_ingest": false,
+  "old_root": "results/baseline/g8/work_units",
+  "partition_rule": "authority_ordinal % 2 == shard_index",
+  "protected_counters": {
+    "inference": 0,
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 0
+  },
+  "recovery_policy": "reconcile_durable_requests_results_states_after_restart",
+  "schema_version": 1,
+  "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
+  "successor_runtime_root": "results/baseline/g8_pascal_successor/runtime",
+  "successor_work_unit_root": "results/baseline/g8_pascal_successor/runtime",
+  "worker_count": 2,
+  "workers": [
+    {
+      "device": "cuda:0",
+      "gpu_compute_capability": "6.1",
+      "gpu_name": "NVIDIA TITAN Xp",
+      "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+      "shard_count": 2,
+      "shard_index": 0
+    },
+    {
+      "device": "cuda:1",
+      "gpu_compute_capability": "6.1",
+      "gpu_name": "NVIDIA GeForce GTX 1080 Ti",
+      "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+      "shard_count": 2,
+      "shard_index": 1
+    }
+  ]
+}

@@ -94,14 +94,13 @@ does not, it is wrong and this block is right.**
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B is complete through B6 and C0/C1C legally opened and corrected G8_C.**
-C2 full-strength characterization is durably paused under the additive epoch-2
-source manifest; no worker is running. Exact accepted coverage and the next
-legal attempt are intentionally maintained only in `instructions/RESUME.md`
-and authenticated campaign state, rather than duplicated in this handoff. The
-test split and every later scientific phase remain closed. Everything else
-stays behind its own gate — do not calibrate λ, train learned models, implement
-ER-9, or access the test split until theirs.
+**G8_B is complete and the Pascal G8_C production path is ready at 0/3213.**
+The active successor campaign is the sole current G8_C path; no worker is
+running and the owner must explicitly open full-strength science. The old local
+campaign is immutable superseded history and contributes zero successor-table
+coverage. The test split and every later scientific phase remain closed.
+Everything else stays behind its own gate — do not calibrate λ, train learned
+models, implement ER-9, or access the test split until theirs.
 
 ⚠️ **It does not begin by constructing a `G8Authorization` and calling `select_operating_points()`.**
 That was the previous hand-off's framing and it was wrong, in a way that would have wasted a
@@ -191,7 +190,7 @@ and the spec defines no BR-4 selection tie-break to contradict.
 
 ### Durable G-8 phase partition
 
-The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**complete through B6**); G8_C full BLER characterization and table freeze (**active at C2**); G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**complete through B6**); the Pascal G8_C production path is **ready at zero coverage and awaits explicit owner opening**; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
 ### What G-8 actually has to build — read this before starting it
 
@@ -201,7 +200,9 @@ That is a **conformance** artifact. It is **not** the BR-4 characterization tabl
 for G-2, and **it must not be extrapolated or generalised** — the lookup already fails closed
 outside it, which is the behaviour to preserve rather than work around.
 
-So G-8 begins by implementing and preflighting the campaign:
+The Pascal G8_C production transaction, provenance closure and dual-GPU
+coordinator are now implemented and preflighted at zero coverage. After the
+owner explicitly opens that path, G-8 science proceeds as follows:
 
 1. enumerate the complete **structural candidate/configuration grid** and the code-block identity
    grid;
@@ -404,10 +405,10 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 7. ~~**W4 PB_2, including the PB_2C correction — outage policy, records and bounded evidence.**~~
    **Complete.**
 8. ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication.**~~ **Complete.**
-9. **G-8 classical validation work — active at G8_C C2 full-strength physical-layer
-   characterization. G8_A and G8_B are complete; C3 merge, C4 coverage, C5 table
-   freeze and every validation/selection phase remain gated.** See
-   `instructions/RESUME.md` for the exact live suffix.
+9. **G-8 classical validation work — Pascal successor production path ready at
+   0/3213; explicit owner opening is next.** G8_A and G8_B are complete; C3
+   merge, C4 coverage, C5 table freeze and every validation/selection phase
+   remain gated. See `instructions/RESUME.md` for the single current path.
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
@@ -615,15 +616,16 @@ The slot is **15 minutes**. The rubric scores six criteria × 5 sub-marks = 30, 
 **W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only
 transparency-bitrate probe.** Do not reopen the reference-classifier recipe, start its fallback
 ladder, implement the G-7 width fallback, select an operating point from the probe's forecasts, or
-open another full-spec audit round without new evidence. **The single next engineering task is the
-G-8 classical validation work**, and it starts with **campaign implementation and preflight** — the
-sweep itself is step eight of twelve. `src/baseline/classical/composition.py` provides the selection
-machinery (corrected by PB_3C), but the characterization it would select *from* does not exist yet:
-the committed G-2 table covers one physical-layer identity at four SNR points per modulation and
-must not be extrapolated. Read "What G-8 actually has to build" above before starting, and
-`instructions/RESUME.md` for the facts that work needs. Note also: the sweep entry point refuses any
-workload above 64 candidates / 25 samples / 512 cells unless an explicit `G8Authorization` is
-constructed, which nothing in this repository does today.
+open another full-spec audit round without new evidence. **The current G-8 path is the owner-opened
+Pascal successor:** its production transaction/state model, exact PHY closure and two-child
+coordinator are ready at `0/3213`, but no worker or launch authorization exists. After that explicit
+opening, the full-strength physical characterization is the first scientific step; the sweep itself
+is step eight of twelve. `src/baseline/classical/composition.py` provides the selection machinery
+(corrected by PB_3C), but the characterization it would select *from* does not exist yet: the
+committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
+not be extrapolated. Read "What G-8 actually has to build" above before starting, and
+`instructions/RESUME.md` for the facts that work needs. The sweep entry point remains separately
+authorization-gated, and no `G8Authorization` exists in this repository.
 Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
 does not gate G8, but it is required to complete the user-fixed First Review package.
 
@@ -903,8 +905,9 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
 probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The single next engineering
-task is the **G-8 classical validation work**: campaign implementation and preflight, then the full
-BR-4 validation sweep and the operating-point decision. W4 also includes **PB_3C**, the corrective
+task is the **owner review and explicit opening of the Pascal G8_C successor**; its production
+transaction path is ready at 0/3213. The full BR-4 validation sweep and operating-point decision
+remain later gates. W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed
 First Review deck, four-member rehearsal, PR-9 guide acknowledgement, final package and snapshot remain.
@@ -921,7 +924,7 @@ First Review deck, four-member rehearsal, PR-9 guide acknowledgement, final pack
 | ~~5b~~ | ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2**~~ **DONE 2026-07-30 — G-2 PASS** | — | Golden, known-answer, BLER and packetisation evidence verified | ~~W4+~~ |
 | ~~5c~~ | ~~**W4 PA / PB_1 / PB_2 bounded classical-baseline integration**~~ **DONE 2026-07-31 — including the PB_1C and PB_2C corrections** | — | Validated physical layer integrated; no sweep started | ~~PB_3~~ |
 | ~~5d~~ | ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication**~~ **DONE 2026-08-01** | — | Selection machinery built and verified; nothing run at scale, no amendment needed | ~~G-8~~ |
-| 5e | **G-8 classical validation work — campaign implementation and preflight, then the full BR-4 validation sweep and the operating-point decision** | agent | W4 closed and PB_3C corrected the selection machinery; the characterization the sweep selects from still has to be built | ER-1, H1–H4, the learned arms |
+| 5e | **G-8 classical validation work — Pascal successor production path ready at 0/3213; after explicit owner opening, run the full BR-4 BLER sweep and operating-point decision** | owner/agent | The bounded baseline prerequisite is complete and PB_3C corrected the selection machinery; no full-strength characterization has started | ER-1, H1–H4, the learned arms |
 | ~~6~~ | ~~**PR-1 literature review, in parallel**~~ **DONE 2026-08-11 — 30 references** | — | First Review `Problem Survey` backing material and DEC-13 novelty basis | ~~First Review backing material~~ |
 | ~~7~~ | ~~**PR-2 Gantt, with the real dates**~~ **DONE; corrected 2026-08-12 to 18–22 Aug** | — | First Review `Time Plan` criterion; current circular overrides the 2023 rubric dates | ~~First Review backing material~~ |
 | 8 | **Finish First Review delivery contract** | author/team | Polished 10–12-slide deck, all four members ready, guide acknowledgement recorded, final files under `deliverables/review-1/`, then `review-1-basis` tag | First Review |
@@ -1107,17 +1110,12 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
 
 ## Open questions for the user
 
-- **Delegate future work to the dedicated Pascal worker? — decide at the next
-  cold start; no current authorization.** Hardware enumeration confirms the
-  GTX 1080 Ti, TITAN Xp and an Intel NVMe controller. The candidate software
-  path is Python 3.12 + PyTorch 2.9.1 + CUDA 12.6. The worker cannot join the live G8_C
-  suffix because that evidence is contract-bound to cu130. If delegation is
-  wanted, choose the future task first, then qualify the node and record any
-  scientific environment change before execution. Do not let this side
-  decision bypass the exact G8_C inspect/reconcile/marker restart sequence.
-  Read both dated audit memos linked at the top before deciding: the second
-  memo frames the mixed-runtime continuation versus clean cu126 recampaign
-  tradeoff and preserves the unresolved exact-package-tuple disagreement.
+- **Pascal worker status — settled for the current path.** The qualified
+  `confessor_pascal_cu126` profile is the sole writer for the clean successor
+  campaign, with both explicit UUID-bound GPUs authenticated. The old cu130
+  suffix is immutable superseded history and is never resumed or mixed into the
+  successor. No launch authorization exists in this readiness task; the owner
+  will open science separately after the merged-main handoff.
 - ~~**srsRAN golden-vector licensing.**~~ **Delegated and decided 2026-07-27 (AM-25):** "do what's
   best, I don't have a preference". Chosen: **don't vendor.** The premise turned out to be wrong —
   srsRAN never committed the vector data, it ships as a per-release asset — so the fixture fetches

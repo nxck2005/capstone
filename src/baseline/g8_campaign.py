@@ -10,8 +10,8 @@ from __future__ import annotations
 import hashlib
 import json
 import csv
-import difflib
 import os
+import re
 import subprocess
 import tempfile
 from collections.abc import Mapping
@@ -105,24 +105,29 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
-_HISTORICAL_PROFILE_SPEC_MARKERS = (
-    "AM-83",
-    "AM-84",
-    "AM-85",
-    "execution_profile",
-    "confessor_pascal_cu126",
-    "primary_device_scope",
-    "fingerprint_schema_version: 2",
-)
-_HISTORICAL_PROFILE_SOURCE_MARKERS = (
-    "historical",
-    "normative_sources",
-    "verify_historical",
-    "G8ContractError",
-    "difflib",
-    "subprocess",
-    "config.execution_profiles",
-)
+_HISTORICAL_CURRENT_SPEC_SHA256 = "34866d6e282828c0bea24865685fb49d0cf3619b9a24a9f21af37e9c4fe53e1e"
+_HISTORICAL_CURRENT_SOURCE_SHA256 = {
+    "tools/gen_g8_campaign_manifest.py": "b57f58ae36ac706e401ce366e64b5ab7023ba385614e4dffb2d14cd700887c31",
+    "tools/update_g8_campaign_state.py": "29239c85981f294cdb8d6c492a8724c42166aa8fb15d92852681670ac4bc44f6",
+    "tools/verify_g8_preflight.py": "06bd34354ea1237e3b3247f195dc440adb96f1a188654b0f2c44e759441c20d7",
+}
+_HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256 = "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
+_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "4beb61247e4526bef3635ec3864af0bc7a0d55c3db376e0c7ff107f479e2a36a"
+
+
+def _historical_campaign_source_projection(source: bytes) -> bytes:
+    """Replace only this binding value before hashing the exact current bytes."""
+
+    pattern = rb'(?m)^(_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256\s*=\s*)["\'][0-9a-f]{64}["\']'
+    projected, replacements = re.subn(
+        pattern,
+        rb'\1"<exact-compatibility-binding>"',
+        source,
+        count=1,
+    )
+    if replacements != 1:
+        raise G8ContractError("historical campaign source projection binding is missing")
+    return projected
 
 
 def _historical_source_bytes(path: str, digest: str) -> bytes:
@@ -148,35 +153,33 @@ def _historical_source_bytes(path: str, digest: str) -> bytes:
 
 
 def _verify_historical_profile_spec(archived: bytes) -> None:
-    """Allow only the recorded additive execution-profile amendment in SPEC."""
+    """Allow the one exact post-AM-85 SPEC byte image, and nothing else."""
 
     current = (REPO_ROOT / "spec/SPEC.md").read_bytes()
-    old_lines = archived.decode("utf-8").splitlines()
-    new_lines = current.decode("utf-8").splitlines()
-    matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
-    for tag, old_start, old_end, new_start, new_end in matcher.get_opcodes():
-        if tag == "equal":
-            continue
-        changed = "\n".join(old_lines[old_start:old_end] + new_lines[new_start:new_end])
-        if not any(marker in changed for marker in _HISTORICAL_PROFILE_SPEC_MARKERS):
-            raise G8ContractError(
-                "historical SPEC compatibility found unrelated drift outside AM-83..AM-85"
-            )
+    if sha256_bytes(current) != _HISTORICAL_CURRENT_SPEC_SHA256:
+        raise G8ContractError("historical SPEC compatibility requires the exact post-AM-85 bytes")
+    if not archived:
+        raise G8ContractError("historical SPEC archive is empty")
 
 
 def _verify_historical_profile_source(path: str, archived: bytes) -> None:
-    """Allow only the additive compatibility code in bound G-8 tooling."""
+    """Allow exact archived bytes or one exact, path-specific current image."""
 
     current = (REPO_ROOT / path).read_bytes()
-    old_lines = archived.decode("utf-8").splitlines()
-    new_lines = current.decode("utf-8").splitlines()
-    matcher = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False)
-    for tag, old_start, old_end, new_start, new_end in matcher.get_opcodes():
-        if tag == "equal":
-            continue
-        changed = "\n".join(old_lines[old_start:old_end] + new_lines[new_start:new_end])
-        if not any(marker in changed for marker in _HISTORICAL_PROFILE_SOURCE_MARKERS):
+    if path == "src/baseline/g8_campaign.py":
+        if sha256_bytes(_historical_campaign_source_projection(current)) != _HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256:
+            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-85 image")
+        if sha256_bytes(archived) != _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256:
+            raise G8ContractError("historical G-8 campaign source archive is not the bound pre-AM-83 image")
+        return
+    current_sha = sha256_bytes(current)
+    expected_sha = _HISTORICAL_CURRENT_SOURCE_SHA256.get(path)
+    if expected_sha is None:
+        if current != archived:
             raise G8ContractError(f"historical G-8 source drift is unrelated: {path}")
+        return
+    if current_sha != expected_sha:
+        raise G8ContractError(f"historical G-8 source is not the exact AM-83..AM-85 image: {path}")
 
 
 def verify_historical_normative_sources(entries: list[Mapping[str, Any]]) -> None:

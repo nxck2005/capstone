@@ -111,6 +111,27 @@ def test_historical_compatibility_rejects_profile_reinterpretation(run_config_fa
         verify_historical_local_compatibility(historical)
 
 
+def test_historical_compatibility_rejects_nested_profile_registry_drift(run_config_factory, monkeypatch):
+    run_config = run_config_factory()
+    historical = _historical(run_config)
+    from config import execution_profiles
+
+    original = execution_profiles.get
+
+    def mutated(path):
+        value = original(path)
+        if path == "environment":
+            value = copy.deepcopy(value)
+            value["execution_profiles"]["confessor_pascal_cu126"]["allowed_gpu_uuids"] = [
+                "GPU-foreign"
+            ]
+        return value
+
+    monkeypatch.setattr(execution_profiles, "get", mutated)
+    with pytest.raises(ValueError, match="reinterpreted"):
+        verify_historical_local_compatibility(historical)
+
+
 def test_generated_params_compatibility_is_additive_only():
     import subprocess
 
