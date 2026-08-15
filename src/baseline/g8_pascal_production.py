@@ -66,6 +66,7 @@ PRODUCTION_CONTRACT = SUCCESSOR_ROOT / "production_contract.json"
 PRODUCTION_SOURCE_MANIFEST = SUCCESSOR_ROOT / "production_source_manifest.json"
 PRODUCTION_RUNNER_CONTRACT = SUCCESSOR_ROOT / "production_runner_contract.json"
 PRODUCTION_COORDINATOR_CONTRACT = SUCCESSOR_ROOT / "production_coordinator_contract.json"
+PRE_MEASUREMENT_REPAIR_POLICY = SUCCESSOR_ROOT / "pre_measurement_repair.json"
 PRODUCTION_STATE_ARTIFACT_ROLE = "g8_c_pascal_successor_production_state"
 PRODUCTION_STATE_FILENAME = "campaign_state.json"
 OLD_WORK_UNIT_ROOT = REPO_ROOT / "results/baseline/g8/work_units"
@@ -120,6 +121,7 @@ REQUIRED_PRODUCTION_SOURCE_PATHS = (
     "spec/params.generated.yaml",
     "requirements-pascal.lock",
     "results/baseline/g8/required_bler_identities.json",
+    "results/baseline/g8_pascal_successor/pre_measurement_repair.json",
 )
 
 PRODUCTION_PROVENANCE_FIELDS = (
@@ -264,6 +266,223 @@ def _same_keys(value: Any, expected: Sequence[str], name: str) -> None:
         raise ProductionContractError(f"{name} has missing or unexpected fields")
 
 
+def _load_pre_measurement_repair_policy() -> dict[str, Any]:
+    """Load and validate the one exact predecessor-failure exception.
+
+    This record is deliberately a snapshot, not an old-contract allow-list.
+    The runtime may use the compatibility path only for the two byte-pinned
+    attempt-1 transactions recorded here.
+    """
+
+    try:
+        payload = load_json(PRE_MEASUREMENT_REPAIR_POLICY)
+    except Exception as exc:
+        raise ProductionContractError("pre-measurement repair policy cannot be loaded") from exc
+    _same_keys(
+        payload,
+        (
+            "artifact_role", "campaign_id", "execution_profile_id", "observed_failure",
+            "defect", "predecessor", "schema_version", "state_snapshot", "transition", "units",
+        ),
+        "pre-measurement repair policy",
+    )
+    if payload["schema_version"] != 1 or payload["artifact_role"] != "g8_c_pascal_successor_pre_measurement_repair_policy":
+        raise ProductionContractError("unsupported pre-measurement repair policy")
+    if payload["campaign_id"] != successor_campaign_identifier(load_json(SUCCESSOR_MANIFEST)) or payload["execution_profile_id"] != SUCCESSOR_PROFILE_ID:
+        raise ProductionContractError("pre-measurement repair policy campaign/profile differs")
+
+    if payload["defect"] != {
+        "class": "successor_nested_identity_not_adapted_for_frozen_runner",
+        "frozen_runner_lookup": "request['bler_identity']",
+        "lookup_precedes": ["SionnaLDPCAdapter construction", "Philox RNG construction", "trial loop"],
+        "observed_failure": "KeyError: 'bler_identity'",
+        "repair": "explicit nested successor identity to frozen-runner request view; frozen runner unchanged",
+    }:
+        raise ProductionContractError("pre-measurement defect record differs")
+
+    observed = payload["observed_failure"]
+    _same_keys(
+        observed,
+        ("bit_errors", "block_errors", "coverage_contribution", "protected_counters", "result_status", "test_access", "trials_completed"),
+        "pre-measurement observed failure",
+    )
+    if observed != {
+        "bit_errors": 0,
+        "block_errors": 0,
+        "coverage_contribution": 0,
+        "protected_counters": {"inference": 0, "test_access": 0, "training": 0, "validation_decoding": 0},
+        "result_status": "failed",
+        "test_access": 0,
+        "trials_completed": 0,
+    }:
+        raise ProductionContractError("pre-measurement observed failure is not zero-trial failed evidence")
+
+    predecessor = payload["predecessor"]
+    _same_keys(
+        predecessor,
+        (
+            "campaign_manifest_sha256", "coordinator_contract_sha256", "lock_file", "lock_file_sha256",
+            "production_contract_sha256", "required_bler_artifact_sha256", "runner_contract_sha256",
+            "source_manifest_sha256",
+        ),
+        "pre-measurement predecessor binding",
+    )
+    for key in (
+        "campaign_manifest_sha256", "coordinator_contract_sha256", "lock_file_sha256",
+        "production_contract_sha256", "required_bler_artifact_sha256", "runner_contract_sha256",
+        "source_manifest_sha256",
+    ):
+        _digest(predecessor[key], f"pre-measurement predecessor {key}")
+    if predecessor["lock_file"] != "requirements-pascal.lock":
+        raise ProductionContractError("pre-measurement predecessor lock filename differs")
+    if predecessor["campaign_manifest_sha256"] != hashlib.sha256(SUCCESSOR_MANIFEST.read_bytes()).hexdigest():
+        raise ProductionContractError("pre-measurement predecessor campaign manifest differs")
+    lock_path = REPO_ROOT / "requirements-pascal.lock"
+    if predecessor["lock_file_sha256"] != hashlib.sha256(lock_path.read_bytes()).hexdigest():
+        raise ProductionContractError("pre-measurement predecessor lock bytes differ")
+    required_path = REPO_ROOT / "results/baseline/g8/required_bler_identities.json"
+    if predecessor["required_bler_artifact_sha256"] != hashlib.sha256(required_path.read_bytes()).hexdigest():
+        raise ProductionContractError("pre-measurement predecessor required grid differs")
+
+    snapshot = payload["state_snapshot"]
+    _same_keys(
+        snapshot,
+        (
+            "accepted_authority_ordinals", "campaign_state_file_sha256", "failed_authority_ordinals",
+            "in_progress_authority_ordinals", "scientific_execution_performed", "terminal_invalid_authority_ordinals",
+        ),
+        "pre-measurement campaign state snapshot",
+    )
+    _digest(snapshot["campaign_state_file_sha256"], "pre-measurement campaign state file SHA-256")
+    if snapshot != {
+        "accepted_authority_ordinals": [],
+        "campaign_state_file_sha256": snapshot["campaign_state_file_sha256"],
+        "failed_authority_ordinals": [0, 1],
+        "in_progress_authority_ordinals": [],
+        "scientific_execution_performed": True,
+        "terminal_invalid_authority_ordinals": [],
+    }:
+        raise ProductionContractError("pre-measurement campaign state snapshot is not the observed [0,1] failure")
+
+    transition = payload["transition"]
+    _same_keys(
+        transition,
+        (
+            "current_contract_required_for_new_execution", "from", "no_general_source_switch",
+            "refreshed_owner_authorization_required", "retry_starts_from_trial_zero", "to",
+        ),
+        "pre-measurement retry transition",
+    )
+    if transition != {
+        "current_contract_required_for_new_execution": True,
+        "from": {"attempt": 1, "production_contract_epoch": "predecessor", "status": "failed", "trials_completed": 0},
+        "no_general_source_switch": True,
+        "refreshed_owner_authorization_required": True,
+        "retry_starts_from_trial_zero": True,
+        "to": {"attempt": "predecessor_attempt_plus_one", "production_contract_epoch": "current", "status": "claimed", "trials_completed": 0},
+    }:
+        raise ProductionContractError("pre-measurement retry transition policy differs")
+
+    units = payload["units"]
+    if not isinstance(units, list) or len(units) != 2:
+        raise ProductionContractError("pre-measurement repair policy must bind exactly two units")
+    for expected_ordinal, record in enumerate(units):
+        _same_keys(
+            record,
+            ("attempt", "authority_ordinal", "device", "gpu_uuid", "request_file_sha256", "result_file_sha256", "state_file_sha256", "work_unit_id"),
+            f"pre-measurement unit {expected_ordinal}",
+        )
+        if record["authority_ordinal"] != expected_ordinal or record["attempt"] != 1:
+            raise ProductionContractError("pre-measurement unit ordinal/attempt differs")
+        _digest(record["request_file_sha256"], f"pre-measurement unit {expected_ordinal} request file SHA-256")
+        _digest(record["result_file_sha256"], f"pre-measurement unit {expected_ordinal} result file SHA-256")
+        _digest(record["state_file_sha256"], f"pre-measurement unit {expected_ordinal} state file SHA-256")
+        unit = _required_unit_by_ordinal(expected_ordinal)
+        if record["work_unit_id"] != unit["work_unit_id"]:
+            raise ProductionContractError("pre-measurement unit identity differs")
+        worker = next((item for item in PRODUCTION_WORKERS if item["shard_index"] == expected_ordinal % 2), None)
+        if worker is None or record["device"] != worker["device"] or record["gpu_uuid"] != worker["gpu_uuid"]:
+            raise ProductionContractError("pre-measurement unit GPU binding differs")
+    return payload
+
+
+def _repair_unit_record(ordinal: int) -> dict[str, Any]:
+    policy = _load_pre_measurement_repair_policy()
+    for record in policy["units"]:
+        if record["authority_ordinal"] == ordinal:
+            return dict(record)
+    raise ProductionContractError("authority ordinal is not in the exact pre-measurement repair record")
+
+
+def _legacy_bindings() -> dict[str, Any]:
+    """Return predecessor scalar bindings only for the exact repair record."""
+
+    current = successor_bindings()
+    predecessor = _load_pre_measurement_repair_policy()["predecessor"]
+    legacy = dict(current)
+    legacy.update({
+        "campaign_manifest_sha256": predecessor["campaign_manifest_sha256"],
+        "coordinator_contract_sha256": predecessor["coordinator_contract_sha256"],
+        "lock_file": predecessor["lock_file"],
+        "lock_file_sha256": predecessor["lock_file_sha256"],
+        "production_contract_sha256": predecessor["production_contract_sha256"],
+        "required_bler_artifact_sha256": predecessor["required_bler_artifact_sha256"],
+        "runner_contract_sha256": predecessor["runner_contract_sha256"],
+        "source_manifest_sha256": predecessor["source_manifest_sha256"],
+    })
+    return legacy
+
+
+def _legacy_state_snapshot(state: Mapping[str, Any], raw: bytes | None = None, *, ordinal: int | None = None) -> dict[str, Any]:
+    """Validate one byte-pinned old failed state, never an arbitrary old epoch."""
+
+    payload = _canonical(state, "pre-measurement predecessor state")
+    if ordinal is None:
+        ordinal = int(payload.get("identity", {}).get("authority_ordinal", -1))
+    record = _repair_unit_record(ordinal)
+    if raw is None:
+        raw = canonical_json(payload)
+    if sha256_bytes(raw) != record["state_file_sha256"]:
+        raise ProductionContractError("pre-measurement predecessor state bytes are not the recorded failure")
+    validated = validate_production_state_snapshot(payload, bindings=_legacy_bindings())
+    identity = validated["identity"]
+    if identity["attempt"] != 1 or identity["status"] != STATUS_FAILED or identity["trials_completed"] != 0 or identity["result_status"] != "failed":
+        raise ProductionContractError("pre-measurement predecessor state is not a zero-trial failed attempt 1")
+    return validated
+
+
+def _legacy_attempt_evidence(
+    ordinal: int,
+    attempt: int,
+    request: Mapping[str, Any],
+    request_raw: bytes,
+    result: Mapping[str, Any],
+    result_raw: bytes,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Validate the exact old request/result pair admitted by the repair policy."""
+
+    if attempt != 1:
+        raise ProductionContractError("pre-measurement compatibility is limited to attempt 1")
+    record = _repair_unit_record(ordinal)
+    if sha256_bytes(request_raw) != record["request_file_sha256"] or sha256_bytes(result_raw) != record["result_file_sha256"]:
+        raise ProductionContractError("pre-measurement predecessor request/result bytes are not the recorded failure")
+    legacy = _legacy_bindings()
+    validated_request = validate_request(request, bindings=legacy)
+    validated_result = validate_result(result, bindings=legacy, request=validated_request, attempt=1)
+    observed = _load_pre_measurement_repair_policy()["observed_failure"]
+    if (
+        validated_result["status"] != observed["result_status"]
+        or validated_result["measurement"]["trials_completed"] != observed["trials_completed"]
+        or validated_result["measurement"]["bit_errors"] != observed["bit_errors"]
+        or validated_result["measurement"]["block_errors"] != observed["block_errors"]
+        or validated_result["disposition"]["required_coverage_contribution"] != observed["coverage_contribution"]
+        or validated_result["disposition"]["protected_counters"] != observed["protected_counters"]
+        or validated_result["disposition"]["test_access"] != observed["test_access"]
+    ):
+        raise ProductionContractError("pre-measurement predecessor result is not zero-trial non-coverage evidence")
+    return validated_request, validated_result
+
+
 @lru_cache(maxsize=1)
 def _successor_bindings_json() -> bytes:
     """Read the live successor artifacts and return immutable scalar bindings."""
@@ -292,10 +511,14 @@ def _successor_bindings_json() -> bytes:
     contract = load_json(PRODUCTION_CONTRACT)
     contract_sha = hashlib.sha256(PRODUCTION_CONTRACT.read_bytes()).hexdigest()
     production_source_sha = hashlib.sha256(PRODUCTION_SOURCE_MANIFEST.read_bytes()).hexdigest()
+    repair_policy = _load_pre_measurement_repair_policy()
+    repair_policy_sha = hashlib.sha256(PRE_MEASUREMENT_REPAIR_POLICY.read_bytes()).hexdigest()
     if contract.get("campaign_id") != campaign_id or contract.get("source_manifest_sha256") != production_source_sha:
         raise ProductionContractError("successor production contract/source binding differs")
     if contract.get("runner_contract_sha256") != runner_sha or contract.get("coordinator_contract_sha256") != coordinator_sha:
         raise ProductionContractError("successor production contract execution binding differs")
+    if contract.get("pre_measurement_repair_policy_sha256") != repair_policy_sha or contract.get("pre_measurement_retry_compatibility") != repair_policy:
+        raise ProductionContractError("successor production contract repair policy binding differs")
     lock_path = REPO_ROOT / "requirements-pascal.lock"
     required_raw = (REPO_ROOT / "results/baseline/g8/required_bler_identities.json").read_bytes()
     return canonical_json({
@@ -312,6 +535,7 @@ def _successor_bindings_json() -> bytes:
         "trials_per_identity": TRIALS_PER_IDENTITY,
         "execution_profile_id": SUCCESSOR_PROFILE_ID,
         "production_contract_sha256": contract_sha,
+        "pre_measurement_repair_policy_sha256": repair_policy_sha,
     })
 
 
@@ -1046,7 +1270,11 @@ def validate_result(
     return payload
 
 
-def validate_production_state_snapshot(state: Mapping[str, Any]) -> dict[str, Any]:
+def validate_production_state_snapshot(
+    state: Mapping[str, Any],
+    *,
+    bindings: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     payload = _canonical(state, "successor production state")
     _same_keys(payload, ("schema_version", "artifact_role", "identity", "runtime_provenance", "identity_sha256", "state_sha256"), "successor production state")
     if payload["schema_version"] != PRODUCTION_SCHEMA_VERSION or payload["artifact_role"] != PRODUCTION_STATE_ARTIFACT_ROLE:
@@ -1063,7 +1291,7 @@ def validate_production_state_snapshot(state: Mapping[str, Any]) -> dict[str, An
     }
     if set(identity) != required:
         raise ProductionContractError("successor unit-state identity schema differs")
-    bindings = successor_bindings()
+    bindings = successor_bindings() if bindings is None else bindings
     for key in ("campaign_id", "campaign_manifest_sha256", "source_manifest_sha256", "runner_contract_sha256", "production_contract_sha256", "required_bler_artifact_sha256", "execution_profile_id"):
         if identity[key] != bindings[key]:
             raise ProductionContractError(f"successor unit state binding differs: {key}")
@@ -1126,8 +1354,30 @@ def validate_production_state_snapshot(state: Mapping[str, Any]) -> dict[str, An
 
 
 def validate_state_transition(previous: Mapping[str, Any], proposed: Mapping[str, Any]) -> None:
-    old = validate_production_state_snapshot(previous)["identity"]
+    try:
+        old_payload = validate_production_state_snapshot(previous)
+        old_is_legacy_repair = False
+    except ProductionContractError:
+        old_payload = _legacy_state_snapshot(previous)
+        old_is_legacy_repair = True
+    old = old_payload["identity"]
     new = validate_production_state_snapshot(proposed)["identity"]
+    if old_is_legacy_repair:
+        if old["status"] != STATUS_FAILED or old["attempt"] != 1 or old["trials_completed"] != 0:
+            raise PublicationConflict("only the recorded zero-trial failed attempt may cross the repair epoch")
+        if new["status"] != STATUS_CLAIMED or new["attempt"] != 2:
+            raise PublicationConflict("pre-measurement repair must create exactly attempt-2 clean claim")
+        if (new["request_sha256"], new["result_sha256"], new["result_status"], new["scientific_execution_performed"], new["trials_completed"]) != (None, None, None, False, 0):
+            raise PublicationConflict("pre-measurement repair retry must begin clean")
+        for field in ("schema_version", "artifact_role", "campaign_id", "campaign_manifest_sha256", "required_bler_artifact_sha256", "execution_profile_id", "work_unit_id", "authority_ordinal", "required_work_unit_record_sha256"):
+            if old[field] != new[field]:
+                raise PublicationConflict(f"pre-measurement repair changed immutable field: {field}")
+        if (old["shard_index"], old["shard_count"], old["device"], old["gpu_uuid"]) != (new["shard_index"], new["shard_count"], new["device"], new["gpu_uuid"]):
+            raise PublicationConflict("pre-measurement repair changed shard/device/GPU identity")
+        for field in PRODUCTION_PROVENANCE_FIELDS:
+            if field not in {"config_hash", "git_commit"} and old_payload["runtime_provenance"][field] != proposed["runtime_provenance"][field]:
+                raise PublicationConflict(f"pre-measurement repair changed authenticated profile field: {field}")
+        return
     permanent = (
         "schema_version", "artifact_role", "campaign_id", "campaign_manifest_sha256", "source_manifest_sha256",
         "runner_contract_sha256", "production_contract_sha256", "required_bler_artifact_sha256", "execution_profile_id",
@@ -1179,7 +1429,13 @@ def read_state(root: Path | str, ordinal: int, work_unit_id: str) -> tuple[dict[
         raise RecoveryError(f"successor unit state is malformed: {path}") from exc
     if not isinstance(payload, Mapping) or canonical_json(payload) != raw:
         raise RecoveryError(f"successor unit state is not canonical: {path}")
-    validated = validate_production_state_snapshot(payload)
+    try:
+        validated = validate_production_state_snapshot(payload)
+    except ProductionContractError as current_error:
+        try:
+            validated = _legacy_state_snapshot(payload, raw, ordinal=ordinal)
+        except ProductionContractError as legacy_error:
+            raise RecoveryError(f"successor unit state is not bound to the current or exact repair epoch: {path}") from current_error
     return validated, sha256_bytes(raw)
 
 
@@ -1208,13 +1464,32 @@ def _profile_bindings(profile: Mapping[str, Any], *, expected_device: str, expec
     return dict(profile)
 
 
+def _frozen_measurement_request_view(request: Mapping[str, Any]) -> dict[str, Any]:
+    """Adapt the nested successor identity to the frozen runner's view.
+
+    The successor request remains nested and immutable.  The frozen runner's
+    validator interface predates that schema and consumes only these four
+    physical fields at top level, so this function is the explicit boundary
+    between the two contracts.
+    """
+
+    successor = validate_request(request)
+    identity = successor["identity"]
+    return {
+        "bler_identity": dict(identity["bler_identity"]),
+        "snr_db": identity["snr_db"],
+        "trials_requested": identity["trials_requested"],
+        "stream_seeds": dict(identity["stream_seeds"]),
+    }
+
+
 def _measurement_context() -> Any:
     """Return a validator shim so the frozen runner can execute successor requests."""
 
     class _Context:
         @staticmethod
         def validate_request(request: Mapping[str, Any], **_: Any) -> dict[str, Any]:
-            return validate_request(request)
+            return _frozen_measurement_request_view(request)
 
     return _Context()
 
@@ -1387,12 +1662,37 @@ def inspect_unit(root: Path | str, ordinal: int) -> dict[str, Any]:
         raise RecoveryError("successor result has no matching request")
     state_record = read_state(root_path, ordinal, unit["work_unit_id"])
     state = None if state_record is None else state_record[0]
+    validated_requests: dict[int, dict[str, Any]] = {}
     validated_results: dict[int, dict[str, Any]] = {}
+    for attempt in request_attempts:
+        request, raw = _read_json_file(request_path(root_path, unit["work_unit_id"], attempt), "successor request")
+        try:
+            validated_request = validate_request(request, bindings=bindings)
+        except ProductionContractError as current_error:
+            try:
+                if attempt != 1:
+                    raise ProductionContractError("pre-measurement compatibility is limited to attempt 1")
+                record = _repair_unit_record(ordinal)
+                if sha256_bytes(raw) != record["request_file_sha256"]:
+                    raise ProductionContractError("pre-measurement predecessor request bytes differ")
+                validated_request = validate_request(request, bindings=_legacy_bindings())
+            except ProductionContractError as legacy_error:
+                raise RecoveryError("successor request is not bound to the current or exact repair epoch") from legacy_error
+        validated_requests[attempt] = {"request": validated_request, "raw": raw}
     for attempt in result_attempts:
-        request, _ = _read_json_file(request_path(root_path, unit["work_unit_id"], attempt), "successor request")
+        request_record = validated_requests.get(attempt)
+        if request_record is None:
+            raise RecoveryError("successor result has no validated request history")
+        request = request_record["request"]
+        request_raw = request_record["raw"]
         result, raw = _read_json_file(result_path(root_path, unit["work_unit_id"], attempt), "successor result")
-        validate_request(request, bindings=bindings)
-        validate_result(result, bindings=bindings, request=request, attempt=attempt)
+        try:
+            validate_result(result, bindings=bindings, request=request, attempt=attempt)
+        except ProductionContractError as current_error:
+            try:
+                _legacy_attempt_evidence(ordinal, attempt, request, request_raw, result, raw)
+            except ProductionContractError as legacy_error:
+                raise RecoveryError("successor result is not bound to the current or exact repair epoch") from legacy_error
         validated_results[attempt] = {"result": result, "sha256": sha256_bytes(raw)}
     if state is not None:
         if state["identity"]["status"] == STATUS_ACCEPTED:
@@ -1508,6 +1808,34 @@ def _write_campaign_state(root: Path, state: Mapping[str, Any], *, expected_sha2
     if current == body:
         return sha256_bytes(body)
     return _stage_and_publish(path, body, replace=True)
+
+
+def _validate_runtime_campaign_state(raw: bytes, *, bindings: Mapping[str, Any]) -> dict[str, Any]:
+    """Authenticate current aggregate state or the one recorded predecessor snapshot."""
+
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RecoveryError("successor campaign state is malformed") from exc
+    if not isinstance(payload, Mapping) or canonical_json(payload) != raw:
+        raise RecoveryError("successor campaign state is not canonical")
+    try:
+        return validate_campaign_state(payload, bindings=bindings)
+    except ProductionContractError as current_error:
+        policy = _load_pre_measurement_repair_policy()
+        snapshot = policy["state_snapshot"]
+        if sha256_bytes(raw) != snapshot["campaign_state_file_sha256"]:
+            raise RecoveryError("successor campaign state is not bound to the current or exact repair epoch") from current_error
+        try:
+            legacy = validate_campaign_state(payload, bindings=_legacy_bindings())
+        except ProductionContractError as legacy_error:
+            raise RecoveryError("pre-measurement predecessor campaign state is invalid") from legacy_error
+        if any(legacy[key] != snapshot[key] for key in (
+            "accepted_authority_ordinals", "failed_authority_ordinals", "in_progress_authority_ordinals",
+            "terminal_invalid_authority_ordinals", "scientific_execution_performed",
+        )):
+            raise RecoveryError("pre-measurement predecessor campaign state snapshot differs")
+        return legacy
 
 
 def _repair_complete_unit(root: Path, ordinal: int, report: Mapping[str, Any]) -> None:
@@ -1634,10 +1962,7 @@ def reconcile_campaign(root: Path | str) -> dict[str, Any]:
             current = _initial_campaign_state(bindings)
             current_sha = None
         else:
-            try:
-                current = validate_campaign_state(json.loads(current_raw), bindings=bindings)
-            except (TypeError, ValueError, json.JSONDecodeError) as exc:
-                raise RecoveryError("successor campaign state is malformed") from exc
+            current = _validate_runtime_campaign_state(current_raw, bindings=bindings)
             current_sha = sha256_bytes(current_raw)
         reports = [inspect_unit(root_path, ordinal) for ordinal in range(REQUIRED_COUNT)]
         for report in reports:
@@ -1650,6 +1975,11 @@ def reconcile_campaign(root: Path | str) -> dict[str, Any]:
         in_progress = [report["ordinal"] for report in reports if report["classification"] in {STATUS_CLAIMED, STATUS_REQUEST_PUBLISHED, STATUS_RESULT_PUBLISHED}]
         candidate = dict(current)
         candidate.update({
+            "campaign_manifest_sha256": bindings["campaign_manifest_sha256"],
+            "source_manifest_sha256": bindings["source_manifest_sha256"],
+            "runner_contract_sha256": bindings["runner_contract_sha256"],
+            "production_contract_sha256": bindings["production_contract_sha256"],
+            "execution_profile_id": bindings["execution_profile_id"],
             "accepted_authority_ordinals": accepted,
             "in_progress_authority_ordinals": in_progress,
             "failed_authority_ordinals": failed,
@@ -1746,10 +2076,7 @@ def audit_campaign(root: Path | str) -> dict[str, Any]:
         if accepted or failed or in_progress or terminal_invalid:
             raise RecoveryError("successor evidence exists without a durable campaign state")
     else:
-        try:
-            state = validate_campaign_state(json.loads(state_raw), bindings=bindings)
-        except (TypeError, ValueError, json.JSONDecodeError) as exc:
-            raise RecoveryError("successor campaign state is malformed") from exc
+        state = _validate_runtime_campaign_state(state_raw, bindings=bindings)
         expected = {
             "accepted_authority_ordinals": accepted,
             "failed_authority_ordinals": failed,
@@ -1829,6 +2156,7 @@ def validate_production_contracts() -> dict[str, Any]:
         runner = load_json(PRODUCTION_RUNNER_CONTRACT)
         coordinator = load_json(PRODUCTION_COORDINATOR_CONTRACT)
         contract = load_json(PRODUCTION_CONTRACT)
+        repair_policy = _load_pre_measurement_repair_policy()
     except Exception as exc:
         if isinstance(exc, ProductionContractError):
             raise
@@ -1852,6 +2180,7 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError(f"zero-coverage successor readiness marker is invalid: {exc}") from exc
     campaign_sha = _file_sha256(SUCCESSOR_MANIFEST)
     readiness_sha = _file_sha256(SUCCESSOR_STATE)
+    repair_policy_sha = _file_sha256(PRE_MEASUREMENT_REPAIR_POLICY)
 
     if source.get("artifact_role") != "g8_c_pascal_successor_production_source_manifest":
         raise ProductionContractError("unsupported successor production source manifest")
@@ -1883,6 +2212,8 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production source readiness binding differs")
     if source.get("coordinator_contract_sha256") != _file_sha256(PRODUCTION_COORDINATOR_CONTRACT):
         raise ProductionContractError("successor production source coordinator binding differs")
+    if source.get("pre_measurement_repair_policy_sha256") != repair_policy_sha:
+        raise ProductionContractError("successor production source repair policy binding differs")
 
     expected_workers = [dict(worker) for worker in PRODUCTION_WORKERS]
     if coordinator.get("artifact_role") != "g8_c_pascal_successor_production_coordinator_contract" or coordinator.get("workers") != expected_workers:
@@ -1902,6 +2233,8 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production coordinator root isolation differs")
     if coordinator.get("protected_counters") != {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0}:
         raise ProductionContractError("successor production coordinator protected counters are nonzero")
+    if coordinator.get("pre_measurement_repair_policy_sha256") != repair_policy_sha or coordinator.get("pre_measurement_retry_compatibility") != repair_policy:
+        raise ProductionContractError("successor production coordinator repair policy differs")
     if coordinator.get("contract_sha256") != digest_without_field(coordinator, "contract_sha256"):
         raise ProductionContractError("successor production coordinator digest differs")
 
@@ -1916,6 +2249,8 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production runner physical/lock binding differs")
     if runner.get("driver_version_required") is not True or runner.get("old_result_ingest") is not False or runner.get("protected_counters") != {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0}:
         raise ProductionContractError("successor production runner provenance/safety binding differs")
+    if runner.get("pre_measurement_repair_policy_sha256") != repair_policy_sha or runner.get("pre_measurement_retry_compatibility") != repair_policy:
+        raise ProductionContractError("successor production runner repair policy differs")
     if runner.get("contract_sha256") != digest_without_field(runner, "contract_sha256"):
         raise ProductionContractError("successor production runner digest differs")
 
@@ -1926,6 +2261,8 @@ def validate_production_contracts() -> dict[str, Any]:
         raise ProductionContractError("successor production contract physical/lock binding differs")
     if contract.get("execution_profile_provenance_fields") != list(PRODUCTION_PROVENANCE_FIELDS):
         raise ProductionContractError("successor production profile provenance field closure differs")
+    if contract.get("pre_measurement_repair_policy_sha256") != repair_policy_sha or contract.get("pre_measurement_retry_compatibility") != repair_policy:
+        raise ProductionContractError("successor production contract repair policy differs")
     if contract.get("worker_batch_policy") != {"max_units": MAX_UNITS_POLICY, "failed_work_unit": FAILED_WORK_UNIT_POLICY}:
         raise ProductionContractError("successor production batch policy differs")
     _validate_custody_policy(contract.get("evidence_custody_policy"))
@@ -1949,6 +2286,7 @@ __all__ = [
     "PRODUCTION_SOURCE_MANIFEST",
     "PRODUCTION_RUNNER_CONTRACT",
     "PRODUCTION_COORDINATOR_CONTRACT",
+    "PRE_MEASUREMENT_REPAIR_POLICY",
     "PRODUCTION_WORKERS",
     "REQUIRED_PRODUCTION_SOURCE_PATHS",
     "PRODUCTION_PROVENANCE_FIELDS",
@@ -1987,6 +2325,7 @@ __all__ = [
     "read_state",
     "publish_state",
     "execute_frozen_measurement",
+    "_frozen_measurement_request_view",
     "run_unit",
     "inspect_unit",
     "validate_runtime_namespace",

@@ -31,13 +31,13 @@ from baseline.g8_pascal_production import (  # noqa: E402
     STATUS_FAILED,
     STATUS_TERMINAL_INVALID,
     authenticate_worker_profile,
+    audit_campaign,
     ensure_runtime_root,
     exact_shard_partition,
     inspect_unit,
     reconcile_campaign,
     run_unit,
     successor_bindings,
-    validate_runtime_namespace,
     validate_production_contracts,
 )
 from baseline.g8_pascal_successor import (  # noqa: E402
@@ -267,22 +267,11 @@ def _existing_runtime_summary(root: Path) -> dict[str, Any]:
         return {"accepted_count": 0, "in_progress_count": 0, "failed_count": 0, "runtime_exists": False}
     if root.is_symlink() or not root.is_dir():
         raise RuntimeError("successor runtime root is not a real directory")
-    validate_runtime_namespace(root)
-    state_path = root / "campaign_state.json"
-    if not state_path.exists():
-        return {"accepted_count": 0, "in_progress_count": 0, "failed_count": 0, "runtime_exists": True}
-    try:
-        state = json.loads(state_path.read_bytes())
-    except (OSError, json.JSONDecodeError) as exc:
-        raise RuntimeError(f"successor runtime state is malformed: {exc}") from exc
-    bindings = successor_bindings()
-    from baseline.g8_pascal_production import validate_campaign_state  # local import keeps CLI startup small
-
-    validated = validate_campaign_state(state, bindings=bindings)
+    summary = audit_campaign(root)
     return {
-        "accepted_count": len(validated["accepted_authority_ordinals"]),
-        "in_progress_count": len(validated["in_progress_authority_ordinals"]),
-        "failed_count": len(validated["failed_authority_ordinals"]),
+        "accepted_count": summary.get("accepted_count", 0),
+        "in_progress_count": len(summary.get("in_progress_authority_ordinals", [])),
+        "failed_count": len(summary.get("failed_authority_ordinals", [])),
         "runtime_exists": True,
     }
 

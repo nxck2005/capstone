@@ -2,11 +2,12 @@
   "artifact_role": "g8_c_pascal_successor_production_source_manifest",
   "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
   "campaign_manifest_sha256": "b0fe25d32813292916656cf0c919f4eb953425f0e7f442295b36117b88d9c07f",
-  "coordinator_contract_sha256": "0a78fd592f01d2a0fe5ec2cb919c8c28d8c8f0e0cfde88f4eba12ef21b50c32a",
+  "coordinator_contract_sha256": "e4d4f1fca00053e3f44c581dccf4ef50455717378ac2858ee2417cd21fe9b413",
   "execution_profile_id": "confessor_pascal_cu126",
   "lock_file": "requirements-pascal.lock",
   "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
   "old_result_ingest": false,
+  "pre_measurement_repair_policy_sha256": "045a576e06201fd2f5703744a258685463ba8dd1f0dec1cae02d0ef46b9beb7f",
   "predecessor_manifest_sha256": "0e9504abdc79e90e07044a12a26aea10d5d3ef2cfc645ee4ee2a2bbe4f0722d1",
   "protected_counters": {
     "inference": 0,
@@ -27,16 +28,16 @@
       "sha256": "66747ef06d6a2f150e0551103a38afcd174774303630f2f77818a69710d99210"
     },
     {
-      "bytes": 104831,
+      "bytes": 124303,
       "path": "src/baseline/g8_pascal_production.py",
       "role": "successor_transaction_state_worker",
-      "sha256": "7da46223cb90fa20b0e90213b8a9a0ec962448a9f77df4fea639b57121251af4"
+      "sha256": "84fe28d82cff276e011f5694e584a67e35ef337f514afa503f769090e6e8daf2"
     },
     {
-      "bytes": 18687,
+      "bytes": 18081,
       "path": "tools/run_g8_pascal_dual_gpu.py",
       "role": "dual_gpu_child_process_coordinator",
-      "sha256": "b5f732afe2c2bb5575caaf4d0833a558f91ce93fba9701c938aa4e0d011bbdc9"
+      "sha256": "5cfdaa0fcd47c1658b7a64da6f1a033f049c7d4f71b3c74b74c7dbbf59cd0dcc"
     },
     {
       "bytes": 61398,
@@ -193,6 +194,12 @@
       "path": "results/baseline/g8/required_bler_identities.json",
       "role": "exact_required_physical_grid",
       "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
+    },
+    {
+      "bytes": 3641,
+      "path": "results/baseline/g8_pascal_successor/pre_measurement_repair.json",
+      "role": "exact_pre_measurement_retry_compatibility_policy",
+      "sha256": "045a576e06201fd2f5703744a258685463ba8dd1f0dec1cae02d0ef46b9beb7f"
     }
   ]
 }

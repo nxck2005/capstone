@@ -36,6 +36,7 @@ from baseline.g8_pascal_production import (  # noqa: E402
     FAILED_WORK_UNIT_POLICY,
     MAX_UNITS_POLICY,
     PASCAL_SUCCESSOR_CUSTODY_POLICY,
+    PRE_MEASUREMENT_REPAIR_POLICY,
 )
 from config.params import get  # noqa: E402
 
@@ -100,6 +101,7 @@ SOURCE_CLOSURE = [
     ("spec/params.generated.yaml", "generated_parameters_consumed_at_runtime"),
     ("requirements-pascal.lock", "authenticated_python_environment"),
     ("results/baseline/g8/required_bler_identities.json", "exact_required_physical_grid"),
+    ("results/baseline/g8_pascal_successor/pre_measurement_repair.json", "exact_pre_measurement_retry_compatibility_policy"),
 ]
 
 
@@ -133,6 +135,8 @@ def build(*, check: bool = False) -> dict[str, str]:
     old_state_sha = _sha(SUCCESSOR_STATE)
     required_sha = _sha(REQUIRED_IDENTITIES)
     lock_sha = _sha(LOCK_PATH)
+    repair_policy = load_json(PRE_MEASUREMENT_REPAIR_POLICY)
+    repair_policy_sha = _sha(PRE_MEASUREMENT_REPAIR_POLICY)
     campaign_id = manifest["campaign_id"]
     coordinator_sha = _sha(SUCCESSOR_COORDINATOR_CONTRACT)
 
@@ -160,6 +164,8 @@ def build(*, check: bool = False) -> dict[str, str]:
         "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
         "protected_counters": {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0},
         "old_result_ingest": False,
+        "pre_measurement_repair_policy_sha256": repair_policy_sha,
+        "pre_measurement_retry_compatibility": repair_policy,
     }
     coordinator["contract_sha256"] = sha256_bytes(canonical_json(coordinator))
     production_coordinator_sha = _write(PRODUCTION_COORDINATOR_CONTRACT, coordinator, check=check)
@@ -181,6 +187,7 @@ def build(*, check: bool = False) -> dict[str, str]:
         "old_result_ingest": False,
         "protected_counters": {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0},
         "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
+        "pre_measurement_repair_policy_sha256": repair_policy_sha,
     }
     production_source_sha = _write(PRODUCTION_SOURCE_MANIFEST, source_manifest, check=check)
 
@@ -210,6 +217,8 @@ def build(*, check: bool = False) -> dict[str, str]:
         "old_result_ingest": False,
         "protected_counters": {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0},
         "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
+        "pre_measurement_repair_policy_sha256": repair_policy_sha,
+        "pre_measurement_retry_compatibility": repair_policy,
     }
     runner["contract_sha256"] = sha256_bytes(canonical_json(runner))
     runner_sha = _write(PRODUCTION_RUNNER_CONTRACT, runner, check=check)
@@ -256,6 +265,8 @@ def build(*, check: bool = False) -> dict[str, str]:
         "old_result_ingest": False,
         "protected_counters": {"validation_decoding": 0, "inference": 0, "training": 0, "test_access": 0},
         "scientific_status": "NON-SCIENTIFIC_UNTIL_EXPLICIT_LAUNCH_GATE",
+        "pre_measurement_repair_policy_sha256": repair_policy_sha,
+        "pre_measurement_retry_compatibility": repair_policy,
     }
     production_contract["contract_sha256"] = sha256_bytes(canonical_json(production_contract))
     production_sha = _write(PRODUCTION_CONTRACT, production_contract, check=check)

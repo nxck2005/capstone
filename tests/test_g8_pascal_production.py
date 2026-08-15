@@ -11,6 +11,7 @@ from types import SimpleNamespace
 import pytest
 
 from baseline import g8_pascal_production as production
+from baseline import g8_bler_runner as frozen_runner
 from baseline.g8_pascal_successor import REQUIRED_COUNT, rendered_json
 
 
@@ -71,6 +72,57 @@ def _complete(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
 
+def test_pascal_request_adapter_preserves_nested_successor_schema_and_exposes_frozen_view() -> None:
+    bindings = production.successor_bindings()
+    request = production.build_request(bindings, ordinal=0, profile=_profile("cuda:0"))
+    original = copy.deepcopy(request)
+
+    view = production._frozen_measurement_request_view(request)
+    context_view = production._measurement_context().validate_request(request)
+
+    assert request == original
+    assert view == context_view
+    assert set(view) == {"bler_identity", "snr_db", "trials_requested", "stream_seeds"}
+    assert view["bler_identity"] == request["identity"]["bler_identity"]
+    assert view["snr_db"] == request["identity"]["snr_db"]
+    assert view["trials_requested"] == request["identity"]["trials_requested"]
+    assert view["stream_seeds"] == request["identity"]["stream_seeds"]
+
+
+def test_pascal_nested_physical_identity_mutation_is_rejected_before_adapter() -> None:
+    bindings = production.successor_bindings()
+    request = production.build_request(bindings, ordinal=0, profile=_profile("cuda:0"))
+    request["identity"]["bler_identity"]["lifting_size"] += 1
+    with pytest.raises(production.ProductionContractError):
+        production._frozen_measurement_request_view(request)
+
+
+def test_pascal_adapter_reaches_frozen_runner_request_access_boundary(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise frozen _execute_measurement, not a mock of its call site."""
+
+    request = production.build_request(production.successor_bindings(), ordinal=0, profile=_profile("cuda:0"))
+    constructed: list[tuple[int, int, int, int, str]] = []
+
+    class FakeAdapter:
+        def __init__(self, k: int, n: int, q_m: int, base_graph: int, *, device: str) -> None:
+            constructed.append((k, n, q_m, base_graph, device))
+            self.lifting_size = request["identity"]["bler_identity"]["lifting_size"]
+
+    import baseline.ldpc.adapter as adapter_module
+
+    monkeypatch.setattr(adapter_module, "SionnaLDPCAdapter", FakeAdapter)
+    monkeypatch.setattr(frozen_runner, "_batch_ranges", lambda trials, batch_size: [])
+    result = frozen_runner._execute_measurement(
+        request,
+        device="cuda:0",
+        batch_size=1,
+        context=production._measurement_context(),
+    )
+    assert result["status"] == "complete"
+    assert result["trials_completed"] == 0
+    assert constructed == [(7128, 8534, 1, 1, "cuda:0")]
+
+
 def test_transaction_reaches_accepted_and_reconciles_nonzero_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _complete(monkeypatch)
     root = tmp_path / "runtime"
@@ -99,7 +151,7 @@ def test_audit_rejects_stale_terminal_invalid_state(tmp_path: Path, monkeypatch:
     state["terminal_invalid_authority_ordinals"] = [1]
     state["scientific_execution_performed"] = True
     state["state_sha256"] = production.digest_without_field(state, "state_sha256")
-    state_path.write_bytes(rendered_json(state))
+    state_path.write_bytes(production.canonical_json(state))
     with pytest.raises(production.RecoveryError, match="stale relative to durable evidence"):
         production.audit_campaign(root)
 
@@ -174,6 +226,176 @@ def test_failed_attempt_is_immutable_and_retries_as_attempt_two(tmp_path: Path, 
     assert report["result_attempts"] == [1, 2]
     assert report["state"]["identity"]["attempt"] == 2
     assert production.request_path(root, report["work_unit_id"], 1).read_bytes() == production.request_path(root, report["work_unit_id"], 2).read_bytes()
+
+
+def _synthetic_predecessor_runtime(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, dict[str, dict[str, Path]]]:
+    """Build the observed two-unit incident without copying remote evidence."""
+
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    root = tmp_path / "runtime"
+    production.ensure_runtime_root(root)
+    current = production.successor_bindings()
+    policy = copy.deepcopy(production._load_pre_measurement_repair_policy())
+    predecessor = policy["predecessor"]
+    file_paths: dict[str, dict[str, Path]] = {}
+
+    for ordinal in (0, 1):
+        device = "cuda:0" if ordinal == 0 else "cuda:1"
+        profile = _profile(device)
+        request = production.build_request(current, ordinal=ordinal, profile=profile)
+        old_profile = copy.deepcopy(request["identity"]["profile_provenance"])
+        old_profile["config_hash"] = predecessor["production_contract_sha256"]
+        old_profile["git_commit"] = "1dc94e0b7799c560bf7154e082432838357b170a"
+        request["identity"]["source_manifest_sha256"] = predecessor["source_manifest_sha256"]
+        request["identity"]["runner_contract_sha256"] = predecessor["runner_contract_sha256"]
+        request["identity"]["production_contract_sha256"] = predecessor["production_contract_sha256"]
+        request["identity"]["profile_provenance"] = old_profile
+
+        result = production.build_result(
+            production.build_request(current, ordinal=ordinal, profile=profile),
+            {"status": "failed", "trials_completed": 0, "bit_errors": 0, "block_errors": 0},
+            attempt=1,
+            profile=profile,
+        )
+        result["identity"] = copy.deepcopy(request["identity"])
+        result["request_sha256"] = production.sha256_bytes(production.canonical_json(request))
+        result["execution_provenance"] = copy.deepcopy(old_profile)
+        result["result_sha256"] = production.sha256_bytes(
+            production.canonical_json({key: value for key, value in result.items() if key != "result_sha256"})
+        )
+
+        state = production.build_state(
+            current,
+            ordinal=ordinal,
+            unit=production._required_unit_by_ordinal(ordinal),
+            attempt=1,
+            status=production.STATUS_FAILED,
+            shard_index=ordinal,
+            shard_count=2,
+            device=device,
+            gpu_uuid=str(next(item for item in production.PRODUCTION_WORKERS if item["device"] == device)["gpu_uuid"]),
+            request_sha256=result["request_sha256"],
+            result_sha256=production.sha256_bytes(production.canonical_json(result)),
+            result_status="failed",
+            scientific_execution_performed=True,
+            trials_completed=0,
+            reason="frozen PHY execution failed; retryable next attempt",
+            runtime_provenance=profile,
+        )
+        state["identity"]["source_manifest_sha256"] = predecessor["source_manifest_sha256"]
+        state["identity"]["runner_contract_sha256"] = predecessor["runner_contract_sha256"]
+        state["identity"]["production_contract_sha256"] = predecessor["production_contract_sha256"]
+        state["runtime_provenance"] = old_profile
+        state["identity_sha256"] = production.sha256_bytes(production.canonical_json(state["identity"]))
+        state["state_sha256"] = production.state_sha256(state)
+
+        request_path = production.request_path(root, request["identity"]["work_unit_id"], 1)
+        result_path = production.result_path(root, request["identity"]["work_unit_id"], 1)
+        state_path = production.state_path(root, ordinal, request["identity"]["work_unit_id"])
+        request_path.parent.mkdir(mode=0o700, exist_ok=True)
+        request_path.write_bytes(production.canonical_json(request))
+        result_path.write_bytes(production.canonical_json(result))
+        state_path.write_bytes(production.canonical_json(state))
+        file_paths[str(ordinal)] = {"request": request_path, "result": result_path, "state": state_path}
+        record = next(item for item in policy["units"] if item["authority_ordinal"] == ordinal)
+        record["request_file_sha256"] = production.sha256_bytes(request_path.read_bytes())
+        record["result_file_sha256"] = production.sha256_bytes(result_path.read_bytes())
+        record["state_file_sha256"] = production.sha256_bytes(state_path.read_bytes())
+
+    campaign = production.initial_campaign_state(current)
+    campaign["source_manifest_sha256"] = predecessor["source_manifest_sha256"]
+    campaign["runner_contract_sha256"] = predecessor["runner_contract_sha256"]
+    campaign["production_contract_sha256"] = predecessor["production_contract_sha256"]
+    campaign["failed_authority_ordinals"] = [0, 1]
+    campaign["scientific_execution_performed"] = True
+    campaign["state_sha256"] = production.digest_without_field(campaign, "state_sha256")
+    campaign_path = root / production.PRODUCTION_STATE_FILENAME
+    campaign_path.write_bytes(production.canonical_json(campaign))
+    policy["state_snapshot"]["campaign_state_file_sha256"] = production.sha256_bytes(campaign_path.read_bytes())
+    monkeypatch.setattr(production, "_load_pre_measurement_repair_policy", lambda: policy)
+    return root, file_paths
+
+
+def test_exact_pre_measurement_incident_reconciles_and_retries_only_as_current_attempt_two(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root, paths = _synthetic_predecessor_runtime(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for unit in paths.values() for path in unit.values()}
+
+    audited = production.audit_campaign(root)
+    assert audited["accepted_count"] == 0
+    assert audited["failed_authority_ordinals"] == [0, 1]
+    assert audited["terminal_invalid_authority_ordinals"] == []
+    reconciled = production.reconcile_campaign(root)
+    assert reconciled["accepted_count"] == 0
+    assert reconciled["failed_authority_ordinals"] == [0, 1]
+    assert reconciled["terminal_invalid_authority_ordinals"] == []
+
+    for unit in paths.values():
+        for path in unit.values():
+            assert path.read_bytes() == before[path]
+
+    _complete(monkeypatch)
+    assert _run(root, ordinal=0, device="cuda:0")["status"] == production.STATUS_ACCEPTED
+    assert _run(root, ordinal=1, device="cuda:1")["status"] == production.STATUS_ACCEPTED
+    report0 = production.inspect_unit(root, 0)
+    report1 = production.inspect_unit(root, 1)
+    assert report0["request_attempts"] == [1, 2]
+    assert report1["request_attempts"] == [1, 2]
+    assert report0["validated_results"][1]["result"]["status"] == "failed"
+    assert report1["validated_results"][1]["result"]["status"] == "failed"
+    assert report0["state"]["identity"]["attempt"] == 2
+    assert report1["state"]["identity"]["attempt"] == 2
+    assert report0["state"]["identity"]["production_contract_sha256"] == production.successor_bindings()["production_contract_sha256"]
+    assert report1["state"]["identity"]["production_contract_sha256"] == production.successor_bindings()["production_contract_sha256"]
+    assert report0["validated_results"][2]["result"]["measurement"]["trials_completed"] == 5000
+    assert report1["validated_results"][2]["result"]["measurement"]["trials_completed"] == 5000
+    assert production.reconcile_campaign(root)["accepted_authority_ordinals"] == [0, 1]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "wrong_predecessor_contract_hash", "wrong_old_source_hash", "trials_completed_one",
+        "complete_status", "coverage_one", "accepted_old_state", "changed_physical_identity",
+        "changed_gpu_uuid", "changed_lock", "wrong_attempt", "nonzero_protected_counter",
+    ],
+)
+def test_pre_measurement_compatibility_mutations_fail_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str) -> None:
+    base, paths = _synthetic_predecessor_runtime(tmp_path / "base", monkeypatch)
+    root = tmp_path / mutation
+    shutil.copytree(base, root)
+    if mutation in {"wrong_predecessor_contract_hash", "wrong_old_source_hash", "changed_physical_identity", "changed_gpu_uuid", "changed_lock"}:
+        path = root / paths["0"]["request"].relative_to(base)
+        payload = json.loads(path.read_bytes())
+        if mutation == "wrong_predecessor_contract_hash":
+            payload["identity"]["production_contract_sha256"] = "0" * 64
+        elif mutation == "wrong_old_source_hash":
+            payload["identity"]["source_manifest_sha256"] = "0" * 64
+        elif mutation == "changed_physical_identity":
+            payload["identity"]["bler_identity"]["lifting_size"] += 1
+        elif mutation == "changed_gpu_uuid":
+            payload["identity"]["profile_provenance"]["gpu_uuid"] = "0" * 64
+        else:
+            payload["identity"]["lock_file_sha256"] = "0" * 64
+    elif mutation == "accepted_old_state":
+        path = root / paths["0"]["state"].relative_to(base)
+        payload = json.loads(path.read_bytes())
+        payload["identity"]["status"] = "accepted"
+    else:
+        path = root / paths["0"]["result"].relative_to(base)
+        payload = json.loads(path.read_bytes())
+        if mutation == "trials_completed_one":
+            payload["measurement"]["trials_completed"] = 1
+        elif mutation == "complete_status":
+            payload["status"] = "complete"
+        elif mutation == "coverage_one":
+            payload["disposition"]["required_coverage_contribution"] = 1
+        elif mutation == "wrong_attempt":
+            payload["attempt"] = 2
+        else:
+            payload["disposition"]["protected_counters"]["training"] = 1
+    path.write_bytes(production.canonical_json(payload))
+    with pytest.raises(production.RecoveryError):
+        production.audit_campaign(root)
 
 
 @pytest.mark.parametrize("mutation", ["campaign", "profile", "lock", "uuid", "driver", "swapped"])
@@ -267,6 +489,18 @@ def test_production_source_contract_drift_fails_closed(tmp_path: Path, monkeypat
     mutant = tmp_path / "production_source_manifest.json"
     mutant.write_bytes(rendered_json(payload))
     monkeypatch.setattr(production, "PRODUCTION_SOURCE_MANIFEST", mutant)
+    production._successor_bindings_json.cache_clear()
+    with pytest.raises(production.ProductionContractError):
+        production.validate_production_contracts()
+    production._successor_bindings_json.cache_clear()
+
+
+def test_pre_measurement_repair_policy_mutation_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = json.loads(production.PRODUCTION_CONTRACT.read_bytes())
+    payload["pre_measurement_retry_compatibility"]["transition"]["no_general_source_switch"] = False
+    mutant = tmp_path / "production_contract.json"
+    mutant.write_bytes(rendered_json(payload))
+    monkeypatch.setattr(production, "PRODUCTION_CONTRACT", mutant)
     production._successor_bindings_json.cache_clear()
     with pytest.raises(production.ProductionContractError):
         production.validate_production_contracts()
