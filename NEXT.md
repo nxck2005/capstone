@@ -7,13 +7,15 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-16 · **Phase:** **G8_B is complete; the old local G8_C campaign is preserved as superseded historical evidence and the clean Pascal successor is ready at 0/3213. PR #4 merged at `9702c16`; confessor's merged-main qualification and authenticated HTTPS marker commit `9ec0883` are complete. No successor worker is running. No BLER table, selection, authorization, inference, training, validation decoding or test access has occurred.**
+**Last updated:** 2026-08-16 · **Phase:** **Pascal G8_C successor execution is complete at 3213/3213; repository closeout is blocked at the successor C3/C5 table gate. The old local G8_C campaign remains immutable superseded history.**
+
+**2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The current successor adapter collects all 3,213 records in authority order, but `build_successor_bler_table()` intentionally raises its C3/C5 gate and the predecessor-bound table tools cannot be used for Pascal. No BlerTable has been frozen and G8_D has not started.
 
 **2026-08-15 pre-launch control repair:** the additive Pascal worker now treats `--max-units` as an attempted-unit cap and stops that worker's batch after a failed unit; successor-only coordination locks are ignored while requests, results, unit states and `campaign_state.json` remain durable; and `audit_campaign()` cross-checks terminal-invalid ordinals against reconstructed evidence. Contracts and hashes were regenerated. The successor campaign identity and zero-coverage readiness marker are unchanged, and no full-strength unit ran.
 
 **2026-08-15 final pre-launch coordinator repair:** terminal-accepted ordinals are inspected and skipped without consuming a worker attempt budget; terminal-invalid evidence fails closed; failed/retryable work remains retryable but makes both worker and coordinator invocations FAIL/nonzero. Regression coverage proves the fixed-shard progression, failed-unit cap/stop semantics, terminal-invalid hold and final-status signaling. The campaign ID, readiness marker, required grid, frozen PHY, and successor coverage remain unchanged at 0/3213; no real work unit ran.
 
-**2026-08-16 owner custody decision (AM-86):** the owner-authorized Pascal successor may accumulate immutable authenticated per-unit evidence continuously in its separate mutable runtime on sole writer `confessor`; Git publication may occur after the unattended campaign or at an owner-selected manual checkpoint, and loss before publication is an explicitly accepted custody risk. Surviving evidence is scientifically eligible only through exact campaign/profile/contract authentication and final complete-coverage verification. Complete reconcile/commit/authenticated-HTTPS-push/fetch-parity remains mandatory before BLER-table freeze or G8_D release. This changes publication cadence only; successor coverage remains 0/3213 and no worker has started.
+**2026-08-16 owner custody decision (AM-86):** the owner-authorized Pascal successor may accumulate immutable authenticated per-unit evidence continuously in its separate mutable runtime on sole writer `confessor`; Git publication may occur after the unattended campaign or at an owner-selected manual checkpoint, and loss before publication is an explicitly accepted custody risk. Surviving evidence is scientifically eligible only through exact campaign/profile/contract authentication and final complete-coverage verification. This exception was used for the completed campaign; complete reconcile/commit/authenticated-HTTPS-push/fetch-parity remains mandatory before BLER-table freeze or G8_D release.
 
 **Execution profiles:** the project now has two independently authenticated
 production profiles, `local_4060_cu130` and the qualified
@@ -73,12 +75,13 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** owner review and explicit opening of the clean Pascal
-G8_C successor when ready. The migration gate is complete: PR #4 merged at
-`9702c16`, confessor recreated `requirements-pascal.lock`, final qualification
-passed from merged bytes, authenticated HTTPS push/parity passed, and marker
-commit `9ec0883` is pushed. Do not start a worker implicitly; the old local
-suffix is not resumed and no old result may enter the successor table.
+**Next-session task:** use the repository-defined successor C3/C5 closeout
+procedure once it exists. The authenticated campaign evidence is complete and
+published locally, but this checkout deliberately exposes only the successor
+input adapter: `build_successor_bler_table()` remains gated and the historical
+table tools are predecessor-bound. Do not invent a replacement table command,
+freeze a table from the raw records, or start G8_D; the old local suffix remains
+superseded and contributes zero successor coverage.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -93,22 +96,24 @@ does not, it is wrong and this block is right.**
 | W4 · PA | complete |
 | W4 · PB_1 (incl. the PB_1C correction) | complete |
 | W4 · PB_2 (incl. the PB_2C correction) | complete |
-| G-8 successor campaign opening (owner action) | next |
+| G-8 successor campaign opening (owner action) | complete — 3213/3213 |
+| G-8 successor C3/C5 repository closeout | next |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **old local G8_C superseded; clean Pascal successor ready at 0/3213; scientific launch awaits explicit owner opening** |
-| G8_B–G8_G | **G8_B complete; Pascal G8_C successor is pre-science and C3 and all later phases remain gated.** |
+| G-8 classical validation work | **successor execution complete at 3213/3213; C3/C4 evidence checks pass; C5 table freeze is blocked by the missing successor-specific closeout implementation** |
+| G8_B–G8_G | **G8_B complete; G8_C successor execution complete; table freeze/C6/C7 remain gated and G8_D has not started.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B is complete and the Pascal G8_C production path is ready at 0/3213.**
-The active successor campaign is the sole current G8_C path; no worker is
-running and the owner must explicitly open full-strength science. The old local
-campaign is immutable superseded history and contributes zero successor-table
-coverage. The test split and every later scientific phase remain closed.
+**G8_B is complete and the Pascal G8_C successor execution is complete at
+3213/3213.** The current closeout is held at the repository's intentional
+successor C3/C5 table gate; no predecessor table tool may be substituted. The
+old local campaign is immutable superseded history and contributes zero
+successor-table coverage. The test split and every later scientific phase
+remain closed.
 Everything else stays behind its own gate — do not calibrate λ, train learned
 models, implement ER-9, or access the test split until theirs.
 
@@ -200,7 +205,7 @@ and the spec defines no BR-4 selection tie-break to contradict.
 
 ### Durable G-8 phase partition
 
-The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**complete through B6**); the Pascal G8_C production path is **ready at zero coverage and awaits explicit owner opening**; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
+The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**complete through B6**); the Pascal G8_C successor execution is **complete at 3213/3213, with table closeout blocked by the current successor C3/C5 gate**; G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
 ### What G-8 actually has to build — read this before starting it
 
@@ -211,8 +216,10 @@ for G-2, and **it must not be extrapolated or generalised** — the lookup alrea
 outside it, which is the behaviour to preserve rather than work around.
 
 The Pascal G8_C production transaction, provenance closure and dual-GPU
-coordinator are now implemented and preflighted at zero coverage. After the
-owner explicitly opens that path, G-8 science proceeds as follows:
+coordinator are implemented and the owner-authorized execution has completed
+at 3213/3213. The remaining G8_C closeout must proceed through the repository's
+successor-specific C3/C5 implementation; the predecessor-bound table tools are
+not an alternative:
 
 1. enumerate the complete **structural candidate/configuration grid** and the code-block identity
    grid;
@@ -415,10 +422,12 @@ ignored checkpoints were not uploaded, and no training was rerun. Verify the rec
 7. ~~**W4 PB_2, including the PB_2C correction — outage policy, records and bounded evidence.**~~
    **Complete.**
 8. ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication.**~~ **Complete.**
-9. **G-8 classical validation work — Pascal successor production path ready at
-   0/3213; explicit owner opening is next.** G8_A and G8_B are complete; C3
-   merge, C4 coverage, C5 table freeze and every validation/selection phase
-   remain gated. See `instructions/RESUME.md` for the single current path.
+9. **G-8 classical validation work — Pascal successor execution complete at
+   3213/3213.** G8_A and G8_B are complete; the successor adapter and final
+   verifier pass, while C5 table freeze and later validation/selection phases
+   remain gated until the repository supplies the successor-specific closeout.
+   See `instructions/RESUME.md` for the historical C3–C7 contract; do not use
+   its predecessor-bound commands on the Pascal runtime.
 
 W2's implementation commit is `26b631ede27a6f88f1d004a66b845c52a658e07c`. The clean G-7
 corrected implementation-bound profile completed all 8,469 Imagenette training images at batch 32
@@ -626,12 +635,14 @@ The slot is **15 minutes**. The rubric scores six criteria × 5 sub-marks = 30, 
 **W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only
 transparency-bitrate probe.** Do not reopen the reference-classifier recipe, start its fallback
 ladder, implement the G-7 width fallback, select an operating point from the probe's forecasts, or
-open another full-spec audit round without new evidence. **The current G-8 path is the owner-opened
-Pascal successor:** its production transaction/state model, exact PHY closure and two-child
-coordinator are ready at `0/3213`, but no worker or launch authorization exists. After that explicit
-opening, the full-strength physical characterization is the first scientific step; the sweep itself
-is step eight of twelve. `src/baseline/classical/composition.py` provides the selection machinery
-(corrected by PB_3C), but the characterization it would select *from* does not exist yet: the
+open another full-spec audit round without new evidence. **The owner-opened Pascal successor has
+now completed its full 3213/3213 authenticated production campaign.** Its successor adapter and
+final verifier pass, but the current checkout has no successor-specific C3/C5 table closeout and
+the predecessor-bound table tools cannot be substituted. `src/baseline/classical/composition.py`
+remains later selection machinery; do not freeze a BlerTable from the raw successor records or
+start G8_D. The historical C3–C7 contract remains in `instructions/RESUME.md`; its predecessor
+commands do not apply to the Pascal runtime. The committed G-2 table covers one physical-layer
+identity at four SNR points per modulation and must
 committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
 not be extrapolated. Read "What G-8 actually has to build" above before starting, and
 `instructions/RESUME.md` for the facts that work needs. The sweep entry point remains separately
@@ -914,10 +925,10 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 ### The short version, in order
 
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
-probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The single next engineering
-task is the **owner review and explicit opening of the Pascal G8_C successor**; its production
-transaction path is ready at 0/3213. The full BR-4 validation sweep and operating-point decision
-remain later gates. W4 also includes **PB_3C**, the corrective
+probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The Pascal successor
+production campaign is complete at 3213/3213, but repository closeout is blocked at the successor
+C3/C5 table gate. The full BR-4 validation sweep and operating-point decision remain later gates.
+W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed
 First Review deck, four-member rehearsal, PR-9 guide acknowledgement, final package and snapshot remain.
@@ -934,7 +945,7 @@ First Review deck, four-member rehearsal, PR-9 guide acknowledgement, final pack
 | ~~5b~~ | ~~**W3: LDPC fixture/integration, BER/BLER validation, and complete packetisation/bit accounting through G-2**~~ **DONE 2026-07-30 — G-2 PASS** | — | Golden, known-answer, BLER and packetisation evidence verified | ~~W4+~~ |
 | ~~5c~~ | ~~**W4 PA / PB_1 / PB_2 bounded classical-baseline integration**~~ **DONE 2026-07-31 — including the PB_1C and PB_2C corrections** | — | Validated physical layer integrated; no sweep started | ~~PB_3~~ |
 | ~~5d~~ | ~~**W4 PB_3 — BR-4 selection infrastructure and the W4 adjudication**~~ **DONE 2026-08-01** | — | Selection machinery built and verified; nothing run at scale, no amendment needed | ~~G-8~~ |
-| 5e | **G-8 classical validation work — Pascal successor production path ready at 0/3213; after explicit owner opening, run the full BR-4 BLER sweep and operating-point decision** | owner/agent | The bounded baseline prerequisite is complete and PB_3C corrected the selection machinery; no full-strength characterization has started | ER-1, H1–H4, the learned arms |
+| 5e | **G-8 classical validation work — Pascal successor execution complete at 3213/3213; complete the repository-defined successor C3/C5 closeout before the later BR-4 sweep and operating-point decision** | owner/agent | Authenticated full-strength evidence and exact coverage are complete; the current successor table builder is intentionally gated and predecessor tools are ineligible | ER-1, H1–H4, the learned arms |
 | ~~6~~ | ~~**PR-1 literature review, in parallel**~~ **DONE 2026-08-11 — 30 references** | — | First Review `Problem Survey` backing material and DEC-13 novelty basis | ~~First Review backing material~~ |
 | ~~7~~ | ~~**PR-2 Gantt, with the real dates**~~ **DONE; corrected 2026-08-12 to 18–22 Aug** | — | First Review `Time Plan` criterion; current circular overrides the 2023 rubric dates | ~~First Review backing material~~ |
 | 8 | **Finish First Review delivery contract** | author/team | Polished 10–12-slide deck, all four members ready, guide acknowledgement recorded, final files under `deliverables/review-1/`, then `review-1-basis` tag | First Review |
