@@ -209,6 +209,79 @@ def test_repo_docs_are_consistent(monkeypatch, capsys):
     assert code == 0, capsys.readouterr().out
 
 
+# --- Pascal G8_C operational-cursor agreement ------------------------------------
+
+
+PASCAL_COMPLETED_STATE = {
+    "execution": "complete",
+    "coverage": "3213/3213",
+    "evidence": "published",
+    "next": "successor-specific-g8-c-c3-c5-closeout",
+    "bler_table": "not-frozen",
+    "g8_d": "closed",
+    "readiness_state": "immutable-zero-coverage-history",
+    "runtime_state": "completed-production-state",
+    "rerun": "forbidden",
+    "old_local": "immutable-zero-successor-coverage",
+}
+
+
+def _pascal_cursor(**changes: str) -> str:
+    state = dict(PASCAL_COMPLETED_STATE)
+    state.update(changes)
+    fields = "; ".join(f"{key}={value}" for key, value in state.items())
+    return f"<!-- capstone-current-pascal-state: {fields} -->"
+
+
+def _pascal_documents(**changes: str) -> dict[str, str]:
+    return {
+        doc: _pascal_cursor(**changes)
+        for doc in cdc.PASCAL_CURSOR_DOCS
+    }
+
+
+def test_pascal_cursor_catches_stale_current_zero_coverage_guidance() -> None:
+    """A live cursor cannot leave Pascal at pre-launch 0/3213 after NEXT advances."""
+    documents = _pascal_documents()
+    documents["AGENTS.md"] = _pascal_cursor(
+        execution="pre-launch",
+        coverage="0/3213",
+        evidence="not-published",
+        next="owner-launch-authorization",
+    )
+    documents["instructions/RESUME.md"] = _pascal_cursor(
+        execution="pre-launch",
+        coverage="0/3213",
+        evidence="not-published",
+        next="owner-launch-authorization",
+    )
+
+    findings = cdc.pascal_cursor_findings(documents)
+
+    assert any("AGENTS.md" in finding and "coverage" in finding for finding in findings)
+    assert any("instructions/RESUME.md" in finding and "coverage" in finding for finding in findings)
+
+
+def test_pascal_cursor_accepts_completed_execution_and_c3_c5_next_gate() -> None:
+    documents = _pascal_documents()
+
+    assert cdc.pascal_cursor_findings(documents) == []
+
+
+def test_pascal_cursor_ignores_historical_prelaunch_records() -> None:
+    """Historical zero-coverage facts remain evidence, not current guidance."""
+    documents = {
+        doc: (
+            _pascal_cursor()
+            + "\n\n## Historical pre-launch snapshot\n"
+            + "The successor was 0/3213 before the owner opened the campaign."
+        )
+        for doc in cdc.PASCAL_CURSOR_DOCS
+    }
+
+    assert cdc.pascal_cursor_findings(documents) == []
+
+
 # --- NEXT.md current-phase agreement ----------------------------------------------
 #
 # The defect: NEXT.md declared bounded W4 integration as the single next task, and

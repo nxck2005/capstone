@@ -11,9 +11,22 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The current successor adapter collects all 3,213 records in authority order, but `build_successor_bler_table()` intentionally raises its C3/C5 gate and the predecessor-bound table tools cannot be used for Pascal. No BlerTable has been frozen and G8_D has not started.
 
-**2026-08-15 pre-launch control repair:** the additive Pascal worker now treats `--max-units` as an attempted-unit cap and stops that worker's batch after a failed unit; successor-only coordination locks are ignored while requests, results, unit states and `campaign_state.json` remain durable; and `audit_campaign()` cross-checks terminal-invalid ordinals against reconstructed evidence. Contracts and hashes were regenerated. The successor campaign identity and zero-coverage readiness marker are unchanged, and no full-strength unit ran.
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=successor-specific-g8-c-c3-c5-closeout; bler_table=not-frozen; g8_d=closed; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
-**2026-08-15 final pre-launch coordinator repair:** terminal-accepted ordinals are inspected and skipped without consuming a worker attempt budget; terminal-invalid evidence fails closed; failed/retryable work remains retryable but makes both worker and coordinator invocations FAIL/nonzero. Regression coverage proves the fixed-shard progression, failed-unit cap/stop semantics, terminal-invalid hold and final-status signaling. The campaign ID, readiness marker, required grid, frozen PHY, and successor coverage remain unchanged at 0/3213; no real work unit ran.
+The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
+immutable zero-coverage readiness marker; the separate
+`results/baseline/g8_pascal_successor/runtime/campaign_state.json` is the
+completed production state. No Pascal worker may be started, the old RTX4060
+suffix must not be resumed, predecessor evidence must not be ingested, and the
+completed runtime evidence must not be altered.
+The accepted identities represent 16,065,000 intended trials; failed final,
+terminal-invalid and unresolved units are zero, as are protected inference,
+training, validation-decoding and test-access counters, and
+`old_result_ingest` is false.
+
+**Historical 2026-08-15 pre-launch control repair (superseded):** the additive Pascal worker then treated `--max-units` as an attempted-unit cap and stopped that worker's batch after a failed unit; successor-only coordination locks were ignored while requests, results, unit states and `campaign_state.json` remained durable; and `audit_campaign()` cross-checked terminal-invalid ordinals against reconstructed evidence. Contracts and hashes were regenerated. The successor campaign identity and zero-coverage readiness marker were unchanged at that historical point, and no full-strength unit had run.
+
+**Historical 2026-08-15 final pre-launch coordinator repair (superseded):** terminal-accepted ordinals were inspected and skipped without consuming a worker attempt budget; terminal-invalid evidence failed closed; failed/retryable work remained retryable but made both worker and coordinator invocations FAIL/nonzero. Regression coverage proved the fixed-shard progression, failed-unit cap/stop semantics, terminal-invalid hold and final-status signaling. The campaign ID, readiness marker, required grid and frozen PHY were unchanged at that historical 0/3213 state; no real work unit had run then.
 
 **2026-08-16 owner custody decision (AM-86):** the owner-authorized Pascal successor may accumulate immutable authenticated per-unit evidence continuously in its separate mutable runtime on sole writer `confessor`; Git publication may occur after the unattended campaign or at an owner-selected manual checkpoint, and loss before publication is an explicitly accepted custody risk. Surviving evidence is scientifically eligible only through exact campaign/profile/contract authentication and final complete-coverage verification. This exception was used for the completed campaign; complete reconcile/commit/authenticated-HTTPS-push/fetch-parity remains mandatory before BLER-table freeze or G8_D release.
 
@@ -641,9 +654,7 @@ final verifier pass, but the current checkout has no successor-specific C3/C5 ta
 the predecessor-bound table tools cannot be substituted. `src/baseline/classical/composition.py`
 remains later selection machinery; do not freeze a BlerTable from the raw successor records or
 start G8_D. The historical C3–C7 contract remains in `instructions/RESUME.md`; its predecessor
-commands do not apply to the Pascal runtime. The committed G-2 table covers one physical-layer
-identity at four SNR points per modulation and must
-committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
+commands do not apply to the Pascal runtime. The committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
 not be extrapolated. Read "What G-8 actually has to build" above before starting, and
 `instructions/RESUME.md` for the facts that work needs. The sweep entry point remains separately
 authorization-gated, and no `G8Authorization` exists in this repository.

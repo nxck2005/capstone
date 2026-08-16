@@ -16,19 +16,37 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=successor-specific-g8-c-c3-c5-closeout; bler_table=not-frozen; g8_d=closed; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
-The clean Pascal successor is `results/baseline/g8_pascal_successor/`, bound to
-`confessor_pascal_cu126`, 3,213 identities × 5,000 trials, explicit UUID-bound
-`cuda:0`/`cuda:1` workers, and zero accepted coverage. PR #4 is merged at
-`9702c16`; confessor recreated the committed lock, reran final qualification
-from merged bytes, proved authenticated HTTPS push/parity, and pushed marker
-commit `9ec0883` (marker digest
-`7cf8f33db33f8f9f571cbf0926ececa56609e5f083a229954ce6625f46033bc8`).
-`confessor` is its sole scientific writer; no successor worker is running. The
-owner must explicitly open full-strength science; never ingest old results,
-access test or validation data, train, infer, select or authorize during this
-handoff.
+The clean Pascal successor campaign
+`g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` is
+complete at 3,213/3,213 accepted identities, with 5,000 trials per identity,
+profile `confessor_pascal_cu126`, source commit
+`426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256
+`dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`.
+Authenticated evidence is published in
+`results/baseline/g8_pascal_successor/runtime/`; the finished runtime contains
+3,215 requests, 3,215 results and 3,213 states. The two extra request/result
+pairs are immutable attempt-1 retry history for ordinals 0 and 1, with zero
+trials before their accepted attempt-2 measurements because of the already-
+repaired nested-request adapter defect. Failed final units, terminal-invalid
+units and unresolved units are all zero; the intended total is 16,065,000
+trials; protected counters `inference=0`, `training=0`,
+`validation_decoding=0`, `test_access=0`; and `old_result_ingest=false`. Do
+not remove, rewrite or normalize those records.
+
+The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is
+immutable zero-coverage readiness history and must remain 0/3213. The separate
+`results/baseline/g8_pascal_successor/runtime/campaign_state.json` is the
+completed production aggregate and is authoritative for the finished execution.
+No successor worker is running or may be started. Do not rerun the completed
+campaign, resume the old RTX4060 suffix, ingest predecessor evidence, or alter
+the completed runtime. The next repository task is successor-specific G8_C
+C3/C5 closeout; the current successor adapter intentionally fails closed until
+that tooling exists. Test and validation data, selection, authorization,
+inference and training remain prohibited here.
 
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
@@ -77,17 +95,14 @@ Then:
 
 ## Status
 
-**Current phase:** **Pascal G8_C production path is ready for owner opening at exactly 0/3213; no worker is running.**
-The single live path is successor campaign
+**Current phase:** **Pascal G8_C successor execution is complete at 3213/3213 and
+published; no worker is running.** The authenticated campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
-`confessor_pascal_cu126`. `confessor` is the sole scientific writer. Its two
-workers are explicit `cuda:0`/`cuda:1` UUID-bound child processes, and the
-successor state can reconcile nonzero coverage without touching the old tree.
-The owner must separately provide launch authorization before any full-strength
-measurement. Selection, authorization construction, inference, training,
-validation decoding and test access remain prohibited in this task. The old
-local campaign is immutable history and contributes zero successor-table
-coverage.
+`confessor_pascal_cu126`. The old local campaign is immutable superseded history
+and contributes zero successor-table coverage. Do not rerun this campaign,
+resume the old suffix, ingest predecessor evidence, start another Pascal
+worker, alter runtime evidence or open G8_D. The next repository task is the
+successor-specific C3/C5 closeout implementation.
 
 PB_3C remains the latest pre-G8 scientific-engineering green and its ledger is
 retained below. This production-readiness repair is additive and does not alter
@@ -115,7 +130,7 @@ resolved selection-source identities, and must refuse to resume or adjudicate if
 
 **Everything in all four phases (PA, PB_1, PB_2, PB_3) is `done`, and PB_3C has corrected PB_3's
 fixed-modulation reference, its resumed-campaign validation and this hand-off.** The full BR-4 validation sweep
-has not run, G-8 is unresolved, no bandwidth ratio or operating point has been selected, nothing has
+has not run, G-8 is unresolved, the successor BlerTable is not frozen, no bandwidth ratio or operating point has been selected, nothing has
 been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented, and the test split is sealed
 until G-12 at W11. PR-1 (literature review), PR-2 (Gantt) and PR-9 (deployment dossier and
 author/guide acknowledgement) remain outstanding programme deliverables.
@@ -726,19 +741,18 @@ silently reinterpret earlier artifacts. This file remains the only operational
 cursor.
 
 **Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
-**Current phase:** G8_C is the clean Pascal successor path; the production
-transaction/coordinator is ready at zero coverage and no worker is running.
-The successor campaign is `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`,
-with `confessor` as its sole scientific writer and the exact two-device mapping
-bound in its production contracts. Selection, authorization, inference,
-training, validation decoding and test access have not started.
-**Current scientific state:** successor coverage is `0/3213`; the old local
-RTX4060 campaign is valid immutable history but superseded and contributes zero
-successor-table coverage; all protected counters are zero.
-**Exact next action:** owner review and explicit launch authorization. Until
-that separate authorization exists, run only the read-only successor verifier,
-profile authentication and coordinator plan/dry-run checks; never resume old
-ordinal 748 or create a full-strength result.
+**Current phase:** G8_C Pascal successor execution is complete at 3,213/3,213
+and its authenticated evidence is published. The successor campaign is
+`g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, with
+`confessor` as sole writer. Its runtime aggregate is complete, while the
+top-level successor `campaign_state.json` remains the immutable zero-coverage
+readiness marker. The old local RTX4060 campaign remains valid immutable history
+and contributes zero successor-table coverage.
+**Exact next action:** implement successor-specific C3/C5 closeout. The
+successor adapter may collect the accepted records but intentionally refuses to
+build a table until that closeout exists. Do not rerun or resume either campaign,
+start another Pascal worker, ingest old results, alter completed runtime evidence
+or start G8_D.
 
 ## G8_A — contract, structural enumeration, state and preflight
 

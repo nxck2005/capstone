@@ -106,6 +106,27 @@ FRONTIER_SECTIONS = (
     "### Cold-start: the first thing to do in a fresh session",
     "### The short version, in order",
 )
+
+# These are the three operational cursors that must agree about the completed
+# Pascal execution. `instructions/` is intentionally not part of the general
+# Markdown discovery scope, so RESUME.md is loaded explicitly for this narrow
+# high-value check below.
+PASCAL_CURSOR_DOCS = ("NEXT.md", "AGENTS.md", "instructions/RESUME.md")
+PASCAL_CURSOR_RE = re.compile(
+    r"<!--\s*capstone-current-pascal-state:\s*(?P<body>[^>]+?)\s*-->"
+)
+PASCAL_CURSOR_EXPECTED = {
+    "execution": "complete",
+    "coverage": "3213/3213",
+    "evidence": "published",
+    "next": "successor-specific-g8-c-c3-c5-closeout",
+    "bler_table": "not-frozen",
+    "g8_d": "closed",
+    "readiness_state": "immutable-zero-coverage-history",
+    "runtime_state": "completed-production-state",
+    "rerun": "forbidden",
+    "old_local": "immutable-zero-successor-coverage",
+}
 # --- sub-phase agreement, one level below the milestone --------------------------
 #
 # Check 6 reduces the declared frontier to a milestone token: `W4`. That is one
@@ -227,6 +248,83 @@ def live_lines(body: str) -> list[tuple[int, str]]:
     wherever they appear, which covers the completed rows of the task table.
     """
     return [(number, line) for number, line, _ in live_lines_with_sections(body)]
+
+
+def _parse_pascal_cursor(doc: str, body: str) -> tuple[dict[str, str] | None, list[str]]:
+    """Read one explicit current Pascal cursor, leaving append-only history alone."""
+    matches = list(PASCAL_CURSOR_RE.finditer(body))
+    if not matches:
+        return None, [f"{doc}: missing current Pascal cursor declaration"]
+    if len(matches) != 1:
+        return None, [f"{doc}: expected one current Pascal cursor declaration, found {len(matches)}"]
+
+    match = matches[0]
+    line = body.count("\n", 0, match.start()) + 1
+    fields: dict[str, str] = {}
+    malformed: list[str] = []
+    for item in match.group("body").split(";"):
+        item = item.strip()
+        if not item:
+            continue
+        key, separator, value = item.partition("=")
+        key, value = key.strip(), value.strip()
+        if not separator or not key or not value or key in fields:
+            malformed.append(item)
+            continue
+        fields[key] = value
+
+    missing = PASCAL_CURSOR_EXPECTED.keys() - fields.keys()
+    unexpected = fields.keys() - PASCAL_CURSOR_EXPECTED.keys()
+    findings: list[str] = []
+    if malformed:
+        findings.append(f"{doc}:{line}: malformed current Pascal cursor field(s): {', '.join(malformed)}")
+    if missing:
+        findings.append(
+            f"{doc}:{line}: current Pascal cursor is missing field(s): {', '.join(sorted(missing))}"
+        )
+    if unexpected:
+        findings.append(
+            f"{doc}:{line}: current Pascal cursor has unexpected field(s): {', '.join(sorted(unexpected))}"
+        )
+    return (fields if not findings else None), findings
+
+
+def pascal_cursor_findings(documents: dict[str, str]) -> list[str]:
+    """Require the live Pascal execution and next gate to agree across cursors.
+
+    Only the explicit cursor declarations are read. Dated checkpoint paragraphs,
+    struck historical sections and old campaign records may continue to describe
+    their then-current zero-coverage state without being rewritten.
+    """
+    parsed: dict[str, dict[str, str]] = {}
+    findings: list[str] = []
+    for doc in PASCAL_CURSOR_DOCS:
+        body = documents.get(doc)
+        if body is None:
+            findings.append(f"{doc}: missing operational cursor document")
+            continue
+        state, state_findings = _parse_pascal_cursor(doc, body)
+        findings.extend(state_findings)
+        if state is not None:
+            parsed[doc] = state
+
+    authoritative = parsed.get("NEXT.md")
+    if authoritative is None:
+        return findings
+    for field, expected in PASCAL_CURSOR_EXPECTED.items():
+        actual = authoritative.get(field)
+        if actual != expected:
+            findings.append(
+                f"NEXT.md: current Pascal cursor field {field!r} is {actual!r}; expected {expected!r}"
+            )
+    for doc, state in parsed.items():
+        for field in PASCAL_CURSOR_EXPECTED:
+            if state.get(field) != authoritative.get(field):
+                findings.append(
+                    f"{doc}: current Pascal cursor field {field!r} is {state.get(field)!r}, "
+                    f"but NEXT.md says {authoritative.get(field)!r}"
+                )
+    return findings
 
 
 def _objects(text: str) -> list[str]:
@@ -545,6 +643,28 @@ def main() -> int:
         f"current-document discovery ({len(text)} scanned, "
         f"{excluded_historical} valid historical plans excluded)"
     )
+
+    # The operational cursor check is deliberately separate from general document
+    # discovery: instructions/ is mostly append-only phase history, but RESUME.md
+    # is too important to omit from this one live-state invariant.
+    cursor_documents: dict[str, str] | None = None
+    if DOCS is None:
+        discovered_cursors = {
+            doc: (REPO / doc).read_text()
+            for doc in PASCAL_CURSOR_DOCS
+            if (REPO / doc).is_file()
+        }
+        # Small synthetic trees used by the older document-rule tests contain
+        # only NEXT.md; the real/default tree and any cursor-focused fixture
+        # contain the high-value operational files and therefore enter this
+        # check (including a missing-file finding when one is absent).
+        if len(discovered_cursors) > 1:
+            cursor_documents = discovered_cursors
+    elif DOCS is not None and all(doc in text for doc in PASCAL_CURSOR_DOCS):
+        cursor_documents = {doc: text[doc] for doc in PASCAL_CURSOR_DOCS}
+    if cursor_documents is not None:
+        findings.extend(pascal_cursor_findings(cursor_documents))
+        passed.append("Pascal G8_C current execution/next-gate cursors agree")
 
     # --- 1. Superseded values must carry the amendment that superseded them ----
     #
