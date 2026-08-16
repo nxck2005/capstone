@@ -468,10 +468,10 @@ def test_successor_merge_boundary_is_successor_only(tmp_path: Path, monkeypatch:
     root = tmp_path / "runtime"
     _run(root)
     production.reconcile_campaign(root)
-    records = collect_successor_results(root)
-    assert len(records) == 1
-    with pytest.raises(SuccessorMergeError, match="gated"):
-        build_successor_bler_table(records)
+    with pytest.raises(SuccessorMergeError, match="complete|3213"):
+        collect_successor_results(root)
+    with pytest.raises(SuccessorMergeError, match="complete C3 merge report"):
+        build_successor_bler_table([])
 
     foreign_root = tmp_path / "foreign"
     production.ensure_runtime_root(foreign_root)

@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=successor-specific-g8-c-c3-c5-closeout; bler_table=not-frozen; g8_d=closed; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-d-d0; bler_table=frozen; g8_d=authorized-not-started; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -43,10 +43,11 @@ immutable zero-coverage readiness history and must remain 0/3213. The separate
 completed production aggregate and is authoritative for the finished execution.
 No successor worker is running or may be started. Do not rerun the completed
 campaign, resume the old RTX4060 suffix, ingest predecessor evidence, or alter
-the completed runtime. The next repository task is successor-specific G8_C
-C3/C5 closeout; the current successor adapter intentionally fails closed until
-that tooling exists. Test and validation data, selection, authorization,
-inference and training remain prohibited here.
+the completed runtime. C3-C7 is green: the successor merge report, measured
+153-curve/3,213-point BlerTable and source/provenance closure are independently
+verified under `results/baseline/g8_pascal_successor/`. G8_D D0 is the next
+authorized gate but was not started here. Test and validation data, selection,
+authorization, inference and training remain prohibited here.
 
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
@@ -95,14 +96,14 @@ Then:
 
 ## Status
 
-**Current phase:** **Pascal G8_C successor execution is complete at 3213/3213 and
-published; no worker is running.** The authenticated campaign is
+**Current phase:** **Pascal G8_C successor execution and C3-C7 closeout are
+complete at 3213/3213 and published; no worker is running.** The authenticated campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
 and contributes zero successor-table coverage. Do not rerun this campaign,
 resume the old suffix, ingest predecessor evidence, start another Pascal
-worker, alter runtime evidence or open G8_D. The next repository task is the
-successor-specific C3/C5 closeout implementation.
+worker, alter runtime evidence or open G8_D. G8_D D0 is the next authorized
+gate; do not start it in this closeout.
 
 PB_3C remains the latest pre-G8 scientific-engineering green and its ledger is
 retained below. This production-readiness repair is additive and does not alter
@@ -128,12 +129,14 @@ campaign-opening manifest must additionally bind the SHA-256 of
 resolved selection-source identities, and must refuse to resume or adjudicate if any of them differs.
 **Changing the tie-break order after the sweep starts invalidates the campaign.**
 
-**Everything in all four phases (PA, PB_1, PB_2, PB_3) is `done`, and PB_3C has corrected PB_3's
-fixed-modulation reference, its resumed-campaign validation and this hand-off.** The full BR-4 validation sweep
-has not run, G-8 is unresolved, the successor BlerTable is not frozen, no bandwidth ratio or operating point has been selected, nothing has
-been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented, and the test split is sealed
-until G-12 at W11. PR-1 (literature review), PR-2 (Gantt) and PR-9 (deployment dossier and
-author/guide acknowledgement) remain outstanding programme deliverables.
+**Everything in all four phases (PA, PB_1, PB_2, PB_3) is `done`, PB_3C is
+complete, and G8_C C3-C7 is `done`.** The full BR-4 validation sweep and
+operating-point decision have not run, no bandwidth ratio has been selected,
+nothing has been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented,
+and the test split is sealed until G-12 at W11. G8_D D0 is authorized as the
+next gate but has not started. PR-1 (literature review), PR-2 (Gantt) and PR-9
+(deployment dossier and author/guide acknowledgement) remain outstanding
+programme deliverables.
 
 **PB_2 is complete, including its PB_2C correction.** `instructions/PB_2C.txt` is the durable
 instruction for that repair and its §18 addendum carries two normative decisions and four
@@ -741,18 +744,18 @@ silently reinterpret earlier artifacts. This file remains the only operational
 cursor.
 
 **Campaign start:** `39c43e327573f33011c561c6de22bd05ff93c068`.
-**Current phase:** G8_C Pascal successor execution is complete at 3,213/3,213
-and its authenticated evidence is published. The successor campaign is
+**Current phase:** G8_C Pascal successor execution and C3-C7 closeout are
+complete at 3,213/3,213 and its authenticated evidence is published. The successor campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, with
 `confessor` as sole writer. Its runtime aggregate is complete, while the
 top-level successor `campaign_state.json` remains the immutable zero-coverage
 readiness marker. The old local RTX4060 campaign remains valid immutable history
 and contributes zero successor-table coverage.
-**Exact next action:** implement successor-specific C3/C5 closeout. The
-successor adapter may collect the accepted records but intentionally refuses to
-build a table until that closeout exists. Do not rerun or resume either campaign,
+**Exact next action:** begin the repository-defined G8_D D0 gate procedure. The
+successor merge report, measured-only BlerTable and source/provenance closure
+are frozen and independently verified; do not rerun or resume either campaign,
 start another Pascal worker, ingest old results, alter completed runtime evidence
-or start G8_D.
+or advance beyond D0 in this session.
 
 ## G8_A — contract, structural enumeration, state and preflight
 
@@ -1024,8 +1027,8 @@ coverage decision or specification item changes.
 | C1 freeze characterization sources, schemas and orchestration | superseded by C1C | `1363fa73338e9d44151f751bf1bba47f73812ebb` | historical: `.venv/bin/python tools/gen_g8_bler_characterization_manifest.py`; epoch-1 restart remains frozen v1 history | epoch-1 six C-owned sources and manifest remain byte-identical; no epoch-1 file was edited | epoch-1 manifest `g8charsrc-6926319673ca1f55b95f8746062518c12cfa499aa827448e67850b5a1f74702a`, SHA-256 `a917f839f945232e85852d6d27f02de4b5dc272adc72b1966a95e9b5e62a014e`, 6,672 bytes | historical C1 completion `50a62bba4c806f88066993a0cfcf99fd979e5d22`; preserved as history | epoch 1 accepted ordinals 0–178; no amendment |
 | C1C add source epoch 2 and repair orchestration/provenance | merged | `979bb5cc4f1bc36b3e46e0c5fccb219ae1c83d67` | `.venv/bin/python tools/gen_g8_bler_characterization_manifest_v2.py --register`; corrected restart: `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128` | additive v2 sources, v2 manifest, tests and harness isolation; v1 sources/manifest, runner, contracts and raw evidence unchanged | epoch-2 manifest `g8charsrc2-d9a56b9a0c01c877379fad42c10a1d043329f2e3e47263f7ce05874d440db998`, SHA-256 `b654e5d6ffa585882c872a7ef6965b33ea486365f449ad10a632d3e0d0367660`, 9,051 bytes; registered state SHA `4ec3ae291de0f4c24426b574f4022a6ab56485b00af4a341bee4f71509c38660`; focused tests, full suite, post-data verifier and CPU-lock check green | PR-1 `#1` merged by normal merge at `6e05e4c007ef001d05df0f369156b1eeec0ddd8e`; local/origin/remote parity confirmed | 179 accepted under epoch 1; ordinal 179 request-only attempts 1,2; next legal attempt 3; protected counters 0; no specification amendment |
 | C2 execute resumable full-strength characterization | paused at user-requested durable checkpoint | `d7f0fe82408f976251d017a4b2aa727390b5cf41` | next session first inspect/reconcile, then push a fresh marker before `.venv/bin/python tools/run_g8_bler_characterization_v2.py --root /home/nick/projects/capstone/results/baseline/g8/work_units --device auto --shard-count auto --batch-size auto --max-units-per-worker-batch 128`; resume at ordinal 748 attempt 2 | production root, authenticated request/result/state evidence and ledger only; no validation, codec, inference, training, selection, authorization or test | deliberate stop exit 143 after five new complete units 743–747; ordinal 743 completed at legal attempt 2; ordinal 748 request-only attempt 1; B3 classifications: 748 complete, one claimed-request-published, 2,464 absent, all failure/repair/nonmergeable classes 0; fresh plan digest `82e5dd2bd5a78c1f1f6e44a201ee1d0df47ed4e1a59035cdebfe721aa5232c2c`; campaign-state SHA `4a285ee7746f197a96c23230a0aac945c581c4ec8d40bc98bb3fa86b46f68ddd`; source-manifest verifier PASS | this session-stop checkpoint; push parity required before ending; no next marker | 748/3213 accepted; 2465 remaining including ordinal 748 attempt 2; protected counters 0; no amendment |
-| C3 independently merge all work-unit evidence | not-started | after C2 | first: merge tool in validation-only mode; restart: same merge command | merge report and verifier only; no simulation or retry | pending | pending | no interpolation/extrapolation; no amendment |
-| C4 verify exact complete required coverage | not-started | after C3 | first: independent coverage verifier/mutation matrix; restart: same verifier | merge registration only after 3,213/3,213 proof | pending | pending | 16,065,000 accepted trials required; no amendment |
-| C5 build and freeze the G-8 BlerTable | not-started | after C4 | first: table construction/check; restart: same table command | table, loader and verifier; no G-2 substitution or selection | pending | pending | measured points only; no amendment |
-| C6 source-manifest and mutation verification | not-started | after C5 | first: source/history/mutation block; restart: exact failing subcommand | bound sources, raw evidence, reports and tests; no post-data source rewrite | pending | pending | no amendment expected |
-| C7 full verification and G8_D handoff | not-started | after C6 | first: final upstream/G8_C gates; restart: exact G8_D search command recorded in state | final state/docs/ledger; no G8_D execution or validation pixels | pending | pending | final G8_C counters all 0; no amendment |
+| C3 independently merge all work-unit evidence | done | `328a2f3` | `.venv/bin/python tools/closeout_g8_pascal_successor.py --write`; restart: `.venv/bin/python tools/verify_g8_pascal_closeout.py` | successor merge report only; no simulation or retry | **PASS:** `successor_bler_merge_report.json`, 3,213 authority-ordered rows; report ID `g8pmerge-2e861c39d8981af0e2d57dc8ded5828b9ed56a1459491e04929b5e9c3418de89`; SHA-256 `71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8` | **This closeout commit; publication/parity recorded by Git history** | raw request/result/state hashes and retry history retained; no amendment |
+| C4 verify exact complete required coverage | done | `328a2f3` | `.venv/bin/python tools/verify_g8_pascal_closeout.py` | exact frozen authority equality before table construction | **PASS:** required/observed identity sets equal; 3,213/3,213; missing, duplicate, unknown, failed, terminal-invalid and unresolved all 0; 16,065,000 trials | **This closeout commit; publication/parity recorded by Git history** | 5000 trials per point; no amendment |
+| C5 build and freeze the G-8 BlerTable | done | `328a2f3` | `.venv/bin/python -c "from baseline.g8_pascal_merge import load_successor_bler_table; load_successor_bler_table()"` | successor table and loader only; no G-2 substitution or selection | **PASS:** `successor_bler_table.json`; ID `g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f`; SHA-256 `2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5`; 153 curves, 3,213 measured points; interpolation/imputation/extrapolation false | **This closeout commit; publication/parity recorded by Git history** | measured zero BLER preserved; predecessor contribution none; no amendment |
+| C6 source-manifest and mutation verification | done | `328a2f3` | `.venv/bin/python tools/verify_g8_pascal_closeout.py` | closeout source/provenance, immutable runtime and mutation checks | **PASS:** `successor_closeout_provenance.json`; ID `g8pcloseout-8cc5be86e6bbb350ca35c1806686e751f4528ad32aa7083e9a754c4849feba70`; SHA-256 `efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f`; measurement source remains `426110b`; closeout source is a deterministic later consumer; runtime tar SHA `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` | **This closeout commit; publication/parity recorded by Git history** | source bytes, report/table IDs and raw artifact hashes rechecked; no amendment |
+| C7 full verification and G8_D handoff | done | `328a2f3` | `.venv/bin/python tools/verify_g8_pascal_closeout.py`; next gate: G8_D D0 only | final upstream/G8_C gates and handoff; no G8_D execution or validation pixels | **PASS:** successor production verifier, independent closeout verifier, exact coverage, table loader, protected counters, test access and predecessor isolation all green; G8_C terminal verdict earned | **This closeout commit; publication/parity recorded by Git history** | final counters all 0; G8_D D0 authorized but not started; no amendment |

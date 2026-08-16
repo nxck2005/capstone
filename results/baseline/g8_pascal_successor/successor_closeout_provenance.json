@@ -1,0 +1,107 @@
+{
+  "artifact_role": "g8_c_pascal_successor_closeout_provenance",
+  "artifacts": {
+    "bler_table": {
+      "bytes": 5774378,
+      "path": "results/baseline/g8_pascal_successor/successor_bler_table.json",
+      "sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5",
+      "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f"
+    },
+    "merge_report": {
+      "bytes": 13998520,
+      "path": "results/baseline/g8_pascal_successor/successor_bler_merge_report.json",
+      "report_id": "g8pmerge-2e861c39d8981af0e2d57dc8ded5828b9ed56a1459491e04929b5e9c3418de89",
+      "sha256": "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8"
+    }
+  },
+  "authority": {
+    "bytes": 8610156,
+    "identity_count": 3213,
+    "ordered_identity_set_sha256": "da6bca9765042abb5749459ba9f8b626ddabe40fa40508c237b09d57838645cb",
+    "path": "results/baseline/g8/required_bler_identities.json",
+    "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
+  },
+  "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+  "checkpoint": "C6",
+  "closeout_source": {
+    "closeout_commit_is_resolved_by_git_publication": true,
+    "measurement_source_commit_is_not_closeout_commit": true,
+    "role": "deterministic_post_measurement_merge_and_table_consumer",
+    "scientific_execution_performed": false,
+    "source_digest": "4b25ea37c3185c489a8db3f92edd65fb5611704eb752f06efb6d58e9aaf0bdde",
+    "sources": [
+      {
+        "bytes": 49967,
+        "path": "src/baseline/g8_pascal_merge.py",
+        "role": "successor_c3_c5_merge_and_table_builder",
+        "sha256": "1343ca754c5f529cc36fd2676574ef83c064ab9452ea92828257ac2ca4d484f3"
+      },
+      {
+        "bytes": 7953,
+        "path": "tools/closeout_g8_pascal_successor.py",
+        "role": "successor_closeout_artifact_freezer",
+        "sha256": "e024dd76c52407b1fed8846adf0d5ff7d94e1ebb3462409e298fb67bb20a4559"
+      },
+      {
+        "bytes": 37313,
+        "path": "tools/verify_g8_pascal_closeout.py",
+        "role": "independent_successor_c3_c7_verifier",
+        "sha256": "c0cbe8ec3700556e80a781f1471fb453e6b5c8cc348731dc5f45b7058144f036"
+      }
+    ]
+  },
+  "closure_id": "g8pcloseout-8cc5be86e6bbb350ca35c1806686e751f4528ad32aa7083e9a754c4849feba70",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "measurement_source": {
+    "commit": "426110b05161e73e4d819bdc01f4857c012d6d59",
+    "execution_profile_id": "confessor_pascal_cu126",
+    "production_contract_sha256": "dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b",
+    "production_runner_contract_sha256": "cc7520e67b5ae181a830e13d6c9314c0bd46ba5cc0f2ae23fb0f98d13619f89b",
+    "production_source_manifest_sha256": "1771f42b8434295e6dca3d3219fb4caa31cf3fd31eb01fdfcfd98c4b841a8443",
+    "role": "authenticated_production_measurement_source",
+    "runtime_relative_path": "results/baseline/g8_pascal_successor/runtime",
+    "runtime_tree_sha256": "dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b",
+    "scientific_execution_performed": true
+  },
+  "mutation_checks": {
+    "merge_report_id_recomputed": true,
+    "request_result_state_hashes_rechecked": true,
+    "runtime_tree_hash_rechecked": true,
+    "source_bytes_rehashed": true,
+    "table_id_recomputed": true
+  },
+  "phase": "G8_C",
+  "predecessor_isolation": {
+    "old_rtx4060_profile_id": "local_4060_cu130",
+    "predecessor_campaign_id": "g8-8acd86ad87ef223187b69a2caf6ab8d29de3700dac9d5a60bb421cb228d8900a",
+    "predecessor_table_contribution": "none",
+    "successor_campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca"
+  },
+  "retry_history": {
+    "accepted_attempts_contribute": 1,
+    "failed_result_attempt_count": 2,
+    "historical_failed_attempts_contribute": 0,
+    "preserved": true,
+    "request_only_attempt_count": 0,
+    "retry_ordinals": [
+      0,
+      1
+    ]
+  },
+  "safety": {
+    "extrapolation_used": false,
+    "imputation_used": false,
+    "interpolation_used": false,
+    "old_result_ingest": false,
+    "protected_counters": {
+      "inference": 0,
+      "test_access": 0,
+      "training": 0,
+      "validation_decoding": 0
+    },
+    "required_identity_count": 3213,
+    "test_access": 0,
+    "trials_per_identity": 5000
+  },
+  "schema_version": 1
+}
