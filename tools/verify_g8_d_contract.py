@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent verifier for the G8_D D4 pre-data contract.
+"""Independent verifier for the G8_D D5 pre-data contract.
 
 The expected schema and safety assertions are intentionally restated here;
 the verifier does not import the contract builder.  It does import the final
@@ -82,7 +82,7 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
         "work_unit_ordering", "phase_order", "source_bindings", "safety", "next_gate",
     }
     _require(set(value) == required, "G8_D contract schema differs")
-    _require((value["schema_version"], value["artifact_role"], value["phase"], value["checkpoint"], value["status"]) == (1, "g8_d_validation_measurement_contract", "G8_D", "D4", "clean_classifier_records_ready"), "G8_D contract header differs")
+    _require((value["schema_version"], value["artifact_role"], value["phase"], value["checkpoint"], value["status"]) == (1, "g8_d_validation_measurement_contract", "G8_D", "D5", "atomic_resume_ready"), "G8_D contract header differs")
     contract_id = value["contract_id"]
     campaign_id = value["campaign_id"]
     _require(isinstance(contract_id, str) and contract_id.startswith("g8dcontract-"), "contract ID prefix differs")
@@ -129,11 +129,26 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
     for field in ("checkpoint_sha256", "classifier_config_sha256", "dataset_version", "manifest_sha256"):
         _digest(classifier[field], f"classifier {field}")
     _require(set(value["phase_order"]) == {"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"}, "phase order differs")
-    _require(value["next_gate"] == "G8_D/D5", "next gate is not D5")
+    _require(value["next_gate"] == "G8_D/D6", "next gate is not D6")
     _require(value["identity_schema"]["schema_version"] == IDENTITY_SCHEMA_VERSION, "identity schema version differs")
     _require(value["cache_schema"]["codec_cache_schema_version"] == CODEC_CACHE_SCHEMA_VERSION, "codec cache schema differs")
     _require(value["record_schema"]["schema_version"] == RECORD_SCHEMA_VERSION and value["record_schema"]["measured_accuracy_requires_counts"] is True, "record schema differs")
-    _require(value["resume_schema"]["schema_version"] == RESUME_SCHEMA_VERSION and value["resume_schema"]["completed_must_be_exact_prefix"] is True, "resume schema differs")
+    resume = value["resume_schema"]
+    _require(resume["schema_version"] == RESUME_SCHEMA_VERSION and resume["completed_must_be_exact_prefix"] is True, "resume schema differs")
+    _require(resume["state_fields"] == [
+        "schema_version", "artifact_role", "campaign_id", "contract_id", "work_unit_order",
+        "completed_work_unit_ids", "in_progress_work_unit_id", "in_progress_record_id",
+        "in_progress_cache_object_id", "in_progress_cache_reference_sha256", "record_refs",
+        "cache_refs", "aggregate_ref", "state_sha256",
+    ], "resume state fields differ")
+    _require(resume["campaign_lock_is_exclusive"] is True and resume["state_publication_is_atomic"] is True, "resume locking/publication differs")
+    _require(resume["same_directory_fsync_required"] is True and resume["aggregate_history_must_be_exact_prefix"] is True, "resume durability differs")
+    _require(resume["complete_output_is_reused"] is True and resume["silent_overwrite_is_forbidden"] is True, "resume reuse/overwrite semantics differ")
+    _require(resume["crash_recovery_hooks"] == [
+        "before_cache_publication", "after_cache_publication", "before_record_publication",
+        "after_record_publication", "before_aggregate_publication", "after_aggregate_publication",
+        "before_state_publication", "after_state_publication",
+    ], "resume crash boundary schema differs")
     _require(value["cache_schema"]["emitted_bytes_authoritative"] is True, "emitted bytes are not authoritative")
     _require(value["cache_schema"]["structural_infeasibility_is_distinct"] is True and value["cache_schema"]["codec_infeasibility_is_recorded"] is True, "infeasibility semantics differ")
     _require(value["cache_schema"]["source_bytes_bound"] is True and value["cache_schema"]["canonical_pixels_bound"] is True, "image binding is incomplete")

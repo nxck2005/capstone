@@ -60,7 +60,9 @@ def _bler_identity() -> dict[str, object]:
 
 def test_contract_artifact_and_independent_verifier_pass() -> None:
     contract = g8_d.build_g8_d_contract()
-    assert contract["next_gate"] == "G8_D/D5"
+    assert contract["checkpoint"] == "D5"
+    assert contract["status"] == "atomic_resume_ready"
+    assert contract["next_gate"] == "G8_D/D6"
     assert contract["g8_c_binding"]["table_id"].startswith("g8pblertable-")
     assert contract["g8_c_binding"]["measured_points"] == 3213
     assert all(item["split"] == "val" for item in contract["validation_split_bindings"])

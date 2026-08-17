@@ -20,9 +20,11 @@ import math
 import os
 import re
 import base64
+import fcntl
 import stat
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
@@ -57,6 +59,9 @@ __all__ = [
     "ReconstructionResult",
     "ReconstructionCache",
     "CleanClassifierMeasurementRecord",
+    "CacheReference",
+    "ResumeRunResult",
+    "AtomicMeasurementCampaign",
     "canonical_json",
     "rendered_json",
     "sha256_bytes",
@@ -1290,7 +1295,7 @@ class CleanClassifierMeasurementRecord:
             raise G8DContractError("clean measurement reconstruction output shape differs from canonical image")
         if self.reconstruction.codec_configuration_id != self.candidate.codec_configuration_id:
             raise G8DContractError("clean measurement reconstruction and candidate codec identities differ")
-        if not isinstance(self.reconstruction_cache_object_id, str) or not self.reconstruction_cache_object_id.startswith("g8dreconobj-"):
+        if not isinstance(self.reconstruction_cache_object_id, str) or re.fullmatch(r"g8dreconobj-[0-9a-f]{64}", self.reconstruction_cache_object_id) is None:
             raise G8DContractError("clean measurement reconstruction cache object ID is invalid")
         _nonnegative_int(self.correct_count, "clean measurement correct_count")
         _positive_int(self.total_count, "clean measurement total_count")
@@ -1420,6 +1425,724 @@ def current_codec_snapshot() -> dict[str, Any]:
     return _copy_json(_codec_snapshot())
 
 
+@dataclass(frozen=True)
+class CacheReference:
+    """Durable reference to one already authenticated reconstruction object."""
+
+    object_id: str
+    reference_sha256: str
+
+    FIELDS: ClassVar[tuple[str, ...]] = ("object_id", "reference_sha256")
+
+    def __post_init__(self) -> None:
+        if re.fullmatch(r"g8dreconobj-[0-9a-f]{64}", self.object_id) is None:
+            raise G8DContractError("cache reference object ID is invalid")
+        _require_digest(self.reference_sha256, "cache reference SHA-256")
+
+    def as_dict(self) -> dict[str, str]:
+        return {"object_id": self.object_id, "reference_sha256": self.reference_sha256}
+
+
+@dataclass(frozen=True)
+class ResumeRunResult:
+    """Outcome of one atomic suffix step or an already complete campaign."""
+
+    work_unit_id: str | None
+    record_id: str | None
+    aggregate_id: str | None
+    completed_count: int
+    reused: bool
+    cache_reused: bool
+
+
+class AtomicMeasurementCampaign:
+    """Crash-safe exact-prefix resume for bounded validation-measurement records.
+
+    This class publishes no images and invokes no classifier.  A caller supplies
+    a deterministic record factory; the campaign only authenticates its output
+    and commits the record/cache-reference/aggregate transaction.  The state
+    file is mutable, but every replacement occurs under the campaign flock,
+    through a same-directory fsynced staging file, and with a semantic digest.
+    """
+
+    STATE_SCHEMA_VERSION: ClassVar[int] = RESUME_SCHEMA_VERSION
+    STATE_FIELDS: ClassVar[tuple[str, ...]] = (
+        "schema_version",
+        "artifact_role",
+        "campaign_id",
+        "contract_id",
+        "work_unit_order",
+        "completed_work_unit_ids",
+        "in_progress_work_unit_id",
+        "in_progress_record_id",
+        "in_progress_cache_object_id",
+        "in_progress_cache_reference_sha256",
+        "record_refs",
+        "cache_refs",
+        "aggregate_ref",
+        "state_sha256",
+    )
+    REF_FIELDS: ClassVar[tuple[str, ...]] = ("work_unit_id", "record_id", "sha256")
+    AGGREGATE_REF_FIELDS: ClassVar[tuple[str, ...]] = ("aggregate_id", "sha256", "record_count")
+    HOOKS: ClassVar[tuple[str, ...]] = (
+        "before_cache_publication",
+        "after_cache_publication",
+        "before_record_publication",
+        "after_record_publication",
+        "before_aggregate_publication",
+        "after_aggregate_publication",
+        "before_state_publication",
+        "after_state_publication",
+    )
+
+    def __init__(
+        self,
+        root: Path,
+        *,
+        contract_id: str,
+        campaign_id: str,
+        work_units: Sequence[WorkUnitIdentity],
+        record_factory: Callable[[WorkUnitIdentity], CleanClassifierMeasurementRecord],
+        hook: Callable[[str, WorkUnitIdentity], None] | None = None,
+    ) -> None:
+        if not isinstance(contract_id, str) or not contract_id.startswith("g8dcontract-"):
+            raise G8DContractError("resume contract ID is invalid")
+        if not isinstance(campaign_id, str) or not campaign_id.startswith("g8d-"):
+            raise G8DContractError("resume campaign ID is invalid")
+        if not isinstance(work_units, Sequence) or isinstance(work_units, (str, bytes)) or not work_units:
+            raise G8DContractError("resume work-unit order is empty")
+        if not callable(record_factory):
+            raise G8DContractError("resume record factory is not callable")
+        ordered = tuple(work_units)
+        ids: list[str] = []
+        candidate_ids: set[str] = set()
+        for ordinal, work_unit in enumerate(ordered):
+            if not isinstance(work_unit, WorkUnitIdentity):
+                raise G8DContractError("resume work-unit order contains a non-identity")
+            if work_unit.campaign_id != campaign_id or work_unit.ordinal != ordinal:
+                raise G8DContractError("resume work-unit order is not the exact contiguous prefix basis")
+            if work_unit.identity_id in ids:
+                raise G8DContractError("resume work-unit order contains a duplicate")
+            if work_unit.candidate_identity_id in candidate_ids:
+                raise G8DContractError("resume work-unit order contains a duplicate candidate")
+            ids.append(work_unit.identity_id)
+            candidate_ids.add(work_unit.candidate_identity_id)
+        self.root = Path(root).resolve()
+        self.contract_id = contract_id
+        self.campaign_id = campaign_id
+        self.work_units = ordered
+        self._work_unit_ids = tuple(ids)
+        self._work_unit_by_id = {work_unit.identity_id: work_unit for work_unit in ordered}
+        self.record_factory = record_factory
+        self.hook = hook
+        self.state_path = self.root / "campaign_state.json"
+        self.lock_path = self.root / ".campaign.lock"
+        self.records_dir = self.root / "records"
+        self.cache_dir = self.root / "cache_references"
+        self.aggregates_dir = self.root / "aggregates"
+
+        try:
+            contract = json.loads((REPO_ROOT / "results/baseline/g8_d/measurement_contract.json").read_bytes())
+        except (OSError, json.JSONDecodeError) as exc:
+            raise G8DContractError(f"cannot authenticate current G8_D contract: {exc}") from None
+        if not isinstance(contract, Mapping) or contract.get("contract_id") != contract_id:
+            raise G8DContractError("resume contract differs from the current authenticated contract")
+        if contract.get("campaign_id") != campaign_id:
+            raise G8DContractError("resume campaign differs from the current authenticated contract")
+
+    @contextmanager
+    def _campaign_lock(self) -> Any:
+        self.root.mkdir(parents=True, exist_ok=True)
+        try:
+            existing = self.lock_path.lstat()
+        except FileNotFoundError:
+            existing = None
+        if existing is not None and (stat.S_ISLNK(existing.st_mode) or not stat.S_ISREG(existing.st_mode)):
+            raise G8DContractError("resume lock path is not a regular file")
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        try:
+            descriptor = os.open(self.lock_path, os.O_RDWR | os.O_CREAT | nofollow, 0o600)  # literal-ok: private campaign lock mode
+        except OSError as exc:
+            raise G8DContractError(f"cannot open resume lock: {exc}") from None
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            os.close(descriptor)
+
+    @staticmethod
+    def _atomic_replace_json(path: Path, value: Mapping[str, Any]) -> bytes:
+        payload = rendered_json(value)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            existing = path.lstat()
+        except FileNotFoundError:
+            existing = None
+        if existing is not None and (stat.S_ISLNK(existing.st_mode) or not stat.S_ISREG(existing.st_mode)):
+            raise G8DContractError(f"resume JSON target is not a regular file: {path}")
+        descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+        temporary = Path(temporary_name)
+        try:
+            with os.fdopen(descriptor, "wb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+            _fsync_directory(path.parent)
+            return payload
+        finally:
+            temporary.unlink(missing_ok=True)
+            _fsync_directory(path.parent)
+
+    def _state_payload(
+        self,
+        *,
+        completed_work_unit_ids: Sequence[str],
+        in_progress_work_unit_id: str | None,
+        in_progress_record_id: str | None,
+        in_progress_cache_object_id: str | None,
+        in_progress_cache_reference_sha256: str | None,
+        record_refs: Sequence[Mapping[str, Any]],
+        cache_refs: Sequence[Mapping[str, Any]],
+        aggregate_ref: Mapping[str, Any] | None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "schema_version": self.STATE_SCHEMA_VERSION,
+            "artifact_role": "g8_d_atomic_measurement_campaign_state",
+            "campaign_id": self.campaign_id,
+            "contract_id": self.contract_id,
+            "work_unit_order": list(self._work_unit_ids),
+            "completed_work_unit_ids": list(completed_work_unit_ids),
+            "in_progress_work_unit_id": in_progress_work_unit_id,
+            "in_progress_record_id": in_progress_record_id,
+            "in_progress_cache_object_id": in_progress_cache_object_id,
+            "in_progress_cache_reference_sha256": in_progress_cache_reference_sha256,
+            "record_refs": [_copy_json(item) for item in record_refs],
+            "cache_refs": [_copy_json(item) for item in cache_refs],
+            "aggregate_ref": None if aggregate_ref is None else _copy_json(aggregate_ref),
+        }
+        payload["state_sha256"] = sha256_bytes(canonical_json(payload))
+        return payload
+
+    def _write_state_locked(self, state: Mapping[str, Any]) -> dict[str, Any]:
+        without_digest = dict(state)
+        without_digest.pop("state_sha256", None)
+        proposed = dict(without_digest)
+        proposed["state_sha256"] = sha256_bytes(canonical_json(without_digest))
+        self._atomic_replace_json(self.state_path, proposed)
+        return proposed
+
+    def _new_state(self) -> dict[str, Any]:
+        return self._state_payload(
+            completed_work_unit_ids=(),
+            in_progress_work_unit_id=None,
+            in_progress_record_id=None,
+            in_progress_cache_object_id=None,
+            in_progress_cache_reference_sha256=None,
+            record_refs=(),
+            cache_refs=(),
+            aggregate_ref=None,
+        )
+
+    @staticmethod
+    def _safe_children(directory: Path) -> list[Path]:
+        try:
+            mode = directory.lstat().st_mode
+        except FileNotFoundError:
+            return []
+        if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+            raise G8DContractError(f"resume artifact directory is not a real directory: {directory}")
+        children = list(directory.iterdir())
+        for child in children:
+            child_mode = child.lstat().st_mode
+            if stat.S_ISLNK(child_mode) or not stat.S_ISREG(child_mode):
+                raise G8DContractError(f"resume artifact entry is not a regular file: {child}")
+        return children
+
+    def _assert_clean_before_initialize_locked(self) -> None:
+        for child in self._safe_children(self.root):
+            if child.name == self.lock_path.name:
+                continue
+            if child.name in {self.records_dir.name, self.cache_dir.name, self.aggregates_dir.name}:
+                if self._safe_children(child):
+                    raise G8DContractError("resume state is absent but artifact evidence already exists")
+                continue
+            raise G8DContractError(f"unknown resume root entry: {child.name}")
+
+    def initialize(self) -> dict[str, Any]:
+        with self._campaign_lock():
+            try:
+                self.state_path.lstat()
+            except FileNotFoundError:
+                self._assert_clean_before_initialize_locked()
+                return self._write_state_locked(self._new_state())
+            self._validate_state_locked()
+            return self.read_state_locked()
+
+    def _read_canonical_json(self, path: Path, label: str) -> dict[str, Any]:
+        try:
+            raw = path.read_bytes()
+            value = json.loads(raw)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise G8DContractError(f"cannot read {label}: {exc}") from None
+        if not isinstance(value, dict) or raw != rendered_json(value):
+            raise G8DContractError(f"{label} is not canonical rendered JSON")
+        return value
+
+    def _record_path(self, work_unit_id: str) -> Path:
+        return self.records_dir / f"{work_unit_id}.json"
+
+    def _cache_path(self, object_id: str) -> Path:
+        return self.cache_dir / f"{object_id}.json"
+
+    def _read_record(self, work_unit: WorkUnitIdentity) -> tuple[CleanClassifierMeasurementRecord, bytes] | None:
+        path = self._record_path(work_unit.identity_id)
+        try:
+            mode = path.lstat().st_mode
+        except FileNotFoundError:
+            return None
+        if stat.S_ISLNK(mode) or not stat.S_ISREG(mode):
+            raise G8DContractError("resume record path is not a regular file")
+        raw = path.read_bytes()
+        value = self._read_canonical_json(path, "resume record")
+        record = CleanClassifierMeasurementRecord.from_mapping(value)
+        if record.work_unit.identity_id != work_unit.identity_id:
+            raise G8DContractError("resume record work-unit identity differs")
+        if value["record_id"] != record.record_id:
+            raise G8DContractError("resume record ID differs")
+        return record, raw
+
+    def _read_cache_reference(self, work_unit: WorkUnitIdentity, object_id: str) -> tuple[CacheReference, bytes] | None:
+        path = self._cache_path(object_id)
+        try:
+            mode = path.lstat().st_mode
+        except FileNotFoundError:
+            return None
+        if stat.S_ISLNK(mode) or not stat.S_ISREG(mode):
+            raise G8DContractError("resume cache reference path is not a regular file")
+        raw = path.read_bytes()
+        value = self._read_canonical_json(path, "resume cache reference")
+        required = {"schema_version", "artifact_role", "work_unit_id", "record_id", "cache_object_id"}
+        if set(value) != required:
+            raise G8DContractError("resume cache reference schema differs")
+        if value["schema_version"] != CODEC_CACHE_SCHEMA_VERSION or value["artifact_role"] != "g8_d_reconstruction_cache_reference":
+            raise G8DContractError("resume cache reference header differs")
+        if value["work_unit_id"] != work_unit.identity_id or value["cache_object_id"] != object_id:
+            raise G8DContractError("resume cache reference identity differs")
+        return CacheReference(object_id, sha256_bytes(raw)), raw
+
+    def _record_ref(self, work_unit: WorkUnitIdentity, record: CleanClassifierMeasurementRecord, raw: bytes) -> dict[str, Any]:
+        return {
+            "work_unit_id": work_unit.identity_id,
+            "record_id": record.record_id,
+            "sha256": sha256_bytes(raw),
+        }
+
+    def _cache_ref(self, work_unit: WorkUnitIdentity, reference: CacheReference) -> dict[str, Any]:
+        return {
+            "work_unit_id": work_unit.identity_id,
+            "object_id": reference.object_id,
+            "sha256": reference.reference_sha256,
+        }
+
+    def _publish_cache_reference_locked(
+        self,
+        work_unit: WorkUnitIdentity,
+        record: CleanClassifierMeasurementRecord,
+    ) -> CacheReference:
+        metadata = {
+            "schema_version": CODEC_CACHE_SCHEMA_VERSION,
+            "artifact_role": "g8_d_reconstruction_cache_reference",
+            "work_unit_id": work_unit.identity_id,
+            "record_id": record.record_id,
+            "cache_object_id": record.reconstruction_cache_object_id,
+        }
+        payload = rendered_json(metadata)
+        path = self._cache_path(record.reconstruction_cache_object_id)
+        publish_immutable_object(path, payload)
+        return CacheReference(record.reconstruction_cache_object_id, sha256_bytes(payload))
+
+    def _publish_record_locked(
+        self,
+        work_unit: WorkUnitIdentity,
+        record: CleanClassifierMeasurementRecord,
+    ) -> tuple[CleanClassifierMeasurementRecord, bytes]:
+        payload = rendered_json(record.as_dict())
+        path = self._record_path(work_unit.identity_id)
+        publish_immutable_object(path, payload)
+        loaded = self._read_record(work_unit)
+        if loaded is None:
+            raise G8DContractError("resume record disappeared after immutable publication")
+        return loaded
+
+    def _aggregate_payload(
+        self,
+        work_units: Sequence[WorkUnitIdentity],
+        records: Sequence[CleanClassifierMeasurementRecord],
+        record_refs: Sequence[Mapping[str, Any]],
+    ) -> dict[str, Any]:
+        if len(work_units) != len(records) or len(records) != len(record_refs):
+            raise G8DContractError("resume aggregate inputs have different lengths")
+        body: dict[str, Any] = {
+            "schema_version": RECORD_SCHEMA_VERSION,
+            "artifact_role": "g8_d_validation_measurement_aggregate",
+            "campaign_id": self.campaign_id,
+            "contract_id": self.contract_id,
+            "work_unit_ids": [work_unit.identity_id for work_unit in work_units],
+            "record_ids": [record.record_id for record in records],
+            "record_sha256s": [str(ref["sha256"]) for ref in record_refs],
+            "correct_count": sum(record.correct_count for record in records),
+            "total_count": sum(record.total_count for record in records),
+            "accuracy_derivation": "sum(correct_count) / sum(total_count)",
+        }
+        body["accuracy"] = body["correct_count"] / body["total_count"]
+        body["aggregate_id"] = "g8daggregate-" + sha256_bytes(canonical_json(body))
+        return body
+
+    def _aggregate_ref(self, body: Mapping[str, Any], raw: bytes) -> dict[str, Any]:
+        return {
+            "aggregate_id": body["aggregate_id"],
+            "sha256": sha256_bytes(raw),
+            "record_count": len(body["work_unit_ids"]),
+        }
+
+    def _publish_aggregate_locked(
+        self,
+        work_units: Sequence[WorkUnitIdentity],
+        records: Sequence[CleanClassifierMeasurementRecord],
+        record_refs: Sequence[Mapping[str, Any]],
+    ) -> tuple[dict[str, Any], bytes]:
+        body = self._aggregate_payload(work_units, records, record_refs)
+        payload = rendered_json(body)
+        path = self.aggregates_dir / f"{body['aggregate_id']}.json"
+        publish_immutable_object(path, payload)
+        return body, payload
+
+    def _invoke_hook(self, name: str, work_unit: WorkUnitIdentity) -> None:
+        if name not in self.HOOKS:
+            raise G8DContractError("unknown resume hook")
+        if self.hook is not None:
+            self.hook(name, work_unit)
+
+    def _validate_state_header(self, value: Mapping[str, Any], raw: bytes) -> dict[str, Any]:
+        state = _strict_object(value, self.STATE_FIELDS, "resume campaign state")
+        if state["schema_version"] != self.STATE_SCHEMA_VERSION or state["artifact_role"] != "g8_d_atomic_measurement_campaign_state":
+            raise G8DContractError("resume state header differs")
+        if state["campaign_id"] != self.campaign_id or state["contract_id"] != self.contract_id:
+            raise G8DContractError("resume state contract or campaign differs")
+        expected_state_sha = sha256_bytes(canonical_json({key: state[key] for key in self.STATE_FIELDS if key != "state_sha256"}))
+        if state["state_sha256"] != expected_state_sha:
+            raise G8DContractError("resume state semantic digest differs")
+        if raw != rendered_json(state):
+            raise G8DContractError("resume state is not canonical rendered JSON")
+        if state["work_unit_order"] != list(self._work_unit_ids):
+            raise G8DContractError("resume work-unit order differs")
+        completed = state["completed_work_unit_ids"]
+        if not isinstance(completed, list) or completed != list(self._work_unit_ids[: len(completed)]):
+            raise G8DContractError("resume completed IDs are not an exact ordered prefix")
+        next_id = self._work_unit_ids[len(completed)] if len(completed) < len(self._work_unit_ids) else None
+        if state["in_progress_work_unit_id"] not in (None, next_id):
+            raise G8DContractError("resume in-progress ID is not null or the exact next suffix unit")
+        if state["in_progress_work_unit_id"] is None and any(
+            state[field] is not None
+            for field in ("in_progress_record_id", "in_progress_cache_object_id", "in_progress_cache_reference_sha256")
+        ):
+            raise G8DContractError("resume inactive state carries in-progress evidence")
+        if next_id is not None and not all(
+            state[field] is None or isinstance(state[field], str)
+            for field in ("in_progress_record_id", "in_progress_cache_object_id", "in_progress_cache_reference_sha256")
+        ):
+            raise G8DContractError("in-progress resume identity has an invalid type")
+        if state["in_progress_record_id"] is not None and not state["in_progress_record_id"].startswith("g8drecord-"):
+            raise G8DContractError("in-progress record ID is invalid")
+        if state["in_progress_cache_object_id"] is not None and re.fullmatch(r"g8dreconobj-[0-9a-f]{64}", state["in_progress_cache_object_id"]) is None:
+            raise G8DContractError("in-progress cache object ID is invalid")
+        if state["in_progress_cache_reference_sha256"] is not None:
+            _require_digest(state["in_progress_cache_reference_sha256"], "in-progress cache reference SHA-256")
+        return state
+
+    def _validate_record_ref(self, value: Any, work_unit: WorkUnitIdentity, record: CleanClassifierMeasurementRecord, raw: bytes) -> dict[str, Any]:
+        ref = _strict_object(value, self.REF_FIELDS, "resume record reference")
+        if ref["work_unit_id"] != work_unit.identity_id or ref["record_id"] != record.record_id or ref["sha256"] != sha256_bytes(raw):
+            raise G8DContractError("resume record reference differs from durable record")
+        _require_digest(ref["sha256"], "resume record reference SHA-256")
+        return ref
+
+    def _validate_cache_ref(self, value: Any, work_unit: WorkUnitIdentity, reference: CacheReference) -> dict[str, Any]:
+        ref = _strict_object(value, ("work_unit_id", "object_id", "sha256"), "resume cache reference")
+        if ref["work_unit_id"] != work_unit.identity_id or ref["object_id"] != reference.object_id or ref["sha256"] != reference.reference_sha256:
+            raise G8DContractError("resume cache reference differs from durable cache object")
+        return ref
+
+    def _read_aggregate(self, path: Path, expected: Mapping[str, Any]) -> tuple[dict[str, Any], bytes]:
+        value = self._read_canonical_json(path, "resume aggregate")
+        required = {
+            "schema_version", "artifact_role", "campaign_id", "contract_id", "work_unit_ids",
+            "record_ids", "record_sha256s", "correct_count", "total_count", "accuracy_derivation",
+            "accuracy", "aggregate_id",
+        }
+        if set(value) != required:
+            raise G8DContractError("resume aggregate schema differs")
+        if value["schema_version"] != RECORD_SCHEMA_VERSION or value["artifact_role"] != "g8_d_validation_measurement_aggregate":
+            raise G8DContractError("resume aggregate header differs")
+        if value["campaign_id"] != self.campaign_id or value["contract_id"] != self.contract_id:
+            raise G8DContractError("resume aggregate contract differs")
+        if value["aggregate_id"] != expected["aggregate_id"] or value["aggregate_id"] != "g8daggregate-" + sha256_bytes(canonical_json({key: value[key] for key in required if key != "aggregate_id"})):
+            raise G8DContractError("resume aggregate ID differs")
+        if value["work_unit_ids"] != expected["work_unit_ids"] or value["record_ids"] != expected["record_ids"] or value["record_sha256s"] != expected["record_sha256s"]:
+            raise G8DContractError("resume aggregate evidence prefix differs")
+        if value["correct_count"] != expected["correct_count"] or value["total_count"] != expected["total_count"] or value["accuracy"] != expected["accuracy"]:
+            raise G8DContractError("resume aggregate counts differ")
+        return value, path.read_bytes()
+
+    def _validate_state_locked(self) -> tuple[dict[str, Any], list[CleanClassifierMeasurementRecord], CleanClassifierMeasurementRecord | None, CacheReference | None]:
+        try:
+            mode = self.state_path.lstat().st_mode
+        except FileNotFoundError:
+            raise G8DContractError("resume state is absent; initialize before resume") from None
+        if stat.S_ISLNK(mode) or not stat.S_ISREG(mode):
+            raise G8DContractError("resume state path is not a regular file")
+        raw = self.state_path.read_bytes()
+        try:
+            value = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise G8DContractError(f"resume state is not JSON: {exc}") from None
+        state = self._validate_state_header(value, raw)
+        completed_records: list[CleanClassifierMeasurementRecord] = []
+        record_refs = state["record_refs"]
+        cache_refs = state["cache_refs"]
+        if not isinstance(record_refs, list) or len(record_refs) != len(state["completed_work_unit_ids"]):
+            raise G8DContractError("resume record-reference prefix length differs")
+        if not isinstance(cache_refs, list) or len(cache_refs) != len(state["completed_work_unit_ids"]):
+            raise G8DContractError("resume cache-reference prefix length differs")
+        for index, work_unit_id in enumerate(state["completed_work_unit_ids"]):
+            work_unit = self._work_unit_by_id[work_unit_id]
+            loaded = self._read_record(work_unit)
+            if loaded is None:
+                raise G8DContractError("resume completed record is missing")
+            record, record_raw = loaded
+            self._validate_record_ref(record_refs[index], work_unit, record, record_raw)
+            completed_records.append(record)
+            cache_value = cache_refs[index]
+            cache_object_id = cache_value.get("object_id") if isinstance(cache_value, Mapping) else None
+            if not isinstance(cache_object_id, str):
+                raise G8DContractError("resume completed cache reference lacks object ID")
+            cache_loaded = self._read_cache_reference(work_unit, cache_object_id)
+            if cache_loaded is None:
+                raise G8DContractError("resume completed cache reference is missing")
+            reference, _cache_raw = cache_loaded
+            self._validate_cache_ref(cache_value, work_unit, reference)
+            if reference.object_id != record.reconstruction_cache_object_id:
+                raise G8DContractError("resume cache reference does not match record")
+
+        pending_record: CleanClassifierMeasurementRecord | None = None
+        pending_cache: CacheReference | None = None
+        next_id = state["in_progress_work_unit_id"]
+        if next_id is not None:
+            next_work_unit = self._work_unit_by_id[next_id]
+            loaded = self._read_record(next_work_unit)
+            if loaded is not None:
+                pending_record, _record_raw = loaded
+                if state["in_progress_record_id"] != pending_record.record_id:
+                    raise G8DContractError("resume durable suffix record does not match state")
+            if state["in_progress_cache_object_id"] is not None:
+                pending_cache_loaded = self._read_cache_reference(next_work_unit, state["in_progress_cache_object_id"])
+                if pending_cache_loaded is not None:
+                    pending_cache, _cache_raw = pending_cache_loaded
+                    if state["in_progress_cache_reference_sha256"] is not None and pending_cache.reference_sha256 != state["in_progress_cache_reference_sha256"]:
+                        raise G8DContractError("resume suffix cache reference SHA differs")
+                elif state["in_progress_cache_reference_sha256"] is not None:
+                    raise G8DContractError("resume state binds a missing suffix cache reference")
+                if pending_record is not None and pending_cache is not None and pending_cache.object_id != pending_record.reconstruction_cache_object_id:
+                    raise G8DContractError("resume suffix cache reference does not match record")
+
+        expected_record_names = {f"{work_unit_id}.json" for work_unit_id in state["completed_work_unit_ids"]}
+        if next_id is not None and state["in_progress_record_id"] is not None:
+            expected_record_names.add(f"{next_id}.json")
+        for child in self._safe_children(self.records_dir):
+            if child.name not in expected_record_names:
+                raise G8DContractError("resume contains a record outside the exact completed/in-progress prefix")
+        expected_cache_names = {f"{ref['object_id']}.json" for ref in cache_refs}
+        if next_id is not None and state["in_progress_cache_object_id"] is not None:
+            expected_cache_names.add(f"{state['in_progress_cache_object_id']}.json")
+        for child in self._safe_children(self.cache_dir):
+            if child.name not in expected_cache_names:
+                raise G8DContractError("resume contains a cache reference outside the exact prefix")
+
+        if state["aggregate_ref"] is None:
+            if completed_records:
+                raise G8DContractError("resume completed prefix has no aggregate reference")
+        else:
+            aggregate_ref = _strict_object(state["aggregate_ref"], self.AGGREGATE_REF_FIELDS, "resume aggregate reference")
+            _require_digest(aggregate_ref["sha256"], "resume aggregate SHA-256")
+            expected_body = self._aggregate_payload(
+                self.work_units[: len(completed_records)], completed_records, record_refs
+            )
+            aggregate_path = self.aggregates_dir / f"{aggregate_ref['aggregate_id']}.json"
+            try:
+                aggregate_mode = aggregate_path.lstat().st_mode
+            except FileNotFoundError:
+                raise G8DContractError("resume aggregate reference is missing") from None
+            if stat.S_ISLNK(aggregate_mode) or not stat.S_ISREG(aggregate_mode):
+                raise G8DContractError("resume aggregate path is not a regular file")
+            aggregate_value, aggregate_raw = self._read_aggregate(aggregate_path, expected_body)
+            if self._aggregate_ref(aggregate_value, aggregate_raw) != aggregate_ref:
+                raise G8DContractError("resume aggregate reference SHA differs")
+
+        allowed_aggregate_names: set[str] = set()
+        prefix_records: list[CleanClassifierMeasurementRecord] = []
+        prefix_refs: list[Mapping[str, Any]] = []
+        for index, completed_record in enumerate(completed_records):
+            prefix_records.append(completed_record)
+            prefix_refs.append(record_refs[index])
+            prefix_body = self._aggregate_payload(
+                self.work_units[: index + 1], prefix_records, prefix_refs
+            )
+            prefix_path = self.aggregates_dir / f"{prefix_body['aggregate_id']}.json"
+            if prefix_path.exists():
+                self._read_aggregate(prefix_path, prefix_body)
+                allowed_aggregate_names.add(prefix_path.name)
+        if pending_record is not None and pending_cache is not None:
+            pending_refs = list(record_refs) + [self._record_ref(next_work_unit, pending_record, self._record_path(next_id).read_bytes())]
+            pending_body = self._aggregate_payload(
+                self.work_units[: len(completed_records) + 1], completed_records + [pending_record], pending_refs
+            )
+            pending_path = self.aggregates_dir / f"{pending_body['aggregate_id']}.json"
+            if pending_path.exists():
+                self._read_aggregate(pending_path, pending_body)
+                allowed_aggregate_names.add(pending_path.name)
+        for child in self._safe_children(self.aggregates_dir):
+            if child.name not in allowed_aggregate_names:
+                raise G8DContractError("resume contains a stale aggregate ahead of durable evidence")
+
+        return state, completed_records, pending_record, pending_cache
+
+    def read_state_locked(self) -> dict[str, Any]:
+        raw = self.state_path.read_bytes()
+        value = json.loads(raw)
+        return _copy_json(self._validate_state_header(value, raw))
+
+    def read_state(self) -> dict[str, Any]:
+        with self._campaign_lock():
+            state, _records, _pending, _cache = self._validate_state_locked()
+            return _copy_json(state)
+
+    def run_next(self) -> ResumeRunResult:
+        with self._campaign_lock():
+            try:
+                self.state_path.lstat()
+            except FileNotFoundError:
+                self._assert_clean_before_initialize_locked()
+                self._write_state_locked(self._new_state())
+            state, completed_records, pending_record, pending_cache = self._validate_state_locked()
+            completed_count = len(completed_records)
+            if completed_count == len(self.work_units):
+                aggregate_id = None if state["aggregate_ref"] is None else state["aggregate_ref"]["aggregate_id"]
+                return ResumeRunResult(None, None, aggregate_id, completed_count, True, True)
+            work_unit = self.work_units[completed_count]
+            initial_pending = state["in_progress_work_unit_id"] is not None
+            if not initial_pending:
+                state = self._state_payload(
+                    completed_work_unit_ids=state["completed_work_unit_ids"],
+                    in_progress_work_unit_id=work_unit.identity_id,
+                    in_progress_record_id=None,
+                    in_progress_cache_object_id=None,
+                    in_progress_cache_reference_sha256=None,
+                    record_refs=state["record_refs"],
+                    cache_refs=state["cache_refs"],
+                    aggregate_ref=state["aggregate_ref"],
+                )
+                self._write_state_locked(state)
+
+            record_reused = pending_record is not None
+            record = pending_record
+            if record is None:
+                record = self.record_factory(work_unit)
+                if not isinstance(record, CleanClassifierMeasurementRecord):
+                    raise G8DContractError("resume record factory returned the wrong type")
+                if record.work_unit.identity_id != work_unit.identity_id:
+                    raise G8DContractError("resume record factory skipped or duplicated a work unit")
+                if state["in_progress_record_id"] is not None and state["in_progress_record_id"] != record.record_id:
+                    raise G8DContractError("resume record factory changed a durable suffix record")
+                state = dict(state)
+                state["in_progress_record_id"] = record.record_id
+                state["in_progress_cache_object_id"] = record.reconstruction_cache_object_id
+                state["state_sha256"] = sha256_bytes(canonical_json({key: state[key] for key in self.STATE_FIELDS if key != "state_sha256"}))
+                self._write_state_locked(state)
+            elif state["in_progress_record_id"] != record.record_id:
+                raise G8DContractError("resume pending record and state differ")
+
+            cache_reused = pending_cache is not None
+            cache_reference = pending_cache
+            if cache_reference is None:
+                self._invoke_hook("before_cache_publication", work_unit)
+                cache_reference = self._publish_cache_reference_locked(work_unit, record)
+                self._invoke_hook("after_cache_publication", work_unit)
+            if cache_reference.object_id != record.reconstruction_cache_object_id:
+                raise G8DContractError("resume cache publication does not match record")
+            if state["in_progress_cache_reference_sha256"] != cache_reference.reference_sha256:
+                state = dict(state)
+                state["in_progress_cache_reference_sha256"] = cache_reference.reference_sha256
+                state["state_sha256"] = sha256_bytes(canonical_json({key: state[key] for key in self.STATE_FIELDS if key != "state_sha256"}))
+                self._write_state_locked(state)
+
+            loaded = self._read_record(work_unit)
+            if loaded is None:
+                self._invoke_hook("before_record_publication", work_unit)
+                loaded = self._publish_record_locked(work_unit, record)
+                self._invoke_hook("after_record_publication", work_unit)
+            durable_record, durable_raw = loaded
+            record_ref = self._record_ref(work_unit, durable_record, durable_raw)
+            cache_ref = self._cache_ref(work_unit, cache_reference)
+            prefix_records = completed_records + [durable_record]
+            prefix_record_refs = list(state["record_refs"]) + [record_ref]
+            aggregate_body = self._aggregate_payload(
+                self.work_units[: completed_count + 1], prefix_records, prefix_record_refs
+            )
+            aggregate_path = self.aggregates_dir / f"{aggregate_body['aggregate_id']}.json"
+            aggregate_exists = aggregate_path.exists()
+            if not aggregate_exists:
+                self._invoke_hook("before_aggregate_publication", work_unit)
+                aggregate_body, aggregate_raw = self._publish_aggregate_locked(
+                    self.work_units[: completed_count + 1], prefix_records, prefix_record_refs
+                )
+                self._invoke_hook("after_aggregate_publication", work_unit)
+            else:
+                aggregate_value, aggregate_raw = self._read_aggregate(aggregate_path, aggregate_body)
+                aggregate_body = aggregate_value
+            aggregate_ref = self._aggregate_ref(aggregate_body, aggregate_raw)
+            final_state = self._state_payload(
+                completed_work_unit_ids=list(state["completed_work_unit_ids"]) + [work_unit.identity_id],
+                in_progress_work_unit_id=None,
+                in_progress_record_id=None,
+                in_progress_cache_object_id=None,
+                in_progress_cache_reference_sha256=None,
+                record_refs=prefix_record_refs,
+                cache_refs=list(state["cache_refs"]) + [cache_ref],
+                aggregate_ref=aggregate_ref,
+            )
+            self._invoke_hook("before_state_publication", work_unit)
+            self._write_state_locked(final_state)
+            self._invoke_hook("after_state_publication", work_unit)
+            return ResumeRunResult(
+                work_unit.identity_id,
+                durable_record.record_id,
+                aggregate_ref["aggregate_id"],
+                completed_count + 1,
+                record_reused and cache_reused and aggregate_exists,
+                cache_reused,
+            )
+
+    def run_all(self) -> tuple[ResumeRunResult, ...]:
+        results: list[ResumeRunResult] = []
+        while True:
+            state = self.read_state()
+            if len(state["completed_work_unit_ids"]) == len(self.work_units):
+                return tuple(results)
+            results.append(self.run_next())
+
+
 def _read_json(path: Path, label: str) -> tuple[dict[str, Any], bytes]:
     try:
         raw = path.read_bytes()
@@ -1508,8 +2231,8 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "schema_version": G8_D_SCHEMA_VERSION,
         "artifact_role": "g8_d_validation_measurement_contract",
         "phase": "G8_D",
-        "checkpoint": "D4",
-        "status": "clean_classifier_records_ready",
+        "checkpoint": "D5",
+        "status": "atomic_resume_ready",
         "contract_id": None,
         "campaign_id": None,
         "g8_c_binding": g8c.as_dict(),
@@ -1542,6 +2265,10 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "work_unit": list(WorkUnitIdentity.FIELDS),
             "br11_accounting": list(BR11Accounting.FIELDS),
             "clean_classifier_measurement": list(CleanClassifierMeasurementRecord.FIELDS),
+            "resume_state": list(AtomicMeasurementCampaign.STATE_FIELDS),
+            "resume_reference": list(AtomicMeasurementCampaign.REF_FIELDS),
+            "resume_cache_reference": list(CacheReference.FIELDS),
+            "resume_aggregate_reference": list(AtomicMeasurementCampaign.AGGREGATE_REF_FIELDS),
             "codec_search_result": [
                 "search_key", "status", "reason", "payload_budget_bytes",
                 "encoded_pixels_sha256", "emitted_identity", "requested_compression_ratio",
@@ -1571,6 +2298,8 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "reconstruction_cache_binds_image_identity": True,
             "reconstruction_cache_binds_codec_identity": True,
             "reconstruction_cache_immutable": True,
+            "resume_cache_reference_immutable": True,
+            "resume_cache_reference_fields": ["schema_version", "artifact_role", "work_unit_id", "record_id", "cache_object_id"],
             "br11_accounting_rule": "AM-81",
             "br11_header_is_structural_codestream_bytes": True,
             "br11_payload_is_all_tile_part_data": True,
@@ -1598,12 +2327,25 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         },
         "resume_schema": {
             "schema_version": RESUME_SCHEMA_VERSION,
+            "state_fields": list(AtomicMeasurementCampaign.STATE_FIELDS),
+            "cache_reference_fields": ["schema_version", "artifact_role", "work_unit_id", "record_id", "cache_object_id"],
+            "record_reference_fields": list(AtomicMeasurementCampaign.REF_FIELDS),
+            "aggregate_reference_fields": list(AtomicMeasurementCampaign.AGGREGATE_REF_FIELDS),
             "ordering": ["ordinal", "work_unit_id", "candidate_id"],
             "completed_must_be_exact_prefix": True,
             "completed_records_immutable": True,
             "aggregate_must_reference_durable_records": True,
+            "aggregate_history_must_be_exact_prefix": True,
+            "campaign_lock_is_exclusive": True,
+            "state_publication_is_atomic": True,
+            "same_directory_fsync_required": True,
+            "crash_recovery_hooks": list(AtomicMeasurementCampaign.HOOKS),
+            "complete_output_is_reused": True,
+            "duplicate_work_unit_fails_closed": True,
+            "missing_work_unit_fails_closed": True,
+            "silent_overwrite_is_forbidden": True,
+            "stale_aggregate_ahead_fails_closed": True,
             "changed_contract_fails_closed": True,
-            "duplicate_or_missing_work_unit_fails_closed": True,
         },
         "work_unit_ordering": [
             "dataset", "stable_sample_id", "bw_ratio", "k_symbols", "modulation",
@@ -1624,7 +2366,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "validation_decoding": 0,
             "g8_e_started": False,
         },
-        "next_gate": "G8_D/D5",
+        "next_gate": "G8_D/D6",
     }
     campaign_basis = dict(body)
     campaign_basis.pop("campaign_id")

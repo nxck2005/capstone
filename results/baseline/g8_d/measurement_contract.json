@@ -44,11 +44,19 @@
       "upsample_interpolation",
       "preserves_aspect"
     ],
+    "resume_cache_reference_fields": [
+      "schema_version",
+      "artifact_role",
+      "work_unit_id",
+      "record_id",
+      "cache_object_id"
+    ],
+    "resume_cache_reference_immutable": true,
     "source_bytes_bound": true,
     "structural_infeasibility_is_distinct": true
   },
-  "campaign_id": "g8d-5469f854dddb4e292a889c869b1ea771327758d416360262eb33cdfce5742826",
-  "checkpoint": "D4",
+  "campaign_id": "g8d-9e1466b95cda77b071ed61e47387fb8f3641ad5bf1656c868d741d193f50f701",
+  "checkpoint": "D5",
   "classifier_binding": {
     "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
     "classifier_config_sha256": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
@@ -129,7 +137,7 @@
       }
     }
   },
-  "contract_id": "g8dcontract-e1b67db418a333b716cd4151608c96c8a69e5caa2e317cf19723897180800bf9",
+  "contract_id": "g8dcontract-586d5dc965de24b3ca903f9a9209ae6db772c17596753183423ad17cc3823c68",
   "d0_open_binding": {
     "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
     "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
@@ -259,6 +267,36 @@
       "upsample_interpolation",
       "preserves_aspect"
     ],
+    "resume_aggregate_reference": [
+      "aggregate_id",
+      "sha256",
+      "record_count"
+    ],
+    "resume_cache_reference": [
+      "object_id",
+      "reference_sha256"
+    ],
+    "resume_reference": [
+      "work_unit_id",
+      "record_id",
+      "sha256"
+    ],
+    "resume_state": [
+      "schema_version",
+      "artifact_role",
+      "campaign_id",
+      "contract_id",
+      "work_unit_order",
+      "completed_work_unit_ids",
+      "in_progress_work_unit_id",
+      "in_progress_record_id",
+      "in_progress_cache_object_id",
+      "in_progress_cache_reference_sha256",
+      "record_refs",
+      "cache_refs",
+      "aggregate_ref",
+      "state_sha256"
+    ],
     "schema_version": 1,
     "transport_budget": [
       "bw_ratio",
@@ -289,7 +327,7 @@
       "record_schema_version"
     ]
   },
-  "next_gate": "G8_D/D5",
+  "next_gate": "G8_D/D6",
   "phase": "G8_D",
   "phase_order": [
     "D0",
@@ -355,17 +393,68 @@
     "schema_version": 1
   },
   "resume_schema": {
+    "aggregate_history_must_be_exact_prefix": true,
     "aggregate_must_reference_durable_records": true,
+    "aggregate_reference_fields": [
+      "aggregate_id",
+      "sha256",
+      "record_count"
+    ],
+    "cache_reference_fields": [
+      "schema_version",
+      "artifact_role",
+      "work_unit_id",
+      "record_id",
+      "cache_object_id"
+    ],
+    "campaign_lock_is_exclusive": true,
     "changed_contract_fails_closed": true,
+    "complete_output_is_reused": true,
     "completed_must_be_exact_prefix": true,
     "completed_records_immutable": true,
-    "duplicate_or_missing_work_unit_fails_closed": true,
+    "crash_recovery_hooks": [
+      "before_cache_publication",
+      "after_cache_publication",
+      "before_record_publication",
+      "after_record_publication",
+      "before_aggregate_publication",
+      "after_aggregate_publication",
+      "before_state_publication",
+      "after_state_publication"
+    ],
+    "duplicate_work_unit_fails_closed": true,
+    "missing_work_unit_fails_closed": true,
     "ordering": [
       "ordinal",
       "work_unit_id",
       "candidate_id"
     ],
-    "schema_version": 1
+    "record_reference_fields": [
+      "work_unit_id",
+      "record_id",
+      "sha256"
+    ],
+    "same_directory_fsync_required": true,
+    "schema_version": 1,
+    "silent_overwrite_is_forbidden": true,
+    "stale_aggregate_ahead_fails_closed": true,
+    "state_fields": [
+      "schema_version",
+      "artifact_role",
+      "campaign_id",
+      "contract_id",
+      "work_unit_order",
+      "completed_work_unit_ids",
+      "in_progress_work_unit_id",
+      "in_progress_record_id",
+      "in_progress_cache_object_id",
+      "in_progress_cache_reference_sha256",
+      "record_refs",
+      "cache_refs",
+      "aggregate_ref",
+      "state_sha256"
+    ],
+    "state_publication_is_atomic": true
   },
   "safety": {
     "g8_e_started": false,
@@ -385,17 +474,17 @@
     {
       "path": "src/baseline/g8_d.py",
       "role": "g8_d_identity_and_contract_runtime",
-      "sha256": "94a4c8a325c3a2d0ef41fdfad758e7851258bbd31f74bcb60692d3333b8a0455"
+      "sha256": "7c6a79149744673b4a1a6f93c03a01f93c5d6bf4a859fb56f59249d1dd83581c"
     },
     {
       "path": "tools/gen_g8_d_contract.py",
       "role": "g8_d_contract_generator",
-      "sha256": "4b64b2c41092f673f60ee4567a7f687c6ce05854c0808ada2eb1a0ebb084676d"
+      "sha256": "762bd90514f07158c43c6ab3cb3c3f933258cdc886526357e29272896e6bd998"
     },
     {
       "path": "tools/verify_g8_d_contract.py",
       "role": "g8_d_independent_verifier",
-      "sha256": "c68675c05b70288fc01b7f2930ddef19587fbec9fd501d3ac6cc8696bd399890"
+      "sha256": "8fe47d80d7058926758ffc59e8e09374b268dbfa9b4660e9945d7176091fe971"
     },
     {
       "path": "tools/verify_g8_d_open.py",
@@ -423,7 +512,7 @@
       "sha256": "62dfaed5d05941a412c186c1d2b2929ff2c5e73fbe9351f3127eb7f3dc9a3bce"
     }
   ],
-  "status": "clean_classifier_records_ready",
+  "status": "atomic_resume_ready",
   "upstream_bindings": {
     "g1_adjudication_sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
     "params_generated_sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b",
