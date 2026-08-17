@@ -1,5 +1,5 @@
 {
-  "artifact_id": "g8dsmoke-4a5d3cb653be89a724cddc331c253cb31fa46f4b87974ae7906139507dda6fc0",
+  "artifact_id": "g8dsmoke-80110a16aee44b8a8671ff0aa86ab150e13eaa8ddf82b91d5c730a03aa374a80",
   "artifact_role": "g8_d_bounded_non_scientific_smoke",
   "br11": {
     "accounting_rule": "AM-81",
@@ -21,7 +21,7 @@
       "delivered": 1
     }
   },
-  "campaign_id": "g8d-3a7c6141e52432bac4d75f62e2c0035065c9971370450326189086d4862fab05",
+  "campaign_id": "g8d-cd3bbfc2f81d943a9502bef2b5fb346bffc896bd44a0b5a6581e5bfb87882ddd",
   "candidates": 4,
   "cells": 4,
   "clean_measurement": {
@@ -29,7 +29,7 @@
     "correct_count": 2,
     "merge_eligible": false,
     "reconstruction_cache_object_id": "g8dreconobj-b975de49f500e6fe7d207fc13de1e1eea9dae9f0ab9dbf9c83fddbaa90ca9c6d",
-    "record_id": "g8drecord-2fabde1da81b587113ad645c3d1b15b7006e5e41f228423ebabf1a5db2df070b",
+    "record_id": "g8drecord-e1e748b5f54532799880db6b5f1070abab78f7aa5f4c42fba5fc99f93341760a",
     "scientific_evidence": false,
     "test_access": 0,
     "total_count": 3,
@@ -38,7 +38,7 @@
   },
   "codec_backend_calls": 3,
   "codec_cache_hit": true,
-  "contract_id": "g8dcontract-fb42c08e871e8339f13024494acb65bf6fa60a3217ea816ee11ec09301340808",
+  "contract_id": "g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe",
   "emitted_bytes_authoritative": true,
   "measurement_work_units": 1,
   "merge_eligible": false,

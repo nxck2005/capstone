@@ -55,8 +55,8 @@
     "source_bytes_bound": true,
     "structural_infeasibility_is_distinct": true
   },
-  "campaign_id": "g8d-3a7c6141e52432bac4d75f62e2c0035065c9971370450326189086d4862fab05",
-  "checkpoint": "D6",
+  "campaign_id": "g8d-cd3bbfc2f81d943a9502bef2b5fb346bffc896bd44a0b5a6581e5bfb87882ddd",
+  "checkpoint": "D7",
   "classifier_binding": {
     "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
     "classifier_config_sha256": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
@@ -137,7 +137,7 @@
       }
     }
   },
-  "contract_id": "g8dcontract-fb42c08e871e8339f13024494acb65bf6fa60a3217ea816ee11ec09301340808",
+  "contract_id": "g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe",
   "d0_open_binding": {
     "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
     "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
@@ -159,6 +159,20 @@
     "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f",
     "table_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5",
     "trials_per_point": 5000
+  },
+  "handoff_schema": {
+    "artifact_role": "g8_d_handoff",
+    "full_pytest_required": true,
+    "full_pytest_skipped_required": 0,
+    "full_validation_campaign_started": false,
+    "g8_c_unchanged": true,
+    "g8_e_started": false,
+    "next_gate": "G8_E/E0",
+    "schema_version": 1,
+    "selection_started": false,
+    "status": "GREEN",
+    "test_split_accessed": false,
+    "training_started": false
   },
   "identity_schema": {
     "br11_accounting": [
@@ -327,7 +341,7 @@
       "record_schema_version"
     ]
   },
-  "next_gate": "G8_D/D7",
+  "next_gate": "G8_E/E0",
   "phase": "G8_D",
   "phase_order": [
     "D0",
@@ -515,17 +529,17 @@
     {
       "path": "src/baseline/g8_d.py",
       "role": "g8_d_identity_and_contract_runtime",
-      "sha256": "d218b392fdd373bcadb0ed88086be7872560e84673a6d57f42701860b145889c"
+      "sha256": "f8ccfa527d10b5192e7c8193920c173b80f1649024bb12da32038d6e42e343f3"
     },
     {
       "path": "tools/gen_g8_d_contract.py",
       "role": "g8_d_contract_generator",
-      "sha256": "5be51e6cb319665fb600fb8946fcb1207738cc84b1079c03a31030141de1137e"
+      "sha256": "acedd3f7b37aa70a11f5a7ba699df9b0aca479aded61b549372e5e8d444dfe22"
     },
     {
       "path": "tools/verify_g8_d_contract.py",
       "role": "g8_d_independent_verifier",
-      "sha256": "e7fa0aacbaefb38f5a19a39265cd6ef04c5ff6bc9f8da4aceaf89a86820ad7c7"
+      "sha256": "f3b0fcdd719f5e0b43e684226acf607f9d6dea759236b44246845416e7dbd0d7"
     },
     {
       "path": "tools/verify_g8_d_open.py",
@@ -561,9 +575,19 @@
       "path": "tools/verify_g8_d_smoke.py",
       "role": "g8_d_bounded_smoke_verifier",
       "sha256": "48126296929325c020d14d26a95845778b86af860ef6410b3a83e5d147dbc17f"
+    },
+    {
+      "path": "tools/gen_g8_d_handoff.py",
+      "role": "g8_d_handoff_generator",
+      "sha256": "91ffb5ceaf93d5a9bac78330a6c70ee6ece6cadf9bbe4602afe24fc5fe017036"
+    },
+    {
+      "path": "tools/verify_g8_d_handoff.py",
+      "role": "g8_d_handoff_verifier",
+      "sha256": "1b3bfaac086f4c0a6c1e63430e9ec6bd1558ca50690a29f1ed5a71af3b779499"
     }
   ],
-  "status": "bounded_smoke_ready",
+  "status": "handoff_ready",
   "upstream_bindings": {
     "g1_adjudication_sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
     "params_generated_sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b",

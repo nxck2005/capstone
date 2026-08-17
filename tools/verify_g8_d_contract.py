@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent verifier for the G8_D D6 bounded-smoke contract.
+"""Independent verifier for the G8_D D7 handoff contract.
 
 The expected schema and safety assertions are intentionally restated here;
 the verifier does not import the contract builder.  It does import the final
@@ -78,11 +78,11 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
     required = {
         "schema_version", "artifact_role", "phase", "checkpoint", "status", "contract_id", "campaign_id",
         "g8_c_binding", "d0_open_binding", "validation_split_bindings", "classifier_binding", "codec_binding",
-        "upstream_bindings", "identity_schema", "cache_schema", "record_schema", "resume_schema", "smoke_schema",
+        "upstream_bindings", "identity_schema", "cache_schema", "record_schema", "resume_schema", "smoke_schema", "handoff_schema",
         "work_unit_ordering", "phase_order", "source_bindings", "safety", "next_gate",
     }
     _require(set(value) == required, "G8_D contract schema differs")
-    _require((value["schema_version"], value["artifact_role"], value["phase"], value["checkpoint"], value["status"]) == (1, "g8_d_validation_measurement_contract", "G8_D", "D6", "bounded_smoke_ready"), "G8_D contract header differs")
+    _require((value["schema_version"], value["artifact_role"], value["phase"], value["checkpoint"], value["status"]) == (1, "g8_d_validation_measurement_contract", "G8_D", "D7", "handoff_ready"), "G8_D contract header differs")
     contract_id = value["contract_id"]
     campaign_id = value["campaign_id"]
     _require(isinstance(contract_id, str) and contract_id.startswith("g8dcontract-"), "contract ID prefix differs")
@@ -129,7 +129,7 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
     for field in ("checkpoint_sha256", "classifier_config_sha256", "dataset_version", "manifest_sha256"):
         _digest(classifier[field], f"classifier {field}")
     _require(set(value["phase_order"]) == {"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"}, "phase order differs")
-    _require(value["next_gate"] == "G8_D/D7", "next gate is not D7")
+    _require(value["next_gate"] == "G8_E/E0", "next gate is not G8_E E0")
     _require(value["identity_schema"]["schema_version"] == IDENTITY_SCHEMA_VERSION, "identity schema version differs")
     _require(value["cache_schema"]["codec_cache_schema_version"] == CODEC_CACHE_SCHEMA_VERSION, "codec cache schema differs")
     _require(value["record_schema"]["schema_version"] == RECORD_SCHEMA_VERSION and value["record_schema"]["measured_accuracy_requires_counts"] is True, "record schema differs")
@@ -173,6 +173,11 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
     _require(smoke["classifier_invocation_forbidden"] is True and smoke["test_access_forbidden"] is True, "smoke protected boundary differs")
     _require(smoke["mutation_case_count"] == 20 and len(smoke["mutation_case_names"]) == 20, "smoke mutation matrix count differs")
     _require(all(smoke[field] is False for field in ("full_validation_campaign_started", "selection_started", "training_started", "test_split_accessed")), "smoke execution flags are nonzero")
+    handoff = value["handoff_schema"]
+    _require(handoff["schema_version"] == 1 and handoff["artifact_role"] == "g8_d_handoff" and handoff["status"] == "GREEN", "handoff schema differs")
+    _require(handoff["g8_c_unchanged"] is True and handoff["full_pytest_required"] is True and handoff["full_pytest_skipped_required"] == 0, "handoff verification requirements differ")
+    _require(all(handoff[field] is False for field in ("full_validation_campaign_started", "selection_started", "training_started", "test_split_accessed", "g8_e_started")), "handoff safety flags are nonzero")
+    _require(handoff["next_gate"] == "G8_E/E0", "handoff next gate differs")
     safety = value["safety"]
     _require(all(safety[field] is False for field in ("validation_campaign_started", "selection_started", "pass_one_started", "pass_two_started", "training_started", "test_split_accessed", "g8_e_started")), "G8_D safety flags are nonzero")
     _require(all(safety[field] == 0 for field in ("test_access", "inference", "training", "validation_decoding")), "G8_D protected counters are nonzero")

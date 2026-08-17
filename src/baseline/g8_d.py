@@ -2203,6 +2203,8 @@ def _source_bindings(repo_root: Path) -> list[dict[str, str]]:
         ("src/baseline/classical/records.py", "frozen_br11_record_contract"),
         ("tools/run_g8_d_smoke.py", "g8_d_bounded_smoke_runner"),
         ("tools/verify_g8_d_smoke.py", "g8_d_bounded_smoke_verifier"),
+        ("tools/gen_g8_d_handoff.py", "g8_d_handoff_generator"),
+        ("tools/verify_g8_d_handoff.py", "g8_d_handoff_verifier"),
     )
     return [
         {"path": path, "role": role, "sha256": sha256_file(repo_root / path)}
@@ -2233,8 +2235,8 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "schema_version": G8_D_SCHEMA_VERSION,
         "artifact_role": "g8_d_validation_measurement_contract",
         "phase": "G8_D",
-        "checkpoint": "D6",
-        "status": "bounded_smoke_ready",
+        "checkpoint": "D7",
+        "status": "handoff_ready",
         "contract_id": None,
         "campaign_id": None,
         "g8_c_binding": g8c.as_dict(),
@@ -2390,6 +2392,20 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "training_started": False,
             "test_split_accessed": False,
         },
+        "handoff_schema": {
+            "schema_version": 1,
+            "artifact_role": "g8_d_handoff",
+            "status": "GREEN",
+            "g8_c_unchanged": True,
+            "full_pytest_required": True,
+            "full_pytest_skipped_required": 0,
+            "full_validation_campaign_started": False,
+            "selection_started": False,
+            "training_started": False,
+            "test_split_accessed": False,
+            "g8_e_started": False,
+            "next_gate": "G8_E/E0",
+        },
         "work_unit_ordering": [
             "dataset", "stable_sample_id", "bw_ratio", "k_symbols", "modulation",
             "ldpc_rate", "encode_axis_px", "snr_db", "candidate_id",
@@ -2409,7 +2425,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "validation_decoding": 0,
             "g8_e_started": False,
         },
-        "next_gate": "G8_D/D7",
+        "next_gate": "G8_E/E0",
     }
     campaign_basis = dict(body)
     campaign_basis.pop("campaign_id")

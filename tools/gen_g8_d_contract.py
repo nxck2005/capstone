@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate or check the deterministic G8_D D6 bounded-smoke contract."""
+"""Generate or check the deterministic G8_D D7 handoff contract."""
 
 from __future__ import annotations
 
