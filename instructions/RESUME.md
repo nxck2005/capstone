@@ -779,7 +779,7 @@ or G8_E execution is permitted in G8_D.
 | D4 count-derived clean-classifier records | done | **Phase-start SHA:** `e1e1247`; WIP `a4fe2b1`; green commit `85a07a1`; count-derived `MeasuredCodecAccuracy` records, frozen classifier/table bindings and mutation tests PASS; no classifier run. |
 | D5 atomic resume | done | **Phase-start SHA:** `85a07a1`; WIP `279516a`; green commit `703389b`. Exact tests: `PYTHONPATH=src .venv/bin/python -m pytest tests/test_g8_d_resume.py -q` → 10 passed; D5 contract generator and independent verifier PASS. Immutable prefix history, same-directory fsync, exclusive lock, crash-boundary recovery and stale-ahead rejection are verified; no production campaign. |
 | D6 bounded non-scientific smoke and mutations | done | **Phase-start SHA:** `703389b`; WIP `22ac8a7`; green commit: this D6 checkpoint. Synthetic smoke: 1 sample, 4 candidates/cells, 1 measurement work unit; emitted-byte, reconstruction-cache, BR-11 and atomic-resume seams PASS; all 20 required mutation cases PASS; no classifier, selection, headline result or campaign execution. |
-| D7 verification and handoff | pending | full repository verification; release G8_E without starting it |
+| D7 verification and handoff | in-progress | **Phase-start SHA:** `2bc1c04`; mark this D7 WIP before the full verification block. Verify G8_C, D0–D6, upstream W4/G-2 contracts, docs, locks and full pytest; then release G8_E without starting it. Restart: run the D7 verification command block from the final handoff. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 
