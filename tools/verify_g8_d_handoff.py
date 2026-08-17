@@ -84,7 +84,7 @@ def verify(path: Path = HANDOFF) -> dict[str, Any]:
     }, "D7 verifier list differs")
     _require(all(result == "PASS" for result in verification.values()), "D7 verifier list contains a failure")
     tests = value["tests"]
-    _require(tests["full_pytest_collected"] == 2167 and tests["full_pytest_passed"] == 2167, "full pytest count differs")
+    _require(tests["full_pytest_collected"] == 2179 and tests["full_pytest_passed"] == 2179, "full pytest count differs")
     _require(tests["full_pytest_skipped"] == 0 and tests["full_pytest_failures"] == 0, "full pytest is not complete")
     safety = value["safety"]
     _require(all(safety[field] is False for field in ("full_validation_campaign_started", "selection_started", "pass_one_started", "pass_two_started", "training_started", "test_split_accessed", "g8_e_started")), "D7 safety flags are nonzero")

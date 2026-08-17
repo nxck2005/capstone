@@ -55,7 +55,7 @@
     "source_bytes_bound": true,
     "structural_infeasibility_is_distinct": true
   },
-  "campaign_id": "g8d-a133a829470b186da3b345493a6a4e835eedd128266c519430823a21aacc6bcc",
+  "campaign_id": "g8d-2617ea0e891f1b9e1d3eb06ec3460e0d7364fdee2ae0c95b0f510748b822a93a",
   "checkpoint": "D7",
   "classifier_binding": {
     "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
@@ -137,7 +137,7 @@
       }
     }
   },
-  "contract_id": "g8dcontract-e29ccfdcc9c661816ed6798bad44d303ce7fbce9317ecf91b8c894f57b99b5ac",
+  "contract_id": "g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889",
   "d0_open_binding": {
     "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
     "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
@@ -584,7 +584,7 @@
     {
       "path": "tools/verify_g8_d_handoff.py",
       "role": "g8_d_handoff_verifier",
-      "sha256": "1b3bfaac086f4c0a6c1e63430e9ec6bd1558ca50690a29f1ed5a71af3b779499"
+      "sha256": "cc065127ea525dfa5b4135a11f8758e54a8b7d42cac27f327ae5b166ad9cf0f8"
     }
   ],
   "status": "handoff_ready",

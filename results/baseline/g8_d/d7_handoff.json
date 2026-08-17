@@ -1,8 +1,8 @@
 {
-  "artifact_id": "g8dhandoff-db7f78cf2613c5883081bded9f53f7935916b78980761b5075aac531ac5b70f7",
+  "artifact_id": "g8dhandoff-31c48fcabe765a0e70bcd7bcfec5f4bd705b88ee3cb0d140ba9aecf67e1dfd4c",
   "artifact_role": "g8_d_handoff",
   "checkpoint": "D7",
-  "contract_id": "g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe",
+  "contract_id": "g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889",
   "d0_open": {
     "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
     "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
@@ -34,8 +34,8 @@
   },
   "schema_version": 1,
   "smoke": {
-    "artifact_id": "g8dsmoke-80110a16aee44b8a8671ff0aa86ab150e13eaa8ddf82b91d5c730a03aa374a80",
-    "artifact_sha256": "9f0e36402bc2e76f041e23a28670638c632e867942f53de249dc4f5deb60f235",
+    "artifact_id": "g8dsmoke-35db75655483989ce80a3b0c928ef2c153065ca9df94502de72d5f99feba66ba",
+    "artifact_sha256": "ec6d13826ba40fd14f219a34679947cf510733fb18be3ef474c4c2bb53a1a184",
     "candidates": 4,
     "cells": 4,
     "merge_eligible": false,
@@ -44,10 +44,10 @@
   },
   "status": "GREEN",
   "tests": {
-    "full_pytest_collected": 2167,
+    "full_pytest_collected": 2179,
     "full_pytest_command": "PYTHONPATH=src:tools .venv/bin/python -m pytest",
     "full_pytest_failures": 0,
-    "full_pytest_passed": 2167,
+    "full_pytest_passed": 2179,
     "full_pytest_skipped": 0
   },
   "verification": {
