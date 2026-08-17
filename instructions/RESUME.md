@@ -775,7 +775,7 @@ or G8_E execution is permitted in G8_D.
 | D0 verify/open | done | `tools/verify_g8_pascal_successor.py`, `tools/verify_g8_pascal_closeout.py`, `tests/test_g8_pascal_closeout.py::test_every_frozen_successor_point_is_exactly_lookupable`, `tools/verify_g8_d_open.py`; `results/baseline/g8_d/d0_open.json` |
 | D1 freeze schemas/cache identities | done | **Phase-start SHA:** `08bfea1`; WIP `4f291d0`; green commit `4aeecd1`; contract generator/verifier and focused identity mutation tests PASS; no validation pixels or classifier invocation. |
 | D2 codec search and emitted-byte feasibility | done | **Phase-start SHA:** `4aeecd1`; WIP `3034c66`; green commit recorded below; synthetic codec/cache tests PASS; emitted bytes authoritative; no validation grid, classifier, selection or test access. |
-| D3 reconstruction cache and BR-11 accounting | pending | tooling/tests only; no full validation grid |
+| D3 reconstruction cache and BR-11 accounting | in-progress | **Phase-start SHA:** `31d5a1c`; mark this `wip(g8-d): add reconstruction cache and br11 accounting` commit before implementation. Intended files: `src/baseline/g8_d.py`, focused reconstruction/BR-11 tests and contract refresh; no validation image corpus, classifier invocation, selection or test access. Restart: run `pytest tests/test_g8_d_reconstruction.py`. |
 | D4 count-derived clean-classifier records | pending | validation-only record schema and synthetic tests; no classifier run |
 | D5 atomic resume | pending | crash/recovery tests; no production campaign |
 | D6 bounded non-scientific smoke and mutations | pending | explicit smoke scope; no selection or headline result |
