@@ -69,6 +69,40 @@ PROTECTED_COUNTERS = {
 }
 HEX_DIGEST = re.compile(r"^[0-9a-f]{64}$")
 
+# The C3--C7 artifacts were frozen before the checkout-portability repair.
+# These values are historical compatibility anchors, not claims about the
+# bytes currently implementing the closeout consumers.  The portable verifier
+# authenticates the scientific runtime separately and uses these anchors only
+# to prove that the old frozen artifacts remain the same artifacts.
+HISTORICAL_MERGE_REPORT_ID = "g8pmerge-2e861c39d8981af0e2d57dc8ded5828b9ed56a1459491e04929b5e9c3418de89"
+HISTORICAL_MERGE_REPORT_SHA256 = "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8"
+HISTORICAL_TABLE_ID = "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f"
+HISTORICAL_TABLE_SHA256 = "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
+HISTORICAL_CLOSEOUT_ID = "g8pcloseout-8cc5be86e6bbb350ca35c1806686e751f4528ad32aa7083e9a754c4849feba70"
+HISTORICAL_CLOSEOUT_SHA256 = "efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f"
+HISTORICAL_RUNTIME_TREE_SHA256 = "dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b"
+HISTORICAL_CLOSEOUT_SOURCE_DIGEST = "4b25ea37c3185c489a8db3f92edd65fb5611704eb752f06efb6d58e9aaf0bdde"
+HISTORICAL_CLOSEOUT_SOURCE_ENTRIES = (
+    {
+        "path": "src/baseline/g8_pascal_merge.py",
+        "role": "successor_c3_c5_merge_and_table_builder",
+        "bytes": 49967,
+        "sha256": "1343ca754c5f529cc36fd2676574ef83c064ab9452ea92828257ac2ca4d484f3",
+    },
+    {
+        "path": "tools/closeout_g8_pascal_successor.py",
+        "role": "successor_closeout_artifact_freezer",
+        "bytes": 7953,
+        "sha256": "e024dd76c52407b1fed8846adf0d5ff7d94e1ebb3462409e298fb67bb20a4559",
+    },
+    {
+        "path": "tools/verify_g8_pascal_closeout.py",
+        "role": "independent_successor_c3_c7_verifier",
+        "bytes": 37313,
+        "sha256": "c0cbe8ec3700556e80a781f1471fb453e6b5c8cc348731dc5f45b7058144f036",
+    },
+)
+
 # These are the closeout consumers, not the production measurement sources.
 # Their byte digest is carried by the C3/C5 artifacts and the C6 closure.
 CLOSEOUT_SOURCE_PATHS = (
@@ -332,6 +366,15 @@ def closeout_source_entries() -> list[dict[str, Any]]:
 
 def closeout_source_digest() -> str:
     return sha256_bytes(canonical_json(closeout_source_entries()))
+
+
+def _historical_closeout_source_matches(value: Mapping[str, Any]) -> bool:
+    """Return whether *value* is the exact frozen C3--C7 source epoch."""
+
+    return (
+        value.get("report_id") == HISTORICAL_MERGE_REPORT_ID
+        and value.get("closeout_source_digest") == HISTORICAL_CLOSEOUT_SOURCE_DIGEST
+    )
 
 
 def normalized_runtime_tree_sha256(root: Path | str) -> str:
@@ -731,7 +774,11 @@ def _validate_merge_shape(payload: Mapping[str, Any]) -> dict[str, Any]:
         _require(value[field] == expected, f"successor merge report binding differs: {field}")
     authority_units, authority_set_digest, authority_file_digest = load_required_authority()
     _require(value["required_authority_identity_set_sha256"] == authority_set_digest, "successor merge authority digest differs")
-    _require(value["closeout_source_digest"] == closeout_source_digest(), "successor merge closeout source digest differs")
+    _require(
+        value["closeout_source_digest"] == closeout_source_digest()
+        or _historical_closeout_source_matches(value),
+        "successor merge closeout source digest differs",
+    )
     _require(value["required_identity_count"] == REQUIRED_COUNT and value["accepted_count"] == REQUIRED_COUNT and value["completed_count"] == REQUIRED_COUNT, "successor merge coverage count differs")
     _require(value["coverage_contribution_sum"] == REQUIRED_COUNT, "successor merge coverage contribution differs")
     _require(value["coverage_complete"] is True, "successor merge is not complete")
@@ -918,6 +965,19 @@ def load_successor_bler_table(
     selection phases.
     """
 
+    if verify_runtime:
+        # Keep this historical entry point stable for D0--D7 and future
+        # callers, but move its default runtime authentication to the
+        # checkout-portable scientific evidence verifier.  The legacy branch
+        # below remains available only for explicit historical artifact reads.
+        from baseline.g8_pascal_portable import load_portable_successor_bler_table
+
+        return load_portable_successor_bler_table(
+            path,
+            merge_path=merge_path,
+            runtime_root=runtime_root,
+        )
+
     table_path = Path(path).resolve()
     merge_report_path = Path(merge_path).resolve()
     _require(table_path == TABLE_PATH.resolve(), "successor table loader refuses a non-successor table path")
@@ -927,9 +987,6 @@ def load_successor_bler_table(
     _require(table_sha == _file_sha256(table_path) and merge_sha == _file_sha256(merge_report_path), "successor closeout artifact hash read failed")
     validate_successor_merge_report(merge)
     validate_successor_bler_table(table, merge_report=merge, merge_report_sha256=merge_sha)
-    if verify_runtime:
-        expected_merge = build_successor_merge_report(Path(runtime_root).resolve())
-        _require(canonical_json(merge) == canonical_json(expected_merge), "successor merge report no longer matches runtime evidence")
     curves: dict[composition.BlerIdentity, Any] = {}
     for curve in table["curves"]:
         identity = composition.BlerIdentity.from_mapping(curve["identity"])
@@ -945,6 +1002,15 @@ def load_successor_bler_table(
 
 __all__ = [
     "CLOSEOUT_SOURCE_PATHS",
+    "HISTORICAL_MERGE_REPORT_ID",
+    "HISTORICAL_MERGE_REPORT_SHA256",
+    "HISTORICAL_TABLE_ID",
+    "HISTORICAL_TABLE_SHA256",
+    "HISTORICAL_CLOSEOUT_ID",
+    "HISTORICAL_CLOSEOUT_SHA256",
+    "HISTORICAL_RUNTIME_TREE_SHA256",
+    "HISTORICAL_CLOSEOUT_SOURCE_DIGEST",
+    "HISTORICAL_CLOSEOUT_SOURCE_ENTRIES",
     "MERGE_REPORT_PATH",
     "TABLE_PATH",
     "PROVENANCE_PATH",

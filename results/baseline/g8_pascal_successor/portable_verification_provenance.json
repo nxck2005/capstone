@@ -1,0 +1,103 @@
+{
+  "artifact_role": "g8_c_pascal_successor_portable_verification_provenance",
+  "classification": {
+    "bler_characterization_defect": false,
+    "kind": "implementation_clean_checkout_reproducibility_provenance_verifier_defect",
+    "measurement_defect": false,
+    "metadata_only": true
+  },
+  "epoch": "g8-c-portable-scientific-runtime-v1",
+  "historical_g8_c": {
+    "closeout_id": "g8pcloseout-8cc5be86e6bbb350ca35c1806686e751f4528ad32aa7083e9a754c4849feba70",
+    "closeout_sha256": "efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f",
+    "legacy_closeout_source_digest": "4b25ea37c3185c489a8db3f92edd65fb5611704eb752f06efb6d58e9aaf0bdde",
+    "legacy_runtime_tree_sha256": "dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b",
+    "merge_report_id": "g8pmerge-2e861c39d8981af0e2d57dc8ded5828b9ed56a1459491e04929b5e9c3418de89",
+    "merge_report_sha256": "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8",
+    "old_closeout_remains_historical_valid_evidence": true,
+    "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f",
+    "table_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
+  },
+  "portable_evidence": {
+    "exact_authority_count": 3213,
+    "file_fields": [
+      "path",
+      "bytes",
+      "sha256"
+    ],
+    "manifest_id": "g8pportable-6368a3cb3214df264d566675e196449a0745e6eb3cc402f1825150e2370f41f4",
+    "manifest_path": "results/baseline/g8_pascal_successor/portable_scientific_runtime_manifest.json",
+    "manifest_sha256": "f626ea7c973a9d1f53ab292ec121725b5a6d3331743ade031b4906caa782da5b",
+    "namespace": "campaign_state.json plus every request/result/state JSON; coordination paths excluded",
+    "scientific_runtime_sha256": "4da51e24f497392000bf740d604ae43d0f3cc3df6978add094c7800d70c7dad3",
+    "trials_per_identity": 5000
+  },
+  "provenance_id": "g8pportableprov-c302bab4c826ed9cbb1516d3a8475e0fe20677f6af8e875d11e30c35d2fd108b",
+  "repair_commit": "UNRESOLVED_UNTIL_PUBLICATION",
+  "repair_source_digest": "d6406b82042a7627d73a7c8563fd062fe8a9fe94bb44a75c125a659d88878c6c",
+  "repair_sources": [
+    {
+      "bytes": 52911,
+      "path": "src/baseline/g8_pascal_merge.py",
+      "role": "historical-loader-compatibility",
+      "sha256": "7a35ac30e0c2c62363688c3cbb4f00c1f039bc680eb1c3c0d03dcec82c68e526"
+    },
+    {
+      "bytes": 27508,
+      "path": "src/baseline/g8_pascal_portable.py",
+      "role": "portable-scientific-runtime-verifier",
+      "sha256": "765f72acfc1a21b1d79c911a913415ac5f7b92a5dada004a38d11ba909c7f32d"
+    },
+    {
+      "bytes": 1550,
+      "path": "tools/gen_g8_pascal_portable_manifest.py",
+      "role": "portable-manifest-generator",
+      "sha256": "44123c1c8c9c88b753efae9e88f05839555644d7a4c314cfcb1f0d8517c80cf6"
+    },
+    {
+      "bytes": 1502,
+      "path": "tools/gen_g8_pascal_portable_provenance.py",
+      "role": "portable-provenance-generator",
+      "sha256": "a904a9a0fbacce3d286dc4b87472051c2bf5113110ee44bc16d3694e25bfcf65"
+    },
+    {
+      "bytes": 979,
+      "path": "tools/verify_g8_pascal_portable.py",
+      "role": "portable-verifier-entrypoint",
+      "sha256": "bcea64a972d8925f4fa6079f34397007e54f591ca1ddd9e773e0316549a84e3f"
+    },
+    {
+      "bytes": 39644,
+      "path": "tools/verify_g8_pascal_closeout.py",
+      "role": "historical-c6-compatibility",
+      "sha256": "6a8980cd235436846f7ea7961bac8c9617378f8e584265c7f1383430a0f2337e"
+    }
+  ],
+  "safety": {
+    "g8_d_scientific_semantics_changed": false,
+    "g8_e_started": false,
+    "old_result_ingest": false,
+    "predecessor_table_contribution": "none",
+    "protected_counters": {
+      "inference": 0,
+      "test_access": 0,
+      "training": 0,
+      "validation_decoding": 0
+    },
+    "test_access": 0,
+    "validation_campaign_started": false
+  },
+  "schema_version": 1,
+  "scientific_values_unchanged": {
+    "authority": true,
+    "bler_values": true,
+    "campaign_state_bytes": true,
+    "measurement_rerun": false,
+    "raw_counts": true,
+    "request_bytes": true,
+    "result_bytes": true,
+    "state_bytes": true,
+    "table_curves": true,
+    "trials": true
+  }
+}

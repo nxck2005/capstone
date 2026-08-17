@@ -55,7 +55,7 @@
     "source_bytes_bound": true,
     "structural_infeasibility_is_distinct": true
   },
-  "campaign_id": "g8d-a133a829470b186da3b345493a6a4e835eedd128266c519430823a21aacc6bcc",
+  "campaign_id": "g8d-cd3bbfc2f81d943a9502bef2b5fb346bffc896bd44a0b5a6581e5bfb87882ddd",
   "checkpoint": "D7",
   "classifier_binding": {
     "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
@@ -137,7 +137,7 @@
       }
     }
   },
-  "contract_id": "g8dcontract-e29ccfdcc9c661816ed6798bad44d303ce7fbce9317ecf91b8c894f57b99b5ac",
+  "contract_id": "g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe",
   "d0_open_binding": {
     "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
     "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
@@ -549,7 +549,7 @@
     {
       "path": "src/baseline/g8_pascal_merge.py",
       "role": "frozen_successor_loader",
-      "sha256": "7a35ac30e0c2c62363688c3cbb4f00c1f039bc680eb1c3c0d03dcec82c68e526"
+      "sha256": "1343ca754c5f529cc36fd2676574ef83c064ab9452ea92828257ac2ca4d484f3"
     },
     {
       "path": "src/baseline/j2k.py",

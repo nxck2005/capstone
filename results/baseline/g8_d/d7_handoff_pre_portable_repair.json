@@ -1,0 +1,69 @@
+{
+  "artifact_id": "g8dhandoff-db7f78cf2613c5883081bded9f53f7935916b78980761b5075aac531ac5b70f7",
+  "artifact_role": "g8_d_handoff",
+  "checkpoint": "D7",
+  "contract_id": "g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe",
+  "d0_open": {
+    "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
+    "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
+  },
+  "full_campaign_not_started": true,
+  "g8_c": {
+    "curves": 153,
+    "measured_points": 3213,
+    "predecessor_table_contribution": "none",
+    "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f",
+    "table_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5",
+    "trials_per_point": 5000
+  },
+  "g8_e_released": true,
+  "next_gate": "G8_E/E0",
+  "phase": "G8_D",
+  "safety": {
+    "full_validation_campaign_started": false,
+    "g8_e_started": false,
+    "inference": 0,
+    "pass_one_started": false,
+    "pass_two_started": false,
+    "selection_started": false,
+    "test_access": 0,
+    "test_split_accessed": false,
+    "training": 0,
+    "training_started": false,
+    "validation_decoding": 0
+  },
+  "schema_version": 1,
+  "smoke": {
+    "artifact_id": "g8dsmoke-80110a16aee44b8a8671ff0aa86ab150e13eaa8ddf82b91d5c730a03aa374a80",
+    "artifact_sha256": "9f0e36402bc2e76f041e23a28670638c632e867942f53de249dc4f5deb60f235",
+    "candidates": 4,
+    "cells": 4,
+    "merge_eligible": false,
+    "mutation_cases": 20,
+    "samples": 1
+  },
+  "status": "GREEN",
+  "tests": {
+    "full_pytest_collected": 2167,
+    "full_pytest_command": "PYTHONPATH=src:tools .venv/bin/python -m pytest",
+    "full_pytest_failures": 0,
+    "full_pytest_passed": 2167,
+    "full_pytest_skipped": 0
+  },
+  "verification": {
+    "cpu_runtime_lock": "PASS",
+    "d0_open": "PASS",
+    "d1_d6_targeted": "PASS",
+    "d6_smoke": "PASS",
+    "documentation": "PASS",
+    "exhaustive_frozen_table_lookup": "PASS",
+    "full_pytest": "PASS",
+    "g2_adjudication": "PASS",
+    "g8_c_closeout": "PASS",
+    "g8_c_successor": "PASS",
+    "generated_spec_views": "PASS",
+    "literal_lint": "PASS",
+    "packetisation": "PASS",
+    "w4_integration": "PASS"
+  }
+}
