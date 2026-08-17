@@ -47,8 +47,8 @@
     "source_bytes_bound": true,
     "structural_infeasibility_is_distinct": true
   },
-  "campaign_id": "g8d-e2181a03138eb11808eb03a65f81ae212bf8bf4591e28da39aa4923a2a07cfba",
-  "checkpoint": "D3",
+  "campaign_id": "g8d-5469f854dddb4e292a889c869b1ea771327758d416360262eb33cdfce5742826",
+  "checkpoint": "D4",
   "classifier_binding": {
     "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
     "classifier_config_sha256": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
@@ -129,7 +129,7 @@
       }
     }
   },
-  "contract_id": "g8dcontract-9aea3147067c255ee7d32b42ed7d4bc448ee636b13d8a35741868217afbd348b",
+  "contract_id": "g8dcontract-e1b67db418a333b716cd4151608c96c8a69e5caa2e317cf19723897180800bf9",
   "d0_open_binding": {
     "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
     "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
@@ -172,6 +172,29 @@
       "bler_identity",
       "snr_db",
       "encode_axis_px"
+    ],
+    "clean_classifier_measurement": [
+      "schema_version",
+      "artifact_role",
+      "record_id",
+      "work_unit",
+      "candidate",
+      "image",
+      "validation_split",
+      "classifier",
+      "g8_c_table",
+      "reconstruction",
+      "reconstruction_cache_object_id",
+      "correct_count",
+      "total_count",
+      "accuracy",
+      "accuracy_derivation",
+      "source",
+      "validation_only",
+      "test_access",
+      "training",
+      "scientific_evidence",
+      "merge_eligible"
     ],
     "codec_search_key": [
       "image_identity_id",
@@ -266,7 +289,7 @@
       "record_schema_version"
     ]
   },
-  "next_gate": "G8_D/D4",
+  "next_gate": "G8_D/D5",
   "phase": "G8_D",
   "phase_order": [
     "D0",
@@ -299,6 +322,34 @@
       "codestream_sha256",
       "denominator"
     ],
+    "clean_classifier_record_binds_classifier": true,
+    "clean_classifier_record_binds_reconstruction_cache": true,
+    "clean_classifier_record_fields": [
+      "schema_version",
+      "artifact_role",
+      "record_id",
+      "work_unit",
+      "candidate",
+      "image",
+      "validation_split",
+      "classifier",
+      "g8_c_table",
+      "reconstruction",
+      "reconstruction_cache_object_id",
+      "correct_count",
+      "total_count",
+      "accuracy",
+      "accuracy_derivation",
+      "source",
+      "validation_only",
+      "test_access",
+      "training",
+      "scientific_evidence",
+      "merge_eligible"
+    ],
+    "clean_classifier_record_is_count_derived": true,
+    "clean_classifier_record_merge_eligible": false,
+    "clean_classifier_record_validation_only": true,
     "infeasible_candidates_are_records": true,
     "measured_accuracy_requires_counts": true,
     "schema_version": 1
@@ -334,17 +385,17 @@
     {
       "path": "src/baseline/g8_d.py",
       "role": "g8_d_identity_and_contract_runtime",
-      "sha256": "94d1fee9573ce5dd97690b89a04110a793b71ea3572f6ca758874cc5f31f468d"
+      "sha256": "94a4c8a325c3a2d0ef41fdfad758e7851258bbd31f74bcb60692d3333b8a0455"
     },
     {
       "path": "tools/gen_g8_d_contract.py",
       "role": "g8_d_contract_generator",
-      "sha256": "fc3e1e3d2d1f21b741f75ce65830bd00de330931fc3816680ff2d7f1e02eb75b"
+      "sha256": "4b64b2c41092f673f60ee4567a7f687c6ce05854c0808ada2eb1a0ebb084676d"
     },
     {
       "path": "tools/verify_g8_d_contract.py",
       "role": "g8_d_independent_verifier",
-      "sha256": "ef40000d6f0ec20f82f07a7e489e48e8a5c40df84f8255f19c05d51c98b75198"
+      "sha256": "c68675c05b70288fc01b7f2930ddef19587fbec9fd501d3ac6cc8696bd399890"
     },
     {
       "path": "tools/verify_g8_d_open.py",
@@ -372,7 +423,7 @@
       "sha256": "62dfaed5d05941a412c186c1d2b2929ff2c5e73fbe9351f3127eb7f3dc9a3bce"
     }
   ],
-  "status": "reconstruction_ready",
+  "status": "clean_classifier_records_ready",
   "upstream_bindings": {
     "g1_adjudication_sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
     "params_generated_sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b",

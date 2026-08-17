@@ -56,6 +56,7 @@ __all__ = [
     "aggregate_br11",
     "ReconstructionResult",
     "ReconstructionCache",
+    "CleanClassifierMeasurementRecord",
     "canonical_json",
     "rendered_json",
     "sha256_bytes",
@@ -1189,6 +1190,227 @@ class WorkUnitIdentity(_Identity):
         result.update({field: _copy_json(getattr(self, field)) for field in self.FIELDS})
         return result
 
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "WorkUnitIdentity":
+        return cls(**_identity_input(value, cls.FIELDS, "work-unit identity", "work_unit"))
+
+
+@dataclass(frozen=True)
+class CleanClassifierMeasurementRecord:
+    """A count-authoritative clean-classifier validation measurement.
+
+    This is a record seam, not a classifier runner.  The only constructor
+    that derives counts from outcomes accepts booleans; it never accepts a
+    caller-supplied accuracy float.  The current D4 tests use synthetic
+    outcomes and explicitly mark the resulting object non-scientific and
+    non-mergeable.
+    """
+
+    work_unit: WorkUnitIdentity
+    candidate: CandidateIdentity
+    image: ImageIdentity
+    validation_split: ValidationSplitIdentity
+    classifier: ClassifierIdentity
+    g8_c_table: G8CTableIdentity
+    reconstruction: ReconstructionIdentity
+    reconstruction_cache_object_id: str
+    correct_count: int
+    total_count: int
+    source: str
+    scientific_evidence: bool = False
+    merge_eligible: bool = False
+
+    FIELDS: ClassVar[tuple[str, ...]] = (
+        "schema_version",
+        "artifact_role",
+        "record_id",
+        "work_unit",
+        "candidate",
+        "image",
+        "validation_split",
+        "classifier",
+        "g8_c_table",
+        "reconstruction",
+        "reconstruction_cache_object_id",
+        "correct_count",
+        "total_count",
+        "accuracy",
+        "accuracy_derivation",
+        "source",
+        "validation_only",
+        "test_access",
+        "training",
+        "scientific_evidence",
+        "merge_eligible",
+    )
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.work_unit, WorkUnitIdentity):
+            raise G8DContractError("clean measurement has no work-unit identity")
+        if not isinstance(self.candidate, CandidateIdentity):
+            raise G8DContractError("clean measurement has no candidate identity")
+        if not isinstance(self.image, ImageIdentity):
+            raise G8DContractError("clean measurement has no image identity")
+        if not isinstance(self.validation_split, ValidationSplitIdentity):
+            raise G8DContractError("clean measurement has no validation split identity")
+        if not isinstance(self.classifier, ClassifierIdentity):
+            raise G8DContractError("clean measurement has no classifier identity")
+        if not isinstance(self.g8_c_table, G8CTableIdentity):
+            raise G8DContractError("clean measurement has no G8_C table identity")
+        if not isinstance(self.reconstruction, ReconstructionIdentity):
+            raise G8DContractError("clean measurement has no reconstruction identity")
+        if self.validation_split.split != VALIDATION_SPLIT:
+            raise G8DContractError("clean measurement is not validation-only")
+        if self.validation_split.payload() != {
+            "schema_version": IDENTITY_SCHEMA_VERSION,
+            "identity_type": "validation_split",
+            "dataset": self.image.dataset,
+            "split": self.image.split,
+            "dataset_version": self.image.dataset_version,
+            "manifest_sha256": self.image.manifest_sha256,
+        }:
+            raise G8DContractError("clean measurement image and split identities differ")
+        if self.classifier.dataset != self.validation_split.dataset or self.classifier.split != VALIDATION_SPLIT:
+            raise G8DContractError("clean measurement classifier is not bound to this validation split")
+        if self.classifier.dataset_version != self.validation_split.dataset_version or self.classifier.manifest_sha256 != self.validation_split.manifest_sha256:
+            raise G8DContractError("clean measurement classifier manifest differs")
+        if self.candidate.image_identity_id != self.image.identity_id:
+            raise G8DContractError("clean measurement candidate and image identities differ")
+        if self.work_unit.candidate_identity_id != self.candidate.identity_id:
+            raise G8DContractError("clean measurement work unit and candidate identities differ")
+        if self.candidate.g8_c_table_identity_id != self.g8_c_table.identity_id:
+            raise G8DContractError("clean measurement candidate and G8_C table identities differ")
+        if self.g8_c_table.payload() != _current_g8_c_binding(REPO_ROOT).payload():
+            raise G8DContractError("clean measurement is not bound to the frozen Pascal successor table")
+        if self.classifier.payload() != _current_classifier_binding(REPO_ROOT).payload():
+            raise G8DContractError("clean measurement classifier differs from the frozen clean classifier")
+        if self.reconstruction.image_identity_id != self.image.identity_id:
+            raise G8DContractError("clean measurement reconstruction and image identities differ")
+        if self.reconstruction.output_shape != self.image.canonical_shape:
+            raise G8DContractError("clean measurement reconstruction output shape differs from canonical image")
+        if self.reconstruction.codec_configuration_id != self.candidate.codec_configuration_id:
+            raise G8DContractError("clean measurement reconstruction and candidate codec identities differ")
+        if not isinstance(self.reconstruction_cache_object_id, str) or not self.reconstruction_cache_object_id.startswith("g8dreconobj-"):
+            raise G8DContractError("clean measurement reconstruction cache object ID is invalid")
+        _nonnegative_int(self.correct_count, "clean measurement correct_count")
+        _positive_int(self.total_count, "clean measurement total_count")
+        if self.correct_count > self.total_count:
+            raise G8DContractError("clean measurement correct_count exceeds total_count")
+        if not isinstance(self.source, str) or not self.source.strip():
+            raise G8DContractError("clean measurement has no provenance source")
+        if self.scientific_evidence is not False or self.merge_eligible is not False:
+            raise G8DContractError("D4 synthetic clean measurements are non-scientific and non-mergeable")
+
+    @property
+    def accuracy(self) -> float:
+        return self.correct_count / self.total_count
+
+    @property
+    def record_id(self) -> str:
+        return "g8drecord-" + sha256_bytes(canonical_json(self._payload_without_record_id()))
+
+    def _payload_without_record_id(self) -> dict[str, Any]:
+        return {
+            "schema_version": RECORD_SCHEMA_VERSION,
+            "artifact_role": "g8_d_clean_classifier_measurement",
+            "work_unit": self.work_unit.payload(),
+            "candidate": self.candidate.payload(),
+            "image": self.image.payload(),
+            "validation_split": self.validation_split.payload(),
+            "classifier": self.classifier.payload(),
+            "g8_c_table": self.g8_c_table.payload(),
+            "reconstruction": self.reconstruction.payload(),
+            "reconstruction_cache_object_id": self.reconstruction_cache_object_id,
+            "correct_count": self.correct_count,
+            "total_count": self.total_count,
+            "accuracy": self.accuracy,
+            "accuracy_derivation": "correct_count / total_count",
+            "source": self.source,
+            "validation_only": True,
+            "test_access": 0,
+            "training": False,
+            "scientific_evidence": self.scientific_evidence,
+            "merge_eligible": self.merge_eligible,
+        }
+
+    def as_dict(self) -> dict[str, Any]:
+        payload = self._payload_without_record_id()
+        payload["record_id"] = self.record_id
+        return {field: payload[field] for field in self.FIELDS}
+
+    def measured_accuracy(self) -> composition.MeasuredCodecAccuracy:
+        return composition.MeasuredCodecAccuracy(
+            correct=self.correct_count,
+            total=self.total_count,
+            split=self.validation_split.split,
+            source=f"{self.source}:{self.record_id}",
+        )
+
+    @classmethod
+    def from_outcomes(
+        cls,
+        *,
+        work_unit: WorkUnitIdentity,
+        candidate: CandidateIdentity,
+        image: ImageIdentity,
+        validation_split: ValidationSplitIdentity,
+        classifier: ClassifierIdentity,
+        g8_c_table: G8CTableIdentity,
+        reconstruction: ReconstructionIdentity,
+        reconstruction_cache_object_id: str,
+        outcomes: Sequence[bool],
+        source: str,
+    ) -> "CleanClassifierMeasurementRecord":
+        if not isinstance(outcomes, Sequence) or isinstance(outcomes, (str, bytes)):
+            raise G8DContractError("clean measurement outcomes must be a finite boolean sequence")
+        if not outcomes:
+            raise G8DContractError("clean measurement outcomes are empty")
+        if any(type(outcome) is not bool for outcome in outcomes):
+            raise G8DContractError("clean measurement outcomes must contain booleans")
+        return cls(
+            work_unit=work_unit,
+            candidate=candidate,
+            image=image,
+            validation_split=validation_split,
+            classifier=classifier,
+            g8_c_table=g8_c_table,
+            reconstruction=reconstruction,
+            reconstruction_cache_object_id=reconstruction_cache_object_id,
+            correct_count=sum(outcomes),
+            total_count=len(outcomes),
+            source=source,
+        )
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "CleanClassifierMeasurementRecord":
+        data = _strict_object(value, cls.FIELDS, "clean classifier measurement record")
+        if data["schema_version"] != RECORD_SCHEMA_VERSION or data["artifact_role"] != "g8_d_clean_classifier_measurement":
+            raise G8DContractError("clean measurement record schema differs")
+        if data["accuracy_derivation"] != "correct_count / total_count":
+            raise G8DContractError("clean measurement accuracy is not count-derived")
+        if data["validation_only"] is not True or data["test_access"] != 0 or data["training"] is not False:
+            raise G8DContractError("clean measurement split or safety binding differs")
+        record = cls(
+            work_unit=WorkUnitIdentity.from_mapping(data["work_unit"]),
+            candidate=CandidateIdentity.from_mapping(data["candidate"]),
+            image=ImageIdentity.from_mapping(data["image"]),
+            validation_split=ValidationSplitIdentity.from_mapping(data["validation_split"]),
+            classifier=ClassifierIdentity.from_mapping(data["classifier"]),
+            g8_c_table=G8CTableIdentity.from_mapping(data["g8_c_table"]),
+            reconstruction=ReconstructionIdentity.from_mapping(data["reconstruction"]),
+            reconstruction_cache_object_id=data["reconstruction_cache_object_id"],
+            correct_count=data["correct_count"],
+            total_count=data["total_count"],
+            source=data["source"],
+            scientific_evidence=data["scientific_evidence"],
+            merge_eligible=data["merge_eligible"],
+        )
+        if data["record_id"] != record.record_id:
+            raise G8DContractError("clean measurement record ID differs")
+        if data["accuracy"] != record.accuracy:
+            raise G8DContractError("clean measurement accuracy differs from counts")
+        return record
+
 
 def current_codec_snapshot() -> dict[str, Any]:
     """Read the already-frozen J2K snapshot without encoding an image."""
@@ -1286,8 +1508,8 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "schema_version": G8_D_SCHEMA_VERSION,
         "artifact_role": "g8_d_validation_measurement_contract",
         "phase": "G8_D",
-        "checkpoint": "D3",
-        "status": "reconstruction_ready",
+        "checkpoint": "D4",
+        "status": "clean_classifier_records_ready",
         "contract_id": None,
         "campaign_id": None,
         "g8_c_binding": g8c.as_dict(),
@@ -1319,6 +1541,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "reconstruction": list(ReconstructionIdentity.FIELDS),
             "work_unit": list(WorkUnitIdentity.FIELDS),
             "br11_accounting": list(BR11Accounting.FIELDS),
+            "clean_classifier_measurement": list(CleanClassifierMeasurementRecord.FIELDS),
             "codec_search_result": [
                 "search_key", "status", "reason", "payload_budget_bytes",
                 "encoded_pixels_sha256", "emitted_identity", "requested_compression_ratio",
@@ -1366,6 +1589,12 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "br11_fields": list(BR11Accounting.FIELDS),
             "br11_counts_emitted_rows_only": True,
             "br11_count_derived_accuracy": True,
+            "clean_classifier_record_fields": list(CleanClassifierMeasurementRecord.FIELDS),
+            "clean_classifier_record_is_count_derived": True,
+            "clean_classifier_record_validation_only": True,
+            "clean_classifier_record_binds_classifier": True,
+            "clean_classifier_record_binds_reconstruction_cache": True,
+            "clean_classifier_record_merge_eligible": False,
         },
         "resume_schema": {
             "schema_version": RESUME_SCHEMA_VERSION,
@@ -1395,7 +1624,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "validation_decoding": 0,
             "g8_e_started": False,
         },
-        "next_gate": "G8_D/D4",
+        "next_gate": "G8_D/D5",
     }
     campaign_basis = dict(body)
     campaign_basis.pop("campaign_id")
