@@ -10,10 +10,12 @@ and lineage-bound.** W4, G8_A and G8_B are complete. The owner-authorized
 Pascal G8_C successor execution and C3-C7 closeout are green: its authenticated
 evidence is 3,213/3,213 identities accepted at 5,000 trials each and its
 successor `BlerTable` is frozen. No selection, inference, training, validation
-decoding or test access occurred, and the test split remains sealed. G8_D D0 is
-the next authorized gate; do not start it in the closeout commit.
+decoding or test access occurred, and the test split remains sealed. G8_C
+remains green and closed. G8_D D0 is the current gate; do not reopen or rerun
+G8_C, do not start later G8_D stages out of order, do not start G8_E, and do
+not run the full validation campaign yet.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-d-d0; bler_table=frozen; g8_d=authorized-not-started; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-d-d1; bler_table=frozen; g8_d=d0-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified
@@ -59,8 +61,10 @@ zero-coverage readiness history and must remain 0/3213. The separate
 `results/baseline/g8_pascal_successor/runtime/campaign_state.json` is the
 completed production aggregate and is authoritative for the finished execution.
 No Pascal worker is running or may be started; do not rerun, resume the old
-RTX4060 suffix, ingest predecessor results, alter completed runtime evidence,
-or start G8_D. C3-C7 closeout is now bound by
+RTX4060 suffix, ingest predecessor results, or alter completed runtime evidence.
+G8_C remains green and closed; G8_D D0 is complete and D1 is the current gate.
+Do not start later G8_D stages out of order, start G8_E,
+or run the full validation campaign yet. C3-C7 closeout is now bound by
 `results/baseline/g8_pascal_successor/successor_bler_merge_report.json`,
 `successor_bler_table.json` and `successor_closeout_provenance.json`: 153 curves,
 3,213 measured points and 16,065,000 trials. The merge ID is
@@ -68,7 +72,8 @@ or start G8_D. C3-C7 closeout is now bound by
 the table ID is
 `g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f`,
 and the closeout source/provenance closure is independently verified. G8_D D0
-is authorized as the next gate but was not started.
+is complete and D1 is current; later G8_D stages remain ordered behind it, and G8_E and
+the full validation campaign remain closed.
 
 **First Review delivery contract — user-fixed; do not ask the user to restate or
 reinterpret it.** The maintained acceptance checklist is
@@ -156,7 +161,7 @@ non-normative by design (`spec/SPEC.md` wins on any conflict), and it is **expec
 before a session ends** if the state changed. Promote anything durable out of it: decisions become a
 `DEC` in `SPEC.md` §3, risks and provisional values go to `SPEC.md` §16, explanations go to `docs/`.
 
-**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0 is authorized but not started.
+**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0 is complete with D1 current.
 
 ### Commands
 

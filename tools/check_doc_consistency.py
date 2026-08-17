@@ -108,7 +108,7 @@ FRONTIER_SECTIONS = (
 )
 
 # These are the three operational cursors that must agree about the completed
-# Pascal execution. `instructions/` is intentionally not part of the general
+# Pascal execution and the current G8_D gate. `instructions/` is intentionally not part of the general
 # Markdown discovery scope, so RESUME.md is loaded explicitly for this narrow
 # high-value check below.
 PASCAL_CURSOR_DOCS = ("NEXT.md", "AGENTS.md", "instructions/RESUME.md")
@@ -119,9 +119,9 @@ PASCAL_CURSOR_EXPECTED = {
     "execution": "complete",
     "coverage": "3213/3213",
     "evidence": "published",
-    "next": "g8-d-d0",
+    "next": "g8-d-d1",
     "bler_table": "frozen",
-    "g8_d": "authorized-not-started",
+    "g8_d": "d0-complete",
     "readiness_state": "immutable-zero-coverage-history",
     "runtime_state": "completed-production-state",
     "rerun": "forbidden",

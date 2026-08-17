@@ -1,0 +1,45 @@
+{
+  "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
+  "artifact_role": "g8_d_open_verification",
+  "checkpoint": "D0",
+  "g8_c": {
+    "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+    "closeout_provenance_id": "g8pcloseout-8cc5be86e6bbb350ca35c1806686e751f4528ad32aa7083e9a754c4849feba70",
+    "closeout_provenance_sha256": "efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f",
+    "curves": 153,
+    "execution_profile_id": "confessor_pascal_cu126",
+    "extrapolation_used": false,
+    "imputation_used": false,
+    "interpolation_used": false,
+    "measured_points": 3213,
+    "measurement_source_commit": "426110b05161e73e4d819bdc01f4857c012d6d59",
+    "merge_report_id": "g8pmerge-2e861c39d8981af0e2d57dc8ded5828b9ed56a1459491e04929b5e9c3418de89",
+    "merge_report_sha256": "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8",
+    "predecessor_table_contribution": "none",
+    "production_contract_sha256": "dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b",
+    "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f",
+    "table_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5",
+    "trials_per_point": 5000
+  },
+  "next_gate": "G8_D/D1",
+  "phase": "G8_D",
+  "prohibitions": {
+    "g8_e_started": false,
+    "pass_one_started": false,
+    "pass_two_started": false,
+    "selection_started": false,
+    "test_split_accessed": false,
+    "training_started": false,
+    "validation_campaign_started": false
+  },
+  "protected_counters": {
+    "inference": 0,
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 0
+  },
+  "schema_version": 1,
+  "status": "open",
+  "successor_table_path": "results/baseline/g8_pascal_successor/successor_bler_table.json",
+  "test_access": 0
+}

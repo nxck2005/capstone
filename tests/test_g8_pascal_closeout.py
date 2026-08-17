@@ -236,3 +236,24 @@ def test_partial_successor_merge_cannot_create_table(artifacts) -> None:
     partial["units"].pop()
     with pytest.raises(SuccessorMergeError):
         build_successor_bler_table(partial)
+
+
+def test_every_frozen_successor_point_is_exactly_lookupable(artifacts) -> None:
+    """Exercise every frozen point through the final strict runtime loader."""
+
+    _merge, table_payload, _provenance, _merge_raw, _table_raw = artifacts
+    table = load_successor_bler_table()
+
+    checked = 0
+    for curve in table_payload["curves"]:
+        identity = curve["identity"]
+        for point in curve["points"]:
+            lookup = table.lookup(identity, point["snr_db"])
+            assert lookup.characterized is True
+            assert lookup.interpolated is False
+            assert lookup.bler == point["bler"]
+            assert lookup.trials_per_point == 5000
+            checked += 1
+
+    assert len(table.identities) == 153
+    assert checked == 3213
