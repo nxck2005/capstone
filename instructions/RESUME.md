@@ -776,8 +776,8 @@ or G8_E execution is permitted in G8_D.
 | D1 freeze schemas/cache identities | done | **Phase-start SHA:** `08bfea1`; WIP `4f291d0`; green commit `4aeecd1`; contract generator/verifier and focused identity mutation tests PASS; no validation pixels or classifier invocation. |
 | D2 codec search and emitted-byte feasibility | done | **Phase-start SHA:** `4aeecd1`; WIP `3034c66`; green commit recorded below; synthetic codec/cache tests PASS; emitted bytes authoritative; no validation grid, classifier, selection or test access. |
 | D3 reconstruction cache and BR-11 accounting | done | **Phase-start SHA:** `31d5a1c`; WIP `dbefade`; green commit `e1e1247`; AM-81 exact byte-split tests, immutable reconstruction cache and mutation tests PASS; no validation image corpus, classifier invocation, selection or test access. |
-| D4 count-derived clean-classifier records | done | **Phase-start SHA:** `e1e1247`; WIP `a4fe2b1`; green commit recorded in the next publication checkpoint; count-derived `MeasuredCodecAccuracy` records, frozen classifier/table bindings and mutation tests PASS; no classifier run. |
-| D5 atomic resume | pending | crash/recovery tests; mark a D5 WIP commit before implementation; no production campaign |
+| D4 count-derived clean-classifier records | done | **Phase-start SHA:** `e1e1247`; WIP `a4fe2b1`; green commit `85a07a1`; count-derived `MeasuredCodecAccuracy` records, frozen classifier/table bindings and mutation tests PASS; no classifier run. |
+| D5 atomic resume | in-progress | **Phase-start SHA:** `85a07a1`; mark this D5 WIP before implementation. Crash/recovery tests only; no production campaign. Restart: run `pytest tests/test_g8_d_resume.py`. |
 | D6 bounded non-scientific smoke and mutations | pending | explicit smoke scope; no selection or headline result |
 | D7 verification and handoff | pending | full repository verification; release G8_E without starting it |
 
