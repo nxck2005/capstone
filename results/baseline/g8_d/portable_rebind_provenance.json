@@ -1,0 +1,60 @@
+{
+  "artifact_role": "g8_d_portable_loader_rebind_provenance",
+  "changed_source_bindings": [
+    {
+      "current_sha256": "7a35ac30e0c2c62363688c3cbb4f00c1f039bc680eb1c3c0d03dcec82c68e526",
+      "old_sha256": "1343ca754c5f529cc36fd2676574ef83c064ab9452ea92828257ac2ca4d484f3",
+      "path": "src/baseline/g8_pascal_merge.py",
+      "role": "frozen_successor_loader"
+    },
+    {
+      "current_sha256": "cc065127ea525dfa5b4135a11f8758e54a8b7d42cac27f327ae5b166ad9cf0f8",
+      "old_sha256": "1b3bfaac086f4c0a6c1e63430e9ec6bd1558ca50690a29f1ed5a71af3b779499",
+      "path": "tools/verify_g8_d_handoff.py",
+      "role": "g8_d_handoff_verifier"
+    }
+  ],
+  "checkpoint": "D7-CORRECTIVE",
+  "classification": "non_scientific_contract_and_provenance_rebind",
+  "current_contract": {
+    "contract_id": "g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889",
+    "path": "results/baseline/g8_d/measurement_contract.json",
+    "sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a",
+    "source_binding_changed": true
+  },
+  "current_handoff": {
+    "artifact_id": "g8dhandoff-31c48fcabe765a0e70bcd7bcfec5f4bd705b88ee3cb0d140ba9aecf67e1dfd4c",
+    "contract_id": "g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889",
+    "path": "results/baseline/g8_d/d7_handoff.json",
+    "pytest_count": 2179,
+    "sha256": "fa38c9bbc5e02ea3b16539eed17a9008079386f9655f1b8d789034056432e408"
+  },
+  "historical_contract": {
+    "contract_id": "g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe",
+    "path": "results/baseline/g8_d/measurement_contract_pre_portable_repair.json",
+    "preserved": true,
+    "sha256": "f8ffd9e109f4d71d924ec898e9dfb3ce5299d05e2b6365cf20ae42f8a3e15ef9"
+  },
+  "historical_handoff": {
+    "artifact_id": "g8dhandoff-db7f78cf2613c5883081bded9f53f7935916b78980761b5075aac531ac5b70f7",
+    "contract_id": "g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe",
+    "path": "results/baseline/g8_d/d7_handoff_pre_portable_repair.json",
+    "preserved": true,
+    "sha256": "5a3c2f6dae116492d0a528dfe803475b5fe705f71b0d58282422d0e6b96914fe"
+  },
+  "phase": "G8_D",
+  "provenance_id": "g8dportableprov-0d493b8e99cea1f0ac95f6d36bd411208f0930025950de8a5fe5a3836cf4d907",
+  "reason": "G8_C frozen successor loader now authenticates portable scientific runtime evidence; its legacy tree digest remains historical only",
+  "repair_commit": "a8869d458d1d14a0111c002f4d5ff03e4e78967c",
+  "schema_version": 1,
+  "semantics": {
+    "bounded_non_scientific_smoke_refreshed": true,
+    "g8_c_science_unchanged": true,
+    "g8_c_table_unchanged": true,
+    "g8_d_scientific_semantics_unchanged": true,
+    "g8_e_started": false,
+    "selection_started": false,
+    "test_split_accessed": false,
+    "validation_campaign_started": false
+  }
+}
