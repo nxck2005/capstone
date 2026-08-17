@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-d-d3; bler_table=frozen; g8_d=d2-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-d-d4; bler_table=frozen; g8_d=d3-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -45,8 +45,8 @@ No successor worker is running or may be started. Do not rerun the completed
 campaign, resume the old RTX4060 suffix, ingest predecessor evidence, or alter
 the completed runtime. C3-C7 is green: the successor merge report, measured
 153-curve/3,213-point BlerTable and source/provenance closure are independently
-verified under `results/baseline/g8_pascal_successor/`. G8_D D0, D1 and D2 are complete and
-D3 is current. Test and validation data, selection, authorization, inference
+verified under `results/baseline/g8_pascal_successor/`. G8_D D0, D1, D2 and D3 are complete and
+D4 is current. Test and validation data, selection, authorization, inference
 and training remain prohibited here.
 
 **This file is the single source of truth for where the four-phase sequence stands.**
@@ -98,7 +98,7 @@ Then:
 
 **Current phase:** **Pascal G8_C successor execution and C3-C7 closeout are
 complete at 3213/3213 and published; no worker is running. G8_C remains green
-and closed; G8_D D0, D1 and D2 are complete and D3 is the current gate.** The authenticated campaign is
+and closed; G8_D D0, D1, D2 and D3 are complete and D4 is the current gate.** The authenticated campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
 and contributes zero successor-table coverage. Do not rerun this campaign,
@@ -134,8 +134,8 @@ resolved selection-source identities, and must refuse to resume or adjudicate if
 complete, and G8_C C3-C7 is `done`.** The full BR-4 validation sweep and
 operating-point decision have not run, no bandwidth ratio has been selected,
 nothing has been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented,
-and the test split is sealed until G-12 at W11. G8_D D0, D1 and D2 are complete and
-D3 is current. PR-1 (literature review), PR-2 (Gantt) and PR-9
+and the test split is sealed until G-12 at W11. G8_D D0, D1, D2 and D3 are complete and
+D4 is current. PR-1 (literature review), PR-2 (Gantt) and PR-9
 (deployment dossier and author/guide acknowledgement) remain outstanding
 programme deliverables.
 
@@ -752,7 +752,7 @@ complete at 3,213/3,213 and its authenticated evidence is published. The success
 top-level successor `campaign_state.json` remains the immutable zero-coverage
 readiness marker. The old local RTX4060 campaign remains valid immutable history
 and contributes zero successor-table coverage.
-**Exact next action:** continue the repository-defined G8_D procedure at D1. The
+**Exact next action:** continue the repository-defined G8_D procedure at D4. The
 successor merge report, measured-only BlerTable and source/provenance closure
 are frozen and independently verified; do not rerun or resume either campaign,
 start another Pascal worker, ingest old results, alter completed runtime evidence
@@ -765,7 +765,7 @@ The D0 gate is complete. `results/baseline/g8_d/d0_open.json` binds the exact
 frozen Pascal successor table (153 curves, 3,213 measured points, 5,000 trials
 per point) and records zero protected/test counters and zero validation work.
 The exhaustive strict-loader regression checks all 3,213 stored points through
-the final `BlerTable` API. D1 and D2 are complete and D3 is the current gate; D4 through D7 must proceed in
+the final `BlerTable` API. D1, D2 and D3 are complete and D4 is the current gate; D5 through D7 must proceed in
 order. G8_C remains green and closed: its runtime evidence and table values are
 immutable. No full validation campaign, selection pass, training, test access
 or G8_E execution is permitted in G8_D.
@@ -775,8 +775,8 @@ or G8_E execution is permitted in G8_D.
 | D0 verify/open | done | `tools/verify_g8_pascal_successor.py`, `tools/verify_g8_pascal_closeout.py`, `tests/test_g8_pascal_closeout.py::test_every_frozen_successor_point_is_exactly_lookupable`, `tools/verify_g8_d_open.py`; `results/baseline/g8_d/d0_open.json` |
 | D1 freeze schemas/cache identities | done | **Phase-start SHA:** `08bfea1`; WIP `4f291d0`; green commit `4aeecd1`; contract generator/verifier and focused identity mutation tests PASS; no validation pixels or classifier invocation. |
 | D2 codec search and emitted-byte feasibility | done | **Phase-start SHA:** `4aeecd1`; WIP `3034c66`; green commit recorded below; synthetic codec/cache tests PASS; emitted bytes authoritative; no validation grid, classifier, selection or test access. |
-| D3 reconstruction cache and BR-11 accounting | in-progress | **Phase-start SHA:** `31d5a1c`; mark this `wip(g8-d): add reconstruction cache and br11 accounting` commit before implementation. Intended files: `src/baseline/g8_d.py`, focused reconstruction/BR-11 tests and contract refresh; no validation image corpus, classifier invocation, selection or test access. Restart: run `pytest tests/test_g8_d_reconstruction.py`. |
-| D4 count-derived clean-classifier records | pending | validation-only record schema and synthetic tests; no classifier run |
+| D3 reconstruction cache and BR-11 accounting | done | **Phase-start SHA:** `31d5a1c`; WIP `dbefade`; green commit recorded in the next publication checkpoint; AM-81 exact byte-split tests, immutable reconstruction cache and mutation tests PASS; no validation image corpus, classifier invocation, selection or test access. |
+| D4 count-derived clean-classifier records | pending | validation-only record schema and synthetic tests; mark a D4 WIP commit before implementation; no classifier run |
 | D5 atomic resume | pending | crash/recovery tests; no production campaign |
 | D6 bounded non-scientific smoke and mutations | pending | explicit smoke scope; no selection or headline result |
 | D7 verification and handoff | pending | full repository verification; release G8_E without starting it |

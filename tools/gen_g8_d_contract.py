@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate or check the deterministic G8_D D1 pre-data contract."""
+"""Generate or check the deterministic G8_D D3 pre-data contract."""
 
 from __future__ import annotations
 

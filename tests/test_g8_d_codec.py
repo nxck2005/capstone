@@ -36,7 +36,7 @@ def _identity(source: bytes = b"source", pixels: np.ndarray | None = None) -> Im
 def _budget(payload_bytes: int = 20) -> BudgetIdentity:
     return BudgetIdentity(
         bw_ratio="fixture",
-        bytes_sent=payload_bytes + 5,
+        bytes_sent=payload_bytes,
         payload_bytes=payload_bytes,
         packet_accounting={"payload_bytes": payload_bytes, "channel_bits": payload_bytes * 8},
     )
@@ -135,7 +135,7 @@ def test_packet_plan_path_binds_actual_payload_accounting(tmp_path) -> None:
     engine, backend = _engine(tmp_path)
     budget = BudgetIdentity(
         bw_ratio="fixture",
-        bytes_sent=20,
+        bytes_sent=accounting.payload_bytes,
         payload_bytes=accounting.payload_bytes,
         packet_accounting=accounting.as_dict(),
     )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent verifier for the G8_D D1 contract.
+"""Independent verifier for the G8_D D3 pre-data contract.
 
 The expected schema and safety assertions are intentionally restated here;
 the verifier does not import the contract builder.  It does import the final
@@ -82,7 +82,7 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
         "work_unit_ordering", "phase_order", "source_bindings", "safety", "next_gate",
     }
     _require(set(value) == required, "G8_D contract schema differs")
-    _require((value["schema_version"], value["artifact_role"], value["phase"], value["checkpoint"], value["status"]) == (1, "g8_d_validation_measurement_contract", "G8_D", "D2", "codec_search_ready"), "G8_D contract header differs")
+    _require((value["schema_version"], value["artifact_role"], value["phase"], value["checkpoint"], value["status"]) == (1, "g8_d_validation_measurement_contract", "G8_D", "D3", "reconstruction_ready"), "G8_D contract header differs")
     contract_id = value["contract_id"]
     campaign_id = value["campaign_id"]
     _require(isinstance(contract_id, str) and contract_id.startswith("g8dcontract-"), "contract ID prefix differs")
@@ -129,7 +129,7 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
     for field in ("checkpoint_sha256", "classifier_config_sha256", "dataset_version", "manifest_sha256"):
         _digest(classifier[field], f"classifier {field}")
     _require(set(value["phase_order"]) == {"D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7"}, "phase order differs")
-    _require(value["next_gate"] == "G8_D/D3", "next gate is not D3")
+    _require(value["next_gate"] == "G8_D/D4", "next gate is not D4")
     _require(value["identity_schema"]["schema_version"] == IDENTITY_SCHEMA_VERSION, "identity schema version differs")
     _require(value["cache_schema"]["codec_cache_schema_version"] == CODEC_CACHE_SCHEMA_VERSION, "codec cache schema differs")
     _require(value["record_schema"]["schema_version"] == RECORD_SCHEMA_VERSION and value["record_schema"]["measured_accuracy_requires_counts"] is True, "record schema differs")
@@ -137,6 +137,14 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
     _require(value["cache_schema"]["emitted_bytes_authoritative"] is True, "emitted bytes are not authoritative")
     _require(value["cache_schema"]["structural_infeasibility_is_distinct"] is True and value["cache_schema"]["codec_infeasibility_is_recorded"] is True, "infeasibility semantics differ")
     _require(value["cache_schema"]["source_bytes_bound"] is True and value["cache_schema"]["canonical_pixels_bound"] is True, "image binding is incomplete")
+    _require(value["cache_schema"]["reconstruction_cache_binds_emitted_bytes"] is True, "reconstruction cache does not bind emitted bytes")
+    _require(value["cache_schema"]["reconstruction_cache_binds_image_identity"] is True, "reconstruction cache does not bind image identity")
+    _require(value["cache_schema"]["reconstruction_cache_binds_codec_identity"] is True, "reconstruction cache does not bind codec identity")
+    _require(value["cache_schema"]["reconstruction_cache_immutable"] is True, "reconstruction cache is not immutable")
+    _require(value["cache_schema"]["br11_accounting_rule"] == "AM-81", "BR-11 accounting rule differs")
+    _require(value["cache_schema"]["br11_header_is_structural_codestream_bytes"] is True, "BR-11 header semantics differ")
+    _require(value["cache_schema"]["br11_payload_is_all_tile_part_data"] is True, "BR-11 payload semantics differ")
+    _require(value["cache_schema"]["br11_filler_is_separate"] is True and value["cache_schema"]["br11_includes_decode_failures"] is True, "BR-11 denominator semantics differ")
     safety = value["safety"]
     _require(all(safety[field] is False for field in ("validation_campaign_started", "selection_started", "pass_one_started", "pass_two_started", "training_started", "test_split_accessed", "g8_e_started")), "G8_D safety flags are nonzero")
     _require(all(safety[field] == 0 for field in ("test_access", "inference", "training", "validation_decoding")), "G8_D protected counters are nonzero")

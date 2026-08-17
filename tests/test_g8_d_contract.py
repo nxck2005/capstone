@@ -29,7 +29,7 @@ def _image() -> g8_d.ImageIdentity:
 def _budget() -> g8_d.BudgetIdentity:
     return g8_d.BudgetIdentity(
         bw_ratio="1/12",
-        bytes_sent=100,
+        bytes_sent=80,
         payload_bytes=80,
         packet_accounting={"payload_bytes": 80, "channel_bits": 640, "k_symbols": 320},
     )
@@ -60,7 +60,7 @@ def _bler_identity() -> dict[str, object]:
 
 def test_contract_artifact_and_independent_verifier_pass() -> None:
     contract = g8_d.build_g8_d_contract()
-    assert contract["next_gate"] == "G8_D/D3"
+    assert contract["next_gate"] == "G8_D/D4"
     assert contract["g8_c_binding"]["table_id"].startswith("g8pblertable-")
     assert contract["g8_c_binding"]["measured_points"] == 3213
     assert all(item["split"] == "val" for item in contract["validation_split_bindings"])

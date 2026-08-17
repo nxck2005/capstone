@@ -22,7 +22,7 @@ import re
 import base64
 import stat
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, ClassVar
@@ -50,6 +50,12 @@ __all__ = [
     "EmittedFileIdentity",
     "ReconstructionIdentity",
     "WorkUnitIdentity",
+    "BR11Accounting",
+    "BR11Aggregate",
+    "account_br11",
+    "aggregate_br11",
+    "ReconstructionResult",
+    "ReconstructionCache",
     "canonical_json",
     "rendered_json",
     "sha256_bytes",
@@ -405,6 +411,10 @@ class BudgetIdentity(_Identity):
             raise G8DContractError("bw_ratio is empty")
         _positive_int(self.bytes_sent, "bytes_sent")
         _positive_int(self.payload_bytes, "payload_bytes")
+        if self.bytes_sent != self.payload_bytes:
+            raise G8DContractError(
+                "bytes_sent must equal payload_bytes: AM-81 binds both to the complete A/8 transport capacity"
+            )
         if not isinstance(self.packet_accounting, Mapping) or not self.packet_accounting:
             raise G8DContractError("packet_accounting must be a non-empty mapping")
         if "payload_bytes" in self.packet_accounting and self.packet_accounting["payload_bytes"] != self.payload_bytes:
@@ -679,7 +689,7 @@ class ReconstructionIdentity(_Identity):
             raise G8DContractError("preserves_aspect must be boolean")
 
     def payload(self) -> dict[str, Any]:
-        result = {"schema_version": CODEC_CACHE_SCHEMA_VERSION, "identity_type": "reconstruction"}
+        result = {"schema_version": IDENTITY_SCHEMA_VERSION, "identity_type": "reconstruction"}
         result.update({field: _copy_json(getattr(self, field)) for field in self.FIELDS})
         result["output_shape"] = list(self.output_shape)
         return result
@@ -692,6 +702,462 @@ class ReconstructionIdentity(_Identity):
             raise G8DContractError("reconstruction output_shape is not a sequence")
         data["output_shape"] = tuple(int(item) for item in shape)
         return cls(**data)
+
+
+BR11_EMITTED_VERDICTS = frozenset({"delivered", "decode_failure"})
+
+
+@dataclass(frozen=True)
+class BR11Accounting:
+    """Exact AM-81 byte accounting for one emitted codestream.
+
+    The object is deliberately constructed from the actual codestream bytes
+    by :func:`account_br11`.  A requested compression ratio, a codec-reported
+    estimate, or a delivered-only denominator cannot enter this record.
+    """
+
+    verdict: str
+    emitted_file_identity: EmittedFileIdentity
+    bytes_sent: int
+    emitted_codestream_bytes: int
+    header_bytes: int
+    payload_bytes: int
+    payload_filler_bytes: int
+    codestream_sha256: str
+    denominator: int = 1
+
+    FIELDS: ClassVar[tuple[str, ...]] = (
+        "verdict",
+        "emitted_file_identity",
+        "bytes_sent",
+        "emitted_codestream_bytes",
+        "header_bytes",
+        "payload_bytes",
+        "payload_filler_bytes",
+        "codestream_sha256",
+        "denominator",
+    )
+
+    def __post_init__(self) -> None:
+        if self.verdict not in BR11_EMITTED_VERDICTS:
+            raise G8DContractError(
+                "BR-11 accounting requires delivered or decode_failure for an emitted codestream"
+            )
+        if not isinstance(self.emitted_file_identity, EmittedFileIdentity):
+            raise G8DContractError("BR-11 accounting has no emitted-file identity")
+        _positive_int(self.bytes_sent, "BR-11 bytes_sent")
+        _positive_int(self.emitted_codestream_bytes, "BR-11 emitted_codestream_bytes")
+        _nonnegative_int(self.header_bytes, "BR-11 header_bytes")
+        _nonnegative_int(self.payload_bytes, "BR-11 payload_bytes")
+        _nonnegative_int(self.payload_filler_bytes, "BR-11 payload_filler_bytes")
+        _require_digest(self.codestream_sha256, "BR-11 codestream_sha256")
+        if self.denominator != 1:
+            raise G8DContractError("one emitted codestream must have denominator 1")
+        if self.bytes_sent != self.emitted_file_identity.payload_budget_bytes:
+            raise G8DContractError("BR-11 bytes_sent differs from emitted-file payload budget")
+        if self.codestream_sha256 != self.emitted_file_identity.codestream_sha256:
+            raise G8DContractError("BR-11 codestream hash differs from emitted-file identity")
+        if self.emitted_codestream_bytes != self.emitted_file_identity.emitted_bytes:
+            raise G8DContractError("BR-11 emitted length differs from emitted-file identity")
+        if self.emitted_codestream_bytes != self.header_bytes + self.payload_bytes:
+            raise G8DContractError("BR-11 header plus payload does not reconcile")
+        if self.bytes_sent != self.emitted_codestream_bytes + self.payload_filler_bytes:
+            raise G8DContractError("BR-11 emitted bytes plus filler does not reconcile")
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": RECORD_SCHEMA_VERSION,
+            "artifact_role": "br11_emitted_codestream_accounting",
+            "verdict": self.verdict,
+            "emitted_file_identity": self.emitted_file_identity.payload(),
+            "bytes_sent": self.bytes_sent,
+            "emitted_codestream_bytes": self.emitted_codestream_bytes,
+            "header_bytes": self.header_bytes,
+            "payload_bytes": self.payload_bytes,
+            "payload_filler_bytes": self.payload_filler_bytes,
+            "codestream_sha256": self.codestream_sha256,
+            "denominator": self.denominator,
+            "accounting_rule": "AM-81",
+        }
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "BR11Accounting":
+        fields = set(cls.FIELDS) | {"schema_version", "artifact_role", "accounting_rule"}
+        data = _strict_object(value, tuple(fields), "BR-11 accounting")
+        if data["schema_version"] != RECORD_SCHEMA_VERSION:
+            raise G8DContractError("unsupported BR-11 accounting schema")
+        if data["artifact_role"] != "br11_emitted_codestream_accounting" or data["accounting_rule"] != "AM-81":
+            raise G8DContractError("BR-11 accounting role or rule differs")
+        return cls(
+            verdict=data["verdict"],
+            emitted_file_identity=EmittedFileIdentity.from_mapping(data["emitted_file_identity"]),
+            bytes_sent=data["bytes_sent"],
+            emitted_codestream_bytes=data["emitted_codestream_bytes"],
+            header_bytes=data["header_bytes"],
+            payload_bytes=data["payload_bytes"],
+            payload_filler_bytes=data["payload_filler_bytes"],
+            codestream_sha256=data["codestream_sha256"],
+            denominator=data["denominator"],
+        )
+
+
+def account_br11(
+    codestream: bytes,
+    *,
+    emitted_file_identity: EmittedFileIdentity,
+    bytes_sent: int,
+    verdict: str,
+) -> BR11Accounting:
+    """Derive AM-81 columns from complete emitted JPEG 2000 bytes."""
+
+    if not isinstance(codestream, bytes) or not codestream:
+        raise G8DContractError("BR-11 codestream must be non-empty bytes")
+    if not isinstance(emitted_file_identity, EmittedFileIdentity):
+        raise G8DContractError("BR-11 requires an emitted-file identity")
+    actual_hash = sha256_bytes(codestream)
+    if len(codestream) != emitted_file_identity.emitted_bytes:
+        raise G8DContractError("BR-11 codestream length differs from emitted-file identity")
+    if actual_hash != emitted_file_identity.codestream_sha256:
+        raise G8DContractError("BR-11 codestream bytes differ from emitted-file identity")
+    if bytes_sent != emitted_file_identity.payload_budget_bytes:
+        raise G8DContractError("BR-11 bytes_sent differs from emitted-file payload budget")
+    try:
+        from baseline.classical.records import codestream_byte_split
+
+        header_bytes, payload_bytes = codestream_byte_split(codestream)
+    except Exception as exc:
+        raise G8DContractError(f"BR-11 codestream cannot be structurally accounted: {exc}") from None
+    return BR11Accounting(
+        verdict=verdict,
+        emitted_file_identity=emitted_file_identity,
+        bytes_sent=bytes_sent,
+        emitted_codestream_bytes=len(codestream),
+        header_bytes=header_bytes,
+        payload_bytes=payload_bytes,
+        payload_filler_bytes=bytes_sent - len(codestream),
+        codestream_sha256=actual_hash,
+    )
+
+
+@dataclass(frozen=True)
+class BR11Aggregate:
+    """Per-cell AM-81 sums and means over every emitted row."""
+
+    bytes_sent: int | None
+    emitted_row_count: int
+    header_numerator: int
+    payload_numerator: int
+    emitted_codestream_numerator: int
+    payload_filler_numerator: int
+    denominator: int
+    verdict_counts: Mapping[str, int]
+
+    def __post_init__(self) -> None:
+        if self.emitted_row_count != self.denominator:
+            raise G8DContractError("BR-11 aggregate denominator is not emitted-row count")
+        if self.emitted_row_count == 0 and self.bytes_sent is not None:
+            raise G8DContractError("empty BR-11 aggregate has no bytes_sent")
+        if self.emitted_row_count > 0 and self.bytes_sent is None:
+            raise G8DContractError("non-empty BR-11 aggregate has no bytes_sent")
+        for name in (
+            "header_numerator",
+            "payload_numerator",
+            "emitted_codestream_numerator",
+            "payload_filler_numerator",
+        ):
+            _nonnegative_int(getattr(self, name), f"BR-11 {name}")
+        if self.emitted_codestream_numerator != self.header_numerator + self.payload_numerator:
+            raise G8DContractError("BR-11 aggregate header plus payload does not reconcile")
+        if self.bytes_sent is not None and self.bytes_sent * self.denominator != (
+            self.emitted_codestream_numerator + self.payload_filler_numerator
+        ):
+            raise G8DContractError("BR-11 aggregate emitted bytes plus filler does not reconcile")
+
+    def as_dict(self) -> dict[str, Any]:
+        denominator = self.denominator
+        return {
+            "schema_version": RECORD_SCHEMA_VERSION,
+            "artifact_role": "br11_aggregate",
+            "accounting_rule": "AM-81",
+            "bytes_sent": self.bytes_sent,
+            "emitted_row_count": self.emitted_row_count,
+            "denominator": denominator,
+            "header_bytes_numerator": self.header_numerator,
+            "payload_bytes_numerator": self.payload_numerator,
+            "emitted_codestream_bytes_numerator": self.emitted_codestream_numerator,
+            "payload_filler_bytes_numerator": self.payload_filler_numerator,
+            "header_bytes": None if denominator == 0 else self.header_numerator / denominator,
+            "payload_bytes": None if denominator == 0 else self.payload_numerator / denominator,
+            "emitted_codestream_bytes": None if denominator == 0 else self.emitted_codestream_numerator / denominator,
+            "payload_filler_bytes": None if denominator == 0 else self.payload_filler_numerator / denominator,
+            "verdict_counts": _copy_json(self.verdict_counts),
+        }
+
+
+def aggregate_br11(accountings: Sequence[BR11Accounting]) -> BR11Aggregate:
+    """Aggregate delivered and decode-failure rows, excluding no-emission rows."""
+
+    if not isinstance(accountings, Sequence) or isinstance(accountings, (str, bytes)):
+        raise G8DContractError("BR-11 aggregate input is not an ordered sequence")
+    rows = tuple(accountings)
+    if any(not isinstance(row, BR11Accounting) for row in rows):
+        raise G8DContractError("BR-11 aggregate contains a non-accounting row")
+    if not rows:
+        return BR11Aggregate(
+            None,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            {verdict: 0 for verdict in sorted(BR11_EMITTED_VERDICTS)},
+        )
+    bytes_sent = rows[0].bytes_sent
+    if any(row.bytes_sent != bytes_sent for row in rows):
+        raise G8DContractError("BR-11 aggregate mixes transport budgets")
+    counts = {verdict: 0 for verdict in sorted(BR11_EMITTED_VERDICTS)}
+    for row in rows:
+        counts[row.verdict] += row.denominator
+    return BR11Aggregate(
+        bytes_sent=bytes_sent,
+        emitted_row_count=len(rows),
+        header_numerator=sum(row.header_bytes for row in rows),
+        payload_numerator=sum(row.payload_bytes for row in rows),
+        emitted_codestream_numerator=sum(row.emitted_codestream_bytes for row in rows),
+        payload_filler_numerator=sum(row.payload_filler_bytes for row in rows),
+        denominator=sum(row.denominator for row in rows),
+        verdict_counts=counts,
+    )
+
+
+@dataclass(frozen=True)
+class ReconstructionResult:
+    """A validated receiver reconstruction and its immutable cache provenance."""
+
+    identity: ReconstructionIdentity
+    reconstruction: np.ndarray
+    cache_hit: bool
+    cache_object_id: str
+
+
+class ReconstructionCache:
+    """Content-addressed decoded/upsampled reconstruction cache.
+
+    Cache objects contain the final uint8 RGB reconstruction bytes and the
+    complete image, emitted-file and codec identities.  They are immutable;
+    the same-directory no-replace publisher is the only publication path.
+    """
+
+    _CACHE_FIELDS = (
+        "schema_version",
+        "reconstruction_identity",
+        "image_identity",
+        "emitted_file_identity",
+        "codec_configuration",
+        "input_codestream_sha256",
+        "input_emitted_bytes",
+        "decoded_pixels_b64",
+        "decoded_pixels_sha256",
+        "decoded_shape",
+        "decoded_dtype",
+        "cache_object_id",
+    )
+
+    def __init__(
+        self,
+        cache_root: Path,
+        codec_identity: CodecConfigurationIdentity,
+        decoder: Callable[[bytes], np.ndarray] | Any | None = None,
+    ) -> None:
+        if not isinstance(codec_identity, CodecConfigurationIdentity):
+            raise G8DContractError("reconstruction cache requires codec configuration identity")
+        self.cache_root = Path(cache_root).resolve()
+        self.codec_identity = codec_identity
+        if decoder is None:
+            from baseline.j2k import J2KCodec
+
+            decoder = J2KCodec(self.cache_root / "backend").decode_codestream
+        elif hasattr(decoder, "decode_codestream"):
+            decoder = decoder.decode_codestream
+        if not callable(decoder):
+            raise G8DContractError("reconstruction decoder is not callable")
+        self.decoder: Callable[[bytes], np.ndarray] = decoder
+        interpolation = get("preprocessing.codec_upsample_interpolation")
+        preserves_aspect = get("preprocessing.codec_resize_preserves_aspect")
+        if not isinstance(interpolation, str) or not interpolation:
+            raise G8DContractError("codec upsample interpolation is not configured")
+        if not isinstance(preserves_aspect, bool) or not preserves_aspect:
+            raise G8DContractError("G8_D requires aspect-preserving codec resize")
+        self.upsample_interpolation = interpolation
+        self.preserves_aspect = preserves_aspect
+
+    @staticmethod
+    def _validated_pixels(pixels: Any, label: str) -> np.ndarray:
+        if not isinstance(pixels, np.ndarray) or pixels.dtype != np.uint8 or pixels.ndim != 3 or pixels.shape[2] != 3:
+            raise G8DContractError(f"{label} must be uint8 RGB HWC")
+        if any(int(value) <= 0 for value in pixels.shape):
+            raise G8DContractError(f"{label} has a non-positive shape")
+        return np.ascontiguousarray(pixels)
+
+    def _identity(
+        self,
+        image_identity: ImageIdentity,
+        emitted_file_identity: EmittedFileIdentity,
+        output_shape: tuple[int, int, int],
+    ) -> ReconstructionIdentity:
+        if emitted_file_identity.payload_budget_bytes <= 0:
+            raise G8DContractError("reconstruction emitted-file budget is invalid")
+        return ReconstructionIdentity(
+            image_identity_id=image_identity.identity_id,
+            emitted_file_identity_id=emitted_file_identity.identity_id,
+            codec_configuration_id=self.codec_identity.identity_id,
+            output_shape=tuple(int(value) for value in output_shape),
+            upsample_interpolation=self.upsample_interpolation,
+            preserves_aspect=self.preserves_aspect,
+        )
+
+    def _cache_path(self, identity: ReconstructionIdentity) -> Path:
+        return self.cache_root / "reconstruction" / f"{identity.identity_id}.json"
+
+    @staticmethod
+    def _cache_object_id(metadata_without_id: Mapping[str, Any]) -> str:
+        return "g8dreconobj-" + sha256_bytes(canonical_json(metadata_without_id))
+
+    def _load_cache(
+        self,
+        path: Path,
+        *,
+        identity: ReconstructionIdentity,
+        image_identity: ImageIdentity,
+        emitted_file_identity: EmittedFileIdentity,
+        codestream: bytes,
+    ) -> tuple[np.ndarray, str]:
+        try:
+            metadata = json.loads(path.read_bytes())
+        except (OSError, json.JSONDecodeError) as exc:
+            raise G8DContractError(f"invalid reconstruction cache object: {exc}") from None
+        if not isinstance(metadata, Mapping) or set(metadata) != set(self._CACHE_FIELDS):
+            raise G8DContractError("reconstruction cache schema differs")
+        if metadata["schema_version"] != CODEC_CACHE_SCHEMA_VERSION:
+            raise G8DContractError("unsupported reconstruction cache schema")
+        if metadata["reconstruction_identity"] != identity.payload():
+            raise G8DContractError("reconstruction cache identity is stale")
+        if metadata["image_identity"] != image_identity.payload():
+            raise G8DContractError("reconstruction cache image identity differs")
+        if metadata["emitted_file_identity"] != emitted_file_identity.payload():
+            raise G8DContractError("reconstruction cache emitted-file identity differs")
+        if metadata["codec_configuration"] != self.codec_identity.payload():
+            raise G8DContractError("reconstruction cache codec configuration differs")
+        actual_hash = sha256_bytes(codestream)
+        if metadata["input_codestream_sha256"] != actual_hash or actual_hash != emitted_file_identity.codestream_sha256:
+            raise G8DContractError("reconstruction cache input codestream differs")
+        if metadata["input_emitted_bytes"] != len(codestream) or len(codestream) != emitted_file_identity.emitted_bytes:
+            raise G8DContractError("reconstruction cache input length differs")
+        try:
+            pixels_bytes = base64.b64decode(metadata["decoded_pixels_b64"], validate=True)
+        except (ValueError, TypeError) as exc:
+            raise G8DContractError(f"reconstruction cache pixels are invalid: {exc}") from None
+        if sha256_bytes(pixels_bytes) != metadata["decoded_pixels_sha256"]:
+            raise G8DContractError("reconstruction cache pixel hash differs")
+        shape = metadata["decoded_shape"]
+        if not isinstance(shape, list) or tuple(shape) != identity.output_shape:
+            raise G8DContractError("reconstruction cache output shape differs")
+        if metadata["decoded_dtype"] != "uint8":
+            raise G8DContractError("reconstruction cache dtype differs")
+        expected_bytes = int(np.prod(identity.output_shape, dtype=np.int64))
+        if len(pixels_bytes) != expected_bytes:
+            raise G8DContractError("reconstruction cache pixel byte length differs")
+        pixels = np.frombuffer(pixels_bytes, dtype=np.uint8).reshape(identity.output_shape).copy()
+        basis = dict(metadata)
+        object_id = basis.pop("cache_object_id")
+        if object_id != self._cache_object_id(basis):
+            raise G8DContractError("reconstruction cache object ID differs")
+        return pixels, str(object_id)
+
+    def _decode_to_output(self, codestream: bytes, output_shape: tuple[int, int, int]) -> np.ndarray:
+        try:
+            decoded = self._validated_pixels(self.decoder(codestream), "decoded JPEG 2000 pixels")
+        except G8DContractError:
+            raise
+        except Exception as exc:
+            raise G8DContractError(f"JPEG 2000 reconstruction decode failed: {exc}") from None
+        if tuple(decoded.shape) == output_shape:
+            return decoded
+        if decoded.shape[0] > output_shape[0] or decoded.shape[1] > output_shape[1]:
+            raise G8DContractError("reconstruction resize would downsample decoded pixels")
+        try:
+            from data.preprocessing import codec_upsample
+
+            result = codec_upsample(decoded, output_hw=output_shape[:2])
+        except Exception as exc:
+            raise G8DContractError(f"JPEG 2000 reconstruction upsample failed: {exc}") from None
+        return self._validated_pixels(result, "upsampled reconstruction")
+
+    def get_or_create(
+        self,
+        *,
+        image_identity: ImageIdentity,
+        emitted_file_identity: EmittedFileIdentity,
+        codestream: bytes,
+        output_shape: tuple[int, int, int],
+    ) -> ReconstructionResult:
+        if not isinstance(image_identity, ImageIdentity):
+            raise G8DContractError("reconstruction requires an image identity")
+        if not isinstance(emitted_file_identity, EmittedFileIdentity):
+            raise G8DContractError("reconstruction requires an emitted-file identity")
+        if not isinstance(codestream, bytes) or not codestream:
+            raise G8DContractError("reconstruction codestream must be non-empty bytes")
+        if len(codestream) != emitted_file_identity.emitted_bytes:
+            raise G8DContractError("reconstruction codestream length differs from identity")
+        if sha256_bytes(codestream) != emitted_file_identity.codestream_sha256:
+            raise G8DContractError("reconstruction codestream hash differs from identity")
+        if self.codec_identity.identity_id == "":
+            raise G8DContractError("reconstruction codec identity is empty")
+        identity = self._identity(image_identity, emitted_file_identity, output_shape)
+        path = self._cache_path(identity)
+        try:
+            cache_stat = path.lstat()
+        except FileNotFoundError:
+            cache_stat = None
+        if cache_stat is not None:
+            if stat.S_ISLNK(cache_stat.st_mode) or not stat.S_ISREG(cache_stat.st_mode):
+                raise G8DContractError("reconstruction cache path is not a regular file")
+            pixels, object_id = self._load_cache(
+                path,
+                identity=identity,
+                image_identity=image_identity,
+                emitted_file_identity=emitted_file_identity,
+                codestream=codestream,
+            )
+            return ReconstructionResult(identity, pixels, True, object_id)
+
+        pixels = self._decode_to_output(codestream, identity.output_shape)
+        metadata: dict[str, Any] = {
+            "schema_version": CODEC_CACHE_SCHEMA_VERSION,
+            "reconstruction_identity": identity.payload(),
+            "image_identity": image_identity.payload(),
+            "emitted_file_identity": emitted_file_identity.payload(),
+            "codec_configuration": self.codec_identity.payload(),
+            "input_codestream_sha256": sha256_bytes(codestream),
+            "input_emitted_bytes": len(codestream),
+            "decoded_pixels_b64": base64.b64encode(pixels.tobytes()).decode("ascii"),
+            "decoded_pixels_sha256": sha256_bytes(pixels.tobytes()),
+            "decoded_shape": list(pixels.shape),
+            "decoded_dtype": str(pixels.dtype),
+        }
+        metadata["cache_object_id"] = self._cache_object_id(metadata)
+        created = publish_immutable_object(path, rendered_json(metadata))
+        if not created:
+            pixels, object_id = self._load_cache(
+                path,
+                identity=identity,
+                image_identity=image_identity,
+                emitted_file_identity=emitted_file_identity,
+                codestream=codestream,
+            )
+            return ReconstructionResult(identity, pixels, True, object_id)
+        return ReconstructionResult(identity, pixels, False, str(metadata["cache_object_id"]))
 
 
 @dataclass(frozen=True)
@@ -798,7 +1264,7 @@ def _source_bindings(repo_root: Path) -> list[dict[str, str]]:
 
 
 def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Build the deterministic D1 contract without touching image payloads."""
+    """Build the deterministic pre-data contract without touching image payloads."""
 
     repo_root = Path(repo_root).resolve()
     g8c = _current_g8_c_binding(repo_root)
@@ -820,8 +1286,8 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "schema_version": G8_D_SCHEMA_VERSION,
         "artifact_role": "g8_d_validation_measurement_contract",
         "phase": "G8_D",
-        "checkpoint": "D2",
-        "status": "codec_search_ready",
+        "checkpoint": "D3",
+        "status": "reconstruction_ready",
         "contract_id": None,
         "campaign_id": None,
         "g8_c_binding": g8c.as_dict(),
@@ -852,6 +1318,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "emitted_codestream": list(EmittedFileIdentity.FIELDS),
             "reconstruction": list(ReconstructionIdentity.FIELDS),
             "work_unit": list(WorkUnitIdentity.FIELDS),
+            "br11_accounting": list(BR11Accounting.FIELDS),
             "codec_search_result": [
                 "search_key", "status", "reason", "payload_budget_bytes",
                 "encoded_pixels_sha256", "emitted_identity", "requested_compression_ratio",
@@ -876,6 +1343,17 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             ],
             "structural_infeasibility_is_distinct": True,
             "codec_infeasibility_is_recorded": True,
+            "reconstruction_identity_fields": list(ReconstructionIdentity.FIELDS),
+            "reconstruction_cache_binds_emitted_bytes": True,
+            "reconstruction_cache_binds_image_identity": True,
+            "reconstruction_cache_binds_codec_identity": True,
+            "reconstruction_cache_immutable": True,
+            "br11_accounting_rule": "AM-81",
+            "br11_header_is_structural_codestream_bytes": True,
+            "br11_payload_is_all_tile_part_data": True,
+            "br11_filler_is_separate": True,
+            "br11_includes_decode_failures": True,
+            "br11_infeasible_rows_excluded": True,
         },
         "record_schema": {
             "schema_version": RECORD_SCHEMA_VERSION,
@@ -885,6 +1363,9 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
                 "structural_infeasibility", "codec_infeasibility", "decode_failure", "delivered"
             ],
             "infeasible_candidates_are_records": True,
+            "br11_fields": list(BR11Accounting.FIELDS),
+            "br11_counts_emitted_rows_only": True,
+            "br11_count_derived_accuracy": True,
         },
         "resume_schema": {
             "schema_version": RESUME_SCHEMA_VERSION,
@@ -914,7 +1395,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "validation_decoding": 0,
             "g8_e_started": False,
         },
-        "next_gate": "G8_D/D3",
+        "next_gate": "G8_D/D4",
     }
     campaign_basis = dict(body)
     campaign_basis.pop("campaign_id")
