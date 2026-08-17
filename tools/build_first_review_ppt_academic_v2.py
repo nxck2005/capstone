@@ -446,7 +446,7 @@ def build_scenes() -> list[SlideScene]:
     # 8 — evidence
     s = SlideScene(8, "Evidence", "Preliminary work and feasibility",
                    ("Subject Knowledge",),
-                   "Authenticated records: G-1, G-2, G-7, W4 and G8_C · test split access = 0")
+                   "Authenticated records: G-1, G-2, G-7, W4, G8_C and G8_D · test split access = 0")
     add_header(s)
     s.rect(0.72, 1.43, 11.88, 0.40, fill=PALE_RED, stroke=None, radius=0.04)
     s.text(0.96, 1.53, 11.40, 0.16,
@@ -469,18 +469,18 @@ def build_scenes() -> list[SlideScene]:
         s.text(x + 0.20, 3.78, 2.32, 0.56, body, size=9.1,
                font="sans", text_color=MUTED, align="center")
     s.rect(0.72, 5.10, 11.88, 1.22, fill=PALE_NAVY, stroke=None, radius=0.08)
-    label(s, 0.98, 5.35, 1.18, "G8_C · current", fill=WHITE, ink=NAVY)
-    s.text(2.38, 5.30, 2.46, 0.42, "C2 paused", size=20, bold=True,
+    label(s, 0.98, 5.35, 1.18, "G8_C · complete", fill=WHITE, ink=NAVY)
+    s.text(2.38, 5.30, 2.46, 0.42, "COMPLETE", size=17, bold=True,
            font="serif", text_color=NAVY, align="center")
     s.text(4.92, 5.30, 4.28, 0.47,
-           "authenticated durable checkpoint\nsource epoch 2 registered · safely resumable",
-           size=10.4, font="sans", text_color=INK, align="center")
+           "Pascal successor: 3,213/3,213 identities\n153 measured-only curves · successor table frozen",
+           size=9.7, font="sans", text_color=INK, align="center")
     s.text(9.39, 5.27, 2.83, 0.54,
-           "BLER table: not frozen\nselection / inference / training / test: 0",
-           size=9.8, bold=True, font="sans", text_color=BURGUNDY, align="center")
+           "G8_D tooling: COMPLETE\nG8_E/E0: PLANNED / NOT STARTED",
+           size=9.0, bold=True, font="sans", text_color=BURGUNDY, align="center")
     s.text(1.20, 6.58, 10.95, 0.22,
-           "Interpretation: the reference task, computational budget and digital chain are verified; the comparison itself remains ahead.",
-           size=10.1, italic=True, font="serif", text_color=MUTED, align="center")
+           "No full validation measurement/pass one, training/fine-tuning, learned-vs-classical result or test evaluation has occurred.",
+           size=9.4, italic=True, font="serif", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 
     # 9 — graphical Gantt chart
@@ -489,7 +489,7 @@ def build_scenes() -> list[SlideScene]:
                    "Detailed dependencies and acceptance evidence: docs/gantt-plan.md")
     add_header(s)
     chart_x0, chart_x1 = 3.42, 12.20
-    chart_y0, row_h = 2.13, 0.53
+    chart_y0, row_h = 2.13, 0.46
     start_date, end_date = date(2026, 8, 9), date(2026, 11, 22)
     total_days = (end_date - start_date).days
 
@@ -513,7 +513,9 @@ def build_scenes() -> list[SlideScene]:
     s.line(chart_x1, 1.88, 0, 4.22, stroke=LINE, stroke_width=0.6)
 
     gantt_rows = [
-        ("BLER characterization + G-8", date(2026, 8, 9), date(2026, 8, 23), "IN PROGRESS", NAVY, WHITE),
+        ("G8_C BLER characterization", date(2026, 8, 9), date(2026, 8, 15), "COMPLETE", "D9D9D9", INK),
+        ("G8_D validation-measurement tooling", date(2026, 8, 15), date(2026, 8, 18), "COMPLETE", "D9D9D9", INK),
+        ("G8_E validation + pass one / G-8", date(2026, 8, 18), date(2026, 8, 23), "PLANNED", "D9D9D9", INK),
         ("Learned model training + tuning", date(2026, 8, 24), date(2026, 9, 21), "PLANNED", GREEN, WHITE),
         ("Digital feature system + validation", date(2026, 9, 21), date(2026, 10, 5), "PLANNED", BURGUNDY, WHITE),
         ("Freeze + single test campaign", date(2026, 10, 5), date(2026, 10, 19), "PLANNED", AMBER, WHITE),
@@ -545,7 +547,7 @@ def build_scenes() -> list[SlideScene]:
         s.circle(x - 0.055, 1.92, 0.11, 0.11, fill=accent, stroke=None)
 
     contingency_x0, contingency_x1 = gx(date(2026, 11, 9)), gx(date(2026, 11, 16))
-    contingency_y = chart_y0 + 5 * row_h
+    contingency_y = chart_y0 + 7 * row_h
     s.rect(contingency_x0, contingency_y + 0.04,
            contingency_x1 - contingency_x0, 0.39, fill=None,
            stroke=BURGUNDY, stroke_width=1.1, radius=0)
@@ -558,7 +560,7 @@ def build_scenes() -> list[SlideScene]:
            "Review dates: 18–22 Aug · 29 Sep–3 Oct · 17–21 Nov · report due 20 Nov",
            size=9.1, bold=True, font="sans", text_color=INK, align="center")
     s.text(2.34, 6.72, 8.65, 0.16,
-           "Only BLER characterization is in progress; all later work is planned.",
+           "G8_C and G8_D are complete. G8_E/E0 is next but not started; all later work remains planned.",
            size=8.2, italic=True, font="serif", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 
@@ -656,7 +658,8 @@ def build_scenes() -> list[SlideScene]:
         ("G-7", "results/profiling/g7_djscc_profile.json", "1.64M params; measured epoch/VRAM"),
         ("G-2", "results/baseline/g2/g2_adjudication.json", "golden vectors + BLER conformance"),
         ("W4", "results/baseline/w4/integration_adjudication.json", "bounded end-to-end integration"),
-        ("G8_C", "results/baseline/g8/campaign_state.json", "authenticated characterization cursor"),
+        ("G8_C", "results/baseline/g8_pascal_successor/successor_bler_table.json", "153 measured-only curves; successor table frozen"),
+        ("G8_D", "results/baseline/g8_d/d7_handoff.json", "D0–D7 GREEN; tooling ready; full campaign not started"),
         ("Spec", "spec/SPEC.md", "normative hypotheses and requirements"),
         ("Plan", "docs/gantt-plan.md", "dates, gates and current status"),
         ("Deploy", "docs/deployment-dossier.md", "simulation-first + SDR stretch"),
@@ -671,7 +674,7 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=MUTED)
     s.rect(6.98, 6.56, 5.20, 0.34, fill=PALE_RED, stroke=None, radius=0.04)
     s.text(7.14, 6.65, 4.88, 0.14,
-           "Refresh G8_C status from instructions/RESUME.md on submission day.",
+           "Refresh G8_C/G8_D status from the handoff files on submission day.",
            size=7.6, bold=True, font="sans", text_color=BURGUNDY, align="center")
     add_footer(s); slides.append(s)
 

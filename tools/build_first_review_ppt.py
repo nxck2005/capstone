@@ -446,7 +446,7 @@ def build_scenes() -> list[SlideScene]:
     # 8 — evidence
     s = SlideScene(8, "Evidence", "Engineering and gate evidence—not learned-vs-classical results",
                    ("Subject Knowledge",),
-                   "Authenticated records: G-1, G-2, G-7, W4 and G8_C · test split access = 0")
+                   "Authenticated records: G-1, G-2, G-7, W4, G8_C and G8_D · test split access = 0")
     add_header(s)
     s.rect(0.72, 1.43, 11.88, 0.40, fill=PALE_RED, stroke=None, radius=0.04)
     s.text(0.96, 1.53, 11.40, 0.16,
@@ -469,18 +469,18 @@ def build_scenes() -> list[SlideScene]:
         s.text(x + 0.20, 3.78, 2.32, 0.56, body, size=9.1,
                font="sans", text_color=MUTED, align="center")
     s.rect(0.72, 5.10, 11.88, 1.22, fill=PALE_NAVY, stroke=None, radius=0.08)
-    label(s, 0.98, 5.35, 1.18, "G8_C · current", fill=WHITE, ink=NAVY)
-    s.text(2.38, 5.30, 2.46, 0.42, "paused", size=22, bold=True,
+    label(s, 0.98, 5.35, 1.18, "G8_C · complete", fill=WHITE, ink=NAVY)
+    s.text(2.38, 5.30, 2.46, 0.42, "COMPLETE", size=17, bold=True,
            font="serif", text_color=NAVY, align="center")
     s.text(4.92, 5.30, 4.28, 0.47,
-           "authenticated full-strength BLER units\nsource epoch 2 registered · resumable campaign paused",
-           size=10.4, font="sans", text_color=INK, align="center")
+           "Pascal successor: 3,213/3,213 identities\n153 measured-only curves · successor table frozen",
+           size=9.7, font="sans", text_color=INK, align="center")
     s.text(9.39, 5.27, 2.83, 0.54,
-           "BLER table: not frozen\nselection / inference / training / test: 0",
-           size=9.8, bold=True, font="sans", text_color=BURGUNDY, align="center")
+           "G8_D tooling: COMPLETE\nG8_E/E0: PLANNED / NOT STARTED",
+           size=9.0, bold=True, font="sans", text_color=BURGUNDY, align="center")
     s.text(1.20, 6.58, 10.95, 0.22,
-           "Interpretation: the reference task, computational budget and digital chain are verified; the comparison itself remains ahead.",
-           size=10.1, italic=True, font="serif", text_color=MUTED, align="center")
+           "No full validation measurement/pass one, training/fine-tuning, learned-vs-classical result or test evaluation has occurred.",
+           size=9.4, italic=True, font="serif", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 
     # 9 — plan
@@ -492,13 +492,13 @@ def build_scenes() -> list[SlideScene]:
            "Later work is shown as planned—not backfilled as complete for Review 1.",
            size=12.2, italic=True, font="serif", text_color=MUTED, align="center")
     stages = [
-        ("G8_C", "BLER table", "CURRENT", 1.20, NAVY),
-        ("G-8", "ratios + baseline", "NEXT", 1.28, NAVY),
-        ("W5–W8", "DJSCC train + λ", "PLANNED", 1.52, GREEN),
-        ("G-11", "digital control", "PLANNED", 1.38, BURGUNDY),
-        ("G-12", "freeze + test", "SEALED", 1.38, AMBER),
-        ("G-5", "demo decision", "PLANNED", 1.30, AMBER),
-        ("W13–W17", "report + demo", "PLANNED", 1.60, NAVY),
+        ("G8_C", "BLER table", "COMPLETE", 1.12, NAVY),
+        ("G8_D", "validation tooling", "COMPLETE", 1.18, NAVY),
+        ("G8_E", "validation + pass one", "PLANNED", 1.60, NAVY),
+        ("G-8", "ratio decision", "PLANNED", 1.30, NAVY),
+        ("W5–W8", "DJSCC train + λ", "PLANNED", 1.50, GREEN),
+        ("G-11", "digital control", "PLANNED", 1.30, BURGUNDY),
+        ("G-12+", "freeze → test → report", "PLANNED", 1.75, AMBER),
     ]
     x = 0.72
     for i, (name, desc, status, w, accent) in enumerate(stages):
@@ -528,8 +528,8 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=INK, align="left")
     s.rect(1.10, 5.93, 11.08, 0.64, fill=PAPER, stroke=LINE, radius=0.06)
     s.text(1.35, 6.11, 10.58, 0.24,
-           "Critical path: G8_C → G-8 → training → λ calibration → ER-9/G-11 → validation rehearsal → G-12 → one test campaign → G-5 → report",
-           size=10.2, bold=True, font="mono", text_color=NAVY, align="center")
+           "Critical path: G8_C → G8_D tooling → G8_E/pass one → G-8 ratio → training → ER-9/G-11 → G-12 → test → report",
+           size=9.8, bold=True, font="mono", text_color=NAVY, align="center")
     s.text(3.33, 6.70, 6.68, 0.18,
            "W16 is report contingency—not room for new experiment scope.",
            size=8.8, italic=True, font="serif", text_color=MUTED, align="center")
@@ -629,7 +629,8 @@ def build_scenes() -> list[SlideScene]:
         ("G-7", "results/profiling/g7_djscc_profile.json", "1.64M params; measured epoch/VRAM"),
         ("G-2", "results/baseline/g2/g2_adjudication.json", "golden vectors + BLER conformance"),
         ("W4", "results/baseline/w4/integration_adjudication.json", "bounded end-to-end integration"),
-        ("G8_C", "results/baseline/g8/campaign_state.json", "authenticated characterization cursor"),
+        ("G8_C", "results/baseline/g8_pascal_successor/successor_bler_table.json", "153 measured-only curves; successor table frozen"),
+        ("G8_D", "results/baseline/g8_d/d7_handoff.json", "D0–D7 GREEN; tooling ready; full campaign not started"),
         ("Spec", "spec/SPEC.md", "normative hypotheses and requirements"),
         ("Plan", "docs/gantt-plan.md", "dates, gates and current status"),
         ("Deploy", "docs/deployment-dossier.md", "simulation-first + SDR stretch"),
@@ -644,7 +645,7 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=MUTED)
     s.rect(6.98, 6.56, 5.20, 0.34, fill=PALE_RED, stroke=None, radius=0.04)
     s.text(7.14, 6.65, 4.88, 0.14,
-           "Refresh G8_C status from instructions/RESUME.md on submission day.",
+           "Refresh G8_C/G8_D status from the handoff files on submission day.",
            size=7.6, bold=True, font="sans", text_color=BURGUNDY, align="center")
     add_footer(s); slides.append(s)
 
@@ -863,7 +864,7 @@ def _build_pre_knowledge_transfer_scenes() -> list[SlideScene]:
     # 8 — status
     s = SlideScene(8, "Status", "Engineering and gate evidence—not learned-vs-classical results",
                    ("Subject Knowledge",),
-                   "Authenticated G-1, G-2, G-7, W4 and G8_C records · test access = 0")
+                   "Authenticated G-1, G-2, G-7, W4, G8_C and G8_D records · test access = 0")
     minimal_header(s, s.title)
     widths = (1.25, 1.35, 4.40, 4.70)
     minimal_table_row(s, 1.46, widths, ("Gate", "Status", "Recorded evidence", "Meaning"), header=True)
@@ -872,14 +873,15 @@ def _build_pre_knowledge_transfer_scenes() -> list[SlideScene]:
         ("G-7", "PASS", "1.64 M parameters; 48.68 s per epoch; 1.004 GiB VRAM", "The planned DJSCC model fits the available GPU."),
         ("G-2", "PASS", "Golden vectors and BLER waterfall checks within 0.5 dB", "The digital physical layer passes conformance checks."),
         ("W4", "PASS", "Bounded JPEG 2000 → LDPC → AWGN → decode run", "The classical pipeline and evidence path work end to end."),
-        ("G8_C", "PAUSED", "Durable full-strength characterization checkpoint", "The full BLER table and operating-point selection are not complete."),
+        ("G8_C", "COMPLETE", "3,213/3,213 Pascal identities; successor table frozen", "Measured-only BLER characterization is complete."),
+        ("G8_D", "COMPLETE", "D0–D7 GREEN; tooling and bounded smoke", "Validation-measurement tooling is ready; smoke is non-scientific."),
     ]
     for i, row in enumerate(status_rows):
-        minimal_table_row(s, 2.08 + i * 0.80, widths, row, h=0.80,
-                          sizes=(10.2, 9.5, 9.8, 9.8))
+        minimal_table_row(s, 2.04 + i * 0.68, widths, row, h=0.68,
+                          sizes=(9.5, 8.8, 9.0, 9.0))
     s.text(0.78, 6.40, 11.45, 0.34,
-           "No learned-versus-classical headline result exists yet. Bounded integration evidence is not presented as a scientific comparison.",
-           size=12.5, bold=True, font="sans", text_color=INK)
+           "G8_E/E0 is released but full validation/pass one has not started. Training/fine-tuning, learned-vs-classical results and test evaluation are not available.",
+           size=10.8, bold=True, font="sans", text_color=INK)
     minimal_footer(s); slides.append(s)
 
     # 9 — schedule
@@ -890,21 +892,22 @@ def _build_pre_knowledge_transfer_scenes() -> list[SlideScene]:
     widths = (2.05, 1.55, 4.90, 3.20)
     minimal_table_row(s, 1.44, widths, ("Period / gate", "State", "Work", "Output"), header=True)
     schedule_rows = [
-        ("Now · G8_C", "Active", "Complete BLER characterization and freeze the table", "Inputs for G-8"),
-        ("G-8", "Planned", "Select operating ratios and classical configurations", "Frozen baseline choices"),
-        ("W5–W8", "Planned", "Train DJSCC; calibrate λ; implement digital feature control", "Frozen learned systems"),
+        ("G8_C", "Complete", "BLER characterization and successor BlerTable frozen", "Measured baseline table"),
+        ("G8_D", "Complete", "Validation-measurement tooling and bounded smoke", "Ready for G8_E"),
+        ("G8_E", "Planned", "Full validation measurement and pass-one selection", "Measured validation records"),
+        ("G-8 / W5–W8", "Planned", "Ratio decision; train DJSCC; calibrate λ; build the digital control", "Frozen learned systems"),
         ("W9–W11", "Planned", "Validation rehearsal; freeze; one test campaign", "Hypothesis decisions"),
         ("W13–W17", "Planned", "Demo, report, poster and final review preparation", "Final package"),
     ]
     for i, row in enumerate(schedule_rows):
-        minimal_table_row(s, 2.06 + i * 0.78, widths, row, h=0.78,
-                          sizes=(10.0, 9.5, 9.8, 9.8))
+        minimal_table_row(s, 2.04 + i * 0.67, widths, row, h=0.67,
+                          sizes=(9.2, 8.8, 9.2, 9.2))
     s.text(0.78, 6.20, 11.45, 0.36,
            "First Review: 18–22 Aug · Second Review: 29 Sep–3 Oct · Final Review: 17–21 Nov · Report due: 20 Nov",
            size=12.4, font="sans", text_color=INK)
     s.text(0.78, 6.58, 11.45, 0.28,
-           "W16 is reserved for report contingency. It is not available for new experiment scope.",
-           size=11.3, font="sans", text_color=MUTED)
+           "G8_E/pass one, training, ratio selection and test evaluation remain future work. W16 is report contingency.",
+           size=10.8, font="sans", text_color=MUTED)
     minimal_footer(s); slides.append(s)
 
     # 10 — scope and ask
@@ -996,10 +999,10 @@ def _build_pre_knowledge_transfer_scenes() -> list[SlideScene]:
     s.text(0.78, 5.66, 2.20, 0.28, "Evidence records", size=14,
            bold=True, font="sans", text_color=INK)
     s.text(0.78, 6.08, 7.30, 0.66,
-           "G-1: results/reference_classifier/g1_adjudication.json\nG-7: results/profiling/g7_djscc_profile.json\nG-2 / W4 / G8_C: results/baseline/",
+           "G-1: results/reference_classifier/g1_adjudication.json\nG-7: results/profiling/g7_djscc_profile.json\nG-2 / W4 / G8_C / G8_D: results/baseline/",
            size=9.3, font="mono", text_color=MUTED)
     s.text(8.70, 5.72, 3.50, 0.54,
-           "Refresh G8_C status from instructions/RESUME.md on submission day.",
+           "Refresh G8_C/G8_D status from the handoff files on submission day.",
            size=9.3, font="sans", text_color=MUTED)
     minimal_footer(s); slides.append(s)
 
@@ -1295,14 +1298,15 @@ def build_minimal_scenes() -> list[SlideScene]:
         ("Learned model", "DJSCC: 1.64 M parameters", "The planned model fits the available RTX 4060.", "A feasibility profile, not training. (G-7)"),
         ("Digital link", "Golden vectors and BLER conformance pass", "The channel-coding implementation behaves as expected.", "Conformance evidence, not the full table. (G-2)"),
         ("Full pipeline", "Bounded conventional run completes", "Compression, coding, channel and records work together.", "Integration evidence, not a comparison. (W4)"),
-        ("Current phase", "BLER characterization at a durable checkpoint", "The current measurement work can resume safely.", "Table, selection and training are unfinished. (G8_C)"),
+        ("G8_C", "BLER characterization complete", "Pascal successor table is frozen from measured points.", "No learned-system result. (G8_C)"),
+        ("G8_D", "Validation tooling complete", "D0–D7 GREEN; codec/cache/record/resume tooling is ready.", "Bounded smoke is not the full campaign. (G8_D)"),
     ]
     for i, row in enumerate(rows):
-        minimal_table_row(s, 2.08 + i * 0.80, widths, row, h=0.80,
-                          sizes=(10.2, 10.0, 9.8, 9.8))
+        minimal_table_row(s, 2.08 + i * 0.68, widths, row, h=0.68,
+                          sizes=(9.7, 9.5, 9.3, 9.3))
     s.text(0.78, 6.38, 11.45, 0.34,
-           "No worker is running. No selection, training, validation decoding or test access has occurred.",
-           size=12.5, bold=True, font="sans", text_color=INK, align="center")
+           "G8_E/E0 is released but full validation/pass one has not started. Training/fine-tuning, learned-vs-classical results and test evaluation are not available.",
+           size=10.8, bold=True, font="sans", text_color=INK, align="center")
     minimal_footer(s); slides.append(s)
 
     # 10 — graphical Gantt chart
@@ -1311,7 +1315,7 @@ def build_minimal_scenes() -> list[SlideScene]:
                    "Detailed dependencies and acceptance evidence: docs/gantt-plan.md")
     minimal_header(s, s.title)
     chart_x0, chart_x1 = 3.38, 12.24
-    chart_y0, row_h = 2.08, 0.54
+    chart_y0, row_h = 2.08, 0.46
     start_date, end_date = date(2026, 8, 9), date(2026, 11, 22)
     total_days = (end_date - start_date).days
 
@@ -1337,7 +1341,9 @@ def build_minimal_scenes() -> list[SlideScene]:
     s.line(chart_x1, 1.84, 0, 4.28, stroke=LINE, stroke_width=0.6)
 
     gantt_rows = [
-        ("BLER characterization + G-8", date(2026, 8, 9), date(2026, 8, 23), "IN PROGRESS", "555555", WHITE),
+        ("G8_C BLER characterization", date(2026, 8, 9), date(2026, 8, 15), "COMPLETE", "D9D9D9", INK),
+        ("G8_D validation-measurement tooling", date(2026, 8, 15), date(2026, 8, 18), "COMPLETE", "D9D9D9", INK),
+        ("G8_E validation + pass one / G-8", date(2026, 8, 18), date(2026, 8, 23), "PLANNED", "D9D9D9", INK),
         ("Learned model training + tuning", date(2026, 8, 24), date(2026, 9, 21), "PLANNED", "D9D9D9", INK),
         ("Digital feature system + validation", date(2026, 9, 21), date(2026, 10, 5), "PLANNED", "D9D9D9", INK),
         ("Freeze + single test campaign", date(2026, 10, 5), date(2026, 10, 19), "PLANNED", "D9D9D9", INK),
@@ -1371,7 +1377,7 @@ def build_minimal_scenes() -> list[SlideScene]:
 
     # W16 is deliberately reserved inside the reporting bar.
     contingency_x0, contingency_x1 = gx(date(2026, 11, 9)), gx(date(2026, 11, 16))
-    contingency_y = chart_y0 + 5 * row_h
+    contingency_y = chart_y0 + 7 * row_h
     s.rect(contingency_x0, contingency_y + 0.04,
            contingency_x1 - contingency_x0, 0.40, fill=None,
            stroke=INK, stroke_width=1.1, radius=0)
@@ -1383,8 +1389,8 @@ def build_minimal_scenes() -> list[SlideScene]:
            "Review dates: 18–22 Aug · 29 Sep–3 Oct · 17–21 Nov · report due 20 Nov",
            size=11.4, font="sans", text_color=INK, align="center")
     s.text(0.78, 6.54, 11.45, 0.22,
-           "BLER characterization is the only workstream in progress. All later bars are planned; W16 is report contingency.",
-           size=10.4, font="sans", text_color=MUTED, align="center")
+           "G8_C and G8_D are complete. G8_E/E0 is next but not started; all later bars remain planned. W16 is report contingency.",
+           size=9.7, font="sans", text_color=MUTED, align="center")
     minimal_footer(s); slides.append(s)
 
     # 11 — application, scope and risks expected in a preliminary review

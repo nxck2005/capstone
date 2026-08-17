@@ -73,8 +73,11 @@ risks,” and “Summary and next steps.”
 - Keep editable native text and shapes in the PPTX.
 - The Time Plan criterion must use a real calendar-scaled Gantt chart in the
   presentation, not only a schedule table or a row of phase boxes.
-- Only the current scientific workstream is marked in progress. Review-package
-  authoring is not shown as a second active experiment workstream.
+- Completed G8_C BLER characterization and completed G8_D validation-measurement
+  tooling are marked complete. G8_E full validation measurement/pass-one
+  selection and all later scientific work remain planned/not started.
+  Review-package authoring is not shown as a second active experiment
+  workstream.
 
 ## Iteration procedure
 
@@ -85,8 +88,9 @@ risks,” and “Summary and next steps.”
    slides after every content revision.
 4. Recheck the six-criterion rubric map, H1 wording, review dates, guide status
    and current scientific boundary.
-5. Read the live G8_C state only from `instructions/RESUME.md` on submission
-   day. Do not copy volatile work-unit counts into this maintained note.
+5. Read the live G8_C/G8_D state from `instructions/RESUME.md` and the D7
+   handoff on submission day. Do not copy volatile work-unit counts into this
+   maintained note.
 
 ## Fallbacks
 

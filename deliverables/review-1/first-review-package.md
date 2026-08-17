@@ -39,7 +39,7 @@ The First Review package is complete only when all of the following are true. Th
 2. **Literature:** the backing problem survey contains at least 25 credible references, synthesizes what the literature establishes and leaves unresolved, and is available for citations and viva questions. A bibliography dump does not pass.
 3. **Plan:** the Gantt chart uses the current circular's dates, shows realistic remaining work and gates, and does not imply that unfinished later experimental stages are complete.
 4. **Technical readiness:** all four team members can independently explain the three-arm architecture, channel and bandwidth-matching methodology, fairness controls, data isolation, hypothesis protocol and current implementation boundary. Agents may prepare notes and viva questions, but repository artifacts cannot substitute for the four members' understanding.
-5. **Evidence:** G-1/reference-classifier evidence and the existing valid G-2, G-7, W4 and current G8_C implementation evidence are available and correctly labelled for viva. G8_C completion is not a First Review prerequisite; no experiment is rerun, weakened or reframed merely to produce more graphs, and bounded smoke is never presented as a headline comparison.
+5. **Evidence:** G-1/reference-classifier evidence and the existing valid G-2, G-7, W4, G8_C and G8_D implementation/handoff evidence are available and correctly labelled for viva. G8_C/G8_D completion is not a First Review prerequisite; no experiment is rerun, weakened or reframed merely to produce more graphs, and bounded smoke is never presented as a headline comparison.
 6. **Deployment:** the deployment dossier is preparation. The guide's real acknowledgement of the simulation-first Tier-1 path with no required hardware implementation must be obtained and recorded with its date. Agents may prepare the exact request and status record but MUST NOT fabricate, infer or mark the guide's response as recorded. Tier 2/3 remain gated stretch goals.
 7. **Protocol housekeeping:** the deck uses the exact corrected H1 decision rule from `spec/SPEC.md`, uses the 18–22 August 2026 First Review window, and states completion objectives rather than promising a positive outcome. Current corrections preserve the authenticated provenance record; history is never rewritten to make it look cleaner.
 8. **Frozen delivery:** the editable deck, exported PDF and supporting package are committed under `deliverables/review-1/`, then the annotated `review-1-basis` snapshot tag is cut from that final review basis.
@@ -106,7 +106,7 @@ This is a knowledge-transfer rule, not a reduction in technical substance. The d
 | 5:25–6:45 | 6 | What problem will the project solve? | Problem statement, research question and completion objectives |
 | 6:45–8:35 | 7 | How will the project answer it? | Three-system methodology, shared inputs and evaluation controls |
 | 8:35–10:10 | 8 | What exactly will be tested? | Exact H1 rule, H2–H4 and outcome-independent reporting |
-| 10:10–11:35 | 9 | Is the proposed work feasible? | G-1, G-7, G-2, W4 and paused G8_C evidence with explicit boundaries |
+| 10:10–11:35 | 9 | Is the proposed work feasible? | G-1, G-7, G-2, W4, complete G8_C and complete G8_D tooling evidence with explicit boundaries |
 | 11:35–12:45 | 10 | What remains? | Gate-ordered plan and hard review/report dates |
 | 12:45–13:50 | 11 | Is the scope practical and applicable? | Real-world application, required scope, risks, standards and guide item |
 | 13:50–15:00 | 12 | What should the audience retain? | Project summary, immediate next steps and explicit six-criterion map |
@@ -172,21 +172,22 @@ Include the exact corrected H1 decision rule here: a point qualifies when the st
 
 ### Slide 9 — Translate every evidence item
 
-Show the evidence and its meaning, then state what it does not prove. The current G8_C wording must be refreshed from `instructions/RESUME.md` on submission day without copying volatile counts into this maintained contract. The slide must state that no worker is running and no selection, training, validation decoding or test access has occurred when that remains true.
+Show the evidence and its meaning, then state what it does not prove. The current G8_C/G8_D wording must be checked against `instructions/RESUME.md` and the D7 handoff before submission without copying volatile work-unit details into this maintained contract. The slide must state that G8_E/full validation, pass one, training, validation decoding for the full campaign and test access have not occurred when that remains true.
 
 ### Slide 10 — Show unfinished work honestly
 
 Use a graphical Gantt with calendar-scaled bars from August through November.
-It must show BLER characterization as the sole in-progress scientific
-workstream, followed by planned DJSCC training and calibration, digital control
-and validation, freeze plus the one test campaign, demo/optional replay, and
+It must show G8_C BLER characterization and G8_D validation-measurement tooling
+as complete, followed by planned G8_E full validation measurement/pass-one
+selection, ratio selection, DJSCC training and calibration, digital control and
+validation, freeze plus the one test campaign, demo/optional replay, and
 report/final-review work. Mark the fixed review and report dates and show W16
 as report contingency. Do not show Review 1 document preparation as a second
 active experiment bar.
 
 The bar order must preserve the critical path:
 
-`G8_C → G-8 → DJSCC training and calibration → ER-9/G-11 → validation rehearsal → freeze/G-12 → one test campaign → demo/report`.
+`G8_C → G8_D tooling → G8_E validation/pass one → G-8 ratio decision → DJSCC training and calibration → ER-9/G-11 → validation rehearsal → freeze/G-12 → one test campaign → demo/report`.
 
 State the hard dates: First Review 18–22 Aug, Second Review 29 Sep–3 Oct, Final Review 17–21 Nov and report due 20 Nov. W16 is report contingency, not new experiment scope.
 
@@ -239,7 +240,7 @@ Before submission:
 - [ ] State that the baseline adapts per SNR and that ER-9 is the attribution control.
 - [ ] State the exact standards boundary and exclusions.
 - [ ] Obtain and record the guide's dated acknowledgement of the simulation-first Tier-1/no-required-hardware path.
-- [ ] Confirm all artifact links and current G8_C status against `instructions/RESUME.md` on the submission day.
+- [ ] Confirm all artifact links and current G8_C/G8_D status against `instructions/RESUME.md` and the D7 handoff on the submission day.
 - [ ] Put the editable deck, exported PDF and supporting package under `deliverables/review-1/`.
 - [ ] Cut annotated tag `review-1-basis` only from the final package basis.
 - [ ] Record supervisor/panel feedback and any accepted objective change through the spec amendment process.
@@ -268,8 +269,8 @@ At low bandwidth the learned system could dominate across the grid. Requiring a 
 
 The First Review requires a defensible proposal, technical foundation, current valid evidence and realistic plan. It does **not** require any of the following, and agents MUST NOT add them as readiness gates:
 
-- completion of G8_C full-strength characterization;
-- a final `BlerTable`;
+- G8_C full-strength characterization or the final `BlerTable` (both are now
+  available, but neither is a First Review gate);
 - neural-model training;
 - learned-versus-classical results;
 - a complete demo;
@@ -300,7 +301,7 @@ members have demonstrated viva readiness.
 | Objectives | The problems to be solved are identified as achievable project work | 6–7, 11–12 | `spec/SPEC.md` §2; completion criterion; scope boundary | **CONTENT READY** | Author approves the objective wording before it becomes the Review 1 baseline |
 | Hypothesis | A proposal exists for testing whether the objectives are achieved | 8 | Exact preregistered H1–H4 protocol in `spec/SPEC.md` §2 | **CONTENT READY** | All four members can explain H1 in plain language and state why a crossover is not required |
 | Problem Survey | Prior work has been reviewed and the proposal follows from a defensible gap | 5 | `docs/literature-review.md`: 30 synthesized references | **CONTENT READY** | Team can explain the four literature families and the specific three-system gap without reading the slide |
-| Subject Knowledge | The team understands the AI/ML, communications and experimental-design choices | 1–5, 7–9, 11 | Residual CNN encoder; dual-head decoder; CE + λMSE; differentiable AWGN; ResNet-18; digital feature attribution; standards register; G-1/G-2/G-7/W4 and current G8_C evidence | **MATERIAL READY** | **HUMAN PENDING:** all four members independently explain the AI model, training objective, three-arm attribution and evidence boundary |
+| Subject Knowledge | The team understands the AI/ML, communications and experimental-design choices | 1–5, 7–9, 11 | Residual CNN encoder; dual-head decoder; CE + λMSE; differentiable AWGN; ResNet-18; digital feature attribution; standards register; G-1/G-2/G-7/W4, G8_C and G8_D evidence | **MATERIAL READY** | **HUMAN PENDING:** all four members independently explain the AI model, training objective, three-arm attribution and evidence boundary |
 | Time Plan | The remaining work is practical, ordered and shown in a Gantt chart | 10 | `docs/gantt-plan.md`; fixed review dates and gate dependencies | **CONTENT READY** | Author confirms the workload and ownership plan; team can explain the critical path |
 
 ### 11.2 Package and human gates
@@ -323,6 +324,6 @@ members have demonstrated viva readiness.
   deployment dossier.
 - The active deck remains a draft until the author finishes the review now in
   progress.
-- G8_C completion, a final BLER table, learned training and comparative results
-  are not First Review prerequisites and do not appear as blockers in this
-  matrix.
+- G8_C/G8_D completion, the full validation campaign, learned training and
+  comparative results are not First Review prerequisites and do not appear as
+  blockers in this matrix.

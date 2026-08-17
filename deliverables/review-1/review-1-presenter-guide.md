@@ -203,12 +203,17 @@ Translate each row:
   available RTX 4060 profile.
 - G-2 shows digital physical-layer conformance for its bounded gate.
 - W4 shows that the conventional pipeline and evidence path work end to end.
-- G8_C is the current full-strength BLER characterization phase and is paused
-  at a durable checkpoint.
+- G8_C full-strength BLER characterization is complete: the Pascal successor
+  covers 3,213/3,213 identities and the measured-only successor `BlerTable` is
+  frozen.
+- G8_D validation-measurement tooling is GREEN and complete through D7. The
+  bounded smoke is non-scientific; the full validation campaign has not run.
 
-End with the boundary printed below the table. Do not show or quote volatile
-G8_C work-unit counts. Confirm the exact live wording from
-`instructions/RESUME.md` on submission day.
+End with the boundary printed below the table. State that G8_E/E0 is released
+but the full validation measurement and pass-one selection have not started.
+Training/fine-tuning, learned-versus-classical results and test evaluation are
+also not available. Confirm the exact live wording from `instructions/RESUME.md`
+and the D7 handoff on submission day.
 
 Transition: “These foundations reduce implementation risk, but the main
 experiment remains ahead.”
@@ -223,10 +228,10 @@ report dates. The outlined section inside the reporting bar is W16 contingency.
 
 Explain the dependencies rather than every week number:
 
-1. finish BLER characterization and select the classical operating points;
-2. train and freeze the learned system;
-3. build the digital feature control;
-4. rehearse on validation and freeze every choice;
+1. run the full G8_E validation measurement and pass-one selection;
+2. select the final classical operating ratio/configuration at G-8;
+3. train and freeze the learned system;
+4. build the digital feature control and rehearse on validation;
 5. run the test campaign once; and
 6. prepare the final report and demonstration.
 
@@ -274,8 +279,8 @@ Summarize four points:
   baselines;
 - the current evidence establishes technical feasibility, not the final
   comparative result; and
-- the remaining path is characterization, selection, training, freeze and one
-  test campaign.
+- the remaining path is full validation measurement/pass one, ratio selection,
+  training, freeze and one test campaign.
 
 State that the research question, three-system methodology, feasibility
 evidence and completion plan are defined, while the final comparative result
