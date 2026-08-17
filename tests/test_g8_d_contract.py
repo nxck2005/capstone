@@ -60,7 +60,7 @@ def _bler_identity() -> dict[str, object]:
 
 def test_contract_artifact_and_independent_verifier_pass() -> None:
     contract = g8_d.build_g8_d_contract()
-    assert contract["next_gate"] == "G8_D/D2"
+    assert contract["next_gate"] == "G8_D/D3"
     assert contract["g8_c_binding"]["table_id"].startswith("g8pblertable-")
     assert contract["g8_c_binding"]["measured_points"] == 3213
     assert all(item["split"] == "val" for item in contract["validation_split_bindings"])
@@ -145,4 +145,3 @@ def test_table_identity_round_trips_wrapped_schema() -> None:
     identity = g8_d.G8CTableIdentity.from_mapping(contract["g8_c_binding"])
     assert identity.table_id == "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f"
     assert identity.predecessor_table_contribution == "none"
-

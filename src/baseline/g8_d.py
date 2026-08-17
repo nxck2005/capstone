@@ -19,6 +19,9 @@ import json
 import math
 import os
 import re
+import base64
+import stat
+import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -54,6 +57,12 @@ __all__ = [
     "identity_id",
     "current_codec_snapshot",
     "build_g8_d_contract",
+    "STRUCTURAL_INFEASIBILITY",
+    "CODEC_INFEASIBILITY",
+    "CODEC_FEASIBLE",
+    "CodecSearchResult",
+    "publish_immutable_object",
+    "CodecSearchEngine",
 ]
 
 
@@ -65,6 +74,9 @@ RESUME_SCHEMA_VERSION = 1
 HEX_DIGEST = re.compile(r"^[0-9a-f]{64}$")
 PHASE_ORDER = ("D0", "D1", "D2", "D3", "D4", "D5", "D6", "D7")
 VALIDATION_SPLIT = "val"
+STRUCTURAL_INFEASIBILITY = "structural_infeasibility"
+CODEC_INFEASIBILITY = "codec_infeasibility"
+CODEC_FEASIBLE = "feasible"
 
 
 class G8DContractError(ValueError):
@@ -101,7 +113,10 @@ def sha256_file(path: Path) -> str:
     try:
         digest = hashlib.sha256()
         with path.open("rb") as stream:
-            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            for chunk in iter(
+                lambda: stream.read(1024 * 1024),  # literal-ok: one-MiB streaming I/O chunk
+                b"",
+            ):
                 digest.update(chunk)
         return digest.hexdigest()
     except OSError as exc:
@@ -483,7 +498,7 @@ class G8CTableIdentity(_Identity):
             _require_digest(getattr(self, field), field)
         if not all(isinstance(getattr(self, field), str) and getattr(self, field) for field in ("campaign_id", "execution_profile_id", "measurement_source_commit", "table_id", "merge_report_id", "closeout_id")):
             raise G8DContractError("G8_C table binding contains an empty identity")
-        if (self.curves, self.measured_points, self.trials_per_point) != (153, 3213, 5000):
+        if (self.curves, self.measured_points, self.trials_per_point) != (153, 3213, 5000):  # literal-ok: frozen G8_C trial count
             raise G8DContractError("G8_C table binding is not the frozen 153/3213/5000 table")
         if self.predecessor_table_contribution != "none":
             raise G8DContractError("predecessor evidence is bound into the successor table")
@@ -559,6 +574,10 @@ class CodecSearchKey(_Identity):
         result.update({field: _copy_json(getattr(self, field)) for field in self.FIELDS})
         return result
 
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "CodecSearchKey":
+        return cls(**_identity_input(value, cls.FIELDS, "codec search key", "codec_search_key"))
+
 
 @dataclass(frozen=True)
 class CandidateIdentity(_Identity):
@@ -579,7 +598,7 @@ class CandidateIdentity(_Identity):
     )
 
     def __post_init__(self) -> None:
-        for field in self.FIELDS[:4]:
+        for field in self.FIELDS[:4]:  # literal-ok: four leading identity string fields
             if not isinstance(getattr(self, field), str) or not getattr(self, field):
                 raise G8DContractError(f"{field} is empty")
         composition.BlerIdentity.from_mapping(self.bler_identity)
@@ -590,6 +609,10 @@ class CandidateIdentity(_Identity):
         result = {"schema_version": IDENTITY_SCHEMA_VERSION, "identity_type": "candidate"}
         result.update({field: _copy_json(getattr(self, field)) for field in self.FIELDS})
         return result
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "CandidateIdentity":
+        return cls(**_identity_input(value, cls.FIELDS, "candidate identity", "candidate"))
 
 
 @dataclass(frozen=True)
@@ -621,6 +644,10 @@ class EmittedFileIdentity(_Identity):
         result = {"schema_version": IDENTITY_SCHEMA_VERSION, "identity_type": "emitted_codestream"}
         result.update({field: _copy_json(getattr(self, field)) for field in self.FIELDS})
         return result
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "EmittedFileIdentity":
+        return cls(**_identity_input(value, cls.FIELDS, "emitted file identity", "emitted_codestream"))
 
 
 @dataclass(frozen=True)
@@ -656,6 +683,15 @@ class ReconstructionIdentity(_Identity):
         result.update({field: _copy_json(getattr(self, field)) for field in self.FIELDS})
         result["output_shape"] = list(self.output_shape)
         return result
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "ReconstructionIdentity":
+        data = _identity_input(value, cls.FIELDS, "reconstruction identity", "reconstruction")
+        shape = data["output_shape"]
+        if not isinstance(shape, Sequence) or isinstance(shape, str):
+            raise G8DContractError("reconstruction output_shape is not a sequence")
+        data["output_shape"] = tuple(int(item) for item in shape)
+        return cls(**data)
 
 
 @dataclass(frozen=True)
@@ -784,8 +820,8 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "schema_version": G8_D_SCHEMA_VERSION,
         "artifact_role": "g8_d_validation_measurement_contract",
         "phase": "G8_D",
-        "checkpoint": "D1",
-        "status": "tooling_ready",
+        "checkpoint": "D2",
+        "status": "codec_search_ready",
         "contract_id": None,
         "campaign_id": None,
         "g8_c_binding": g8c.as_dict(),
@@ -816,6 +852,11 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "emitted_codestream": list(EmittedFileIdentity.FIELDS),
             "reconstruction": list(ReconstructionIdentity.FIELDS),
             "work_unit": list(WorkUnitIdentity.FIELDS),
+            "codec_search_result": [
+                "search_key", "status", "reason", "payload_budget_bytes",
+                "encoded_pixels_sha256", "emitted_identity", "requested_compression_ratio",
+                "search_trace", "backend_cache_key", "cache_object_id",
+            ],
         },
         "cache_schema": {
             "codec_cache_schema_version": CODEC_CACHE_SCHEMA_VERSION,
@@ -828,6 +869,13 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "budget_bound": True,
             "codec_configuration_bound": True,
             "downsample_axis_bound": True,
+            "codec_search_result_fields": [
+                "search_key", "status", "reason", "payload_budget_bytes",
+                "encoded_pixels_sha256", "emitted_identity", "requested_compression_ratio",
+                "search_trace", "backend_cache_key", "cache_object_id",
+            ],
+            "structural_infeasibility_is_distinct": True,
+            "codec_infeasibility_is_recorded": True,
         },
         "record_schema": {
             "schema_version": RECORD_SCHEMA_VERSION,
@@ -866,7 +914,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "validation_decoding": 0,
             "g8_e_started": False,
         },
-        "next_gate": "G8_D/D2",
+        "next_gate": "G8_D/D3",
     }
     campaign_basis = dict(body)
     campaign_basis.pop("campaign_id")
@@ -876,3 +924,464 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     contract_basis.pop("contract_id")
     body["contract_id"] = "g8dcontract-" + sha256_bytes(canonical_json(contract_basis))
     return body
+
+
+# ---------------------------------------------------------------------------
+# D2 — emitted-byte-authoritative JPEG 2000 search
+# ---------------------------------------------------------------------------
+
+
+def _fsync_directory(directory: Path) -> None:
+    """Synchronise a directory or fail; durability is part of the cache claim."""
+
+    flags = getattr(os, "O_DIRECTORY", 0)
+    descriptor = os.open(directory, os.O_RDONLY | flags)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def publish_immutable_object(path: Path, payload: bytes) -> bool:
+    """Publish bytes once with a same-directory no-replace hard link.
+
+    Returns ``True`` for a new object and ``False`` for exact idempotence.  A
+    collision, dangling symlink, partial file or directory is an error.  This
+    is used for content-addressed codec/reconstruction/record objects, where
+    replacing a final pathname would turn a cache hit into silent evidence
+    mutation.
+    """
+
+    if not isinstance(payload, bytes):
+        raise G8DContractError("immutable object payload must be bytes")
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        existing = path.lstat()
+    except FileNotFoundError:
+        existing = None
+    if existing is not None:
+        if stat.S_ISLNK(existing.st_mode) or not stat.S_ISREG(existing.st_mode):
+            raise G8DContractError(f"immutable object target is not a regular file: {path}")
+        if path.read_bytes() == payload:
+            return False
+        raise G8DContractError(f"immutable object collision at {path}")
+
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, path, follow_symlinks=False)
+        except FileExistsError:
+            try:
+                existing = path.lstat()
+            except FileNotFoundError:
+                raise G8DContractError(f"immutable object race lost without a target: {path}") from None
+            if stat.S_ISLNK(existing.st_mode) or not stat.S_ISREG(existing.st_mode):
+                raise G8DContractError(f"immutable object target is not a regular file: {path}")
+            if path.read_bytes() != payload:
+                raise G8DContractError(f"immutable object collision at {path}")
+            return False
+        _fsync_directory(path.parent)
+        return True
+    finally:
+        temporary.unlink(missing_ok=True)
+        # The directory entry for the temporary name is not evidence, but its
+        # removal is still made durable before the caller can report success.
+        _fsync_directory(path.parent)
+
+
+def _validated_codec_pixels(image: np.ndarray, axis: int, image_identity: ImageIdentity) -> np.ndarray:
+    if not isinstance(image, np.ndarray) or image.dtype != np.uint8 or image.ndim != 3 or image.shape[2] != 3:
+        raise G8DContractError("codec search input must be uint8 RGB HWC")
+    if min(image.shape[:2]) != axis:
+        raise G8DContractError("encoded image shorter side does not equal encode_axis_px")
+    if axis > min(image_identity.canonical_shape[:2]):
+        raise G8DContractError("downsample axis would upscale the canonical image")
+    return np.ascontiguousarray(image)
+
+
+def _search_trace_record(trace: Any) -> list[dict[str, Any]]:
+    if trace is None:
+        return []
+    if not isinstance(trace, Sequence) or isinstance(trace, (str, bytes)):
+        raise G8DContractError("codec search trace is not a sequence")
+    records: list[dict[str, Any]] = []
+    fields = ("iteration", "compression_ratio", "emitted_bytes", "within_budget")
+    for point in trace:
+        if isinstance(point, Mapping):
+            data = _strict_object(point, fields, "codec search trace point")
+        else:
+            data = {field: getattr(point, field, None) for field in fields}
+            if any(value is None for value in data.values()):
+                raise G8DContractError("codec search trace point is incomplete")
+        if isinstance(data["within_budget"], bool) is False:
+            raise G8DContractError("codec search trace within_budget is not boolean")
+        records.append({
+            "iteration": _nonnegative_int(data["iteration"], "codec search iteration"),
+            "compression_ratio": _finite_float(data["compression_ratio"], "compression_ratio"),
+            "emitted_bytes": _nonnegative_int(data["emitted_bytes"], "trace emitted_bytes"),
+            "within_budget": data["within_budget"],
+        })
+    return records
+
+
+@dataclass(frozen=True)
+class CodecSearchResult:
+    """One explicit codec-search outcome; infeasibility is never omitted."""
+
+    search_key: CodecSearchKey
+    status: str
+    reason: str | None
+    payload_budget_bytes: int
+    encoded_pixels_sha256: str
+    emitted_codestream: bytes | None
+    emitted_identity: EmittedFileIdentity | None
+    requested_compression_ratio: float | None
+    search_trace: tuple[dict[str, Any], ...]
+    backend_cache_key: str | None
+    cache_hit: bool
+    cache_object_id: str
+
+    def __post_init__(self) -> None:
+        if self.status not in {STRUCTURAL_INFEASIBILITY, CODEC_INFEASIBILITY, CODEC_FEASIBLE}:
+            raise G8DContractError(f"unknown codec-search status {self.status!r}")
+        _positive_int(self.payload_budget_bytes, "payload_budget_bytes")
+        _require_digest(self.encoded_pixels_sha256, "encoded_pixels_sha256")
+        if not isinstance(self.cache_hit, bool) or not self.cache_object_id:
+            raise G8DContractError("codec cache provenance is incomplete")
+        if self.status == CODEC_FEASIBLE:
+            if not isinstance(self.emitted_codestream, bytes) or self.emitted_identity is None:
+                raise G8DContractError("feasible codec result has no emitted bytes")
+            if len(self.emitted_codestream) != self.emitted_identity.emitted_bytes:
+                raise G8DContractError("emitted identity length differs from bytes")
+        elif self.emitted_codestream is not None or self.emitted_identity is not None:
+            raise G8DContractError("infeasible codec result carries emitted bytes")
+
+    @property
+    def feasible(self) -> bool:
+        return self.status == CODEC_FEASIBLE
+
+    def as_record(self) -> dict[str, Any]:
+        return {
+            "schema_version": CODEC_CACHE_SCHEMA_VERSION,
+            "search_key": self.search_key.payload(),
+            "status": self.status,
+            "reason": self.reason,
+            "payload_budget_bytes": self.payload_budget_bytes,
+            "encoded_pixels_sha256": self.encoded_pixels_sha256,
+            "emitted_identity": None if self.emitted_identity is None else self.emitted_identity.payload(),
+            "requested_compression_ratio": self.requested_compression_ratio,
+            "search_trace": list(self.search_trace),
+            "backend_cache_key": self.backend_cache_key,
+            "cache_object_id": self.cache_object_id,
+            "cache_hit": self.cache_hit,
+        }
+
+
+class CodecSearchEngine:
+    """Run/cache the frozen JPEG2000 search without treating requested ratio as truth."""
+
+    _CACHE_FIELDS = (
+        "schema_version", "search_key", "status", "reason", "payload_budget_bytes",
+        "encoded_pixels_sha256", "emitted_identity", "codestream_b64",
+        "requested_compression_ratio", "search_trace", "backend_cache_key", "cache_object_id",
+    )
+
+    def __init__(
+        self,
+        cache_root: Path,
+        *,
+        backend: Any | None = None,
+        codec_identity: CodecConfigurationIdentity | None = None,
+    ) -> None:
+        self.cache_root = Path(cache_root).resolve()
+        if backend is None:
+            from baseline.j2k import J2KCodec
+
+            backend = J2KCodec(self.cache_root / "backend")
+        self.backend = backend
+        if codec_identity is None:
+            snapshot = getattr(backend, "snapshot", None)
+            configuration_hash = getattr(backend, "configuration_hash", None)
+            if not isinstance(snapshot, Mapping) or not isinstance(configuration_hash, str):
+                raise G8DContractError("codec backend exposes no authenticated snapshot/hash")
+            runtime_version = str(snapshot.get("environment", {}).get("openjpeg", ""))
+            codec_identity = CodecConfigurationIdentity(snapshot, configuration_hash, runtime_version)
+        self.codec_identity = codec_identity
+
+    def _cache_path(self, key: CodecSearchKey) -> Path:
+        return self.cache_root / "codec_search" / f"{key.identity_id}.json"
+
+    @staticmethod
+    def _cache_object_id(metadata_without_id: Mapping[str, Any]) -> str:
+        return "g8dcodecobj-" + sha256_bytes(canonical_json(metadata_without_id))
+
+    def _load_cache(
+        self,
+        path: Path,
+        *,
+        key: CodecSearchKey,
+        encoded_pixels_sha256: str,
+        budget: BudgetIdentity,
+    ) -> CodecSearchResult:
+        try:
+            raw = path.read_bytes()
+            metadata = json.loads(raw)
+        except (OSError, json.JSONDecodeError) as exc:
+            raise G8DContractError(f"invalid codec cache object: {exc}") from None
+        if not isinstance(metadata, Mapping) or set(metadata) != set(self._CACHE_FIELDS):
+            raise G8DContractError("codec cache schema differs")
+        if metadata["schema_version"] != CODEC_CACHE_SCHEMA_VERSION or metadata["search_key"] != key.payload():
+            raise G8DContractError("codec cache key is stale")
+        if metadata["encoded_pixels_sha256"] != encoded_pixels_sha256:
+            raise G8DContractError("codec cache encoded pixels differ")
+        if metadata["payload_budget_bytes"] != budget.payload_bytes:
+            raise G8DContractError("codec cache budget differs")
+        codestream: bytes | None = None
+        if metadata["codestream_b64"] is not None:
+            if not isinstance(metadata["codestream_b64"], str):
+                raise G8DContractError("codec cache codestream is not base64")
+            try:
+                codestream = base64.b64decode(metadata["codestream_b64"], validate=True)
+            except (ValueError, TypeError) as exc:
+                raise G8DContractError(f"codec cache codestream is invalid: {exc}") from None
+        if metadata["status"] == CODEC_FEASIBLE:
+            if not codestream or metadata["emitted_identity"] is None:
+                raise G8DContractError("feasible codec cache has no codestream")
+            emitted = EmittedFileIdentity.from_mapping(metadata["emitted_identity"])
+            if len(codestream) != emitted.emitted_bytes or sha256_bytes(codestream) != emitted.codestream_sha256:
+                raise G8DContractError("codec cache emitted bytes do not match identity")
+            if emitted.payload_budget_bytes != budget.payload_bytes:
+                raise G8DContractError("codec cache emitted budget differs")
+        else:
+            emitted = None
+            if codestream is not None or metadata["emitted_identity"] is not None:
+                raise G8DContractError("infeasible codec cache carries bytes")
+            if metadata["status"] != CODEC_INFEASIBILITY:
+                raise G8DContractError("codec cache status is not an allowed infeasibility")
+        basis = dict(metadata)
+        object_id = basis.pop("cache_object_id")
+        expected_object_id = self._cache_object_id(basis)
+        if object_id != expected_object_id:
+            raise G8DContractError("codec cache object ID differs")
+        trace = tuple(_search_trace_record(metadata["search_trace"]))
+        ratio = metadata["requested_compression_ratio"]
+        if ratio is not None:
+            ratio = _finite_float(ratio, "requested_compression_ratio")
+        return CodecSearchResult(
+            search_key=key,
+            status=str(metadata["status"]),
+            reason=None if metadata["reason"] is None else str(metadata["reason"]),
+            payload_budget_bytes=budget.payload_bytes,
+            encoded_pixels_sha256=encoded_pixels_sha256,
+            emitted_codestream=codestream,
+            emitted_identity=emitted,
+            requested_compression_ratio=ratio,
+            search_trace=trace,
+            backend_cache_key=None if metadata["backend_cache_key"] is None else str(metadata["backend_cache_key"]),
+            cache_hit=True,
+            cache_object_id=object_id,
+        )
+
+    def _write_cache(
+        self,
+        path: Path,
+        *,
+        key: CodecSearchKey,
+        status: str,
+        reason: str | None,
+        budget: BudgetIdentity,
+        encoded_pixels_sha256: str,
+        codestream: bytes | None,
+        emitted_identity: EmittedFileIdentity | None,
+        requested_ratio: float | None,
+        trace: list[dict[str, Any]],
+        backend_cache_key: str | None,
+    ) -> str:
+        metadata: dict[str, Any] = {
+            "schema_version": CODEC_CACHE_SCHEMA_VERSION,
+            "search_key": key.payload(),
+            "status": status,
+            "reason": reason,
+            "payload_budget_bytes": budget.payload_bytes,
+            "encoded_pixels_sha256": encoded_pixels_sha256,
+            "emitted_identity": None if emitted_identity is None else emitted_identity.payload(),
+            "codestream_b64": None if codestream is None else base64.b64encode(codestream).decode("ascii"),
+            "requested_compression_ratio": requested_ratio,
+            "search_trace": trace,
+            "backend_cache_key": backend_cache_key,
+        }
+        metadata["cache_object_id"] = self._cache_object_id(metadata)
+        publish_immutable_object(path, rendered_json(metadata))
+        return str(metadata["cache_object_id"])
+
+    def search(
+        self,
+        *,
+        image_identity: ImageIdentity,
+        encoded_image: np.ndarray,
+        budget: BudgetIdentity,
+        encode_axis_px: int,
+        structurally_feasible: bool = True,
+        structural_reason: str | None = None,
+    ) -> CodecSearchResult:
+        """Search one configured axis and preserve every infeasible outcome."""
+
+        pixels = _validated_codec_pixels(encoded_image, encode_axis_px, image_identity)
+        encoded_pixels_sha256 = sha256_bytes(pixels.tobytes())
+        key = CodecSearchKey(
+            image_identity.identity_id,
+            budget.identity_id,
+            self.codec_identity.identity_id,
+            encode_axis_px,
+        )
+        if not structurally_feasible:
+            object_id = "g8dcodecobj-" + sha256_bytes(canonical_json({"status": STRUCTURAL_INFEASIBILITY, "key": key.payload()}))
+            return CodecSearchResult(
+                search_key=key,
+                status=STRUCTURAL_INFEASIBILITY,
+                reason=structural_reason or "packetisation_infeasible",
+                payload_budget_bytes=budget.payload_bytes,
+                encoded_pixels_sha256=encoded_pixels_sha256,
+                emitted_codestream=None,
+                emitted_identity=None,
+                requested_compression_ratio=None,
+                search_trace=(),
+                backend_cache_key=None,
+                cache_hit=False,
+                cache_object_id=object_id,
+            )
+
+        cache_path = self._cache_path(key)
+        try:
+            cache_stat = cache_path.lstat()
+        except FileNotFoundError:
+            cache_stat = None
+        if cache_stat is not None:
+            if stat.S_ISLNK(cache_stat.st_mode) or not stat.S_ISREG(cache_stat.st_mode):
+                raise G8DContractError(f"codec cache path is not a regular file: {cache_path}")
+            return self._load_cache(cache_path, key=key, encoded_pixels_sha256=encoded_pixels_sha256, budget=budget)
+
+        try:
+            backend_result = self.backend.encode_to_budget(
+                pixels,
+                canonical_pixels_sha256=image_identity.canonical_pixels_sha256,
+                budget_bytes=budget.payload_bytes,
+                encode_axis_px=encode_axis_px,
+            )
+        except Exception as exc:
+            # Backend/configuration failure is still a codec infeasibility
+            # record.  The exception text is retained; it is never swallowed.
+            status = CODEC_INFEASIBILITY
+            reason = f"codec_configuration_error: {exc}"
+            trace: list[dict[str, Any]] = []
+            requested_ratio = None
+            backend_cache_key = None
+            codestream = None
+            emitted_identity = None
+        else:
+            feasible_flag = getattr(backend_result, "feasible", None)
+            if not isinstance(feasible_flag, bool):
+                raise G8DContractError("codec backend result has no boolean feasible flag")
+            codestream = getattr(backend_result, "codestream", None)
+            if feasible_flag and not isinstance(codestream, bytes):
+                raise G8DContractError("codec backend marked feasible without codestream bytes")
+            if not feasible_flag and codestream is not None:
+                raise G8DContractError("codec backend marked infeasible while returning bytes")
+            trace = _search_trace_record(getattr(backend_result, "search_trace", ()))
+            requested_ratio = getattr(backend_result, "compression_ratio_argument", None)
+            if requested_ratio is not None:
+                requested_ratio = _finite_float(requested_ratio, "requested_compression_ratio")
+            backend_cache_key = getattr(backend_result, "cache_key", None)
+            if feasible_flag:
+                emitted_bytes = len(codestream)
+                if emitted_bytes > budget.payload_bytes:
+                    raise G8DContractError("actual emitted codestream exceeds payload budget")
+                reported = getattr(backend_result, "emitted_byte_count", emitted_bytes)
+                if reported is not None and reported != emitted_bytes:
+                    raise G8DContractError("backend emitted-byte count disagrees with actual bytes")
+                emitted_identity = EmittedFileIdentity(
+                    codec_search_key_id=key.identity_id,
+                    codestream_sha256=sha256_bytes(codestream),
+                    emitted_bytes=emitted_bytes,
+                    payload_budget_bytes=budget.payload_bytes,
+                    filler_bytes=budget.payload_bytes - emitted_bytes,
+                )
+                status = CODEC_FEASIBLE
+                reason = None
+            else:
+                emitted_identity = None
+                status = CODEC_INFEASIBILITY
+                reason = "budget_exceeded"
+
+        object_id = self._write_cache(
+            cache_path,
+            key=key,
+            status=status,
+            reason=reason,
+            budget=budget,
+            encoded_pixels_sha256=encoded_pixels_sha256,
+            codestream=codestream,
+            emitted_identity=emitted_identity,
+            requested_ratio=requested_ratio,
+            trace=trace,
+            backend_cache_key=None if backend_cache_key is None else str(backend_cache_key),
+        )
+        return CodecSearchResult(
+            search_key=key,
+            status=status,
+            reason=reason,
+            payload_budget_bytes=budget.payload_bytes,
+            encoded_pixels_sha256=encoded_pixels_sha256,
+            emitted_codestream=codestream,
+            emitted_identity=emitted_identity,
+            requested_compression_ratio=requested_ratio,
+            search_trace=tuple(trace),
+            backend_cache_key=None if backend_cache_key is None else str(backend_cache_key),
+            cache_hit=False,
+            cache_object_id=object_id,
+        )
+
+    def search_with_packet_plan(
+        self,
+        *,
+        image_identity: ImageIdentity,
+        encoded_image: np.ndarray,
+        budget: BudgetIdentity,
+        encode_axis_px: int,
+        k_symbols: int,
+        modulation: str,
+        ldpc_rate: str,
+    ) -> CodecSearchResult:
+        """Bind codec feasibility to the real packet plan before encoding."""
+
+        from baseline.classical.channel_transport import build_accounting
+        from baseline.ldpc.transport import build_packet_plan
+
+        packet = build_packet_plan(k_symbols, modulation, ldpc_rate)
+        if not packet.feasible:
+            return self.search(
+                image_identity=image_identity,
+                encoded_image=encoded_image,
+                budget=budget,
+                encode_axis_px=encode_axis_px,
+                structurally_feasible=False,
+                structural_reason=packet.reason or "packetisation_infeasible",
+            )
+        accounting = build_accounting(packet)
+        if accounting.payload_bytes != budget.payload_bytes:
+            raise G8DContractError("budget identity does not match packet accounting payload")
+        declared = dict(budget.packet_accounting)
+        if declared and declared != accounting.as_dict():
+            raise G8DContractError("budget identity packet accounting differs from frozen packet plan")
+        return self.search(
+            image_identity=image_identity,
+            encoded_image=encoded_image,
+            budget=budget,
+            encode_axis_px=encode_axis_px,
+        )
