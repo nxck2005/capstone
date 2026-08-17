@@ -773,7 +773,7 @@ or G8_E execution is permitted in G8_D.
 | Step | Status | Exact restart / evidence |
 |---|---|---|
 | D0 verify/open | done | `tools/verify_g8_pascal_successor.py`, `tools/verify_g8_pascal_closeout.py`, `tests/test_g8_pascal_closeout.py::test_every_frozen_successor_point_is_exactly_lookupable`, `tools/verify_g8_d_open.py`; `results/baseline/g8_d/d0_open.json` |
-| D1 freeze schemas/cache identities | in-progress | implement G8_D identity and contract schemas; do not access validation pixels |
+| D1 freeze schemas/cache identities | in-progress | **Phase-start SHA:** `08bfea1`; **WIP marker:** this `wip(g8-d): freeze validation identities` commit. Intended files: new G8_D contract/identity module, generator/verifier, contract artifact and focused tests; no validation pixels, classifier invocation, codec campaign or selection. Restart: inspect `src/baseline/g8_d.py`, `tools/gen_g8_d_contract.py`, and `tools/verify_g8_d_contract.py`. |
 | D2 codec search and emitted-byte feasibility | pending | tooling/tests only; no full validation grid |
 | D3 reconstruction cache and BR-11 accounting | pending | tooling/tests only; no full validation grid |
 | D4 count-derived clean-classifier records | pending | validation-only record schema and synthetic tests; no classifier run |
