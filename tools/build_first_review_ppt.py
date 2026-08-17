@@ -492,13 +492,14 @@ def build_scenes() -> list[SlideScene]:
            "Later work is shown as planned—not backfilled as complete for Review 1.",
            size=12.2, italic=True, font="serif", text_color=MUTED, align="center")
     stages = [
-        ("G8_C", "BLER table", "COMPLETE", 1.12, NAVY),
-        ("G8_D", "validation tooling", "COMPLETE", 1.18, NAVY),
-        ("G8_E", "validation + pass one", "PLANNED", 1.60, NAVY),
-        ("G-8", "ratio decision", "PLANNED", 1.30, NAVY),
-        ("W5–W8", "DJSCC train + λ", "PLANNED", 1.50, GREEN),
-        ("G-11", "digital control", "PLANNED", 1.30, BURGUNDY),
-        ("G-12+", "freeze → test → report", "PLANNED", 1.75, AMBER),
+        ("G8_C", "BLER table", "COMPLETE", 0.95, NAVY),
+        ("G8_D", "validation tooling", "COMPLETE", 1.00, NAVY),
+        ("G8_E", "validation + initial selection", "PLANNED", 1.33, NAVY),
+        ("G8_F", "artifact classifier + pass two", "PLANNED", 1.36, NAVY),
+        ("G8_G", "freeze operating ratios", "PLANNED", 1.23, NAVY),
+        ("W5–W8", "learned-system training + λ", "PLANNED", 1.46, GREEN),
+        ("G-11", "digital control", "PLANNED", 1.18, BURGUNDY),
+        ("G-12+", "freeze → test → report", "PLANNED", 1.55, AMBER),
     ]
     x = 0.72
     for i, (name, desc, status, w, accent) in enumerate(stages):
@@ -512,7 +513,7 @@ def build_scenes() -> list[SlideScene]:
                font="mono", text_color=accent, align="center")
         if i < len(stages) - 1:
             s.arrow(x + w + 0.03, 2.92, 0.22, 0, stroke=FAINT, stroke_width=1.0)
-        x += w + 0.30
+        x += w + 0.25
     s.line(0.87, 4.36, 11.60, 0, stroke=LINE, stroke_width=1.2)
     milestones = [
         (1.02, "18–22 AUG", "FIRST REVIEW", BURGUNDY),
@@ -528,7 +529,7 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=INK, align="left")
     s.rect(1.10, 5.93, 11.08, 0.64, fill=PAPER, stroke=LINE, radius=0.06)
     s.text(1.35, 6.11, 10.58, 0.24,
-           "Critical path: G8_C → G8_D tooling → G8_E/pass one → G-8 ratio → training → ER-9/G-11 → G-12 → test → report",
+           "Critical path: G8_C → G8_D → G8_E initial selection → G8_F pass two → G8_G ratio freeze → learned training → G-11 → G-12 → test → report",
            size=9.8, bold=True, font="mono", text_color=NAVY, align="center")
     s.text(3.33, 6.70, 6.68, 0.18,
            "W16 is report contingency—not room for new experiment scope.",
@@ -894,19 +895,21 @@ def _build_pre_knowledge_transfer_scenes() -> list[SlideScene]:
     schedule_rows = [
         ("G8_C", "Complete", "BLER characterization and successor BlerTable frozen", "Measured baseline table"),
         ("G8_D", "Complete", "Validation-measurement tooling and bounded smoke", "Ready for G8_E"),
-        ("G8_E", "Planned", "Full validation measurement and pass-one selection", "Measured validation records"),
-        ("G-8 / W5–W8", "Planned", "Ratio decision; train DJSCC; calibrate λ; build the digital control", "Frozen learned systems"),
+        ("G8_E", "Planned", "Validation measurements + initial classical selection", "Pass-one state + corpus specification"),
+        ("G8_F", "Planned", "Artifact-aware classifier + final classical re-selection", "Pass-two artifacts"),
+        ("G8_G", "Planned", "Final G-8 adjudication; freeze operating ratios", "G-8 disposition"),
+        ("W5–W8", "Planned", "Train and calibrate the learned system", "Frozen learned systems"),
         ("W9–W11", "Planned", "Validation rehearsal; freeze; one test campaign", "Hypothesis decisions"),
         ("W13–W17", "Planned", "Demo, report, poster and final review preparation", "Final package"),
     ]
     for i, row in enumerate(schedule_rows):
-        minimal_table_row(s, 2.04 + i * 0.67, widths, row, h=0.67,
-                          sizes=(9.2, 8.8, 9.2, 9.2))
-    s.text(0.78, 6.20, 11.45, 0.36,
+        minimal_table_row(s, 2.00 + i * 0.54, widths, row, h=0.54,
+                          sizes=(8.5, 8.2, 8.5, 8.5))
+    s.text(0.78, 6.08, 11.45, 0.30,
            "First Review: 18–22 Aug · Second Review: 29 Sep–3 Oct · Final Review: 17–21 Nov · Report due: 20 Nov",
            size=12.4, font="sans", text_color=INK)
-    s.text(0.78, 6.58, 11.45, 0.28,
-           "G8_E/pass one, training, ratio selection and test evaluation remain future work. W16 is report contingency.",
+    s.text(0.78, 6.44, 11.45, 0.24,
+           "G8_E initial selection, G8_F pass two, G8_G ratio adjudication, training and test evaluation remain future work. W16 is report contingency.",
            size=10.8, font="sans", text_color=MUTED)
     minimal_footer(s); slides.append(s)
 
@@ -1315,7 +1318,7 @@ def build_minimal_scenes() -> list[SlideScene]:
                    "Detailed dependencies and acceptance evidence: docs/gantt-plan.md")
     minimal_header(s, s.title)
     chart_x0, chart_x1 = 3.38, 12.24
-    chart_y0, row_h = 2.08, 0.46
+    chart_y0, row_h = 2.00, 0.38
     start_date, end_date = date(2026, 8, 9), date(2026, 11, 22)
     total_days = (end_date - start_date).days
 
@@ -1343,24 +1346,25 @@ def build_minimal_scenes() -> list[SlideScene]:
     gantt_rows = [
         ("G8_C BLER characterization", date(2026, 8, 9), date(2026, 8, 15), "COMPLETE", "D9D9D9", INK),
         ("G8_D validation-measurement tooling", date(2026, 8, 15), date(2026, 8, 18), "COMPLETE", "D9D9D9", INK),
-        ("G8_E validation + pass one / G-8", date(2026, 8, 18), date(2026, 8, 23), "PLANNED", "D9D9D9", INK),
-        ("Learned model training + tuning", date(2026, 8, 24), date(2026, 9, 21), "PLANNED", "D9D9D9", INK),
-        ("Digital feature system + validation", date(2026, 9, 21), date(2026, 10, 5), "PLANNED", "D9D9D9", INK),
-        ("Freeze + single test campaign", date(2026, 10, 5), date(2026, 10, 19), "PLANNED", "D9D9D9", INK),
-        ("Demo + optional replay", date(2026, 10, 19), date(2026, 11, 2), "PLANNED", "D9D9D9", INK),
+        ("G8_E validation + initial selection", date(2026, 8, 18), date(2026, 8, 22), "PLANNED", "D9D9D9", INK),
+        ("G8_F artifact classifier + pass two", date(2026, 8, 22), date(2026, 8, 26), "PLANNED", "D9D9D9", INK),
+        ("G8_G final G-8 ratio/adjudication", date(2026, 8, 26), date(2026, 8, 28), "PLANNED", "D9D9D9", INK),
+        ("Learned-system training + calibration", date(2026, 8, 28), date(2026, 9, 18), "PLANNED", "D9D9D9", INK),
+        ("Validation, freeze + test campaign", date(2026, 9, 18), date(2026, 10, 16), "PLANNED", "D9D9D9", INK),
+        ("Demo + optional replay", date(2026, 10, 16), date(2026, 11, 2), "PLANNED", "D9D9D9", INK),
         ("Report, audit + final review", date(2026, 11, 2), date(2026, 11, 22), "PLANNED", "D9D9D9", INK),
     ]
     for i, (label_text, bar_start, bar_end, state, fill, text_ink) in enumerate(gantt_rows):
         y = chart_y0 + i * row_h
-        s.text(0.78, y + 0.08, 2.42, 0.24, label_text, size=10.7,
+        s.text(0.78, y + 0.06, 2.42, 0.22, label_text, size=9.8,
                font="sans", text_color=INK, valign="mid")
         s.line(0.78, y + row_h - 0.03, 11.46, 0, stroke=LINE, stroke_width=0.35)
         x0, x1 = gx(bar_start), gx(bar_end)
-        s.rect(x0, y + 0.08, max(0.18, x1 - x0), 0.32, fill=fill,
+        s.rect(x0, y + 0.05, max(0.18, x1 - x0), 0.28, fill=fill,
                stroke="888888", stroke_width=0.5, radius=0)
         if x1 - x0 > 1.05:
-            s.text(x0 + 0.05, y + 0.16, x1 - x0 - 0.10, 0.13, state,
-                   size=7.1, bold=True, font="sans", text_color=text_ink,
+            s.text(x0 + 0.05, y + 0.12, x1 - x0 - 0.10, 0.12, state,
+                   size=6.5, bold=True, font="sans", text_color=text_ink,
                    align="center", valign="mid")
 
     # Fixed review/report dates are markers, not movable task bars.
@@ -1372,12 +1376,12 @@ def build_minimal_scenes() -> list[SlideScene]:
     ]
     for marker_date, marker_label in markers:
         x = gx(marker_date)
-        s.line(x, 1.84, 0, 4.10, stroke="777777", stroke_width=0.8)
+        s.line(x, 1.84, 0, 3.48, stroke="777777", stroke_width=0.8)
         s.circle(x - 0.055, 1.89, 0.11, 0.11, fill=INK, stroke=None)
 
     # W16 is deliberately reserved inside the reporting bar.
     contingency_x0, contingency_x1 = gx(date(2026, 11, 9)), gx(date(2026, 11, 16))
-    contingency_y = chart_y0 + 7 * row_h
+    contingency_y = chart_y0 + 8 * row_h
     s.rect(contingency_x0, contingency_y + 0.04,
            contingency_x1 - contingency_x0, 0.40, fill=None,
            stroke=INK, stroke_width=1.1, radius=0)
@@ -1389,7 +1393,7 @@ def build_minimal_scenes() -> list[SlideScene]:
            "Review dates: 18–22 Aug · 29 Sep–3 Oct · 17–21 Nov · report due 20 Nov",
            size=11.4, font="sans", text_color=INK, align="center")
     s.text(0.78, 6.54, 11.45, 0.22,
-           "G8_C and G8_D are complete. G8_E/E0 is next but not started; all later bars remain planned. W16 is report contingency.",
+           "G8_C and G8_D are complete. G8_E/E0 is next but not started; G8_F/G and all later bars remain planned. W16 is report contingency.",
            size=9.7, font="sans", text_color=MUTED, align="center")
     minimal_footer(s); slides.append(s)
 
@@ -1434,7 +1438,7 @@ def build_minimal_scenes() -> list[SlideScene]:
         ("Problem", "Edge AI inference must operate over a limited noisy link."),
         ("AI/ML method", "Train a residual neural encoder and dual-head decoder through a differentiable channel."),
         ("Evaluation", "Measure Imagenette-160 classification at matched channel use against two controlled baselines."),
-        ("Next work", "Finish characterization, train and freeze the models, then run the paired test campaign once."),
+        ("Next work", "Complete G8_E, G8_F and G8_G in order, then train and evaluate the learned system."),
     ]
     for i, (label_text, body) in enumerate(summary_rows):
         y = 1.92 + i * 0.82

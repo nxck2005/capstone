@@ -489,7 +489,7 @@ def build_scenes() -> list[SlideScene]:
                    "Detailed dependencies and acceptance evidence: docs/gantt-plan.md")
     add_header(s)
     chart_x0, chart_x1 = 3.42, 12.20
-    chart_y0, row_h = 2.13, 0.46
+    chart_y0, row_h = 2.00, 0.38
     start_date, end_date = date(2026, 8, 9), date(2026, 11, 22)
     total_days = (end_date - start_date).days
 
@@ -509,30 +509,31 @@ def build_scenes() -> list[SlideScene]:
                stroke_width=0.5, radius=0)
         s.text(x0, 1.60, x1 - x0, 0.14, month_label, size=7.3,
                bold=True, font="mono", text_color=NAVY, align="center")
-        s.line(x0, 1.88, 0, 4.22, stroke=LINE, stroke_width=0.6)
-    s.line(chart_x1, 1.88, 0, 4.22, stroke=LINE, stroke_width=0.6)
+        s.line(x0, 1.88, 0, 3.54, stroke=LINE, stroke_width=0.6)
+    s.line(chart_x1, 1.88, 0, 3.54, stroke=LINE, stroke_width=0.6)
 
     gantt_rows = [
         ("G8_C BLER characterization", date(2026, 8, 9), date(2026, 8, 15), "COMPLETE", "D9D9D9", INK),
         ("G8_D validation-measurement tooling", date(2026, 8, 15), date(2026, 8, 18), "COMPLETE", "D9D9D9", INK),
-        ("G8_E validation + pass one / G-8", date(2026, 8, 18), date(2026, 8, 23), "PLANNED", "D9D9D9", INK),
-        ("Learned model training + tuning", date(2026, 8, 24), date(2026, 9, 21), "PLANNED", GREEN, WHITE),
-        ("Digital feature system + validation", date(2026, 9, 21), date(2026, 10, 5), "PLANNED", BURGUNDY, WHITE),
-        ("Freeze + single test campaign", date(2026, 10, 5), date(2026, 10, 19), "PLANNED", AMBER, WHITE),
-        ("Demo + optional replay", date(2026, 10, 19), date(2026, 11, 2), "PLANNED", AMBER, WHITE),
+        ("G8_E validation + initial selection", date(2026, 8, 18), date(2026, 8, 22), "PLANNED", "D9D9D9", INK),
+        ("G8_F artifact classifier + pass two", date(2026, 8, 22), date(2026, 8, 26), "PLANNED", "D9D9D9", INK),
+        ("G8_G final G-8 ratio/adjudication", date(2026, 8, 26), date(2026, 8, 28), "PLANNED", "D9D9D9", INK),
+        ("Learned-system training + calibration", date(2026, 8, 28), date(2026, 9, 18), "PLANNED", GREEN, WHITE),
+        ("Validation, freeze + test campaign", date(2026, 9, 18), date(2026, 10, 16), "PLANNED", BURGUNDY, WHITE),
+        ("Demo + optional replay", date(2026, 10, 16), date(2026, 11, 2), "PLANNED", AMBER, WHITE),
         ("Report, audit + final review", date(2026, 11, 2), date(2026, 11, 22), "PLANNED", NAVY, WHITE),
     ]
     for i, (row_label, bar_start, bar_end, state, accent, state_ink) in enumerate(gantt_rows):
         y = chart_y0 + i * row_h
-        s.text(0.80, y + 0.07, 2.38, 0.25, row_label, size=9.4,
+        s.text(0.80, y + 0.05, 2.38, 0.22, row_label, size=8.7,
                font="sans", text_color=INK, valign="mid")
         s.line(0.78, y + row_h - 0.03, 11.42, 0, stroke=LINE, stroke_width=0.35)
         x0, x1 = gx(bar_start), gx(bar_end)
-        s.rect(x0, y + 0.08, max(0.18, x1 - x0), 0.31, fill=accent,
+        s.rect(x0, y + 0.05, max(0.18, x1 - x0), 0.28, fill=accent,
                stroke=None, radius=0.03)
         if x1 - x0 > 1.02:
-            s.text(x0 + 0.05, y + 0.16, x1 - x0 - 0.10, 0.12, state,
-                   size=6.2, bold=True, font="mono", text_color=state_ink,
+            s.text(x0 + 0.05, y + 0.12, x1 - x0 - 0.10, 0.10, state,
+                   size=5.8, bold=True, font="mono", text_color=state_ink,
                    align="center", valign="mid")
 
     markers = [
@@ -543,11 +544,11 @@ def build_scenes() -> list[SlideScene]:
     ]
     for marker_date, marker_label, accent in markers:
         x = gx(marker_date)
-        s.line(x, 1.88, 0, 4.03, stroke=accent, stroke_width=0.8)
+        s.line(x, 1.88, 0, 3.54, stroke=accent, stroke_width=0.8)
         s.circle(x - 0.055, 1.92, 0.11, 0.11, fill=accent, stroke=None)
 
     contingency_x0, contingency_x1 = gx(date(2026, 11, 9)), gx(date(2026, 11, 16))
-    contingency_y = chart_y0 + 7 * row_h
+    contingency_y = chart_y0 + 8 * row_h
     s.rect(contingency_x0, contingency_y + 0.04,
            contingency_x1 - contingency_x0, 0.39, fill=None,
            stroke=BURGUNDY, stroke_width=1.1, radius=0)
@@ -560,7 +561,7 @@ def build_scenes() -> list[SlideScene]:
            "Review dates: 18–22 Aug · 29 Sep–3 Oct · 17–21 Nov · report due 20 Nov",
            size=9.1, bold=True, font="sans", text_color=INK, align="center")
     s.text(2.34, 6.72, 8.65, 0.16,
-           "G8_C and G8_D are complete. G8_E/E0 is next but not started; all later work remains planned.",
+           "G8_C and G8_D are complete. G8_E/E0 is next but not started; G8_F/G and all later work remain planned.",
            size=8.2, italic=True, font="serif", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 

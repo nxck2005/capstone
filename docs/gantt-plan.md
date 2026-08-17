@@ -1,12 +1,17 @@
 # Project Gantt Plan
 
-**Baseline date:** 2026-08-11  
+**Baseline date:** 2026-08-18
 **Owner:** project author  
 **Control source:** [`spec/SPEC.md` §13](../spec/SPEC.md#13-schedule--gates)  
 **Fixed review windows:** First 2026-08-18–22; Second 2026-09-29–10-03; Final 2026-11-17–21
 **Final report and supporting material:** 2026-11-20
 
 This is the maintained PR-2 time-plan artifact. `spec/SPEC.md` governs sequence and gates if this chart ever disagrees. Engineering checkpoints W0–W4 were completed ahead of the nominal teaching-week windows; the remaining bars preserve the normative gate order. Dates show the planned windows; status reflects authenticated repository evidence, not percentage estimates.
+
+**Planning correction (2026-08-18):** the G-8 work is shown as its actual
+three-phase path—G8_E, G8_F, then G8_G—before later learned-system work. The
+planned downstream windows are resequenced to expose those dependencies; the
+fixed review/report dates and every authenticated status remain unchanged.
 
 ## 1. Calendar view
 
@@ -26,18 +31,19 @@ gantt
     section Current critical path
     G8_C full-strength BLER characterization        :done, g8c, 2026-08-09, 2026-08-15
     G8_D validation-measurement tooling             :done, g8d, after g8c, 3d
-    G8_E full validation measurement + pass one     :g8e, after g8d, 3d
-    G-8 ratio and operating-point decision          :g8, after g8e, 1d
+    G8_E validation measurement + pass one          :g8e, 2026-08-18, 4d
+    G8_F artifact classifier + pass two             :g8f, 2026-08-22, 4d
+    G8_G final G-8 ratio/adjudication              :g8g, 2026-08-26, 2d
     First Review deliverables and rehearsal         :reviewdocs, 2026-08-11, 2026-08-17
     First Review window                             :crit, r1, 2026-08-18, 5d
 
     section Learned system and validation
-    W5 training loop, dual head, resume             :w5, 2026-08-24, 7d
-    W6 close classical operating points             :w6, 2026-08-31, 7d
-    W7 one-seed pilot and lambda calibration G-4    :crit, w7, 2026-09-07, 7d
-    W8 final paired multi-seed training             :crit, w8, 2026-09-14, 7d
-    W9 G-10, ER-9 control, mismatch study, G-11     :crit, w9, 2026-09-21, 7d
-    W10 paired inference and validation rehearsal    :crit, w10, 2026-09-28, 7d
+    W5 training loop, dual head, resume             :w5, 2026-08-28, 7d
+    W6 classical evidence closure                   :w6, 2026-09-04, 7d
+    W7 one-seed pilot and lambda calibration G-4    :crit, w7, 2026-09-11, 7d
+    W8 final paired multi-seed training             :crit, w8, 2026-09-18, 7d
+    W9 G-10, ER-9 control, mismatch study, G-11     :crit, w9, 2026-09-25, 7d
+    W10 paired inference and validation rehearsal    :crit, w10, 2026-10-02, 7d
     Second Review window                            :milestone, r2, 2026-09-29, 0d
 
     section Frozen evaluation
@@ -66,15 +72,16 @@ gantt
 | W4 baseline integration | 1–9 Aug | W3 | Bounded JPEG 2000 + LDPC path; BR-4 selection machinery | Complete |
 | G8_C BLER characterization | 9–15 Aug | G8_A/B contracts and manifests | Authenticated full-strength characterization coverage sufficient to freeze the BLER table | **Complete** — Pascal successor is 3,213/3,213; 153 measured-only curves and the successor `BlerTable` are frozen; predecessor contribution is zero |
 | G8_D validation-measurement tooling | 15–18 Aug | G8_C exact coverage | Codec search, reconstruction cache, BR-11 accounting, count-derived records, atomic resume and bounded smoke | **Complete** — D0–D7 GREEN; G8_E/E0 released; full validation campaign and pass one not started |
-| G8_E full validation measurement + pass one | 18–21 Aug | G8_D GREEN and E0 | Validation-only measurement corpus, measured accuracy records and one authorized pass-one selection | Planned / not started |
-| G-8 ratio and operating-point decision | After G8_E | Complete pass-one coverage and downstream gate | Frozen operating ratio and classical choices | Planned / not started |
+| G8_E full validation measurement + pass one | 18–21 Aug | G8_D GREEN and E0 | Validation-only measurements, measured accuracy records, one authorized pass-one selection and a training-only corpus specification | Planned / not started |
+| G8_F artifact classifier and pass two | 22–25 Aug | G8_E GREEN | Training-only artifact corpus, fine-tuned artifact classifier, post-training validation scores and one authorized pass-two result | Planned / not started |
+| G8_G final G-8 adjudication | 26–27 Aug | G8_F GREEN | Final pass-two disposition; freeze `efficiency_ratio`, named `crossover_ratio`, `low_ratio_operating_point` and the G-8 outputs | Planned / not started |
 | First Review package | 11–17 Aug | W0–W4 evidence | Polished 10–12-slide deck; ≥25-reference review; corrected Gantt; four-member technical readiness; viva evidence; deployment dossier plus guide acknowledgement; final package under `deliverables/review-1/`; `review-1-basis` tag | Backing documents complete; deck/export, four-member rehearsal, guide acknowledgement, final package and snapshot remain |
-| W5 training system | 24–30 Aug | G-8 operating ratios | Checkpoint/resume training loop and schema-exact records | Not started |
-| W6 operating-point closure | 31 Aug–6 Sep | G-8 evidence | Classical-only sweep closed; artifact corpus available | Not started |
-| W7 pilot and λ calibration | 7–13 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
-| W8 headline training | 14–20 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | Not started |
-| W9 attribution and robustness | 21–27 Sep | W8 | G-10 decision; ER-9; H4 precision; G-11 | Not started |
-| W10 validation rehearsal | 28 Sep–4 Oct | W9 | Paired full-grid validation rehearsal and Second Review figures | Not started |
+| W5 training system | 28 Aug–3 Sep | G8_G adjudication | Checkpoint/resume learned-system training loop and schema-exact records | Not started |
+| W6 classical evidence closure | 4–10 Sep | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | Not started |
+| W7 pilot and λ calibration | 11–17 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
+| W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | Not started |
+| W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | Not started |
+| W10 validation rehearsal | 2–8 Oct | W9 | Paired full-grid validation rehearsal and Second Review figures | Not started |
 | W11 single test campaign | 5–11 Oct | Freeze manifest and G-12 | One guarded test opening covering every registered test-reading experiment | Sealed/not started |
 | W12 Tier 1 close | 12–18 Oct | W11 | Frozen ER-1–ER-4, ER-9, ER-10; every hypothesis decided; G-5 | Not started |
 | W13 demo | 19–25 Oct | Frozen checkpoints/results | SNR slider, paired pipelines, frozen plot, latency record | Not started |
@@ -87,17 +94,17 @@ gantt
 
 The scientific critical path is:
 
-`G8_C → G8_D tooling → G8_E validation/pass one → G-8 ratio decision → W5 training system → G-4 λ calibration → W8 final training → G-10/G-11 → validation rehearsal → G-12 test release → G-5 Tier 1 freeze → report figures`.
+`G8_C → G8_D tooling → G8_E validation/pass one → G8_F artifact-classifier training/pass two → G8_G final G-8 ratio/adjudication → W5 learned-system training → G-4 λ calibration → W8 final training → G-10/G-11 → validation rehearsal → G-12 test release → G-5 Tier 1 freeze → report figures`.
 
 Control rules:
 
-1. **No downstream work crosses a gate.** G8_E full validation measurement and pass-one selection begin only after E0; λ calibration, final training, and test access remain behind their later gates.
+1. **No downstream work crosses a gate.** G8_E full validation measurement and pass-one selection begin only after E0; G8_F waits for the immutable G8_E pass-one state; G8_G waits for the immutable G8_F pass-two state; learned-system training, calibration, final training and test access remain behind their later gates.
 2. **The test split stays sealed until G-12.** Review demonstrations use validation data and are labelled accordingly.
 3. **Hardware purchase is conditional on G-5.** Failure at G-5 abandons Tier 2/3 and moves effort to reporting.
 4. **W16 is allocated contingency, not feature capacity.** It absorbs report completion and results-audit variance.
 5. **Review dates do not move.** If scientific work slips, the review reports the actual state; it does not bypass a gate to manufacture a figure.
 6. **The chart is revised at each review.** Changes record baseline date, changed bar, cause, effect on the critical path, and accepted fallback.
-7. **First Review does not gate on later experiments.** G8_E full validation, learned training/results, demo, thesis, poster, plagiarism workflow, hardware purchase and SDR work remain later tasks. Review 1 reports G8_C and G8_D as complete and the remaining work as future work rather than accelerating, weakening or bypassing a gate for presentation evidence.
+7. **First Review does not gate on later experiments.** G8_E, G8_F, G8_G, learned training/results, demo, thesis, poster, plagiarism workflow, hardware purchase and SDR work remain later tasks. Review 1 reports G8_C and G8_D as complete and the remaining work as future work rather than accelerating, weakening or bypassing a gate for presentation evidence.
 
 ## 4. Review checkpoints
 
@@ -115,6 +122,6 @@ These are observed repository records, not forecasts:
 - G-7: the 1.64 M-parameter DJSCC profile ran a full 8,469-image epoch at batch size 32 in 48.68 s, reserving 1.004 GiB VRAM; 100 epochs projected to 1.35 h on the profiled device.
 - G-2: golden vectors and all three independent BLER waterfall comparisons passed the 0.5 dB tolerance.
 - W4: a bounded end-to-end classical run and its source-bound verifier pass; the full G-8 validation sweep has not run.
-- G8_C is complete: the Pascal successor covers 3,213/3,213 identities and its measured-only BLER table is frozen. G8_D validation-measurement tooling is GREEN and complete; the full G8_E validation campaign, pass one, ratio selection, training and test access remain unfinished.
+- G8_C is complete: the Pascal successor covers 3,213/3,213 identities and its measured-only BLER table is frozen. G8_D validation-measurement tooling is GREEN and complete; G8_E full validation/pass one, G8_F artifact-classifier training/pass two, G8_G final ratio adjudication, later learned-system training and test access remain unfinished.
 
 No learned-vs-classical headline result exists yet. The First Review must not present bounded smoke data as a scientific comparison.

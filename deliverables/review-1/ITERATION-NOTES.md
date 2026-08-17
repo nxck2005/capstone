@@ -75,7 +75,12 @@ risks,” and “Summary and next steps.”
   presentation, not only a schedule table or a row of phase boxes.
 - Completed G8_C BLER characterization and completed G8_D validation-measurement
   tooling are marked complete. G8_E full validation measurement/pass-one
-  selection and all later scientific work remain planned/not started.
+  selection, G8_F artifact-aware classifier training/pass two, G8_G final
+  ratio/adjudication and all later scientific work remain planned/not started.
+- Keep the live critical path explicit: G8_E validation measurements + initial
+  classical selection → G8_F training-only artifact corpus/classifier + pass two
+  → G8_G final G-8 adjudication and operating-ratio freeze → learned-system
+  training/calibration and later evaluation.
   Review-package authoring is not shown as a second active experiment
   workstream.
 

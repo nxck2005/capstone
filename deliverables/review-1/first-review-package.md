@@ -65,7 +65,7 @@ Review 1 presents the valid state reached by the review date. It does not manufa
 | Hypotheses | Preregistered H1–H4; for H1 a point qualifies when the studentized paired mean exceeds 1.96, and support requires both a run of at least three consecutive qualifying points at or below the training SNR and the calibrated run p-value ≤ 0.05; crossover not required | Slide 8; `spec/SPEC.md` §2 |
 | Problem survey | Information theory, learned compression, neural JSCC, task-oriented communication and the attribution gap | Slide 5; literature review |
 | Subject knowledge | Neural representation learning, residual CNN, dual-head decoder, CE + λMSE, differentiable AWGN, ResNet-18, digital feature attribution, LDPC, resource matching and evidence boundaries | Slides 1–5, 7–9 and 11; architecture notes and standards register |
-| Time plan | Gate-ordered critical path through G-8, training, test freeze, reporting and hardware fallback | Slide 10; Gantt plan |
+| Time plan | Gate-ordered critical path through G8_E, G8_F, G8_G, later learned-system work, test freeze, reporting and hardware fallback | Slide 10; Gantt plan |
 
 ## 3. Narrative contract for this and future iterations
 
@@ -178,16 +178,17 @@ Show the evidence and its meaning, then state what it does not prove. The curren
 
 Use a graphical Gantt with calendar-scaled bars from August through November.
 It must show G8_C BLER characterization and G8_D validation-measurement tooling
-as complete, followed by planned G8_E full validation measurement/pass-one
-selection, ratio selection, DJSCC training and calibration, digital control and
-validation, freeze plus the one test campaign, demo/optional replay, and
-report/final-review work. Mark the fixed review and report dates and show W16
-as report contingency. Do not show Review 1 document preparation as a second
-active experiment bar.
+as complete, followed by planned G8_E validation measurement and initial
+classical selection, G8_F training-only artifact-corpus/classifier work and
+pass two, G8_G final G-8 ratio/adjudication, later DJSCC training and
+calibration, digital control and validation, freeze plus the one test
+campaign, demo/optional replay, and report/final-review work. Mark the fixed
+review and report dates and show W16 as report contingency. Do not show Review
+1 document preparation as a second active experiment bar.
 
 The bar order must preserve the critical path:
 
-`G8_C → G8_D tooling → G8_E validation/pass one → G-8 ratio decision → DJSCC training and calibration → ER-9/G-11 → validation rehearsal → freeze/G-12 → one test campaign → demo/report`.
+`G8_C → G8_D tooling → G8_E validation/pass one → G8_F artifact classifier/pass two → G8_G final G-8 ratio/adjudication → DJSCC training and calibration → ER-9/G-11 → validation rehearsal → freeze/G-12 → one test campaign → demo/report`.
 
 State the hard dates: First Review 18–22 Aug, Second Review 29 Sep–3 Oct, Final Review 17–21 Nov and report due 20 Nov. W16 is report contingency, not new experiment scope.
 
@@ -197,7 +198,7 @@ Explain the remote-camera and split edge/cloud inference application. Name the A
 
 ### Slide 12 — Summarize and state next steps
 
-Summarize the problem, proposal, current readiness and next work. State that the research question, three-system methodology, feasibility evidence and completion plan are defined, while the final learned-versus-classical result remains future work. Map all six rubric criteria to slide numbers explicitly.
+Summarize the problem, proposal, current readiness and next work. State that the research question, three-system methodology, feasibility evidence and completion plan are defined, while the final learned-versus-classical result remains future work. Name the remaining path as G8_E initial classical selection, G8_F artifact-aware classifier and pass two, G8_G ratio/adjudication, then learned-system training and later evaluation. Map all six rubric criteria to slide numbers explicitly.
 
 ## 6. Backup slides
 

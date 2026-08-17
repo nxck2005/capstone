@@ -228,10 +228,13 @@ report dates. The outlined section inside the reporting bar is W16 contingency.
 
 Explain the dependencies rather than every week number:
 
-1. run the full G8_E validation measurement and pass-one selection;
-2. select the final classical operating ratio/configuration at G-8;
-3. train and freeze the learned system;
-4. build the digital feature control and rehearse on validation;
+1. run the full G8_E validation measurements and initial classical selection;
+2. materialize the training-only artifact corpus, fine-tune the artifact-aware
+   classifier, score validation after training and run the single G8_F pass two;
+3. perform the G8_G final G-8 adjudication and freeze the operating ratios,
+   low-ratio point and final classical disposition;
+4. train and calibrate the learned system, then build the digital feature
+   control and rehearse on validation;
 5. run the test campaign once; and
 6. prepare the final report and demonstration.
 
@@ -279,13 +282,16 @@ Summarize four points:
   baselines;
 - the current evidence establishes technical feasibility, not the final
   comparative result; and
-- the remaining path is full validation measurement/pass one, ratio selection,
-  training, freeze and one test campaign.
+- the remaining path is G8_E validation/pass one, G8_F artifact-aware
+  classifier/pass two, G8_G ratio adjudication, learned-system training and
+  calibration, then freeze and one test campaign.
 
 State that the research question, three-system methodology, feasibility
 evidence and completion plan are defined, while the final comparative result
-remains future work. Point to the rubric map as evidence that all six First
-Review criteria are covered.
+remains future work. The remaining path is G8_E initial classical selection,
+G8_F artifact-aware classifier and pass two, G8_G ratio/adjudication, then
+learned-system training and later evaluation. Point to the rubric map as
+evidence that all six First Review criteria are covered.
 
 Do not claim that showing the map alone proves team readiness; all four team
 members still need to explain the project.
