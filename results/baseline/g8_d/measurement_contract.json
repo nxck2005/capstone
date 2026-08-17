@@ -55,8 +55,8 @@
     "source_bytes_bound": true,
     "structural_infeasibility_is_distinct": true
   },
-  "campaign_id": "g8d-9e1466b95cda77b071ed61e47387fb8f3641ad5bf1656c868d741d193f50f701",
-  "checkpoint": "D5",
+  "campaign_id": "g8d-3a7c6141e52432bac4d75f62e2c0035065c9971370450326189086d4862fab05",
+  "checkpoint": "D6",
   "classifier_binding": {
     "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
     "classifier_config_sha256": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
@@ -137,7 +137,7 @@
       }
     }
   },
-  "contract_id": "g8dcontract-586d5dc965de24b3ca903f9a9209ae6db772c17596753183423ad17cc3823c68",
+  "contract_id": "g8dcontract-fb42c08e871e8339f13024494acb65bf6fa60a3217ea816ee11ec09301340808",
   "d0_open_binding": {
     "artifact_id": "g8dopen-5c18971a95770f9de9024351e6bdd634a46687bd74ae1fc551e6ead37da57892",
     "artifact_sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
@@ -327,7 +327,7 @@
       "record_schema_version"
     ]
   },
-  "next_gate": "G8_D/D6",
+  "next_gate": "G8_D/D7",
   "phase": "G8_D",
   "phase_order": [
     "D0",
@@ -470,21 +470,62 @@
     "validation_decoding": 0
   },
   "schema_version": 1,
+  "smoke_schema": {
+    "artifact_role": "g8_d_bounded_non_scientific_smoke",
+    "classifier_invocation_forbidden": true,
+    "full_validation_campaign_started": false,
+    "label": "NON-SCIENTIFIC BOUNDED SMOKE",
+    "merge_eligible": false,
+    "mutation_case_count": 20,
+    "mutation_case_names": [
+      "wrong_g8_c_table_binding",
+      "predecessor_table_instead_of_pascal_successor",
+      "wrong_validation_manifest",
+      "test_split_requested",
+      "changed_classifier_checkpoint",
+      "codec_configuration_mutation",
+      "image_content_mutation",
+      "cache_key_alias_attempt",
+      "emitted_bytes_exceed_budget",
+      "structural_infeasibility",
+      "codec_infeasibility",
+      "reconstruction_cache_corruption",
+      "br11_accounting_mutation",
+      "incorrect_accuracy_counts",
+      "assumed_bare_accuracy",
+      "duplicate_work_unit",
+      "missing_work_unit",
+      "stale_aggregate",
+      "interrupted_publication",
+      "changed_source_or_config_on_resume"
+    ],
+    "non_headline": true,
+    "non_scientific": true,
+    "non_selection": true,
+    "schema_version": 1,
+    "selection_started": false,
+    "synthetic_codec_backend_only": true,
+    "synthetic_decoder_only": true,
+    "synthetic_pixels_only": true,
+    "test_access_forbidden": true,
+    "test_split_accessed": false,
+    "training_started": false
+  },
   "source_bindings": [
     {
       "path": "src/baseline/g8_d.py",
       "role": "g8_d_identity_and_contract_runtime",
-      "sha256": "7c6a79149744673b4a1a6f93c03a01f93c5d6bf4a859fb56f59249d1dd83581c"
+      "sha256": "d218b392fdd373bcadb0ed88086be7872560e84673a6d57f42701860b145889c"
     },
     {
       "path": "tools/gen_g8_d_contract.py",
       "role": "g8_d_contract_generator",
-      "sha256": "762bd90514f07158c43c6ab3cb3c3f933258cdc886526357e29272896e6bd998"
+      "sha256": "5be51e6cb319665fb600fb8946fcb1207738cc84b1079c03a31030141de1137e"
     },
     {
       "path": "tools/verify_g8_d_contract.py",
       "role": "g8_d_independent_verifier",
-      "sha256": "8fe47d80d7058926758ffc59e8e09374b268dbfa9b4660e9945d7176091fe971"
+      "sha256": "e7fa0aacbaefb38f5a19a39265cd6ef04c5ff6bc9f8da4aceaf89a86820ad7c7"
     },
     {
       "path": "tools/verify_g8_d_open.py",
@@ -510,9 +551,19 @@
       "path": "src/baseline/classical/records.py",
       "role": "frozen_br11_record_contract",
       "sha256": "62dfaed5d05941a412c186c1d2b2929ff2c5e73fbe9351f3127eb7f3dc9a3bce"
+    },
+    {
+      "path": "tools/run_g8_d_smoke.py",
+      "role": "g8_d_bounded_smoke_runner",
+      "sha256": "77707de5511167fa49f853055265a085bbe8eefd8e9475e176f2764c908850e7"
+    },
+    {
+      "path": "tools/verify_g8_d_smoke.py",
+      "role": "g8_d_bounded_smoke_verifier",
+      "sha256": "48126296929325c020d14d26a95845778b86af860ef6410b3a83e5d147dbc17f"
     }
   ],
-  "status": "atomic_resume_ready",
+  "status": "bounded_smoke_ready",
   "upstream_bindings": {
     "g1_adjudication_sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
     "params_generated_sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b",
