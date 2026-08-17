@@ -75,6 +75,20 @@ and the closeout source/provenance closure is independently verified. G8_D D0,
 D1, D2, D3, D4, D5, D6 and D7 are complete; G8_E/E0 is authorized next but
 not started, and the full validation campaign remains closed.
 
+**2026-08-18 clean-checkout verification repair:** the G8_C measurements and
+frozen table remain scientifically unchanged. The defect was an
+implementation/clean-checkout provenance-verifier defect: the legacy
+`runtime_tree_sha256` includes Git-lossy modes and local coordination paths.
+`results/baseline/g8_pascal_successor/portable_scientific_runtime_manifest.json`
+now authenticates only the scientific runtime namespace by canonical relative
+path, byte length and exact-byte SHA-256; the strict loader independently
+reconstructs all 3,213 units and curves from those bytes. The legacy tree hash
+`dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` remains
+immutable historical production/import provenance and is not a portable Git
+identity. G8_D was reverified and non-scientifically rebound under
+`results/baseline/g8_d/portable_rebind_provenance.json`; no campaign rerun or
+validation measurement occurred. G8_E/E0 remains the next unopened gate.
+
 **First Review delivery contract — user-fixed; do not ask the user to restate or
 reinterpret it.** The maintained acceptance checklist is
 [`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md).

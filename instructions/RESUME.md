@@ -49,6 +49,24 @@ verified under `results/baseline/g8_pascal_successor/`. G8_D D0, D1, D2, D3, D4,
 G8_E/E0 is authorized next but has not started. Test and validation data,
 selection, authorization, inference and training remain prohibited here.
 
+**2026-08-18 corrective provenance epoch (complete):** a real fresh Git
+checkout reproduced the old failure with identical scientific bytes: production
+runtime files/directories were `0600`/`0700`, while Git materialized tracked
+files/directories as `0644`/`0755`; ignored `.locks/` and `.campaign.lock` were
+absent from the checkout. The defect is classified as an implementation /
+clean-checkout reproducibility / provenance-verifier defect, not a measurement
+or BLER-characterization defect. The additive portable evidence manifest at
+`results/baseline/g8_pascal_successor/portable_scientific_runtime_manifest.json`
+binds the scientific namespace by path, byte length and exact-byte SHA-256, and
+the repaired strict loader independently verifies exact authority coverage,
+retry history, raw counts, curves, protected counters and predecessor
+isolation. The historical tree digest remains immutable historical provenance;
+the merge, table and C6 artifacts remain byte-identical. G8_D was reverified
+and rebound only in non-scientific contract/smoke/handoff metadata under
+`results/baseline/g8_d/portable_rebind_provenance.json`. No campaign rerun,
+validation measurement, training or test access occurred. G8_E/E0 is the next
+gate and remains unopened.
+
 **This file is the single source of truth for where the four-phase sequence stands.**
 It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
 this file is the operational cursor. If they disagree, this file is right about progress and

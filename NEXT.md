@@ -9,6 +9,19 @@ this file is wrong. Anything here that turns out to be a durable decision belong
 
 **Last updated:** 2026-08-18 · **Phase:** **G8_C remains green and closed; G8_D D0–D7 are complete and GREEN; G8_E/E0 is authorized next but not started. The old local G8_C campaign remains immutable superseded history.**
 
+**2026-08-18 clean-checkout provenance repair (complete):** the G8_C request,
+result, state and campaign-state bytes, authority, 5,000-trial counts, BLER
+values and frozen `BlerTable` are unchanged. The failure was a metadata-only
+implementation/provenance-verifier defect: the historical normalized tar tree
+digest included filesystem modes and ignored coordination paths, so it was not
+round-trippable through Git. Clean-checkout authentication now uses
+`results/baseline/g8_pascal_successor/portable_scientific_runtime_manifest.json`
+and its strict loader, which binds only scientific paths, lengths and exact-byte
+SHA-256 values and independently reconstructs all 3,213 points. The legacy
+tree digest remains historical provenance. G8_D D0–D7 was reverified and
+non-scientifically rebound; no campaign or validation measurement was run.
+G8_E/E0 remains authorized but unopened.
+
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e0; bler_table=frozen; g8_d=d7-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
