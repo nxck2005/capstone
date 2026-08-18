@@ -696,7 +696,7 @@ def build_correction_provenance() -> dict[str, Any]:
             "campaign_id": old_contract["campaign_id"],
             "authority_id": old_authority["authority_id"],
             "authority_sha256": sha256_bytes(old_authority_raw),
-            "source_manifest_id": old_sources["source_manifest_id"],
+            "source_manifest_id": old_sources["manifest_id"],
             "source_manifest_sha256": sha256_bytes(old_sources_raw),
             "source_commit": old_sources["source_commit"],
             "old_runner_path": "tools/run_g8_e.py",
