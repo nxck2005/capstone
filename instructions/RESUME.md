@@ -770,10 +770,11 @@ complete at 3,213/3,213 and its authenticated evidence is published. The success
 top-level successor `campaign_state.json` remains the immutable zero-coverage
 readiness marker. The old local RTX4060 campaign remains valid immutable history
 and contributes zero successor-table coverage.
-**Exact next action:** G8_D is GREEN and closed. G8_E/E0 is authorized next but
-was not started; do not execute it in this handoff, rerun or resume either
-campaign, start another Pascal worker, ingest old results, alter completed
-runtime evidence, or run the full validation campaign.
+**Exact next action:** E0 is open and green. The next authorized checkpoint is
+G8_E/E1; do not execute E2, start the full validation campaign, run pass one,
+train, invoke fallback, adjudicate a ratio, access test, rerun either upstream
+campaign, start another Pascal worker, ingest old results or alter completed
+runtime evidence.
 
 ### G8_D — validation-measurement tooling
 
@@ -795,7 +796,7 @@ or G8_E execution is permitted in G8_D.
 | D4 count-derived clean-classifier records | done | **Phase-start SHA:** `e1e1247`; WIP `a4fe2b1`; green commit `85a07a1`; count-derived `MeasuredCodecAccuracy` records, frozen classifier/table bindings and mutation tests PASS; no classifier run. |
 | D5 atomic resume | done | **Phase-start SHA:** `85a07a1`; WIP `279516a`; green commit `703389b`. Exact tests: `PYTHONPATH=src .venv/bin/python -m pytest tests/test_g8_d_resume.py -q` → 10 passed; D5 contract generator and independent verifier PASS. Immutable prefix history, same-directory fsync, exclusive lock, crash-boundary recovery and stale-ahead rejection are verified; no production campaign. |
 | D6 bounded non-scientific smoke and mutations | done | **Phase-start SHA:** `703389b`; WIP `22ac8a7`; green commit: this D6 checkpoint. Synthetic smoke: 1 sample, 4 candidates/cells, 1 measurement work unit; emitted-byte, reconstruction-cache, BR-11 and atomic-resume seams PASS; all 20 required mutation cases PASS; no classifier, selection, headline result or campaign execution. |
-| D7 verification and handoff | done | **Phase-start SHA:** `2bc1c04`; WIP `f033173`; green commit: this D7 checkpoint. Handoff `d7_handoff.json` binds contract `g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe`, artifact `g8dhandoff-db7f78cf2613c5883081bded9f53f7935916b78980761b5075aac531ac5b70f7`, full pytest `2167 passed, 0 failed, 0 skipped`, and all required verifiers PASS. G8_E/E0 is authorized next but not started. |
+| D7 verification and handoff | done | Current contract `g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889` and handoff `g8dhandoff-31c48fcabe765a0e70bcd7bcfec5f4bd705b88ee3cb0d140ba9aecf67e1dfd4c` reverify after the portable repair; current D7 records 2,179 full-suite passes and releases E0. |
 
 ### G8_E — pre-data validation contract
 
@@ -806,7 +807,7 @@ fallback, ratio adjudication and test access remain prohibited.
 
 | Step | State | Exact restart / evidence |
 |---|---|---|
-| E0 verify/open | in-progress | **Phase-start SHA:** `7e8b0de07328ac524fd1a1e1de8b1b3c97f08b36`; **WIP marker:** this checkpoint. First command after the marker: run the independent G8_C portable/closeout/successor verifiers, current G8_D verifiers, G-1 and the E-unopened audit; then create `results/baseline/g8_e/e0_open.json`. Intended files: this ledger, E0 generator/verifier/tests and the opening artifact only. No validation image decode, codec run, classifier invocation, selection, authorization, training, fallback or test access. |
+| E0 verify/open | done | **Phase-start SHA:** `7e8b0de07328ac524fd1a1e1de8b1b3c97f08b36`; **WIP marker:** `63edff7`; **green checkpoint:** this commit. Upstream successor, portable and closeout verifiers; exhaustive 3,213-point lookup; current G8_D open/contract/smoke/D7; G-1; archive/manifest and portable-rebind checks all PASS. Opening artifact `g8e0-eb899023431412d5dfb608f9f094538cb60a0346a01032c0b2634a902006131c`, SHA-256 `7fbb6b8b3469426dc043e7a0226c0d6a2854445c822698bcc6c86b6bd1155388`; coverage 0, E2/pass one/training/fallback/ratio/test all closed. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

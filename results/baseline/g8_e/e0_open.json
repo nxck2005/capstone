@@ -1,0 +1,165 @@
+{
+  "artifact_id": "g8e0-eb899023431412d5dfb608f9f094538cb60a0346a01032c0b2634a902006131c",
+  "artifact_role": "g8_e_pre_data_opening",
+  "checkpoint": "E0",
+  "declarations": {
+    "e2_not_started": true,
+    "g8_c_scientific_state_frozen": true,
+    "g8_d_green": true,
+    "g8_e_measurement_coverage": 0,
+    "pass_one_not_started": true,
+    "portable_verification_pass": true,
+    "test_forbidden": true,
+    "training_forbidden": true,
+    "validation_image_decoding_required_to_open": false
+  },
+  "g8_c": {
+    "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+    "historical_c6_id": "g8pcloseout-8cc5be86e6bbb350ca35c1806686e751f4528ad32aa7083e9a754c4849feba70",
+    "historical_c6_sha256": "efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f",
+    "merge_report_id": "g8pmerge-2e861c39d8981af0e2d57dc8ded5828b9ed56a1459491e04929b5e9c3418de89",
+    "merge_report_sha256": "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8",
+    "portable_manifest_id": "g8pportable-6368a3cb3214df264d566675e196449a0745e6eb3cc402f1825150e2370f41f4",
+    "portable_manifest_sha256": "f626ea7c973a9d1f53ab292ec121725b5a6d3331743ade031b4906caa782da5b",
+    "portable_provenance_id": "g8pportableprov-19149e3e23c2340ecd6911231542e7fcb86b031978ba9d37db52d789a2a7df58",
+    "portable_provenance_sha256": "3ea789c1f5bff4abfe926016c2e508288d479991d0a5447bf2f695281a8682aa",
+    "portable_scientific_runtime_sha256": "4da51e24f497392000bf740d604ae43d0f3cc3df6978add094c7800d70c7dad3",
+    "portable_verification_epoch": {
+      "classification": {
+        "bler_characterization_defect": false,
+        "kind": "implementation_clean_checkout_reproducibility_provenance_verifier_defect",
+        "measurement_defect": false,
+        "metadata_only": true
+      },
+      "epoch": "g8-c-portable-scientific-runtime-v1",
+      "exact_authority_count": 3213,
+      "legacy_runtime_tree_sha256": "dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b",
+      "legacy_tree_digest_is_historical_only": true,
+      "portable_manifest_id": "g8pportable-6368a3cb3214df264d566675e196449a0745e6eb3cc402f1825150e2370f41f4",
+      "portable_manifest_sha256": "f626ea7c973a9d1f53ab292ec121725b5a6d3331743ade031b4906caa782da5b",
+      "repair_commit": "9c43e1b64113b4055774c72129294e725d6662c3",
+      "repair_source_digest": "d6406b82042a7627d73a7c8563fd062fe8a9fe94bb44a75c125a659d88878c6c",
+      "scientific_runtime_sha256": "4da51e24f497392000bf740d604ae43d0f3cc3df6978add094c7800d70c7dad3",
+      "trials_per_identity": 5000
+    },
+    "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f",
+    "table_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
+  },
+  "g8_d": {
+    "contract_id": "g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889",
+    "contract_sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a",
+    "d4_merge_eligible": false,
+    "d4_scientific_evidence": false,
+    "d6_merge_eligible": false,
+    "d6_scientific_evidence": false,
+    "handoff_id": "g8dhandoff-31c48fcabe765a0e70bcd7bcfec5f4bd705b88ee3cb0d140ba9aecf67e1dfd4c",
+    "handoff_sha256": "fa38c9bbc5e02ea3b16539eed17a9008079386f9655f1b8d789034056432e408",
+    "portable_rebind_provenance_id": "g8dportableprov-0d493b8e99cea1f0ac95f6d36bd411208f0930025950de8a5fe5a3836cf4d907",
+    "portable_rebind_provenance_sha256": "091381f9737c112f473672f533361955644a224fb067788b77aafc4eb01fe2b3"
+  },
+  "opening_commit": "63edff7dcd1a46125e436181a0799fc800377cf6",
+  "phase": "G8_E",
+  "safety": {
+    "e2_started": false,
+    "fallback_invoked": false,
+    "g8_e_measurement_coverage": 0,
+    "inference": 0,
+    "pass_one_started": false,
+    "pass_two_started": false,
+    "ratio_adjudicated": false,
+    "test_access": 0,
+    "training": 0,
+    "training_started": false,
+    "validation_decoding": 0
+  },
+  "schema_version": 1,
+  "status": "OPEN",
+  "upstream_bindings": [
+    {
+      "bytes": 2261,
+      "path": "results/baseline/g8_d/d7_handoff.json",
+      "role": "g8_d_current_d7_handoff",
+      "sha256": "fa38c9bbc5e02ea3b16539eed17a9008079386f9655f1b8d789034056432e408"
+    },
+    {
+      "bytes": 19143,
+      "path": "results/baseline/g8_d/measurement_contract.json",
+      "role": "g8_d_current_contract",
+      "sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a"
+    },
+    {
+      "bytes": 2858,
+      "path": "results/baseline/g8_d/portable_rebind_provenance.json",
+      "role": "g8_d_portable_rebind_provenance",
+      "sha256": "091381f9737c112f473672f533361955644a224fb067788b77aafc4eb01fe2b3"
+    },
+    {
+      "bytes": 2129520,
+      "path": "results/baseline/g8_pascal_successor/portable_scientific_runtime_manifest.json",
+      "role": "g8_c_portable_scientific_runtime_manifest",
+      "sha256": "f626ea7c973a9d1f53ab292ec121725b5a6d3331743ade031b4906caa782da5b"
+    },
+    {
+      "bytes": 4171,
+      "path": "results/baseline/g8_pascal_successor/portable_verification_provenance.json",
+      "role": "g8_c_portable_verification_provenance",
+      "sha256": "3ea789c1f5bff4abfe926016c2e508288d479991d0a5447bf2f695281a8682aa"
+    },
+    {
+      "bytes": 13998520,
+      "path": "results/baseline/g8_pascal_successor/successor_bler_merge_report.json",
+      "role": "g8_c_frozen_successor_merge",
+      "sha256": "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8"
+    },
+    {
+      "bytes": 5774378,
+      "path": "results/baseline/g8_pascal_successor/successor_bler_table.json",
+      "role": "g8_c_frozen_successor_table",
+      "sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
+    },
+    {
+      "bytes": 4354,
+      "path": "results/baseline/g8_pascal_successor/successor_closeout_provenance.json",
+      "role": "g8_c_historical_c6_closeout",
+      "sha256": "efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f"
+    },
+    {
+      "bytes": 136526,
+      "path": "src/baseline/g8_d.py",
+      "role": "g8_d_identity_cache_source",
+      "sha256": "f8ccfa527d10b5192e7c8193920c173b80f1649024bb12da32038d6e42e343f3"
+    },
+    {
+      "bytes": 52911,
+      "path": "src/baseline/g8_pascal_merge.py",
+      "role": "g8_c_legacy_loader_wrapper_source",
+      "sha256": "7a35ac30e0c2c62363688c3cbb4f00c1f039bc680eb1c3c0d03dcec82c68e526"
+    },
+    {
+      "bytes": 27508,
+      "path": "src/baseline/g8_pascal_portable.py",
+      "role": "g8_c_portable_verifier_source",
+      "sha256": "765f72acfc1a21b1d79c911a913415ac5f7b92a5dada004a38d11ba909c7f32d"
+    }
+  ],
+  "upstream_verification": {
+    "exact_accepted_identities": 3213,
+    "exact_frozen_points": 3213,
+    "exact_required_identities": 3213,
+    "g8_c_closeout_compatibility": "PASS",
+    "g8_c_portable_verifier": "PASS",
+    "g8_c_successor_verifier": "PASS",
+    "predecessor_table_contribution": "none",
+    "protected_counters": {
+      "inference": 0,
+      "test_access": 0,
+      "training": 0,
+      "validation_decoding": 0
+    },
+    "retry_history_ordinals": [
+      0,
+      1
+    ],
+    "trials_per_identity": 5000
+  }
+}
