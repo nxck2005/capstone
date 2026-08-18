@@ -7,7 +7,7 @@
     "required": true,
     "typed_g8_authorization_is_not_issued_here": true
   },
-  "campaign_id": "g8e-corrected-6d7d86a252b64f4cbf2dbf9482c92d76ced814da3abfef9efb94a91e3af93ab6",
+  "campaign_id": "g8e-corrected-5149a5e007f55d834aba9f827affe4b8173a1a6fac7ee455f511232dcb2e0c5e",
   "campaign_seed": {
     "mapping_digest": "f495601c3feca44a07ed6484ff2b77b3dbf1347056eb9e8d12c91209dca49d0f",
     "mapping_id": "g8elogicalmapping-42ddbd29778b77fca4cc4b1fc557d1128225a91c530fc5276a586e77e99fedfe",
@@ -17,7 +17,7 @@
     "old_contract_sha256": "b0975c2edee5018cee74138f53ee3d3e5c51b38a3ec34f9e3af48ce6d6d47d04",
     "schema_version": 1,
     "semantics_epoch": "clean_measurement_v2_structural_physical_split",
-    "source_manifest_id": "g8esourcecorrected-b8d3993ea89726776b6ff76360f9db5c82fb2812bad8aaebc93a014665cbca85"
+    "source_manifest_id": "g8esourcecorrected-75a5d2e762abf4d9c97c1cc77b838b7548325bd13a569a155ac7f045de703793"
   },
   "candidate_authority": {
     "authority_id": "g8eauthority-dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe",
@@ -1459,7 +1459,7 @@
     "unique_reconstruction_jobs_upper_bound": 120000,
     "validation_images": 1000
   },
-  "contract_id": "g8econtractcorrected-1db30579adbc34a0276663fa8ac6a85817b541b430bf5b2ac38a80d3be329e3e",
+  "contract_id": "g8econtractcorrected-87f57847eb814a13870d76ad4f378502eb0b0e32fac1fa7ec74ce3d4792330d3",
   "declarations": {
     "e2_awaits_owner_execution_authorization": true,
     "e3_source_is_frozen": true,
@@ -1473,18 +1473,21 @@
     "zero_full_validation_measurements": true
   },
   "execution_profile": {
+    "config_hash": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
     "device": "cuda:0",
+    "lock_file": "requirements.lock",
+    "lock_file_sha256": "ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd",
     "profile_id": "local_4060_cu130",
     "profile_switching": "forbidden; interruption requires explicit supersession/new campaign",
     "selection_status": "frozen before first scientific measurement",
     "sole_writer": "local",
-    "source_commit": "c2b1f3ee8456f1beab2fb99f7ed98e6839c07389"
+    "source_commit": "a754f4fb6f424cf3e65426cb106500393916a4c7"
   },
   "execution_source_manifest": {
     "path": "results/baseline/g8_e/e1_corrected/execution_source_manifest.json",
-    "source_commit": "c2b1f3ee8456f1beab2fb99f7ed98e6839c07389",
-    "source_manifest_id": "g8esourcecorrected-b8d3993ea89726776b6ff76360f9db5c82fb2812bad8aaebc93a014665cbca85",
-    "source_manifest_sha256": "37a517054fd8a2c5b2ae5b10701e607fd8aff2eafd07c193a96d2e4539329e79"
+    "source_commit": "a754f4fb6f424cf3e65426cb106500393916a4c7",
+    "source_manifest_id": "g8esourcecorrected-75a5d2e762abf4d9c97c1cc77b838b7548325bd13a569a155ac7f045de703793",
+    "source_manifest_sha256": "5f2f5667f6e6d67724064601802add04c1e624cbaba24ceb7fbd8fb60d5540fa"
   },
   "measurement_authority": {
     "authority_id": "g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5",

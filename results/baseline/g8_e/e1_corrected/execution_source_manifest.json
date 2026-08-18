@@ -17,25 +17,25 @@
     "old_refusal_stub_is_not_current": true,
     "source_drift_after_freeze_is_hold": true
   },
-  "source_commit": "c2b1f3ee8456f1beab2fb99f7ed98e6839c07389",
+  "source_commit": "a754f4fb6f424cf3e65426cb106500393916a4c7",
   "source_entries": [
     {
-      "bytes": 96666,
+      "bytes": 97520,
       "path": "src/baseline/g8_e_corrected.py",
       "role": "corrected_e2_e3_e4_runtime",
-      "sha256": "bf9fb6d4f10f6fee838c1bc05db24b38549be7d9f2eb678984ca2685058e3a94"
+      "sha256": "38e34d5ae96afbf627bad462c34faa34ccdb8369ad84a709b4656e327520fe92"
     },
     {
-      "bytes": 4935,
+      "bytes": 5462,
       "path": "tools/run_g8_e_corrected.py",
       "role": "owner_gated_e2_runner",
-      "sha256": "fe15cba46cb1e31e09f4dc3a1e4e8e699414b1fe64691d733726abc3fe32bd9d"
+      "sha256": "0a2d341936009995d4da1e5fe48c7f37a4dd156777630a8cdfe7199b5a201adb"
     },
     {
-      "bytes": 3092,
+      "bytes": 3392,
       "path": "tools/gen_g8_e_corrected.py",
       "role": "corrected_e1_generator",
-      "sha256": "0be971fc4b81c57ec9cb63c6c63c21b7921371449f95129019b6c65810c87f27"
+      "sha256": "569b36d33c03d0f23f6acae55fe9fec20d4dd8ceba45b3c054f89b3b9b41cb8c"
     },
     {
       "bytes": 1917,
@@ -92,6 +92,12 @@
       "sha256": "97f36eb4a226bedc8579a000b048119e15915495382c759b79fe0582209bcfca"
     },
     {
+      "bytes": 1056,
+      "path": "src/data/identity.py",
+      "role": "stable_sample_id_rule",
+      "sha256": "e03e0033d6d0174584c2818fb4b6968d9e33c133527a8fbab1644f6a5850f249"
+    },
+    {
       "bytes": 20537,
       "path": "src/data/preprocessing.py",
       "role": "canonical_and_codec_resize_contract",
@@ -110,6 +116,12 @@
       "sha256": "6df88447c1afbcf7c7d5f9484d18a20637085a2552c326bc0ee2a33f2ab90fce"
     },
     {
+      "bytes": 3788,
+      "path": "src/models/reference_classifier.py",
+      "role": "frozen_g1_model_architecture",
+      "sha256": "d2f52ee616a582657e895a9b1c56250ee83d172b963cd00bb55bb0c8942eb703"
+    },
+    {
       "bytes": 72000,
       "path": "src/baseline/classical/composition.py",
       "role": "frozen_br4_composition_and_authorization_types",
@@ -122,10 +134,34 @@
       "sha256": "54bd239d5d3ecfac8dd335453a68945a205e5b9574baa7144708141013b7dc0d"
     },
     {
+      "bytes": 40977,
+      "path": "src/baseline/classical/records.py",
+      "role": "frozen_br11_byte_split",
+      "sha256": "62dfaed5d05941a412c186c1d2b2929ff2c5e73fbe9351f3127eb7f3dc9a3bce"
+    },
+    {
       "bytes": 8673,
       "path": "src/baseline/ldpc/transport.py",
       "role": "frozen_packet_plan",
       "sha256": "f06a78104073ee9d8aa87e388d3389b43b94609830e5d0593555bb4bf768644c"
+    },
+    {
+      "bytes": 3941,
+      "path": "src/baseline/ldpc/segmentation.py",
+      "role": "frozen_packet_segmentation",
+      "sha256": "44f160a0db476e38a0dbac80c1eb6872c4a102d71c8e4ad84ed60672f7ff57cf"
+    },
+    {
+      "bytes": 765,
+      "path": "src/baseline/ldpc/rate_matching.py",
+      "role": "frozen_rate_matching",
+      "sha256": "a24aea4057b555f335b4b8d930523b3e13ee5f6dbe717618461eb4abc01250f1"
+    },
+    {
+      "bytes": 3790,
+      "path": "src/baseline/ldpc/modulation.py",
+      "role": "frozen_modulation_bits_per_symbol",
+      "sha256": "eb3e7f05e453ea74ba099cfe5de5494ca9926f1333db16ee3d3dcc461ae011ad"
     },
     {
       "bytes": 12977,
@@ -144,6 +180,18 @@
       "path": "src/config/execution_profiles.py",
       "role": "execution_profile_authentication",
       "sha256": "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+    },
+    {
+      "bytes": 16293,
+      "path": "src/config/run_config.py",
+      "role": "frozen_classifier_run_configuration",
+      "sha256": "e18af6b2930cf0a1d2208860edc208cf0af7c24c63b87119e5e737efc350e505"
+    },
+    {
+      "bytes": 8308,
+      "path": "src/env.py",
+      "role": "runtime_environment_and_openjpeg_guard",
+      "sha256": "18f32856644b243ecafdb4dee07f17aeeb71c0ca15f3f9899539b229c6a296dc"
     },
     {
       "bytes": 6410459,
@@ -206,6 +254,6 @@
       "sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
     }
   ],
-  "source_manifest_id": "g8esourcecorrected-b8d3993ea89726776b6ff76360f9db5c82fb2812bad8aaebc93a014665cbca85",
+  "source_manifest_id": "g8esourcecorrected-75a5d2e762abf4d9c97c1cc77b838b7548325bd13a569a155ac7f045de703793",
   "status": "FROZEN_PRE_DATA"
 }
