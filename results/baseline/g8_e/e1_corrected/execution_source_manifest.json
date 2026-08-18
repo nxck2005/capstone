@@ -17,13 +17,13 @@
     "old_refusal_stub_is_not_current": true,
     "source_drift_after_freeze_is_hold": true
   },
-  "source_commit": "a754f4fb6f424cf3e65426cb106500393916a4c7",
+  "source_commit": "b40b63f02ea4dbea64feb4646568528f53bba1ce",
   "source_entries": [
     {
-      "bytes": 97520,
+      "bytes": 98299,
       "path": "src/baseline/g8_e_corrected.py",
       "role": "corrected_e2_e3_e4_runtime",
-      "sha256": "38e34d5ae96afbf627bad462c34faa34ccdb8369ad84a709b4656e327520fe92"
+      "sha256": "765ec8f115bd5d9347237e77141519d01707d8d9d46dd9b82e9a212c1327cd4e"
     },
     {
       "bytes": 5462,
@@ -254,6 +254,6 @@
       "sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
     }
   ],
-  "source_manifest_id": "g8esourcecorrected-75a5d2e762abf4d9c97c1cc77b838b7548325bd13a569a155ac7f045de703793",
+  "source_manifest_id": "g8esourcecorrected-177cfdb49b146171bf6969212a628fe3de870ef9df7247a8e55b7796116e7a5b",
   "status": "FROZEN_PRE_DATA"
 }
