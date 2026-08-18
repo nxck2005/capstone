@@ -797,6 +797,17 @@ or G8_E execution is permitted in G8_D.
 | D6 bounded non-scientific smoke and mutations | done | **Phase-start SHA:** `703389b`; WIP `22ac8a7`; green commit: this D6 checkpoint. Synthetic smoke: 1 sample, 4 candidates/cells, 1 measurement work unit; emitted-byte, reconstruction-cache, BR-11 and atomic-resume seams PASS; all 20 required mutation cases PASS; no classifier, selection, headline result or campaign execution. |
 | D7 verification and handoff | done | **Phase-start SHA:** `2bc1c04`; WIP `f033173`; green commit: this D7 checkpoint. Handoff `d7_handoff.json` binds contract `g8dcontract-60bf729579c921f40fae01e23f0d9f06c6d4b03fc14cf3fd2e65fe6c55fd3afe`, artifact `g8dhandoff-db7f78cf2613c5883081bded9f53f7935916b78980761b5075aac531ac5b70f7`, full pytest `2167 passed, 0 failed, 0 skipped`, and all required verifiers PASS. G8_E/E0 is authorized next but not started. |
 
+### G8_E — pre-data validation contract
+
+E0/E1 are the only authorized work in this phase for the current session.
+E0 must authenticate the portable G8_C epoch and current G8_D handoff before
+creating any G8_E state. E2, the full validation campaign, pass one, training,
+fallback, ratio adjudication and test access remain prohibited.
+
+| Step | State | Exact restart / evidence |
+|---|---|---|
+| E0 verify/open | in-progress | **Phase-start SHA:** `7e8b0de07328ac524fd1a1e1de8b1b3c97f08b36`; **WIP marker:** this checkpoint. First command after the marker: run the independent G8_C portable/closeout/successor verifiers, current G8_D verifiers, G-1 and the E-unopened audit; then create `results/baseline/g8_e/e0_open.json`. Intended files: this ledger, E0 generator/verifier/tests and the opening artifact only. No validation image decode, codec run, classifier invocation, selection, authorization, training, fallback or test access. |
+
 ## G8_A — contract, structural enumeration, state and preflight
 
 Allowed states are `not-started`, `in-progress`, and `done`. Every checkpoint
