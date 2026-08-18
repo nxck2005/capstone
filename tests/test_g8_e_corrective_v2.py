@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -434,7 +435,7 @@ def test_runner_refuses_without_owner_artifact_before_validation():
     contract_path = Path("results/baseline/g8_e/e1_corrected_v2/measurement_contract.json")
     campaign_id = json.loads(contract_path.read_text())["campaign_id"]
     result = subprocess.run(
-        [".venv/bin/python", "tools/run_g8_e_corrected_v2.py", "--start", "--campaign-id", campaign_id],
+        [sys.executable, "tools/run_g8_e_corrected_v2.py", "--start", "--campaign-id", campaign_id],
         cwd=Path.cwd(), env={"PYTHONPATH": "src"}, capture_output=True, text=True, check=False,
     )
     assert result.returncode == 2
