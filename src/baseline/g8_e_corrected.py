@@ -522,15 +522,23 @@ def _source_bindings(repo_root: Path = REPO_ROOT) -> tuple[tuple[str, str], ...]
         ("src/data/manifests.py", "stable_validation_id_enumeration"),
         ("src/data/registry.py", "validation_only_model_data_boundary"),
         ("src/data/adapters.py", "source_byte_identity"),
+        ("src/data/identity.py", "stable_sample_id_rule"),
         ("src/data/preprocessing.py", "canonical_and_codec_resize_contract"),
         ("src/data/test_access.py", "sealed_test_boundary"),
         ("src/models/frozen_reference_classifier.py", "frozen_g1_classifier_loader"),
+        ("src/models/reference_classifier.py", "frozen_g1_model_architecture"),
         ("src/baseline/classical/composition.py", "frozen_br4_composition_and_authorization_types"),
         ("src/baseline/classical/outage.py", "separate_measured_outage_policy"),
+        ("src/baseline/classical/records.py", "frozen_br11_byte_split"),
         ("src/baseline/ldpc/transport.py", "frozen_packet_plan"),
+        ("src/baseline/ldpc/segmentation.py", "frozen_packet_segmentation"),
+        ("src/baseline/ldpc/rate_matching.py", "frozen_rate_matching"),
+        ("src/baseline/ldpc/modulation.py", "frozen_modulation_bits_per_symbol"),
         ("src/baseline/classical/channel_transport.py", "frozen_br11_transport_accounting"),
         ("src/config/params.py", "generated_parameter_loader"),
         ("src/config/execution_profiles.py", "execution_profile_authentication"),
+        ("src/config/run_config.py", "frozen_classifier_run_configuration"),
+        ("src/env.py", "runtime_environment_and_openjpeg_guard"),
         ("results/baseline/g8_e/candidate_authority.json", "historical_logical_authority"),
         ("results/baseline/g8_e/e0_open.json", "upstream_e0_opening"),
         ("results/baseline/g8_e/measurement_contract.json", "historical_superseded_e1_contract"),
@@ -756,6 +764,12 @@ def build_corrected_contract(
         "source_commit": source_manifest["source_commit"],
         "selection_status": "frozen before first scientific measurement",
     }
+    old_profile = _old_contract()["execution_profile"]["authentication"]
+    profile_binding.update({
+        "config_hash": old_profile["config_hash"],
+        "lock_file": old_profile["lock_file"],
+        "lock_file_sha256": old_profile["lock_file_sha256"],
+    })
     body: dict[str, Any] = {
         "schema_version": CORRECTED_SCHEMA_VERSION,
         "artifact_role": "g8_e_corrected_executable_pre_data_contract",

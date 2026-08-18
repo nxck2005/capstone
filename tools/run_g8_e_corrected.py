@@ -69,6 +69,17 @@ def main() -> int:
         authorization = corrected.authenticate_owner_authorization(args.authorization, contract)
         del authorization
 
+        from config.execution_profiles import authenticate_execution_profile
+
+        profile_authentication = authenticate_execution_profile(
+            args.profile,
+            device=args.device,
+            config_hash=contract["execution_profile"]["config_hash"],
+            require_openjpeg=True,
+        )
+        if profile_authentication["execution_profile_id"] != contract["execution_profile"]["profile_id"]:
+            raise corrected.CorrectedG8EError("live execution profile differs from corrected contract")
+
         from baseline.j2k import J2KCodec
 
         samples = _production_samples()
