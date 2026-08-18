@@ -1167,6 +1167,8 @@ class PhysicalCodecCache:
             codestream = getattr(result, "codestream", None)
             if feasible and not isinstance(codestream, bytes):
                 raise CorrectedG8EError("codec backend marked feasible without bytes")
+            if feasible and len(codestream) > key.payload_budget_bytes:
+                raise CorrectedG8EError("codec backend emitted bytes above the physical payload budget")
             if not feasible:
                 codestream = None
             status = "feasible" if feasible else "codec_infeasibility"
@@ -1458,6 +1460,21 @@ class MeasurementRecord:
             raise CorrectedG8EError("measurement record ID differs")
         _digest(value["source_bytes_sha256"], "record source bytes")
         _digest(value["canonical_pixels_sha256"], "record canonical pixels")
+        from data.identity import stable_sample_id_width
+
+        if value["stable_sample_id"] != value["source_bytes_sha256"][:stable_sample_id_width()]:
+            raise CorrectedG8EError("measurement stable sample ID does not match source-byte identity")
+        structural = value["structural_identity"]
+        packet_budget = value["packet_budget"]
+        physical = value["physical_cache_key"]
+        if not isinstance(structural, Mapping) or not isinstance(packet_budget, Mapping) or not isinstance(physical, Mapping):
+            raise CorrectedG8EError("measurement identity/budget/cache fields are malformed")
+        if packet_budget.get("payload_budget_bytes") != structural.get("payload_budget_bytes"):
+            raise CorrectedG8EError("measurement packet payload budget differs from structural identity")
+        if physical.get("payload_budget_bytes") != structural.get("payload_budget_bytes") or physical.get("encode_axis_px") != structural.get("encode_axis_px"):
+            raise CorrectedG8EError("physical cache key does not bind the structural payload budget and axis")
+        if physical.get("source_bytes_sha256") != value["source_bytes_sha256"] or physical.get("canonical_pixels_sha256") != value["canonical_pixels_sha256"]:
+            raise CorrectedG8EError("physical cache key does not bind source/canonical pixels")
         if value["outcome"] in {OUTCOME_STRUCTURAL_INFEASIBILITY, OUTCOME_CODEC_INFEASIBILITY}:
             if value["correct_count"] is not None or value["total_count"] is not None or value["br11"] is not None or value["emitted_codestream"] is not None:
                 raise CorrectedG8EError("infeasible record carries clean or emitted evidence")
