@@ -74,9 +74,10 @@ campaign yet. C3-C7 closeout is now bound by
 the table ID is
 `g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f`,
 and the closeout source/provenance closure is independently verified. G8_D D0,
-D1, D2, D3, D4, D5, D6 and D7 are complete; G8_E E0/E1 are READY with zero
-coverage and E2 awaits owner authorization. The full validation campaign remains
-closed.
+D1, D2, D3, D4, D5, D6 and D7 are complete. The first G8_E E0/E1 freeze is
+preserved as `superseded-before-data` history; the additive corrected E1 epoch
+is being frozen with zero validation coverage and E2 still awaits owner
+authorization. The full validation campaign remains closed.
 
 **2026-08-18 clean-checkout verification repair:** the G8_C measurements and
 frozen table remain scientifically unchanged. The defect was an
@@ -90,7 +91,9 @@ reconstructs all 3,213 units and curves from those bytes. The legacy tree hash
 immutable historical production/import provenance and is not a portable Git
 identity. G8_D was reverified and non-scientifically rebound under
 `results/baseline/g8_d/portable_rebind_provenance.json`; no campaign rerun or
-validation measurement occurred. G8_E E0/E1 are READY; E2 remains unopened.
+validation measurement occurred. The first G8_E E0/E1 freeze is now historical
+`superseded-before-data`; the corrected E1 epoch remains pre-data and E2 is
+still unopened.
 
 **First Review delivery contract — user-fixed; do not ask the user to restate or
 reinterpret it.** The maintained acceptance checklist is

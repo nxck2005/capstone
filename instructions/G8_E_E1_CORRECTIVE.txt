@@ -1,0 +1,33 @@
+# G8_E E1 corrective pre-data supersession
+
+This is an additive correction to the first G8_E E0/E1 freeze. It is a
+pre-data contract repair, not a re-adjudication of measurements.
+
+The original E1 artifacts and commits remain immutable history. Their status
+is `superseded-before-data`, with zero validation coverage, because the first
+E1 source epoch bound the refusal-only E2 runner and PB_3 smoke authorization
+limits. The original E0 opening remains upstream history and is reused only
+after its live assertions verify.
+
+The corrected epoch freezes, before any owner-authorized E2 execution:
+
+* the complete E2 transaction and production runner, including exact-prefix
+  resume, immutable records/cache objects, locking, crash recovery, E3 merge,
+  and E4 count-derived measured accuracy;
+* the complete SNR-bearing logical authority and its exact mapping to an
+  SNR-independent structural measurement authority;
+* the exact JPEG2000 physical cache identity, including source pixels, payload
+  budget, axis, codec configuration and runtime identity;
+* the clean-measurement denominator and failure semantics from BR-4/BR-5/BR-6/
+  BR-11/BR-13, with the separately measured outage term never folded into
+  `acc_clean`; and
+* the intended pass-one call grouping and the typed `G8Authorization` limits.
+
+No authorization artifact is issued by this correction. The corrected runner
+may authenticate the frozen contract and assets, but `--start` and `--resume`
+must refuse before validation payload decoding while owner E2 authorization is
+absent. Synthetic tests are explicitly non-scientific, non-selection fixtures
+and are not eligible for production merge.
+
+No G8_C or G8_D science is changed. No E2 measurement, pass one, training,
+fallback, ratio adjudication or test access is permitted during this epoch.
