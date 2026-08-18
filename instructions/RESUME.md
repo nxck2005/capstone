@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e0; bler_table=frozen; g8_d=d7-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e2; bler_table=frozen; g8_d=d7-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -46,8 +46,9 @@ campaign, resume the old RTX4060 suffix, ingest predecessor evidence, or alter
 the completed runtime. C3-C7 is green: the successor merge report, measured
 153-curve/3,213-point BlerTable and source/provenance closure are independently
 verified under `results/baseline/g8_pascal_successor/`. G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-G8_E/E0 is authorized next but has not started. Test and validation data,
-selection, authorization, inference and training remain prohibited here.
+G8_E E0/E1 are READY with zero validation coverage; E2 awaits owner execution
+authorization. Test and validation data, selection, authorization, inference
+and training remain prohibited here.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -116,7 +117,7 @@ Then:
 
 **Current phase:** **Pascal G8_C successor execution and C3-C7 closeout are
 complete at 3213/3213 and published; no worker is running. G8_C remains green
-and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN. G8_E/E0 is authorized next but has not started.** The authenticated campaign is
+and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN. G8_E E0/E1 are READY with zero validation coverage; E2 awaits owner execution authorization.** The authenticated campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
 and contributes zero successor-table coverage. Do not rerun this campaign,
@@ -153,7 +154,7 @@ complete, and G8_C C3-C7 is `done`.** The full BR-4 validation sweep and
 operating-point decision have not run, no bandwidth ratio has been selected,
 nothing has been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented,
 and the test split is sealed until G-12 at W11. G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-G8_E/E0 is authorized next but has not started. PR-1 (literature review), PR-2 (Gantt) and PR-9
+G8_E E0/E1 are READY with zero validation coverage; E2 awaits owner execution authorization. PR-1 (literature review), PR-2 (Gantt) and PR-9
 (deployment dossier and author/guide acknowledgement) remain outstanding
 programme deliverables.
 
@@ -770,8 +771,8 @@ complete at 3,213/3,213 and its authenticated evidence is published. The success
 top-level successor `campaign_state.json` remains the immutable zero-coverage
 readiness marker. The old local RTX4060 campaign remains valid immutable history
 and contributes zero successor-table coverage.
-**Exact next action:** E0 is open and green. The next authorized checkpoint is
-G8_E/E1; do not execute E2, start the full validation campaign, run pass one,
+**Exact next action:** E0 and E1 are open, green and READY with zero validation
+coverage. E2 awaits owner execution authorization; do not execute E2, start the full validation campaign, run pass one,
 train, invoke fallback, adjudicate a ratio, access test, rerun either upstream
 campaign, start another Pascal worker, ingest old results or alter completed
 runtime evidence.
@@ -808,7 +809,7 @@ fallback, ratio adjudication and test access remain prohibited.
 | Step | State | Exact restart / evidence |
 |---|---|---|
 | E0 verify/open | done | **Phase-start SHA:** `7e8b0de07328ac524fd1a1e1de8b1b3c97f08b36`; **WIP marker:** `63edff7`; **green checkpoint:** this commit. Upstream successor, portable and closeout verifiers; exhaustive 3,213-point lookup; current G8_D open/contract/smoke/D7; G-1; archive/manifest and portable-rebind checks all PASS. Opening artifact `g8e0-eb899023431412d5dfb608f9f094538cb60a0346a01032c0b2634a902006131c`, SHA-256 `7fbb6b8b3469426dc043e7a0226c0d6a2854445c822698bcc6c86b6bd1155388`; coverage 0, E2/pass one/training/fallback/ratio/test all closed. |
-| E1 freeze pre-data validation contract | in-progress | **Phase-start SHA:** `3d16103`; **WIP marker:** this checkpoint. First command after the marker: inspect the E0 witness, derive the current structural candidate authority from `build_structural_preflight()`, authenticate the headline validation manifest/checkpoint/profile without decoding validation images, and build the E1 contract/source manifest. Exact restart command: `.venv/bin/python tools/gen_g8_e_e1.py --write` only after the source/config freeze is complete. Intended files: `src/baseline/g8_e.py`, E1 generator/verifier/benchmark/tests, `results/baseline/g8_e/` contract/authority/source/corpus-spec artifacts, this ledger and current handoff docs. Prohibited: E2, validation decoding, classifier inference, selection/authorization, pass one, training, fallback, ratio adjudication and test access. |
+| E1 freeze pre-data validation contract | done | **Phase-start SHA:** `3d16103`; implementation checkpoints `c8afecc` and `1b5809f`; artifact checkpoint `47fdccf`; E1 source manifest commit `1b5809f`. Contract `g8econtract-d25df856e56b45c48fca4750b278e10c62daebced3bf6b8176232133e8c8a8b8`, campaign `g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc`, authority `g8eauthority-dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe`, source manifest `g8esource-e08ecfaa1d321e687c95f19ae6d23146f5682151a9ac69314badf837ed0a9718`, zero coverage. Initial Imagenette authority is 6,048 candidates × 1,000 validation IDs = 6,048,000 logical records; exact reuse plans 24,000 codec/reconstruction/classifier keys. Live E1 verifier, all 22 synthetic mutations, source/config drift and profile/asset authentication PASS. No validation image was decoded. Exact next command is owner-authorized E2 only; current runner refuses E2. Prohibited: validation decoding, classifier inference, selection/authorization, pass one, training, fallback, ratio adjudication and test access. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

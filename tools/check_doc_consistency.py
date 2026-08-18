@@ -119,7 +119,7 @@ PASCAL_CURSOR_EXPECTED = {
     "execution": "complete",
     "coverage": "3213/3213",
     "evidence": "published",
-    "next": "g8-e-e0",
+    "next": "g8-e-e2",
     "bler_table": "frozen",
     "g8_d": "d7-complete",
     "readiness_state": "immutable-zero-coverage-history",

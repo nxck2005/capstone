@@ -120,29 +120,28 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: G8_C C2 is paused at a user-requested durable
-checkpoint.** `instructions/RESUME.md` is the single operational cursor and
-carries the exact authenticated coverage, legal attempt and next-session
-inspect/reconcile/marker sequence. No worker is running, and those volatile
-details are deliberately not duplicated here. C1C registered additive source
-epoch 2 without rewriting epoch 1; C2 may resume only through that registered
-coordinator and the authenticated runner. No G-8 `BlerTable`, selection,
-authorization, validation measurement, inference, training or test access has
+**Current action: G8_E E0/E1 are READY with zero validation coverage; E2 awaits
+owner execution authorization.** `instructions/RESUME.md` is the single
+operational cursor. G8_C is closed at 3,213/3,213 and G8_D D0–D7 are GREEN.
+The E1 contract binds the portable G8_C verification epoch, current G8_D
+contract/handoff, the complete 12,096-candidate authority, the initial
+Imagenette validation boundary, exact cache reuse and normal sole-writer
+custody. No E2 record, validation decode, classifier inference, selection,
+authorization, training, fallback, ratio adjudication or test access has
 occurred.
 
-W4, G8_A and G8_B are complete. G8_A froze the contract, policy bindings,
-12,096 structural candidates, 3,213 required BLER work units and state
-primitives before data. G8_B built and independently verified the authenticated
-runner, exact resume/merge machinery, crash-atomic publication and bounded
-smoke. G8_C now executes and archives the required physical-layer
-characterization before its independent merge, exact-coverage proof and
-measured-only table freeze.
+W4, G8_A, G8_B, G8_C and G8_D are complete. G8_A froze the contract, policy
+bindings, 12,096 structural candidates, 3,213 required BLER work units and
+state primitives before data. G8_B built and independently verified the
+authenticated runner, exact resume/merge machinery, crash-atomic publication
+and bounded smoke. G8_C froze its measured-only Pascal table and G8_D froze
+the validation-measurement tooling. G8_E E0/E1 now freeze the pre-data
+validation contract; the full validation campaign remains closed.
 
 The committed G-2 BLER evidence characterises one physical-layer identity at
 four SNR points per modulation. It is a conformance artifact, remains valid for
 G-2, and **must not be extrapolated** into the BR-4 characterization table.
-After G8_C freezes complete measured coverage, later phases must still derive
-codec and clean-classifier validation measurements before pass one, the
+E2 must still derive codec and clean-classifier validation measurements before pass one, the
 training-only artifact corpus, classifier fine-tune, pass two and adjudication.
 The selection entry point remains closed unless an explicit typed
 `G8Authorization` is constructed; no tracked non-test file constructs one.
