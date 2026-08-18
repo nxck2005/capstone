@@ -7,18 +7,18 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-19 · **Phase:** **G8_C remains green and closed; G8_D D0–D7 are complete and GREEN; the first G8_E E0/E1 freeze is preserved as superseded-before-data history; corrected E1 is in progress with zero validation coverage; E2 remains owner-authorization gated.**
+**Last updated:** 2026-08-19 · **Phase:** **G8_C remains green and closed; G8_D D0–D7 are complete and GREEN; the first G8_E E0/E1 freeze is preserved as superseded-before-data history; corrected E1 is frozen as an executable pre-data contract with zero validation coverage; E2 remains owner-authorization gated.**
 
-**2026-08-19 G8_E E1 corrective supersession (in progress):** the first E1
+**2026-08-19 G8_E E1 corrective supersession (complete):** the first E1
 freeze was proven unopened before this repair: its runtime root, E2 records,
 pass markers, G8_F state and scientific counters are absent or zero. Its
 contract, campaign, authority and source-manifest identities remain immutable
 history and are classified `superseded-before-data`; no measurement was
-invalidated. The additive corrected epoch is implementing and freezing the
-complete future E2 transaction plus deterministic E3/E4 transformations,
-separating logical SNR cells from structural clean-measurement identities and
-exact physical cache keys. The corrected runner remains closed until a
-separate owner authorization artifact exists. Do not execute E2, decode the
+invalidated. The additive corrected epoch freezes the complete future E2
+transaction plus deterministic E3/E4 transformations, separating logical SNR
+cells from structural clean-measurement identities and exact physical cache
+keys. The corrected runner remains closed until a separate owner authorization
+artifact exists. Do not execute E2, decode the
 full validation set, run pass one, train, invoke fallback, adjudicate ratios or
 access test.
 
@@ -114,8 +114,9 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** G8_D is GREEN and closed. G8_E E0/E1 are READY with zero
-validation coverage; E2 awaits owner execution authorization. Do not execute E2
+**Next-session task:** G8_D is GREEN and closed. Corrected G8_E E1 is frozen as
+an executable pre-data contract with zero validation coverage; E2 awaits owner
+execution authorization. Do not execute E2
 in this handoff, run pass one, train, invoke fallback, adjudicate a ratio, access
 test, rerun or resume either upstream campaign, reopen C3-C7, substitute
 predecessor table tools, or run the full validation campaign.
@@ -152,9 +153,9 @@ source/provenance closure are hash-bound under
 `results/baseline/g8_pascal_successor/`; the old local campaign remains
 immutable superseded history and contributes zero successor-table coverage.
 The test split and every later scientific phase remain closed. G8_D D0–D7 are
-complete and GREEN; G8_E E0/E1 are READY with zero validation coverage, E2
-awaits owner execution authorization, and the full validation campaign remains
-closed.
+complete and GREEN; corrected G8_E E1 is frozen pre-data with zero validation
+coverage, E2 awaits owner execution authorization, and the full validation
+campaign remains closed.
 Everything else stays behind its own gate — do not calibrate λ, train learned
 models, implement ER-9, or access the test split until theirs.
 
@@ -682,7 +683,7 @@ open another full-spec audit round without new evidence. **The owner-opened Pasc
 completed its full 3213/3213 authenticated production campaign and G8_C C3-C7 closeout.** Its
 153-curve successor table is frozen from measured points only; the predecessor-bound table tools
 cannot be substituted. `src/baseline/classical/composition.py` remains later selection machinery;
-G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; G8_E E0/E1 are READY with zero validation coverage, E2 awaits owner authorization; do not
+G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected G8_E E1 is frozen pre-data with zero validation coverage, E2 awaits owner authorization; do not
 execute it. The historical C3–C7 contract remains in
 `instructions/RESUME.md`; its predecessor commands do not apply to the Pascal runtime. The
 committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
@@ -969,7 +970,7 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
 probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The Pascal successor
 production campaign and G8_C C3-C7 closeout are complete at 3213/3213, with 153 measured curves
-frozen; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN. G8_E E0/E1 are READY with zero validation coverage; E2 awaits owner authorization; the full BR-4 validation sweep and operating-point decision remain later gates.
+frozen; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN. Corrected G8_E E1 is frozen pre-data with zero validation coverage; E2 awaits owner authorization; the full BR-4 validation sweep and operating-point decision remain later gates.
 W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed

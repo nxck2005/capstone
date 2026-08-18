@@ -49,8 +49,8 @@ verified under `results/baseline/g8_pascal_successor/`. G8_D D0, D1, D2, D3, D4,
 The first G8_E E0/E1 freeze is preserved as immutable
 `superseded-before-data` history: its contract, campaign, authority and source
 manifest identities remain bound, and its validation coverage is zero. The
-additive corrected E1 epoch is the current pre-data workstream; its runner and
-E3/E4 sources are being frozen before any owner authorization. Test and
+additive corrected E1 epoch is the current executable pre-data contract; its
+runner and E3/E4 sources are frozen before any owner authorization. Test and
 validation data, selection, pass one, training, fallback, ratio adjudication
 and inference remain prohibited here.
 
@@ -123,8 +123,8 @@ Then:
 complete at 3213/3213 and published; no worker is running. G8_C remains green
 and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN. The
 first G8_E E0/E1 freeze is superseded-before-data and the corrected E1 epoch is
-the current pre-data workstream, both with zero validation coverage; E2 awaits
-owner execution authorization.** The authenticated campaign is
+the current executable pre-data contract, both with zero validation coverage;
+E2 awaits owner execution authorization.** The authenticated campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
 and contributes zero successor-table coverage. Do not rerun this campaign,
@@ -816,8 +816,8 @@ fallback, ratio adjudication and test access remain prohibited.
 | Step | State | Exact restart / evidence |
 |---|---|---|
 | E0 verify/open | done | **Phase-start SHA:** `7e8b0de07328ac524fd1a1e1de8b1b3c97f08b36`; **WIP marker:** `63edff7`; **green checkpoint:** this commit. Upstream successor, portable and closeout verifiers; exhaustive 3,213-point lookup; current G8_D open/contract/smoke/D7; G-1; archive/manifest and portable-rebind checks all PASS. Opening artifact `g8e0-eb899023431412d5dfb608f9f094538cb60a0346a01032c0b2634a902006131c`, SHA-256 `7fbb6b8b3469426dc043e7a0226c0d6a2854445c822698bcc6c86b6bd1155388`; coverage 0, E2/pass one/training/fallback/ratio/test all closed. |
-| E1 first freeze (historical) | superseded-before-data | **Phase-start SHA:** `3d16103`; implementation checkpoints `c8afecc` and `1b5809f`; artifact checkpoint `47fdccf`; E1 source manifest commit `1b5809f`; later documentation checkpoint `5613b56` and current parity `2f9c892`. Contract `g8econtract-d25df856e56b45c48fca4750b278e10c62daebced3bf6b8176232133e8c8a8`, campaign `g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc`, authority `g8eauthority-dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe`, source manifest `g8esource-e08ecfaa1d321e687c95f19ae6d23146f5682151a9ac69314badf837ed0a9718`, zero coverage. The old runner was a refusal stub; no validation image was decoded. Preserve all artifacts and commits; do not execute this campaign. |
-| E1 corrected additive epoch | in-progress | **Phase-start:** `2f9c892`; intended files: corrective instruction, corrected E1 contract/authority/mapping/source manifest, production-gated E2 transaction, deterministic E3/E4 tools and adversarial synthetic tests. Restart after interruption by re-running the corrected verifier; E2 remains closed without a separate owner authorization artifact. No validation decoding, pass one, training, fallback, ratio adjudication or test access is permitted. |
+| E1 first freeze (historical) | superseded-before-data | **Phase-start SHA:** `3d16103`; implementation checkpoints `c8afecc` and `1b5809f`; artifact checkpoint `47fdccf`; E1 source manifest commit `1b5809f`; later documentation checkpoint `5613b56`, omitted report commit `f6918d4` (`wip(g8-e): freeze validation contract`), opening marker `63edff7`, and original parity `2f9c892`. Contract `g8econtract-d25df856e56b45c48fca4750b278e10c62daebced3bf6b8176232133e8c8a8`, campaign `g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc`, authority `g8eauthority-dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe`, source manifest `g8esource-e08ecfaa1d321e687c95f19ae6d23146f5682151a9ac69314badf837ed0a9718`, zero coverage. The old runner was a refusal stub; no validation image was decoded. Preserve all artifacts and commits; do not execute this campaign. |
+| E1 corrected additive epoch | done | **Phase-start:** `2f9c892`; additive checkpoints `af64015`, `2b14606`, `4e56553`, `3591cb4`, `c2b1f3e`, `cd92c1e`, `f9d0847`, `a754f4f` and final source/artifact refreeze `e66da32`. Current contract `g8econtractcorrected-87f57847eb814a13870d76ad4f378502eb0b0e32fac1fa7ec74ce3d4792330d3`, campaign `g8e-corrected-5149a5e007f55d834aba9f827affe4b8173a1a6fac7ee455f511232dcb2e0c5e`, measurement authority `g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5`, mapping `g8elogicalmapping-42ddbd29778b77fca4cc4b1fc557d1128225a91c530fc5276a586e77e99fedfe`, source manifest `g8esourcecorrected-75a5d2e762abf4d9c97c1cc77b838b7548325bd13a569a155ac7f045de703793`, source epoch `a754f4f`. The corrected runner, crash-safe transaction, E3 exact merge and E4 count-derived aggregation are source-bound and tested on synthetic NON-SCIENTIFIC fixtures; coverage remains 0, no runtime or owner authorization artifact exists, and E2 remains closed. Restart after interruption by re-running the corrected verifier; the next allowed action is owner-audited E2 authorization. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

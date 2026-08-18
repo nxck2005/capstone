@@ -11,8 +11,10 @@ Pascal G8_C successor execution and C3-C7 closeout are green: its authenticated
 evidence is 3,213/3,213 identities accepted at 5,000 trials each and its
 successor `BlerTable` is frozen. No selection, inference, training, validation
 decoding or test access occurred, and the test split remains sealed. G8_C
-remains green and closed. G8_D is GREEN and closed; G8_E E0 and E1 are READY
-with zero validation coverage. E2 awaits owner execution authorization. Do not
+remains green and closed. G8_D is GREEN and closed; the first G8_E E0/E1 freeze
+is preserved as superseded-before-data history and corrected E1 is frozen as an
+executable pre-data contract with zero validation coverage. E2 awaits owner
+execution authorization. Do not
 reopen or rerun G8_C, do not execute E2, and do not run the full validation
 campaign yet.
 
@@ -76,8 +78,9 @@ the table ID is
 and the closeout source/provenance closure is independently verified. G8_D D0,
 D1, D2, D3, D4, D5, D6 and D7 are complete. The first G8_E E0/E1 freeze is
 preserved as `superseded-before-data` history; the additive corrected E1 epoch
-is being frozen with zero validation coverage and E2 still awaits owner
-authorization. The full validation campaign remains closed.
+is frozen as an executable pre-data contract with zero validation coverage and
+E2 still awaits owner authorization. The full validation campaign remains
+closed.
 
 **2026-08-18 clean-checkout verification repair:** the G8_C measurements and
 frozen table remain scientifically unchanged. The defect was an
@@ -92,7 +95,7 @@ immutable historical production/import provenance and is not a portable Git
 identity. G8_D was reverified and non-scientifically rebound under
 `results/baseline/g8_d/portable_rebind_provenance.json`; no campaign rerun or
 validation measurement occurred. The first G8_E E0/E1 freeze is now historical
-`superseded-before-data`; the corrected E1 epoch remains pre-data and E2 is
+`superseded-before-data`; the corrected E1 epoch is frozen pre-data and E2 is
 still unopened.
 
 **First Review delivery contract — user-fixed; do not ask the user to restate or
@@ -181,7 +184,7 @@ non-normative by design (`spec/SPEC.md` wins on any conflict), and it is **expec
 before a session ends** if the state changed. Promote anything durable out of it: decisions become a
 `DEC` in `SPEC.md` §3, risks and provisional values go to `SPEC.md` §16, explanations go to `docs/`.
 
-**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; G8_E E0/E1 are READY with zero coverage; E2 awaits owner execution authorization.
+**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected G8_E E1 is frozen pre-data with zero coverage; E2 awaits owner execution authorization.
 
 ### Commands
 

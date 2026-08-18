@@ -118,7 +118,7 @@ def sha256_file(path: Path) -> str:
 
 
 def _digest(value: Any, label: str) -> str:
-    if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):
+    if not isinstance(value, str) or len(value) != 64 or any(c not in "0123456789abcdef" for c in value):  # literal-ok: SHA-256 lowercase digest shape
         raise CorrectedG8EError(f"{label} is not a lowercase SHA-256")
     return value
 
@@ -595,29 +595,29 @@ def _estimate_plan(authority: Mapping[str, Any], selection_plan: Mapping[str, An
     record_placeholder = {
         "schema_version": RECORD_SCHEMA_VERSION,
         "artifact_role": "g8_e_scientific_measurement_record",
-        "campaign_id": CAMPAIGN_PREFIX + "0" * 64,
-        "contract_id": CONTRACT_PREFIX + "0" * 64,
+        "campaign_id": CAMPAIGN_PREFIX + "0" * 64,  # literal-ok: content-addressed placeholder digest
+        "contract_id": CONTRACT_PREFIX + "0" * 64,  # literal-ok: content-addressed placeholder digest
         "measurement_authority_id": authority["authority_id"],
         "measurement_identity_id": initial[0]["structural_identity_id"],
-        "logical_candidate_ids": ["cand-" + "0" * 64] * int(authority["counts"]["snr_points"]),
-        "work_unit_id": WORK_UNIT_PREFIX + "0" * 64,
-        "stable_sample_id": "0" * 64,
+        "logical_candidate_ids": ["cand-" + "0" * 64] * int(authority["counts"]["snr_points"]),  # literal-ok: placeholder identity digest
+        "work_unit_id": WORK_UNIT_PREFIX + "0" * 64,  # literal-ok: placeholder identity digest
+        "stable_sample_id": "0" * 64,  # literal-ok: placeholder identity digest
         "label": 0,
-        "source_bytes_sha256": "0" * 64,
-        "canonical_pixels_sha256": "0" * 64,
-        "canonical_shape": [160, 160, 3],
-        "physical_cache_key": PHYSICAL_PREFIX + "0" * 64,
-        "codec_cache_object_id": "g8ecodec-" + "0" * 64,
+        "source_bytes_sha256": "0" * 64,  # literal-ok: placeholder identity digest
+        "canonical_pixels_sha256": "0" * 64,  # literal-ok: placeholder identity digest
+        "canonical_shape": [160, 160, 3],  # literal-ok: Imagenette-160 RGB schema placeholder
+        "physical_cache_key": PHYSICAL_PREFIX + "0" * 64,  # literal-ok: placeholder identity digest
+        "codec_cache_object_id": "g8ecodec-" + "0" * 64,  # literal-ok: placeholder identity digest
         "outcome": OUTCOME_DELIVERED,
-        "emitted_codestream": {"sha256": "0" * 64, "bytes": 1},
-        "reconstruction": {"object_id": RECONSTRUCTION_PREFIX + "0" * 64, "sha256": "0" * 64},
+        "emitted_codestream": {"sha256": "0" * 64, "bytes": 1},  # literal-ok: placeholder evidence digest
+        "reconstruction": {"object_id": RECONSTRUCTION_PREFIX + "0" * 64, "sha256": "0" * 64},  # literal-ok: placeholder evidence digests
         "classifier_observation": {"label": 0, "predicted_label": 0},
         "correct_count": 1,
         "total_count": 1,
         "br11": {"bytes_sent": 1, "emitted_codestream_bytes": 1, "header_bytes": 0, "payload_bytes": 1, "payload_filler_bytes": 0},
-        "g8_c_linkage_digest": "0" * 64,
+        "g8_c_linkage_digest": "0" * 64,  # literal-ok: placeholder linkage digest
         "profile_id": PRODUCTION_PROFILE_ID,
-        "source_commit": "0" * 40,
+        "source_commit": "0" * 40,  # literal-ok: placeholder Git commit digest
         "scientific_evidence": True,
         "merge_eligible": True,
         "validation_only": True,
@@ -634,7 +634,7 @@ def _estimate_plan(authority: Mapping[str, Any], selection_plan: Mapping[str, An
     rate = rows / seconds
     codec_metadata_floor = len(rendered_json({
         "schema_version": RECORD_SCHEMA_VERSION,
-        "physical_cache_key": PHYSICAL_PREFIX + "0" * 64,
+        "physical_cache_key": PHYSICAL_PREFIX + "0" * 64,  # literal-ok: placeholder identity digest
         "status": "feasible",
         "codestream_b64": "",
     }))
@@ -710,7 +710,7 @@ def build_correction_provenance() -> dict[str, Any]:
             "old_runner_path": "tools/run_g8_e.py",
             "old_runner_sha256": sha256_file(REPO_ROOT / "tools/run_g8_e.py"),
             "old_runner_was_refusal_stub": True,
-            "old_authorization_scope": {"max_candidates": 64, "max_samples": 25, "max_workload": 512},
+            "old_authorization_scope": {"max_candidates": 64, "max_samples": 25, "max_workload": 512},  # literal-ok: immutable superseded PB_3 scope provenance
         },
         "zero_data_audit": {
             "runtime_path": "results/baseline/g8_e/runtime",
