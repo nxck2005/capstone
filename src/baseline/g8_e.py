@@ -1864,6 +1864,11 @@ def validate_e1_contract(
     _require(value["feasibility_and_denominators"]["outcomes"] == sorted(E1_ALLOWED_OUTCOMES), "E1 feasibility outcome set differs")
 
     boundary = value["dataset_boundary"]
+    for boundary_key in ("initial_scientific_dataset", "fallback_headline", "smoke_only_dataset"):
+        manifest_view = boundary[boundary_key]["manifest"]
+        manifest_path = REPO_ROOT / manifest_view["path"]
+        _require(manifest_path.is_file(), f"E1 validation manifest is missing: {manifest_view['path']}")
+        _require(manifest_view["sha256"] == sha256_file(manifest_path), f"E1 validation manifest drifted: {manifest_view['path']}")
     if verify_live_assets:
         metadata = {
             dataset: _dataset_manifest_metadata(dataset, require_extracted=dataset in {E1_INITIAL_DATASET, E1_FALLBACK_DATASET})
