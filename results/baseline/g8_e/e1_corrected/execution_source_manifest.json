@@ -1,0 +1,211 @@
+{
+  "artifact_role": "g8_e_corrected_execution_source_manifest",
+  "checkpoint": "E1_corrected",
+  "excludes": [
+    "results/baseline/g8_e/e1_corrected/execution_source_manifest.json",
+    "results/baseline/g8_e/e1_corrected/measurement_contract.json",
+    "results/baseline/g8_e/e1_corrected/measurement_authority.json",
+    "results/baseline/g8_e/e1_corrected/logical_measurement_mapping.json",
+    "results/baseline/g8_e/e1_corrected/correction_provenance.json",
+    "results/baseline/g8_e/e1_corrected/runtime/"
+  ],
+  "schema_version": 1,
+  "scientific_source_closure": {
+    "e2_runner_is_complete_not_a_refusal_stub": true,
+    "e3_merge_is_bound_before_data": true,
+    "e4_count_aggregation_is_bound_before_data": true,
+    "old_refusal_stub_is_not_current": true,
+    "source_drift_after_freeze_is_hold": true
+  },
+  "source_commit": "c2b1f3ee8456f1beab2fb99f7ed98e6839c07389",
+  "source_entries": [
+    {
+      "bytes": 96666,
+      "path": "src/baseline/g8_e_corrected.py",
+      "role": "corrected_e2_e3_e4_runtime",
+      "sha256": "bf9fb6d4f10f6fee838c1bc05db24b38549be7d9f2eb678984ca2685058e3a94"
+    },
+    {
+      "bytes": 4935,
+      "path": "tools/run_g8_e_corrected.py",
+      "role": "owner_gated_e2_runner",
+      "sha256": "fe15cba46cb1e31e09f4dc3a1e4e8e699414b1fe64691d733726abc3fe32bd9d"
+    },
+    {
+      "bytes": 3092,
+      "path": "tools/gen_g8_e_corrected.py",
+      "role": "corrected_e1_generator",
+      "sha256": "0be971fc4b81c57ec9cb63c6c63c21b7921371449f95129019b6c65810c87f27"
+    },
+    {
+      "bytes": 1917,
+      "path": "tools/verify_g8_e_corrected.py",
+      "role": "corrected_e1_independent_verifier",
+      "sha256": "6bb62a9597c556fafaf18f0329cf36cfa1240f76bc0af9504b04817ba99dfb69"
+    },
+    {
+      "bytes": 1660,
+      "path": "tools/merge_g8_e_corrected.py",
+      "role": "e3_exact_set_merge",
+      "sha256": "8c0b3eb7d2308e43ed0bba2596504627d2f80e55e9ff84abea18d976f93a26b6"
+    },
+    {
+      "bytes": 1551,
+      "path": "tools/aggregate_g8_e_corrected.py",
+      "role": "e4_count_derived_accuracy",
+      "sha256": "617f5b0c07a510e1656039c4a49036811e6301cdc80738a3578575924ca947c4"
+    },
+    {
+      "bytes": 136526,
+      "path": "src/baseline/g8_d.py",
+      "role": "frozen_codec_reconstruction_br11_transaction_seams",
+      "sha256": "f8ccfa527d10b5192e7c8193920c173b80f1649024bb12da32038d6e42e343f3"
+    },
+    {
+      "bytes": 34998,
+      "path": "src/baseline/g8_campaign.py",
+      "role": "frozen_structural_candidate_authority",
+      "sha256": "b81de451bb7c856593d4465654551c8e33646332d75a261e5f47367f8386003c"
+    },
+    {
+      "bytes": 20595,
+      "path": "src/baseline/j2k.py",
+      "role": "frozen_jpeg2000_codec",
+      "sha256": "90a0dc1bfdbf37fcb1cd36a539f4623d0d247c20cfc04246da00cad4cc377b7e"
+    },
+    {
+      "bytes": 11468,
+      "path": "src/data/manifests.py",
+      "role": "stable_validation_id_enumeration",
+      "sha256": "28cb6de265b7f2cf5eff65e0da9bba3a35a592371924bb52a991b6682353bfdd"
+    },
+    {
+      "bytes": 6295,
+      "path": "src/data/registry.py",
+      "role": "validation_only_model_data_boundary",
+      "sha256": "da790dcee14835f756302a360defa9158f63a56eded87605fe383ade6297b8ae"
+    },
+    {
+      "bytes": 14579,
+      "path": "src/data/adapters.py",
+      "role": "source_byte_identity",
+      "sha256": "97f36eb4a226bedc8579a000b048119e15915495382c759b79fe0582209bcfca"
+    },
+    {
+      "bytes": 20537,
+      "path": "src/data/preprocessing.py",
+      "role": "canonical_and_codec_resize_contract",
+      "sha256": "1aa5eafc8d02be5e79ee10b342cb8fb901e2600ba7a77224ecaf29dbcbcbacdf"
+    },
+    {
+      "bytes": 1793,
+      "path": "src/data/test_access.py",
+      "role": "sealed_test_boundary",
+      "sha256": "f8f718f87cb25a4db2e49c89c9df2bdc9794fd83d244a78995d65bc69922a865"
+    },
+    {
+      "bytes": 12283,
+      "path": "src/models/frozen_reference_classifier.py",
+      "role": "frozen_g1_classifier_loader",
+      "sha256": "6df88447c1afbcf7c7d5f9484d18a20637085a2552c326bc0ee2a33f2ab90fce"
+    },
+    {
+      "bytes": 72000,
+      "path": "src/baseline/classical/composition.py",
+      "role": "frozen_br4_composition_and_authorization_types",
+      "sha256": "e3135ecefd612c5505bd1137bbf9a8a8212cf338080dde24bf5b25e07212b744"
+    },
+    {
+      "bytes": 22262,
+      "path": "src/baseline/classical/outage.py",
+      "role": "separate_measured_outage_policy",
+      "sha256": "54bd239d5d3ecfac8dd335453a68945a205e5b9574baa7144708141013b7dc0d"
+    },
+    {
+      "bytes": 8673,
+      "path": "src/baseline/ldpc/transport.py",
+      "role": "frozen_packet_plan",
+      "sha256": "f06a78104073ee9d8aa87e388d3389b43b94609830e5d0593555bb4bf768644c"
+    },
+    {
+      "bytes": 12977,
+      "path": "src/baseline/classical/channel_transport.py",
+      "role": "frozen_br11_transport_accounting",
+      "sha256": "c1822b8a8d0b78609d62228496aac8c19279033c5c55ca39c3e522986e6c23ca"
+    },
+    {
+      "bytes": 1550,
+      "path": "src/config/params.py",
+      "role": "generated_parameter_loader",
+      "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc"
+    },
+    {
+      "bytes": 16379,
+      "path": "src/config/execution_profiles.py",
+      "role": "execution_profile_authentication",
+      "sha256": "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+    },
+    {
+      "bytes": 6410459,
+      "path": "results/baseline/g8_e/candidate_authority.json",
+      "role": "historical_logical_authority",
+      "sha256": "0d31e766e5c8a8e2e30f1331f84f8388a1b312b605fa2da5773891d20f5280f0"
+    },
+    {
+      "bytes": 7142,
+      "path": "results/baseline/g8_e/e0_open.json",
+      "role": "upstream_e0_opening",
+      "sha256": "7fbb6b8b3469426dc043e7a0226c0d6a2854445c822698bcc6c86b6bd1155388"
+    },
+    {
+      "bytes": 29495,
+      "path": "results/baseline/g8_e/measurement_contract.json",
+      "role": "historical_superseded_e1_contract",
+      "sha256": "b0975c2edee5018cee74138f53ee3d3e5c51b38a3ec34f9e3af48ce6d6d47d04"
+    },
+    {
+      "bytes": 13988,
+      "path": "results/baseline/g8_e/execution_source_manifest.json",
+      "role": "historical_superseded_e1_sources",
+      "sha256": "f87a7ea280aa792377299011b66f0202cd1467b80fe14392832de9e89f29b200"
+    },
+    {
+      "bytes": 19143,
+      "path": "results/baseline/g8_d/measurement_contract.json",
+      "role": "current_g8_d_contract",
+      "sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a"
+    },
+    {
+      "bytes": 2261,
+      "path": "results/baseline/g8_d/d7_handoff.json",
+      "role": "current_g8_d_handoff",
+      "sha256": "fa38c9bbc5e02ea3b16539eed17a9008079386f9655f1b8d789034056432e408"
+    },
+    {
+      "bytes": 13951,
+      "path": "results/baseline/w4/integration_adjudication.json",
+      "role": "frozen_w4_selection_machinery",
+      "sha256": "58827922671e596f038972cf731e3626313a562fbc36ee817eb50d947d6af121"
+    },
+    {
+      "bytes": 2212,
+      "path": "results/baseline/w4/outage_policy.json",
+      "role": "frozen_measured_outage",
+      "sha256": "ebcc34133f7a1e38635e8a958cb41a4b8f019b02fd97bd2f0ad606a0a1396121"
+    },
+    {
+      "bytes": 1888,
+      "path": "results/baseline/g8_d/d0_open.json",
+      "role": "frozen_g8_c_linkage",
+      "sha256": "f6cd028da2f7d691717e03aced5d58d396e0a90ae6ef36b0a6bb3c91abbb2293"
+    },
+    {
+      "bytes": 5774378,
+      "path": "results/baseline/g8_pascal_successor/successor_bler_table.json",
+      "role": "frozen_successor_bler_table",
+      "sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
+    }
+  ],
+  "source_manifest_id": "g8esourcecorrected-b8d3993ea89726776b6ff76360f9db5c82fb2812bad8aaebc93a014665cbca85",
+  "status": "FROZEN_PRE_DATA"
+}

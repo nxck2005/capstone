@@ -1,0 +1,57 @@
+{
+  "artifact_role": "g8_e_first_e1_correction_provenance",
+  "classification_rule": "preserve old bytes; classify as superseded-before-data, never scientifically invalidated",
+  "current_corrected_artifact_root": "results/baseline/g8_e/e1_corrected",
+  "old_e1": {
+    "authority_id": "g8eauthority-dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe",
+    "authority_sha256": "0d31e766e5c8a8e2e30f1331f84f8388a1b312b605fa2da5773891d20f5280f0",
+    "campaign_id": "g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc",
+    "contract_id": "g8econtract-d25df856e56b45c48fca4750b278e10c62daebced3bf6b8176232133e8c8a8b8",
+    "contract_sha256": "b0975c2edee5018cee74138f53ee3d3e5c51b38a3ec34f9e3af48ce6d6d47d04",
+    "old_authorization_scope": {
+      "max_candidates": 64,
+      "max_samples": 25,
+      "max_workload": 512
+    },
+    "old_runner_path": "tools/run_g8_e.py",
+    "old_runner_sha256": "8863d2553d86862fdf6f4ff3b05406836b64edf56c31982fd8af288b4df9adc4",
+    "old_runner_was_refusal_stub": true,
+    "source_commit": "1b5809f157d8bf6454efcf9d5f1418606c25e625",
+    "source_manifest_id": "g8esource-e08ecfaa1d321e687c95f19ae6d23146f5682151a9ac69314badf837ed0a9718",
+    "source_manifest_sha256": "f87a7ea280aa792377299011b66f0202cd1467b80fe14392832de9e89f29b200"
+  },
+  "preserved_historical_artifacts": [
+    "results/baseline/g8_e/e0_open.json",
+    "results/baseline/g8_e/candidate_authority.json",
+    "results/baseline/g8_e/measurement_contract.json",
+    "results/baseline/g8_e/execution_source_manifest.json",
+    "results/baseline/g8_e/corpus_spec.json",
+    "tools/run_g8_e.py",
+    "src/baseline/g8_e.py"
+  ],
+  "reason": [
+    "old E1 source epoch bound tools/run_g8_e.py while it was still a refusal stub",
+    "old E1 pass-one authorization scope copied PB_3 smoke limits",
+    "old E1 collapsed modulation and LDPC rate in the proposed clean-measurement key",
+    "old E1 mixed outage-derived counts into acc_clean",
+    "old E1 duplicated SNR-independent image records"
+  ],
+  "schema_version": 1,
+  "scientific_measurement_coverage": 0,
+  "status": "superseded-before-data",
+  "zero_data_audit": {
+    "e2_campaign_state": false,
+    "e2_records": 0,
+    "fallback": false,
+    "g8_f_state": false,
+    "pass_one_completion": false,
+    "pass_one_pre_marker": false,
+    "pass_two": false,
+    "ratio_adjudicated": false,
+    "runtime_absent": true,
+    "runtime_path": "results/baseline/g8_e/runtime",
+    "test_access": 0,
+    "training": 0,
+    "validation_measurement_coverage": 0
+  }
+}
