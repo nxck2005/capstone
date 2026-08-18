@@ -1,0 +1,48 @@
+{
+  "artifact_role": "g8_e_future_training_corpus_specification",
+  "checkpoint": "E1",
+  "corpus_spec_id": "g8ecorpusspec-d0889aeb867fb7b53a2fb3d2c688ed2f402cbf09928a36cae674ae7b6529fe99",
+  "dataset": "imagenette160",
+  "dataset_role": "headline",
+  "forbidden_membership": {
+    "test_id_set_sha256": "3e861d33dfc4414169f27f92bffdd361bb4afa4eb267afc9dc9a0ac1eac2f290",
+    "test_ids_forbidden": true,
+    "validation_id_set_sha256": "d33a61630998c32ad7161077d032cb035cc091479f8e4af5e7029cc45bc834fc",
+    "validation_ids_forbidden": true,
+    "validation_manifest_path": "data/manifests/imagenette160.csv",
+    "validation_or_test_ids_may_not_be_materialized": true
+  },
+  "generation_rules": {
+    "input_split": "train",
+    "no_validation_or_test_fallback": true,
+    "output_split": "train",
+    "selected_configs_are_referenced_not_recomputed": true,
+    "source_images_are_canonical_validation_free_records": true
+  },
+  "generator": {
+    "deterministic_generation_required": true,
+    "owner_phase": "G8_F",
+    "source_must_be_bound_at": "G8_F/F0",
+    "source_path_is_not_executed_in_E1": true
+  },
+  "materialized": false,
+  "materialized_object_count": 0,
+  "phase": "G8_E",
+  "schema_version": 1,
+  "selected_pass_one_lineage": {
+    "required": true,
+    "selection_record_field": "authority_candidate_id",
+    "selection_state_must_be_immutable": true,
+    "state_path": "results/baseline/g8_e/pass_one_state.json",
+    "state_sha256": null
+  },
+  "train_manifest": {
+    "archive_sha256": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+    "expected_count": 8469,
+    "expected_stable_id_set_sha256": "20df375a9915d26e950ef817dfa1b6ef847f304c4dad4db100f41cfc8511cfaa",
+    "path": "data/manifests/imagenette160.csv",
+    "sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+    "stable_id_order": "ascending_manifest_order"
+  },
+  "training_only": true
+}

@@ -1,0 +1,739 @@
+{
+  "artifact_role": "g8_e_pre_data_validation_contract",
+  "campaign_id": "g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc",
+  "campaign_seed": {
+    "authority_digest": "dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe",
+    "checkpoint": "E1",
+    "classifier_checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "classifier_config_sha256": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
+    "codec_configuration_hash": "2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa",
+    "e0_sha256": "7fbb6b8b3469426dc043e7a0226c0d6a2854445c822698bcc6c86b6bd1155388",
+    "execution_profile_id": "local_4060_cu130",
+    "g8_c_table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f",
+    "g8_c_table_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5",
+    "g8_d_contract_id": "g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889",
+    "g8_d_contract_sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a",
+    "initial_manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+    "phase": "G8_E",
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "source_commit": "1b5809f157d8bf6454efcf9d5f1418606c25e625"
+  },
+  "candidate_authority": {
+    "authority_id": "g8eauthority-dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe",
+    "authority_sha256": "0d31e766e5c8a8e2e30f1331f84f8388a1b312b605fa2da5773891d20f5280f0",
+    "candidate_authority_digest": "dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe",
+    "candidate_count": 12096,
+    "complete_all_roles": true,
+    "dimensions": {
+      "datasets": [
+        {
+          "name": "imagenette160",
+          "role": "headline"
+        },
+        {
+          "name": "stl10",
+          "role": "fallback_headline"
+        }
+      ],
+      "decoder": {
+        "algorithm": "offset_min_sum",
+        "maximum_iterations": 50,
+        "offset": 0.5
+      },
+      "encode_axis_px": {
+        "imagenette160": [
+          160,
+          128,
+          96,
+          64
+        ],
+        "stl10": [
+          96,
+          80,
+          64,
+          48
+        ]
+      },
+      "ldpc_rates": [
+        "1/3",
+        "1/2",
+        "2/3",
+        "5/6"
+      ],
+      "modulations": [
+        "bpsk",
+        "qpsk",
+        "qam16"
+      ],
+      "ratios": [
+        "r_1_2",
+        "r_1_3",
+        "r_1_6",
+        "r_1_12",
+        "r_1_24",
+        "r_1_48"
+      ],
+      "snr_convention": "es_n0_per_symbol",
+      "snr_grid_db": [
+        -8,
+        -7,
+        -6,
+        -5,
+        -4,
+        -3,
+        -2,
+        -1,
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        11,
+        13,
+        15,
+        18
+      ],
+      "source_codecs": [
+        "jpeg2000"
+      ]
+    },
+    "duplicate_alias_missing_proof": {
+      "alias_count": 0,
+      "duplicate_count": 0,
+      "identity_includes_all_dimensions": true,
+      "missing_combination_count": 0
+    },
+    "identity_fields": [
+      "candidate_id",
+      "composition_candidate_identity",
+      "dataset",
+      "dataset_role",
+      "source_codec",
+      "ratio",
+      "encode_axis_px",
+      "modulation",
+      "ldpc_rate",
+      "snr_db",
+      "packet_config_id"
+    ],
+    "initial_dataset_candidate_count": 6048,
+    "path": "results/baseline/g8_e/candidate_authority.json",
+    "source_preflight": {
+      "bytes": 8610156,
+      "path": "results/baseline/g8/required_bler_identities.json",
+      "role": "g8_complete_candidate_preflight",
+      "sha256": "b8f7540af2dcc34f3e2f070bbc651ccbd3af99fbbb335dc3988264216cc32b77"
+    }
+  },
+  "checkpoint": "E1",
+  "codec_and_preprocessing": {
+    "actual_emitted_bytes_authoritative": true,
+    "cache_key_fields": [
+      "canonical_pixels_sha256",
+      "budget_bytes",
+      "encode_axis_px",
+      "codec_config_hash",
+      "j2k_impl_version"
+    ],
+    "canonical_image_rule": "resize_shorter_side_then_crop_to_dataset_image_size",
+    "codec_identity_type": "jpeg2000_configuration",
+    "codec_input": "canonical_8bit_pixels",
+    "configuration_hash": "2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa",
+    "downsample_interpolation": "bilinear",
+    "preprocessing_source": "src/data/preprocessing.py",
+    "preserves_aspect": true,
+    "snapshot": {
+      "baseline": {
+        "downsample_axis_never_upscales": true,
+        "downsample_axis_px": {
+          "cifar10": [
+            32
+          ],
+          "imagenette160": [
+            160,
+            128,
+            96,
+            64
+          ],
+          "stl10": [
+            96,
+            80,
+            64,
+            48
+          ]
+        },
+        "j2k_binding": "glymur",
+        "j2k_cache_key": [
+          "canonical_pixels_sha256",
+          "budget_bytes",
+          "encode_axis_px",
+          "codec_config_hash",
+          "j2k_impl_version"
+        ],
+        "j2k_code_block_size": [
+          64,
+          64
+        ],
+        "j2k_container": "raw_codestream",
+        "j2k_emitted_size_authoritative": true,
+        "j2k_impl": "openjpeg",
+        "j2k_impl_version": "2.5.4",
+        "j2k_nonmonotone_policy": "keep_largest_codestream_at_or_below_budget",
+        "j2k_progression_order": "RPCL",
+        "j2k_rate_control": "largest_codestream_within_budget",
+        "j2k_rate_control_method": "cached_search_over_compression_ratio",
+        "j2k_resolutions": 6,
+        "j2k_search_bounds": [
+          1.0,
+          4000.0
+        ],
+        "j2k_search_max_iters": 24,
+        "j2k_search_method": "bisection_on_compression_ratio",
+        "j2k_search_tolerance_bytes": 16,
+        "j2k_tile_size": "whole_image",
+        "j2k_wavelet": "irreversible_9_7",
+        "source_codec": "jpeg2000"
+      },
+      "environment": {
+        "glymur": "0.14.3",
+        "openjpeg": "2.5.4"
+      },
+      "preprocessing": {
+        "codec_downsample_interpolation": "bilinear",
+        "codec_input": "canonical_8bit_pixels",
+        "codec_resize_preserves_aspect": true,
+        "codec_upsample_interpolation": "bicubic"
+      }
+    },
+    "snapshot_sha256": "2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa",
+    "snr_is_excluded_from_codec_search_key": true,
+    "upsample_interpolation": "bicubic"
+  },
+  "compute_plan": {
+    "aggregate_measured_codec_accuracy_objects": 24,
+    "authority_all_roles_logical_candidates": 12096,
+    "cache_reuse": {
+      "candidate_rows_per_image_per_codec_key": 252,
+      "classifier_forward_reused_across_snr_modulation_rate": true,
+      "codec_search_key_excludes_snr_modulation_and_rate": true,
+      "expected_logical_rows_per_unique_key": 252,
+      "reconstruction_reused_across_snr_modulation_rate": true
+    },
+    "candidate_x_snr_cells_all_roles": 12096,
+    "candidate_x_snr_cells_initial": 6048,
+    "codec_cache_entries": 24000,
+    "historical_bounded_throughput_reference": {
+      "classifier_inference_in_reference": true,
+      "not_an_e2_measurement": true,
+      "raw_rows": 55,
+      "rows_per_second": 1.099824814030521,
+      "source_path": "results/baseline/w4/smoke_summary.json",
+      "source_sha256": "f417fec13dca5629d0d8d8cda91fa63026539962de312bb710b66690c3b00506",
+      "status": "non_scientific_bounded_validation_plumbing_reference_only",
+      "wall_clock_s": 50.007964267001626
+    },
+    "initial_headline_logical_candidates": 6048,
+    "logical_image_candidate_records": 6048000,
+    "logical_record_storage_bytes_estimate": 24476256000,
+    "projected_e2_wall_clock": {
+      "basis": "unique_codec_reconstruction_classifier jobs divided by bounded W4 rows/sec proxy",
+      "hours": 6.061571426303228,
+      "seconds": 21821.65713469162,
+      "status": "planning_estimate_not_observed_scientific_output"
+    },
+    "reconstruction_cache_entries_upper_bound": 24000,
+    "representative_logical_record_bytes": 4047,
+    "unique_classifier_forwards_scheduled": 24000,
+    "unique_codec_search_computations": 24000,
+    "unique_reconstruction_computations_scheduled": 24000,
+    "validation_image_count": 1000
+  },
+  "contract_id": "g8econtract-d25df856e56b45c48fca4750b278e10c62daebced3bf6b8176232133e8c8a8b8",
+  "corpus_spec_binding": {
+    "corpus_spec_id": "g8ecorpusspec-d0889aeb867fb7b53a2fb3d2c688ed2f402cbf09928a36cae674ae7b6529fe99",
+    "materialized": false,
+    "path": "results/baseline/g8_e/corpus_spec.json",
+    "sha256": "b9ef79d1cf506b5ef273bae20b6feb1277317729b6aeb618dfbb4e32e7dd70d5"
+  },
+  "dataset_boundary": {
+    "fallback_condition_source": "SPEC.md DEC-1 dataset ladder",
+    "fallback_headline": {
+      "archive": {
+        "bytes": 2640397119,
+        "filename": "stl10_binary.tar.gz",
+        "path": "data/archives/stl10_binary.tar.gz",
+        "sha256": "f31fd99273a1acb8609c8db427cebb1de3f71de77758cdc0e22956e1289b9866",
+        "url": "https://cs.stanford.edu/~acoates/stl10/stl10_binary.tar.gz"
+      },
+      "class_count": 10,
+      "class_index_source": "class_names_txt_line_order_corresponding_to_one_based_labels",
+      "dataset": "stl10",
+      "dataset_version": "f31fd99273a1acb8609c8db427cebb1de3f71de77758cdc0e22956e1289b9866",
+      "extracted_asset_authenticated": true,
+      "image_size": [
+        96,
+        96,
+        3
+      ],
+      "loader": "torchvision_datasets_stl10",
+      "manifest": {
+        "bytes": 316029,
+        "path": "data/manifests/stl10.csv",
+        "sha256": "67936da779dc0010160b37b3b40001490304a5873eb978d261e3a57947387b47",
+        "split": "val",
+        "test_count": 8000,
+        "test_id_set_sha256": "1b58681d9750fa49cbc2e9838193e210babf199e1051d5045743e8764b2fe83f",
+        "train_count": 4500,
+        "train_id_set_sha256": "9801497baded86876aefd9fc9ecf3af09fb0c46442cb6d156e8f4027fd29571c",
+        "validation_count": 500,
+        "validation_id_set_sha256": "6d53bbfe7f8e3a402b85d03f74213b38ec69f213398d26b42e65facac6b5689a"
+      },
+      "role": "fallback_headline",
+      "source_payload": "exact_per_image_record_from_train_X_or_test_X_before_axis_transpose_or_pil"
+    },
+    "fallback_invocation_condition": "invoked at G-8 if compute or a degenerate baseline forces it",
+    "fallback_invocation_prohibited_in_g8_e": true,
+    "initial_scientific_dataset": {
+      "archive": {
+        "bytes": 99003388,
+        "filename": "imagenette2-160.tgz",
+        "path": "data/archives/imagenette2-160.tgz",
+        "sha256": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+        "url": "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz"
+      },
+      "class_count": 10,
+      "class_index_source": "sorted_authoritative_class_directory_identifiers",
+      "dataset": "imagenette160",
+      "dataset_version": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+      "extracted_asset_authenticated": true,
+      "image_size": [
+        160,
+        160,
+        3
+      ],
+      "loader": "torchvision_datasets_imagenette",
+      "manifest": {
+        "bytes": 328954,
+        "path": "data/manifests/imagenette160.csv",
+        "sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+        "split": "val",
+        "test_count": 3925,
+        "test_id_set_sha256": "3e861d33dfc4414169f27f92bffdd361bb4afa4eb267afc9dc9a0ac1eac2f290",
+        "train_count": 8469,
+        "train_id_set_sha256": "20df375a9915d26e950ef817dfa1b6ef847f304c4dad4db100f41cfc8511cfaa",
+        "validation_count": 1000,
+        "validation_id_set_sha256": "d33a61630998c32ad7161077d032cb035cc091479f8e4af5e7029cc45bc834fc"
+      },
+      "role": "headline",
+      "source_payload": "exact_encoded_jpeg_file_bytes"
+    },
+    "initial_scope": "headline_only",
+    "smoke_only_dataset": {
+      "archive": {
+        "bytes": 170498071,
+        "filename": "cifar-10-python.tar.gz",
+        "path": "data/archives/cifar-10-python.tar.gz",
+        "sha256": "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce",
+        "url": "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz"
+      },
+      "class_count": 10,
+      "class_index_source": "batches_meta_label_names_order_corresponding_to_payload_labels",
+      "dataset": "cifar10",
+      "dataset_version": "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce",
+      "extracted_asset_authenticated": false,
+      "image_size": [
+        32,
+        32,
+        3
+      ],
+      "loader": "torchvision_datasets_cifar10",
+      "manifest": {
+        "bytes": 1480029,
+        "path": "data/manifests/cifar10.csv",
+        "sha256": "09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537",
+        "split": "val",
+        "test_count": 10000,
+        "test_id_set_sha256": "2aa5803dbb6d4abc230fa57281156e440108e8607fb5d9ccb2e329eb90fe0954",
+        "train_count": 45000,
+        "train_id_set_sha256": "4897a9ee2a651e8b56a586ad9a105ef4e4ca9145ed662045da5c3e4a5de86ba4",
+        "validation_count": 5000,
+        "validation_id_set_sha256": "14868573e6e793a8d39a85170513a15d52a7031aa7b29db7881156f79cfa1eb3"
+      },
+      "role": "smoke_only",
+      "source_payload": "exact_3072_byte_per_image_chw_batch_record_before_hwc_or_pil"
+    },
+    "smoke_only_disposition": "CIFAR-10 is transport/verdict/accounting/cache plumbing only; no task score or headline authority",
+    "test_split": {
+      "model_facing_access": false,
+      "provenance_only_scan": false,
+      "sealed": true,
+      "test_access_counter": 0
+    }
+  },
+  "declarations": {
+    "E2_awaits_owner_execution_authorization": true,
+    "G8_E_E0_E1_ready_pre_data": true,
+    "fallback_forbidden": true,
+    "no_G8Authorization_issued": true,
+    "no_validation_image_decoding_performed": true,
+    "ratio_adjudication_forbidden": true,
+    "test_forbidden": true,
+    "training_forbidden": true,
+    "zero_full_validation_measurements": true
+  },
+  "e0_binding": {
+    "bytes": 7142,
+    "path": "results/baseline/g8_e/e0_open.json",
+    "role": "g8_e_e0_opening",
+    "sha256": "7fbb6b8b3469426dc043e7a0226c0d6a2854445c822698bcc6c86b6bd1155388"
+  },
+  "execution_profile": {
+    "authentication": {
+      "amp": true,
+      "config_hash": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
+      "deterministic_backend": {
+        "cudnn_benchmark": false,
+        "cudnn_deterministic": true
+      },
+      "driver_version": "592.82",
+      "execution_profile_id": "local_4060_cu130",
+      "git_commit": "1b5809f157d8bf6454efcf9d5f1418606c25e625",
+      "git_dirty": false,
+      "gpu_compute_capability": "8.9",
+      "gpu_index": 0,
+      "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+      "gpu_uuid": "GPU-607a5795-c53b-eab2-8c04-71164b173a32",
+      "gpu_vram_mib": "8188",
+      "lock_file": "requirements.lock",
+      "lock_file_sha256": "ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd",
+      "numpy_version": "2.5.1",
+      "nvidia_smi_index": 0,
+      "openjpeg_version": "2.5.4",
+      "python_version": "3.14.6",
+      "sionna_version": "2.0.1",
+      "torch_cuda_build": "13.0",
+      "torch_version": "2.13.0+cu130",
+      "torchvision_version": "0.28.0+cu130"
+    },
+    "device": "cuda:0",
+    "profile_id": "local_4060_cu130",
+    "profile_switching": "forbidden; interruption requires explicit supersession/new campaign",
+    "selection": {
+      "config_hash": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
+      "execution_profile_id": "local_4060_cu130",
+      "git_commit": "1b5809f157d8bf6454efcf9d5f1418606c25e625",
+      "lock_file": "requirements.lock",
+      "lock_file_sha256": "ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd",
+      "schema_version": 1,
+      "scope_id": "g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc",
+      "scope_kind": "G8_E_validation_campaign",
+      "selection_sha256": "bd25fda9df8014ff4dfb368c7ee0933e93e9e52d62d92a2fcb698a4055b2424a",
+      "status": "frozen_before_first_scientific_measurement"
+    },
+    "sole_writer": "local"
+  },
+  "feasibility_and_denominators": {
+    "br11_denominator": "emitted-row count includes delivered and decode_failure; AM-81 header/payload sums include every emitted codestream",
+    "clean_accuracy_denominator": "sum total_count over delivered and decode_failure records only; infeasible rows remain present but have null counts and are never zeroed, ignored or imputed",
+    "codec_infeasibility": "record exactly one row after structural plan and before emitted codestream; no reconstruction or accuracy count; retained in coverage and ineligible",
+    "decode_failure": "emitted codestream and BR-11 survive; reconstruction is absent; count is derived from frozen outage prediction and denominator is one",
+    "delivered": "emitted codestream, BR-11, reconstruction and frozen G-1 classifier correctness are recorded; denominator is one",
+    "missing_row_policy": "missing is a contract failure, never a zero, success, ignored row or imputation",
+    "outcomes": [
+      "codec_infeasibility",
+      "decode_failure",
+      "delivered",
+      "structural_infeasibility"
+    ],
+    "selection_eligibility": "candidate is eligible only when exact complete coverage exists, all required upstream identities resolve and its measured object is count-derived; any infeasible or uncharacterized cell remains explicit and blocks eligibility",
+    "structural_infeasibility": "record exactly one row before codec/channel; no emitted bytes, BR-11, reconstruction or accuracy count; retained in coverage and ineligible"
+  },
+  "g1_classifier_binding": {
+    "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "classifier_config_sha256": "a9717575d71f2b3e9dd411b10b7735bdb3946c985fead48cb3c5af07423f12e1",
+    "dataset": "imagenette160",
+    "dataset_version": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+    "identity_type": "g1_clean_classifier",
+    "manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+    "schema_version": 1,
+    "split": "val",
+    "variant": "clean"
+  },
+  "g8_c_binding": {
+    "campaign_id": "g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca",
+    "curves": 153,
+    "historical_c6_id": "g8pcloseout-8cc5be86e6bbb350ca35c1806686e751f4528ad32aa7083e9a754c4849feba70",
+    "historical_c6_sha256": "efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f",
+    "measured_points": 3213,
+    "merge_report_id": "g8pmerge-2e861c39d8981af0e2d57dc8ded5828b9ed56a1459491e04929b5e9c3418de89",
+    "merge_report_sha256": "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8",
+    "portable_manifest_id": "g8pportable-6368a3cb3214df264d566675e196449a0745e6eb3cc402f1825150e2370f41f4",
+    "portable_manifest_sha256": "f626ea7c973a9d1f53ab292ec121725b5a6d3331743ade031b4906caa782da5b",
+    "portable_provenance_id": "g8pportableprov-19149e3e23c2340ecd6911231542e7fcb86b031978ba9d37db52d789a2a7df58",
+    "portable_provenance_sha256": "3ea789c1f5bff4abfe926016c2e508288d479991d0a5447bf2f695281a8682aa",
+    "portable_scientific_runtime_sha256": "4da51e24f497392000bf740d604ae43d0f3cc3df6978add094c7800d70c7dad3",
+    "portable_verification_epoch": "g8-c-portable-scientific-runtime-v1",
+    "predecessor_table_contribution": "none",
+    "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f",
+    "table_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5",
+    "trials_per_point": 5000
+  },
+  "g8_d_binding": {
+    "contract_id": "g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889",
+    "contract_sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a",
+    "d4_d6_flags": {
+      "d4_merge_eligible": false,
+      "d4_scientific_evidence": false,
+      "d6_merge_eligible": false,
+      "d6_scientific_evidence": false
+    },
+    "d4_source_is_not_reused_as_e_record": true,
+    "handoff_id": "g8dhandoff-31c48fcabe765a0e70bcd7bcfec5f4bd705b88ee3cb0d140ba9aecf67e1dfd4c",
+    "handoff_sha256": "fa38c9bbc5e02ea3b16539eed17a9008079386f9655f1b8d789034056432e408",
+    "portable_rebind_provenance_id": "g8dportableprov-0d493b8e99cea1f0ac95f6d36bd411208f0930025950de8a5fe5a3836cf4d907",
+    "portable_rebind_provenance_sha256": "091381f9737c112f473672f533361955644a224fb067788b77aafc4eb01fe2b3"
+  },
+  "measured_outage_binding": {
+    "accuracy_is_count_derived": true,
+    "class_counts": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100
+    ],
+    "dataset": "imagenette160",
+    "denominator": 1000,
+    "manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+    "numerator": 100,
+    "object_id": "g8eoutage-2a178ca4d31a8e3821c729bbbfc8d9230d7224c959443fc6265e067c7fe07b3b",
+    "path": "results/baseline/w4/outage_policy.json",
+    "selected_class": 0,
+    "selection_rule": "highest_validation_accuracy_constant_prediction",
+    "sha256": "ebcc34133f7a1e38635e8a958cb41a4b8f019b02fd97bd2f0ad606a0a1396121",
+    "split": "val",
+    "tie_break": "lowest_class_index",
+    "uniform_assumption_rejected": true
+  },
+  "pass_one_preconditions": {
+    "authorization_issued": false,
+    "authorization_scope": {
+      "gate": "G-8",
+      "max_candidates": 64,
+      "max_samples": 25,
+      "max_workload": 512
+    },
+    "authorization_type": "G8Authorization",
+    "candidate_authority_digest": "dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe",
+    "complete_E4_coverage_predicate": {
+      "all_G8_C_lookups_exact_or_explicit_uncharacterized": true,
+      "all_decode_failures_have_frozen_outage_count": true,
+      "all_delivered_rows_have_count_derived_classifier_correctness": true,
+      "all_emitted_rows_have_AM81_BR11": true,
+      "all_four_outcome_states_explicit": true,
+      "all_infeasible_rows_have_null_accuracy_counts": true,
+      "every_initial_candidate_and_validation_id_exactly_once": true,
+      "no_duplicate_or_missing_work_unit": true
+    },
+    "maximum_candidate_count": 64,
+    "maximum_sample_count": 25,
+    "maximum_workload": 512,
+    "no_third_pass": true,
+    "pass_one_started": false,
+    "pass_two_started": false,
+    "pre_execution_marker_required": true,
+    "required_snr_points": [
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      9,
+      11,
+      13,
+      15,
+      18
+    ],
+    "required_system_modes": [
+      "classical_adaptive",
+      "classical_fixed_mod",
+      "classical_fixed_mcs"
+    ],
+    "scorer": "frozen G-1 clean classifier",
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "single_immutable_completion_required": true,
+    "tie_break_order": [
+      "expected_accuracy_descending",
+      "success_probability_descending",
+      "modulation_bits_per_symbol_ascending",
+      "ldpc_rate_ascending",
+      "encode_axis_px_descending",
+      "candidate_id_ascending"
+    ]
+  },
+  "phase": "G8_E",
+  "resume_and_custody": {
+    "am86_exception_used": false,
+    "completed_output_reuse": "reuse only when work-unit ID, record ID, source/config digest and exact bytes match",
+    "completed_records": "immutable content-addressed files; exact duplicate bytes may be reused, differing bytes reject",
+    "crash_recovery_matrix": [
+      "before_cache_publication: no completion contribution",
+      "after_cache_publication_before_record: cache may be reused but unit remains incomplete",
+      "after_record_publication_before_aggregate: record is authoritative; aggregate is rebuilt",
+      "after_aggregate_before_state: aggregate is provisional until state binds it",
+      "after_state_publication: exact prefix advances one unit"
+    ],
+    "first_command": ".venv/bin/python tools/run_g8_e.py --campaign-id g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc --contract results/baseline/g8_e/measurement_contract.json --runtime-root results/baseline/g8_e/runtime --profile local_4060_cu130 --device cuda:0 --start",
+    "parallelism": "disabled; one deterministic writer is sufficient for the frozen plan",
+    "publication": "same-directory staged bytes, descriptor-relative no-follow immutable publication, directory fsync; no direct final-path writes",
+    "restart_command": ".venv/bin/python tools/run_g8_e.py --campaign-id g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc --contract results/baseline/g8_e/measurement_contract.json --runtime-root results/baseline/g8_e/runtime --profile local_4060_cu130 --device cuda:0 --resume",
+    "resume": "exact ordered prefix only; no skipped unit, duplicate contribution, silent overwrite or host switch",
+    "runtime_root": "results/baseline/g8_e/runtime",
+    "runtime_root_must_be_absent_at_e1": true,
+    "sole_writer": true,
+    "source_config_drift": "current source manifest, contract, candidate authority, G8_C, G8_D, classifier, manifests, codec snapshot and profile selection must match before resume",
+    "stale_aggregate": "reject and reconstruct from immutable completed records; never trust or silently overwrite a stale aggregate",
+    "state_durability": "state and aggregate are staged and fsynced before publication; aggregate digest is bound by state",
+    "work_unit_id": "g8eunit-sha256(campaign_id, authority_ordinal, stable_sample_id)",
+    "work_unit_order": "authority ordinal ascending, then stable validation ID ascending"
+  },
+  "safety": {
+    "e2_started": false,
+    "fallback_invoked": false,
+    "inference": 0,
+    "measurement_coverage": 0,
+    "pass_one_started": false,
+    "pass_two_started": false,
+    "ratio_adjudicated": false,
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 0
+  },
+  "schema_version": 1,
+  "scientific_record": {
+    "accuracy_field_permitted": false,
+    "artifact_role": "g8_e_scientific_measurement_record",
+    "count_derivation": "sum correct_count / sum total_count; no caller-supplied accuracy field",
+    "fields": [
+      "schema_version",
+      "artifact_role",
+      "record_id",
+      "campaign_id",
+      "contract_id",
+      "authority_ordinal",
+      "authority_candidate_id",
+      "work_unit_id",
+      "dataset",
+      "dataset_role",
+      "validation_split",
+      "validation_split_identity",
+      "image_identity",
+      "source_image",
+      "candidate",
+      "budget_identity",
+      "codec_configuration",
+      "emitted_codestream",
+      "reconstruction",
+      "reconstruction_cache_object_id",
+      "br11",
+      "g8_c_table",
+      "bler_linkage",
+      "classifier",
+      "outcome",
+      "correct_count",
+      "total_count",
+      "accuracy_derivation",
+      "provenance",
+      "validation_only",
+      "test_access",
+      "training",
+      "scientific_evidence",
+      "merge_eligible"
+    ],
+    "merge_eligible": true,
+    "per_image_total_count": 1,
+    "schema_version": 1,
+    "scientific_evidence": true,
+    "validation_only": true
+  },
+  "source_manifest_binding": {
+    "direct_portable_bindings_required": true,
+    "manifest_id": "g8esource-e08ecfaa1d321e687c95f19ae6d23146f5682151a9ac69314badf837ed0a9718",
+    "path": "results/baseline/g8_e/execution_source_manifest.json",
+    "sha256": "f87a7ea280aa792377299011b66f0202cd1467b80fe14392832de9e89f29b200",
+    "source_commit": "1b5809f157d8bf6454efcf9d5f1418606c25e625"
+  },
+  "status": "FROZEN_PRE_DATA",
+  "unopened_state": {
+    "artifact_training_corpus_exists": false,
+    "e2_record_exists": false,
+    "forbidden_paths_checked": [
+      "results/baseline/g8_e/runtime",
+      "results/baseline/g8_e/campaign_state.json",
+      "results/baseline/g8_e/e2_in_progress.json",
+      "results/baseline/g8_e/e2_complete.json",
+      "results/baseline/g8_e/pass_one_pre_execution.json",
+      "results/baseline/g8_e/pass_one_state.json",
+      "results/baseline/g8_e/pass_one_complete.json",
+      "results/baseline/g8_e/pass_two_state.json",
+      "results/baseline/g8_f"
+    ],
+    "g8_f_state_exists": false,
+    "pass_one_completion_exists": false,
+    "pass_one_marker_exists": false,
+    "pass_two_state_exists": false,
+    "scientific_campaign_exists": false,
+    "scientific_runtime_exists": false
+  },
+  "w4_selection_binding": {
+    "fixed_modulation": {
+      "configured_value": "qpsk",
+      "requirement": "BR-9",
+      "searches_modulations": false,
+      "source": "params.baseline.core_modulation"
+    },
+    "frozen_before_g8": true,
+    "integration_adjudication_sha256": "58827922671e596f038972cf731e3626313a562fbc36ee817eb50d947d6af121",
+    "selection_passes": [
+      1,
+      2
+    ],
+    "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "selection_termination_pass": 2,
+    "system_modes": [
+      "classical_adaptive",
+      "classical_fixed_mod",
+      "classical_fixed_mcs"
+    ],
+    "tie_break_order": [
+      "expected_accuracy_descending",
+      "success_probability_descending",
+      "modulation_bits_per_symbol_ascending",
+      "ldpc_rate_ascending",
+      "encode_axis_px_descending",
+      "candidate_id_ascending"
+    ],
+    "tie_equality": "exact float equality; no tolerance parameter",
+    "uncharacterized_candidates_are": "ineligible, not low-scoring"
+  }
+}
