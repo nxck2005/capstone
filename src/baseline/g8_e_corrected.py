@@ -1805,7 +1805,7 @@ class AtomicE2Campaign:
                 "training": 0,
                 "test_access": 0,
             }
-            final["state_sha256"] = sha256_bytes(canonical_json(final))
+            final["state_sha256"] = sha256_bytes(canonical_json({key: child for key, child in final.items() if key != "state_sha256"}))
             if crash_after == "before_state":
                 raise RuntimeError("synthetic crash before state publication")
             _replace_json(self.state_path, final)

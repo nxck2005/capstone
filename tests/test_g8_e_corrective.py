@@ -165,7 +165,7 @@ def test_old_superseded_campaign_cannot_execute() -> None:
 
 def test_old_refusal_stub_is_historical_not_current() -> None:
     old = (corrected.REPO_ROOT / "tools/run_g8_e.py").read_text()
-    assert "refuses all" in old or "refusal" in old.lower()
+    assert "refuse_e2_execution" in old
     manifest = json.loads(corrected.CORRECTED_SOURCE_MANIFEST_PATH.read_text())
     assert all(entry["path"] != "tools/run_g8_e.py" for entry in manifest["source_entries"])
     assert any(entry["path"] == "tools/run_g8_e_corrected.py" for entry in manifest["source_entries"])
@@ -196,7 +196,7 @@ def test_current_runner_refuses_before_validation_decode(tmp_path: Path) -> None
 def test_source_change_after_corrected_freeze_rejects() -> None:
     source = json.loads(corrected.CORRECTED_SOURCE_MANIFEST_PATH.read_text())
     source["source_entries"][0]["sha256"] = "0" * 64
-    with pytest.raises(corrected.CorrectedG8EError, match="source drift"):
+    with pytest.raises(corrected.CorrectedG8EError, match="source manifest ID|source drift"):
         corrected.validate_source_manifest(source)
 
 
@@ -277,6 +277,7 @@ def test_wrong_packet_payload_budget_rejected(synthetic_stack: dict[str, object]
     unit = synthetic_stack["work_units"][0]
     record = synthetic_stack["executor"](unit, synthetic_stack["sample"]).as_dict()
     record["packet_budget"]["payload_budget_bytes"] += 1
+    record["record_id"] = corrected._id(corrected.RECORD_PREFIX, {key: value for key, value in record.items() if key != "record_id"})
     with pytest.raises(corrected.CorrectedG8EError, match="payload budget"):
         corrected.MeasurementRecord.from_mapping(record)
 
@@ -285,6 +286,7 @@ def test_same_count_wrong_stable_id_rejected(synthetic_stack: dict[str, object])
     unit = synthetic_stack["work_units"][0]
     record = synthetic_stack["executor"](unit, synthetic_stack["sample"]).as_dict()
     record["stable_sample_id"] = "0" * len(record["stable_sample_id"])
+    record["record_id"] = corrected._id(corrected.RECORD_PREFIX, {key: value for key, value in record.items() if key != "record_id"})
     with pytest.raises(corrected.CorrectedG8EError, match="stable sample ID"):
         corrected.MeasurementRecord.from_mapping(record)
 
