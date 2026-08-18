@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -39,7 +40,11 @@ def main() -> int:
     parser.add_argument("--source-commit", help="source commit to bind; defaults to HEAD")
     args = parser.parse_args()
     try:
-        bundle = corrected.build_corrected_bundle(args.source_commit or _head())
+        source_commit = args.source_commit
+        if args.check and source_commit is None and corrected.CORRECTED_SOURCE_MANIFEST_PATH.is_file():
+            recorded = json.loads(corrected.CORRECTED_SOURCE_MANIFEST_PATH.read_text())
+            source_commit = recorded.get("source_commit")
+        bundle = corrected.build_corrected_bundle(source_commit or _head())
         paths = {
             "measurement_authority": corrected.CORRECTED_AUTHORITY_PATH,
             "logical_measurement_mapping": corrected.CORRECTED_MAPPING_PATH,
