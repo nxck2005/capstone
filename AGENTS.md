@@ -12,9 +12,10 @@ evidence is 3,213/3,213 identities accepted at 5,000 trials each and its
 successor `BlerTable` is frozen. No selection, inference, training, validation
 decoding or test access occurred, and the test split remains sealed. G8_C
 remains green and closed. G8_D is GREEN and closed; the first G8_E E0/E1 freeze
-is preserved as superseded-before-data history and corrected E1 is frozen as an
-executable pre-data contract with zero validation coverage. E2 awaits owner
-execution authorization. Do not
+is preserved as superseded-before-data history; the first corrected E1 is also
+preserved as superseded-before-data history, and additive corrected-v2 E1 is
+frozen as the current executable pre-data contract with zero validation
+coverage. E2 awaits owner execution authorization. Do not
 reopen or rerun G8_C, do not execute E2, and do not run the full validation
 campaign yet.
 

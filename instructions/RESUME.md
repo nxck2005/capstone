@@ -46,11 +46,11 @@ campaign, resume the old RTX4060 suffix, ingest predecessor evidence, or alter
 the completed runtime. C3-C7 is green: the successor merge report, measured
 153-curve/3,213-point BlerTable and source/provenance closure are independently
 verified under `results/baseline/g8_pascal_successor/`. G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-The first G8_E E0/E1 freeze is preserved as immutable
-`superseded-before-data` history: its contract, campaign, authority and source
-manifest identities remain bound, and its validation coverage is zero. The
-additive corrected E1 epoch is the current executable pre-data contract; its
-runner and E3/E4 sources are frozen before any owner authorization. Test and
+The original G8_E E1 and first corrected E1 freezes are preserved as immutable
+`superseded-before-data` history: their contracts, campaigns, authorities and
+source-manifest identities remain bound, and their validation coverage is zero.
+The additive corrected-v2 E1 epoch is the current executable pre-data contract;
+its runner and E3/E4 sources are frozen before any owner authorization. Test and
 validation data, selection, pass one, training, fallback, ratio adjudication
 and inference remain prohibited here.
 
@@ -122,9 +122,9 @@ Then:
 **Current phase:** **Pascal G8_C successor execution and C3-C7 closeout are
 complete at 3213/3213 and published; no worker is running. G8_C remains green
 and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN. The
-first G8_E E0/E1 freeze is superseded-before-data and the corrected E1 epoch is
-the current executable pre-data contract, both with zero validation coverage;
-E2 awaits owner execution authorization.** The authenticated campaign is
+original E1 and first corrected E1 epochs are superseded-before-data and the
+corrected-v2 E1 epoch is the current executable pre-data contract, all with zero
+validation coverage; E2 awaits owner execution authorization.** The authenticated campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
 and contributes zero successor-table coverage. Do not rerun this campaign,
@@ -817,7 +817,8 @@ fallback, ratio adjudication and test access remain prohibited.
 |---|---|---|
 | E0 verify/open | done | **Phase-start SHA:** `7e8b0de07328ac524fd1a1e1de8b1b3c97f08b36`; **WIP marker:** `63edff7`; **green checkpoint:** this commit. Upstream successor, portable and closeout verifiers; exhaustive 3,213-point lookup; current G8_D open/contract/smoke/D7; G-1; archive/manifest and portable-rebind checks all PASS. Opening artifact `g8e0-eb899023431412d5dfb608f9f094538cb60a0346a01032c0b2634a902006131c`, SHA-256 `7fbb6b8b3469426dc043e7a0226c0d6a2854445c822698bcc6c86b6bd1155388`; coverage 0, E2/pass one/training/fallback/ratio/test all closed. |
 | E1 first freeze (historical) | superseded-before-data | **Phase-start SHA:** `3d16103`; implementation checkpoints `c8afecc` and `1b5809f`; artifact checkpoint `47fdccf`; E1 source manifest commit `1b5809f`; later documentation checkpoint `5613b56`, omitted report commit `f6918d4` (`wip(g8-e): freeze validation contract`), opening marker `63edff7`, and original parity `2f9c892`. Contract `g8econtract-d25df856e56b45c48fca4750b278e10c62daebced3bf6b8176232133e8c8a8`, campaign `g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc`, authority `g8eauthority-dd09fa9bdb37cf4903249214597577dd023c959b3125de04aee007b56c6f22fe`, source manifest `g8esource-e08ecfaa1d321e687c95f19ae6d23146f5682151a9ac69314badf837ed0a9718`, zero coverage. The old runner was a refusal stub; no validation image was decoded. Preserve all artifacts and commits; do not execute this campaign. |
-| E1 corrected additive epoch | done | **Phase-start:** `2f9c892`; additive checkpoints `af64015`, `2b14606`, `4e56553`, `3591cb4`, `c2b1f3e`, `cd92c1e`, `f9d0847`, `a754f4f`, `e66da32` and lint/handoff closure `b40b63f`; portable CI-test fix `c7d2d7d`. Current contract `g8econtractcorrected-ab9c4c46be7f3bf58129274083f9a15fb0008a90a2f6b653a906b72a4efc3a39`, campaign `g8e-corrected-d55b30df0e9f580dfb8be7b19dc33f5b9092bdedad8725ca9a2ffd36814fdcd4`, measurement authority `g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5`, mapping `g8elogicalmapping-42ddbd29778b77fca4cc4b1fc557d1128225a91c530fc5276a586e77e99fedfe`, source manifest `g8esourcecorrected-177cfdb49b146171bf6969212a628fe3de870ef9df7247a8e55b7796116e7a5b`, source epoch `b40b63f`. The corrected runner, crash-safe transaction, E3 exact merge and E4 count-derived aggregation are source-bound and tested on synthetic NON-SCIENTIFIC fixtures; coverage remains 0, no runtime or owner authorization artifact exists, and E2 remains closed. Restart after interruption by re-running the corrected verifier; the next allowed action is owner-audited E2 authorization. |
+| E1 corrected additive epoch | superseded-before-data | **Phase-start:** `2f9c892`; additive checkpoints `af64015`, `2b14606`, `4e56553`, `3591cb4`, `c2b1f3e`, `cd92c1e`, `f9d0847`, `a754f4f`, `e66da32` and lint/handoff closure `b40b63f`; portable CI-test fix `c7d2d7d`. Contract `g8econtractcorrected-ab9c4c46be7f3bf58129274083f9a15fb0008a90a2f6b653a906b72a4efc3a39`, campaign `g8e-corrected-d55b30df0e9f580dfb8be7b19dc33f5b9092bdedad8725ca9a2ffd36814fdcd4`, measurement authority `g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5`, mapping `g8elogicalmapping-42ddbd29778b77fca4cc4b1fc557d1128225a91c530fc5276a586e77e99fedfe`, source manifest `g8esourcecorrected-177cfdb49b146171bf6969212a628fe3de870ef9df7247a8e55b7796116e7a5b`, source epoch `b40b63f`. Its corrected runner, transaction, E3 and E4 sources were tested only on synthetic NON-SCIENTIFIC fixtures; coverage remains 0, no runtime or owner authorization artifact exists, and E2 remains closed. Preserve it unchanged; the next allowed action is owner-audited E2 authorization for v2 only. |
+| E1 corrected-v2 epoch | done | **Code-bearing freeze:** `4e3ae1eb8f8f2b2cf76aa20fe68f9d7e56424fa5`; additive artifact/source closure is current under `results/baseline/g8_e/e1_corrected_v2/`. Contract `g8econtractcorrectedv2-fbfc3fb6d2210bdf377e2d31695933453ecceee385623112b2c8ab260ee63222`, campaign `g8e-v2-ff50dffe0e1e533a40be30044d4fcb5b35ce97b99ff8505c1d222e16685173ef`, source manifest `g8esourcecorrectedv2-c4bb8ab9f566aeab1531dc72142fd77be525d4fef43e92ac116ceddbbcd1fad1`, 6,048 logical cells, 288 structural identities, 288,000 work units, zero coverage. It repairs image-level codec infeasibility scoring, fatal runtime HOLD semantics, compact O(1) transaction advancement, real start/resume rules, observation caching and direct G8_C/G8_D provenance. The first corrected epoch above is now superseded-before-data; no v2 runtime or owner authorization exists. Synthetic proof and scale evidence are non-scientific and merge-ineligible. The next allowed action is owner-audited E2 authorization; do not execute E2 in this handoff. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

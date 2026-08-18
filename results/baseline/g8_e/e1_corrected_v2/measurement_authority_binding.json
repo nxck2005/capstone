@@ -1,0 +1,58 @@
+{
+  "authority_id": "g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5",
+  "counts": {
+    "datasets": [
+      "imagenette160",
+      "stl10"
+    ],
+    "logical_all_roles_snr_cells": 12096,
+    "logical_initial_snr_cells": 6048,
+    "snr_points": 21,
+    "structural_all_roles": 576,
+    "structural_initial": 288
+  },
+  "identity_semantics": {
+    "logical_fields": [
+      "candidate_id",
+      "composition_candidate_identity",
+      "dataset",
+      "dataset_role",
+      "source_codec",
+      "ratio",
+      "encode_axis_px",
+      "modulation",
+      "ldpc_rate",
+      "snr_db",
+      "packet_config_id"
+    ],
+    "physical_cache_fields": [
+      "source_bytes_sha256",
+      "canonical_pixels_sha256",
+      "canonical_shape",
+      "payload_budget_bytes",
+      "encode_axis_px",
+      "codec_configuration_hash",
+      "codec_runtime_identity"
+    ],
+    "physical_cache_reuse_predicate": "all physical_cache_fields equal byte-for-byte",
+    "snr_excluded_from_structural_identity": true,
+    "snr_exclusion_reason": "clean JPEG2000 measurement and packet budget do not depend on channel SNR",
+    "structural_fields": [
+      "dataset",
+      "dataset_role",
+      "source_codec",
+      "ratio",
+      "modulation",
+      "ldpc_rate",
+      "encode_axis_px",
+      "packet_config_id",
+      "k_symbols",
+      "payload_budget_bytes",
+      "packet_accounting"
+    ]
+  },
+  "path": "results/baseline/g8_e/e1_corrected/measurement_authority.json",
+  "reused_byte_identically": true,
+  "sha256": "9f7407a7c7965f2fc0c9736a7a1c12062cecaf6d4c65f8a219cbf7faf2a11145",
+  "structural_digest": "211745acb1b45fb3ed4ea783a93eea08fde41b34c3016c740590134a471c95ba"
+}

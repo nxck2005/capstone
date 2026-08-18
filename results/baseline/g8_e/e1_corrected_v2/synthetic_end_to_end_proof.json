@@ -1,0 +1,46 @@
+{
+  "artifact_role": "g8_e_v2_synthetic_end_to_end_proof",
+  "counts": {
+    "backend_calls": 6,
+    "classifier_calls": 2,
+    "codec_cache_objects": 6,
+    "observation_cache_objects": 2,
+    "reconstruction_cache_objects": 4,
+    "synthetic_e3_records": 9,
+    "synthetic_e4_objects": 3,
+    "synthetic_work_units": 9
+  },
+  "fallback": false,
+  "labels": [
+    "NON-SCIENTIFIC",
+    "NON-SELECTION",
+    "NOT PRODUCTION E2 EVIDENCE",
+    "MERGE-INELIGIBLE FOR PRODUCTION"
+  ],
+  "pass_one": false,
+  "pass_two": false,
+  "production_e2_evidence": false,
+  "production_runtime": false,
+  "ratio_adjudication": false,
+  "scenarios": {
+    "cache_miss_and_hit": true,
+    "classifier_observation_reuse": true,
+    "crash_after_claim_resume_visits": 0,
+    "crash_after_record_resume_visits": 1,
+    "cross_mcs_same_physical_key_reuse": true,
+    "delivered_row": true,
+    "different_payload_budget_no_alias": true,
+    "e3_exact_set": true,
+    "e4_count_derived": true,
+    "exact_outage_scoring": true,
+    "image_level_codec_infeasibility": true,
+    "runtime_exception_hold": true,
+    "typed_decode_failure": true
+  },
+  "schema_version": 2,
+  "scientific_meaning": "none; this proof is merge-ineligible for production",
+  "selection": false,
+  "status": "PASS",
+  "test_access": 0,
+  "training": 0
+}

@@ -1,0 +1,47 @@
+{
+  "artifact_role": "g8_e_corrective_v2_provenance",
+  "authority_reuse": {
+    "authority_id": "g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5",
+    "authority_sha256": "9f7407a7c7965f2fc0c9736a7a1c12062cecaf6d4c65f8a219cbf7faf2a11145",
+    "mapping_id": "g8elogicalmapping-42ddbd29778b77fca4cc4b1fc557d1128225a91c530fc5276a586e77e99fedfe",
+    "mapping_sha256": "b408a022cbb9d48528a15db9d9432c0dc6f76daf33bb622d6628f959693ca7ad"
+  },
+  "classification": "both previous E1 epochs remain immutable superseded-before-data history; no scientific invalidation",
+  "preserved_superseded_epochs": {
+    "first_corrected_artifact_root": "results/baseline/g8_e/e1_corrected",
+    "first_corrected_e1": {
+      "campaign_id": "g8e-corrected-d55b30df0e9f580dfb8be7b19dc33f5b9092bdedad8725ca9a2ffd36814fdcd4",
+      "contract_id": "g8econtractcorrected-ab9c4c46be7f3bf58129274083f9a15fb0008a90a2f6b653a906b72a4efc3a39",
+      "sha256": "77cc6a91c8bd68717359c529ed305b2d2996072c29a9c89591d656e2ddfda3b3"
+    },
+    "original_e1": {
+      "campaign_id": "g8e-0037dfcbe2b679d8d0b09ff7116ed93a7e17099522481b7d4c1f1005d88e30bc",
+      "contract_id": "g8econtract-d25df856e56b45c48fca4750b278e10c62daebced3bf6b8176232133e8c8a8b8",
+      "sha256": "b0975c2edee5018cee74138f53ee3d3e5c51b38a3ec34f9e3af48ce6d6d47d04"
+    }
+  },
+  "reason": [
+    "per-image codec/source infeasibility was incorrectly candidate-fatal",
+    "unexpected backend/decoder/classifier/cache failures were laundered into scientific outcomes",
+    "normal transaction advancement revalidated and reaggregated the full prefix",
+    "--start and --resume were not distinct runtime state transitions",
+    "classifier observations were repeated for exact reconstruction reuse"
+  ],
+  "schema_version": 2,
+  "scientific_measurement_coverage": 0,
+  "status": "CURRENT_PRE_DATA_SUPERSESSION",
+  "zero_data_audit": {
+    "e2_completed_units": 0,
+    "e2_records": 0,
+    "e3_merge_present": false,
+    "e4_objects_present": false,
+    "fallback_invocation": false,
+    "full_validation_payload_decodes": 0,
+    "pass_one_completion": false,
+    "pass_one_pre_marker": false,
+    "pass_two": 0,
+    "ratio_adjudication": false,
+    "test_access": 0,
+    "training": 0
+  }
+}

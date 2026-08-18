@@ -1,0 +1,29 @@
+{
+  "aggregate_directory_present": false,
+  "checkpoint_bytes_on_disk": 3359,
+  "checkpoint_bytes_written": 3359,
+  "extrapolation_288000": {
+    "checkpoint_count": 71,
+    "normal_prefix_record_validation_visits": 0,
+    "normal_state_publications": 576001,
+    "one_resume_reconciliation_record_visits": 288000,
+    "state_bytes_written_linear_estimate": 805384195
+  },
+  "labels": [
+    "NON-SCIENTIFIC",
+    "NON-SELECTION",
+    "NOT PRODUCTION E2 EVIDENCE",
+    "MERGE-INELIGIBLE FOR PRODUCTION"
+  ],
+  "n": 10000,
+  "normal_transaction_complexity": "O(1) per unit; O(N) cumulative",
+  "record_validation_visits_normal": 0,
+  "record_validation_visits_one_resume_reconciliation": 10000,
+  "resume_reconciliation_complexity": "O(N) once",
+  "runtime_seconds": 44.49908541399782,
+  "scientific_record_bytes_on_disk": 32908890,
+  "state_bytes_written": 27964729,
+  "state_publications": 20001,
+  "state_size_bytes": 1367,
+  "status": "PASS"
+}

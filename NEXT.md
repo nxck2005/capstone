@@ -7,20 +7,33 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-19 · **Phase:** **G8_C remains green and closed; G8_D D0–D7 are complete and GREEN; the first G8_E E0/E1 freeze is preserved as superseded-before-data history; corrected E1 is frozen as an executable pre-data contract with zero validation coverage; E2 remains owner-authorization gated.**
+**Last updated:** 2026-08-19 · **Phase:** **G8_C remains green and closed; G8_D D0–D7 are complete and GREEN; original E1 and first corrected E1 are preserved as superseded-before-data history; corrected-v2 E1 is frozen as the executable pre-data contract with zero validation coverage; E2 remains owner-authorization gated.**
 
 **2026-08-19 G8_E E1 corrective supersession (complete):** the first E1
 freeze was proven unopened before this repair: its runtime root, E2 records,
 pass markers, G8_F state and scientific counters are absent or zero. Its
 contract, campaign, authority and source-manifest identities remain immutable
 history and are classified `superseded-before-data`; no measurement was
-invalidated. The additive corrected epoch freezes the complete future E2
-transaction plus deterministic E3/E4 transformations, separating logical SNR
-cells from structural clean-measurement identities and exact physical cache
-keys. The corrected runner remains closed until a separate owner authorization
-artifact exists. Do not execute E2, decode the
+invalidated. The additive corrected epoch froze the logical/structural authority
+and physical cache boundary, but was later superseded before data by the v2
+repair. The corrected-v2 epoch now freezes the complete future E2 transaction
+plus deterministic E3/E4 transformations, including image-level outage rows,
+fatal runtime HOLD behavior, compact O(1) advancement and a real start/resume
+state machine. The v2 runner remains closed until a separate owner
+authorization artifact exists. Do not execute E2, decode the
 full validation set, run pass one, train, invoke fallback, adjudicate ratios or
 access test.
+
+**2026-08-19 G8_E corrected-v2 supersession (complete):** the first corrected
+E1 epoch was audited before data and has zero accepted production records,
+zero completed units, no E3/E4 output and no owner authorization. It remains
+immutable `superseded-before-data` history. The additive current epoch is
+`results/baseline/g8_e/e1_corrected_v2/`; its production-scale contract binds
+6,048 logical Imagenette cells, 288 structural identities and 288,000 work
+units, with zero coverage and no runtime. It repairs per-image codec
+infeasibility scoring, unexpected-exception HOLD semantics, compact transaction
+state, start/resume separation, classifier-observation reuse and direct G8_C/G8_D
+provenance. E2 is still unopened and owner authorization has not been created.
 
 **2026-08-18 clean-checkout provenance repair (complete):** the G8_C request,
 result, state and campaign-state bytes, authority, 5,000-trial counts, BLER
@@ -114,8 +127,9 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** G8_D is GREEN and closed. Corrected G8_E E1 is frozen as
-an executable pre-data contract with zero validation coverage; E2 awaits owner
+**Next-session task:** G8_D is GREEN and closed. Original E1 and first corrected
+E1 are superseded-before-data history; corrected-v2 E1 is frozen as an
+executable pre-data contract with zero validation coverage; E2 awaits owner
 execution authorization. Do not execute E2
 in this handoff, run pass one, train, invoke fallback, adjudicate a ratio, access
 test, rerun or resume either upstream campaign, reopen C3-C7, substitute
@@ -138,8 +152,8 @@ does not, it is wrong and this block is right.**
 | G-8 successor C3-C7 repository closeout | complete — 153 curves, 3,213 measured points |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next — G8_E E0/E1 READY with zero validation coverage; E2 awaits owner execution authorization; G8_D GREEN with D0/D1/D2/D3/D4/D5/D6/D7 complete; successor execution and C3-C7 closeout complete at 3213/3213** |
-| G8_B–G8_G | **G8_B complete; G8_C GREEN with successor BLER table frozen; G8_D GREEN; G8_E E0/E1 READY; E2 unopened pending owner authorization.** |
+| G-8 classical validation work | **next — G8_E E0 valid; original E1 and first corrected E1 superseded-before-data; corrected-v2 E1 READY with zero validation coverage; E2 awaits owner execution authorization; G8_D GREEN with D0/D1/D2/D3/D4/D5/D6/D7 complete; successor execution and C3-C7 closeout complete at 3213/3213** |
+| G8_B–G8_G | **G8_B complete; G8_C GREEN with successor BLER table frozen; G8_D GREEN; G8_E E0 valid, corrected-v2 E1 READY; E2 unopened pending owner authorization.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
@@ -153,8 +167,9 @@ source/provenance closure are hash-bound under
 `results/baseline/g8_pascal_successor/`; the old local campaign remains
 immutable superseded history and contributes zero successor-table coverage.
 The test split and every later scientific phase remain closed. G8_D D0–D7 are
-complete and GREEN; corrected G8_E E1 is frozen pre-data with zero validation
-coverage, E2 awaits owner execution authorization, and the full validation
+complete and GREEN; original and first corrected G8_E E1 are immutable
+superseded-before-data history, corrected-v2 E1 is frozen pre-data with zero
+validation coverage, E2 awaits owner execution authorization, and the full validation
 campaign remains closed.
 Everything else stays behind its own gate — do not calibrate λ, train learned
 models, implement ER-9, or access the test split until theirs.

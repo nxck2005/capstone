@@ -1,0 +1,9 @@
+{
+  "authority_id": "g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5",
+  "mapping_count": 12096,
+  "mapping_digest": "f495601c3feca44a07ed6484ff2b77b3dbf1347056eb9e8d12c91209dca49d0f",
+  "mapping_id": "g8elogicalmapping-42ddbd29778b77fca4cc4b1fc557d1128225a91c530fc5276a586e77e99fedfe",
+  "path": "results/baseline/g8_e/e1_corrected/logical_measurement_mapping.json",
+  "reused_byte_identically": true,
+  "sha256": "b408a022cbb9d48528a15db9d9432c0dc6f76daf33bb622d6628f959693ca7ad"
+}

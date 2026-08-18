@@ -1,0 +1,276 @@
+{
+  "artifact_role": "g8_e_corrective_v2_execution_source_manifest",
+  "checkpoint": "E1_corrected_v2",
+  "direct_g8_c_portable_binding": true,
+  "direct_g8_d_current_binding": true,
+  "excludes": [
+    "results/baseline/g8_e/e1_corrected_v2/runtime/",
+    "results/baseline/g8_e/e1_corrected_v2/e2_execution_authorization.json"
+  ],
+  "schema_version": 1,
+  "scientific_source_closure": {
+    "e3_is_independent_exact_set_scan": true,
+    "e4_is_count_derived": true,
+    "runner_is_start_resume_state_machine": true,
+    "source_drift_is_hold": true,
+    "transaction_normal_advancement_is_compact": true,
+    "unexpected_exception_is_campaign_hold": true
+  },
+  "source_commit": "4e3ae1eb8f8f2b2cf76aa20fe68f9d7e56424fa5",
+  "source_entries": [
+    {
+      "bytes": 129255,
+      "path": "src/baseline/g8_e_corrected_v2.py",
+      "role": "current_v2_e2_e3_e4_runtime",
+      "sha256": "ee08a42e2db0056a2e1dc8ad6a4be8c9792b392234b77b3440f7beb4a635459a"
+    },
+    {
+      "bytes": 5886,
+      "path": "tools/run_g8_e_corrected_v2.py",
+      "role": "current_v2_owner_gated_runner",
+      "sha256": "8d87a7f73a9e345d12e441d4ad0d48d620f7c926cb937e41bcebd94eaca76693"
+    },
+    {
+      "bytes": 1500,
+      "path": "tools/merge_g8_e_corrected_v2.py",
+      "role": "current_v2_independent_e3",
+      "sha256": "5f349dfbffd2e3dbea9d8bc6cbc4c46117556484862a6bc1e4cb86a45a97ac61"
+    },
+    {
+      "bytes": 1505,
+      "path": "tools/aggregate_g8_e_corrected_v2.py",
+      "role": "current_v2_count_derived_e4",
+      "sha256": "9266079dfe5616a86f4d28a8ec048d48f01ea2841a165f5fdf21a14536351fdf"
+    },
+    {
+      "bytes": 2113,
+      "path": "tools/verify_g8_e_corrected_v2.py",
+      "role": "current_v2_independent_verifier",
+      "sha256": "c3cbbf6b9f680e934138798bd283db8e8a497c20337116522271dc261041f8c4"
+    },
+    {
+      "bytes": 7106,
+      "path": "tools/benchmark_g8_e_v2_transaction.py",
+      "role": "current_v2_transaction_scale_benchmark",
+      "sha256": "fd59000105a9201e9eeab68a02eaa00106b4bba3740de8204d8c0e280099438d"
+    },
+    {
+      "bytes": 10755,
+      "path": "tools/prove_g8_e_corrected_v2_synthetic.py",
+      "role": "current_v2_synthetic_proof_harness",
+      "sha256": "490f8ebe4e5839a8a16f7da64b3217d10be618138952741b05d1eafb6f6b5a65"
+    },
+    {
+      "bytes": 72000,
+      "path": "src/baseline/classical/composition.py",
+      "role": "br4_measured_composition",
+      "sha256": "e3135ecefd612c5505bd1137bbf9a8a8212cf338080dde24bf5b25e07212b744"
+    },
+    {
+      "bytes": 40977,
+      "path": "src/baseline/classical/records.py",
+      "role": "br11_all_row_semantics",
+      "sha256": "62dfaed5d05941a412c186c1d2b2929ff2c5e73fbe9351f3127eb7f3dc9a3bce"
+    },
+    {
+      "bytes": 16962,
+      "path": "src/baseline/classical/pipeline.py",
+      "role": "classical_verdict_taxonomy",
+      "sha256": "2eac20ae0ee1af19fe1b6e5d6a853b8fc2d514d99b0ff997b1763477673d7ea3"
+    },
+    {
+      "bytes": 22262,
+      "path": "src/baseline/classical/outage.py",
+      "role": "frozen_outage_policy",
+      "sha256": "54bd239d5d3ecfac8dd335453a68945a205e5b9574baa7144708141013b7dc0d"
+    },
+    {
+      "bytes": 12977,
+      "path": "src/baseline/classical/channel_transport.py",
+      "role": "transport_accounting",
+      "sha256": "c1822b8a8d0b78609d62228496aac8c19279033c5c55ca39c3e522986e6c23ca"
+    },
+    {
+      "bytes": 20595,
+      "path": "src/baseline/j2k.py",
+      "role": "jpeg2000_backend",
+      "sha256": "90a0dc1bfdbf37fcb1cd36a539f4623d0d247c20cfc04246da00cad4cc377b7e"
+    },
+    {
+      "bytes": 8673,
+      "path": "src/baseline/ldpc/transport.py",
+      "role": "packet_plan",
+      "sha256": "f06a78104073ee9d8aa87e388d3389b43b94609830e5d0593555bb4bf768644c"
+    },
+    {
+      "bytes": 3941,
+      "path": "src/baseline/ldpc/segmentation.py",
+      "role": "packet_segmentation",
+      "sha256": "44f160a0db476e38a0dbac80c1eb6872c4a102d71c8e4ad84ed60672f7ff57cf"
+    },
+    {
+      "bytes": 765,
+      "path": "src/baseline/ldpc/rate_matching.py",
+      "role": "rate_matching",
+      "sha256": "a24aea4057b555f335b4b8d930523b3e13ee5f6dbe717618461eb4abc01250f1"
+    },
+    {
+      "bytes": 3790,
+      "path": "src/baseline/ldpc/modulation.py",
+      "role": "modulation",
+      "sha256": "eb3e7f05e453ea74ba099cfe5de5494ca9926f1333db16ee3d3dcc461ae011ad"
+    },
+    {
+      "bytes": 11468,
+      "path": "src/data/manifests.py",
+      "role": "validation_manifest_identity",
+      "sha256": "28cb6de265b7f2cf5eff65e0da9bba3a35a592371924bb52a991b6682353bfdd"
+    },
+    {
+      "bytes": 1056,
+      "path": "src/data/identity.py",
+      "role": "stable_sample_identity",
+      "sha256": "e03e0033d6d0174584c2818fb4b6968d9e33c133527a8fbab1644f6a5850f249"
+    },
+    {
+      "bytes": 20537,
+      "path": "src/data/preprocessing.py",
+      "role": "canonical_codec_preprocessing",
+      "sha256": "1aa5eafc8d02be5e79ee10b342cb8fb901e2600ba7a77224ecaf29dbcbcbacdf"
+    },
+    {
+      "bytes": 6295,
+      "path": "src/data/registry.py",
+      "role": "validation_registry_boundary",
+      "sha256": "da790dcee14835f756302a360defa9158f63a56eded87605fe383ade6297b8ae"
+    },
+    {
+      "bytes": 1793,
+      "path": "src/data/test_access.py",
+      "role": "sealed_test_boundary",
+      "sha256": "f8f718f87cb25a4db2e49c89c9df2bdc9794fd83d244a78995d65bc69922a865"
+    },
+    {
+      "bytes": 12283,
+      "path": "src/models/frozen_reference_classifier.py",
+      "role": "frozen_g1_loader",
+      "sha256": "6df88447c1afbcf7c7d5f9484d18a20637085a2552c326bc0ee2a33f2ab90fce"
+    },
+    {
+      "bytes": 3788,
+      "path": "src/models/reference_classifier.py",
+      "role": "g1_model_architecture",
+      "sha256": "d2f52ee616a582657e895a9b1c56250ee83d172b963cd00bb55bb0c8942eb703"
+    },
+    {
+      "bytes": 16379,
+      "path": "src/config/execution_profiles.py",
+      "role": "authenticated_profile",
+      "sha256": "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+    },
+    {
+      "bytes": 16293,
+      "path": "src/config/run_config.py",
+      "role": "run_configuration_identity",
+      "sha256": "e18af6b2930cf0a1d2208860edc208cf0af7c24c63b87119e5e737efc350e505"
+    },
+    {
+      "bytes": 1550,
+      "path": "src/config/params.py",
+      "role": "generated_parameters",
+      "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc"
+    },
+    {
+      "bytes": 8308,
+      "path": "src/env.py",
+      "role": "runtime_environment",
+      "sha256": "18f32856644b243ecafdb4dee07f17aeeb71c0ca15f3f9899539b229c6a296dc"
+    },
+    {
+      "bytes": 52911,
+      "path": "src/baseline/g8_pascal_merge.py",
+      "role": "g8_c_portable_merge_source",
+      "sha256": "7a35ac30e0c2c62363688c3cbb4f00c1f039bc680eb1c3c0d03dcec82c68e526"
+    },
+    {
+      "bytes": 27508,
+      "path": "src/baseline/g8_pascal_portable.py",
+      "role": "g8_c_portable_loader_source",
+      "sha256": "765f72acfc1a21b1d79c911a913415ac5f7b92a5dada004a38d11ba909c7f32d"
+    },
+    {
+      "bytes": 2129520,
+      "path": "results/baseline/g8_pascal_successor/portable_scientific_runtime_manifest.json",
+      "role": "g8_c_portable_scientific_runtime_manifest",
+      "sha256": "f626ea7c973a9d1f53ab292ec121725b5a6d3331743ade031b4906caa782da5b"
+    },
+    {
+      "bytes": 4171,
+      "path": "results/baseline/g8_pascal_successor/portable_verification_provenance.json",
+      "role": "g8_c_portable_verification_provenance",
+      "sha256": "3ea789c1f5bff4abfe926016c2e508288d479991d0a5447bf2f695281a8682aa"
+    },
+    {
+      "bytes": 13998520,
+      "path": "results/baseline/g8_pascal_successor/successor_bler_merge_report.json",
+      "role": "g8_c_frozen_successor_merge",
+      "sha256": "71ec9fe2eef8905e7ab27876881ad6bc295415ebee443a45600873b73a0dc8a8"
+    },
+    {
+      "bytes": 5774378,
+      "path": "results/baseline/g8_pascal_successor/successor_bler_table.json",
+      "role": "g8_c_frozen_successor_bler_table",
+      "sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5"
+    },
+    {
+      "bytes": 4354,
+      "path": "results/baseline/g8_pascal_successor/successor_closeout_provenance.json",
+      "role": "g8_c_historical_c6_closeout_provenance",
+      "sha256": "efda699748cc176c184e0ef2dbcd8fc6591afd3e2fa41a9af4853fb135e3953f"
+    },
+    {
+      "bytes": 19143,
+      "path": "results/baseline/g8_d/measurement_contract.json",
+      "role": "g8_d_current_measurement_contract",
+      "sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a"
+    },
+    {
+      "bytes": 2261,
+      "path": "results/baseline/g8_d/d7_handoff.json",
+      "role": "g8_d_current_d7_handoff",
+      "sha256": "fa38c9bbc5e02ea3b16539eed17a9008079386f9655f1b8d789034056432e408"
+    },
+    {
+      "bytes": 2858,
+      "path": "results/baseline/g8_d/portable_rebind_provenance.json",
+      "role": "g8_d_current_portable_rebind",
+      "sha256": "091381f9737c112f473672f533361955644a224fb067788b77aafc4eb01fe2b3"
+    },
+    {
+      "bytes": 3184,
+      "path": "results/reference_classifier/g1_adjudication.json",
+      "role": "g1_adjudication",
+      "sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd"
+    },
+    {
+      "bytes": 385,
+      "path": "results/reference_classifier/best_checkpoint.json",
+      "role": "g1_checkpoint_binding",
+      "sha256": "3e58cedc9a3a77b8e3333047bfdf4c72ba61376f40be63427b410bd1bde87bb8"
+    },
+    {
+      "bytes": 29677,
+      "path": "results/reference_classifier/resolved_config.json",
+      "role": "g1_resolved_config",
+      "sha256": "6664f4cec2cfd8a6d6e152908e17fb7b603df0a1cab0eae3dfe814ed102f1f41"
+    },
+    {
+      "bytes": 342,
+      "path": "results/reference_classifier/validation_summary.json",
+      "role": "g1_validation_summary",
+      "sha256": "694eca933a654de9559f4f82cab25af0c2ffe33fa92ebf52bcacda6a0cf06a05"
+    }
+  ],
+  "source_manifest_id": "g8esourcecorrectedv2-c4bb8ab9f566aeab1531dc72142fd77be525d4fef43e92ac116ceddbbcd1fad1",
+  "status": "FROZEN_PRE_DATA"
+}

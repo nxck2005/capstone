@@ -1,0 +1,29 @@
+{
+  "base64_expansion_accounted": true,
+  "basis": "representative rendered JSON with base64 payloads; planning estimate only",
+  "estimated_bytes": {
+    "classifier_observation_cache": 52080000,
+    "codec_cache": 690360000,
+    "e3_output": 88128000,
+    "e4_output": 11182440,
+    "reconstruction_cache_base64": 12324600000,
+    "required_with_safety_margin": 17983997898,
+    "runtime_state_and_checkpoints": 15879,
+    "safety_margin_25_percent": 3596799579,
+    "scientific_records": 1220832000,
+    "subtotal": 14387198319
+  },
+  "no_prior_evidence_deleted": true,
+  "preflight_required_before_validation_decode": true,
+  "production_units": 288000,
+  "representative_sizes_bytes": {
+    "classifier_observation_object": 434,
+    "codec_cache_object": 5753,
+    "compact_state": 756,
+    "e3_entry": 306,
+    "e4_entry": 93187,
+    "reconstruction_cache_object": 102705,
+    "scientific_record": 4239
+  },
+  "unique_physical_jobs": 120000
+}
