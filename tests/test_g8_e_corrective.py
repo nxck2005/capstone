@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -175,7 +176,7 @@ def test_current_runner_refuses_before_validation_decode(tmp_path: Path) -> None
     contract = json.loads(corrected.CORRECTED_CONTRACT_PATH.read_text())
     result = subprocess.run(
         [
-            str(corrected.REPO_ROOT / ".venv/bin/python"),
+            sys.executable,
             str(corrected.REPO_ROOT / "tools/run_g8_e_corrected.py"),
             "--start",
             "--campaign-id",
