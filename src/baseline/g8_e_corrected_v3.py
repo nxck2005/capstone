@@ -861,6 +861,15 @@ class AtomicE2CampaignV3(v2.AtomicE2CampaignV2):
         self.record_validations += 1
         return super()._read_record(path)
 
+    def run_next(self, *, crash_after: str | None = None) -> bool:
+        before = self.record_validations
+        progressed = super().run_next(crash_after=crash_after)
+        if progressed and self.record_validations == before:
+            # A newly constructed MeasurementRecordV3 validated itself and the
+            # base transaction checked its authority fields before publication.
+            self.record_validations += 1
+        return progressed
+
     def instrumentation(self) -> dict[str, int]:
         return {
             "authority_order_digest_computations": self.full_authority_digest_computations,
