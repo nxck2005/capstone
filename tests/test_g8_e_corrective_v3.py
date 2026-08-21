@@ -91,12 +91,17 @@ def _copy_completed(source: Path, target: Path) -> Path:
     return target
 
 
-def test_frozen_and_predata_verifiers_are_distinct() -> None:
+def test_frozen_verifier_and_phase_transitioned_predata_refusal() -> None:
     _require_bundle()
     frozen = v3.verify_v3_frozen_contract(verify_live_data=False)
-    predata = v3.verify_v3_predata_zero_state(verify_live_data=False)
-    assert frozen["contract_sha256"] == predata["contract_sha256"]
-    assert predata["production_e2_records"] == 0
+    # The owner-authorized local E2 campaign began and was aborted at a clean
+    # partial prefix (PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION), so the E1-only
+    # pre-data verifier must now refuse while the phase-invariant frozen
+    # verifier keeps authenticating the same immutable contract bytes.
+    with pytest.raises(v3.G8EV3Error, match="zero state"):
+        v3.verify_v3_predata_zero_state(verify_live_data=False)
+    assert v3.V3_AUTHORIZATION_PATH.is_file()
+    assert v3.V3_RUNTIME_ROOT.is_dir()
 
 
 def test_predata_closes_after_transition_without_poisoning_immutable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -465,13 +470,18 @@ def test_production_runner_refuses_old_v2_and_missing_authorization_before_paylo
         text=True,
         check=False,
     )
+    # --start must refuse both a superseded campaign and an existing runtime;
+    # the aborted local partial runtime is preserved in place and is never a
+    # --start target.
     assert current.returncode == 2
-    assert not v3.V3_RUNTIME_ROOT.exists()
+    assert v3.V3_RUNTIME_ROOT.is_dir()
+    state = json.loads((v3.V3_RUNTIME_ROOT / "campaign_state.json").read_text())
+    assert 0 < state["completed_prefix_count"] < state["total_required"]
 
 
 def test_frozen_boundaries_and_future_pass_one_plan() -> None:
     _require_bundle()
-    contract = v3.verify_v3_predata_zero_state(verify_live_data=False)["contract"]
+    contract = v3.verify_v3_frozen_contract(verify_live_data=False)["contract"]
     assert contract["safety"] == {
         "measurement_coverage": 0,
         "e2_completed_units": 0,

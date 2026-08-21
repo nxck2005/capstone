@@ -1,0 +1,56 @@
+{
+  "accepted_evidence_preserved": true,
+  "artifact_role": "g8_e_v3s_relocation_provenance",
+  "classification": "PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION",
+  "g1_retrain": false,
+  "g8_c_rerun": false,
+  "g8_d_rerun": false,
+  "predecessor": {
+    "authorization_sha256": "36539e5769a6e11d014121b9c9a23c164ce718a0377fdca13ab7e9fd906c5874",
+    "campaign_id": "g8e-v3-c20d9c4f4638687ad9e4e3e69bf7b9dbdf509a62c2c3a4d95dbbe6771ced57b5",
+    "completion_artifact_absent": true,
+    "contract_id": "g8econtractcorrectedv3-da3e1d32d5b826a5bfa06f0d7b7a9e3c1809026843633648d28a70a9437986a4",
+    "contract_sha256": "c4f9451dbb95bdfa36a9703ef1199b369a631152d37b301658170ebb549dc7df",
+    "e3_present": false,
+    "e4_present": false,
+    "profile_id": "local_4060_cu130",
+    "record_count": 47409,
+    "runtime_bytes_at_stop": 4655012710,
+    "runtime_path": "results/baseline/g8_e/e1_corrected_v3/runtime",
+    "state": {
+      "authority_order_sha256": "2e3f6d50ae5116929a32299c598dc3adecacb3bfb7ce99e91e5640a7bc77e847",
+      "completed_prefix_count": 47409,
+      "counters": {
+        "codec_infeasibility": 5000,
+        "decode_failure": 0,
+        "delivered": 42409,
+        "inference": 42409,
+        "structural_infeasibility": 0,
+        "test_access": 0,
+        "training": 0,
+        "validation_decoding": 42409
+      },
+      "last_completed_work_unit_id": "g8eworkv2-4fa160e69ca8525e789b6dcb740b5318f54b7fc74e7055f5d5a4279574946132",
+      "rolling_prefix_digest": "ebdea4a44f15950908438fc2a789620578e6cad5fd7dd7d7df56b1cfd9f428ad",
+      "schema_version": 2,
+      "state_sha256": "2c1e4f691efc0ae0f1184e0268cb8d0cd093dbb2edd01fbdde796b9c6cb10f89",
+      "total_required": 288000
+    }
+  },
+  "reason": "Owner elected to relocate authoritative E2-E4 execution from the active development laptop to the dedicated qualified worker server confessor.",
+  "relocation_provenance_id": "g8erelocationv3s-cb1083027741e6b582755d3fc1d8aa807f16972672d89c006d90f0293ae898fc",
+  "schema_version": 3,
+  "scientific_defect": "NONE",
+  "selection_contribution": "ZERO",
+  "superseded_before_data": false,
+  "used_by_e3_e4_e5": false,
+  "used_by_worker_successor": false,
+  "worker": {
+    "device": "cuda:0",
+    "host": "confessor",
+    "lock_file": "requirements-pascal.lock",
+    "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+    "profile_id": "confessor_pascal_cu126"
+  },
+  "worker_successor_rejection_rule": "successor verification rejects any record whose campaign/profile identity is not exactly the successor campaign on confessor_pascal_cu126"
+}

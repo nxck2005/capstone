@@ -1,0 +1,45 @@
+{
+  "artifact_role": "g8_e_v3s_non_scientific_full_lifecycle_proof",
+  "bindings": {
+    "completion_sha256": "bd6ec569a86b9393ebfb1e7b9266dd6e2f507de1e2d1f0f3181addd65a371e4d",
+    "e3_id": "g8ee3v3-866c12329b96e55f18bacb03e1bc42b5c32d185e7e9b1992e036d99321ce889a",
+    "e3_sha256": "a9b94c724e0f97aa4537f3d5c00c8b7f3ecc9c08f182b1027e09cce6eb0b10a6",
+    "e4_id": "g8ee4v3-b56450a21b6faef6f0cd9b3e0c68615c80ccf44ff424b9c418334a30c2d58796",
+    "e4_sha256": "f713ec15db5f6307515cf7b15c6c75e68bc29f3340733c1200a8d271e242c850"
+  },
+  "counts": {
+    "e3_records": 9,
+    "e4_objects": 3,
+    "e4_record_traversals": 9,
+    "work_units": 9
+  },
+  "production_e2_evidence": false,
+  "production_runtime": false,
+  "record_labels": [
+    "NON-SCIENTIFIC",
+    "NON-SELECTION",
+    "NOT PRODUCTION E2 EVIDENCE",
+    "MERGE-INELIGIBLE FOR PRODUCTION"
+  ],
+  "safety": {
+    "fallback": false,
+    "pass_one": false,
+    "pass_two": 0,
+    "ratio_adjudication": false,
+    "test_access": 0,
+    "training": 0
+  },
+  "schema_version": 3,
+  "scientific_meaning": "none; fixture is synthetic and merge-ineligible for production",
+  "stages": {
+    "actual_e3_cli": true,
+    "actual_e4_cli": true,
+    "actual_worker_runner_resume": true,
+    "actual_worker_runner_start": true,
+    "exact_e2_completion": true,
+    "interruption_after_partial_e2": true,
+    "production_campaign_rejects_fixture": true,
+    "synthetic_authorization_authenticated": true
+  },
+  "status": "PASS"
+}
