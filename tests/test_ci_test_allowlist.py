@@ -32,6 +32,7 @@ EXPECTED = {
         ("tests/test_ldpc.py", "test_srsran_encoder_and_rate_matched_fixture_exact"),
     },
     "external_dataset": {
+        ("tests/test_g8_e_corrective_v3.py", "test_production_runner_refuses_old_v2_and_missing_authorization_before_payload"),
         ("tests/test_w4_smoke_runner.py", "test_worklist_is_deterministic_and_free_of_duplicate_identities"),
         ("tests/test_w4_smoke_runner.py", "test_worklist_is_ordered_by_stable_sample_id_not_loader_order"),
         ("tests/test_w4_smoke_runner.py", "test_a_cifar_worklist_row_is_never_task_scored"),
