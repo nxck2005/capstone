@@ -216,12 +216,18 @@ def test_live_identity_check_rejects_the_contract_summary_block():
     """Regression: the runner must authenticate the FULL data-identity file,
     never the contract's summary block, against the live rebuild."""
 
-    contract_path = v3s.V3S_CONTRACT_PATH
-    if not contract_path.is_file():
+    if not v3s.V3S_CONTRACT_PATH.is_file():
         pytest.skip("worker-successor contract is frozen on the worker host")
-    contract = json.loads(contract_path.read_text())
+    contract = json.loads(v3s.V3S_CONTRACT_PATH.read_text())
     with pytest.raises(ValueError):
         v3.verify_live_validation_identity(contract["scientific_data_identity"])
+    # The tracked repository path named by the contract is the authenticator.
+    data_identity_path = Path(v3s.__file__).resolve().parents[2] / str(
+        contract["scientific_data_identity"]["path"]
+    )
+    assert data_identity_path.is_file()
+    data_identity, _ = v3s._rendered_object(data_identity_path, "v3 reused data identity")
+    assert data_identity["data_identity_id"] == contract["scientific_data_identity"]["id"]
 
 
 def test_production_e3_rejects_merge_ineligible_fixture_records(tmp_path, monkeypatch):

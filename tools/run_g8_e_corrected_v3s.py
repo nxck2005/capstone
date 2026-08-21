@@ -85,12 +85,13 @@ def main(argv: Sequence[str] | None = None, *, fixture: Mapping[str, Any] | None
                 raise v3s.G8EV3SError("live execution profile differs")
             v3s.storage_preflight(bundle["storage_plan"], args.runtime_root)
             # The full scientific data identity FILE — not the contract's summary
-            # block — is the object authenticated against the live rebuild.
-            data_identity_path = args.contract.parent / Path(contract["scientific_data_identity"]["path"]).name
-            if data_identity_path.resolve() != (REPO / str(contract["scientific_data_identity"]["path"])).resolve():
-                raise v3s.G8EV3SError("worker runner must use the tracked v3 scientific data identity")
+            # block — is the object authenticated against the live rebuild.  Its
+            # tracked repository path was already bound by verify_frozen_contract.
+            data_identity_path = REPO / str(contract["scientific_data_identity"]["path"])
+            if not data_identity_path.is_file():
+                raise v3s.G8EV3SError("the tracked v3 scientific data identity file is missing")
             data_identity, _ = v3s._rendered_object(
-                REPO / str(contract["scientific_data_identity"]["path"]),
+                data_identity_path,
                 "v3 reused scientific data identity",
             )
             frozen_ids = v3.verify_live_validation_identity(data_identity)
