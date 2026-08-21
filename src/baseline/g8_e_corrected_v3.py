@@ -571,7 +571,10 @@ def build_contract(
 ) -> dict[str, Any]:
     authority = v2._authority_binding()
     mapping = v2._mapping_binding(authority)
-    production_work_units = expected_work_units(authority, frozen_validation_ids(data_identity))
+    full_authority = load_measurement_authority()
+    if full_authority["authority_id"] != authority["authority_id"]:
+        raise G8EV3Error("v3 full authority differs from its frozen binding")
+    production_work_units = expected_work_units(full_authority, frozen_validation_ids(data_identity))
     production_authority_order_sha256 = sha256_bytes(
         canonical_json([unit["work_unit_id"] for unit in production_work_units])
     )
