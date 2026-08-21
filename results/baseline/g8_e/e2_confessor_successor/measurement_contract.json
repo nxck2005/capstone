@@ -84,7 +84,7 @@
       "validation_decode": true
     }
   },
-  "campaign_id": "g8e-v3s-8a5374932e125218cf6e9eb1f1f92fb6d52f02f1c291199918f599a645b4feb6",
+  "campaign_id": "g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588",
   "campaign_seed": {
     "authority_id": "g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5",
     "data_identity_id": "g8edataidentityv3-f3684d94a7e1169ee9c3b77f651c8ae25453a9eddf07871dc8a38c7685baddff",
@@ -95,9 +95,9 @@
     "predecessor_contract_sha256": "c4f9451dbb95bdfa36a9703ef1199b369a631152d37b301658170ebb549dc7df",
     "schema_version": 3,
     "semantics_epoch": "g8_e_v3s_confessor_worker_relocation",
-    "source_manifest_id": "g8esourcecorrectedv3s-63cc27a741af4173710b69fcb342505fa80de9ac0b4198278be2422754c8b6d7",
-    "source_manifest_sha256": "64ba28e83f087d185893ff489438924382b027aa36b82c2cb2053a68608d1d0c",
-    "storage_plan_sha256": "366af4ba9dfa9d97dcd2c94ec6b32985fb809ff83074b5c47e9f00d7cfa13f4a"
+    "source_manifest_id": "g8esourcecorrectedv3s-73642d3ec8f8c10275f2335810ab3a7233112bcfd59491cd0b5c5c6891682a0e",
+    "source_manifest_sha256": "897de8a33275c9a105282ed3f3685b0d7c39b277d21b5448cc2792c42bbec9bd",
+    "storage_plan_sha256": "a71f4900c090c8681a4f1e1e70d3072d768393e8f5d005751902e72e8c9d2bde"
   },
   "checkpoint": "E1_corrected_v3_confessor_successor",
   "classifier": {
@@ -1166,9 +1166,9 @@
       "work_units": 288000
     },
     "storage_path": "results/baseline/g8_e/e2_confessor_successor/compute_storage_plan.json",
-    "storage_sha256": "366af4ba9dfa9d97dcd2c94ec6b32985fb809ff83074b5c47e9f00d7cfa13f4a"
+    "storage_sha256": "a71f4900c090c8681a4f1e1e70d3072d768393e8f5d005751902e72e8c9d2bde"
   },
-  "contract_id": "g8econtractcorrectedv3s-557d93fdc1b3acfa019bfce6b8007a906ab3e5393fa2915450fb2dc7b4bd0378",
+  "contract_id": "g8econtractcorrectedv3s-2831f47d38d58f9a27424421ced4c893e3d0636d564661c80a9e8d31480a177e",
   "direct_upstream_bindings": [
     {
       "bytes": 52911,
@@ -1535,10 +1535,10 @@
     "typed_g8_authorization_required": true
   },
   "source_manifest": {
-    "id": "g8esourcecorrectedv3s-63cc27a741af4173710b69fcb342505fa80de9ac0b4198278be2422754c8b6d7",
+    "id": "g8esourcecorrectedv3s-73642d3ec8f8c10275f2335810ab3a7233112bcfd59491cd0b5c5c6891682a0e",
     "path": "results/baseline/g8_e/e2_confessor_successor/execution_source_manifest.json",
-    "sha256": "64ba28e83f087d185893ff489438924382b027aa36b82c2cb2053a68608d1d0c",
-    "source_commit": "d8a4ae68a71a97f61ebc73ca8540f5e5bb928be1"
+    "sha256": "897de8a33275c9a105282ed3f3685b0d7c39b277d21b5448cc2792c42bbec9bd",
+    "source_commit": "ed0b92a3c9e3b38c8868e4845f0992e893b1cac2"
   },
   "status": "FROZEN_PRE_DATA_EXECUTABLE",
   "supersedes_before_data": {

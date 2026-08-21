@@ -1,13 +1,13 @@
 {
   "artifact_role": "g8_e_v3_owner_e2_authorization",
   "authorized_by": "repository owner/operator via the explicit G8_E worker-relocation prompt of 2026-08-21, authorizing the confessor worker successor for E2, exact E2 resume, E2 completion verification, E3 and E4 ONLY",
-  "campaign_id": "g8e-v3s-8a5374932e125218cf6e9eb1f1f92fb6d52f02f1c291199918f599a645b4feb6",
-  "contract_id": "g8econtractcorrectedv3s-557d93fdc1b3acfa019bfce6b8007a906ab3e5393fa2915450fb2dc7b4bd0378",
+  "campaign_id": "g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588",
+  "contract_id": "g8econtractcorrectedv3s-2831f47d38d58f9a27424421ced4c893e3d0636d564661c80a9e8d31480a177e",
   "data_identity_id": "g8edataidentityv3-f3684d94a7e1169ee9c3b77f651c8ae25453a9eddf07871dc8a38c7685baddff",
   "data_identity_sha256": "598630d86802e72c10f1537b4e2d5c4d1bf7fda775c77425569db0baf2496fba",
-  "issued_sha256": "abfe9eceea1f2c8f6f40b57da9a72eca2034cca2bcaf5b747b1ed24cd23fc01d",
+  "issued_sha256": "be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f",
   "profile_id": "confessor_pascal_cu126",
-  "reason": "Owner relocated authoritative corrected-v3 E2-E4 execution from the aborted partial local_4060_cu130 campaign (PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION, 47409/288000 preserved) to the qualified worker server confessor. Supersedes the unexecuted authorization bound to superseded pre-data contract g8econtractcorrectedv3s-0da3d191a4929fc8743be6d07a3f10ba02f6ad64c1fa23bb0963b53f980feabb, which was refused before any measurement existed. This authorization does NOT open: E5/pass one, selection execution, artifact-classifier training, G8_F, pass two/three, fallback invocation, ratio adjudication/G8_G, learned-system training, test-split access, scientific parameter changes, weakening/replacement of frozen evidence, or G8_C/G8_D regeneration.",
+  "reason": "Owner relocated authoritative corrected-v3 E2-E4 execution from the aborted partial local_4060_cu130 campaign (PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION, 47409/288000 preserved) to the qualified worker server confessor. Supersedes two unexecuted pre-data authorizations bound to contracts g8econtractcorrectedv3s-0da3d191a4929fc8743be6d07a3f10ba02f6ad64c1fa23bb0963b53f980feabb and g8econtractcorrectedv3s-557d93fdc1b3acfa019bfce6b8007a906ab3e5393fa2915450fb2dc7b4bd0378; each predecessor was refused before any measurement existed. This authorization does NOT open: E5/pass one, selection execution, artifact-classifier training, G8_F, pass two/three, fallback invocation, ratio adjudication/G8_G, learned-system training, test-split access, scientific parameter changes, weakening/replacement of frozen evidence, or G8_C/G8_D regeneration.",
   "schema_version": 3,
   "scope": {
     "fallback": false,
@@ -18,7 +18,7 @@
     "training": false,
     "validation_decode": true
   },
-  "source_manifest_id": "g8esourcecorrectedv3s-63cc27a741af4173710b69fcb342505fa80de9ac0b4198278be2422754c8b6d7",
-  "source_manifest_sha256": "64ba28e83f087d185893ff489438924382b027aa36b82c2cb2053a68608d1d0c",
+  "source_manifest_id": "g8esourcecorrectedv3s-73642d3ec8f8c10275f2335810ab3a7233112bcfd59491cd0b5c5c6891682a0e",
+  "source_manifest_sha256": "897de8a33275c9a105282ed3f3685b0d7c39b277d21b5448cc2792c42bbec9bd",
   "status": "AUTHORIZED"
 }

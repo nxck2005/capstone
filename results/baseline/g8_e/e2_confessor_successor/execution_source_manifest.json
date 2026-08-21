@@ -61,7 +61,7 @@
       "data/manifests/imagenette160.csv"
     ]
   },
-  "source_commit": "d8a4ae68a71a97f61ebc73ca8540f5e5bb928be1",
+  "source_commit": "ed0b92a3c9e3b38c8868e4845f0992e893b1cac2",
   "source_entries": [
     {
       "bytes": 87304,
@@ -292,10 +292,10 @@
       "sha256": "ac6e90d6f45f598a673a1284a93c4ae47759f66abdf291cd805746e63259c753"
     },
     {
-      "bytes": 10569,
+      "bytes": 10522,
       "path": "tools/run_g8_e_corrected_v3s.py",
       "role": "v3s_owner_gated_runner",
-      "sha256": "14607133e4334b65dad9eaba6263bcc4840c404dfff6e74f28fe8e5f6fc72d15"
+      "sha256": "284d038b22acd10b00cc737e2d290135cf1f08e5d9d3effb35617a6eececdb6e"
     },
     {
       "bytes": 2889,
@@ -406,6 +406,6 @@
       "sha256": "694eca933a654de9559f4f82cab25af0c2ffe33fa92ebf52bcacda6a0cf06a05"
     }
   ],
-  "source_manifest_id": "g8esourcecorrectedv3s-63cc27a741af4173710b69fcb342505fa80de9ac0b4198278be2422754c8b6d7",
+  "source_manifest_id": "g8esourcecorrectedv3s-73642d3ec8f8c10275f2335810ab3a7233112bcfd59491cd0b5c5c6891682a0e",
   "status": "FROZEN_PRE_DATA"
 }
