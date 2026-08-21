@@ -1,0 +1,43 @@
+{
+  "archive_bytes": 99003388,
+  "archive_filename": "imagenette2-160.tgz",
+  "archive_sha256": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+  "artifact_role": "g8_e_v3_scientific_data_identity_manifest",
+  "class_count": 10,
+  "class_index_source": "sorted_authoritative_class_directory_identifiers",
+  "class_mapping": {
+    "n01440764": 0,
+    "n02102040": 1,
+    "n02979186": 2,
+    "n03000684": 3,
+    "n03028079": 4,
+    "n03394916": 5,
+    "n03417042": 6,
+    "n03425413": 7,
+    "n03445777": 8,
+    "n03888257": 9
+  },
+  "class_mapping_sha256": "9fe801155dc7780954f372d41dbf5d4271e174e87cf6c5c526f0c037d48c4dc6",
+  "configured_manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+  "data_identity_id": "g8edataidentityv3-f3684d94a7e1169ee9c3b77f651c8ae25453a9eddf07871dc8a38c7685baddff",
+  "dataset": "imagenette160",
+  "expected_split_counts": {
+    "test": 3925,
+    "train": 8469,
+    "val": 1000
+  },
+  "loader": "torchvision_datasets_imagenette",
+  "loader_size_arg": "160px",
+  "manifest_bytes": 328954,
+  "manifest_path": "data/manifests/imagenette160.csv",
+  "manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+  "ordered_validation_id_label_sha256": "f37ab36d2ff9c16d1a166890aa5c2a18dec6d5efdfc9af7f112e98eaeafdccc8",
+  "ordered_validation_stable_ids_sha256": "d33a61630998c32ad7161077d032cb035cc091479f8e4af5e7029cc45bc834fc",
+  "payload_decode_performed": false,
+  "schema_version": 3,
+  "source_url": "https://s3.amazonaws.com/fast-ai-imageclas/imagenette2-160.tgz",
+  "stable_id_rule": "sha256_of_original_per_sample_source_bytes_truncated_16_hex",
+  "test_access": 0,
+  "validation_count": 1000,
+  "validation_stable_id_set_sha256": "d33a61630998c32ad7161077d032cb035cc091479f8e4af5e7029cc45bc834fc"
+}

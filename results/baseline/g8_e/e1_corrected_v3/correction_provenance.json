@@ -1,0 +1,49 @@
+{
+  "artifact_role": "g8_e_corrective_v3_provenance",
+  "reasons": [
+    "verification conflated immutable contract authenticity with pre-data zero state",
+    "compact state loads recomputed the full authority-order digest",
+    "E3 membership and structural lookup were quadratic",
+    "E3 was not an immutable content-addressed artifact consumed by E4",
+    "the actual Imagenette validation membership/order/class/archive identity was not directly frozen",
+    "E3 authenticated reconstruction and observation references by existence only",
+    "the backend .j2kcache storage and inode burden was omitted",
+    "E3 CLI printed the complete artifact",
+    "resume did not independently authenticate the durable exact prefix before validation payload opening",
+    "E3 did not rederive emitted-codestream and BR-11 accounting from authenticated codec bytes",
+    "E3 did not cross-check each scientific row's class label against the frozen manifest",
+    "the source-byte digest was not executable-linked back to the stable sample ID"
+  ],
+  "schema_version": 3,
+  "science_preserved": {
+    "authority_and_mapping_reused_byte_identically": true,
+    "g8_c_unchanged": true,
+    "g8_d_unchanged": true,
+    "logical_initial_snr_cells": 6048,
+    "spec_amendment": false,
+    "structural_initial": 288,
+    "work_units": 288000
+  },
+  "scientific_measurement_coverage": 0,
+  "status": "CURRENT_PRE_DATA_SUPERSESSION",
+  "superseded_v2": {
+    "campaign_id": "g8e-v2-ff50dffe0e1e533a40be30044d4fcb5b35ce97b99ff8505c1d222e16685173ef",
+    "contract_id": "g8econtractcorrectedv2-fbfc3fb6d2210bdf377e2d31695933453ecceee385623112b2c8ab260ee63222",
+    "contract_sha256": "de325ff5522b2bd3d58d2563e355438b431dc32d85a5322a32003c926d353cba",
+    "source_epoch": "4e3ae1eb8f8f2b2cf76aa20fe68f9d7e56424fa5",
+    "status": "superseded-before-data"
+  },
+  "zero_data_audit": {
+    "e3_production_artifact": false,
+    "e4_production_artifact": false,
+    "fallback": false,
+    "pass_one": false,
+    "pass_two": 0,
+    "production_e2_accepted_records": 0,
+    "production_e2_completed_units": 0,
+    "ratio_adjudication": false,
+    "real_validation_payload_decoding": 0,
+    "test_access": 0,
+    "training": 0
+  }
+}

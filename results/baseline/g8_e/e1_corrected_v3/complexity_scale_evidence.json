@@ -1,0 +1,166 @@
+{
+  "artifact_role": "g8_e_v3_linear_scale_evidence",
+  "code_level_proof": {
+    "e2": "one cached authority-order digest at construction; _load_state compares persisted digest to the cached scalar; normal progression performs zero full-authority visits",
+    "e2_total": "O(N)",
+    "e3": "one expected_by_id hash map, one structural_by_id hash map, one record scan and one authority-order scan; every membership/structural lookup is O(1)",
+    "e3_total": "O(N)",
+    "e4": "one O(1) E3 artifact authentication and one authority-order record traversal; no second complete E3 ingest",
+    "e4_total": "O(N)"
+  },
+  "extrapolation_288000": {
+    "authority_digest_computations_per_process": 1,
+    "basis_n": 20000,
+    "checkpoint_count": 71,
+    "e2_seconds_linear": 139.77754079040167,
+    "e3_seconds_linear": 32.97200097599489,
+    "e4_seconds_linear": 28.67006373120021,
+    "full_authority_id_visits_during_normal_progression": 0,
+    "normal_state_publications": 576001
+  },
+  "record_labels": [
+    "NON-SCIENTIFIC",
+    "NON-SELECTION",
+    "NOT PRODUCTION E2 EVIDENCE",
+    "MERGE-INELIGIBLE FOR PRODUCTION"
+  ],
+  "rows": [
+    {
+      "e2": {
+        "authority_order_digest_computations": 1,
+        "bytes_written": 14695673,
+        "checkpoint_count": 1,
+        "full_authority_id_visits_during_normal_progression": 0,
+        "full_authority_id_visits_initialization": 2500,
+        "record_validations": 2500,
+        "runtime_seconds": 1.1447262629999386,
+        "runtime_seconds_per_unit": 0.00045789050519997546,
+        "state_loads": 5001,
+        "state_writes": 5001
+      },
+      "e3": {
+        "expected_id_lookup_operations": 5000,
+        "observed": 2500,
+        "records_parsed": 2500,
+        "required": 2500,
+        "runtime_seconds": 0.2597969150001518,
+        "runtime_seconds_per_unit": 0.00010391876600006071,
+        "structural_lookup_operations": 2500
+      },
+      "e4": {
+        "e3_artifact_verifications": 1,
+        "object_aggregation_operations": 2500,
+        "object_count": 1,
+        "record_traversals": 2500,
+        "runtime_seconds": 0.21872896499962735,
+        "runtime_seconds_per_unit": 8.749158599985095e-05
+      },
+      "n": 2500
+    },
+    {
+      "e2": {
+        "authority_order_digest_computations": 1,
+        "bytes_written": 29725845,
+        "checkpoint_count": 2,
+        "full_authority_id_visits_during_normal_progression": 0,
+        "full_authority_id_visits_initialization": 5000,
+        "record_validations": 5000,
+        "runtime_seconds": 2.295214515000225,
+        "runtime_seconds_per_unit": 0.000459042903000045,
+        "state_loads": 10001,
+        "state_writes": 10001
+      },
+      "e3": {
+        "expected_id_lookup_operations": 10000,
+        "observed": 5000,
+        "records_parsed": 5000,
+        "required": 5000,
+        "runtime_seconds": 0.53149055699987,
+        "runtime_seconds_per_unit": 0.00010629811139997401,
+        "structural_lookup_operations": 5000
+      },
+      "e4": {
+        "e3_artifact_verifications": 1,
+        "object_aggregation_operations": 5000,
+        "object_count": 1,
+        "record_traversals": 5000,
+        "runtime_seconds": 0.45196910300001036,
+        "runtime_seconds_per_unit": 9.039382060000207e-05
+      },
+      "n": 5000
+    },
+    {
+      "e2": {
+        "authority_order_digest_computations": 1,
+        "bytes_written": 60966966,
+        "checkpoint_count": 3,
+        "full_authority_id_visits_during_normal_progression": 0,
+        "full_authority_id_visits_initialization": 10000,
+        "record_validations": 10000,
+        "runtime_seconds": 4.661058909000076,
+        "runtime_seconds_per_unit": 0.0004661058909000076,
+        "state_loads": 20001,
+        "state_writes": 20001
+      },
+      "e3": {
+        "expected_id_lookup_operations": 20000,
+        "observed": 10000,
+        "records_parsed": 10000,
+        "required": 10000,
+        "runtime_seconds": 1.0983372309997321,
+        "runtime_seconds_per_unit": 0.00010983372309997321,
+        "structural_lookup_operations": 10000
+      },
+      "e4": {
+        "e3_artifact_verifications": 1,
+        "object_aggregation_operations": 10000,
+        "object_count": 1,
+        "record_traversals": 10000,
+        "runtime_seconds": 0.9830808859996978,
+        "runtime_seconds_per_unit": 9.830808859996978e-05
+      },
+      "n": 10000
+    },
+    {
+      "e2": {
+        "authority_order_digest_computations": 1,
+        "bytes_written": 123489202,
+        "checkpoint_count": 5,
+        "full_authority_id_visits_during_normal_progression": 0,
+        "full_authority_id_visits_initialization": 20000,
+        "record_validations": 20000,
+        "runtime_seconds": 9.706773666000117,
+        "runtime_seconds_per_unit": 0.00048533868330000586,
+        "state_loads": 40001,
+        "state_writes": 40001
+      },
+      "e3": {
+        "expected_id_lookup_operations": 40000,
+        "observed": 20000,
+        "records_parsed": 20000,
+        "required": 20000,
+        "runtime_seconds": 2.289722289999645,
+        "runtime_seconds_per_unit": 0.00011448611449998225,
+        "structural_lookup_operations": 20000
+      },
+      "e4": {
+        "e3_artifact_verifications": 1,
+        "object_aggregation_operations": 20000,
+        "object_count": 1,
+        "record_traversals": 20000,
+        "runtime_seconds": 1.9909766480000144,
+        "runtime_seconds_per_unit": 9.954883240000072e-05
+      },
+      "n": 20000
+    }
+  ],
+  "schema_version": 3,
+  "scientific_meaning": "none; no codec, classifier, dataset, selection or production runtime was opened",
+  "sizes": [
+    2500,
+    5000,
+    10000,
+    20000
+  ],
+  "status": "PASS"
+}
