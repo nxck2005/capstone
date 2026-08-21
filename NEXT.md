@@ -7,23 +7,35 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-21 · **Phase:** **G8_C and G8_D remain GREEN and closed. G8_E E0 is valid; original, corrected, corrected-v2 and corrected-v3-prior E1 epochs are immutable superseded-before-data history except corrected-v3 E1, which is the current executable pre-data contract. Owner authorization for corrected-v3 E2–E4 ONLY has been issued and authenticated (`results/baseline/g8_e/e1_corrected_v3/e2_execution_authorization.json`, commit `7a51588`); the production E2 campaign is EXECUTING/RESUMABLE on profile `local_4060_cu130`. E5/pass one remains forbidden.**
+**Last updated:** 2026-08-22 · **Phase:** **G8_C and G8_D remain GREEN and closed. Corrected-v3 G8_E: the partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, zero successor coverage) and authoritative E2–E4 execution was relocated to the dedicated qualified worker `confessor`. The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen, authorized (E2–E4 only) and its production E2 campaign is EXECUTING detached on `confessor_pascal_cu126`/`cuda:0`. E5/pass one remains forbidden.**
 
-**2026-08-21 owner-authorized corrected-v3 E2 launch (in progress):** every
-preflight verifier passed at clean parity `3d0d667d` (frozen contract, PRE-DATA-ZERO,
-G8_C portable successor + closeout, G8_D contract/handoff, G-1 adjudication,
-execution profile `local_4060_cu130`/`cuda:0`, storage/inode preflight, full pytest
-2297 passed). The owner E2 authorization artifact was created from the explicit
-owner prompt, authenticated by `authenticate_owner_authorization_v3`, committed as
-`7a51588dd4224b7ed4774d6581603482c728e60a` and pushed with fetch parity. The v3
-runtime directory is locally excluded via `.git/info/exclude`. E2 launched in tmux
-session `g8e_e2` with:
-`.venv/bin/python tools/run_g8_e_corrected_v3.py --start --campaign-id g8e-v3-c20d9c4f4638687ad9e4e3e69bf7b9dbdf509a62c2c3a4d95dbbe6771ced57b5`
-Resume after any interruption with the identical command plus `--resume`.
-Measured throughput ~7.5 units/s; projected wall time ~11 h. After exact 288000/288000
-completion: `tools/merge_g8_e_corrected_v3.py --execute`, then
-`tools/aggregate_g8_e_corrected_v3.py --execute --e3-sha256 <E3 sha>`. E5/pass one,
-training, fallback, ratio adjudication and test access remain forbidden.
+**2026-08-22 worker-relocated corrected-v3 E2 launch (RUNNING on confessor):**
+every preflight passed on the worker (frozen contract with full live data,
+profile authentication `confessor_pascal_cu126`/TITAN Xp/OpenJPEG 2.5.4,
+storage/inode preflight, synthetic lifecycle proof PASS). Current identities:
+contract
+`g8econtractcorrectedv3s-2831f47d38d58f9a27424421ced4c893e3d0636d564661c80a9e8d31480a177e`,
+campaign
+`g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`,
+source commit `ed0b92a3c9e3b38c8868e4845f0992e893b1cac2`, authorization issued
+`be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f`
+(commit `493d656`). Two earlier pre-data contracts (`0da3d191…`, `557d93fd…`)
+were superseded before any measurement by runner implementation repairs; zero
+accepted records ever existed under them. Worker session: tmux
+`g8e-e2-confessor` on `confessor`, PID ≈403741, durable log
+`~/g8_pascal_successor_logs/g8e-v3s-e2.log`, runtime
+`~/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/`.
+Status:
+`ssh confessor 'python3 -c "import json;s=json.load(open(\"/home/nick/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/campaign_state.json\"));print(s[\"completed_prefix_count\"],\"/\",s[\"total_required\"],s[\"status\"]);print(s[\"counters\"])"'`.
+Resume ONLY if the session dies (never restart from zero):
+`ssh confessor 'tmux new-session -d -s g8e-e2-confessor "cd ~/projects/capstone && LD_LIBRARY_PATH=\$HOME/src/openjpeg-2.5.4/build/bin PATH=\$HOME/.local/bin:\$PATH .venv-pascal/bin/python tools/run_g8_e_corrected_v3s.py --resume --campaign-id g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588 >> ~/g8_pascal_successor_logs/g8e-v3s-e2.log 2>&1"'`.
+After exact 288000/288000 completion: E3 via
+`.venv-pascal/bin/python tools/merge_g8_e_corrected_v3s.py --execute`, then E4 via
+`.venv-pascal/bin/python tools/aggregate_g8_e_corrected_v3s.py --execute --e3-sha256 <E3 sha>`.
+Measured throughput ≈5.8–6.3 units/s; projected wall time ≈14 h from 01:37 IST
+2026-08-22. Next prompt: **“G8_E worker E2 completion / E3”**. Do NOT run pass
+one/E5, training, fallback, ratio adjudication or test access; do not touch the
+preserved local runtime; do not modify frozen sources mid-campaign.
 
 **2026-08-21 G8_E corrected-v3 repair (complete):** starting parity was clean
 at `3ce42677464be4aa54de789f5d97e23aaec59b2c`. Before any production source
@@ -160,13 +172,16 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** G8_D is GREEN and closed. Corrected-v3 E1 is the frozen
-executable pre-data contract and the owner-authorized corrected-v3 E2 campaign
-is EXECUTING or COMPLETE under authorization commit `7a51588` — resume it with
-`--resume` if incomplete; do not restart from zero. E3 then E4 follow only on
-exact E2 completion. Do not run pass one/E5, train, invoke fallback, adjudicate a ratio, access
-test, rerun or resume either upstream campaign, reopen C3-C7, substitute
-predecessor table tools, or widen the E2-E4 authorization scope.
+**Next-session task:** G8_D is GREEN and closed. The corrected-v3 worker
+successor E2 campaign is EXECUTING detached on `confessor` (tmux
+`g8e-e2-confessor`) — check it with the status command in the dated entry above
+and resume with `--resume` only if the session died; never restart from zero.
+The partial local campaign (47409/288000) is preserved custody evidence and
+must not run, resume, or contribute coverage. After exact 288000/288000
+completion on the worker, E3 then E4 follow via the successor CLIs. Do not run
+pass one/E5, train, invoke fallback, adjudicate a ratio, access test,
+rerun either upstream campaign, reopen C3-C7, substitute predecessor table
+tools, or widen the E2-E4 authorization scope.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -185,7 +200,7 @@ does not, it is wrong and this block is right.**
 | G-8 successor C3-C7 repository closeout | complete — 153 curves, 3,213 measured points |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next — G8_E E0 valid; earlier E1 epochs superseded-before-data; corrected-v3 E1 READY; owner E2–E4 authorization issued (commit `7a51588`); production E2 EXECUTING/RESUMABLE on `local_4060_cu130`; G8_D GREEN with D0–D7 complete; successor execution and C3-C7 closeout complete at 3213/3213** |
+| G-8 classical validation work | **next — G8_E worker successor E2 EXECUTING detached on `confessor` (`g8e-v3s-85354d3d…`, tmux `g8e-e2-confessor`); local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
 | G8_B–G8_G | **G8_B complete; G8_C GREEN with successor BLER table frozen; G8_D GREEN; G8_E E0 valid, corrected-v3 E1 READY; E2 unopened pending owner authorization.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
@@ -202,7 +217,7 @@ immutable superseded history and contributes zero successor-table coverage.
 The test split and every later scientific phase remain closed. G8_D D0–D7 are
 complete and GREEN; earlier G8_E E1 epochs are immutable superseded-before-data
 history, corrected-v3 E1 is frozen pre-data
-with zero validation coverage at freeze time, the owner E2–E4 authorization is issued (commit `7a51588`), production E2 is executing/resumable on `local_4060_cu130`, and the full validation
+with zero validation coverage at freeze time, the owner relocated execution to the qualified worker (additive worker-successor epoch, commit `493d656`), production E2 is executing detached on `confessor_pascal_cu126`/`cuda:0`, and the full validation
 campaign remains scoped exactly to that authorization.
 Everything else stays behind its own gate — do not calibrate λ, train learned
 models, implement ER-9, or access the test split until theirs.
@@ -731,7 +746,7 @@ open another full-spec audit round without new evidence. **The owner-opened Pasc
 completed its full 3213/3213 authenticated production campaign and G8_C C3-C7 closeout.** Its
 153-curve successor table is frozen from measured points only; the predecessor-bound table tools
 cannot be substituted. `src/baseline/classical/composition.py` remains later selection machinery;
-G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v3 G8_E E1 is frozen pre-data with zero validation coverage, the owner E2–E4 authorization is issued (commit `7a51588`) and production E2 is executing/resumable on `local_4060_cu130`; do not
+G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v3 G8_E E1 is frozen pre-data with zero validation coverage, the owner E2–E4 authorization is issued for the worker successor (commit `493d656`) and production E2 is executing detached on `confessor`; do not
 restart it from zero or widen its scope. The historical C3–C7 contract remains in
 `instructions/RESUME.md`; its predecessor commands do not apply to the Pascal runtime. The
 committed G-2 table covers one physical-layer identity at four SNR points per modulation and must

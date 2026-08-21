@@ -121,15 +121,27 @@ Then:
 ## Status
 
 **Current phase:** **Pascal G8_C successor execution and C3-C7 closeout are
-complete at 3213/3213 and published; no worker is running. G8_C remains green
+complete at 3213/3213 and published; no Pascal worker is running. G8_C remains green
 and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-Corrected-v3 E1 is the current executable pre-data contract and the owner E2–E4-only
-authorization is issued (`results/baseline/g8_e/e1_corrected_v3/e2_execution_authorization.json`,
-commit `7a51588`); the production corrected-v3 E2 campaign is EXECUTING/RESUMABLE on profile
-`local_4060_cu130` with runtime at `results/baseline/g8_e/e1_corrected_v3/runtime/`
-(locally excluded via `.git/info/exclude`). Resume with
-`.venv/bin/python tools/run_g8_e_corrected_v3.py --resume --campaign-id g8e-v3-c20d9c4f4638687ad9e4e3e69bf7b9dbdf509a62c2c3a4d95dbbe6771ced57b5`;
-never restart from zero.** The authenticated Pascal campaign is
+The partial local_4060_cu130 corrected-v3 E2 campaign was owner-aborted at exact
+prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; runtime preserved
+intact at `results/baseline/g8_e/e1_corrected_v3/runtime/`, locally excluded via
+`.git/info/exclude`; relocation provenance `g8erelocationv3s-cb108302…`). The additive
+worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen
+(contract `g8econtractcorrectedv3s-2831f47d…`, campaign
+`g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`,
+source commit `ed0b92a3c9e3b38c8868e4845f0992e893b1cac2`) and authorized E2–E4 only
+(authorization issued_sha256 `be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f`,
+commit `493d656`). Production E2 is EXECUTING detached on `confessor`
+(tmux session `g8e-e2-confessor`, log `~/g8_pascal_successor_logs/g8e-v3s-e2.log`,
+runtime `~/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/`).
+Status command:
+`ssh confessor 'python3 -c "import json;s=json.load(open(\"/home/nick/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/campaign_state.json\"));print(s[\"completed_prefix_count\"],\"/\",s[\"total_required\"],s[\"status\"])"'`.
+If the session dies, RESUME ONLY (never restart from zero):
+`ssh confessor 'tmux new-session -d -s g8e-e2-confessor "cd ~/projects/capstone && LD_LIBRARY_PATH=\$HOME/src/openjpeg-2.5.4/build/bin PATH=\$HOME/.local/bin:\$PATH .venv-pascal/bin/python tools/run_g8_e_corrected_v3s.py --resume --campaign-id g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588 >> ~/g8_pascal_successor_logs/g8e-v3s-e2.log 2>&1"'`.
+After exact 288000/288000: E3 = `.venv-pascal/bin/python tools/merge_g8_e_corrected_v3s.py --execute`;
+E4 = `.venv-pascal/bin/python tools/aggregate_g8_e_corrected_v3s.py --execute --e3-sha256 <sha>`.**
+The authenticated Pascal campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
 and contributes zero successor-table coverage. Do not rerun this campaign,
@@ -166,7 +178,7 @@ complete, and G8_C C3-C7 is `done`.** The full BR-4 validation sweep and
 operating-point decision have not run, no bandwidth ratio has been selected,
 nothing has been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented,
 and the test split is sealed until G-12 at W11. G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-The corrected-v3 G8_E E1 epoch is pre-data with zero validation coverage; the owner E2–E4-only authorization is issued (commit `7a51588`) and production E2 is executing/resumable on `local_4060_cu130`; E5/pass one, training, fallback, ratio adjudication and test access remain forbidden. PR-1 (literature review), PR-2 (Gantt) and PR-9
+The corrected-v3 G8_E E1 epochs are pre-data history; the partial local campaign was owner-aborted at 47409/288000 and the additive worker-successor epoch is authorized (commit `493d656`) with production E2 executing detached on `confessor`; E5/pass one, training, fallback, ratio adjudication and test access remain forbidden. PR-1 (literature review), PR-2 (Gantt) and PR-9
 (deployment dossier and author/guide acknowledgement) remain outstanding
 programme deliverables.
 
