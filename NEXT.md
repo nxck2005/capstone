@@ -7,7 +7,15 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-19 · **Phase:** **G8_C remains green and closed; G8_D D0–D7 are complete and GREEN; original E1 and first corrected E1 are preserved as superseded-before-data history; corrected-v2 E1 is frozen as the executable pre-data contract with zero validation coverage; E2 remains owner-authorization gated.**
+**Last updated:** 2026-08-21 · **Phase:** **G8_C remains green and closed; G8_D D0–D7 are complete and GREEN; the original, corrected and corrected-v2 E1 epochs have zero production coverage; additive corrected-v3 pre-data supersession is in progress. E2 remains closed and owner authorization has not been issued.**
+
+**2026-08-21 G8_E corrected-v3 repair (in progress):** starting parity was clean
+at `3ce42677464be4aa54de789f5d97e23aaec59b2c`. Before any production source
+edit, corrected-v2 independently verified with zero accepted records, zero
+completed units, no runtime, no owner authorization, no E3/E4 and every
+pass/training/fallback/ratio/test boundary closed. The v3 repair is additive;
+do not execute E2 or create a real authorization. Recovery command:
+`.venv/bin/python -m pytest tests/test_g8_e_corrective_v3.py -q`.
 
 **2026-08-19 G8_E E1 corrective supersession (complete):** the first E1
 freeze was proven unopened before this repair: its runtime root, E2 records,
