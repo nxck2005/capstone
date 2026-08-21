@@ -1,0 +1,24 @@
+{
+  "artifact_role": "g8_e_v3_owner_e2_authorization",
+  "authorized_by": "repository owner/operator via the explicit G8_E worker-relocation prompt of 2026-08-21, authorizing the confessor worker successor for E2, exact E2 resume, E2 completion verification, E3 and E4 ONLY",
+  "campaign_id": "g8e-v3s-6c16b09b90bb70443c1b778c58939cad465b68f3298d81952fc1c316422dc35b",
+  "contract_id": "g8econtractcorrectedv3s-0da3d191a4929fc8743be6d07a3f10ba02f6ad64c1fa23bb0963b53f980feabb",
+  "data_identity_id": "g8edataidentityv3-f3684d94a7e1169ee9c3b77f651c8ae25453a9eddf07871dc8a38c7685baddff",
+  "data_identity_sha256": "598630d86802e72c10f1537b4e2d5c4d1bf7fda775c77425569db0baf2496fba",
+  "issued_sha256": "8b0d8987ced446e62834da57bb6b447a4c5ee96a463dfb56692c4ce8ebae4d82",
+  "profile_id": "confessor_pascal_cu126",
+  "reason": "Owner relocated authoritative corrected-v3 E2-E4 execution from the aborted partial local_4060_cu130 campaign (PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION, 47409/288000 preserved) to the qualified worker server confessor. This authorization does NOT open: E5/pass one, selection execution, artifact-classifier training, G8_F, pass two/three, fallback invocation, ratio adjudication/G8_G, learned-system training, test-split access, scientific parameter changes, weakening/replacement of frozen evidence, or G8_C/G8_D regeneration. The aborted local authorization does not authorize this worker campaign.",
+  "schema_version": 3,
+  "scope": {
+    "fallback": false,
+    "pass_one": false,
+    "pass_two": false,
+    "ratio_adjudication": false,
+    "test_access": false,
+    "training": false,
+    "validation_decode": true
+  },
+  "source_manifest_id": "g8esourcecorrectedv3s-e8df7747e2ba950150b5621fa8828fb6178218d311269b418f887580ab059bd8",
+  "source_manifest_sha256": "4119c4396b58264a323a6bd86f3d3a7cc1bccaead718416bc5af9ec987cbecaa",
+  "status": "AUTHORIZED"
+}

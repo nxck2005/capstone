@@ -1,0 +1,78 @@
+{
+  "artifact_role": "g8_e_v3s_compute_storage_plan",
+  "basis": {
+    "backend_j2k_cache_path": "runtime/backend/<sha256>.j2kcache",
+    "backend_j2k_representative_bytes": 6838,
+    "backend_post_e3": "eligible for explicit owner cleanup only after immutable E3; never auto-deleted",
+    "backend_role": "operational and reconstructible; required for efficient E2 resume; retained through E3",
+    "backend_sample_count": 68000,
+    "complexity_evidence_reused_path": "results/baseline/g8_e/e1_corrected_v3/complexity_scale_evidence.json",
+    "v2_plan_sha256": "f5ed13c733773daebc019cbb26a76a55c57ebb7e66e3188f86372ec3b7d0a52a",
+    "worker_successor_epoch": "g8_e_v3s"
+  },
+  "estimated_bytes": {
+    "actual_free_bytes_at_freeze": 409783877632,
+    "atomic_publication_peak": 102705,
+    "backend_j2k_cache": 820560000,
+    "classifier_observation_cache": 52080000,
+    "diagnostics_reserve": 8388608,
+    "e2_completion": 8192,
+    "e3_compact_closure": 8192,
+    "e4_output": 11182440,
+    "mutable_state_and_checkpoints": 15879,
+    "reconstruction_cache": 12324600000,
+    "required_with_safety_margin": 18910172520,
+    "safety_margin_25_percent": 3782034504,
+    "scientific_records": 1220832000,
+    "subtotal": 15128138016,
+    "v3_codec_cache": 690360000
+  },
+  "filesystem": {
+    "available_inodes_at_freeze": 27928907,
+    "inode_headroom_after_projection": 27160820,
+    "sharding": "none; hash-named ext4 htree directory retained because measured capacity is ample",
+    "simple_one_directory_layout_measured_safe": true,
+    "total_inodes": 28114944
+  },
+  "preflight_before_payload_decode": true,
+  "production_runtime_estimate": {
+    "basis": {
+      "complexity_evidence_path": "results/baseline/g8_e/e1_corrected_v3/complexity_scale_evidence.json",
+      "complexity_evidence_sha256": "7f8d1aca4c5d348188e3cfdbe52306fee723a1ae3eb214225e1df1ea83ca3573",
+      "deployment_dossier_sha256": "a8c688da15228db9dfc4230d266a7b00787dca8a263e6a2e13918dcb3291d812",
+      "filesystem": "explicit 15% allowance in addition to measured atomic transaction time",
+      "historical_projection_path": "results/baseline/g8_e/e1_corrected/measurement_contract.json",
+      "historical_projection_sha256": "77cc6a91c8bd68717359c529ed305b2d2996072c29a9c89591d656e2ddfda3b3",
+      "jpeg2000": "conservatively assigns the entire historical corrected-E1 physical-work proxy to JPEG2000 rather than calling it total campaign runtime",
+      "reconstruction_and_classifier": "each independently receives the full 160 ms receiver allowance from docs/deployment-dossier.md; deliberate double allocation is conservative",
+      "resume": "one complete record-authentication traversal allowance",
+      "transaction_e3_e4": "linear extrapolation from the largest N=20,000 v3 synthetic benchmark"
+    },
+    "checkpoints_seconds": 0.017229493344835374,
+    "classifier_observations_seconds": 19200.0,
+    "e2_transaction_seconds": 139.76031129705683,
+    "e4_seconds": 28.67006373120021,
+    "filesystem_cache_allowance_seconds": 22147.209482137278,
+    "final_e3_seconds": 32.97200097599489,
+    "jpeg2000_physical_work_seconds": 109108.2856734581,
+    "practical_on_frozen_local_profile": true,
+    "reconstruction_seconds": 19200.0,
+    "resume_reconciliation_allowance_seconds": 32.97200097599489,
+    "status": "PASS_PLANNING_ESTIMATE_ONLY",
+    "total_hours": 47.19163521168582,
+    "total_seconds": 169889.88676206896
+  },
+  "projected_files": {
+    "backend_j2k_cache": 120000,
+    "checkpoints": 71,
+    "classifier_observation_cache_upper_bound": 120000,
+    "fixed_outputs_and_state": 16,
+    "largest_single_directory": 288000,
+    "largest_single_directory_name": "runtime/records",
+    "reconstruction_cache": 120000,
+    "scientific_records": 288000,
+    "total": 768087,
+    "v3_codec_cache": 120000
+  },
+  "schema_version": 3
+}
