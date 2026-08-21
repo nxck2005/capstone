@@ -1,0 +1,24 @@
+{
+  "artifact_role": "g8_e_v3_owner_e2_authorization",
+  "authorized_by": "repository owner/operator via the explicit G8_E corrected-v3 E2-E4 owner authorization prompt of 2026-08-21",
+  "campaign_id": "g8e-v3-c20d9c4f4638687ad9e4e3e69bf7b9dbdf509a62c2c3a4d95dbbe6771ced57b5",
+  "contract_id": "g8econtractcorrectedv3-da3e1d32d5b826a5bfa06f0d7b7a9e3c1809026843633648d28a70a9437986a4",
+  "data_identity_id": "g8edataidentityv3-f3684d94a7e1169ee9c3b77f651c8ae25453a9eddf07871dc8a38c7685baddff",
+  "data_identity_sha256": "598630d86802e72c10f1537b4e2d5c4d1bf7fda775c77425569db0baf2496fba",
+  "issued_sha256": "a9a0dca42133f60555bba8ad83461df9925794e7f914da171dc99b415d486f7c",
+  "profile_id": "local_4060_cu130",
+  "reason": "Owner explicitly authorizes ONLY the current corrected-v3 G8_E E2 validation-only production campaign: E2 measurement execution, exact interruption/resume of that same E2 campaign, E2 completion verification, deterministic E3 exact-set merge/cache authentication, and deterministic E4 count-derived measured-accuracy construction. Explicitly NOT authorized: E5/pass one, selection execution, artifact-classifier training, G8_F, pass two/three, fallback invocation, ratio adjudication/G8_G, learned-system training, test-split access, scientific parameter changes, weakening or replacement of frozen evidence, or regeneration of G8_C/G8_D science.",
+  "schema_version": 3,
+  "scope": {
+    "fallback": false,
+    "pass_one": false,
+    "pass_two": false,
+    "ratio_adjudication": false,
+    "test_access": false,
+    "training": false,
+    "validation_decode": true
+  },
+  "source_manifest_id": "g8esourcecorrectedv3-116a394b0edf1df29ff09244457c45f36f747952094840a6701bfcdfebb29b44",
+  "source_manifest_sha256": "dfe5414ff7465adb4cd1e5df4b22c29a3bd6d0169fd3f5708884932b65273894",
+  "status": "AUTHORIZED"
+}
