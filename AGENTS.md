@@ -16,10 +16,14 @@ is preserved as superseded-before-data history; the first corrected E1 is also
 preserved as superseded-before-data history. Corrected-v2 is also preserved as
 superseded-before-data history with zero coverage. Additive corrected-v3 E1 is
 the current end-to-end executable pre-data contract, frozen at source commit
-`0ec81dd0130d2caab485065592afc12433b176f2`, with zero validation coverage.
-E2 awaits owner execution authorization. Do not
-reopen or rerun G8_C, do not execute E2, and do not run the full validation
-campaign yet.
+`0ec81dd0130d2caab485065592afc12433b176f2`, with zero validation coverage at
+freeze time. The owner E2–E4-only authorization is issued and authenticated
+(`results/baseline/g8_e/e1_corrected_v3/e2_execution_authorization.json`,
+commit `7a51588`); the production E2 campaign is executing/resumable on profile
+`local_4060_cu130` with runtime at `results/baseline/g8_e/e1_corrected_v3/runtime/`
+(locally excluded via `.git/info/exclude`). Do not
+reopen or rerun G8_C, do not restart E2 from zero, do not widen the E2–E4 scope,
+do not run pass one/E5, training, fallback, ratio adjudication or test access.
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e2; bler_table=frozen; g8_d=d7-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
@@ -69,9 +73,7 @@ completed production aggregate and is authoritative for the finished execution.
 No Pascal worker is running or may be started; do not rerun, resume the old
 RTX4060 suffix, ingest predecessor results, or alter completed runtime evidence.
 G8_C remains green and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete.
-G8_E E0 and corrected-v3 E1 are complete and ready with zero validation coverage; E2 awaits
-owner execution authorization. Do not execute E2 or run the full validation
-campaign yet. C3-C7 closeout is now bound by
+G8_E E0 and corrected-v3 E1 are complete and ready with zero validation coverage at freeze time; the owner E2–E4-only authorization is issued (commit `7a51588`) and production E2 is executing/resumable on `local_4060_cu130`. Do not restart E2 from zero or widen its scope. C3-C7 closeout is now bound by
 `results/baseline/g8_pascal_successor/successor_bler_merge_report.json`,
 `successor_bler_table.json` and `successor_closeout_provenance.json`: 153 curves,
 3,213 measured points and 16,065,000 trials. The merge ID is
@@ -187,7 +189,7 @@ non-normative by design (`spec/SPEC.md` wins on any conflict), and it is **expec
 before a session ends** if the state changed. Promote anything durable out of it: decisions become a
 `DEC` in `SPEC.md` §3, risks and provisional values go to `SPEC.md` §16, explanations go to `docs/`.
 
-**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v2 G8_E E1 is superseded-before-data history and corrected-v3 E1 is the current executable pre-data contract with zero coverage; E2 awaits owner execution authorization.
+**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v2 G8_E E1 is superseded-before-data history and corrected-v3 E1 is the current executable pre-data contract with zero coverage; the owner E2–E4-only authorization is issued (commit `7a51588`) and production E2 is executing/resumable on `local_4060_cu130`.
 
 ### Commands
 
