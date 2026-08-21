@@ -11,7 +11,7 @@
     "worker_successor_epoch": "g8_e_v3s"
   },
   "estimated_bytes": {
-    "actual_free_bytes_at_freeze": 409783877632,
+    "actual_free_bytes_at_freeze": 409783537664,
     "atomic_publication_peak": 102705,
     "backend_j2k_cache": 820560000,
     "classifier_observation_cache": 52080000,
@@ -28,8 +28,8 @@
     "v3_codec_cache": 690360000
   },
   "filesystem": {
-    "available_inodes_at_freeze": 27928907,
-    "inode_headroom_after_projection": 27160820,
+    "available_inodes_at_freeze": 27928886,
+    "inode_headroom_after_projection": 27160799,
     "sharding": "none; hash-named ext4 htree directory retained because measured capacity is ample",
     "simple_one_directory_layout_measured_safe": true,
     "total_inodes": 28114944
