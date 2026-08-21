@@ -212,6 +212,18 @@ def test_synthetic_start_resume_completion_e3_and_e4(tmp_path, monkeypatch):
             assert obj["correct_count"] <= obj["total_count"]
 
 
+def test_live_identity_check_rejects_the_contract_summary_block():
+    """Regression: the runner must authenticate the FULL data-identity file,
+    never the contract's summary block, against the live rebuild."""
+
+    contract_path = v3s.V3S_CONTRACT_PATH
+    if not contract_path.is_file():
+        pytest.skip("worker-successor contract is frozen on the worker host")
+    contract = json.loads(contract_path.read_text())
+    with pytest.raises(ValueError):
+        v3.verify_live_validation_identity(contract["scientific_data_identity"])
+
+
 def test_production_e3_rejects_merge_ineligible_fixture_records(tmp_path, monkeypatch):
     import baseline.g8_d as g8d
 
