@@ -302,7 +302,10 @@ def authenticate_marker(
     for key, child in expected.items():
         if value.get(key) != child:
             raise G8EPassOneError(f"E5 pre-execution marker {key} differs")
-    if Path(value.get("authorization_path", "")) != Path(authorization_path):
+    named_authorization = Path(str(value.get("authorization_path", "")))
+    if not named_authorization.is_absolute():
+        named_authorization = Path(REPO_ROOT) / named_authorization
+    if named_authorization != Path(authorization_path):
         raise G8EPassOneError("E5 pre-execution marker names a different authorization")
     if not str(value.get("intended_output_rule", "")).strip():
         raise G8EPassOneError("E5 pre-execution marker lacks its output rule")

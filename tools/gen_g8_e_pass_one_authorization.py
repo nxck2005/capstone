@@ -111,7 +111,7 @@ def main() -> int:
             "candidate_authority_file_sha256",
             "outage_policy_file_sha256",
         )},
-        "state_path": str(pass_one.PASS_ONE_STATE_PATH.relative_to(REPO_ROOT)),
+        "state_path": str(pass_one.PASS_ONE_STATE_PATH.relative_to(pass_one.REPO_ROOT)),
         "scope": dict(pass_one.AUTHORIZED_SCOPE),
     }
     authorization["issued_sha256"] = v3.sha256_bytes(
@@ -122,13 +122,13 @@ def main() -> int:
         "schema_version": pass_one.PASS_ONE_SCHEMA_VERSION,
         "artifact_role": pass_one.MARKER_ROLE,
         "status": "MARKED_PRE_EXECUTION",
-        "authorization_path": str(pass_one.E5_AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
+        "authorization_path": str(pass_one.E5_AUTHORIZATION_PATH.relative_to(pass_one.REPO_ROOT)),
         "authorization_sha256": authorization["issued_sha256"],
         "scorer_module": pass_one.SCORER_MODULE,
         "selection_policy_sha256": chain["selection_policy_sha256"],
         "e4_input_id": chain["e4_id"],
         "e4_input_sha256": chain["e4_sha256"],
-        "intended_output_path": str(pass_one.PASS_ONE_STATE_PATH.relative_to(REPO_ROOT)),
+        "intended_output_path": str(pass_one.PASS_ONE_STATE_PATH.relative_to(pass_one.REPO_ROOT)),
         "intended_output_rule": OUTPUT_RULE,
         "exact_command": EXACT_COMMAND,
         "restart_command": (
@@ -145,11 +145,11 @@ def main() -> int:
     _atomic_publish(pass_one.E5_MARKER_PATH, v3.rendered_json(marker))
     print(json.dumps({
         "status": "FROZEN",
-        "authorization_path": str(pass_one.E5_AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
+        "authorization_path": str(pass_one.E5_AUTHORIZATION_PATH.relative_to(pass_one.REPO_ROOT)),
         "authorization_issued_sha256": authorization["issued_sha256"],
-        "marker_path": str(pass_one.E5_MARKER_PATH.relative_to(REPO_ROOT)),
+        "marker_path": str(pass_one.E5_MARKER_PATH.relative_to(pass_one.REPO_ROOT)),
         "marker_issued_sha256": marker["issued_sha256"],
-        "state_path": str(pass_one.PASS_ONE_STATE_PATH.relative_to(REPO_ROOT)),
+        "state_path": str(pass_one.PASS_ONE_STATE_PATH.relative_to(pass_one.REPO_ROOT)),
     }, sort_keys=True))
     return 0
 
