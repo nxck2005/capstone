@@ -1,0 +1,66 @@
+{
+  "artifact_role": "g8_e_v3s_closeout_repair_provenance",
+  "classification": "IMPLEMENTATION_DEFECT_CLOSEOUT_LAYER_ONLY",
+  "defective_sites": [
+    {
+      "detail": "summary block passed to frozen_validation_metadata",
+      "path": "src/baseline/g8_e_corrected_v3s.py",
+      "symbol": "verify_active_e2"
+    },
+    {
+      "branch": "production",
+      "detail": "summary block passed to frozen_validation_metadata",
+      "path": "tools/merge_g8_e_corrected_v3s.py"
+    },
+    {
+      "branch": "production",
+      "detail": "summary block passed to verify_live_validation_identity",
+      "path": "tools/aggregate_g8_e_corrected_v3s.py"
+    }
+  ],
+  "discovered_at": "2026-08-22",
+  "measurement_records_touched": false,
+  "pre_registered_rule": [
+    "tools/run_g8_e_corrected_v3s.py loads results/baseline/g8_e/e1_corrected_v3/scientific_data_identity_manifest.json through the contract-bound path before frozen_validation_metadata/verify_live_validation_identity",
+    "tests/test_g8_e_e2_successor.py::test_live_identity_check_rejects_the_contract_summary_block pins that the full data identity file is the authenticator"
+  ],
+  "provenance_id": "g8ecloseoutrepair-e797b7bd59f3873b626b8ac3ff8b30191777aff4ec104eebb6e2f3e5db6b99c2",
+  "recomputation_required": false,
+  "repair": {
+    "files": [
+      {
+        "bytes": 10053,
+        "path": "src/baseline/g8_e_v3s_closeout.py",
+        "role": "corrected_closeout_lifecycle_module",
+        "sha256": "a996a244c702f8a470890855adc1eefdb16feb9e45d9b35e343d7baf714298d9"
+      },
+      {
+        "bytes": 9836,
+        "path": "tools/closeout_g8_e_v3s.py",
+        "role": "corrected_closeout_cli_and_provenance_generator",
+        "sha256": "aa3d976034dfb7d17c4bf91f610624baf025578ffa6bea0a86aa25e64d32fe00"
+      },
+      {
+        "bytes": 6571,
+        "path": "tests/test_g8_e_v3s_closeout.py",
+        "role": "closeout_repair_regression_tests",
+        "sha256": "c390f31a4dc376410ab48db5ebbd56f8bccf7d4e85818a77e00a0eafdcdd932e"
+      }
+    ],
+    "mode": "ADDITIVE_ONLY_NO_BOUND_BYTE_CHANGED"
+  },
+  "schema_version": 1,
+  "scientific_defect": "NONE",
+  "scope": "E2 completion verification, E3 and E4 only; no E5/pass-one, training, fallback, ratio adjudication or test access is authorized by this repair",
+  "symptom": "verify_g8_e_corrected_v3s.py --phase e2 raised KeyError('manifest_bytes') at g8_e_corrected_v3.frozen_validation_metadata via g8_e_corrected_v3s.verify_active_e2, which passes the contract's summary block",
+  "unchanged_frozen_bindings": {
+    "authorization_issued_sha256": "be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f",
+    "campaign_id": "g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588",
+    "contract_id": "g8econtractcorrectedv3s-2831f47d38d58f9a27424421ced4c893e3d0636d564661c80a9e8d31480a177e",
+    "contract_path": "results/baseline/g8_e/e2_confessor_successor/measurement_contract.json",
+    "contract_sha256": "4bf3f5a4e4ad423116f409abb391a0d08ad867edc26628281869a73e946609bc",
+    "e2_completion_present": false,
+    "e2_completion_sha256": null,
+    "source_commit": "ed0b92a3c9e3b38c8868e4845f0992e893b1cac2"
+  }
+}
