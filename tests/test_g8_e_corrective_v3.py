@@ -100,8 +100,17 @@ def test_frozen_verifier_and_phase_transitioned_predata_refusal() -> None:
     # verifier keeps authenticating the same immutable contract bytes.
     with pytest.raises(v3.G8EV3Error, match="zero state"):
         v3.verify_v3_predata_zero_state(verify_live_data=False)
+    # The refusal must come from tracked lifecycle evidence on every host.
     assert v3.V3_AUTHORIZATION_PATH.is_file()
-    assert v3.V3_RUNTIME_ROOT.is_dir()
+    # The preserved aborted local runtime is deliberately untracked custody
+    # evidence: it exists only on the writer machine, where the
+    # external_dataset-marked runner-refusal test pins its exact partial
+    # prefix. A clean checkout cannot see it, so its presence is asserted
+    # only where it exists.
+    if v3.V3_RUNTIME_ROOT.exists():
+        assert v3.V3_RUNTIME_ROOT.is_dir()
+        state = json.loads((v3.V3_RUNTIME_ROOT / "campaign_state.json").read_text())
+        assert 0 < state["completed_prefix_count"] < state["total_required"]
 
 
 def test_predata_closes_after_transition_without_poisoning_immutable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

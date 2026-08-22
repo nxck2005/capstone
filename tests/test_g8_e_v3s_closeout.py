@@ -52,18 +52,32 @@ def _context_kwargs(fixture, authorization: Path) -> dict:
 
 
 def test_load_bound_data_identity_authenticates_the_production_contract():
-    """The exact operation that failed in production now succeeds."""
+    """The exact production load now succeeds from tracked bytes alone."""
+
+    if not v3s.V3S_CONTRACT_PATH.is_file():
+        pytest.skip("worker-successor contract is frozen on the worker host")
+    contract, _ = v3._rendered_object(v3s.V3S_CONTRACT_PATH, "v3s measurement contract")
+    identity = closeout.load_bound_data_identity(contract)
+    assert identity["data_identity_id"] == contract["scientific_data_identity"]["id"]
+    sample_ids, labels = v3.frozen_validation_metadata(identity)
+    assert len(sample_ids) == contract["scientific_data_identity"]["validation_count"]
+    assert set(labels) == set(sample_ids)
+
+
+@pytest.mark.external_dataset
+def test_summary_block_is_rejected_against_the_live_rebuild_before_payload():
+    """The exact operation that failed in production must still refuse.
+
+    The live rebuild authenticates archive bytes before any comparison, so
+    this regression needs the authenticated Imagenette archive and runs on
+    hosts that hold it.
+    """
 
     if not v3s.V3S_CONTRACT_PATH.is_file():
         pytest.skip("worker-successor contract is frozen on the worker host")
     contract, _ = v3._rendered_object(v3s.V3S_CONTRACT_PATH, "v3s measurement contract")
     with pytest.raises(ValueError):
         v3.verify_live_validation_identity(contract["scientific_data_identity"])
-    identity = closeout.load_bound_data_identity(contract)
-    assert identity["data_identity_id"] == contract["scientific_data_identity"]["id"]
-    sample_ids, labels = v3.frozen_validation_metadata(identity)
-    assert len(sample_ids) == contract["scientific_data_identity"]["validation_count"]
-    assert set(labels) == set(sample_ids)
 
 
 def test_load_bound_data_identity_rejects_a_substituted_contract_block():
