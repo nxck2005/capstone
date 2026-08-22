@@ -1,0 +1,17 @@
+{
+  "artifact_role": "g8_e_v3_e5_pre_execution_marker",
+  "authorization_path": "results/baseline/g8_e/e2_confessor_successor/e5_pass_one_authorization.json",
+  "authorization_sha256": "d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33",
+  "e4_input_id": "g8ee4v3-4b5206cb5a7f752dc46f45996fd2d74a927ba0770813445915ab7a64f0e714f1",
+  "e4_input_sha256": "ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3",
+  "exact_command": ".venv/bin/python tools/run_g8_e_pass_one.py --execute",
+  "intended_output_path": "results/baseline/g8_e/pass_one_state.json",
+  "intended_output_rule": "one immutable content-addressed completion record at the pre-registered path results/baseline/g8_e/pass_one_state.json; refuse whenever it exists",
+  "issued_sha256": "c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4",
+  "pre_execution_pass_one_count": 0,
+  "restart_command": ".venv/bin/python tools/run_g8_e_pass_one.py --execute  # idempotent: refuses when the completion record already exists",
+  "schema_version": 1,
+  "scorer_module": "src/baseline/classical/composition.py",
+  "selection_policy_sha256": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+  "status": "MARKED_PRE_EXECUTION"
+}
