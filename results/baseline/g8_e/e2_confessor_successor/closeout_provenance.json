@@ -11,9 +11,9 @@
   },
   "closeout_repair_provenance": {
     "classification": "IMPLEMENTATION_DEFECT_CLOSEOUT_LAYER_ONLY",
-    "provenance_id": "g8ecloseoutrepair-e797b7bd59f3873b626b8ac3ff8b30191777aff4ec104eebb6e2f3e5db6b99c2",
+    "provenance_id": "g8ecloseoutrepair-5ac7129bc9f1a6893677b20ad841b5ea9cce1a27217315898d09420eb796ad8e",
     "recomputation_required": false,
-    "sha256": "720f2042903806f5d9b5d34c74d42e0b3ee6668cfbfda98c2b05666c168b1efb"
+    "sha256": "53d13d600c4f9b704b17d9d0a086140def839b866515a31e023136e884318846"
   },
   "contract_binding": {
     "campaign_id": "g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588",
@@ -88,7 +88,7 @@
     "validation_denominator": 1000,
     "verification": "tools/closeout_g8_e_v3s.py verify --phase e4 --e3-sha256 <sha> PASS on confessor"
   },
-  "provenance_id": "g8ecloseout-e258ecb153280496e2eda0f5545fee3f9c91267a359698d3733083e3d631816e",
+  "provenance_id": "g8ecloseout-1422804d19ba76c7a29d0f3d08e782886b065f561912026d508ca48f733162ca",
   "recorded_at": "2026-08-22",
   "recorded_on": "confessor",
   "schema_version": 1,

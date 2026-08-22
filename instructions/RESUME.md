@@ -143,11 +143,11 @@ SHA `8496ebdb1c3757331b9fc53bc556d57091cbb7d08bdf390b07865547662dda42`; E4
 `g8ee4v3-4b5206cb5a7f752dc46f45996fd2d74a927ba0770813445915ab7a64f0e714f1`
 SHA `ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3`. A
 closeout-layer identity-loading defect was repaired additively with no bound byte
-changed (repair provenance `g8ecloseoutrepair-e797b7bd…`, commit `0f65fb4`;
+changed (repair provenance `g8ecloseoutrepair-5ac7129b…`, commit `0f65fb4`;
 corrected entry points `.venv-pascal/bin/python tools/closeout_g8_e_v3s.py
 verify|merge|aggregate`); custody record
 `results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`
-(`g8ecloseout-e258ecb1…`). E5/pass one awaits its own owner authorization —
+(`g8ecloseout-1422804d…`). E5/pass one awaits its own owner authorization —
 do not execute it without that artifact.**
 The authenticated Pascal campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on

@@ -17,7 +17,7 @@ commit `493d656`). The frozen v3s lifecycle wrappers could not execute post-comp
 verification (they passed the contract's seven-key data-identity summary block where
 the pre-registered rule requires the full scientific-data-identity FILE); this was
 repaired additively with no bound-byte change — repair provenance
-`g8ecloseoutrepair-e797b7bd…`, commit `0f65fb4`, entry points
+`g8ecloseoutrepair-5ac7129b…`, commit `0f65fb4`, entry points
 `.venv-pascal/bin/python tools/closeout_g8_e_v3s.py verify|merge|aggregate …` on
 confessor. Verified results: E2 completion SHA
 `442448a424cbad0ead742c4a45724155486cd2e8ecefeff52bff62394e5096a6`; E3
@@ -32,7 +32,7 @@ Codec-infeasible records (24,000) each carry one BR-13 constant-class outage
 prediction with binary counts; candidates are not erased and denominators are
 unchanged. Custody record:
 `results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`
-(`g8ecloseout-e258ecb1…`). Canonical publication: the three immutable lifecycle
+(`g8ecloseout-1422804d…`). Canonical publication: the three immutable lifecycle
 artifacts are tracked at their frozen runtime paths (`runtime/e2_completion.json`,
 `runtime/e3_exact_set_closure.json`, `runtime/e4_count_derived.json`); the rest of
 the 15-GiB runtime stays worker-local on `confessor`. Next: **owner-audited

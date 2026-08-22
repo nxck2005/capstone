@@ -31,7 +31,7 @@ VERIFIED** (outcome mix delivered 264,000 / codec-infeasible 24,000 /
 decode-failure 0 / structural 0; training and test access 0; custody record
 `results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`). A
 closeout-layer identity-loading defect was repaired additively with no bound
-byte changed (repair provenance `g8ecloseoutrepair-e797b7bd…`, commit
+byte changed (repair provenance `g8ecloseoutrepair-5ac7129b…`, commit
 `0f65fb4`; corrected entry points `tools/closeout_g8_e_v3s.py verify|merge|
 aggregate`). Do not reopen or rerun G8_C/G8_D, do not rerun or resume E2,
 do not merge or ingest either preserved partial runtime, do not widen the
@@ -86,7 +86,7 @@ completed production aggregate and is authoritative for the finished execution.
 No Pascal worker is running or may be started; do not rerun, resume the old
 RTX4060 suffix, ingest predecessor results, or alter completed runtime evidence.
 G8_C remains green and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete.
-G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and was authorized E2–E4-only (commit `493d656`); production E2 completed at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) and E3/E4 are complete and verified (closeout provenance `g8ecloseout-e258ecb1…`; corrected entry points `tools/closeout_g8_e_v3s.py`). Do not rerun it or widen its scope; E5 awaits its own owner authorization. C3-C7 closeout is now bound by
+G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and was authorized E2–E4-only (commit `493d656`); production E2 completed at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) and E3/E4 are complete and verified (closeout provenance `g8ecloseout-1422804d…`; corrected entry points `tools/closeout_g8_e_v3s.py`). Do not rerun it or widen its scope; E5 awaits its own owner authorization. C3-C7 closeout is now bound by
 `results/baseline/g8_pascal_successor/successor_bler_merge_report.json`,
 `successor_bler_table.json` and `successor_closeout_provenance.json`: 153 curves,
 3,213 measured points and 16,065,000 trials. The merge ID is

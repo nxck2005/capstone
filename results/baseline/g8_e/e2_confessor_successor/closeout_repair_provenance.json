@@ -24,7 +24,7 @@
     "tools/run_g8_e_corrected_v3s.py loads results/baseline/g8_e/e1_corrected_v3/scientific_data_identity_manifest.json through the contract-bound path before frozen_validation_metadata/verify_live_validation_identity",
     "tests/test_g8_e_e2_successor.py::test_live_identity_check_rejects_the_contract_summary_block pins that the full data identity file is the authenticator"
   ],
-  "provenance_id": "g8ecloseoutrepair-e797b7bd59f3873b626b8ac3ff8b30191777aff4ec104eebb6e2f3e5db6b99c2",
+  "provenance_id": "g8ecloseoutrepair-5ac7129bc9f1a6893677b20ad841b5ea9cce1a27217315898d09420eb796ad8e",
   "recomputation_required": false,
   "repair": {
     "files": [
@@ -35,10 +35,10 @@
         "sha256": "a996a244c702f8a470890855adc1eefdb16feb9e45d9b35e343d7baf714298d9"
       },
       {
-        "bytes": 9836,
+        "bytes": 9569,
         "path": "tools/closeout_g8_e_v3s.py",
         "role": "corrected_closeout_cli_and_provenance_generator",
-        "sha256": "aa3d976034dfb7d17c4bf91f610624baf025578ffa6bea0a86aa25e64d32fe00"
+        "sha256": "cfe5d3f55e7e07f7eeb8c9c8ed5c92829d68d2b12581123831ae2854b6b81df6"
       },
       {
         "bytes": 6571,
@@ -59,8 +59,6 @@
     "contract_id": "g8econtractcorrectedv3s-2831f47d38d58f9a27424421ced4c893e3d0636d564661c80a9e8d31480a177e",
     "contract_path": "results/baseline/g8_e/e2_confessor_successor/measurement_contract.json",
     "contract_sha256": "4bf3f5a4e4ad423116f409abb391a0d08ad867edc26628281869a73e946609bc",
-    "e2_completion_present": false,
-    "e2_completion_sha256": null,
     "source_commit": "ed0b92a3c9e3b38c8868e4845f0992e893b1cac2"
   }
 }

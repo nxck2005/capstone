@@ -113,8 +113,6 @@ def build_repair_provenance() -> dict:
     contract_raw = v3s.V3S_CONTRACT_PATH.read_bytes()
     contract, _ = v3._rendered_object(v3s.V3S_CONTRACT_PATH, "v3s measurement contract")
     authorization, _ = v3._rendered_object(v3s.V3S_AUTHORIZATION_PATH, "v3s owner authorization")
-    completion_present = v3s.V3S_E2_COMPLETION_PATH.is_file()
-    completion_sha = v3.sha256_file(v3s.V3S_E2_COMPLETION_PATH) if completion_present else None
     body = {
         "schema_version": 1,
         "artifact_role": "g8_e_v3s_closeout_repair_provenance",
@@ -151,8 +149,6 @@ def build_repair_provenance() -> dict:
             "campaign_id": contract["campaign_id"],
             "source_commit": contract["source_manifest"]["source_commit"],
             "authorization_issued_sha256": authorization["issued_sha256"],
-            "e2_completion_present": completion_present,
-            "e2_completion_sha256": completion_sha,
         },
         "scope": "E2 completion verification, E3 and E4 only; no E5/pass-one, training, fallback, ratio adjudication or test access is authorized by this repair",
     }
