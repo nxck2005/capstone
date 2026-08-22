@@ -14,18 +14,31 @@ decoding or test access occurred, and the test split remains sealed. G8_C
 remains green and closed. G8_D is GREEN and closed; the first G8_E E0/E1 freeze
 is preserved as superseded-before-data history; the first corrected E1 is also
 preserved as superseded-before-data history. Corrected-v2 is also preserved as
-superseded-before-data history with zero coverage. Additive corrected-v3 E1 is
-the current end-to-end executable pre-data contract, frozen at source commit
-`0ec81dd0130d2caab485065592afc12433b176f2`, with zero validation coverage at
-freeze time. The owner E2–E4-only authorization is issued and authenticated
-(`results/baseline/g8_e/e1_corrected_v3/e2_execution_authorization.json`,
-commit `7a51588`); the production E2 campaign is executing/resumable on profile
-`local_4060_cu130` with runtime at `results/baseline/g8_e/e1_corrected_v3/runtime/`
-(locally excluded via `.git/info/exclude`). Do not
-reopen or rerun G8_C, do not restart E2 from zero, do not widen the E2–E4 scope,
-do not run pass one/E5, training, fallback, ratio adjudication or test access.
+superseded-before-data history with zero coverage. The partial corrected-v3
+local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000
+(`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, zero successor
+coverage), and execution relocated to the additive worker-successor epoch
+`results/baseline/g8_e/e2_confessor_successor/` (contract
+`g8econtractcorrectedv3s-2831f47d…`, campaign
+`g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`,
+source commit `ed0b92a3c9e3b38c8868e4845f0992e893b1cac2`, owner E2–E4-only
+authorization issued_sha256
+`be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f`,
+commit `493d656`). **Worker-successor E2 is COMPLETE at exactly 288000/288000
+on `confessor` (`confessor_pascal_cu126`/`cuda:0`) and VERIFIED; E3 exact-set
+closure and E4 count-derived measured accuracy objects are COMPLETE and
+VERIFIED** (outcome mix delivered 264,000 / codec-infeasible 24,000 /
+decode-failure 0 / structural 0; training and test access 0; custody record
+`results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`). A
+closeout-layer identity-loading defect was repaired additively with no bound
+byte changed (repair provenance `g8ecloseoutrepair-e797b7bd…`, commit
+`0f65fb4`; corrected entry points `tools/closeout_g8_e_v3s.py verify|merge|
+aggregate`). Do not reopen or rerun G8_C/G8_D, do not rerun or resume E2,
+do not merge or ingest either preserved partial runtime, do not widen the
+closed E2–E4 scope, and do not run pass one/E5, training, fallback, ratio
+adjudication or test access — **E5 awaits its own owner authorization**.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e2; bler_table=frozen; g8_d=d7-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e5-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified
@@ -73,7 +86,7 @@ completed production aggregate and is authoritative for the finished execution.
 No Pascal worker is running or may be started; do not rerun, resume the old
 RTX4060 suffix, ingest predecessor results, or alter completed runtime evidence.
 G8_C remains green and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete.
-G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and authorized E2–E4-only (commit `493d656`); its detached tmux session `g8e-e2-confessor` on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) is EXECUTING production E2, logging to `~/g8_pascal_successor_logs/g8e-v3s-e2.log`. Do not restart it from zero or widen its scope. C3-C7 closeout is now bound by
+G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and was authorized E2–E4-only (commit `493d656`); production E2 completed at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) and E3/E4 are complete and verified (closeout provenance `g8ecloseout-e258ecb1…`; corrected entry points `tools/closeout_g8_e_v3s.py`). Do not rerun it or widen its scope; E5 awaits its own owner authorization. C3-C7 closeout is now bound by
 `results/baseline/g8_pascal_successor/successor_bler_merge_report.json`,
 `successor_bler_table.json` and `successor_closeout_provenance.json`: 153 curves,
 3,213 measured points and 16,065,000 trials. The merge ID is
@@ -189,7 +202,7 @@ non-normative by design (`spec/SPEC.md` wins on any conflict), and it is **expec
 before a session ends** if the state changed. Promote anything durable out of it: decisions become a
 `DEC` in `SPEC.md` §3, risks and provisional values go to `SPEC.md` §16, explanations go to `docs/`.
 
-**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v2 G8_E E1 is superseded-before-data history and corrected-v3 E1 is the current executable pre-data contract with zero coverage; the partial local_4060_cu130 campaign was owner-aborted at 47409/288000 and the worker-successor epoch is authorized (commit `493d656`) with production E2 executing detached on `confessor_pascal_cu126`.
+**Where the spec stands.** It now carries 196 requirements (2 retired), of which 86 are `AM` amendment records. **AM-77 makes dataset provenance and pre-freeze manifest construction executable:** exact archive length/SHA-256 pins, dataset-specific source-payload and authoritative-class rules, canonical CSV bytes, and a provenance-only published-test scan that is forbidden from decoding or canonicalizing. **AM-78 fixes deterministic, resumable reference-classifier training details without changing its scientific recipe.** **AM-79 freezes G-2's complete-asset golden-vector checksum, independent BLER reference and progressive-packetisation design.** **Round 16 (AM-80..AM-82) is the W4 PB_2C corrective repair:** CIFAR-10's codec axes cut to `[32]`, the BR-11 byte semantics defined arithmetically with `analysis_version` bumped to 2, and the transparency-probe codec-configuration binding recorded as history behind one byte-pinned drift record. **AM-86 narrows only the Pascal successor's Git-publication cadence while preserving sole-writer evidence authentication and mandatory final publication/parity.** AM-71 remains the stable-source-byte identity clarification, and AM-72..AM-76 remain the implemented-contract remediation. The adjudicated EXT-6 findings and their arithmetic remain recorded in §17; do not reopen them without new evidence. W0 is done; G-9, G-1, G-7 and G-2 passed; W1, W2 and W3 are complete. The validation-only transparency-bitrate probe is lineage-bound, remotely reproducible and scientifically unchanged. Bounded W4 baseline integration is complete through PB_2/PB_2C; successor-specific G8_C C3-C7 closeout is complete with the successor `BlerTable` frozen, and G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v2 G8_E E1 is superseded-before-data history and corrected-v3 E1 is the current executable pre-data contract with zero coverage; the partial local_4060_cu130 campaign was owner-aborted at 47409/288000 and the worker-successor epoch completed verified E2–E4 on `confessor_pascal_cu126` with E5 awaiting owner authorization.
 
 ### Commands
 

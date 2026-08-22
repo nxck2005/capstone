@@ -7,35 +7,37 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-22 · **Phase:** **G8_C and G8_D remain GREEN and closed. Corrected-v3 G8_E: the partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, zero successor coverage) and authoritative E2–E4 execution was relocated to the dedicated qualified worker `confessor`. The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen, authorized (E2–E4 only) and its production E2 campaign is EXECUTING detached on `confessor_pascal_cu126`/`cuda:0`. E5/pass one remains forbidden.**
+**Last updated:** 2026-08-22 · **Phase:** **G8_C and G8_D remain GREEN and closed. Corrected-v3 G8_E worker-successor E2 is COMPLETE at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`/`cuda:0`) and independently VERIFIED; E3 exact-set closure and E4 measured accuracy objects are COMPLETE and VERIFIED (exact set 288000/288000, missing/duplicate/extra all zero; 288 eligible objects from 288,000 traversals). Outcome mix: delivered 264,000 · codec-infeasible 24,000 · decode-failure 0 · structural 0; training/test access 0. A closeout-layer identity-loading defect was repaired additively (commit `0f65fb4`); no measurement byte changed. E5/pass one remains NOT AUTHORIZED / NOT STARTED.**
 
-**2026-08-22 worker-relocated corrected-v3 E2 launch (RUNNING on confessor):**
-every preflight passed on the worker (frozen contract with full live data,
-profile authentication `confessor_pascal_cu126`/TITAN Xp/OpenJPEG 2.5.4,
-storage/inode preflight, synthetic lifecycle proof PASS). Current identities:
-contract
-`g8econtractcorrectedv3s-2831f47d38d58f9a27424421ced4c893e3d0636d564661c80a9e8d31480a177e`,
-campaign
-`g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`,
-source commit `ed0b92a3c9e3b38c8868e4845f0992e893b1cac2`, authorization issued
-`be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f`
-(commit `493d656`). Two earlier pre-data contracts (`0da3d191…`, `557d93fd…`)
-were superseded before any measurement by runner implementation repairs; zero
-accepted records ever existed under them. Worker session: tmux
-`g8e-e2-confessor` on `confessor`, PID ≈403741, durable log
-`~/g8_pascal_successor_logs/g8e-v3s-e2.log`, runtime
-`~/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/`.
-Status:
-`ssh confessor 'python3 -c "import json;s=json.load(open(\"/home/nick/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/campaign_state.json\"));print(s[\"completed_prefix_count\"],\"/\",s[\"total_required\"],s[\"status\"]);print(s[\"counters\"])"'`.
-Resume ONLY if the session dies (never restart from zero):
-`ssh confessor 'tmux new-session -d -s g8e-e2-confessor "cd ~/projects/capstone && LD_LIBRARY_PATH=\$HOME/src/openjpeg-2.5.4/build/bin PATH=\$HOME/.local/bin:\$PATH .venv-pascal/bin/python tools/run_g8_e_corrected_v3s.py --resume --campaign-id g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588 >> ~/g8_pascal_successor_logs/g8e-v3s-e2.log 2>&1"'`.
-After exact 288000/288000 completion: E3 via
-`.venv-pascal/bin/python tools/merge_g8_e_corrected_v3s.py --execute`, then E4 via
-`.venv-pascal/bin/python tools/aggregate_g8_e_corrected_v3s.py --execute --e3-sha256 <E3 sha>`.
-Measured throughput ≈5.8–6.3 units/s; projected wall time ≈14 h from 01:37 IST
-2026-08-22. Next prompt: **“G8_E worker E2 completion / E3”**. Do NOT run pass
-one/E5, training, fallback, ratio adjudication or test access; do not touch the
-preserved local runtime; do not modify frozen sources mid-campaign.
+**2026-08-22 worker-successor E2/E3/E4 closeout (COMPLETE):** production E2 ran to
+exact 288000/288000 under campaign `g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`
+(contract `g8econtractcorrectedv3s-2831f47d…`, source commit `ed0b92a3…`,
+authorization issued `be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f`,
+commit `493d656`). The frozen v3s lifecycle wrappers could not execute post-completion
+verification (they passed the contract's seven-key data-identity summary block where
+the pre-registered rule requires the full scientific-data-identity FILE); this was
+repaired additively with no bound-byte change — repair provenance
+`g8ecloseoutrepair-e797b7bd…`, commit `0f65fb4`, entry points
+`.venv-pascal/bin/python tools/closeout_g8_e_v3s.py verify|merge|aggregate …` on
+confessor. Verified results: E2 completion SHA
+`442448a424cbad0ead742c4a45724155486cd2e8ecefeff52bff62394e5096a6`; E3
+`g8ee3v3-ec7b28fda5bf0fc25b5bf4c71c25731a4d3286df2b7e88d039ff97daf5355f5e`
+SHA `8496ebdb1c3757331b9fc53bc556d57091cbb7d08bdf390b07865547662dda42`,
+ordered-record digest `14ab07180ff9a3f76fce428afa1d0f7ffab5f853532902d978eba1c4eb181cfb`,
+required=observed=288000, missing/duplicate/extra/foreign = 0/0/0/0; E4
+`g8ee4v3-4b5206cb5a7f752dc46f45996fd2d74a927ba0770813445915ab7a64f0e714f1`
+SHA `ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3`,
+288 eligible objects × validation denominator 1000, record traversal 288,000.
+Codec-infeasible records (24,000) each carry one BR-13 constant-class outage
+prediction with binary counts; candidates are not erased and denominators are
+unchanged. Custody record:
+`results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`
+(`g8ecloseout-e258ecb1…`). Canonical publication: the three immutable lifecycle
+artifacts are tracked at their frozen runtime paths (`runtime/e2_completion.json`,
+`runtime/e3_exact_set_closure.json`, `runtime/e4_count_derived.json`); the rest of
+the 15-GiB runtime stays worker-local on `confessor`. Next: **owner-audited
+E5/pass-one authorization only**;
+do not execute pass one without it.
 
 **2026-08-21 G8_E corrected-v3 repair (complete):** starting parity was clean
 at `3ce42677464be4aa54de789f5d97e23aaec59b2c`. Before any production source
@@ -95,7 +97,7 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e2; bler_table=frozen; g8_d=d7-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e5-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
@@ -173,15 +175,17 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 ## Single next task
 
 **Next-session task:** G8_D is GREEN and closed. The corrected-v3 worker
-successor E2 campaign is EXECUTING detached on `confessor` (tmux
-`g8e-e2-confessor`) — check it with the status command in the dated entry above
-and resume with `--resume` only if the session died; never restart from zero.
-The partial local campaign (47409/288000) is preserved custody evidence and
-must not run, resume, or contribute coverage. After exact 288000/288000
-completion on the worker, E3 then E4 follow via the successor CLIs. Do not run
-pass one/E5, train, invoke fallback, adjudicate a ratio, access test,
-rerun either upstream campaign, reopen C3-C7, substitute predecessor table
-tools, or widen the E2-E4 authorization scope.
+successor E2 campaign is COMPLETE at exactly 288000/288000 on `confessor` and
+VERIFIED, and E3 exact-set closure plus E4 measured accuracy objects are
+COMPLETE and VERIFIED (see the 2026-08-22 closeout entry above; custody record
+`results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`).
+The next action belongs to the OWNER: audit the frozen E4 outputs and prepare
+the narrowly scoped E5/pass-one authorization under the existing protocol.
+Do not run pass one/E5 without that authorization; do not train anything,
+invoke fallback, adjudicate a ratio, access test, rerun either upstream
+campaign, reopen C3-C7, substitute predecessor table tools, touch the
+preserved local runtime, or widen the closed E2-E4 scope. The partial local
+campaign (47409/288000) remains preserved custody evidence.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -200,8 +204,8 @@ does not, it is wrong and this block is right.**
 | G-8 successor C3-C7 repository closeout | complete — 153 curves, 3,213 measured points |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next — G8_E worker successor E2 EXECUTING detached on `confessor` (`g8e-v3s-85354d3d…`, tmux `g8e-e2-confessor`); local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
-| G8_B–G8_G | **G8_B complete; G8_C GREEN with successor BLER table frozen; G8_D GREEN; G8_E E0 valid, corrected-v3 E1 READY; E2 unopened pending owner authorization.** |
+| G-8 classical validation work | **next — G8_E worker-successor E2 COMPLETE/VERIFIED at 288000/288000 on `confessor`; E3 exact-set closure and E4 measured accuracy objects COMPLETE/VERIFIED; local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; E5/pass one awaits owner authorization; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
+| G8_B–G8_G | **G8_B complete; G8_C GREEN with successor BLER table frozen; G8_D GREEN; G8_E E0 valid, corrected-v3 worker-successor E1 frozen/executable, E2-E4 COMPLETE and VERIFIED; E5 unopened pending owner authorization.** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
@@ -217,7 +221,7 @@ immutable superseded history and contributes zero successor-table coverage.
 The test split and every later scientific phase remain closed. G8_D D0–D7 are
 complete and GREEN; earlier G8_E E1 epochs are immutable superseded-before-data
 history, corrected-v3 E1 is frozen pre-data
-with zero validation coverage at freeze time, the owner relocated execution to the qualified worker (additive worker-successor epoch, commit `493d656`), production E2 is executing detached on `confessor_pascal_cu126`/`cuda:0`, and the full validation
+with zero validation coverage at freeze time, the owner relocated execution to the qualified worker (additive worker-successor epoch, commit `493d656`), production E2 completed at exactly 288000/288000 on `confessor_pascal_cu126`/`cuda:0` with E3 and E4 verified, and the full validation
 campaign remains scoped exactly to that authorization.
 Everything else stays behind its own gate — do not calibrate λ, train learned
 models, implement ER-9, or access the test split until theirs.
@@ -746,8 +750,8 @@ open another full-spec audit round without new evidence. **The owner-opened Pasc
 completed its full 3213/3213 authenticated production campaign and G8_C C3-C7 closeout.** Its
 153-curve successor table is frozen from measured points only; the predecessor-bound table tools
 cannot be substituted. `src/baseline/classical/composition.py` remains later selection machinery;
-G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v3 G8_E E1 is frozen pre-data with zero validation coverage, the owner E2–E4 authorization is issued for the worker successor (commit `493d656`) and production E2 is executing detached on `confessor`; do not
-restart it from zero or widen its scope. The historical C3–C7 contract remains in
+G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v3 G8_E E1 is frozen pre-data with zero validation coverage, the owner E2–E4 authorization was issued for the worker successor (commit `493d656`), and production E2 completed at exactly 288000/288000 on `confessor` with E3 exact-set closure and E4 measured accuracy objects verified; do not
+rerun it or widen its scope — E5/pass one awaits a separate owner authorization. The historical C3–C7 contract remains in
 `instructions/RESUME.md`; its predecessor commands do not apply to the Pascal runtime. The
 committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
 not be extrapolated. Read "What G-8 actually has to build" above before starting, and

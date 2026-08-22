@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e2; bler_table=frozen; g8_d=d7-complete; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e5-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -132,22 +132,32 @@ worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen
 `g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`,
 source commit `ed0b92a3c9e3b38c8868e4845f0992e893b1cac2`) and authorized E2–E4 only
 (authorization issued_sha256 `be4291881601e35cffc54555d9ec34107990916971ea7c6f9ab56d2258a8c49f`,
-commit `493d656`). Production E2 is EXECUTING detached on `confessor`
-(tmux session `g8e-e2-confessor`, log `~/g8_pascal_successor_logs/g8e-v3s-e2.log`,
-runtime `~/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/`).
-Status command:
-`ssh confessor 'python3 -c "import json;s=json.load(open(\"/home/nick/projects/capstone/results/baseline/g8_e/e2_confessor_successor/runtime/campaign_state.json\"));print(s[\"completed_prefix_count\"],\"/\",s[\"total_required\"],s[\"status\"])"'`.
-If the session dies, RESUME ONLY (never restart from zero):
-`ssh confessor 'tmux new-session -d -s g8e-e2-confessor "cd ~/projects/capstone && LD_LIBRARY_PATH=\$HOME/src/openjpeg-2.5.4/build/bin PATH=\$HOME/.local/bin:\$PATH .venv-pascal/bin/python tools/run_g8_e_corrected_v3s.py --resume --campaign-id g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588 >> ~/g8_pascal_successor_logs/g8e-v3s-e2.log 2>&1"'`.
-After exact 288000/288000: E3 = `.venv-pascal/bin/python tools/merge_g8_e_corrected_v3s.py --execute`;
-E4 = `.venv-pascal/bin/python tools/aggregate_g8_e_corrected_v3s.py --execute --e3-sha256 <sha>`.**
+commit `493d656`). **Worker-successor E2 is COMPLETE at exactly 288000/288000 on
+`confessor` (`confessor_pascal_cu126`/`cuda:0`) and VERIFIED; E3 exact-set closure
+and E4 measured accuracy objects are COMPLETE and VERIFIED** (outcome mix delivered
+264,000 / codec-infeasible 24,000 / decode-failure 0 / structural 0; training and
+test access 0). E2 completion SHA
+`442448a424cbad0ead742c4a45724155486cd2e8ecefeff52bff62394e5096a6`; E3
+`g8ee3v3-ec7b28fda5bf0fc25b5bf4c71c25731a4d3286df2b7e88d039ff97daf5355f5e`
+SHA `8496ebdb1c3757331b9fc53bc556d57091cbb7d08bdf390b07865547662dda42`; E4
+`g8ee4v3-4b5206cb5a7f752dc46f45996fd2d74a927ba0770813445915ab7a64f0e714f1`
+SHA `ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3`. A
+closeout-layer identity-loading defect was repaired additively with no bound byte
+changed (repair provenance `g8ecloseoutrepair-e797b7bd…`, commit `0f65fb4`;
+corrected entry points `.venv-pascal/bin/python tools/closeout_g8_e_v3s.py
+verify|merge|aggregate`); custody record
+`results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`
+(`g8ecloseout-e258ecb1…`). E5/pass one awaits its own owner authorization —
+do not execute it without that artifact.**
 The authenticated Pascal campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
 and contributes zero successor-table coverage. Do not rerun this campaign,
 resume the old suffix, ingest predecessor evidence, start another Pascal
-worker, alter runtime evidence or reopen G8_C. Do not start later G8_D stages
-out of order, start G8_E, or run the full validation campaign yet.
+worker, alter runtime evidence or reopen G8_C. Do not rerun or resume the
+completed worker-successor E2, merge either preserved partial runtime, widen
+the closed E2–E4 scope, run pass one/E5, training, fallback, ratio adjudication,
+learned training, or test access.
 
 PB_3C remains the latest pre-G8 scientific-engineering green and its ledger is
 retained below. This production-readiness repair is additive and does not alter
@@ -178,7 +188,7 @@ complete, and G8_C C3-C7 is `done`.** The full BR-4 validation sweep and
 operating-point decision have not run, no bandwidth ratio has been selected,
 nothing has been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented,
 and the test split is sealed until G-12 at W11. G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-The corrected-v3 G8_E E1 epochs are pre-data history; the partial local campaign was owner-aborted at 47409/288000 and the additive worker-successor epoch is authorized (commit `493d656`) with production E2 executing detached on `confessor`; E5/pass one, training, fallback, ratio adjudication and test access remain forbidden. PR-1 (literature review), PR-2 (Gantt) and PR-9
+The corrected-v3 G8_E E1 epochs are pre-data history; the partial local campaign was owner-aborted at 47409/288000 and the additive worker-successor epoch completed verified E2–E4 on `confessor` (288000/288000; E3 exact set; E4 measured accuracy objects); E5/pass one awaits its own owner authorization, and training, fallback, ratio adjudication and test access remain forbidden. PR-1 (literature review), PR-2 (Gantt) and PR-9
 (deployment dossier and author/guide acknowledgement) remain outstanding
 programme deliverables.
 

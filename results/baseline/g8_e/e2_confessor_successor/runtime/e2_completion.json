@@ -1,0 +1,29 @@
+{
+  "artifact_content_sha256": "7abbd49768fc45cad9ce85fdc7964218cf0ebb866da92145c70d64b370ef37fd",
+  "artifact_role": "g8_e_v3_e2_completion",
+  "authority_order_sha256": "2e3f6d50ae5116929a32299c598dc3adecacb3bfb7ce99e91e5640a7bc77e847",
+  "campaign_id": "g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588",
+  "completed_work_unit_count": 288000,
+  "completion_id": "g8ee2completev3-1f8ea40ae87cf2eeb0980cd3ff849d0abf395adc07bc7f1ecab8e8aea03441af",
+  "contract_id": "g8econtractcorrectedv3s-2831f47d38d58f9a27424421ced4c893e3d0636d564661c80a9e8d31480a177e",
+  "counters": {
+    "codec_infeasibility": 24000,
+    "decode_failure": 0,
+    "delivered": 264000,
+    "inference": 264000,
+    "structural_infeasibility": 0,
+    "test_access": 0,
+    "training": 0,
+    "validation_decoding": 264000
+  },
+  "measurement_authority_id": "g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5",
+  "pass_one": false,
+  "production": true,
+  "record_labels": [],
+  "required_work_unit_count": 288000,
+  "rolling_prefix_digest": "0404eca24f95fb9268d687651f9bbc4aa03ead6968d93b6861f1ea968e8e4102",
+  "schema_version": 3,
+  "status": "E2_COMPLETE",
+  "test_access": 0,
+  "training": 0
+}
