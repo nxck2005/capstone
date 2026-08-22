@@ -35,6 +35,15 @@ EXPECTED = {
         ("tests/test_g8_e_corrective_v3.py", "test_production_runner_refuses_old_v2_and_missing_authorization_before_payload"),
         ("tests/test_g8_e_e2_successor.py", "test_live_identity_check_rejects_the_contract_summary_block"),
         ("tests/test_g8_e_v3s_closeout.py", "test_summary_block_is_rejected_against_the_live_rebuild_before_payload"),
+        *{
+            ("tests/test_g8_e_pass_one.py", name)
+            for name in (
+                "test_frozen_chain_authenticates_with_expected_hashes",
+                "test_chain_binding_mutations_are_refused",
+                "test_full_pass_one_executes_once_verifies_and_is_deterministic",
+                "test_state_mutations_are_refused",
+            )
+        },
         ("tests/test_w4_smoke_runner.py", "test_worklist_is_deterministic_and_free_of_duplicate_identities"),
         ("tests/test_w4_smoke_runner.py", "test_worklist_is_ordered_by_stable_sample_id_not_loader_order"),
         ("tests/test_w4_smoke_runner.py", "test_a_cifar_worklist_row_is_never_task_scored"),
