@@ -46,14 +46,20 @@ campaign, resume the old RTX4060 suffix, ingest predecessor evidence, or alter
 the completed runtime. C3-C7 is green: the successor merge report, measured
 153-curve/3,213-point BlerTable and source/provenance closure are independently
 verified under `results/baseline/g8_pascal_successor/`. G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-The original G8_E E1 and first corrected E1 freezes are preserved as immutable
-`superseded-before-data` history: their contracts, campaigns, authorities and
-source-manifest identities remain bound, and their validation coverage is zero.
-The additive corrected-v2 E1 epoch is immutable superseded-before-data history.
-Corrected-v3 E1 is the current executable pre-data contract; its runner and
-E3/E4 sources are frozen before any owner authorization. Test and
-validation data, selection, pass one, training, fallback, ratio adjudication
-and inference remain prohibited here.
+G8_E is GREEN and closed through E7: worker-successor E2 completed at
+288000/288000, E3/E4 verify, E5 pass one executed exactly once with 378/378
+cells selected, and E6 froze the training-only unmaterialized corpus lineage.
+E7 handoff
+`g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`
+has file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`.
+The original, first-corrected and corrected-v2 E1 epochs remain immutable
+superseded-before-data history. The owner-aborted corrected-v3 local runtime
+remains 47409/288000 and contributes zero successor coverage. A separate
+unauthorized clean-worktree runtime accidentally created by the test harness is
+preserved at 42704/288000, permanently merge-ineligible and documented in
+`audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`; do not resume,
+merge, delete or normalize it. G8_F/F0 owner authorization is next. Training,
+pass two, fallback, ratio adjudication and test access remain prohibited.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -833,12 +839,13 @@ or G8_E execution is permitted in G8_D.
 | D6 bounded non-scientific smoke and mutations | done | **Phase-start SHA:** `703389b`; WIP `22ac8a7`; green commit: this D6 checkpoint. Synthetic smoke: 1 sample, 4 candidates/cells, 1 measurement work unit; emitted-byte, reconstruction-cache, BR-11 and atomic-resume seams PASS; all 20 required mutation cases PASS; no classifier, selection, headline result or campaign execution. |
 | D7 verification and handoff | done | Current contract `g8dcontract-c1ebf0b23e0e5725d387f447e633b37f123688d2595695f92e86a1c663db7889` and handoff `g8dhandoff-31c48fcabe765a0e70bcd7bcfec5f4bd705b88ee3cb0d140ba9aecf67e1dfd4c` reverify after the portable repair; current D7 records 2,179 full-suite passes and releases E0. |
 
-### G8_E — pre-data validation contract
+### G8_E — validation campaign and pass one
 
-E0/E1 are the only authorized work in this phase for the current session.
-E0 must authenticate the portable G8_C epoch and current G8_D handoff before
-creating any G8_E state. E2, the full validation campaign, pass one, training,
-fallback, ratio adjudication and test access remain prohibited.
+G8_E is GREEN and closed through E7. The historical E1 rows preserve their
+freeze-time facts; the additive worker-successor rows below are authoritative
+for completed E2–E7. No G8_E execution may be rerun or widened. G8_F/F0 awaits
+its own owner authorization, and training, pass two, fallback, ratio
+adjudication and test access remain prohibited.
 
 | Step | State | Exact restart / evidence |
 |---|---|---|
@@ -847,6 +854,15 @@ fallback, ratio adjudication and test access remain prohibited.
 | E1 corrected additive epoch | superseded-before-data | **Phase-start:** `2f9c892`; additive checkpoints `af64015`, `2b14606`, `4e56553`, `3591cb4`, `c2b1f3e`, `cd92c1e`, `f9d0847`, `a754f4f`, `e66da32` and lint/handoff closure `b40b63f`; portable CI-test fix `c7d2d7d`. Contract `g8econtractcorrected-ab9c4c46be7f3bf58129274083f9a15fb0008a90a2f6b653a906b72a4efc3a39`, campaign `g8e-corrected-d55b30df0e9f580dfb8be7b19dc33f5b9092bdedad8725ca9a2ffd36814fdcd4`, measurement authority `g8emeasurementauthority-819f0a28fde7bc5438a87f054560740978e12b63184414764af3f503c11addf5`, mapping `g8elogicalmapping-42ddbd29778b77fca4cc4b1fc557d1128225a91c530fc5276a586e77e99fedfe`, source manifest `g8esourcecorrected-177cfdb49b146171bf6969212a628fe3de870ef9df7247a8e55b7796116e7a5b`, source epoch `b40b63f`. Its corrected runner, transaction, E3 and E4 sources were tested only on synthetic NON-SCIENTIFIC fixtures; coverage remains 0, no runtime or owner authorization artifact exists, and E2 remains closed. Preserve it unchanged; corrected-v3 superseded it before data, so this campaign must not execute. |
 | E1 corrected-v2 epoch | superseded-before-data | **Code-bearing freeze:** `4e3ae1eb8f8f2b2cf76aa20fe68f9d7e56424fa5`; immutable artifact/source closure remains under `results/baseline/g8_e/e1_corrected_v2/`. Contract `g8econtractcorrectedv2-fbfc3fb6d2210bdf377e2d31695933453ecceee385623112b2c8ab260ee63222`, campaign `g8e-v2-ff50dffe0e1e533a40be30044d4fcb5b35ce97b99ff8505c1d222e16685173ef`, source manifest `g8esourcecorrectedv2-c4bb8ab9f566aeab1531dc72142fd77be525d4fef43e92ac116ceddbbcd1fad1`, 6,048 logical cells, 288 structural identities, 288,000 work units, zero coverage. It repaired image-level codec infeasibility scoring, fatal runtime HOLD semantics, compact transaction advancement, start/resume rules, observation caching and direct G8_C/G8_D provenance. Corrected-v3 superseded it before data because lifecycle verification, full-authority hashing, E3 asymptotics/provenance/cache authentication and storage planning remained defective. No v2 runtime or owner authorization exists; its synthetic evidence is non-scientific and merge-ineligible. Do not execute this campaign. |
 | E1 corrected-v3 additive supersession | done | **Phase-start SHA:** `3ce42677464be4aa54de789f5d97e23aaec59b2c`; marker `a67265e`; code checkpoints `70589f7`, `0fc0825`, final frozen source `0ec81dd0130d2caab485065592afc12433b176f2`. Contract `g8econtractcorrectedv3-da3e1d32d5b826a5bfa06f0d7b7a9e3c1809026843633648d28a70a9437986a4`; campaign `g8e-v3-c20d9c4f4638687ad9e4e3e69bf7b9dbdf509a62c2c3a4d95dbbe6771ced57b5`; source manifest `g8esourcecorrectedv3-116a394b0edf1df29ff09244457c45f36f747952094840a6701bfcdfebb29b44`; data identity `g8edataidentityv3-f3684d94a7e1169ee9c3b77f651c8ae25453a9eddf07871dc8a38c7685baddff`. Independent pre-edit audit proved v2 accepted records/completed units/authorization/runtime/E3/E4 all zero and every later safety boundary closed. V3 separates phase-invariant and zero-state verification; authenticates/reconciles resume before payload opening; caches the authority digest once; makes E3/E4 linear; freezes exact validation IDs/classes/source linkage; independently authenticates codec/reconstruction/observation/BR-11 evidence; binds E4 to immutable E3; and includes backend cache/file/inode/runtime cost. Mandatory 2,500/5,000/10,000/20,000 scale series and nine-unit actual-entry-point synthetic lifecycle PASS; `tests/test_g8_e_corrective_v3.py` is 41/41. Production coverage, authorization, runtime, E3/E4, pass one, training, fallback, ratio and test access remain zero/absent. Next action is owner-audited E2 authorization/execution; do not perform it here. |
+
+| Step | State | Exact restart / evidence |
+|---|---|---|
+| E2 corrected-v3 local runtime | partial-owner-aborted | Owner-aborted at exact prefix 47409/288000 under `local_4060_cu130`; immutable custody evidence, zero successor coverage, never resume or merge. |
+| E2 worker-successor execution | done | Campaign `g8e-v3s-85354d3d…` completed exactly 288000/288000 on `confessor_pascal_cu126`; E2 completion SHA-256 `442448a424cbad0ead742c4a45724155486cd2e8ecefeff52bff62394e5096a6`; protected training/test counters zero. |
+| E3/E4 exact closure and measured objects | done | E3 SHA-256 `8496ebdb1c3757331b9fc53bc556d57091cbb7d08bdf390b07865547662dda42`; E4 SHA-256 `ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3`; 288 objects at denominator 1000, delivered 264000 / codec-infeasible 24000 / decode-failure 0 / structural 0. |
+| E5 authorized pass one | done | Authorization `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`; pass-one record `g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413`, file SHA-256 `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`; executed exactly once, 378/378 selections. |
+| E6 corpus-lineage freeze | done | Freeze `g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`, file SHA-256 `120ac23debc70001df3001ae82f3caecbd8d8821b5684d3789bd83bc56a7e5fd`; training-only and unmaterialized, E1 corpus-spec bytes untouched. |
+| E7 verification and handoff | done | `tools/verify_g8_e_complete.py` returns GREEN and authenticates handoff `g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`, file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`. The handoff binds the contained clean-worktree incident audit; G8_F is ready but unauthorized. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

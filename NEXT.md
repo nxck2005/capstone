@@ -23,7 +23,10 @@ the additive corpus-spec lineage completion
 (`g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`;
 the E1 corpus-spec bytes stay untouched). E7 `tools/verify_g8_e_complete.py`
 returns PASS with the terminal verdict **G8_E GREEN — VALIDATION CAMPAIGN AND
-PASS ONE FROZEN; G8_F READY; NO TRAINING OR PASS TWO**. Separately, the ci-cpu
+PASS ONE FROZEN; G8_F READY; NO TRAINING OR PASS TWO**, authenticating handoff
+`g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`
+(file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`).
+Separately, the ci-cpu
 lane was repaired host-independently (commit `824d49c`; GitHub Actions run
 `32579946365` green). Next: **owner-audited G8_F/F0 authorization only**;
 do not materialize the training corpus, fine-tune any classifier, run pass two,
@@ -43,6 +46,21 @@ constructed at its single sanctioned site `tests/g8_e5_gate.py` because PB_3's
 AST scan (and the frozen bytes binding it) pins construction to tests/ only;
 the scan still proves no non-test file constructs one. Pass-one selections map
 1:1 back to logical candidate-authority IDs for the G8_F corpus lineage.
+
+**2026-08-23 clean-checkout test-harness incident (CONTAINED):** the full-local
+gate in `/home/nick/projects/capstone-ci-clean` exposed that
+`test_production_runner_refuses_old_v2_and_missing_authorization_before_payload`
+relied on the writer-only ignored runtime to force `--start` refusal. In the
+clean worktree it unintentionally created a separate unauthorized corrected-v3
+runtime at exact durable prefix 42704/288000 before being stopped. Training and
+test access remain zero. The canonical preserved runtime independently
+re-authenticates unchanged at 47409/288000; the trees share zero file inodes,
+and the canonical newest mtime predates the incident. The scratch runtime is
+zero-coverage, permanently merge-ineligible custody evidence: do not resume,
+merge, delete or normalize it, and do not use that worktree for scientific
+execution. The test now uses isolated `tmp_path` roots, missing authorization
+and explicit payload/transaction barriers. Full record:
+`audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`.
 
 **2026-08-22 worker-successor E2/E3/E4 closeout (COMPLETE):** production E2 ran to
 exact 288000/288000 under campaign `g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`

@@ -462,30 +462,55 @@ def test_production_executor_rejects_source_bytes_not_matching_stable_id(tmp_pat
 
 
 @pytest.mark.external_dataset
-def test_production_runner_refuses_old_v2_and_missing_authorization_before_payload() -> None:
+def test_production_runner_refuses_old_v2_and_missing_authorization_before_payload(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _require_bundle()
     bundle = v3.verify_v3_frozen_contract()
     old_campaign = json.loads(v3.v2.V2_CONTRACT_PATH.read_text())["campaign_id"]
+    missing_authorization = tmp_path / "missing-authorization.json"
+    old_runtime = tmp_path / "old-runtime-must-not-be-created"
     old = subprocess.run(
-        [sys.executable, "tools/run_g8_e_corrected_v3.py", "--start", "--campaign-id", old_campaign],
+        [
+            sys.executable,
+            "tools/run_g8_e_corrected_v3.py",
+            "--start",
+            "--campaign-id", old_campaign,
+            "--runtime-root", str(old_runtime),
+            "--authorization", str(missing_authorization),
+        ],
         capture_output=True,
         text=True,
         check=False,
     )
     assert old.returncode == 2
-    current = subprocess.run(
-        [sys.executable, "tools/run_g8_e_corrected_v3.py", "--start", "--campaign-id", bundle["contract"]["campaign_id"]],
-        capture_output=True,
-        text=True,
-        check=False,
+    assert not old_runtime.exists()
+    production_root = v3.V3_RUNTIME_ROOT
+    production_state = production_root / "campaign_state.json"
+    production_state_before = production_state.read_bytes() if production_state.is_file() else None
+    isolated_runtime = tmp_path / "runtime-must-not-be-created"
+    monkeypatch.setattr(v3, "V3_RUNTIME_ROOT", isolated_runtime)
+    monkeypatch.setattr(v3, "V3_AUTHORIZATION_PATH", missing_authorization)
+
+    def payload_boundary_reached(*args: Any, **kwargs: Any) -> Any:
+        raise AssertionError("missing authorization reached a production payload boundary")
+
+    monkeypatch.setattr(v3, "AtomicE2CampaignV3", payload_boundary_reached)
+    monkeypatch.setattr(runner, "_production_samples", payload_boundary_reached)
+    current = runner.main(
+        [
+            "--start",
+            "--campaign-id", bundle["contract"]["campaign_id"],
+            "--runtime-root", str(isolated_runtime),
+            "--authorization", str(missing_authorization),
+        ]
     )
-    # --start must refuse both a superseded campaign and an existing runtime;
-    # the aborted local partial runtime is preserved in place and is never a
-    # --start target.
-    assert current.returncode == 2
-    assert v3.V3_RUNTIME_ROOT.is_dir()
-    state = json.loads((v3.V3_RUNTIME_ROOT / "campaign_state.json").read_text())
-    assert 0 < state["completed_prefix_count"] < state["total_required"]
+    assert current == 2
+    assert not isolated_runtime.exists()
+    if production_state_before is None:
+        assert not production_root.exists()
+    else:
+        assert production_state.read_bytes() == production_state_before
 
 
 def test_frozen_boundaries_and_future_pass_one_plan() -> None:

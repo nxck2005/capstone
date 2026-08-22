@@ -15,15 +15,20 @@ from baseline import g8_e_pass_one as pass_one
 REPO = Path(__file__).resolve().parents[1]
 
 
-@pytest.mark.external_dataset
-def test_live_g8_e_complete_verifier_returns_green():
+@pytest.fixture(scope="module")
+def live_report() -> dict:
     proc = subprocess.run(
         [sys.executable, str(REPO / "tools/verify_g8_e_complete.py")],
         capture_output=True,
         text=True,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    report = json.loads(proc.stdout)
+    return json.loads(proc.stdout)
+
+
+@pytest.mark.external_dataset
+def test_live_g8_e_complete_verifier_returns_green(live_report):
+    report = live_report
     assert report["status"] == "PASS"
     assert report["counters"]["pass_one_executed_count"] == 1
     assert all(
@@ -36,6 +41,30 @@ def test_live_g8_e_complete_verifier_returns_green():
     )
     assert report["verdict"].startswith("G8_E GREEN")
     assert report["pass_one_cells_without_selection"] >= 0
+    assert report["e7_handoff_id"].startswith("g8ee7handoff-")
+    assert len(report["e7_handoff_file_sha256"]) == 64
+
+
+def test_e7_handoff_is_generator_exact_and_mutations_are_refused(tmp_path, live_report):
+    from importlib.util import spec_from_file_location, module_from_spec
+
+    report = dict(live_report)
+    report.pop("e7_handoff_id")
+    report.pop("e7_handoff_file_sha256")
+    report.pop("incident_audit_sha256")
+    spec = spec_from_file_location("verify_g8_e_complete_handoff", REPO / "tools/verify_g8_e_complete.py")
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    handoff = module.verify_e7_handoff(report)
+    assert handoff["post_closeout_incident_audit"]["scratch_runtime_merge_eligible"] is False
+    assert handoff["g8_f"]["authorized"] is False
+
+    mutated = json.loads(json.dumps(handoff))
+    mutated["g8_f"]["authorized"] = True
+    path = tmp_path / "mutated-handoff.json"
+    path.write_bytes(v3.rendered_json(mutated))
+    with pytest.raises(SystemExit):
+        module.verify_e7_handoff(report, path)
 
 
 def test_e4_semantics_mutations_are_refused():

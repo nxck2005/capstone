@@ -47,9 +47,19 @@ test counters all zero. E6 froze the additive corpus-spec lineage completion
 `g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`
 (E1 corpus-spec bytes untouched). E7 `tools/verify_g8_e_complete.py` returns
 PASS with verdict **G8_E GREEN — VALIDATION CAMPAIGN AND PASS ONE FROZEN;
-G8_F READY; NO TRAINING OR PASS TWO**. The ci-cpu lane was repaired
+G8_F READY; NO TRAINING OR PASS TWO** and authenticates the terminal handoff
+`g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`
+(file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`).
+The ci-cpu lane was repaired
 host-independently on 2026-08-22 (commit `824d49c`, Actions run `32579946365`
-green). Do not reopen or rerun G8_C/G8_D, do not rerun or resume E2, do not
+green). A 2026-08-23 clean-checkout test-harness defect unintentionally created
+a separate unauthorized corrected-v3 runtime at prefix 42704/288000 under
+`/home/nick/projects/capstone-ci-clean`; it independently authenticates but has
+zero successor coverage and is permanently merge-ineligible. Its custody and
+the canonical-runtime separation proof are recorded in
+`audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`. Preserve that
+runtime in place and do not use the contaminated worktree for scientific
+execution. Do not reopen or rerun G8_C/G8_D, do not rerun or resume E2, do not
 merge or ingest either preserved partial runtime, do not widen the closed
 E2–E7 scope, do not alter pass-one selections or the frozen corpus-spec bytes,
 and do not materialize the training corpus, train any classifier, run pass two,
@@ -256,6 +266,8 @@ python spec/evidence/check_packetisation.py --json spec/evidence/packetisation_r
 .venv/bin/python tools/gen_w4_integration_adjudication.py        # regenerate the W4 closing adjudication
 .venv/bin/python tools/gen_w4_integration_adjudication.py --check
 .venv/bin/python tools/verify_w4_baseline_integration.py # network-free bounded W4 evidence + BR-4 selection-machinery cross-check
+.venv/bin/python tools/gen_g8_e_e7_handoff.py --check    # authenticate deterministic E7 handoff and incident-audit binding
+.venv/bin/python tools/verify_g8_e_complete.py           # terminal G8_E verifier including E7 handoff
 .venv/bin/python -m pytest              # project test suite; config is in pyproject.toml
 ```
 

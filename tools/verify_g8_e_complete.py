@@ -38,6 +38,7 @@ from baseline.g8_e import verify_e1_corpus_spec_file  # noqa: E402
 
 CORPUS_SPEC_PATH = pass_one.REPO_ROOT / "results/baseline/g8_e/corpus_spec.json"
 E6_FREEZE_PATH = pass_one.v3s.V3S_ROOT / "e6_pass_one_freeze.json"
+E7_HANDOFF_PATH = pass_one.v3s.V3S_ROOT / "e7_handoff.json"
 
 
 def _verify_e4_semantics(e4: dict) -> None:
@@ -73,7 +74,12 @@ def _verify_e4_semantics(e4: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.parse_args(argv)
+    parser.add_argument(
+        "--without-e7-handoff",
+        action="store_true",
+        help="verify the E2-E6 inputs used only to generate the non-self-referential E7 handoff",
+    )
+    args = parser.parse_args(argv)
     report: dict = {}
     try:
         context = pass_one.authenticate_inputs()
@@ -163,8 +169,30 @@ def main(argv: list[str] | None = None) -> int:
         "G8_E GREEN - VALIDATION CAMPAIGN AND PASS ONE FROZEN; "
         "G8_F READY; NO TRAINING OR PASS TWO"
     )
+    if not args.without_e7_handoff:
+        try:
+            handoff = verify_e7_handoff(report)
+        except (OSError, ValueError, SystemExit) as exc:
+            print(json.dumps({"status": "HOLD", "reason": str(exc)}, sort_keys=True))
+            return 2
+        report["e7_handoff_id"] = handoff["handoff_id"]
+        report["e7_handoff_file_sha256"] = v3.sha256_bytes(E7_HANDOFF_PATH.read_bytes())
+        report["incident_audit_sha256"] = handoff["post_closeout_incident_audit"]["sha256"]
     print(json.dumps(report, sort_keys=True))
     return 0
+
+
+def verify_e7_handoff(report: dict, path: Path = E7_HANDOFF_PATH) -> dict:
+    """Rebuild the terminal handoff from verified inputs and require exact bytes."""
+
+    from gen_g8_e_e7_handoff import INCIDENT_AUDIT, build_handoff
+
+    raw = path.read_bytes()
+    value = json.loads(raw)
+    expected = build_handoff(report, INCIDENT_AUDIT.read_bytes())
+    if value != expected or raw != v3.rendered_json(expected):
+        raise SystemExit("E7 handoff differs from the verified terminal inputs")
+    return value
 
 
 def validate_corpus_training_only(context: dict, corpus_binding: dict) -> None:
