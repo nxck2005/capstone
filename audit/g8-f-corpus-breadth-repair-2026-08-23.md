@@ -67,7 +67,8 @@ pins the archived/current parameter bytes and the exact post-campaign and
 historical-campaign verifier implementations. Both reconstruct the archived
 YAML from measurement source commit `426110b…`, compute the leaf diff, permit
 exactly those 16 G8_F paths and fail on every other drift. The record also pins
-both verifiers' current bytes, so it is not a general allowlist. A second exact source-compatibility record,
+both verifiers' current bytes, so it is not a general allowlist. A second exact
+source-compatibility record,
 `g8esourcecompat-1dca57402923146dc3ac03d5c3d11a497f6158c563b51ab93f2961eb14399beb`
 (file SHA-256
 `fd556f3f662a1c03d381da44739a5805568933d0fa1a8fb1823ed3387060e29f`),
@@ -75,8 +76,12 @@ preserves the already-frozen D7 contract identity when synthetic builders run
 under AM-87 and admits exactly that historical builder plus the post-E7 source
 verifier; both current and archived source bytes are pinned. No production
 contract, source manifest, request, result, state, BLER table, D7 object,
-E2/E3/E4 object, pass-one record or E7 handoff byte changed. After this additive verifier repair, `tools/verify_g8_e_complete.py`
-again returns the original GREEN report and original E7 ID/SHA.
+E2/E3/E4 object, pass-one record or E7 handoff byte changed. The W4 verifier
+likewise compares schema-1 snapshots to exact post-AM-86 parameters first and
+then authenticates AM-87 separately, rather than treating the new G8_F leaves
+as W4 measurement drift. After these additive verifier repairs,
+`tools/verify_g8_e_complete.py` again returns the original GREEN report and
+original E7 ID/SHA.
 
 ## Frozen structures that constrain AM-87
 
