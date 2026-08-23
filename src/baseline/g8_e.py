@@ -391,39 +391,49 @@ def build_e0_opening(*, opening_commit: str | None = None) -> dict[str, Any]:
 
 
 def _verify_am87_g8d_source_compatibility(binding: Mapping[str, Any]) -> None:
-    path = REPO_ROOT / "results/baseline/g8_f/am87_g8e_source_compatibility.json"
+    am87_path = REPO_ROOT / "results/baseline/g8_f/am87_g8e_source_compatibility.json"
+    am88_path = REPO_ROOT / "results/baseline/g8_f/am88_g8e_source_compatibility.json"
     try:
-        compatibility = json.loads(path.read_bytes())
+        am87_raw = am87_path.read_bytes()
+        am87 = json.loads(am87_raw)
+        compatibility = json.loads(am88_path.read_bytes())
     except (OSError, json.JSONDecodeError) as exc:
-        raise G8EContractError(f"cannot load AM-87 E0 source compatibility: {exc}") from None
+        raise G8EContractError(f"cannot load AM-87/AM-88 E0 source compatibility: {exc}") from None
+    am87_body = {key: child for key, child in am87.items() if key != "compatibility_id"}
     body = {key: child for key, child in compatibility.items() if key != "compatibility_id"}
     _require(
-        compatibility.get("compatibility_id") == "g8esourcecompat-" + sha256_bytes(canonical_json(body)),
-        "AM-87 E0 source-compatibility ID differs",
+        am87.get("compatibility_id") == "g8esourcecompat-" + sha256_bytes(canonical_json(am87_body))
+        and compatibility.get("compatibility_id") == "g8esourcecompat-" + sha256_bytes(canonical_json(body)),
+        "AM-87/AM-88 E0 source-compatibility ID differs",
     )
     _require(
-        compatibility.get("amendment") == "AM-87"
-        and compatibility.get("timing") == "post_g8e_e7_pre_g8f_execution"
+        compatibility.get("amendment") == "AM-88"
+        and compatibility.get("timing") == "post_am87_pre_f0_execution_zero"
+        and compatibility.get("prior_compatibility") == {
+            "path": str(am87_path.relative_to(REPO_ROOT)),
+            "compatibility_id": am87["compatibility_id"],
+            "sha256": sha256_bytes(am87_raw),
+        }
         and compatibility.get("protected_boundary", {}).get("g8_d_changed") is False,
-        "AM-87 E0 source-compatibility boundary differs",
+        "AM-88 E0 source-compatibility boundary differs",
     )
+    prior_entries = am87.get("entries")
     entries = compatibility.get("entries")
-    _require(isinstance(entries, list), "AM-87 E0 source entries differ")
-    matches = [
-        entry for entry in entries
-        if isinstance(entry, Mapping) and entry.get("path") == binding["path"]
-    ]
-    _require(len(matches) == 1, "AM-87 E0 G8_D source entry differs")
+    _require(isinstance(prior_entries, list) and isinstance(entries, list), "AM-87/AM-88 E0 source entries differ")
+    prior = [entry for entry in prior_entries if isinstance(entry, Mapping) and entry.get("path") == binding["path"]]
+    matches = [entry for entry in entries if isinstance(entry, Mapping) and entry.get("path") == binding["path"]]
+    _require(len(prior) == len(matches) == 1, "AM-87/AM-88 E0 G8_D source entry differs")
     entry = matches[0]
     current_path = REPO_ROOT / str(binding["path"])
     _require(
-        entry.get("kind") == "post_d7_historical_contract_builder_only"
-        and entry.get("archived_bytes") == binding["bytes"]
-        and entry.get("archived_sha256") == binding["sha256"]
+        prior[0].get("archived_bytes") == binding["bytes"]
+        and prior[0].get("archived_sha256") == binding["sha256"]
+        and entry.get("archived_bytes") == prior[0].get("current_bytes")
+        and entry.get("archived_sha256") == prior[0].get("current_sha256")
         and entry.get("current_bytes") == current_path.stat().st_size
         and entry.get("current_sha256") == sha256_file(current_path)
         and entry.get("scientific_execution_reachable") is False,
-        "AM-87 E0 G8_D source byte chain differs",
+        "AM-87/AM-88 E0 G8_D source byte chain differs",
     )
 
 

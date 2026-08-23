@@ -58,12 +58,15 @@ remains 47409/288000 and contributes zero successor coverage. A separate
 unauthorized clean-worktree runtime accidentally created by the test harness is
 preserved at 42704/288000, permanently merge-ineligible and documented in
 `audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`; do not resume,
-merge, delete or normalize it. AM-87 freezes the corrected metadata-only G8_F
-corpus plan as `g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148`:
-120 deduplicated qualities, 8,469 training stable IDs and 1,016,280 exact ordered
-attempts; materialization count zero. Owner audit of that plan is next, followed
-only by a separate F0 authorization if accepted. Training, pass two, fallback,
-ratio adjudication and test access remain prohibited.
+merge, delete or normalize it. AM-87 preserves the complete 120-quality G8_F
+support over all 8,469 eligible training stable IDs. AM-88 supersedes only its
+Cartesian multiplicity and freezes balanced metadata-only sampler
+`g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`:
+exactly six distinct supported qualities per image, 50,814 attempts, global and
+per-class quality-count range at most one; materialization count zero. Owner
+audit of AM-88 is next, followed only by a separate F0 authorization if
+accepted. Training, pass two, fallback, ratio adjudication and test access
+remain prohibited.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -871,7 +874,7 @@ prohibited.
 | E5 authorized pass one | done | Authorization `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`; pass-one record `g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413`, file SHA-256 `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`; executed exactly once, 378/378 selections. |
 | E6 corpus-lineage freeze | done | Freeze `g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`, file SHA-256 `120ac23debc70001df3001ae82f3caecbd8d8821b5684d3789bd83bc56a7e5fd`; training-only and unmaterialized, E1 corpus-spec bytes untouched. |
 | E7 verification and handoff | done | `tools/verify_g8_e_complete.py` returns GREEN and authenticates the additive audit-cleanup handoff `g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`, file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`. The handoff binds the contained clean-worktree incident audit and its read-only inner-cache payload addendum; G8_F is ready but unauthorized. |
-| G8_F AM-87 corpus protocol plan | frozen-plan-only | Protocol amendment discovered post-pass-one/pre-F0; plan `g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148`, file SHA recorded by `tools/verify_g8_f_corpus_plan.py`; B=120, N_train=8,469, attempts=1,016,280, materialized/training/pass-two/test=0. Next: OWNER AUDIT, then separate F0 authorization only. |
+| G8_F AM-87 support / AM-88 sampler protocol plans | frozen-plan-only | AM-87 support remains exact at B=120 and N_train=8,469. AM-88 plan `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`, file SHA `eca85a9891bcf2054e132e5fc277430d2c85962a78f8438c9da0604d98447e23`: six distinct qualities/image, attempts=50,814, global counts 423–424, each class range 0–1, duplicate pairs 0, materialized/training/pass-two/test=0. Next: OWNER AUDIT OF AM-88, then separate F0 authorization only. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

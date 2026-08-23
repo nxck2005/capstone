@@ -2255,16 +2255,37 @@ def _am87_historical_contract_bindings(repo_root: Path) -> tuple[str, str, list[
     if len(params) != 1:
         raise G8DContractError("AM-87 historical D7 parameter entry differs")
     params_entry = params[0]
+    am88_path = repo_root / "results/baseline/g8_f/am88_post_campaign_source_compatibility.json"
+    sampler_path = repo_root / "results/baseline/g8_f/am88_sampler_plan.json"
+    try:
+        am88 = json.loads(am88_path.read_bytes())
+        sampler = json.loads(sampler_path.read_bytes())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8DContractError(f"cannot load AM-88 historical D7 compatibility: {exc}") from None
+    am88_body = {key: child for key, child in am88.items() if key != "compatibility_id"}
+    sampler_body = {key: child for key, child in sampler.items() if key != "plan_id"}
+    if (
+        am88.get("compatibility_id") != "g8postsource-" + sha256_bytes(canonical_json(am88_body))
+        or am88.get("amendment") != "AM-88"
+        or sampler.get("plan_id") != "g8fsamplerplan-" + sha256_bytes(canonical_json(sampler_body))
+        or sampler.get("protected_boundary", {}).get("f0_execution_authorized") is not False
+    ):
+        raise G8DContractError("AM-88 historical D7 identity/boundary differs")
+    am88_params = [entry for entry in am88.get("entries", []) if isinstance(entry, Mapping) and entry.get("path") == "spec/params.generated.yaml"]
+    if len(am88_params) != 1:
+        raise G8DContractError("AM-88 historical D7 parameter entry differs")
     current_spec = sha256_file(repo_root / "spec/SPEC.md")
     current_params = sha256_file(repo_root / "spec/params.generated.yaml")
     upstream = frozen_contract.get("upstream_bindings", {})
     if (
-        current_spec != "272993232d6200638ed9a3892052cc71be780779c29a53835c6a5e31d8a3cd85"
-        or current_params != params_entry.get("current_sha256")
+        current_spec != sampler.get("amendment", {}).get("specification", {}).get("sha256")
+        or current_params != am88_params[0].get("current_sha256")
+        or current_params != sampler.get("amendment", {}).get("generated_parameters", {}).get("sha256")
+        or am88_params[0].get("archived_sha256") != params_entry.get("current_sha256")
         or params_entry.get("archived_sha256") != upstream.get("params_generated_sha256")
         or upstream.get("spec_sha256") != "4df456ec93742913803ed4c4bb958d0a9885e8065075c70807122e2ba3e9bf5b"
     ):
-        raise G8DContractError("AM-87 historical D7 normative byte chain differs")
+        raise G8DContractError("AM-87/AM-88 historical D7 normative byte chain differs")
     source_bindings = frozen_contract.get("source_bindings")
     if not isinstance(source_bindings, list) or not source_bindings:
         raise G8DContractError("AM-87 historical D7 source bindings differ")

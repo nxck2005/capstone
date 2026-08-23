@@ -16,7 +16,11 @@ from baseline import g8_e_corrected_v3s as v3s
 
 @pytest.fixture(scope="module")
 def committed_plan() -> dict:
-    return plan.verify_corpus_plan()
+    # AM-87 is immutable historical support evidence after AM-88 superseded only
+    # its Cartesian execution multiplicity.  Structural verification remains
+    # exact; current-parameter rebuilding belongs to the additive AM-88 plan.
+    value = json.loads(plan.PLAN_PATH.read_bytes())
+    return plan.verify_plan_value(value, expected=value)
 
 
 def _reid(value: dict) -> dict:
@@ -236,11 +240,16 @@ def test_am87_post_campaign_compatibility_mutations_fail_closed(
     value["compatibility_id"] = "g8postsource-" + production.sha256_bytes(
         production.canonical_json(body)
     )
-    path = tmp_path / "compatibility.json"
+    path = production.POST_CAMPAIGN_SOURCE_COMPATIBILITY.parent / (
+        f".test-{tmp_path.name}-{mutation}-compatibility.json"
+    )
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="ascii")
     monkeypatch.setattr(production, "POST_CAMPAIGN_SOURCE_COMPATIBILITY", path)
-    with pytest.raises(production.ProductionContractError):
-        production.validate_production_contracts()
+    try:
+        with pytest.raises(production.ProductionContractError):
+            production.validate_production_contracts()
+    finally:
+        path.unlink(missing_ok=True)
 
 
 def test_am87_g8e_source_compatibility_mutations_fail_closed(
@@ -254,11 +263,16 @@ def test_am87_g8e_source_compatibility_mutations_fail_closed(
     compatibility["compatibility_id"] = "g8esourcecompat-" + v3s.sha256_bytes(
         v3s.canonical_json(body)
     )
-    path = tmp_path / "g8e-source-compatibility.json"
+    path = v3s.AM87_SOURCE_COMPATIBILITY_PATH.parent / (
+        f".test-{tmp_path.name}-g8e-source-compatibility.json"
+    )
     path.write_text(json.dumps(compatibility, indent=2, sort_keys=True) + "\n", encoding="ascii")
     monkeypatch.setattr(v3s, "AM87_SOURCE_COMPATIBILITY_PATH", path)
-    with pytest.raises(v3s.G8EV3SError):
-        v3s.validate_source_manifest(source)
+    try:
+        with pytest.raises(v3s.G8EV3SError):
+            v3s.validate_source_manifest(source)
+    finally:
+        path.unlink(missing_ok=True)
 
 
 def test_plan_never_imports_or_calls_test_access_boundary() -> None:

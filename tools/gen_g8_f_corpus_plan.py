@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Generate or check the metadata-only AM-87 G8_F corpus plan.
+"""Structurally check the immutable historical AM-87 G8_F support plan.
 
-This command reads frozen JSON/CSV metadata only.  It cannot authorize F0,
-materialize an image, invoke a classifier, train, run pass two, or access a test
-payload.
+AM-88 supersedes only AM-87's Cartesian execution multiplicity. Current sampler
+reproduction is handled by ``gen_g8_f_sampler_plan.py``; this command preserves
+AM-87's exact plan bytes and support identity without rewriting history.
 """
 
 from __future__ import annotations
@@ -17,10 +17,8 @@ sys.path.insert(0, str(REPO / "src"))
 
 from baseline.g8_f_corpus_plan import (  # noqa: E402
     PLAN_PATH,
-    build_corpus_plan,
     rendered_json,
     sha256_bytes,
-    verify_corpus_plan,
 )
 
 
@@ -29,19 +27,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="compare the tracked plan to a fresh metadata-only derivation")
     args = parser.parse_args(argv)
 
-    expected = rendered_json(build_corpus_plan())
-    if args.check:
-        try:
-            actual = PLAN_PATH.read_bytes()
-        except OSError as exc:
-            raise SystemExit(f"FAIL: cannot read {PLAN_PATH}: {exc}") from None
-        if actual != expected:
-            raise SystemExit("FAIL: tracked G8_F corpus plan is stale")
-    else:
-        PLAN_PATH.parent.mkdir(parents=True, exist_ok=True)
-        PLAN_PATH.write_bytes(expected)
-
-    plan = verify_corpus_plan()
+    if not args.check:
+        raise SystemExit("FAIL: AM-87 plan is immutable historical evidence; generation is disabled after AM-88")
+    try:
+        actual = PLAN_PATH.read_bytes()
+        value = __import__("json").loads(actual)
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"FAIL: cannot read {PLAN_PATH}: {exc}") from None
+    if actual != rendered_json(value):
+        raise SystemExit("FAIL: historical AM-87 plan rendering differs")
+    from baseline.g8_f_corpus_plan import verify_plan_value
+    plan = verify_plan_value(value, expected=value)
     print(
         {
             "status": "PASS",

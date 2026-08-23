@@ -132,12 +132,14 @@ unmaterialized training-only corpus lineage. E7 handoff
 has file SHA-256
 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`
 and is authenticated by `tools/verify_g8_e_complete.py`. AM-87 discloses the
-post-pass-one breadth defect and freezes metadata-only plan
-`g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148`:
-120 deduplicated artifact-quality requests × 8,469 training IDs = 1,016,280
-ordered attempts, with typed image-level codec infeasibility omitted and
-recorded without substitution. The plan is not execution authorization; no
-corpus object was materialized. Training, pass two, fallback, ratio
+post-pass-one breadth defect and preserves complete support: 120 deduplicated
+artifact qualities over all 8,469 eligible training IDs. AM-88 supersedes only
+its exhaustive Cartesian multiplicity. Metadata-only plan
+`g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`
+assigns exactly six distinct supported qualities per image (50,814 attempts)
+with arithmetically minimum global/per-class imbalance and no resampling after
+typed codec infeasibility. The plan is not execution authorization; no corpus
+object was materialized. Training, pass two, fallback, ratio
 adjudication and test access remain zero/prohibited.
 
 W4, G8_A, G8_B, G8_C and G8_D are complete. G8_A froze the contract, policy
@@ -146,9 +148,9 @@ state primitives before data. G8_B built and independently verified the
 authenticated runner, exact resume/merge machinery, crash-atomic publication
 and bounded smoke. G8_C froze its measured-only Pascal table, G8_D froze the
 validation-measurement tooling, and G8_E completed its worker-successor
-validation campaign and exactly-once pass one. The G8_F breadth ambiguity is
-resolved at protocol/plan level by AM-87, but the phase remains closed until
-the owner audits that plan and separately authorizes F0.
+validation campaign and exactly-once pass one. The G8_F support ambiguity is resolved by AM-87 and its practical balanced
+sampler by AM-88, but the phase remains closed until the owner audits AM-88 and
+separately authorizes F0.
 
 A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
 corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.
@@ -176,7 +178,7 @@ PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose ac
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **seventeen amendment rounds** across 87 `AM` entries, and is the file to read before
+records **eighteen amendment rounds** across 88 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -188,7 +190,7 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 197 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 198 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
