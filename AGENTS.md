@@ -41,15 +41,17 @@ aggregate`). **G8_E is now GREEN and CLOSED through E7** under the owner's
 `g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413`
 (content SHA `7d5ad533af0fc8a2ebfd85bc4f2a8a1639f65d6b7c7a85eeeee447e69eff00fa`,
 file SHA `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`):
-18 frozen calls, 8,190 eligible candidates, 378/378 SNR cells selected, zero
-infeasible or uncharacterized, and training/pass-two/pass-three/fallback/ratio/
-test counters all zero. E6 froze the additive corpus-spec lineage completion
+18 frozen calls, 8,190 mode-admissible/ranked candidate evaluations all eligible
+(not the larger raw candidate-call space before per-mode filtering), 378/378 SNR
+cells selected, zero infeasible or uncharacterized, and training/pass-two/pass-
+three/fallback/ratio/test counters all zero. E6 froze the additive corpus-spec
+lineage completion
 `g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`
 (E1 corpus-spec bytes untouched). E7 `tools/verify_g8_e_complete.py` returns
 PASS with verdict **G8_E GREEN — VALIDATION CAMPAIGN AND PASS ONE FROZEN;
 G8_F READY; NO TRAINING OR PASS TWO** and authenticates the terminal handoff
-`g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`
-(file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`).
+`g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`
+(file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`).
 The ci-cpu lane was repaired
 host-independently on 2026-08-22 (commit `824d49c`, Actions run `32579946365`
 green). A 2026-08-23 clean-checkout test-harness defect unintentionally created

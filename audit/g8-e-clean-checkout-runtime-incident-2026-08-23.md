@@ -32,7 +32,7 @@ and `4.68 GiB` written. A subsequent process census returned no
 
 ## Runtime custody
 
-Canonical preserved owner-aborted runtime:
+Preserved local predecessor runtime:
 
 - path: `/home/nick/projects/capstone/results/baseline/g8_e/e1_corrected_v3/runtime/`
 - filesystem bytes: `4,655,012,710`
@@ -77,7 +77,7 @@ reported, selected from, merged, resumed, or treated as scientific evidence.
   checkpoint is byte-identical. All `37,704` shared raw `.j2kcache` files are
   byte-different; no cause is inferred and none may be substituted between
   runtimes.
-- The canonical tree's newest visible mtime predates the accidental process by
+- The preserved local predecessor tree's newest visible mtime predates the accidental process by
   more than one day. Its exact prefix independently re-authenticates at
   `47409/288000` with the historical state and rolling digests above.
 - The scratch tree independently re-authenticates at `42704/288000`; this
@@ -86,6 +86,23 @@ reported, selected from, merged, resumed, or treated as scientific evidence.
   remain unchanged. `tools/verify_g8_e_complete.py` still returns the terminal
   G8_E GREEN verdict with zero training, pass two and test access.
 
+## JPEG 2000 cache payload addendum
+
+A 2026-08-23 read-only audit compared all `37,704` cache identities shared by
+the preserved local predecessor and the quarantined scratch runtime. All
+`37,704` outer `.j2kcache` ZIP byte streams differ. Inside them, however, all
+`37,704` raw and parsed `metadata.json` payloads are byte-identical, every
+metadata identity hashes to its cache filename, and every declared decoded-image
+identity agrees. The `34,704` feasible objects have byte-identical embedded
+`codestream.j2k` payloads whose SHA-256 values match the authoritative hashes in
+both metadata records; the other `3,000` objects are identically infeasible and
+contain metadata only. There are zero inner-payload, identity, declared-hash or
+ZIP-structure mismatches.
+
+The outer difference is therefore non-scientific ZIP-container nondeterminism:
+the cache writer stores identical members with per-write ZIP timestamps. No
+cache object was copied, normalized, deleted or substituted during this audit.
+
 ## Containment and repair
 
 The test no longer invokes the current production campaign against the default
@@ -93,13 +110,14 @@ runtime. Both old- and current-campaign refusal paths now use explicit
 `tmp_path` runtime and missing-authorization paths. The current path runs
 in-process with transaction-construction and payload-loading barriers that fail
 the test immediately if reached. It also asserts that neither isolated runtime
-is created and that the canonical state remains absent or byte-unchanged.
+is created and that the preserved local predecessor state remains absent or
+byte-unchanged.
 
 Post-repair verification completed before this record:
 
 - corrected-v3 test module: `41 passed`
 - E5 pass-one, E7 closeout and CI allowlist set: `15 passed`
-- read-only canonical prefix authentication: PASS at `47409/288000`
+- read-only preserved local predecessor prefix authentication: PASS at `47409/288000`
 - read-only scratch prefix authentication: PASS at `42704/288000`
 - terminal G8_E verifier: PASS, G8_E GREEN
 

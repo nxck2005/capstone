@@ -50,8 +50,8 @@ G8_E is GREEN and closed through E7: worker-successor E2 completed at
 288000/288000, E3/E4 verify, E5 pass one executed exactly once with 378/378
 cells selected, and E6 froze the training-only unmaterialized corpus lineage.
 E7 handoff
-`g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`
-has file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`.
+`g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`
+has file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`.
 The original, first-corrected and corrected-v2 E1 epochs remain immutable
 superseded-before-data history. The owner-aborted corrected-v3 local runtime
 remains 47409/288000 and contributes zero successor coverage. A separate
@@ -862,7 +862,7 @@ adjudication and test access remain prohibited.
 | E3/E4 exact closure and measured objects | done | E3 SHA-256 `8496ebdb1c3757331b9fc53bc556d57091cbb7d08bdf390b07865547662dda42`; E4 SHA-256 `ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3`; 288 objects at denominator 1000, delivered 264000 / codec-infeasible 24000 / decode-failure 0 / structural 0. |
 | E5 authorized pass one | done | Authorization `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`; pass-one record `g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413`, file SHA-256 `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`; executed exactly once, 378/378 selections. |
 | E6 corpus-lineage freeze | done | Freeze `g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`, file SHA-256 `120ac23debc70001df3001ae82f3caecbd8d8821b5684d3789bd83bc56a7e5fd`; training-only and unmaterialized, E1 corpus-spec bytes untouched. |
-| E7 verification and handoff | done | `tools/verify_g8_e_complete.py` returns GREEN and authenticates handoff `g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`, file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`. The handoff binds the contained clean-worktree incident audit; G8_F is ready but unauthorized. |
+| E7 verification and handoff | done | `tools/verify_g8_e_complete.py` returns GREEN and authenticates the additive audit-cleanup handoff `g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`, file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`. The handoff binds the contained clean-worktree incident audit and its read-only inner-cache payload addendum; G8_F is ready but unauthorized. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

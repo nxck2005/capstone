@@ -16,16 +16,18 @@ commit `d84ee90`, pushed before execution): immutable completion record
 (content SHA-256 `7d5ad533af0fc8a2ebfd85bc4f2a8a1639f65d6b7c7a85eeeee447e69eff00fa`,
 file SHA-256 `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`)
 at the pre-registered path `results/baseline/g8_e/pass_one_state.json` — 18 frozen
-calls, 8,190 candidates all eligible, 378/378 SNR cells selected, 85 deterministic
-tie-breaks under the preregistered policy fingerprint `6a4ffa98…`; training,
+calls, 8,190 mode-admissible/ranked candidate evaluations all eligible (not the
+larger raw candidate-call space before per-mode filtering), 378/378 SNR cells
+selected, 85 deterministic tie-breaks under the preregistered policy fingerprint
+`6a4ffa98…`; training,
 pass two/three, fallback, ratio adjudication and test access all zero. E6 froze
 the additive corpus-spec lineage completion
 (`g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`;
 the E1 corpus-spec bytes stay untouched). E7 `tools/verify_g8_e_complete.py`
 returns PASS with the terminal verdict **G8_E GREEN — VALIDATION CAMPAIGN AND
 PASS ONE FROZEN; G8_F READY; NO TRAINING OR PASS TWO**, authenticating handoff
-`g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e`
-(file SHA-256 `a4f292242eb0cf710693d37b1ea0a492893343e0b87ffabf35c559a482b2ecc3`).
+`g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`
+(file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`).
 Separately, the ci-cpu
 lane was repaired host-independently (commit `824d49c`; GitHub Actions run
 `32579946365` green). Next: **owner-audited G8_F/F0 authorization only**;
@@ -53,9 +55,9 @@ gate in `/home/nick/projects/capstone-ci-clean` exposed that
 relied on the writer-only ignored runtime to force `--start` refusal. In the
 clean worktree it unintentionally created a separate unauthorized corrected-v3
 runtime at exact durable prefix 42704/288000 before being stopped. Training and
-test access remain zero. The canonical preserved runtime independently
+test access remain zero. The preserved local predecessor runtime independently
 re-authenticates unchanged at 47409/288000; the trees share zero file inodes,
-and the canonical newest mtime predates the incident. The scratch runtime is
+and the predecessor's newest mtime predates the incident. The scratch runtime is
 zero-coverage, permanently merge-ineligible custody evidence: do not resume,
 merge, delete or normalize it, and do not use that worktree for scientific
 execution. The test now uses isolated `tmp_path` roots, missing authorization

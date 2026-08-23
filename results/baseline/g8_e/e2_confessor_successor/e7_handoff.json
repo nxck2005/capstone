@@ -34,14 +34,14 @@
     "next_gate": "G8_F/F0_OWNER_AUTHORIZATION",
     "ready": true
   },
-  "handoff_id": "g8ee7handoff-776059654e0b852da0cbb7816f5e437f309c5d41c3eecdfc3a3b00b3d9d7c55e",
+  "handoff_id": "g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8",
   "phase": "G8_E",
   "post_closeout_incident_audit": {
     "classification": "TEST_HARNESS_PRODUCTION_ESCAPE_SEPARATE_RUNTIME",
     "path": "audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md",
     "scratch_runtime_merge_eligible": false,
     "scratch_runtime_successor_coverage": 0,
-    "sha256": "1741c340c5d9d3ced0735f551d1a593c7c40d7f9febbd338afef0ba3fd0f4a87"
+    "sha256": "0b84b4b804ac131f123bfb09f066cb2d6a821e2621d2ed48f02b865141dc8e99"
   },
   "schema_version": 1,
   "selection": {
