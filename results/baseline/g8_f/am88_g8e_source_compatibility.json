@@ -1,0 +1,69 @@
+{
+  "amendment": "AM-88",
+  "artifact_role": "g8_e_am88_post_campaign_source_compatibility",
+  "classification": "post_campaign_sampler_verifier_compatibility_only",
+  "compatibility_id": "g8esourcecompat-ca144453674588578483213835bb7c761ca1302a9094d54429566b72730f551e",
+  "entries": [
+    {
+      "archived_bytes": 140393,
+      "archived_sha256": "974d7f96c806bb3b063c4bdca195ba60ab5eb81ebbbf3a66ec320c9e4db0654a",
+      "current_bytes": 141893,
+      "current_sha256": "74d3e46ab3e3357da88a359893e8a57f7b8512433365c87ce3950cdccdde1658",
+      "justification": "AM-88 compatibility authenticates frozen historical identities after a G8_F-only protocol change and cannot execute or alter E2-E7.",
+      "kind": "post_d7_historical_contract_builder_am88_only",
+      "path": "src/baseline/g8_d.py",
+      "scientific_execution_reachable": false
+    },
+    {
+      "archived_bytes": 113251,
+      "archived_sha256": "744a84eaa30e7d7c7b77891f95260961f95e0558744b84c9f7f6046fae8535bd",
+      "current_bytes": 114147,
+      "current_sha256": "bec2a38f733d4755637f0a08e6c3fcbfb1fb11797381cc2758ff8a690bc8f00e",
+      "justification": "AM-88 updates only the historical E0 verifier to authenticate the additive AM-87 to AM-88 G8_D source-byte chain; it cannot execute or alter E0-E7.",
+      "kind": "post_e0_historical_verifier_am88_only",
+      "path": "src/baseline/g8_e.py",
+      "scientific_execution_reachable": false
+    },
+    {
+      "archived_bytes": 36748,
+      "archived_sha256": "03a5b71aafd0894bd832835afbd91b604c25729e42fa9cbe33c4fb061fba5d71",
+      "current_bytes": 41844,
+      "current_sha256": "7c629ac1472a228dc85f8e7032af2bf9ec867d39d5e8a4fecb98d79f97a37e34",
+      "justification": "AM-88 compatibility authenticates frozen historical identities after a G8_F-only protocol change and cannot execute or alter E2-E7.",
+      "kind": "post_e7_source_verifier_am88_only",
+      "path": "src/baseline/g8_e_corrected_v3s.py",
+      "scientific_execution_reachable": false
+    }
+  ],
+  "linked_protocol_compatibility": {
+    "compatibility_id": "g8postsource-a4c7c79dc3f6af4ece12e89e012eddedf2e660657a09008ab9be75a37940679c",
+    "path": "results/baseline/g8_f/am88_post_campaign_source_compatibility.json",
+    "sha256": "ea668b237148b9fa4b2fc06b6e43bb882df1ac2ed7fe62c124d3c6c7e307d19c"
+  },
+  "prior_compatibility": {
+    "compatibility_id": "g8esourcecompat-1dca57402923146dc3ac03d5c3d11a497f6158c563b51ab93f2961eb14399beb",
+    "path": "results/baseline/g8_f/am87_g8e_source_compatibility.json",
+    "sha256": "fd556f3f662a1c03d381da44739a5805568933d0fa1a8fb1823ed3387060e29f"
+  },
+  "protected_boundary": {
+    "g8_c_changed": false,
+    "g8_d_changed": false,
+    "g8_e_changed": false,
+    "g8_f_execution": 0,
+    "pass_one_rerun": false,
+    "pass_two": 0,
+    "test_access": 0,
+    "training": 0
+  },
+  "schema_version": 1,
+  "timing": "post_am87_pre_f0_execution_zero",
+  "verifier_binding": {
+    "am87_bytes": 16259,
+    "am87_sha256": "23fdcbfaeed502b81dca94f4adc8a7264a2bfe6a6436a4380106b346aae8de94",
+    "current_bytes": 16858,
+    "current_sha256": "b6355ef6b8c399077a9cb79ee24dea67dd2a61be2681f6d66d62e46b7c0ba358",
+    "frozen_d7_sha256": "f3b0fcdd719f5e0b43e684226acf607f9d6dea759236b44246845416e7dbd0d7",
+    "path": "tools/verify_g8_d_contract.py",
+    "scientific_execution_reachable": false
+  }
+}
