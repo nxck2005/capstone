@@ -33,12 +33,42 @@ decode-failure 0 / structural 0; training and test access 0; custody record
 closeout-layer identity-loading defect was repaired additively with no bound
 byte changed (repair provenance `g8ecloseoutrepair-5ac7129b…`, commit
 `0f65fb4`; corrected entry points `tools/closeout_g8_e_v3s.py verify|merge|
-aggregate`). Do not reopen or rerun G8_C/G8_D, do not rerun or resume E2,
-do not merge or ingest either preserved partial runtime, do not widen the
-closed E2–E4 scope, and do not run pass one/E5, training, fallback, ratio
-adjudication or test access — **E5 awaits its own owner authorization**.
+aggregate`). **G8_E is now GREEN and CLOSED through E7** under the owner's
+2026-08-22 takeover authorization: the narrow E5 pass-one authorization issued
+`d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33` (marker
+`c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`, commit
+`d84ee90`) executed selection pass one EXACTLY ONCE into the immutable record
+`g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413`
+(content SHA `7d5ad533af0fc8a2ebfd85bc4f2a8a1639f65d6b7c7a85eeeee447e69eff00fa`,
+file SHA `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`):
+18 frozen calls, 8,190 mode-admissible/ranked candidate evaluations all eligible
+(not the larger raw candidate-call space before per-mode filtering), 378/378 SNR
+cells selected, zero infeasible or uncharacterized, and training/pass-two/pass-
+three/fallback/ratio/test counters all zero. E6 froze the additive corpus-spec
+lineage completion
+`g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`
+(E1 corpus-spec bytes untouched). E7 `tools/verify_g8_e_complete.py` returns
+PASS with verdict **G8_E GREEN — VALIDATION CAMPAIGN AND PASS ONE FROZEN;
+G8_F READY; NO TRAINING OR PASS TWO** and authenticates the terminal handoff
+`g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`
+(file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`).
+The ci-cpu lane was repaired
+host-independently on 2026-08-22 (commit `824d49c`, Actions run `32579946365`
+green). A 2026-08-23 clean-checkout test-harness defect unintentionally created
+a separate unauthorized corrected-v3 runtime at prefix 42704/288000 under
+`/home/nick/projects/capstone-ci-clean`; it independently authenticates but has
+zero successor coverage and is permanently merge-ineligible. Its custody and
+the canonical-runtime separation proof are recorded in
+`audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`. Preserve that
+runtime in place and do not use the contaminated worktree for scientific
+execution. Do not reopen or rerun G8_C/G8_D, do not rerun or resume E2, do not
+merge or ingest either preserved partial runtime, do not widen the closed
+E2–E7 scope, do not alter pass-one selections or the frozen corpus-spec bytes,
+and do not materialize the training corpus, train any classifier, run pass two,
+invoke fallback, adjudicate ratios or access test — **G8_F/F0 awaits its own
+owner authorization**.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e5-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f0-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified
@@ -86,7 +116,7 @@ completed production aggregate and is authoritative for the finished execution.
 No Pascal worker is running or may be started; do not rerun, resume the old
 RTX4060 suffix, ingest predecessor results, or alter completed runtime evidence.
 G8_C remains green and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete.
-G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and was authorized E2–E4-only (commit `493d656`); production E2 completed at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) and E3/E4 are complete and verified (closeout provenance `g8ecloseout-1422804d…`; corrected entry points `tools/closeout_g8_e_v3s.py`). Do not rerun it or widen its scope; E5 awaits its own owner authorization. C3-C7 closeout is now bound by
+G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and was authorized E2–E4-only (commit `493d656`); production E2 completed at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) and E3/E4 are complete and verified (closeout provenance `g8ecloseout-1422804d…`; corrected entry points `tools/closeout_g8_e_v3s.py`). G8_E is GREEN and closed through E7 with pass one executed exactly once and frozen; do not rerun it or widen its scope; G8_F/F0 awaits its own owner authorization. C3-C7 closeout is now bound by
 `results/baseline/g8_pascal_successor/successor_bler_merge_report.json`,
 `successor_bler_table.json` and `successor_closeout_provenance.json`: 153 curves,
 3,213 measured points and 16,065,000 trials. The merge ID is
@@ -238,6 +268,8 @@ python spec/evidence/check_packetisation.py --json spec/evidence/packetisation_r
 .venv/bin/python tools/gen_w4_integration_adjudication.py        # regenerate the W4 closing adjudication
 .venv/bin/python tools/gen_w4_integration_adjudication.py --check
 .venv/bin/python tools/verify_w4_baseline_integration.py # network-free bounded W4 evidence + BR-4 selection-machinery cross-check
+.venv/bin/python tools/gen_g8_e_e7_handoff.py --check    # authenticate deterministic E7 handoff and incident-audit binding
+.venv/bin/python tools/verify_g8_e_complete.py           # terminal G8_E verifier including E7 handoff
 .venv/bin/python -m pytest              # project test suite; config is in pyproject.toml
 ```
 

@@ -7,7 +7,62 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-22 · **Phase:** **G8_C and G8_D remain GREEN and closed. Corrected-v3 G8_E worker-successor E2 is COMPLETE at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`/`cuda:0`) and independently VERIFIED; E3 exact-set closure and E4 measured accuracy objects are COMPLETE and VERIFIED (exact set 288000/288000, missing/duplicate/extra all zero; 288 eligible objects from 288,000 traversals). Outcome mix: delivered 264,000 · codec-infeasible 24,000 · decode-failure 0 · structural 0; training/test access 0. A closeout-layer identity-loading defect was repaired additively (commit `0f65fb4`); no measurement byte changed. E5/pass one remains NOT AUTHORIZED / NOT STARTED.**
+**Last updated:** 2026-08-23 · **Phase:** **G8_E is GREEN and CLOSED through E7. The
+owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
+authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
+(pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
+commit `d84ee90`, pushed before execution): immutable completion record
+`g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413`
+(content SHA-256 `7d5ad533af0fc8a2ebfd85bc4f2a8a1639f65d6b7c7a85eeeee447e69eff00fa`,
+file SHA-256 `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`)
+at the pre-registered path `results/baseline/g8_e/pass_one_state.json` — 18 frozen
+calls, 8,190 mode-admissible/ranked candidate evaluations all eligible (not the
+larger raw candidate-call space before per-mode filtering), 378/378 SNR cells
+selected, 85 deterministic tie-breaks under the preregistered policy fingerprint
+`6a4ffa98…`; training,
+pass two/three, fallback, ratio adjudication and test access all zero. E6 froze
+the additive corpus-spec lineage completion
+(`g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`;
+the E1 corpus-spec bytes stay untouched). E7 `tools/verify_g8_e_complete.py`
+returns PASS with the terminal verdict **G8_E GREEN — VALIDATION CAMPAIGN AND
+PASS ONE FROZEN; G8_F READY; NO TRAINING OR PASS TWO**, authenticating handoff
+`g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`
+(file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`).
+Separately, the ci-cpu
+lane was repaired host-independently (commit `824d49c`; GitHub Actions run
+`32579946365` green). Next: **owner-audited G8_F/F0 authorization only**;
+do not materialize the training corpus, fine-tune any classifier, run pass two,
+invoke fallback, adjudicate ratios or access test without it.**
+
+**2026-08-23 G8_E E5–E7 closeout (COMPLETE):** the takeover prompt was the
+owner's explicit E5–E7 authorization. Prerequisites were re-authenticated, not
+recomputed: E2 completion SHA `442448a424cbad0ead742c4a45724155486cd2e8ecefeff52bff62394e5096a6`,
+E3 `g8ee3v3-ec7b28fd…` SHA `8496ebdb…`, E4 `g8ee4v3-4b5206cb…` SHA `ee269346…`
+(288 eligible objects × denominator 1000; outcome mix delivered 264,000 /
+codec-infeasible 24,000 / decode-failure 0 / structural 0), W4 adjudication
+`58827922…` with its preregistered selection-policy fingerprint recomputed from
+the live module, successor BLER table `g8pblertable-69ecc729…` loaded through
+the portable loader, complete candidate/BLER coverage proven before execution
+(18,732 block lookups, zero uncharacterized). The typed sweep authorization is
+constructed at its single sanctioned site `tests/g8_e5_gate.py` because PB_3's
+AST scan (and the frozen bytes binding it) pins construction to tests/ only;
+the scan still proves no non-test file constructs one. Pass-one selections map
+1:1 back to logical candidate-authority IDs for the G8_F corpus lineage.
+
+**2026-08-23 clean-checkout test-harness incident (CONTAINED):** the full-local
+gate in `/home/nick/projects/capstone-ci-clean` exposed that
+`test_production_runner_refuses_old_v2_and_missing_authorization_before_payload`
+relied on the writer-only ignored runtime to force `--start` refusal. In the
+clean worktree it unintentionally created a separate unauthorized corrected-v3
+runtime at exact durable prefix 42704/288000 before being stopped. Training and
+test access remain zero. The preserved local predecessor runtime independently
+re-authenticates unchanged at 47409/288000; the trees share zero file inodes,
+and the predecessor's newest mtime predates the incident. The scratch runtime is
+zero-coverage, permanently merge-ineligible custody evidence: do not resume,
+merge, delete or normalize it, and do not use that worktree for scientific
+execution. The test now uses isolated `tmp_path` roots, missing authorization
+and explicit payload/transaction barriers. Full record:
+`audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`.
 
 **2026-08-22 worker-successor E2/E3/E4 closeout (COMPLETE):** production E2 ran to
 exact 288000/288000 under campaign `g8e-v3s-85354d3db97c74adfd01bc1c5fe2148e05dfebfb0d832229a3bce5ca10ebf588`
@@ -97,7 +152,7 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-e-e5-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f0-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
@@ -174,18 +229,14 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** G8_D is GREEN and closed. The corrected-v3 worker
-successor E2 campaign is COMPLETE at exactly 288000/288000 on `confessor` and
-VERIFIED, and E3 exact-set closure plus E4 measured accuracy objects are
-COMPLETE and VERIFIED (see the 2026-08-22 closeout entry above; custody record
-`results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`).
-The next action belongs to the OWNER: audit the frozen E4 outputs and prepare
-the narrowly scoped E5/pass-one authorization under the existing protocol.
-Do not run pass one/E5 without that authorization; do not train anything,
-invoke fallback, adjudicate a ratio, access test, rerun either upstream
-campaign, reopen C3-C7, substitute predecessor table tools, touch the
-preserved local runtime, or widen the closed E2-E4 scope. The partial local
-campaign (47409/288000) remains preserved custody evidence.
+**Next-session task:** G8_E is GREEN and closed through E7 (see the
+2026-08-23 closeout entry above; terminal verdict issued by
+`tools/verify_g8_e_complete.py`, commit `53a8730`). The next action belongs to
+the OWNER: audit the frozen pass-one state and E6 corpus-spec lineage and
+prepare the narrowly scoped G8_F/F0 authorization under the existing protocol.
+Do not materialize the training-only artifact corpus, fine-tune any classifier,
+run pass two, invoke fallback, adjudicate a ratio, access test, rerun any
+completed campaign, or touch preserved history without that authorization.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -204,8 +255,8 @@ does not, it is wrong and this block is right.**
 | G-8 successor C3-C7 repository closeout | complete — 153 curves, 3,213 measured points |
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
-| G-8 classical validation work | **next — G8_E worker-successor E2 COMPLETE/VERIFIED at 288000/288000 on `confessor`; E3 exact-set closure and E4 measured accuracy objects COMPLETE/VERIFIED; local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; E5/pass one awaits owner authorization; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
-| G8_B–G8_G | **G8_B complete; G8_C GREEN with successor BLER table frozen; G8_D GREEN; G8_E E0 valid, corrected-v3 worker-successor E1 frozen/executable, E2-E4 COMPLETE and VERIFIED; E5 unopened pending owner authorization.** |
+| G-8 classical validation work | **complete — G8_E GREEN and closed through E7: E2 COMPLETE/VERIFIED at 288000/288000 on `confessor`, E3/E4 COMPLETE/VERIFIED, E5 pass one EXECUTED EXACTLY ONCE and frozen (378/378 cells), E6 lineage frozen, E7 verifier PASS; local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
+| G-8 · G8_F/F0 owner authorization | **next — owner audits the frozen pass-one state (`results/baseline/g8_e/pass_one_state.json`) and the E6 corpus-spec lineage freeze, then issues the narrowly scoped F0 authorization; do not materialize the training corpus, train, run pass two, invoke fallback, adjudicate ratios or access test without it** |
 | full BR-4 validation sweep | not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |

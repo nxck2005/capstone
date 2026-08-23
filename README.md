@@ -120,33 +120,39 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: G8_E E0 and the additive corrected-v3 E1 are READY with zero
-validation coverage; E2 awaits owner execution authorization.**
+**Current action: G8_E is GREEN and closed through E7; G8_F/F0 awaits its own
+owner authorization.**
 `instructions/RESUME.md` is the single
 operational cursor. G8_C is closed at 3,213/3,213 and G8_D D0–D7 are GREEN.
 The original, first-corrected and corrected-v2 E1 epochs remain immutable
-`superseded-before-data` history. The current corrected-v3 E1 contract binds
-the portable G8_C verification epoch, current G8_D
-contract/handoff, the complete 12,096-candidate authority, the initial
-Imagenette validation boundary, exact cache reuse and normal sole-writer
-custody. No E2 record, validation decode, classifier inference, selection,
-authorization, training, fallback, ratio adjudication or test access has
-occurred.
+`superseded-before-data` history. Worker-successor E2 completed exactly
+288000/288000, E3/E4 verify, E5 pass one executed exactly once with 378/378
+cells selected, and E6 froze the unmaterialized training-only corpus lineage.
+E7 handoff `g8ee7handoff-77605965…` has file SHA-256 `a4f292242eb0…` and is
+authenticated by `tools/verify_g8_e_complete.py`. Training, pass two, fallback,
+ratio adjudication and test access remain zero/prohibited.
 
 W4, G8_A, G8_B, G8_C and G8_D are complete. G8_A froze the contract, policy
 bindings, 12,096 structural candidates, 3,213 required BLER work units and
 state primitives before data. G8_B built and independently verified the
 authenticated runner, exact resume/merge machinery, crash-atomic publication
-and bounded smoke. G8_C froze its measured-only Pascal table and G8_D froze
-the validation-measurement tooling. G8_E corrected-v3 E1 now freezes the
-end-to-end executable pre-data validation contract; the full validation
-campaign remains closed.
+and bounded smoke. G8_C froze its measured-only Pascal table, G8_D froze the
+validation-measurement tooling, and G8_E completed its worker-successor
+validation campaign and exactly-once pass one. The next phase remains closed
+until a separate G8_F/F0 owner authorization exists.
+
+A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
+corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.
+It has zero successor coverage, is permanently merge-ineligible, and must not
+be resumed, deleted or normalized. The canonical owner-aborted runtime remains
+unchanged at 47409/288000. The containment and separation proof are recorded in
+[`audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`](audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md).
 
 The committed G-2 BLER evidence characterises one physical-layer identity at
 four SNR points per modulation. It is a conformance artifact, remains valid for
 G-2, and **must not be extrapolated** into the BR-4 characterization table.
-E2 must still derive codec and clean-classifier validation measurements before pass one, the
-training-only artifact corpus, classifier fine-tune, pass two and adjudication.
+The training-only artifact corpus, classifier fine-tune, pass two and
+adjudication remain future G8_F/G work.
 The selection entry point remains closed unless an explicit typed
 `G8Authorization` is constructed; no tracked non-test file constructs one.
 **PB_3C** corrected the `classical_fixed_mod` curve to *read* `params.baseline.core_modulation`
@@ -188,6 +194,8 @@ under a second with no GPU and no network. The repository's checks are meant to 
 .venv/bin/python tools/fetch_ldpc_golden_vectors.py     # materialize the ignored rung-2 fixture; required before pytest
 .venv/bin/python tools/gen_g2_source_manifest.py --check # G-2's execution sources still match the measurement commit
 .venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python tools/gen_g8_e_e7_handoff.py --check
+.venv/bin/python tools/verify_g8_e_complete.py
 .venv/bin/python -m pytest
 ```
 
