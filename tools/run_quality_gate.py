@@ -33,6 +33,8 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/gen_spec_views.py", "--check"),
         _python_tool("tools/check_doc_consistency.py", "-v"),
         _python_tool("tools/check_literals.py", "-v"),
+        _python_tool("tools/gen_g8_f_corpus_plan.py", "--check"),
+        _python_tool("tools/verify_g8_f_corpus_plan.py"),
         _python_tool("tools/gen_g8_campaign_manifest.py", "--check"),
         _python_tool("tools/gen_g8_bler_tooling_contract.py", "--check"),
         _python_tool("tools/verify_g8_bler_tooling_contract.py"),

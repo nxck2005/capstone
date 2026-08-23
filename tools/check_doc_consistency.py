@@ -119,7 +119,7 @@ PASCAL_CURSOR_EXPECTED = {
     "execution": "complete",
     "coverage": "3213/3213",
     "evidence": "published",
-    "next": "g8-f-f0-owner-authorization",
+    "next": "g8-f-corpus-plan-owner-audit-f0-authorization",
     "bler_table": "frozen",
     "g8_d": "d7-complete",
     "g8_e_e2e4": "complete-verified",

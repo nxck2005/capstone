@@ -185,7 +185,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `channel.snr_conversion` | Es/N0_dB = Eb/N0_dB + 10*log10(bits_per_symbol * code_rate); every published reference curve MUST be converted with this identity before comparison | BR-2 |
 | `channel.models_supported` | awgn | SR-5 |
 | `channel.models_planned` | rayleigh_block, rayleigh_fast | SR-5 |
-| `channel.train_snr_db_fixed` | 7 | AM-3, DEC-11, ER-2 |
+| `channel.train_snr_db_fixed` | 7 | AM-3, BR-12, DEC-11, ER-2 |
 | `channel.train_snr_db_set` | 1, 4, 7, 13, 19 | AM-45, ER-2 |
 | `channel.test_snr_grid_db` | -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 15, 18 | AM-52, BR-16, DR-1, ER-1, ER-11, G-9 |
 | `channel.grid_rationale` | three waterfalls have to be resolved, not one. BPSK at rate 1/3 -- which BR-4 selects at the noisy end and which AM-15 relies on for roughly 3 dB of extra reach -- decodes around Es/N0 = -4 to -5 dB, measured at W0 as BER 0.0 at -4 dB and 0.31 at -8 dB, so the region from -8 to -2 carries 1 dB spacing: it is where the classical cliff H2 measures actually falls, and 2 dB spacing there could smear or miss it entirely. The QPSK waterfall spans roughly -1 dB (rate 1/3) to 5 dB (rate 5/6), so density is spent there too. The grid then extends to 18 dB because 16-QAM at rate 5/6 does not decode until roughly 11-12 dB, and truncating earlier would engineer a crossover under DEC-16 and then fail to measure it | - |
@@ -464,9 +464,23 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `reference_classifier.checkpoint_schema_version` | 1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetuned_variant_required` | true | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_gate` | G-8 | AM-6, AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_corpus` | union_of_br4_selected_qualities_at_or_below_train_snr | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_corpus` | post_pass_one_pre_g8f_complete_authority_projected_artifact_request_universe_at_or_below_train_snr | AM-27, AM-36, AM-78, AM-87, BR-4, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_corpus_split` | train_only | AM-27, AM-36, AM-59, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_corpus_breadth` | preregistered_feasible_quality_band_not_pass_one_winners_alone | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_corpus_breadth` | complete_deduplicated_authority_projection_not_winners_or_a_new_neighbourhood | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_scope_anchor` | pass_one_selected_authority_references_used_only_for_dataset_ratio_scope | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_scope_modes` | all_frozen_pass_one_system_modes | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_scope_snr_rule` | at_or_below_channel_train_snr_db_fixed | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_candidate_source` | frozen_g8e_candidate_and_measurement_authorities | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_quality_identity_fields` | dataset, source_codec, payload_budget_bytes, encode_axis_px, codec_configuration_id | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_quality_projected_away` | candidate_id, composition_candidate_identity, ratio, snr_db, modulation, ldpc_rate, packet_config_id | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_candidate_admission` | authority_mapped_structural_identity_with_positive_reconciled_payload_budget | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_quality_set_rule` | complete_exact_projection_then_deduplicate_no_width_parameter | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_deduplication` | exact_canonical_artifact_quality_identity | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_multiplicity` | one_attempt_per_quality_per_training_stable_id | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_traversal_order` | quality_id_ascending_then_training_stable_id_ascending | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_image_codec_infeasibility` | omit_pair_record_coverage_no_substitution | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_non_codec_failure` | hold_no_artifact_or_substitution | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_validation_feasibility_role` | estimate_and_audit_only_never_membership | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_recipe.optimizer` | sgd_momentum | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_recipe.lr` | 0.01 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_recipe.momentum` | 0.9 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |

@@ -120,17 +120,25 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: G8_E is GREEN and closed through E7; G8_F/F0 awaits its own
-owner authorization.**
-`instructions/RESUME.md` is the single
-operational cursor. G8_C is closed at 3,213/3,213 and G8_D D0–D7 are GREEN.
-The original, first-corrected and corrected-v2 E1 epochs remain immutable
-`superseded-before-data` history. Worker-successor E2 completed exactly
-288000/288000, E3/E4 verify, E5 pass one executed exactly once with 378/378
-cells selected, and E6 froze the unmaterialized training-only corpus lineage.
-E7 handoff `g8ee7handoff-77605965…` has file SHA-256 `a4f292242eb0…` and is
-authenticated by `tools/verify_g8_e_complete.py`. Training, pass two, fallback,
-ratio adjudication and test access remain zero/prohibited.
+**Current action: owner audit of AM-87's corrected G8_F corpus plan, followed
+only by a separate F0 authorization. G8_F execution has not started.**
+`instructions/RESUME.md` is the single operational cursor. G8_C is closed at
+3,213/3,213 and G8_D D0–D7 are GREEN. The original, first-corrected and
+corrected-v2 E1 epochs remain immutable `superseded-before-data` history.
+Worker-successor E2 completed exactly 288000/288000, E3/E4 verify, E5 pass one
+executed exactly once with 378/378 cells selected, and E6 froze the
+unmaterialized training-only corpus lineage. E7 handoff
+`g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`
+has file SHA-256
+`a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`
+and is authenticated by `tools/verify_g8_e_complete.py`. AM-87 discloses the
+post-pass-one breadth defect and freezes metadata-only plan
+`g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148`:
+120 deduplicated artifact-quality requests × 8,469 training IDs = 1,016,280
+ordered attempts, with typed image-level codec infeasibility omitted and
+recorded without substitution. The plan is not execution authorization; no
+corpus object was materialized. Training, pass two, fallback, ratio
+adjudication and test access remain zero/prohibited.
 
 W4, G8_A, G8_B, G8_C and G8_D are complete. G8_A froze the contract, policy
 bindings, 12,096 structural candidates, 3,213 required BLER work units and
@@ -138,8 +146,9 @@ state primitives before data. G8_B built and independently verified the
 authenticated runner, exact resume/merge machinery, crash-atomic publication
 and bounded smoke. G8_C froze its measured-only Pascal table, G8_D froze the
 validation-measurement tooling, and G8_E completed its worker-successor
-validation campaign and exactly-once pass one. The next phase remains closed
-until a separate G8_F/F0 owner authorization exists.
+validation campaign and exactly-once pass one. The G8_F breadth ambiguity is
+resolved at protocol/plan level by AM-87, but the phase remains closed until
+the owner audits that plan and separately authorizes F0.
 
 A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
 corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.
@@ -167,7 +176,7 @@ PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose ac
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **sixteen amendment rounds** across 86 `AM` entries, and is the file to read before
+records **seventeen amendment rounds** across 87 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -179,7 +188,7 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 196 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 197 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures

@@ -132,8 +132,9 @@ def test_historical_compatibility_rejects_nested_profile_registry_drift(run_conf
         verify_historical_local_compatibility(historical)
 
 
-def test_generated_params_compatibility_is_additive_only():
+def test_generated_params_compatibility_is_additive_only(tmp_path, monkeypatch):
     import subprocess
+    from config import execution_profiles
 
     commit = subprocess.run(
         ["git", "rev-parse", "76e789c9f3d036427d5c1fe83bd95a61d655c5f0"],
@@ -146,6 +147,15 @@ def test_generated_params_compatibility_is_additive_only():
         capture_output=True,
         check=True,
     ).stdout
+    post_am86 = subprocess.run(
+        ["git", "show", "426110b05161e73e4d819bdc01f4857c012d6d59:spec/params.generated.yaml"],
+        capture_output=True,
+        check=True,
+    ).stdout
+    historical_root = tmp_path / "historical-post-am86"
+    (historical_root / "spec").mkdir(parents=True)
+    (historical_root / "spec/params.generated.yaml").write_bytes(post_am86)
+    monkeypatch.setattr(execution_profiles, "REPO_ROOT", historical_root)
     verify_historical_generated_params_bytes(archived)
     changed = archived.replace(b"train_snr_db_fixed: 7", b"train_snr_db_fixed: 8", 1)
     with pytest.raises(ValueError, match="unrelated drift"):

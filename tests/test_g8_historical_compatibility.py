@@ -14,7 +14,7 @@ def _manifest() -> dict[str, object]:
     return json.loads((g8_campaign.REPO_ROOT / "results/baseline/g8/campaign_manifest.json").read_bytes())
 
 
-def test_historical_g8_artifacts_accept_the_exact_am83_to_am86_addition() -> None:
+def test_historical_g8_artifacts_accept_the_exact_am83_to_am87_addition() -> None:
     manifest = _manifest()
     g8_campaign.verify_historical_normative_sources(manifest["normative_sources"])
     g8_campaign.verify_historical_contract_sources(manifest["contract_sources"])
@@ -25,7 +25,7 @@ def test_historical_compatibility_rejects_unrelated_spec_drift(tmp_path: Path, m
     spec.mkdir()
     (spec / "SPEC.md").write_bytes((g8_campaign.REPO_ROOT / "spec/SPEC.md").read_bytes() + b"\nUnrelated drift.\n")
     monkeypatch.setattr(g8_campaign, "REPO_ROOT", tmp_path)
-    with pytest.raises(g8_campaign.G8ContractError, match="exact post-AM-86"):
+    with pytest.raises(g8_campaign.G8ContractError, match="exact post-AM-87"):
         g8_campaign._verify_historical_profile_spec(b"archived-spec")
 
 

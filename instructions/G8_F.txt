@@ -13,6 +13,16 @@ G8_E is green; pass-one state and corpus specification are immutable and
 verify; no training or pass two has occurred; test is sealed; the state is the
 exact expected prefix.
 
+AM-87 additionally governs corpus breadth after the post-pass-one/pre-F0 defect
+audit. Before any F0 authorization, independently verify
+`results/baseline/g8_f/corpus_plan.json` with
+`tools/gen_g8_f_corpus_plan.py --check` and
+`tools/verify_g8_f_corpus_plan.py`. The plan freezes the complete
+authority-projected, exact-deduplicated artifact-quality request universe and
+training-ID Cartesian attempt order. It is plan-only and is not itself F0
+authorization. Owner audit of that plan is the next action. Do not materialize,
+train, score, run pass two or start Pascal while the plan awaits audit.
+
 ## Exact outputs
 
 A training-only artifact corpus and manifest; resumable training checkpoints,
@@ -44,16 +54,21 @@ corpus membership, scorer identity, checkpoint provenance, or pass-two state.
 
 ## Frozen-before-data decisions
 
-G8_E corpus spec and pass one; training split/breadth/recipe; checkpoint and
-resume identity; compute accounting; post-training scoring boundary; pass-two
-scorer distinction; exact-once second pass and two-pass termination.
+G8_E corpus spec and pass one; AM-87's post-pass-one/pre-G8F disclosed corpus
+projection, deduplication, order, multiplicity and infeasibility rule; training
+split/breadth/recipe; checkpoint and resume identity; compute accounting;
+post-training scoring boundary; pass-two scorer distinction; exact-once second
+pass and two-pass termination.
 
 ## Verification commands
 
-Verify corpus split and absence of validation/test IDs, checkpoint lineage and
-resume equivalence, compute/accounting records, post-training validation
-ordering, distinct scorers, immutable pass one, exactly one pass two and no
-third pass, mutations, prior gates, full pytest/CPU lock, and clean status.
+First verify the AM-87 metadata-only plan and its exact quality/train-ID order.
+At F1, verify corpus split, complete attempt coverage, typed-infeasibility
+omissions and absence of validation/test IDs or substitutions; then verify
+checkpoint lineage and resume equivalence, compute/accounting records,
+post-training validation ordering, distinct scorers, immutable pass one,
+exactly one pass two and no third pass, mutations, prior gates, full pytest/CPU
+lock, and clean status.
 
 ## Final report requirements
 

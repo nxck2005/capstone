@@ -52,6 +52,7 @@ from baseline.classical.records import (  # noqa: E402
     aggregate_schema,
     per_image_schema,
 )
+from config import execution_profiles  # noqa: E402
 from config.params import get  # noqa: E402
 from artifacts.ids import (  # noqa: E402
     make_analysis_cell_id,
@@ -115,6 +116,72 @@ FORBIDDEN_CLAIMS = (
     "g-8 resolved",
     "g-8 selection complete",
 )
+
+
+def _am87_post_am86_parameters() -> dict[str, Any]:
+    compatibility_path = REPO / "results/baseline/g8_f/am87_post_campaign_source_compatibility.json"
+    compatibility = json.loads(compatibility_path.read_bytes())
+    if compatibility.get("compatibility_id") != "g8postsource-bdd9e60947a3e8d04bd9203d3c5ec3f861dbbfeae39945bd0f5d6d47fb5e33cf":
+        raise ValueError("AM-87 protocol compatibility identity differs")
+    entries = compatibility.get("entries")
+    if not isinstance(entries, list):
+        raise ValueError("AM-87 protocol compatibility entries differ")
+    params = [
+        entry for entry in entries
+        if isinstance(entry, dict) and entry.get("path") == "spec/params.generated.yaml"
+    ]
+    if len(params) != 1 or params[0].get("current_sha256") != hashlib.sha256(
+        (REPO / "spec/params.generated.yaml").read_bytes()
+    ).hexdigest():
+        raise ValueError("AM-87 current generated parameters differ")
+    post_am86 = git_bytes(
+        "426110b05161e73e4d819bdc01f4857c012d6d59",
+        "spec/params.generated.yaml",
+    )
+    if hashlib.sha256(post_am86).hexdigest() != params[0].get("archived_sha256"):
+        raise ValueError("AM-87 post-AM-86 generated parameters differ")
+    import yaml
+
+    historical = yaml.safe_load(post_am86)
+    if not isinstance(historical, dict):
+        raise ValueError("AM-87 post-AM-86 generated parameters are malformed")
+    return historical
+
+
+def _verify_am87_historical_generated_params(archived_bytes: bytes) -> None:
+    import yaml
+
+    archived = yaml.safe_load(archived_bytes)
+    historical = _am87_post_am86_parameters()
+    roots = list(get("config.fingerprint_parameter_roots"))
+    if not isinstance(archived, dict) or set(archived) != set(historical):
+        raise ValueError("historical generated-parameter root set differs")
+    for root in roots:
+        if execution_profiles._remove_exact_historical_additions(  # noqa: SLF001
+            root, archived[root]
+        ) != execution_profiles._remove_exact_historical_additions(root, historical[root]):  # noqa: SLF001
+            raise ValueError(f"generated params has unrelated drift under {root}")
+    execution_profiles._verify_historical_additive_projection(  # noqa: SLF001
+        historical["compute"], historical["environment"]
+    )
+
+
+def _verify_am87_historical_local_compatibility(config: RunConfig) -> None:
+    """Check schema-1 W4 snapshots against exact post-AM-86 parameters."""
+
+    historical = _am87_post_am86_parameters()
+    snapshots = config.parameters.to_dict()
+    roots = list(get("config.fingerprint_parameter_roots"))
+    if config.fingerprint_schema_version != 1 or set(snapshots) != set(roots):
+        raise ValueError("historical schema/root set differs")
+    for root in roots:
+        if execution_profiles._remove_exact_historical_additions(  # noqa: SLF001
+            root, snapshots[root]
+        ) != execution_profiles._remove_exact_historical_additions(root, historical[root]):  # noqa: SLF001
+            raise ValueError(f"historical params.{root} snapshot has unrelated drift")
+    execution_profiles._verify_historical_additive_projection(  # noqa: SLF001
+        historical["compute"], historical["environment"]
+    )
 
 
 class VerificationError(RuntimeError):
@@ -512,10 +579,13 @@ def check_sources(evidence: Path, summary: dict[str, Any]) -> dict[str, Any]:
                 # hatch for any generated-parameter drift.
                 try:
                     verify_historical_generated_params_bytes(at_commit)
-                except ValueError as exc:
-                    raise VerificationError(
-                        f"{path}: historical additive compatibility failed: {exc}"
-                    ) from None
+                except ValueError:
+                    try:
+                        _verify_am87_historical_generated_params(at_commit)
+                    except ValueError as exc:
+                        raise VerificationError(
+                            f"{path}: historical additive compatibility failed: {exc}"
+                        ) from None
                 continue
             _require(
                 sha256_bytes(current) == entry["sha256"],
@@ -627,10 +697,13 @@ def check_configuration(
         if run_config.fingerprint_schema_version == 1:
             try:
                 verify_historical_local_compatibility(run_config)
-            except ValueError as exc:
-                raise VerificationError(
-                    f"{entry['relative_path']}: historical compatibility failed: {exc}"
-                ) from None
+            except ValueError:
+                try:
+                    _verify_am87_historical_local_compatibility(run_config)
+                except ValueError as exc:
+                    raise VerificationError(
+                        f"{entry['relative_path']}: historical compatibility failed: {exc}"
+                    ) from None
         else:
             for root in roots:
                 _require(

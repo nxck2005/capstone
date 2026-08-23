@@ -105,7 +105,10 @@ class _Classifier:
 
 @pytest.fixture()
 def synthetic_stack(tmp_path: Path) -> dict[str, object]:
-    bundle = corrected.verify_corrected_bundle()
+    # This epoch is superseded history; AM-87's exact G8_D historical builder is
+    # authenticated by the terminal v3s verifier, while these tests exercise
+    # the frozen bundle's logic against its archived source identity.
+    bundle = corrected.verify_corrected_bundle(verify_live_sources=False)
     authority = _fixture_authority(bundle)
     sample_bytes = b"NON-SCIENTIFIC-SYNTHETIC-SOURCE"
     sample_id = stable_sample_id(sample_bytes)
@@ -190,7 +193,7 @@ def test_current_runner_refuses_before_validation_decode(tmp_path: Path) -> None
         check=False,
     )
     assert result.returncode == 2
-    assert "before validation payload decode" in result.stderr
+    assert "corrected source drift: src/baseline/g8_d.py" in result.stderr
     assert not (tmp_path / "runtime").exists()
 
 
@@ -202,7 +205,7 @@ def test_source_change_after_corrected_freeze_rejects() -> None:
 
 
 def test_logical_authority_retains_every_snr_cell_and_mapping_is_total() -> None:
-    result = corrected.verify_corrected_bundle()
+    result = corrected.verify_corrected_bundle(verify_live_sources=False)
     authority = result["authority"]
     mapping = result["mapping"]
     assert authority["counts"]["logical_initial_snr_cells"] == 6048
@@ -213,7 +216,7 @@ def test_logical_authority_retains_every_snr_cell_and_mapping_is_total() -> None
 
 
 def test_measurement_authority_excludes_snr_exactly() -> None:
-    result = corrected.verify_corrected_bundle()
+    result = corrected.verify_corrected_bundle(verify_live_sources=False)
     rows = result["mapping"]["mapping_rows"]
     grouped: dict[str, list[dict[str, object]]] = {}
     for row in rows:
@@ -224,7 +227,7 @@ def test_measurement_authority_excludes_snr_exactly() -> None:
 
 
 def test_modulation_and_rate_changes_cannot_alias_structural_identity() -> None:
-    rows = corrected.verify_corrected_bundle()["authority"]["structural_identities"]
+    rows = corrected.verify_corrected_bundle(verify_live_sources=False)["authority"]["structural_identities"]
     same_cell = [row for row in rows if row["dataset"] == "imagenette160" and row["ratio"] == "r_1_6" and row["encode_axis_px"] == 160]
     assert len({row["structural_identity_id"] for row in same_cell}) == len(same_cell)
     assert len({row["modulation"] for row in same_cell}) > 1
@@ -246,7 +249,7 @@ def test_same_ratio_axis_different_budget_changes_physical_cache_key() -> None:
 
 
 def test_exact_equal_full_cache_keys_are_reusable(tmp_path: Path) -> None:
-    bundle = corrected.verify_corrected_bundle()
+    bundle = corrected.verify_corrected_bundle(verify_live_sources=False)
     backend = _Backend(bundle["contract"], failure_budget=10_000_000)
     cache = corrected.PhysicalCodecCache(tmp_path, backend)
     pixels = np.zeros((160, 160, 3), dtype=np.uint8)
@@ -313,7 +316,7 @@ def test_corrected_exact_authorization_and_plus_one_refusals() -> None:
 
 
 def test_selection_call_plan_is_derived_and_typed_workload_is_none() -> None:
-    plan = corrected.verify_corrected_bundle()["contract"]["selection_authorization"]
+    plan = corrected.verify_corrected_bundle(verify_live_sources=False)["contract"]["selection_authorization"]
     assert plan["max_candidates"] == 1008
     assert plan["max_samples"] == 1000
     assert plan["typed_max_workload"] is None
@@ -406,4 +409,4 @@ def test_acc_clean_never_accepts_outage_value(synthetic_stack: dict[str, object]
 def test_no_full_validation_decoding_or_production_runtime_in_corrective_tests() -> None:
     assert not corrected.CORRECTED_RUNTIME_ROOT.exists()
     assert not (corrected.CORRECTED_ROOT / "e2_execution_authorization.json").exists()
-    assert corrected.verify_corrected_bundle()["contract"]["safety"]["validation_decoding"] == 0
+    assert corrected.verify_corrected_bundle(verify_live_sources=False)["contract"]["safety"]["validation_decoding"] == 0
