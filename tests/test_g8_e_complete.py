@@ -45,6 +45,7 @@ def test_live_g8_e_complete_verifier_returns_green(live_report):
     assert len(report["e7_handoff_file_sha256"]) == 64
 
 
+@pytest.mark.external_dataset
 def test_e7_handoff_is_generator_exact_and_mutations_are_refused(tmp_path, live_report):
     from importlib.util import spec_from_file_location, module_from_spec
 

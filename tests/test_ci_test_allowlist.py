@@ -45,6 +45,7 @@ EXPECTED = {
             )
         },
         ("tests/test_g8_e_complete.py", "test_live_g8_e_complete_verifier_returns_green"),
+        ("tests/test_g8_e_complete.py", "test_e7_handoff_is_generator_exact_and_mutations_are_refused"),
         ("tests/test_w4_smoke_runner.py", "test_worklist_is_deterministic_and_free_of_duplicate_identities"),
         ("tests/test_w4_smoke_runner.py", "test_worklist_is_ordered_by_stable_sample_id_not_loader_order"),
         ("tests/test_w4_smoke_runner.py", "test_a_cifar_worklist_row_is_never_task_scored"),
