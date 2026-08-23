@@ -2212,6 +2212,65 @@ def _source_bindings(repo_root: Path) -> list[dict[str, str]]:
     ]
 
 
+def _am87_historical_contract_bindings(repo_root: Path) -> tuple[str, str, list[dict[str, str]]] | None:
+    """Preserve D7 identity under AM-87's exact post-campaign G8_F-only drift."""
+
+    if repo_root != REPO_ROOT:
+        return None
+    compatibility_path = repo_root / "results/baseline/g8_f/am87_post_campaign_source_compatibility.json"
+    frozen_contract_path = repo_root / "results/baseline/g8_d/measurement_contract.json"
+    try:
+        compatibility = json.loads(compatibility_path.read_bytes())
+        frozen_contract = json.loads(frozen_contract_path.read_bytes())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8DContractError(f"cannot load AM-87 historical D7 compatibility: {exc}") from None
+    required = {
+        "schema_version", "artifact_role", "amendment", "discovery_date", "timing",
+        "classification", "measurement_source_commit", "allowed_parameter_paths",
+        "entries", "protected_boundary", "compatibility_id",
+    }
+    if not isinstance(compatibility, Mapping) or set(compatibility) != required:
+        raise G8DContractError("AM-87 historical D7 compatibility schema differs")
+    body = {key: child for key, child in compatibility.items() if key != "compatibility_id"}
+    if compatibility["compatibility_id"] != "g8postsource-" + sha256_bytes(canonical_json(body)):
+        raise G8DContractError("AM-87 historical D7 compatibility ID differs")
+    boundary = compatibility["protected_boundary"]
+    if (
+        compatibility["schema_version"] != 1
+        or compatibility["artifact_role"] != "g8_c_g8_e_am87_post_campaign_source_compatibility"
+        or compatibility["amendment"] != "AM-87"
+        or compatibility["discovery_date"] != "2026-08-23"
+        or compatibility["timing"] != "post_g8c_post_g8e_pass_one_pre_g8f_execution"
+        or compatibility["classification"] != "off_measurement_path_protocol_parameters_and_post_campaign_verifier"
+        or not isinstance(boundary, Mapping)
+        or boundary.get("g8_f_execution") != 0
+        or boundary.get("training") != 0
+        or boundary.get("test_access") != 0
+    ):
+        raise G8DContractError("AM-87 historical D7 compatibility boundary differs")
+    entries = compatibility["entries"]
+    if not isinstance(entries, list):
+        raise G8DContractError("AM-87 historical D7 compatibility entries differ")
+    params = [entry for entry in entries if isinstance(entry, Mapping) and entry.get("path") == "spec/params.generated.yaml"]
+    if len(params) != 1:
+        raise G8DContractError("AM-87 historical D7 parameter entry differs")
+    params_entry = params[0]
+    current_spec = sha256_file(repo_root / "spec/SPEC.md")
+    current_params = sha256_file(repo_root / "spec/params.generated.yaml")
+    upstream = frozen_contract.get("upstream_bindings", {})
+    if (
+        current_spec != "272993232d6200638ed9a3892052cc71be780779c29a53835c6a5e31d8a3cd85"
+        or current_params != params_entry.get("current_sha256")
+        or params_entry.get("archived_sha256") != upstream.get("params_generated_sha256")
+        or upstream.get("spec_sha256") != "4df456ec93742913803ed4c4bb958d0a9885e8065075c70807122e2ba3e9bf5b"
+    ):
+        raise G8DContractError("AM-87 historical D7 normative byte chain differs")
+    source_bindings = frozen_contract.get("source_bindings")
+    if not isinstance(source_bindings, list) or not source_bindings:
+        raise G8DContractError("AM-87 historical D7 source bindings differ")
+    return str(upstream["spec_sha256"]), str(upstream["params_generated_sha256"]), source_bindings
+
+
 def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     """Build the deterministic pre-data contract without touching image payloads."""
 
@@ -2229,6 +2288,12 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
     w4_path = repo_root / "results/baseline/w4/integration_adjudication.json"
     spec_path = repo_root / "spec/SPEC.md"
     params_path = repo_root / "spec/params.generated.yaml"
+    historical_bindings = _am87_historical_contract_bindings(repo_root)
+    if historical_bindings is None:
+        spec_sha256, params_sha256 = sha256_file(spec_path), sha256_file(params_path)
+        source_bindings = _source_bindings(repo_root)
+    else:
+        spec_sha256, params_sha256, source_bindings = historical_bindings
     d0, _ = _read_json(d0_path, "D0 opening artifact")
     w4, _ = _read_json(w4_path, "W4 integration adjudication")
     body: dict[str, Any] = {
@@ -2250,8 +2315,8 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
         "upstream_bindings": {
             "w4_integration_adjudication_sha256": sha256_file(w4_path),
             "w4_selection_policy_sha256": w4["selection_machinery"]["selection_policy_sha256"],
-            "spec_sha256": sha256_file(spec_path),
-            "params_generated_sha256": sha256_file(params_path),
+            "spec_sha256": spec_sha256,
+            "params_generated_sha256": params_sha256,
             "g1_adjudication_sha256": sha256_file(repo_root / "results/reference_classifier/g1_adjudication.json"),
         },
         "identity_schema": {
@@ -2411,7 +2476,7 @@ def build_g8_d_contract(repo_root: Path = REPO_ROOT) -> dict[str, Any]:
             "ldpc_rate", "encode_axis_px", "snr_db", "candidate_id",
         ],
         "phase_order": list(PHASE_ORDER),
-        "source_bindings": _source_bindings(repo_root),
+        "source_bindings": source_bindings,
         "safety": {
             "validation_campaign_started": False,
             "selection_started": False,

@@ -1,0 +1,45 @@
+{
+  "amendment": "AM-87",
+  "artifact_role": "g8_e_am87_post_campaign_source_compatibility",
+  "classification": "post_campaign_historical_builder_and_verifier_only",
+  "compatibility_id": "g8esourcecompat-1dca57402923146dc3ac03d5c3d11a497f6158c563b51ab93f2961eb14399beb",
+  "entries": [
+    {
+      "archived_bytes": 136526,
+      "archived_sha256": "f8ccfa527d10b5192e7c8193920c173b80f1649024bb12da32038d6e42e343f3",
+      "current_bytes": 140393,
+      "current_sha256": "974d7f96c806bb3b063c4bdca195ba60ab5eb81ebbbf3a66ec320c9e4db0654a",
+      "justification": "The added helper authenticates exact AM-87 SPEC/parameter compatibility and preserves the already-frozen D7 contract/source bindings for post-D7 verification and synthetic tests. It cannot decode validation data, alter D7 evidence, or execute G8_F.",
+      "kind": "post_d7_historical_contract_builder_only",
+      "path": "src/baseline/g8_d.py",
+      "scientific_execution_reachable": false
+    },
+    {
+      "archived_bytes": 31757,
+      "archived_sha256": "9371ad9f85e4c802356803dd565af7c9c8d846a33ff69aae5e668c04b0985bf3",
+      "current_bytes": 36748,
+      "current_sha256": "03a5b71aafd0894bd832835afbd91b604c25729e42fa9cbe33c4fb061fba5d71",
+      "justification": "The added verifier admits only this exact historical G8_D builder and its own exact current bytes after E7. It cannot execute E2-E7, alter evidence, rerun pass one, or authorize G8_F.",
+      "kind": "post_e7_source_verifier_compatibility_only",
+      "path": "src/baseline/g8_e_corrected_v3s.py",
+      "scientific_execution_reachable": false
+    }
+  ],
+  "linked_protocol_compatibility": {
+    "compatibility_id": "g8postsource-bdd9e60947a3e8d04bd9203d3c5ec3f861dbbfeae39945bd0f5d6d47fb5e33cf",
+    "path": "results/baseline/g8_f/am87_post_campaign_source_compatibility.json",
+    "sha256": "e057dc1a3c06200a3b485fd017dce2ff75e93c89aba285e4cb0d7c1827b27782"
+  },
+  "protected_boundary": {
+    "g8_c_changed": false,
+    "g8_d_changed": false,
+    "g8_e_changed": false,
+    "g8_f_execution": 0,
+    "pass_one_rerun": false,
+    "pass_two": 0,
+    "test_access": 0,
+    "training": 0
+  },
+  "schema_version": 1,
+  "timing": "post_g8e_e7_pre_g8f_execution"
+}

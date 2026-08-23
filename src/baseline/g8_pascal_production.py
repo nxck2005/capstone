@@ -32,10 +32,13 @@ import os
 import re
 import secrets
 import stat
+import subprocess
 from collections.abc import Iterator, Mapping, Sequence
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+import yaml
 
 from baseline import g8_bler_contract as frozen_bler
 from baseline import g8_bler_runner as frozen_runner
@@ -67,6 +70,7 @@ PRODUCTION_SOURCE_MANIFEST = SUCCESSOR_ROOT / "production_source_manifest.json"
 PRODUCTION_RUNNER_CONTRACT = SUCCESSOR_ROOT / "production_runner_contract.json"
 PRODUCTION_COORDINATOR_CONTRACT = SUCCESSOR_ROOT / "production_coordinator_contract.json"
 PRE_MEASUREMENT_REPAIR_POLICY = SUCCESSOR_ROOT / "pre_measurement_repair.json"
+POST_CAMPAIGN_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am87_post_campaign_source_compatibility.json"
 PRODUCTION_STATE_ARTIFACT_ROLE = "g8_c_pascal_successor_production_state"
 PRODUCTION_STATE_FILENAME = "campaign_state.json"
 OLD_WORK_UNIT_ROOT = REPO_ROOT / "results/baseline/g8/work_units"
@@ -2146,6 +2150,137 @@ def _validate_custody_policy(value: Any) -> None:
         raise ProductionContractError("successor production evidence custody policy differs")
 
 
+def _leaf_difference_paths(old: Any, new: Any, prefix: str = "") -> set[str]:
+    """Return exact dotted YAML leaf paths changed by an additive amendment."""
+
+    if isinstance(old, Mapping) and isinstance(new, Mapping):
+        result: set[str] = set()
+        for key in set(old) | set(new):
+            child = f"{prefix}.{key}" if prefix else str(key)
+            if key not in old or key not in new:
+                result.add(child)
+            else:
+                result.update(_leaf_difference_paths(old[key], new[key], child))
+        return result
+    return set() if old == new else {prefix}
+
+
+def _load_post_campaign_source_compatibility(
+    source_entries: Sequence[Mapping[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Authenticate AM-87's exact, off-measurement-path source compatibility.
+
+    Completed G8_C evidence remains bound to its original source bytes.  This
+    additive record permits only the current verifier implementation itself,
+    the historical-campaign compatibility verifier and generated parameters
+    whose exact semantic diff is the new G8_F corpus rule. It is not a general
+    source-drift allowlist.
+    """
+
+    try:
+        raw = POST_CAMPAIGN_SOURCE_COMPATIBILITY.read_bytes()
+        value = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProductionContractError(f"cannot load AM-87 source compatibility: {exc}") from None
+    required = {
+        "schema_version", "artifact_role", "amendment", "discovery_date", "timing",
+        "classification", "measurement_source_commit", "allowed_parameter_paths",
+        "entries", "protected_boundary", "compatibility_id",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise ProductionContractError("AM-87 source-compatibility schema differs")
+    if (
+        value["schema_version"] != 1
+        or value["artifact_role"] != "g8_c_g8_e_am87_post_campaign_source_compatibility"
+        or value["amendment"] != "AM-87"
+        or value["discovery_date"] != "2026-08-23"
+        or value["timing"] != "post_g8c_post_g8e_pass_one_pre_g8f_execution"
+        or value["classification"] != "off_measurement_path_protocol_parameters_and_post_campaign_verifier"
+    ):
+        raise ProductionContractError("AM-87 source-compatibility header differs")
+    body = {key: child for key, child in value.items() if key != "compatibility_id"}
+    if value["compatibility_id"] != "g8postsource-" + sha256_bytes(canonical_json(body)):
+        raise ProductionContractError("AM-87 source-compatibility ID differs")
+    boundary = value["protected_boundary"]
+    if boundary != {
+        "g8_c_changed": False,
+        "g8_e_changed": False,
+        "g8_f_execution": 0,
+        "pass_one_rerun": False,
+        "pass_two": 0,
+        "test_access": 0,
+        "training": 0,
+    }:
+        raise ProductionContractError("AM-87 source-compatibility boundary differs")
+    entries = value["entries"]
+    if not isinstance(entries, list) or len(entries) != 3:  # literal-ok: exact params/two-verifier compatibility set
+        raise ProductionContractError("AM-87 source-compatibility entries differ")
+    by_path: dict[str, dict[str, Any]] = {}
+    frozen_by_path = {str(entry.get("path")): entry for entry in source_entries}
+    for item in entries:
+        fields = {
+            "path", "kind", "archived_bytes", "archived_sha256", "current_bytes",
+            "current_sha256", "measurement_path_reachable", "justification",
+        }
+        if not isinstance(item, Mapping) or set(item) != fields:
+            raise ProductionContractError("AM-87 source-compatibility entry schema differs")
+        path_text = item["path"]
+        if path_text in by_path or path_text not in frozen_by_path:
+            raise ProductionContractError("AM-87 source-compatibility path is duplicate or foreign")
+        frozen = frozen_by_path[path_text]
+        if item["archived_bytes"] != frozen.get("bytes") or item["archived_sha256"] != frozen.get("sha256"):
+            raise ProductionContractError("AM-87 compatibility does not bind frozen source entry")
+        path = REPO_ROOT / path_text
+        if (
+            not path.is_file()
+            or item["current_bytes"] != path.stat().st_size
+            or item["current_sha256"] != _file_sha256(path)
+        ):
+            raise ProductionContractError("AM-87 compatibility current bytes differ")
+        if item["measurement_path_reachable"] is not False or not isinstance(item["justification"], str) or not item["justification"]:
+            raise ProductionContractError("AM-87 compatibility reachability/justification differs")
+        by_path[path_text] = dict(item)
+    if set(by_path) != {
+        "spec/params.generated.yaml",
+        "src/baseline/g8_campaign.py",
+        "src/baseline/g8_pascal_production.py",
+    }:
+        raise ProductionContractError("AM-87 compatibility permits an unexpected source path")
+    if by_path["spec/params.generated.yaml"]["kind"] != "am87_g8f_only_generated_parameter_change":
+        raise ProductionContractError("AM-87 parameter compatibility kind differs")
+    if by_path["src/baseline/g8_pascal_production.py"]["kind"] != "post_campaign_verifier_compatibility_only":
+        raise ProductionContractError("AM-87 verifier compatibility kind differs")
+    if by_path["src/baseline/g8_campaign.py"]["kind"] != "historical_campaign_verifier_compatibility_only":
+        raise ProductionContractError("AM-87 historical-campaign compatibility kind differs")
+
+    commit = value["measurement_source_commit"]
+    if commit != "426110b05161e73e4d819bdc01f4857c012d6d59":
+        raise ProductionContractError("AM-87 compatibility measurement source commit differs")
+    try:
+        historical_params = subprocess.run(
+            ["git", "show", f"{commit}:spec/params.generated.yaml"],
+            cwd=REPO_ROOT,
+            check=True,
+            capture_output=True,
+            timeout=15,  # literal-ok: bounded local historical-byte query
+        ).stdout
+        old = yaml.safe_load(historical_params)
+        new = yaml.safe_load((REPO_ROOT / "spec/params.generated.yaml").read_bytes())
+    except (OSError, subprocess.SubprocessError, yaml.YAMLError) as exc:
+        raise ProductionContractError(f"cannot reproduce AM-87 parameter diff: {exc}") from None
+    params_entry = by_path["spec/params.generated.yaml"]
+    if len(historical_params) != params_entry["archived_bytes"] or sha256_bytes(historical_params) != params_entry["archived_sha256"]:
+        raise ProductionContractError("AM-87 historical parameter bytes differ")
+    allowed_paths = value["allowed_parameter_paths"]
+    if not isinstance(allowed_paths, list) or allowed_paths != sorted(set(allowed_paths)):
+        raise ProductionContractError("AM-87 allowed parameter paths are not sorted unique")
+    if _leaf_difference_paths(old, new) != set(allowed_paths):
+        raise ProductionContractError("current parameter drift exceeds exact AM-87 G8_F paths")
+    if not all(path.startswith("reference_classifier.artifact_finetune_") for path in allowed_paths):
+        raise ProductionContractError("AM-87 compatibility reaches outside G8_F corpus parameters")
+    return by_path
+
+
 def validate_production_contracts() -> dict[str, Any]:
     """Validate the complete additive contract family and live source closure."""
 
@@ -2192,6 +2327,7 @@ def validate_production_contracts() -> dict[str, Any]:
     source_entries = source.get("sources")
     if not isinstance(source_entries, list) or not source_entries:
         raise ProductionContractError("successor production source closure is empty")
+    compatibility: dict[str, dict[str, Any]] | None = None
     source_paths: list[str] = []
     for entry in source_entries:
         if not isinstance(entry, Mapping) or set(entry) != {"path", "role", "bytes", "sha256"}:
@@ -2200,8 +2336,12 @@ def validate_production_contracts() -> dict[str, Any]:
         if not isinstance(relative, str) or not relative or relative.startswith("/") or ".." in Path(relative).parts:
             raise ProductionContractError("successor production source path is unsafe")
         path = REPO_ROOT / relative
-        if not path.is_file() or entry["bytes"] != len(path.read_bytes()) or entry["sha256"] != _file_sha256(path):
-            raise ProductionContractError(f"successor production source bytes differ: {relative}")
+        exact = path.is_file() and entry["bytes"] == path.stat().st_size and entry["sha256"] == _file_sha256(path)
+        if not exact:
+            if compatibility is None:
+                compatibility = _load_post_campaign_source_compatibility(source_entries)
+            if relative not in compatibility:
+                raise ProductionContractError(f"successor production source bytes differ: {relative}")
         source_paths.append(relative)
     if len(source_paths) != len(set(source_paths)):
         raise ProductionContractError("successor production source closure contains duplicates")

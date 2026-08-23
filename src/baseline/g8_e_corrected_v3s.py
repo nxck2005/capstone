@@ -20,9 +20,10 @@ operational compute/storage plan measured on the worker host.
 from __future__ import annotations
 
 import copy
+import json
 import os
 import subprocess
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,7 @@ V3S_SCHEMA_VERSION = v3.V3_SCHEMA_VERSION
 V3S_ROOT = REPO_ROOT / "results/baseline/g8_e/e2_confessor_successor"
 V3S_CONTRACT_PATH = V3S_ROOT / "measurement_contract.json"
 V3S_SOURCE_MANIFEST_PATH = V3S_ROOT / "execution_source_manifest.json"
+AM87_SOURCE_COMPATIBILITY_PATH = REPO_ROOT / "results/baseline/g8_f/am87_g8e_source_compatibility.json"
 V3S_STORAGE_PLAN_PATH = V3S_ROOT / "compute_storage_plan.json"
 V3S_RELOCATION_PROVENANCE_PATH = V3S_ROOT / "relocation_provenance.json"
 V3S_SYNTHETIC_PROOF_PATH = V3S_ROOT / "synthetic_lifecycle_proof.json"
@@ -180,6 +182,94 @@ def build_source_manifest(source_commit: str) -> dict[str, Any]:
     return body
 
 
+def _load_am87_source_compatibility(source_entries: Sequence[Mapping[str, Any]]) -> set[str]:
+    """Authenticate the exact post-campaign verifier/builder source pair."""
+
+    try:
+        raw = AM87_SOURCE_COMPATIBILITY_PATH.read_bytes()
+        compatibility = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8EV3SError(f"cannot load AM-87 G8_E source compatibility: {exc}") from None
+    required = {
+        "schema_version", "artifact_role", "amendment", "timing", "classification",
+        "entries", "linked_protocol_compatibility", "protected_boundary", "compatibility_id",
+    }
+    if not isinstance(compatibility, Mapping) or set(compatibility) != required:
+        raise G8EV3SError("AM-87 G8_E source-compatibility schema differs")
+    body = {key: child for key, child in compatibility.items() if key != "compatibility_id"}
+    if compatibility["compatibility_id"] != "g8esourcecompat-" + sha256_bytes(canonical_json(body)):
+        raise G8EV3SError("AM-87 G8_E source-compatibility ID differs")
+    if (
+        compatibility["schema_version"] != 1
+        or compatibility["artifact_role"] != "g8_e_am87_post_campaign_source_compatibility"
+        or compatibility["amendment"] != "AM-87"
+        or compatibility["timing"] != "post_g8e_e7_pre_g8f_execution"
+        or compatibility["classification"] != "post_campaign_historical_builder_and_verifier_only"
+        or compatibility["protected_boundary"] != {
+            "g8_c_changed": False,
+            "g8_d_changed": False,
+            "g8_e_changed": False,
+            "g8_f_execution": 0,
+            "pass_one_rerun": False,
+            "pass_two": 0,
+            "test_access": 0,
+            "training": 0,
+        }
+    ):
+        raise G8EV3SError("AM-87 G8_E source-compatibility boundary differs")
+    linked = compatibility["linked_protocol_compatibility"]
+    protocol_path = REPO_ROOT / "results/baseline/g8_f/am87_post_campaign_source_compatibility.json"
+    try:
+        protocol = json.loads(protocol_path.read_bytes())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8EV3SError(f"cannot load linked AM-87 protocol compatibility: {exc}") from None
+    if linked != {
+        "path": "results/baseline/g8_f/am87_post_campaign_source_compatibility.json",
+        "compatibility_id": protocol.get("compatibility_id"),
+        "sha256": sha256_file(protocol_path),
+    }:
+        raise G8EV3SError("AM-87 linked protocol compatibility differs")
+    entries = compatibility["entries"]
+    if not isinstance(entries, list) or len(entries) != 2:  # literal-ok: exact historical builder/verifier pair
+        raise G8EV3SError("AM-87 G8_E source-compatibility entries differ")
+    frozen = {str(entry.get("path")): entry for entry in source_entries}
+    expected_paths = {"src/baseline/g8_d.py", "src/baseline/g8_e_corrected_v3s.py"}
+    admitted: set[str] = set()
+    for item in entries:
+        fields = {
+            "path", "kind", "archived_bytes", "archived_sha256", "current_bytes",
+            "current_sha256", "scientific_execution_reachable", "justification",
+        }
+        if not isinstance(item, Mapping) or set(item) != fields:
+            raise G8EV3SError("AM-87 G8_E source entry schema differs")
+        path_text = item["path"]
+        if path_text in admitted or path_text not in expected_paths or path_text not in frozen:
+            raise G8EV3SError("AM-87 G8_E source path is duplicate or foreign")
+        prior = frozen[path_text]
+        current_path = REPO_ROOT / path_text
+        if (
+            item["archived_bytes"] != prior.get("bytes")
+            or item["archived_sha256"] != prior.get("sha256")
+            or not current_path.is_file()
+            or item["current_bytes"] != current_path.stat().st_size
+            or item["current_sha256"] != sha256_file(current_path)
+            or item["scientific_execution_reachable"] is not False
+            or not isinstance(item["justification"], str)
+            or not item["justification"]
+        ):
+            raise G8EV3SError("AM-87 G8_E source entry bytes or scope differ")
+        admitted.add(path_text)
+    if admitted != expected_paths:
+        raise G8EV3SError("AM-87 G8_E source compatibility is incomplete")
+    kinds = {item["path"]: item["kind"] for item in entries}
+    if kinds != {
+        "src/baseline/g8_d.py": "post_d7_historical_contract_builder_only",
+        "src/baseline/g8_e_corrected_v3s.py": "post_e7_source_verifier_compatibility_only",
+    }:
+        raise G8EV3SError("AM-87 G8_E source compatibility kinds differ")
+    return admitted
+
+
 def validate_source_manifest(value: Mapping[str, Any], *, verify_live_sources: bool = True) -> dict[str, Any]:
     required = {
         "schema_version", "artifact_role", "status", "source_commit", "source_entries",
@@ -203,11 +293,16 @@ def validate_source_manifest(value: Mapping[str, Any], *, verify_live_sources: b
     if resolved.returncode != 0 or resolved.stdout.strip() != source_commit:
         raise G8EV3SError("v3s source commit is not an exact available Git commit")
     if verify_live_sources:
+        compatibility: set[str] | None = None
         for item in value["source_entries"]:
             entry = _strict(item, ("path", "role", "bytes", "sha256"), "v3s source entry")
             path = REPO_ROOT / entry["path"]
-            if not path.is_file() or path.stat().st_size != entry["bytes"] or sha256_file(path) != entry["sha256"]:
-                raise G8EV3SError(f"v3s frozen source drift: {entry['path']}")
+            exact = path.is_file() and path.stat().st_size == entry["bytes"] and sha256_file(path) == entry["sha256"]
+            if not exact:
+                if compatibility is None:
+                    compatibility = _load_am87_source_compatibility(value["source_entries"])
+                if entry["path"] not in compatibility:
+                    raise G8EV3SError(f"v3s frozen source drift: {entry['path']}")
             historical = subprocess.run(
                 ["git", "show", f"{source_commit}:{entry['path']}"],
                 cwd=REPO_ROOT,

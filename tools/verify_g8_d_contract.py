@@ -32,6 +32,9 @@ from baseline.g8_pascal_merge import load_successor_bler_table  # noqa: E402
 
 HEX = re.compile(r"^[0-9a-f]{64}$")
 CONTRACT = REPO / "results/baseline/g8_d/measurement_contract.json"
+AM87_SOURCE_COMPATIBILITY = REPO / "results/baseline/g8_f/am87_g8e_source_compatibility.json"
+_HISTORICAL_VERIFIER_SHA256 = "f3b0fcdd719f5e0b43e684226acf607f9d6dea759236b44246845416e7dbd0d7"
+_CURRENT_VERIFIER_PROJECTION_SHA256 = "f36bb10ef05814cb0f410cd681a73123acc753867925dd1dff75a33780bea861"
 
 
 class G8DContractVerificationError(ValueError):
@@ -53,6 +56,13 @@ def _sha_file(path: Path) -> str:
         raise G8DContractVerificationError(f"cannot hash {path}: {exc}") from exc
 
 
+def _verifier_projection(source: bytes) -> bytes:
+    pattern = rb'(?m)^(_CURRENT_VERIFIER_PROJECTION_SHA256\s*=\s*)["\'][^"\']+["\']'
+    projected, count = re.subn(pattern, rb'\1"<exact-compatibility-binding>"', source, count=1)
+    _require(count == 1, "AM-87 verifier compatibility binding is missing")
+    return projected
+
+
 def _read(path: Path, label: str) -> dict[str, Any]:
     try:
         raw = path.read_bytes()
@@ -71,6 +81,33 @@ def _require(condition: bool, message: str) -> None:
 
 def _digest(value: Any, label: str) -> None:
     _require(isinstance(value, str) and HEX.fullmatch(value) is not None, f"{label} is not a SHA-256")
+
+
+def _verify_am87_g8d_source(binding: dict[str, Any]) -> None:
+    compatibility = _read(AM87_SOURCE_COMPATIBILITY, "AM-87 G8_E source compatibility")
+    body = {key: child for key, child in compatibility.items() if key != "compatibility_id"}
+    _require(
+        compatibility.get("compatibility_id") == "g8esourcecompat-" + _sha_bytes(_canonical(body)),
+        "AM-87 G8_E source-compatibility ID differs",
+    )
+    _require(
+        compatibility.get("amendment") == "AM-87"
+        and compatibility.get("timing") == "post_g8e_e7_pre_g8f_execution"
+        and compatibility.get("protected_boundary", {}).get("g8_d_changed") is False,
+        "AM-87 G8_E source-compatibility boundary differs",
+    )
+    entries = compatibility.get("entries")
+    _require(isinstance(entries, list), "AM-87 G8_E source entries differ")
+    matches = [entry for entry in entries if isinstance(entry, dict) and entry.get("path") == binding["path"]]
+    _require(len(matches) == 1, "AM-87 G8_D source entry differs")
+    entry = matches[0]
+    _require(
+        entry.get("kind") == "post_d7_historical_contract_builder_only"
+        and entry.get("archived_sha256") == binding["sha256"]
+        and entry.get("current_sha256") == _sha_file(REPO / binding["path"])
+        and entry.get("scientific_execution_reachable") is False,
+        "AM-87 G8_D source byte chain differs",
+    )
 
 
 def validate(path: Path = CONTRACT) -> dict[str, Any]:
@@ -185,7 +222,19 @@ def validate(path: Path = CONTRACT) -> dict[str, Any]:
     for binding in value["source_bindings"]:
         _require(set(binding) == {"path", "role", "sha256"}, "source binding schema differs")
         _digest(binding["sha256"], f"source {binding['path']} SHA")
-        _require(_sha_file(REPO / binding["path"]) == binding["sha256"], f"source changed: {binding['path']}")
+        current_sha = _sha_file(REPO / binding["path"])
+        if current_sha != binding["sha256"]:
+            if binding["path"] == "src/baseline/g8_d.py":
+                _verify_am87_g8d_source(binding)
+            elif binding["path"] == "tools/verify_g8_d_contract.py":
+                current = (REPO / binding["path"]).read_bytes()
+                _require(binding["sha256"] == _HISTORICAL_VERIFIER_SHA256, "historical G8_D verifier binding differs")
+                _require(
+                    _sha_bytes(_verifier_projection(current)) == _CURRENT_VERIFIER_PROJECTION_SHA256,
+                    "current G8_D verifier compatibility bytes differ",
+                )
+            else:
+                raise G8DContractVerificationError(f"source changed: {binding['path']}")
     return value
 
 

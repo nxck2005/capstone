@@ -93,13 +93,15 @@ def _copy_completed(source: Path, target: Path) -> Path:
 
 def test_frozen_verifier_and_phase_transitioned_predata_refusal() -> None:
     _require_bundle()
-    frozen = v3.verify_v3_frozen_contract(verify_live_data=False)
+    # Corrected-v3 is preserved history; terminal v3s independently admits
+    # AM-87's exact post-D7 builder bytes. These tests exercise frozen logic.
+    frozen = v3.verify_v3_frozen_contract(verify_live_sources=False, verify_live_data=False)
     # The owner-authorized local E2 campaign began and was aborted at a clean
     # partial prefix (PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION), so the E1-only
     # pre-data verifier must now refuse while the phase-invariant frozen
     # verifier keeps authenticating the same immutable contract bytes.
     with pytest.raises(v3.G8EV3Error, match="zero state"):
-        v3.verify_v3_predata_zero_state(verify_live_data=False)
+        v3.verify_v3_predata_zero_state(verify_live_sources=False, verify_live_data=False)
     # The refusal must come from tracked lifecycle evidence on every host.
     assert v3.V3_AUTHORIZATION_PATH.is_file()
     # The preserved aborted local runtime is deliberately untracked custody
@@ -119,8 +121,10 @@ def test_predata_closes_after_transition_without_poisoning_immutable(tmp_path: P
     synthetic_runtime.mkdir()
     monkeypatch.setattr(v3, "V3_RUNTIME_ROOT", synthetic_runtime)
     with pytest.raises(v3.G8EV3Error, match="zero state"):
-        v3.verify_v3_predata_zero_state(verify_live_data=False)
-    assert v3.verify_v3_frozen_contract(verify_live_data=False)["contract"]["checkpoint"] == "E1_corrected_v3"
+        v3.verify_v3_predata_zero_state(verify_live_sources=False, verify_live_data=False)
+    assert v3.verify_v3_frozen_contract(
+        verify_live_sources=False, verify_live_data=False
+    )["contract"]["checkpoint"] == "E1_corrected_v3"
 
 
 def test_immutable_verifier_survives_synthetic_authorization_and_runtime(tmp_path: Path, fake_br11: None) -> None:
@@ -129,10 +133,14 @@ def test_immutable_verifier_survives_synthetic_authorization_and_runtime(tmp_pat
     auth = tmp_path / "authorization.json"
     root = tmp_path / "runtime"
     _authorize(auth, context)
-    before = v3.verify_v3_frozen_contract(verify_live_data=False)["contract_sha256"]
+    before = v3.verify_v3_frozen_contract(
+        verify_live_sources=False, verify_live_data=False
+    )["contract_sha256"]
     partial = dict(context, max_units=2)
     assert runner.main(_runner_args(context, root, auth, "start"), fixture=partial) == 0
-    assert v3.verify_v3_frozen_contract(verify_live_data=False)["contract_sha256"] == before
+    assert v3.verify_v3_frozen_contract(
+        verify_live_sources=False, verify_live_data=False
+    )["contract_sha256"] == before
 
 
 def test_actual_start_resume_e2_e3_e4_lifecycle(tmp_path: Path, fake_br11: None) -> None:
@@ -466,7 +474,7 @@ def test_production_runner_refuses_old_v2_and_missing_authorization_before_paylo
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     _require_bundle()
-    bundle = v3.verify_v3_frozen_contract()
+    bundle = v3.verify_v3_frozen_contract(verify_live_sources=False)
     old_campaign = json.loads(v3.v2.V2_CONTRACT_PATH.read_text())["campaign_id"]
     missing_authorization = tmp_path / "missing-authorization.json"
     old_runtime = tmp_path / "old-runtime-must-not-be-created"
@@ -515,7 +523,9 @@ def test_production_runner_refuses_old_v2_and_missing_authorization_before_paylo
 
 def test_frozen_boundaries_and_future_pass_one_plan() -> None:
     _require_bundle()
-    contract = v3.verify_v3_frozen_contract(verify_live_data=False)["contract"]
+    contract = v3.verify_v3_frozen_contract(
+        verify_live_sources=False, verify_live_data=False
+    )["contract"]
     assert contract["safety"] == {
         "measurement_coverage": 0,
         "e2_completed_units": 0,

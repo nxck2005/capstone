@@ -390,6 +390,43 @@ def build_e0_opening(*, opening_commit: str | None = None) -> dict[str, Any]:
     return body
 
 
+def _verify_am87_g8d_source_compatibility(binding: Mapping[str, Any]) -> None:
+    path = REPO_ROOT / "results/baseline/g8_f/am87_g8e_source_compatibility.json"
+    try:
+        compatibility = json.loads(path.read_bytes())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8EContractError(f"cannot load AM-87 E0 source compatibility: {exc}") from None
+    body = {key: child for key, child in compatibility.items() if key != "compatibility_id"}
+    _require(
+        compatibility.get("compatibility_id") == "g8esourcecompat-" + sha256_bytes(canonical_json(body)),
+        "AM-87 E0 source-compatibility ID differs",
+    )
+    _require(
+        compatibility.get("amendment") == "AM-87"
+        and compatibility.get("timing") == "post_g8e_e7_pre_g8f_execution"
+        and compatibility.get("protected_boundary", {}).get("g8_d_changed") is False,
+        "AM-87 E0 source-compatibility boundary differs",
+    )
+    entries = compatibility.get("entries")
+    _require(isinstance(entries, list), "AM-87 E0 source entries differ")
+    matches = [
+        entry for entry in entries
+        if isinstance(entry, Mapping) and entry.get("path") == binding["path"]
+    ]
+    _require(len(matches) == 1, "AM-87 E0 G8_D source entry differs")
+    entry = matches[0]
+    current_path = REPO_ROOT / str(binding["path"])
+    _require(
+        entry.get("kind") == "post_d7_historical_contract_builder_only"
+        and entry.get("archived_bytes") == binding["bytes"]
+        and entry.get("archived_sha256") == binding["sha256"]
+        and entry.get("current_bytes") == current_path.stat().st_size
+        and entry.get("current_sha256") == sha256_file(current_path)
+        and entry.get("scientific_execution_reachable") is False,
+        "AM-87 E0 G8_D source byte chain differs",
+    )
+
+
 def validate_e0_opening(value: Mapping[str, Any], *, expected_commit: str | None = None) -> dict[str, Any]:
     """Validate E0's exact schema and all current upstream bindings."""
 
@@ -438,7 +475,10 @@ def validate_e0_opening(value: Mapping[str, Any], *, expected_commit: str | None
         _require(item["role"] == role, f"E0 upstream role differs for {item['path']}")
         path = REPO_ROOT / item["path"]
         _require(path.is_file(), f"E0 upstream binding is missing: {item['path']}")
-        _require(item["bytes"] == path.stat().st_size and item["sha256"] == sha256_file(path), f"E0 upstream bytes changed: {item['path']}")
+        exact = item["bytes"] == path.stat().st_size and item["sha256"] == sha256_file(path)
+        if not exact:
+            _require(item["path"] == "src/baseline/g8_d.py", f"E0 upstream bytes changed: {item['path']}")
+            _verify_am87_g8d_source_compatibility(item)
 
     safety = value["safety"]
     _require(safety == {

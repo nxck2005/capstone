@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f0-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-corpus-plan-owner-audit-f0-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -58,8 +58,12 @@ remains 47409/288000 and contributes zero successor coverage. A separate
 unauthorized clean-worktree runtime accidentally created by the test harness is
 preserved at 42704/288000, permanently merge-ineligible and documented in
 `audit/g8-e-clean-checkout-runtime-incident-2026-08-23.md`; do not resume,
-merge, delete or normalize it. G8_F/F0 owner authorization is next. Training,
-pass two, fallback, ratio adjudication and test access remain prohibited.
+merge, delete or normalize it. AM-87 freezes the corrected metadata-only G8_F
+corpus plan as `g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148`:
+120 deduplicated qualities, 8,469 training stable IDs and 1,016,280 exact ordered
+attempts; materialization count zero. Owner audit of that plan is next, followed
+only by a separate F0 authorization if accepted. Training, pass two, fallback,
+ratio adjudication and test access remain prohibited.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -153,8 +157,9 @@ changed (repair provenance `g8ecloseoutrepair-5ac7129b…`, commit `0f65fb4`;
 corrected entry points `.venv-pascal/bin/python tools/closeout_g8_e_v3s.py
 verify|merge|aggregate`); custody record
 `results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`
-(`g8ecloseout-1422804d…`). E5/pass one awaits its own owner authorization —
-do not execute it without that artifact.**
+(`g8ecloseout-1422804d…`). E5/pass one subsequently executed exactly once and
+is immutable; do not rerun it. AM-87's plan-only G8_F protocol repair is the
+current frontier, with owner audit / separate F0 authorization next.**
 The authenticated Pascal campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
@@ -162,8 +167,9 @@ and contributes zero successor-table coverage. Do not rerun this campaign,
 resume the old suffix, ingest predecessor evidence, start another Pascal
 worker, alter runtime evidence or reopen G8_C. Do not rerun or resume the
 completed worker-successor E2, merge either preserved partial runtime, widen
-the closed E2–E4 scope, run pass one/E5, training, fallback, ratio adjudication,
-learned training, or test access.
+the closed E2–E7 scope, rerun pass one/E5, materialize the G8_F corpus, train,
+run pass two, invoke fallback, adjudicate ratios, start learned training, or
+access test.
 
 PB_3C remains the latest pre-G8 scientific-engineering green and its ledger is
 retained below. This production-readiness repair is additive and does not alter
@@ -843,9 +849,11 @@ or G8_E execution is permitted in G8_D.
 
 G8_E is GREEN and closed through E7. The historical E1 rows preserve their
 freeze-time facts; the additive worker-successor rows below are authoritative
-for completed E2–E7. No G8_E execution may be rerun or widened. G8_F/F0 awaits
-its own owner authorization, and training, pass two, fallback, ratio
-adjudication and test access remain prohibited.
+for completed E2–E7. No G8_E execution may be rerun or widened. AM-87 resolves
+the BR-12 breadth hold at protocol level with a frozen metadata-only G8_F plan;
+owner audit and a separate F0 authorization are next. Corpus materialization,
+training, pass two, fallback, ratio adjudication and test access remain
+prohibited.
 
 | Step | State | Exact restart / evidence |
 |---|---|---|
@@ -863,6 +871,7 @@ adjudication and test access remain prohibited.
 | E5 authorized pass one | done | Authorization `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`; pass-one record `g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413`, file SHA-256 `91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446`; executed exactly once, 378/378 selections. |
 | E6 corpus-lineage freeze | done | Freeze `g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`, file SHA-256 `120ac23debc70001df3001ae82f3caecbd8d8821b5684d3789bd83bc56a7e5fd`; training-only and unmaterialized, E1 corpus-spec bytes untouched. |
 | E7 verification and handoff | done | `tools/verify_g8_e_complete.py` returns GREEN and authenticates the additive audit-cleanup handoff `g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`, file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`. The handoff binds the contained clean-worktree incident audit and its read-only inner-cache payload addendum; G8_F is ready but unauthorized. |
+| G8_F AM-87 corpus protocol plan | frozen-plan-only | Protocol amendment discovered post-pass-one/pre-F0; plan `g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148`, file SHA recorded by `tools/verify_g8_f_corpus_plan.py`; B=120, N_train=8,469, attempts=1,016,280, materialized/training/pass-two/test=0. Next: OWNER AUDIT, then separate F0 authorization only. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

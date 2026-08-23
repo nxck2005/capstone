@@ -1,0 +1,69 @@
+{
+  "allowed_parameter_paths": [
+    "reference_classifier.artifact_finetune_candidate_admission",
+    "reference_classifier.artifact_finetune_candidate_source",
+    "reference_classifier.artifact_finetune_corpus",
+    "reference_classifier.artifact_finetune_corpus_breadth",
+    "reference_classifier.artifact_finetune_deduplication",
+    "reference_classifier.artifact_finetune_image_codec_infeasibility",
+    "reference_classifier.artifact_finetune_multiplicity",
+    "reference_classifier.artifact_finetune_non_codec_failure",
+    "reference_classifier.artifact_finetune_quality_identity_fields",
+    "reference_classifier.artifact_finetune_quality_projected_away",
+    "reference_classifier.artifact_finetune_quality_set_rule",
+    "reference_classifier.artifact_finetune_scope_anchor",
+    "reference_classifier.artifact_finetune_scope_modes",
+    "reference_classifier.artifact_finetune_scope_snr_rule",
+    "reference_classifier.artifact_finetune_traversal_order",
+    "reference_classifier.artifact_finetune_validation_feasibility_role"
+  ],
+  "amendment": "AM-87",
+  "artifact_role": "g8_c_g8_e_am87_post_campaign_source_compatibility",
+  "classification": "off_measurement_path_protocol_parameters_and_post_campaign_verifier",
+  "compatibility_id": "g8postsource-bdd9e60947a3e8d04bd9203d3c5ec3f861dbbfeae39945bd0f5d6d47fb5e33cf",
+  "discovery_date": "2026-08-23",
+  "entries": [
+    {
+      "archived_bytes": 39786,
+      "archived_sha256": "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b",
+      "current_bytes": 41212,
+      "current_sha256": "e0930adf6ff592b61d07d486554cd5d76ec6e72bcacd8e1086cdb843debe3905",
+      "justification": "All semantic differences are the listed artifact_finetune corpus-plan parameters. G8_C and completed G8_E do not materialize or train this corpus; both compatibility verifiers independently reproduce the exact YAML leaf-path diff.",
+      "kind": "am87_g8f_only_generated_parameter_change",
+      "measurement_path_reachable": false,
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "archived_bytes": 34998,
+      "archived_sha256": "b81de451bb7c856593d4465654551c8e33646332d75a261e5f47367f8386003c",
+      "current_bytes": 39063,
+      "current_sha256": "7832d78782a5c3f6c6664b32bc0e790e61e6284a4392279ecbdd827ca881bcd6",
+      "justification": "The additive changes extend the prior exact AM-83..AM-86 historical-source compatibility through exact AM-87 SPEC bytes and the exact G8_F-only generated-parameter leaf diff. They cannot execute a work unit, alter evidence, or authorize G8_F.",
+      "kind": "historical_campaign_verifier_compatibility_only",
+      "measurement_path_reachable": false,
+      "path": "src/baseline/g8_campaign.py"
+    },
+    {
+      "archived_bytes": 124303,
+      "archived_sha256": "84fe28d82cff276e011f5694e584a67e35ef337f514afa503f769090e6e8daf2",
+      "current_bytes": 131912,
+      "current_sha256": "444f6c5fe4be34b42e684a9b0c0251f711ce09d979b346f998cc0e957f772c64",
+      "justification": "The additive changed definitions authenticate this exact compatibility record after G8_C/G8_E completion. They perform historical/current source verification only and cannot execute a work unit, alter runtime evidence, change PHY computation, or authorize G8_F.",
+      "kind": "post_campaign_verifier_compatibility_only",
+      "measurement_path_reachable": false,
+      "path": "src/baseline/g8_pascal_production.py"
+    }
+  ],
+  "measurement_source_commit": "426110b05161e73e4d819bdc01f4857c012d6d59",
+  "protected_boundary": {
+    "g8_c_changed": false,
+    "g8_e_changed": false,
+    "g8_f_execution": 0,
+    "pass_one_rerun": false,
+    "pass_two": 0,
+    "test_access": 0,
+    "training": 0
+  },
+  "schema_version": 1,
+  "timing": "post_g8c_post_g8e_pass_one_pre_g8f_execution"
+}

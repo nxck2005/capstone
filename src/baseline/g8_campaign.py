@@ -19,15 +19,17 @@ from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from baseline.classical.composition import BlerIdentity, Candidate, g2_bler_table
 from baseline.ldpc.transport import build_packet_plan
-from config.execution_profiles import verify_historical_generated_params_bytes
 from config.params import REPO_ROOT, get
 
 CAMPAIGN = "G-8"
 CAMPAIGN_MANIFEST = REPO_ROOT / "results/baseline/g8/campaign_manifest.json"
 REQUIRED_BLER_IDENTITIES = REPO_ROOT / "results/baseline/g8/required_bler_identities.json"
 CAMPAIGN_STATE = REPO_ROOT / "results/baseline/g8/campaign_state.json"
+AM87_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am87_post_campaign_source_compatibility.json"
 PHASE_ORDER = tuple(f"G8_{letter}" for letter in "ABCDEFG")
 PB3C_TERMINAL_SHA = "39c43e327573f33011c561c6de22bd05ff93c068"
 SELECTION_POLICY_FIELDS = (
@@ -105,15 +107,16 @@ def sha256_file(path: Path) -> str:
     return sha256_bytes(path.read_bytes())
 
 
-_HISTORICAL_CURRENT_SPEC_SHA256 = "4df456ec93742913803ed4c4bb958d0a9885e8065075c70807122e2ba3e9bf5b"
+_HISTORICAL_CURRENT_SPEC_SHA256 = "272993232d6200638ed9a3892052cc71be780779c29a53835c6a5e31d8a3cd85"
 _HISTORICAL_CURRENT_SOURCE_SHA256 = {
+    "instructions/G8_F.txt": "bbb7414a319af21f0c56d5568e5ac6e456f45330f07ca4b02b90a5e1f9dc9d4f",
     "instructions/G8.txt": "1a2fa4b62f5cffb2b2e37e6331763aa53916cbc9eda70b83976b486dce9a51bc",
     "tools/gen_g8_campaign_manifest.py": "b57f58ae36ac706e401ce366e64b5ab7023ba385614e4dffb2d14cd700887c31",
     "tools/update_g8_campaign_state.py": "29239c85981f294cdb8d6c492a8724c42166aa8fb15d92852681670ac4bc44f6",
     "tools/verify_g8_preflight.py": "06bd34354ea1237e3b3247f195dc440adb96f1a188654b0f2c44e759441c20d7",
 }
 _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256 = "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
-_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "6b5b54474d33279c85333b32c28f3cdb4eda59b1ca826a2a7d5d70aa47b666da"
+_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "f4ce5789f52de1ea88fe8137ee1ecbafb61e7de911ef4b33f61c079680dc70c6"
 
 
 def _historical_campaign_source_projection(source: bytes) -> bytes:
@@ -153,12 +156,93 @@ def _historical_source_bytes(path: str, digest: str) -> bytes:
     raise G8ContractError(f"bound SHA-256 does not resolve to archived bytes for {path}")
 
 
+def _leaf_difference_paths(old: Any, new: Any, prefix: str = "") -> set[str]:
+    if isinstance(old, Mapping) and isinstance(new, Mapping):
+        result: set[str] = set()
+        for key in set(old) | set(new):
+            child = f"{prefix}.{key}" if prefix else str(key)
+            if key not in old or key not in new:
+                result.add(child)
+            else:
+                result.update(_leaf_difference_paths(old[key], new[key], child))
+        return result
+    return set() if old == new else {prefix}
+
+
+def _verify_am87_generated_params(archived: bytes) -> None:
+    """Admit only the exact AM-87 G8_F leaves after exact post-AM-86 bytes."""
+
+    try:
+        value = json.loads(AM87_SOURCE_COMPATIBILITY.read_bytes())
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8ContractError(f"cannot load AM-87 source compatibility: {exc}") from None
+    required = {
+        "schema_version", "artifact_role", "amendment", "discovery_date", "timing",
+        "classification", "measurement_source_commit", "allowed_parameter_paths",
+        "entries", "protected_boundary", "compatibility_id",
+    }
+    if not isinstance(value, Mapping) or set(value) != required:
+        raise G8ContractError("AM-87 source-compatibility schema differs")
+    body = {key: child for key, child in value.items() if key != "compatibility_id"}
+    if value["compatibility_id"] != "g8postsource-" + sha256_bytes(canonical_json(body)):
+        raise G8ContractError("AM-87 source-compatibility ID differs")
+    if (
+        value["schema_version"] != 1
+        or value["amendment"] != "AM-87"
+        or value["artifact_role"] != "g8_c_g8_e_am87_post_campaign_source_compatibility"
+        or value["timing"] != "post_g8c_post_g8e_pass_one_pre_g8f_execution"
+    ):
+        raise G8ContractError("AM-87 source-compatibility header differs")
+    entries = value["entries"]
+    if not isinstance(entries, list):
+        raise G8ContractError("AM-87 source-compatibility entries differ")
+    matches = [
+        entry for entry in entries
+        if isinstance(entry, Mapping) and entry.get("path") == "spec/params.generated.yaml"
+    ]
+    if len(matches) != 1:
+        raise G8ContractError("AM-87 parameter compatibility entry differs")
+    entry = matches[0]
+    current = (REPO_ROOT / "spec/params.generated.yaml").read_bytes()
+    if (
+        sha256_bytes(archived) != "1b094107b7ef3162d8ed9d433e1793c656d6886e21916580f8a8ffe3f022dbaf"
+        or entry.get("archived_sha256") != "7f9c73f03b0557ed8df583b40c8585d2f271681208b8d0c8af80a156bfc6ab3b"
+        or entry.get("current_bytes") != len(current)
+        or entry.get("current_sha256") != sha256_bytes(current)
+    ):
+        raise G8ContractError("AM-87 parameter byte chain differs")
+    historical = subprocess.run(
+        ["git", "show", f"{value['measurement_source_commit']}:spec/params.generated.yaml"],
+        cwd=REPO_ROOT,
+        check=False,
+        capture_output=True,
+    )
+    if (
+        historical.returncode != 0
+        or len(historical.stdout) != entry.get("archived_bytes")
+        or sha256_bytes(historical.stdout) != entry.get("archived_sha256")
+    ):
+        raise G8ContractError("AM-87 historical parameter bytes differ")
+    try:
+        old = yaml.safe_load(historical.stdout)
+        new = yaml.safe_load(current)
+    except yaml.YAMLError as exc:
+        raise G8ContractError(f"AM-87 parameter YAML differs: {exc}") from None
+    allowed = value["allowed_parameter_paths"]
+    if not isinstance(allowed, list) or allowed != sorted(set(allowed)):
+        raise G8ContractError("AM-87 parameter path list differs")
+    if _leaf_difference_paths(old, new) != set(allowed):
+        raise G8ContractError("AM-87 parameter drift exceeds the exact G8_F leaves")
+    if not all(path.startswith("reference_classifier.artifact_finetune_") for path in allowed):
+        raise G8ContractError("AM-87 parameter path reaches outside G8_F")
+
+
 def _verify_historical_profile_spec(archived: bytes) -> None:
-    """Allow the one exact post-AM-86 SPEC byte image, and nothing else."""
+    """Allow the one exact post-AM-87 SPEC byte image, and nothing else."""
 
     current = (REPO_ROOT / "spec/SPEC.md").read_bytes()
     if sha256_bytes(current) != _HISTORICAL_CURRENT_SPEC_SHA256:
-        raise G8ContractError("historical SPEC compatibility requires the exact post-AM-86 bytes")
+        raise G8ContractError("historical SPEC compatibility requires the exact post-AM-87 bytes")
     if not archived:
         raise G8ContractError("historical SPEC archive is empty")
 
@@ -169,7 +253,7 @@ def _verify_historical_profile_source(path: str, archived: bytes) -> None:
     current = (REPO_ROOT / path).read_bytes()
     if path == "src/baseline/g8_campaign.py":
         if sha256_bytes(_historical_campaign_source_projection(current)) != _HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256:
-            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-86 image")
+            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-87 image")
         if sha256_bytes(archived) != _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256:
             raise G8ContractError("historical G-8 campaign source archive is not the bound pre-AM-83 image")
         return
@@ -180,7 +264,7 @@ def _verify_historical_profile_source(path: str, archived: bytes) -> None:
             raise G8ContractError(f"historical G-8 source drift is unrelated: {path}")
         return
     if current_sha != expected_sha:
-        raise G8ContractError(f"historical G-8 source is not the exact AM-83..AM-86 image: {path}")
+        raise G8ContractError(f"historical G-8 source is not the exact AM-83..AM-87 image: {path}")
 
 
 def verify_historical_normative_sources(entries: list[Mapping[str, Any]]) -> None:
@@ -208,7 +292,7 @@ def verify_historical_normative_sources(entries: list[Mapping[str, Any]]) -> Non
         if entry["bytes"] != len(archived):
             raise G8ContractError(f"historical normative source byte length is not archived: {path}")
         if path == "spec/params.generated.yaml":
-            verify_historical_generated_params_bytes(archived)
+            _verify_am87_generated_params(archived)
         elif path == "spec/SPEC.md":
             _verify_historical_profile_spec(archived)
         else:  # pragma: no cover - guarded by the expected path map
