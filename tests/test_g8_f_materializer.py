@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -139,7 +140,7 @@ def test_prefix_hole_is_hold(tmp_path: Path) -> None:
 def test_f0_cli_cannot_start_without_separate_f1_owner_artifact() -> None:
     result = subprocess.run(
         [
-            ".venv/bin/python",
+            sys.executable,
             "tools/run_g8_f_f1.py",
             "--start",
             "--f0-authorization",
