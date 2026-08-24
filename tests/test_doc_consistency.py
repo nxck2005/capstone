@@ -221,7 +221,7 @@ PASCAL_COMPLETED_STATE = {
     "g8_d": "d7-complete",
     "g8_e_e2e4": "complete-verified",
     "g8_e_e5e7": "complete-green-pass-one-frozen",
-    "readiness_state": "f0-green-f1-zero",
+    "readiness_state": "f0-v2-green-f1-zero",
     "runtime_state": "completed-production-state",
     "rerun": "forbidden",
     "old_local": "immutable-zero-successor-coverage",

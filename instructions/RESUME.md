@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f1-separate-owner-operator-launch; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f0-green-f1-zero; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f1-separate-owner-operator-launch; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f0-v2-green-f1-zero; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -64,12 +64,17 @@ Cartesian multiplicity and freezes balanced metadata-only sampler
 `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`:
 exactly six distinct supported qualities per image, 50,814 attempts, global and
 per-class quality-count range at most one; materialization count zero. The owner
-accepted AM-88 and authorized F0 only. F0 is GREEN/frozen as
+accepted AM-88 and authorized F0 only. F0-v1
 `g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`
-(file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`),
-binding F1 source `c437ff80eebd464ee7b256f2e69240a7d2f514a8` and profile
-`local_4060_cu130`. F1 runtime/materialization/inference/optimizer/pass-two/test
-remain zero. A separate owner/operator F1 launch is next.
+(file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`)
+remains byte-identical historical evidence, explicitly superseded-before-F1 for
+incomplete resume/object authentication and zero prior coverage. Current F0-v2
+`g8ff0v2auth-dbcac1f4dcf76238a4222629e590372004f5dad3e4fb1316e28b6fd0b93c6f31`
+(file SHA `b14691ca26b6086d9b8e08b563027047cdba114b438311208fe6d413f5c29ce9`)
+binds repaired F1 source `b1ee63d95de4fe86b9758ae90dbbb7b428a63635` and profile
+`local_4060_cu130`. F1 runtime and launch authorization remain absent;
+materialization/inference/optimizer/pass-two/test remain zero. A separate
+owner/operator F1 launch is next.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -164,7 +169,7 @@ corrected entry points `.venv-pascal/bin/python tools/closeout_g8_e_v3s.py
 verify|merge|aggregate`); custody record
 `results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`
 (`g8ecloseout-1422804d…`). E5/pass one subsequently executed exactly once and
-is immutable; do not rerun it. AM-87/AM-88 are frozen and F0 is GREEN; the
+is immutable; do not rerun it. AM-87/AM-88 are frozen and repaired F0-v2 is GREEN; the
 current frontier is a separate owner/operator F1 launch.**
 The authenticated Pascal campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
@@ -879,7 +884,8 @@ prohibited.
 | E6 corpus-lineage freeze | done | Freeze `g8ee6freeze-ac45f8cf13094b72727ec9d9a626d439791649a91d4d3e6427a5c7cb9d2cb303`, file SHA-256 `120ac23debc70001df3001ae82f3caecbd8d8821b5684d3789bd83bc56a7e5fd`; training-only and unmaterialized, E1 corpus-spec bytes untouched. |
 | E7 verification and handoff | done | `tools/verify_g8_e_complete.py` returns GREEN and authenticates the additive audit-cleanup handoff `g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`, file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`. The handoff binds the contained clean-worktree incident audit and its read-only inner-cache payload addendum; G8_F is ready but unauthorized. |
 | G8_F AM-87 support / AM-88 sampler protocol plans | frozen | AM-87 support remains exact at B=120 and N_train=8,469. AM-88 plan `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`, file SHA `eca85a9891bcf2054e132e5fc277430d2c85962a78f8438c9da0604d98447e23`: six distinct qualities/image, attempts=50,814, global counts 423–424, each class range 0–1, duplicate pairs 0. |
-| G8_F F0 | done / GREEN | Authorization `g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`, file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`, F1 source `c437ff80eebd464ee7b256f2e69240a7d2f514a8`, `local_4060_cu130`; production runtime absent and materialization/inference/optimizer/pass-two/test all zero. Next: separate OWNER/OPERATOR F1 launch. |
+| G8_F F0-v1 | superseded-before-F1 / preserved | Authorization `g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`, file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`, source `c437ff80eebd464ee7b256f2e69240a7d2f514a8`; incomplete resume/object authentication, prior production coverage 0; bytes/history unchanged. |
+| G8_F F0-v2 | done / GREEN | Authorization `g8ff0v2auth-dbcac1f4dcf76238a4222629e590372004f5dad3e4fb1316e28b6fd0b93c6f31`, file SHA `b14691ca26b6086d9b8e08b563027047cdba114b438311208fe6d413f5c29ce9`, repaired F1 source `b1ee63d95de4fe86b9758ae90dbbb7b428a63635`, `local_4060_cu130`; production runtime and launch authorization absent and materialization/inference/optimizer/pass-two/test all zero. Next: separate OWNER/OPERATOR F1 launch. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 
