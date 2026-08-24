@@ -41,7 +41,7 @@ def _static_commands() -> tuple[list[str], ...]:
             PYTHON,
             "-c",
             "from baseline.g8_f_f0 import verify_f0_authorization; "
-            "value = verify_f0_authorization(); "
+            "value = verify_f0_authorization(require_zero_prefix=False); "
             "print('G8_F F0 offline authentication PASS:', value['authorization_id'])",
         ],
         _python_tool("tools/gen_g8_campaign_manifest.py", "--check"),

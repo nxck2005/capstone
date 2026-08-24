@@ -1,0 +1,12 @@
+{
+  "artifact_role": "g8_f_f1_owner_launch_authorization",
+  "f0_authorization_id": "g8ff0v3auth-e261cd53d3bb9fdee1cdde0778f36c2a686e17507b660ff8ec42891bde102497",
+  "f0_file_sha256": "391cd81553ed2de869ddf3ad1f0a401523781289342eefaddc7ad27cb005517e",
+  "intended_f1_source_commit": "6f06aa81ae2d624bae0d406904982f3a61278d93",
+  "issued_at": "2026-08-24T14:11:58Z",
+  "launch_id": "g8ff1launch-a88fc23774b38763858e2fec717bf27f0f79893bb6b768708c0f3d38a570ee74",
+  "owner_statement": "DELIBERATE_SEPARATE_OWNER_ACTION_AFTER_F0_FREEZE",
+  "schema_version": 1,
+  "scope": "G8_F_F1_ONLY",
+  "status": "OWNER_AUTHORIZED_F1_LAUNCH"
+}

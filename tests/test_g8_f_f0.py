@@ -29,7 +29,7 @@ from baseline.g8_f_f0 import (
 
 @pytest.fixture(scope="module")
 def committed() -> dict:
-    return verify_f0_authorization()
+    return verify_f0_authorization(require_zero_prefix=False)
 
 
 def _reject(tmp_path: Path, value: dict) -> None:

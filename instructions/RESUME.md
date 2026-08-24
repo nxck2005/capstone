@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f1-separate-owner-operator-launch; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f0-v2-green-f1-zero; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f1-running-monitor; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f0-v3-green-f1-owner-authorized; runtime_state=f1-external-runtime-authoritative; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -63,18 +63,19 @@ support over all 8,469 eligible training stable IDs. AM-88 supersedes only its
 Cartesian multiplicity and freezes balanced metadata-only sampler
 `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`:
 exactly six distinct supported qualities per image, 50,814 attempts, global and
-per-class quality-count range at most one; materialization count zero. The owner
-accepted AM-88 and authorized F0 only. F0-v1
-`g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`
-(file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`)
-remains byte-identical historical evidence, explicitly superseded-before-F1 for
-incomplete resume/object authentication and zero prior coverage. Current F0-v2
-`g8ff0v2auth-dbcac1f4dcf76238a4222629e590372004f5dad3e4fb1316e28b6fd0b93c6f31`
-(file SHA `b14691ca26b6086d9b8e08b563027047cdba114b438311208fe6d413f5c29ce9`)
-binds repaired F1 source `b1ee63d95de4fe86b9758ae90dbbb7b428a63635` and profile
-`local_4060_cu130`. F1 runtime and launch authorization remain absent;
-materialization/inference/optimizer/pass-two/test remain zero. A separate
-owner/operator F1 launch is next.
+per-class quality-count range at most one; materialization count zero. The owner first accepted AM-88 and authorized F0 only. F0-v1
+`g8ff0auth-92189865…` / file SHA `17a88e36…` remains byte-identical and is
+superseded-before-F1 for incomplete resume/object authentication. F0-v2
+`g8ff0v2auth-dbcac1f…` / file SHA `b14691ca…` remains byte-identical and is
+superseded-before-F1 with zero coverage solely for the pre-data owner-selected
+profile relocation; no scientific protocol changed. Active F0-v3
+`g8ff0v3auth-e261cd53…` / file SHA `391cd815…` binds source
+`6f06aa81ae2d624bae0d406904982f3a61278d93`, `confessor_pascal_cu126`, Torch
+`cuda:0` TITAN Xp UUID `GPU-46acd0f2…`, Pascal lock SHA `d3561c8e…`, and exact
+AM-88. Separate F1-only owner launch `g8ff1launch-a88fc237…` / file SHA
+`4265b696…` is frozen. The detached external runtime on `confessor` is
+authoritative for F1 progress. F2/classifier training, inference/pass two,
+fallback, ratio adjudication, learned training and test remain closed.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -142,7 +143,7 @@ Then:
 ## Status
 
 **Current phase:** **Pascal G8_C successor execution and C3-C7 closeout are
-complete at 3213/3213 and published; no Pascal worker is running. G8_C remains green
+complete at 3213/3213 and published; no G8_C worker may run. G8_C remains green
 and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
 The partial local_4060_cu130 corrected-v3 E2 campaign was owner-aborted at exact
 prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; runtime preserved
@@ -169,19 +170,20 @@ corrected entry points `.venv-pascal/bin/python tools/closeout_g8_e_v3s.py
 verify|merge|aggregate`); custody record
 `results/baseline/g8_e/e2_confessor_successor/closeout_provenance.json`
 (`g8ecloseout-1422804d…`). E5/pass one subsequently executed exactly once and
-is immutable; do not rerun it. AM-87/AM-88 are frozen and repaired F0-v2 is GREEN; the
-current frontier is a separate owner/operator F1 launch.**
+is immutable; do not rerun it. AM-87/AM-88 are frozen, active Pascal F0-v3 is
+GREEN, and the separate F1-only owner launch is frozen; the exact detached
+`confessor` F1 sole writer is the external frontier.**
 The authenticated Pascal campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
-and contributes zero successor-table coverage. Do not rerun this campaign,
-resume the old suffix, ingest predecessor evidence, start another Pascal
-worker, alter runtime evidence or reopen G8_C. Do not rerun or resume the
-completed worker-successor E2, merge either preserved partial runtime, widen
-the closed E2–E7 scope, rerun pass one/E5, or—without a separate F1 owner/operator
-action—materialize the G8_F corpus or invoke production JPEG2000. Training, pass
-two, fallback, ratio adjudication, learned training and test access remain
-forbidden.
+and contributes zero successor-table coverage. Do not rerun this G8_C campaign,
+resume the old suffix, ingest predecessor evidence, start another G8_C worker,
+alter runtime evidence or reopen G8_C. Do not rerun or resume the completed
+worker-successor E2, merge either preserved partial runtime, widen the closed
+E2–E7 scope, or rerun pass one/E5. The separately authorized sole-writer G8_F/F1
+campaign may materialize only its exact 50,814 production JPEG2000 assignments.
+Training, inference/pass two, fallback, ratio adjudication, learned training and
+test access remain forbidden.
 
 PB_3C remains the latest pre-G8 scientific-engineering green and its ledger is
 retained below. This production-readiness repair is additive and does not alter
@@ -885,7 +887,7 @@ prohibited.
 | E7 verification and handoff | done | `tools/verify_g8_e_complete.py` returns GREEN and authenticates the additive audit-cleanup handoff `g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`, file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`. The handoff binds the contained clean-worktree incident audit and its read-only inner-cache payload addendum; G8_F is ready but unauthorized. |
 | G8_F AM-87 support / AM-88 sampler protocol plans | frozen | AM-87 support remains exact at B=120 and N_train=8,469. AM-88 plan `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`, file SHA `eca85a9891bcf2054e132e5fc277430d2c85962a78f8438c9da0604d98447e23`: six distinct qualities/image, attempts=50,814, global counts 423–424, each class range 0–1, duplicate pairs 0. |
 | G8_F F0-v1 | superseded-before-F1 / preserved | Authorization `g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`, file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`, source `c437ff80eebd464ee7b256f2e69240a7d2f514a8`; incomplete resume/object authentication, prior production coverage 0; bytes/history unchanged. |
-| G8_F F0-v2 | done / GREEN | Authorization `g8ff0v2auth-dbcac1f4dcf76238a4222629e590372004f5dad3e4fb1316e28b6fd0b93c6f31`, file SHA `b14691ca26b6086d9b8e08b563027047cdba114b438311208fe6d413f5c29ce9`, repaired F1 source `b1ee63d95de4fe86b9758ae90dbbb7b428a63635`, `local_4060_cu130`; production runtime and launch authorization absent and materialization/inference/optimizer/pass-two/test all zero. Next: separate OWNER/OPERATOR F1 launch. |
+| G8_F F0-v3 / F1 launch | F0-v3 GREEN; F1 owner-authorized | Active authorization `g8ff0v3auth-e261cd53d3bb9fdee1cdde0778f36c2a686e17507b660ff8ec42891bde102497`, file SHA `391cd81553ed2de869ddf3ad1f0a401523781289342eefaddc7ad27cb005517e`, source `6f06aa81ae2d624bae0d406904982f3a61278d93`, `confessor_pascal_cu126` / `cuda:0` TITAN Xp; F0-v1/v2 immutable superseded-before-F1; separate F1-only launch `g8ff1launch-a88fc237…`, SHA `4265b696…`; detached external runtime authoritative; F2/training/pass-two/test closed. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 
