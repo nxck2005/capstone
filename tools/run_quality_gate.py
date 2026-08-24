@@ -37,7 +37,13 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/verify_g8_f_corpus_plan.py"),
         _python_tool("tools/gen_g8_f_sampler_plan.py", "--check"),
         _python_tool("tools/verify_g8_f_sampler_plan.py"),
-        _python_tool("tools/verify_g8_f_f0.py"),
+        [
+            PYTHON,
+            "-c",
+            "from baseline.g8_f_f0 import verify_f0_authorization; "
+            "value = verify_f0_authorization(); "
+            "print('G8_F F0 offline authentication PASS:', value['authorization_id'])",
+        ],
         _python_tool("tools/gen_g8_campaign_manifest.py", "--check"),
         _python_tool("tools/gen_g8_bler_tooling_contract.py", "--check"),
         _python_tool("tools/verify_g8_bler_tooling_contract.py"),
