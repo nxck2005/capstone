@@ -120,8 +120,8 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: owner audit of AM-87's corrected G8_F corpus plan, followed
-only by a separate F0 authorization. G8_F execution has not started.**
+**Current action: wait for separate owner authorization before F2/BR-12
+artifact-classifier training. F1 is GREEN, authenticated and closed.**
 `instructions/RESUME.md` is the single operational cursor. G8_C is closed at
 3,213/3,213 and G8_D D0–D7 are GREEN. The original, first-corrected and
 corrected-v2 E1 epochs remain immutable `superseded-before-data` history.
@@ -138,9 +138,13 @@ its exhaustive Cartesian multiplicity. Metadata-only plan
 `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`
 assigns exactly six distinct supported qualities per image (50,814 attempts)
 with arithmetically minimum global/per-class imbalance and no resampling after
-typed codec infeasibility. The plan is not execution authorization; no corpus
-object was materialized. Training, pass two, fallback, ratio
-adjudication and test access remain zero/prohibited.
+typed codec infeasibility. F0-v3 and the separate F1 launch remain frozen; the
+stopped `confessor` writer completed exact authenticated prefix 50,814/50,814.
+The frozen corpus has 44,039 materialized artifacts, 6,775 typed codec
+infeasibilities and zero other outcomes. Compact completion and the exact
+50,814-row manifest live under `results/baseline/g8_f/`; bulky objects remain
+worker-local. Training, pass two, fallback, ratio adjudication and test access
+remain zero/prohibited.
 
 W4, G8_A, G8_B, G8_C and G8_D are complete. G8_A froze the contract, policy
 bindings, 12,096 structural candidates, 3,213 required BLER work units and
@@ -148,9 +152,9 @@ state primitives before data. G8_B built and independently verified the
 authenticated runner, exact resume/merge machinery, crash-atomic publication
 and bounded smoke. G8_C froze its measured-only Pascal table, G8_D froze the
 validation-measurement tooling, and G8_E completed its worker-successor
-validation campaign and exactly-once pass one. The G8_F support ambiguity is resolved by AM-87 and its practical balanced
-sampler by AM-88, but the phase remains closed until the owner audits AM-88 and
-separately authorizes F0.
+validation campaign and exactly-once pass one. The G8_F support ambiguity is
+resolved by AM-87, its practical balanced sampler by AM-88, and F1 corpus
+materialization is complete/closed. F2 remains closed until separately owner-authorized.
 
 A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
 corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.

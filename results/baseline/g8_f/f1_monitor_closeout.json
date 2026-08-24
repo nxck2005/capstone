@@ -1,0 +1,61 @@
+{
+  "artifact_role": "g8_f_f1_discord_monitor_closeout",
+  "bindings": {
+    "closeout_source": {
+      "bytes": 15452,
+      "path": "/home/nick/g8-discord-monitor/report_g8f_f1.py",
+      "sha256": "530a6549a738dddc04fbe7be68f666022953865bb822cfb8973eeca5f0bb0628"
+    },
+    "log": {
+      "bytes": 6570,
+      "path": "/home/nick/g8-discord-monitor/g8f-f1-monitor.log",
+      "sha256": "54a4bc9389b3967fea930fa93dc3bee9caa500266fc6f5abdb5a3caacfed6f45"
+    },
+    "service_unit": {
+      "bytes": 502,
+      "path": "/home/nick/.config/systemd/user/g8-discord-monitor.service",
+      "sha256": "75607c52eb235e4d802a7e1df832fba72df87a10ee32b654ac36142b5640decf"
+    },
+    "state": {
+      "bytes": 2527,
+      "path": "/home/nick/g8-discord-monitor/state-g8f-f1.json",
+      "sha256": "310a48c96b1a46bf2a1d8a9394ca7d18fdfdabf02ddc5bc97e473872e6cb26f2"
+    },
+    "timer_unit": {
+      "bytes": 232,
+      "path": "/home/nick/.config/systemd/user/g8-discord-monitor.timer",
+      "sha256": "571932194ba6fffebcf557127effa9c2a5a62c57e43a0944eea2138af12da5c6"
+    }
+  },
+  "checkpoint": "F1_MONITOR_CLOSEOUT",
+  "completion_id": "g8ff1completion-b5bb834a1767f639406e5589022e813a624a4f8ccd9ad4885c455c10fce24412",
+  "corpus_id": "g8fcorpus-adeae50779a45e9e856af3ff47e84671b237b344867a562978599170912135c2",
+  "delivery": {
+    "assignments": "50814/50814",
+    "delivered": true,
+    "f2_closed": true,
+    "http_status": 204,
+    "materialized": 44039,
+    "message_status": "F1 COMPLETE AUTHENTICATED",
+    "timestamp": "2026-08-24T18:36:16Z",
+    "typed_infeasible": 6775
+  },
+  "f2_launched": false,
+  "monitor_closeout_id": "g8fmonitorcloseout-735d1550cf834ab1eef9887b4563aaefee8e4df446cf212d9c3c89fe46043d5e",
+  "phase": "G8_F",
+  "same_monitor": {
+    "closeout_sha256": "530a6549a738dddc04fbe7be68f666022953865bb822cfb8973eeca5f0bb0628",
+    "path": "/home/nick/g8-discord-monitor/report_g8f_f1.py",
+    "pre_closeout_sha256": "25cab41bf095709ef7a2ef273f122c6febdb9f30f718b943d363918c4a161aae"
+  },
+  "schema_version": 1,
+  "secret_disclosure": false,
+  "status": "COMPLETE",
+  "transition": {
+    "active_f1_polling": false,
+    "service_active": "inactive",
+    "timer_active": "inactive",
+    "timer_enabled": "disabled",
+    "webhook_configuration_deleted": false
+  }
+}

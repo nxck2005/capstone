@@ -64,9 +64,9 @@ runtime in place and do not use the contaminated worktree for scientific
 execution. Do not reopen or rerun G8_C/G8_D, do not rerun or resume E2, do not
 merge or ingest either preserved partial runtime, do not widen the closed
 E2–E7 scope, and do not alter pass-one selections or the frozen corpus-spec
-bytes. The separately authorized G8_F/F1 sole writer may materialize only the
-exact AM-88 training corpus; do not train any classifier, run inference/pass
-two, invoke fallback, adjudicate ratios or access test. **AM-87 resolves the
+bytes. The separately authorized G8_F/F1 sole writer completed and is closed;
+do not rerun it, train any classifier, run inference/pass two, invoke fallback,
+adjudicate ratios or access test. **AM-87 resolves the
 post-pass-one BR-12 support-breadth defect; AM-88 supersedes only its exhaustive
 Cartesian execution multiplicity before F0.** AM-87 plan
 `g8fcorpusplan-6320ea3…` still freezes 120 exact deduplicated artifact qualities
@@ -95,12 +95,24 @@ binding source `6f06aa81ae2d624bae0d406904982f3a61278d93`, profile
 `GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a`, Pascal lock SHA `d3561c8e…`, and
 the exact AM-88 assignment. Separate owner F1 launch authorization
 `g8ff1launch-a88fc23774b38763858e2fec717bf27f0f79893bb6b768708c0f3d38a570ee74`
-is frozen at `results/baseline/g8_f/f1_launch_authorization.json`; it permits
-only F1 JPEG2000 corpus materialization/resume. The external `confessor` runtime
-is authoritative for live F1 progress. F2/classifier training, inference/pass
-two, fallback, ratio adjudication, learned training and test remain closed.
+is frozen at `results/baseline/g8_f/f1_launch_authorization.json`; it permitted
+only F1 JPEG2000 corpus materialization/resume. **F1 is GREEN and CLOSED.** The
+stopped `confessor` writer exited 0 after exact prefix 50,814/50,814; every
+request, result and referenced object authenticates. The frozen outcome mix is
+44,039 materialized artifacts / 6,775 typed image-codec infeasibilities / 0
+other, with no orphan, hole, foreign or duplicate assignment and no resampling.
+Compact evidence is `results/baseline/g8_f/f1_completion.json`
+(`g8ff1completion-b5bb834a…`, file SHA-256 `d4f9d44a…`) plus the exact
+50,814-row `f1_corpus_manifest.csv` (`g8fcorpus-adeae507…`, SHA-256
+`792cce92…`); the 4.1-GiB worker corpus remains immutable at
+`/home/nick/projects/capstone/results/baseline/g8_f/runtime`. The transient
+Discord HOLD alerts were non-atomic read-only sampling races; final authenticated
+closeout was delivered and F1 polling disabled without deleting webhook
+configuration. F2/classifier training, inference/pass two, fallback, ratio
+adjudication, learned training and test remain closed and require separate owner
+authorization.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f1-running-monitor; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f0-v3-green-f1-owner-authorized; runtime_state=f1-external-runtime-authoritative; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-owner-authorization-required; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f1-closed-f2-unauthorized; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified
