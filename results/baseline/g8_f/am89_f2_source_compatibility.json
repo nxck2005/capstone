@@ -1,0 +1,140 @@
+{
+  "allowed_parameter_paths": [
+    "reference_classifier.artifact_finetune_recipe.augmentation",
+    "reference_classifier.artifact_finetune_recipe.augmentation_input",
+    "reference_classifier.artifact_finetune_recipe.batch_order",
+    "reference_classifier.artifact_finetune_recipe.checkpoint_every_epochs",
+    "reference_classifier.artifact_finetune_recipe.checkpoint_metric",
+    "reference_classifier.artifact_finetune_recipe.checkpoint_mode",
+    "reference_classifier.artifact_finetune_recipe.checkpoint_tie_break",
+    "reference_classifier.artifact_finetune_recipe.classifier_variant",
+    "reference_classifier.artifact_finetune_recipe.corrupt_latest_checkpoint_policy",
+    "reference_classifier.artifact_finetune_recipe.dataloader_workers",
+    "reference_classifier.artifact_finetune_recipe.drop_last",
+    "reference_classifier.artifact_finetune_recipe.incomplete_epoch_policy",
+    "reference_classifier.artifact_finetune_recipe.initialization",
+    "reference_classifier.artifact_finetune_recipe.loss",
+    "reference_classifier.artifact_finetune_recipe.lr_min",
+    "reference_classifier.artifact_finetune_recipe.lr_warmup_epochs",
+    "reference_classifier.artifact_finetune_recipe.lr_warmup_schedule",
+    "reference_classifier.artifact_finetune_recipe.lr_warmup_start_factor",
+    "reference_classifier.artifact_finetune_recipe.mixed_precision",
+    "reference_classifier.artifact_finetune_recipe.nesterov",
+    "reference_classifier.artifact_finetune_recipe.optimizer_implementation",
+    "reference_classifier.artifact_finetune_recipe.parent_variant",
+    "reference_classifier.artifact_finetune_recipe.pin_memory",
+    "reference_classifier.artifact_finetune_recipe.resume_unit",
+    "reference_classifier.artifact_finetune_recipe.scheduler_epoch_indexing",
+    "reference_classifier.artifact_finetune_recipe.scheduler_step_unit",
+    "reference_classifier.artifact_finetune_recipe.test_access",
+    "reference_classifier.artifact_finetune_recipe.train_seed",
+    "reference_classifier.artifact_finetune_recipe.validation_every_epochs",
+    "reference_classifier.artifact_finetune_recipe.validation_split"
+  ],
+  "allowed_parameter_prefix": "reference_classifier.artifact_finetune_recipe.",
+  "amendment": "AM-89",
+  "artifact_role": "g8_f_am89_f2_historical_source_compatibility",
+  "compatibility_id": "g8postsource-e2d5f88f7112fa45b0bfe9f4ac32cb6810749f0257e8c925fafdf5f70f91a739",
+  "entries": [
+    {
+      "archived_bytes": 387310,
+      "archived_sha256": "9f45a27f46230c66fdd95cb0c2010fedd8aa77dbeea5c1f97481ab7be9202bf2",
+      "current_bytes": 391332,
+      "current_sha256": "4cfbb260f0537572a8451fa01c648c12f4431096655c76ae7f796be13c2b9394",
+      "path": "spec/SPEC.md"
+    },
+    {
+      "archived_bytes": 42324,
+      "archived_sha256": "be74a3c8c9ea01a9ef35fc3fa00e0eecef87d624c3d110e0874519563704af15",
+      "current_bytes": 43514,
+      "current_sha256": "64d10dc51d59c6e68b084e4ddd8b329ffb5f23852e046d0a31968f49f684ae11",
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "archived_bytes": 32802,
+      "archived_sha256": "35994aa6400e3a2892e922d00762b1e357a11f09ed91c9ef7bac96b139b43b1e",
+      "current_bytes": 33971,
+      "current_sha256": "d454507dde4458fb6060de64d0f0c1257798c683569c93e8ca19d5408d053502",
+      "path": "src/baseline/g8_f_f0.py"
+    },
+    {
+      "archived_bytes": 39470,
+      "archived_sha256": "37b3c9e4afb2aaec6689aa4174eb93b7e2a247379d762753043af697838b9a20",
+      "current_bytes": 44864,
+      "current_sha256": "a44d552684f0d736f1ab54a36922f89ce36567f7794ab7d23424fef13419374e",
+      "path": "src/baseline/g8_campaign.py"
+    },
+    {
+      "archived_bytes": 138414,
+      "archived_sha256": "bdaea61b5016f985f549ec700213cd9290a788e5a49aaa5191d522f94e24a2d0",
+      "current_bytes": 139354,
+      "current_sha256": "cca9601cc3053fdc96df7242e38a4f023e2bd7f10175f328bf078f118667af8d",
+      "path": "src/baseline/g8_pascal_production.py"
+    },
+    {
+      "archived_bytes": 141893,
+      "archived_sha256": "74d3e46ab3e3357da88a359893e8a57f7b8512433365c87ce3950cdccdde1658",
+      "current_bytes": 142364,
+      "current_sha256": "921a288d842f458253eff033b3e5443065acb089287baac6fda588f4f5ca9766",
+      "path": "src/baseline/g8_d.py"
+    },
+    {
+      "archived_bytes": 114147,
+      "archived_sha256": "bec2a38f733d4755637f0a08e6c3fcbfb1fb11797381cc2758ff8a690bc8f00e",
+      "current_bytes": 114803,
+      "current_sha256": "7416da05522c3e362069b213a126a660c9b973381b4a20ca3f4194428145e11e",
+      "path": "src/baseline/g8_e.py"
+    },
+    {
+      "archived_bytes": 41844,
+      "archived_sha256": "7c629ac1472a228dc85f8e7032af2bf9ec867d39d5e8a4fecb98d79f97a37e34",
+      "current_bytes": 42835,
+      "current_sha256": "eaea70645c65bf8bd7c7867671fd74dea1edffcbbb09416d4036fc1a305635a8",
+      "path": "src/baseline/g8_e_corrected_v3s.py"
+    },
+    {
+      "archived_bytes": 22906,
+      "archived_sha256": "45ade7d2ede4942da266533eda87fe52b6b718902ce0e57323d0fd0dcdcc83df",
+      "current_bytes": 24012,
+      "current_sha256": "c9f0d39d6e1ed7853f6fc289b7fc59ebe98a27d2a33124fcf5d03aaee5db2f6c",
+      "path": "src/baseline/g8_f_sampler_plan.py"
+    },
+    {
+      "archived_bytes": 18158,
+      "archived_sha256": "be1220b0fd41d63de7f53b295c65c8d0f63483922a025589475c67729b9c34f4",
+      "current_bytes": 19660,
+      "current_sha256": "8b8f96566ddb2b7a07b746b3c47a465a5243d28d363dd9e50e4bb4c7ea6c29f4",
+      "path": "tools/verify_g8_f_sampler_plan.py"
+    },
+    {
+      "archived_bytes": 73295,
+      "archived_sha256": "5c36a97661b82ce204863e86904a31dc1a3773f9279872241f2ee466ef46e622",
+      "current_bytes": 74125,
+      "current_sha256": "2d3280501f4f63076a8ed57abef920f03054fa45521aa0ec64e50a68af4924fc",
+      "path": "tools/verify_w4_baseline_integration.py"
+    }
+  ],
+  "interpretation": "additive protocol completion only; historical G8/F0/F1 bindings retain archived bytes",
+  "prior_commit": "1bca1fb2e3455a4b424766c6b3296af2911e72ef",
+  "prior_compatibility": {
+    "compatibility_id": "g8postsource-a4c7c79dc3f6af4ece12e89e012eddedf2e660657a09008ab9be75a37940679c",
+    "path": "results/baseline/g8_f/am88_post_campaign_source_compatibility.json",
+    "sha256": "ea668b237148b9fa4b2fc06b6e43bb882df1ac2ed7fe62c124d3c6c7e307d19c"
+  },
+  "protected_boundary": {
+    "f1_rerun": 0,
+    "f2_optimizer_steps": 0,
+    "f2_validation_inference": 0,
+    "f3_cached_sweep_inference": 0,
+    "fallback": 0,
+    "g8_c_changed": false,
+    "g8_d_changed": false,
+    "g8_e_changed": false,
+    "learned_training": 0,
+    "pass_one_rerun": false,
+    "pass_two": 0,
+    "test_access": 0
+  },
+  "schema_version": 1,
+  "timing": "f1_green_closed_pre_f2_optimizer_step_1"
+}

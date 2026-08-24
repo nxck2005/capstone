@@ -2328,6 +2328,10 @@ def _load_am88_post_campaign_source_compatibility(
         "sha256": sha256_bytes(am87_raw),
     }:
         raise ProductionContractError("AM-88 prior compatibility binding differs")
+    from baseline.g8_campaign import AM89_PRIOR_COMMIT, _load_am89_compatibility
+
+    am89 = _load_am89_compatibility()
+    am89_entries = {str(entry["path"]): entry for entry in am89["entries"]}
     frozen = {str(entry.get("path")): entry for entry in source_entries}
     am87_entries = {str(entry.get("path")): entry for entry in am87.get("entries", []) if isinstance(entry, Mapping)}
     expected_paths = {
@@ -2364,8 +2368,19 @@ def _load_am88_post_campaign_source_compatibility(
             or item["archived_bytes"] != prior.get("current_bytes")
             or item["archived_sha256"] != prior.get("current_sha256")
             or not path.is_file()
-            or item["current_bytes"] != path.stat().st_size
-            or item["current_sha256"] != _file_sha256(path)
+            or (
+                path_text not in am89_entries
+                and (item["current_bytes"] != path.stat().st_size or item["current_sha256"] != _file_sha256(path))
+            )
+            or (
+                path_text in am89_entries
+                and (
+                    item["current_bytes"] != am89_entries[path_text]["archived_bytes"]
+                    or item["current_sha256"] != am89_entries[path_text]["archived_sha256"]
+                    or path.stat().st_size != am89_entries[path_text]["current_bytes"]
+                    or _file_sha256(path) != am89_entries[path_text]["current_sha256"]
+                )
+            )
             or item["measurement_path_reachable"] is not False
             or not isinstance(item["justification"], str) or not item["justification"]
         ):
@@ -2377,9 +2392,13 @@ def _load_am88_post_campaign_source_compatibility(
         ["git", "show", f"{AM87_FINAL_COMMIT}:spec/params.generated.yaml"], cwd=REPO_ROOT,
         check=True, capture_output=True, timeout=15,  # literal-ok: bounded local historical-byte query
     ).stdout
+    am88_parameters = subprocess.run(
+        ["git", "show", f"{AM89_PRIOR_COMMIT}:spec/params.generated.yaml"], cwd=REPO_ROOT,
+        check=True, capture_output=True, timeout=15,  # literal-ok: bounded local historical-byte query
+    ).stdout
     try:
         old = yaml.safe_load(previous_params)
-        new = yaml.safe_load((REPO_ROOT / "spec/params.generated.yaml").read_bytes())
+        new = yaml.safe_load(am88_parameters)
     except (OSError, yaml.YAMLError) as exc:
         raise ProductionContractError(f"cannot reproduce AM-88 parameter diff: {exc}") from None
     allowed = value["allowed_parameter_paths"]

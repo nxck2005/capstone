@@ -120,8 +120,9 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: wait for separate owner authorization before F2/BR-12
-artifact-classifier training. F1 is GREEN, authenticated and closed.**
+**Current action: complete the owner-authorized F2-only pre-launch gates before
+BR-12 optimizer step 1. F1 is GREEN, authenticated and closed; AM-89 freezes the
+exact F2 initialization/training/validation/resume recipe.**
 `instructions/RESUME.md` is the single operational cursor. G8_C is closed at
 3,213/3,213 and G8_D D0–D7 are GREEN. The original, first-corrected and
 corrected-v2 E1 epochs remain immutable `superseded-before-data` history.
@@ -154,7 +155,8 @@ and bounded smoke. G8_C froze its measured-only Pascal table, G8_D froze the
 validation-measurement tooling, and G8_E completed its worker-successor
 validation campaign and exactly-once pass one. The G8_F support ambiguity is
 resolved by AM-87, its practical balanced sampler by AM-88, and F1 corpus
-materialization is complete/closed. F2 remains closed until separately owner-authorized.
+materialization is complete/closed. The F2-only pre-launch implementation is in
+progress with optimizer steps zero; F3/pass two and every later stage remain closed.
 
 A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
 corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.
@@ -182,7 +184,7 @@ PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose ac
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **eighteen amendment rounds** across 88 `AM` entries, and is the file to read before
+records **nineteen amendment rounds** across 89 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -194,7 +196,7 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 198 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 199 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures

@@ -2274,18 +2274,26 @@ def _am87_historical_contract_bindings(repo_root: Path) -> tuple[str, str, list[
     am88_params = [entry for entry in am88.get("entries", []) if isinstance(entry, Mapping) and entry.get("path") == "spec/params.generated.yaml"]
     if len(am88_params) != 1:
         raise G8DContractError("AM-88 historical D7 parameter entry differs")
+    from baseline.g8_campaign import _load_am89_compatibility
+
+    am89 = _load_am89_compatibility()
+    am89_entries = {str(entry["path"]): entry for entry in am89["entries"]}
+    am89_spec = am89_entries["spec/SPEC.md"]
+    am89_params = am89_entries["spec/params.generated.yaml"]
     current_spec = sha256_file(repo_root / "spec/SPEC.md")
     current_params = sha256_file(repo_root / "spec/params.generated.yaml")
     upstream = frozen_contract.get("upstream_bindings", {})
     if (
-        current_spec != sampler.get("amendment", {}).get("specification", {}).get("sha256")
-        or current_params != am88_params[0].get("current_sha256")
-        or current_params != sampler.get("amendment", {}).get("generated_parameters", {}).get("sha256")
+        am89_spec.get("archived_sha256") != sampler.get("amendment", {}).get("specification", {}).get("sha256")
+        or current_spec != am89_spec.get("current_sha256")
+        or am89_params.get("archived_sha256") != am88_params[0].get("current_sha256")
+        or am89_params.get("archived_sha256") != sampler.get("amendment", {}).get("generated_parameters", {}).get("sha256")
+        or current_params != am89_params.get("current_sha256")
         or am88_params[0].get("archived_sha256") != params_entry.get("current_sha256")
         or params_entry.get("archived_sha256") != upstream.get("params_generated_sha256")
         or upstream.get("spec_sha256") != "4df456ec93742913803ed4c4bb958d0a9885e8065075c70807122e2ba3e9bf5b"
     ):
-        raise G8DContractError("AM-87/AM-88 historical D7 normative byte chain differs")
+        raise G8DContractError("AM-87/AM-88/AM-89 historical D7 normative byte chain differs")
     source_bindings = frozen_contract.get("source_bindings")
     if not isinstance(source_bindings, list) or not source_bindings:
         raise G8DContractError("AM-87 historical D7 source bindings differ")

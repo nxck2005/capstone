@@ -143,13 +143,23 @@ def _am87_post_am86_parameters() -> dict[str, Any]:
     ):
         raise ValueError("AM-88 protocol compatibility differs")
     am88_params = [entry for entry in am88.get("entries", []) if isinstance(entry, dict) and entry.get("path") == "spec/params.generated.yaml"]
+    am89_path = REPO / "results/baseline/g8_f/am89_f2_source_compatibility.json"
+    am89 = json.loads(am89_path.read_bytes())
+    am89_body = {key: child for key, child in am89.items() if key != "compatibility_id"}
+    am89_canonical = json.dumps(am89_body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+    am89_params = [entry for entry in am89.get("entries", []) if isinstance(entry, dict) and entry.get("path") == "spec/params.generated.yaml"]
     current_sha = hashlib.sha256((REPO / "spec/params.generated.yaml").read_bytes()).hexdigest()
     if (
         len(am88_params) != 1
+        or len(am89_params) != 1
+        or am89.get("compatibility_id") != "g8postsource-" + hashlib.sha256(am89_canonical).hexdigest()
+        or am89.get("amendment") != "AM-89"
+        or am89.get("protected_boundary", {}).get("f2_optimizer_steps") != 0
         or am88_params[0].get("archived_sha256") != params[0].get("current_sha256")
-        or am88_params[0].get("current_sha256") != current_sha
+        or am89_params[0].get("archived_sha256") != am88_params[0].get("current_sha256")
+        or am89_params[0].get("current_sha256") != current_sha
     ):
-        raise ValueError("AM-87/AM-88 generated-parameter chain differs")
+        raise ValueError("AM-87/AM-88/AM-89 generated-parameter chain differs")
     post_am86 = git_bytes(
         "426110b05161e73e4d819bdc01f4857c012d6d59",
         "spec/params.generated.yaml",

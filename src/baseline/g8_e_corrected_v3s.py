@@ -29,6 +29,7 @@ from typing import Any
 
 from baseline import g8_e_corrected_v2 as v2
 from baseline import g8_e_corrected_v3 as v3
+from baseline.g8_campaign import G8ContractError, _load_am89_compatibility
 from config.params import REPO_ROOT, get
 
 
@@ -326,6 +327,15 @@ def _load_am88_source_compatibility(source_entries: Sequence[Mapping[str, Any]])
     entries = value.get("entries")
     if not isinstance(entries, list) or len(entries) != len(expected):
         raise G8EV3SError("AM-88 G8_E compatibility entries differ")
+    try:
+        am89 = _load_am89_compatibility()
+    except G8ContractError as exc:
+        raise G8EV3SError(f"AM-89 G8_E source compatibility differs: {exc}") from None
+    am89_entries = {
+        str(entry.get("path")): entry
+        for entry in am89.get("entries", [])
+        if isinstance(entry, Mapping)
+    }
     admitted: set[str] = set()
     for item in entries:
         fields = {
@@ -352,12 +362,26 @@ def _load_am88_source_compatibility(source_entries: Sequence[Mapping[str, Any]])
                 and item["archived_sha256"] == prior.get("current_sha256")
             )
         )
+        successor = am89_entries.get(path_text)
+        current_chained = (
+            successor is not None
+            and successor.get("archived_bytes") == item["current_bytes"]
+            and successor.get("archived_sha256") == item["current_sha256"]
+            and current_path.is_file()
+            and successor.get("current_bytes") == current_path.stat().st_size
+            and successor.get("current_sha256") == sha256_file(current_path)
+        )
+        current_direct = (
+            successor is None
+            and current_path.is_file()
+            and item["current_bytes"] == current_path.stat().st_size
+            and item["current_sha256"] == sha256_file(current_path)
+        )
         if (
             path_text in admitted or path_text not in expected or not chained
             or archived.returncode != 0 or len(archived.stdout) != item["archived_bytes"]
             or sha256_bytes(archived.stdout) != item["archived_sha256"]
-            or not current_path.is_file() or item["current_bytes"] != current_path.stat().st_size
-            or item["current_sha256"] != sha256_file(current_path)
+            or not (current_chained or current_direct)
             or item["scientific_execution_reachable"] is not False
             or not isinstance(item["justification"], str) or not item["justification"]
         ):

@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from baseline.g8_campaign import G8ContractError, _load_am89_compatibility
 from config.params import REPO_ROOT, get
 
 
@@ -425,15 +426,27 @@ def _verify_am87_g8d_source_compatibility(binding: Mapping[str, Any]) -> None:
     _require(len(prior) == len(matches) == 1, "AM-87/AM-88 E0 G8_D source entry differs")
     entry = matches[0]
     current_path = REPO_ROOT / str(binding["path"])
+    try:
+        am89 = _load_am89_compatibility()
+    except G8ContractError as exc:
+        raise G8EContractError(f"AM-89 E0 source compatibility differs: {exc}") from None
+    successor = [
+        item for item in am89.get("entries", [])
+        if isinstance(item, Mapping) and item.get("path") == binding["path"]
+    ]
+    _require(len(successor) == 1, "AM-89 E0 G8_D source entry differs")
+    current = successor[0]
     _require(
         prior[0].get("archived_bytes") == binding["bytes"]
         and prior[0].get("archived_sha256") == binding["sha256"]
         and entry.get("archived_bytes") == prior[0].get("current_bytes")
         and entry.get("archived_sha256") == prior[0].get("current_sha256")
-        and entry.get("current_bytes") == current_path.stat().st_size
-        and entry.get("current_sha256") == sha256_file(current_path)
+        and current.get("archived_bytes") == entry.get("current_bytes")
+        and current.get("archived_sha256") == entry.get("current_sha256")
+        and current.get("current_bytes") == current_path.stat().st_size
+        and current.get("current_sha256") == sha256_file(current_path)
         and entry.get("scientific_execution_reachable") is False,
-        "AM-87/AM-88 E0 G8_D source byte chain differs",
+        "AM-87/AM-88/AM-89 E0 G8_D source byte chain differs",
     )
 
 

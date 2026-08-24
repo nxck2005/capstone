@@ -25,7 +25,7 @@ def test_historical_compatibility_rejects_unrelated_spec_drift(tmp_path: Path, m
     spec.mkdir()
     (spec / "SPEC.md").write_bytes((g8_campaign.REPO_ROOT / "spec/SPEC.md").read_bytes() + b"\nUnrelated drift.\n")
     monkeypatch.setattr(g8_campaign, "REPO_ROOT", tmp_path)
-    with pytest.raises(g8_campaign.G8ContractError, match="exact post-AM-87"):
+    with pytest.raises(g8_campaign.G8ContractError, match="exact AM-89"):
         g8_campaign._verify_historical_profile_spec(b"archived-spec")
 
 

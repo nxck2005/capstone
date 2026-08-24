@@ -26,6 +26,7 @@ AM87 = REPO / "results/baseline/g8_f/corpus_plan.json"
 PARAMS = REPO / "spec/params.generated.yaml"
 MANIFEST = REPO / "data/manifests/imagenette160.csv"
 E7 = REPO / "results/baseline/g8_e/e2_confessor_successor/e7_handoff.json"
+AM89 = REPO / "results/baseline/g8_f/am89_f2_source_compatibility.json"
 EXPECTED_ROLE = "g8_f_am88_metadata_only_balanced_sampler_plan"
 EXPECTED_AM87_ID = "g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148"
 EXPECTED_AM87_SHA = "733daa01614781c62f2af6a7e992bf29f9103a1b2afface5d77b610bb657858c"
@@ -81,9 +82,41 @@ def read_object(path: Path, label: str) -> tuple[dict[str, Any], bytes]:
 
 def verify_binding(binding: Mapping[str, Any], label: str) -> None:
     require(set(binding) >= {"path", "bytes", "sha256"}, f"{label} binding schema differs")
-    path = REPO / str(binding["path"])
+    path_text = str(binding["path"])
+    path = REPO / path_text
     raw = path.read_bytes()
-    require(len(raw) == binding["bytes"] and digest(raw) == binding["sha256"], f"{label} binding bytes differ")
+    if len(raw) == binding["bytes"] and digest(raw) == binding["sha256"]:
+        return
+    compatibility, compatibility_raw = read_object(AM89, "AM-89 F2 source compatibility")
+    body = dict(compatibility)
+    identity = body.pop("compatibility_id", None)
+    require(identity == "g8postsource-" + digest(canonical(body)), "AM-89 compatibility ID differs")
+    boundary = compatibility.get("protected_boundary")
+    require(
+        compatibility.get("amendment") == "AM-89"
+        and compatibility.get("timing") == "f1_green_closed_pre_f2_optimizer_step_1"
+        and isinstance(boundary, Mapping)
+        and all(boundary.get(name) == 0 for name in (
+            "f1_rerun", "f2_optimizer_steps", "f2_validation_inference",
+            "f3_cached_sweep_inference", "pass_two", "fallback",
+            "learned_training", "test_access",
+        )),
+        "AM-89 protected source-compatibility boundary differs",
+    )
+    matches = [
+        entry for entry in compatibility.get("entries", [])
+        if isinstance(entry, Mapping) and entry.get("path") == path_text
+    ]
+    require(len(matches) == 1, f"{label} has no exact AM-89 compatibility entry")
+    entry = matches[0]
+    require(
+        entry.get("archived_bytes") == binding["bytes"]
+        and entry.get("archived_sha256") == binding["sha256"]
+        and entry.get("current_bytes") == len(raw)
+        and entry.get("current_sha256") == digest(raw)
+        and len(compatibility_raw) > 0,
+        f"{label} AM-89 byte chain differs",
+    )
 
 
 def keyed_order(values: Sequence[str], seed: str, domain: str) -> list[str]:

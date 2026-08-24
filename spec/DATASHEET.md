@@ -490,14 +490,44 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `reference_classifier.artifact_finetune_image_codec_infeasibility` | omit_assigned_pair_record_coverage_no_resampling_or_substitution | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_non_codec_failure` | hold_no_artifact_or_substitution | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_validation_feasibility_role` | estimate_and_audit_only_never_membership | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.optimizer` | sgd_momentum | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.lr` | 0.01 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.momentum` | 0.9 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.weight_decay` | 0.0005 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.lr_schedule` | cosine | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.epochs` | 20 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.batch_size` | 128 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_recipe.label_smoothing` | 0.1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.classifier_variant` | artifact_finetuned | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.initialization` | exact_frozen_g1_best_clean_checkpoint | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.parent_variant` | clean | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.train_seed` | 0 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.optimizer` | sgd_momentum | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.optimizer_implementation` | torch.optim.SGD | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.loss` | cross_entropy | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr` | 0.01 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.momentum` | 0.9 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.nesterov` | false | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.weight_decay` | 0.0005 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr_schedule` | cosine | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr_warmup_epochs` | 5 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr_warmup_schedule` | linear | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr_warmup_start_factor` | 0.1 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.lr_min` | 0.0 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.scheduler_step_unit` | epoch_start | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.scheduler_epoch_indexing` | zero_based | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.epochs` | 20 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.batch_size` | 128 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.label_smoothing` | 0.1 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.augmentation` | random_resized_crop, horizontal_flip | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.augmentation_input` | exact_authenticated_f1_reconstruction_pixels | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.batch_order` | keyed_philox_permutation_per_epoch_over_materialized_assignment_rows | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.drop_last` | false | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.mixed_precision` | false | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.dataloader_workers` | 4 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.pin_memory` | true | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.validation_split` | imagenette160_validation_clean_canonical_view | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.validation_every_epochs` | 1 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.checkpoint_every_epochs` | 1 | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.checkpoint_metric` | validation_top1_accuracy | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.checkpoint_mode` | max | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.checkpoint_tie_break` | earliest_epoch | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.resume_unit` | authenticated_completed_epoch | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.corrupt_latest_checkpoint_policy` | hold_no_older_fallback | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.incomplete_epoch_policy` | replay_from_latest_authenticated_completed_epoch | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_recipe.test_access` | prohibited | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.br4_selection_passes` | 2 | AM-27, AM-36, AM-54, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.br4_selection_terminates_after_pass` | 2 | AM-27, AM-36, AM-78, BR-4, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.headline_scorer` | artifact_finetuned | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |

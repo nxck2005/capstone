@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from config.params import REPO_ROOT, get
+from baseline.g8_campaign import G8ContractError, _load_am89_compatibility
 from baseline.g8_f_corpus_plan import project_artifact_quality, quality_id
 
 SCHEMA_VERSION = 1
@@ -91,7 +92,32 @@ def _read(path: Path) -> dict[str, Any]:
 
 def _binding(path: Path) -> dict[str, Any]:
     raw = path.read_bytes()
-    return {"path": str(path.relative_to(REPO_ROOT)), "bytes": len(raw), "sha256": sha256_bytes(raw)}
+    relative = str(path.relative_to(REPO_ROOT))
+    if relative in {
+        "spec/SPEC.md", "spec/params.generated.yaml", "src/baseline/g8_f_sampler_plan.py",
+        "tools/verify_g8_f_sampler_plan.py",
+    }:
+        try:
+            compatibility = _load_am89_compatibility()
+        except G8ContractError as exc:
+            raise G8FSamplerPlanError(f"AM-89 sampler compatibility differs: {exc}") from None
+        matches = [
+            entry for entry in compatibility.get("entries", [])
+            if isinstance(entry, Mapping) and entry.get("path") == relative
+        ]
+        _require(len(matches) == 1, f"AM-89 sampler compatibility omits {relative}")
+        entry = matches[0]
+        _require(
+            entry.get("current_bytes") == len(raw)
+            and entry.get("current_sha256") == sha256_bytes(raw),
+            f"AM-89 sampler current bytes differ: {relative}",
+        )
+        return {
+            "path": relative,
+            "bytes": entry["archived_bytes"],
+            "sha256": entry["archived_sha256"],
+        }
+    return {"path": relative, "bytes": len(raw), "sha256": sha256_bytes(raw)}
 
 
 def _identity(prefix: str, body: Mapping[str, Any]) -> str:

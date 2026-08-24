@@ -14,6 +14,7 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
+from baseline.g8_campaign import _load_am89_compatibility
 from baseline.g8_f_materializer import (
     CODEC_CONFIGURATION_HASH,
     CODEC_CONFIGURATION_ID,
@@ -567,6 +568,11 @@ def verify_f0_authorization(
         section = value[section_name]
         for binding in section.values() if isinstance(section, Mapping) else ():
             if isinstance(binding, Mapping) and {"path", "bytes", "sha256"} <= set(binding):
+                if binding["path"] in {"spec/SPEC.md", "spec/params.generated.yaml"}:
+                    compatibility = _load_am89_compatibility()
+                    entry = next(item for item in compatibility["entries"] if item["path"] == binding["path"])
+                    _require(binding["bytes"] == entry["archived_bytes"] and binding["sha256"] == entry["archived_sha256"], f"F0 historical bound bytes differ: {binding['path']}")
+                    continue
                 bound_path = REPO_ROOT / binding["path"]
                 current = bound_path.read_bytes()
                 _require(len(current) == binding["bytes"] and sha256_bytes(current) == binding["sha256"], f"F0 bound bytes differ: {binding['path']}")
@@ -577,10 +583,18 @@ def verify_f0_authorization(
     source_commit = value["source"]["intended_f1_source_commit"]
     closure = value["source"]["closure"]
     _require([entry["path"] for entry in closure] == list(F1_SOURCE_PATHS), "F1 source closure path set/order differs")
+    compatibility_entries = {
+        item["path"]: item for item in _load_am89_compatibility()["entries"]
+    }
     for entry in closure:
         current = (REPO_ROOT / entry["path"]).read_bytes()
-        _require(len(current) == entry["bytes"] and sha256_bytes(current) == entry["sha256"], f"current F1 source differs: {entry['path']}")
         committed = subprocess.run(["git", "show", f"{source_commit}:{entry['path']}"], cwd=REPO_ROOT, check=True, capture_output=True).stdout
+        source_entry = compatibility_entries.get(entry["path"])
+        if source_entry is not None:
+            _require(entry["bytes"] == source_entry["archived_bytes"] == len(committed) and entry["sha256"] == source_entry["archived_sha256"] == sha256_bytes(committed), f"F1 historical source binding differs: {entry['path']}")
+            _require(len(current) == source_entry["current_bytes"] and sha256_bytes(current) == source_entry["current_sha256"], f"AM-89 current source differs: {entry['path']}")
+            continue
+        _require(len(current) == entry["bytes"] and sha256_bytes(current) == entry["sha256"], f"current F1 source differs: {entry['path']}")
         _require(current == committed, f"F1 source commit bytes differ: {entry['path']}")
     _require(value["source"]["protocol_config_sha256"] == _protocol_hash(source_commit), "F0 protocol config identity differs")
     lock_path = REPO_ROOT / value["execution"]["lock_file"]
