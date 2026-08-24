@@ -19,7 +19,10 @@ from baseline.g8_f_materializer import (
     F1Assignment,
     F1Materializer,
     G8FMaterializationHold,
+    canonical_json,
     load_frozen_assignments,
+    rendered_json,
+    sha256_bytes,
     validate_exact_result_prefix,
 )
 from data.adapters import SourceSample
@@ -75,6 +78,33 @@ def _fixture() -> tuple[F1Assignment, SourceSample]:
     )
 
 
+def _materialized(tmp_path: Path, *, scientific: bool = True) -> tuple[F1Assignment, SourceSample, F1Materializer]:
+    assignment, source = _fixture()
+    materializer = F1Materializer(tmp_path, _Backend("success"), scientific=scientific)
+    materializer.materialize(assignment, source, split="train")
+    return assignment, source, materializer
+
+
+def _rewrite(path: Path, mutate: object, *, identity: str | None = None) -> dict:
+    value = json.loads(path.read_bytes())
+    mutate(value)  # type: ignore[operator]
+    if identity == "request":
+        body = dict(value)
+        body.pop("request_id", None)
+        value["request_id"] = "g8frequest-" + sha256_bytes(canonical_json(body))
+    elif identity == "result":
+        body = dict(value)
+        body.pop("result_id", None)
+        value["result_id"] = "g8fresult-" + sha256_bytes(canonical_json(body))
+    path.write_bytes(rendered_json(value))
+    return value
+
+
+def _prefix_holds(tmp_path: Path, assignment: F1Assignment, match: str | None = None) -> None:
+    with pytest.raises(G8FMaterializationHold, match=match):
+        validate_exact_result_prefix(tmp_path, (assignment,), expected_scientific=True)
+
+
 def test_production_assignment_loader_is_exact_am88_not_am87_cartesian() -> None:
     assignments = load_frozen_assignments()
     assert len(assignments) == 50_814  # literal-ok: frozen AM-88 count
@@ -94,7 +124,7 @@ def test_synthetic_success_is_deterministic_and_resume_reuses_exact_record(tmp_p
     assert first["scientific"] is False
     assert first["outcome"] == "materialized_verified_artifact"
     assert first["resampled"] is False and first["replacement_assignment"] is None
-    assert validate_exact_result_prefix(tmp_path, (assignment,)) == 1
+    assert validate_exact_result_prefix(tmp_path, (assignment,), expected_scientific=False) == 1
 
 
 def test_typed_synthetic_infeasibility_records_no_objects_and_never_resamples(tmp_path: Path) -> None:
@@ -134,7 +164,137 @@ def test_prefix_hole_is_hold(tmp_path: Path) -> None:
     path = tmp_path / "results/00000.json"
     path.rename(tmp_path / "results/00001.json")
     with pytest.raises(G8FMaterializationHold, match="exact ordinal prefix"):
-        validate_exact_result_prefix(tmp_path, (assignment,))
+        validate_exact_result_prefix(tmp_path, (assignment,), expected_scientific=False)
+
+
+def test_legal_orphan_request_is_reused_deterministically_after_interruption(tmp_path: Path) -> None:
+    assignment, source = _fixture()
+    failing = F1Materializer(tmp_path, _Backend("raise"), scientific=True)
+    with pytest.raises(G8FMaterializationHold, match="unexpected codec/runtime failure"):
+        failing.materialize(assignment, source, split="train")
+    request_before = (tmp_path / "requests/00000.json").read_bytes()
+    assert validate_exact_result_prefix(tmp_path, (assignment,)) == 0
+    succeeding_backend = _Backend("success")
+    succeeding = F1Materializer(tmp_path, succeeding_backend, scientific=True)
+    succeeding.materialize(assignment, source, split="train")
+    assert (tmp_path / "requests/00000.json").read_bytes() == request_before
+    assert succeeding_backend.calls == 1
+    assert validate_exact_result_prefix(tmp_path, (assignment,)) == 1
+
+
+def test_changed_result_body_with_correct_assignment_id_holds(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    _rewrite(tmp_path / "results/00000.json", lambda value: value.__setitem__("quality_id", "foreign"), identity="result")
+    _prefix_holds(tmp_path, assignment, "scientific body")
+
+
+def test_wrong_result_id_holds(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    _rewrite(tmp_path / "results/00000.json", lambda value: value.__setitem__("result_id", "g8fresult-wrong"))
+    _prefix_holds(tmp_path, assignment, "result identity")
+
+
+def test_changed_result_request_id_holds(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    _rewrite(tmp_path / "results/00000.json", lambda value: value.__setitem__("request_id", "g8frequest-foreign"), identity="result")
+    _prefix_holds(tmp_path, assignment, "another request")
+
+
+def test_changed_request_body_holds_even_with_recomputed_request_id(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    _rewrite(tmp_path / "requests/00000.json", lambda value: value["assignment"].__setitem__("label", 9), identity="request")
+    _prefix_holds(tmp_path, assignment, "assignment body")
+
+
+def test_wrong_request_id_holds(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    _rewrite(tmp_path / "requests/00000.json", lambda value: value.__setitem__("request_id", "g8frequest-wrong"))
+    _prefix_holds(tmp_path, assignment, "request identity")
+
+
+def test_production_prefix_rejects_scientific_false(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path, scientific=False)
+    _prefix_holds(tmp_path, assignment, "scientific flag")
+
+
+@pytest.mark.parametrize("field,value", [("resampled", True), ("replacement_assignment", "g8fassign-foreign")])
+def test_resampling_or_replacement_holds(tmp_path: Path, field: str, value: object) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    _rewrite(tmp_path / "results/00000.json", lambda result: result.__setitem__(field, value), identity="result")
+    _prefix_holds(tmp_path, assignment, "resampled or replaced")
+
+
+@pytest.mark.parametrize(
+    "object_name,operation,match",
+    [
+        ("codestream", "delete", "codestream"),
+        ("codestream", "corrupt", "codestream object SHA-256"),
+        ("reconstruction", "delete", "reconstruction"),
+        ("reconstruction", "corrupt", "reconstruction object SHA-256"),
+    ],
+)
+def test_missing_or_corrupt_referenced_object_holds(
+    tmp_path: Path, object_name: str, operation: str, match: str
+) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    result = json.loads((tmp_path / "results/00000.json").read_bytes())
+    path = tmp_path / result[object_name]["path"]
+    if operation == "delete":
+        path.unlink()
+    else:
+        raw = path.read_bytes()
+        path.write_bytes(bytes([raw[0] ^ 1]) + raw[1:])
+    _prefix_holds(tmp_path, assignment, match)
+
+
+@pytest.mark.parametrize("mutation", ["length", "hash", "path"])
+def test_wrong_object_length_hash_or_path_holds(tmp_path: Path, mutation: str) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    def mutate(result: dict) -> None:
+        if mutation == "length":
+            result["codestream"]["bytes"] += 1
+        elif mutation == "hash":
+            result["codestream"]["sha256"] = "0" * 64
+        else:
+            result["codestream"]["path"] = "../foreign.j2k"
+    _rewrite(tmp_path / "results/00000.json", mutate, identity="result")
+    _prefix_holds(tmp_path, assignment)
+
+
+def test_symlinked_object_is_never_accepted_as_completed(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    result = json.loads((tmp_path / "results/00000.json").read_bytes())
+    path = tmp_path / result["codestream"]["path"]
+    target = tmp_path / "foreign-object.j2k"
+    target.write_bytes(path.read_bytes())
+    path.unlink()
+    path.symlink_to(target)
+    _prefix_holds(tmp_path, assignment, "symlink")
+
+
+def test_typed_infeasibility_carrying_an_object_holds(tmp_path: Path) -> None:
+    assignment, source = _fixture()
+    F1Materializer(tmp_path, _Backend("infeasible"), scientific=True).materialize(assignment, source, split="train")
+    _rewrite(
+        tmp_path / "results/00000.json",
+        lambda result: result.__setitem__("codestream", {"sha256": "0" * 64}),
+        identity="result",
+    )
+    _prefix_holds(tmp_path, assignment, "carries an object")
+
+
+def test_foreign_assignment_with_valid_json_and_result_id_holds(tmp_path: Path) -> None:
+    assignment, _source, _materializer = _materialized(tmp_path)
+    _rewrite(tmp_path / "results/00000.json", lambda result: result.__setitem__("assignment_id", "g8fassign-foreign"), identity="result")
+    _prefix_holds(tmp_path, assignment, "another assignment")
+
+
+def test_direct_existing_result_reuse_authenticates_object_bytes(tmp_path: Path) -> None:
+    assignment, source, materializer = _materialized(tmp_path)
+    result = json.loads((tmp_path / "results/00000.json").read_bytes())
+    (tmp_path / result["codestream"]["path"]).unlink()
+    with pytest.raises(G8FMaterializationHold, match="codestream"):
+        materializer.materialize(assignment, source, split="train")
 
 
 def test_f0_cli_cannot_start_without_separate_f1_owner_artifact() -> None:
@@ -144,7 +304,7 @@ def test_f0_cli_cannot_start_without_separate_f1_owner_artifact() -> None:
             "tools/run_g8_f_f1.py",
             "--start",
             "--f0-authorization",
-            "results/baseline/g8_f/f0_execution_authorization.json",
+            "results/baseline/g8_f/f0_v2_execution_authorization.json",
         ],
         capture_output=True,
         text=True,

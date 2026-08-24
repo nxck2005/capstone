@@ -11,11 +11,15 @@ import pytest
 from baseline.g8_f_f0 import (
     AUTHORIZATION_PATH,
     AUTHORIZATION_PREFIX,
+    V1_AUTHORIZATION_ID,
+    V1_AUTHORIZATION_PATH,
+    V1_FILE_SHA256,
     G8FF0Error,
     canonical_json,
     rendered_json,
     sha256_bytes,
     verify_f0_authorization,
+    verify_f0_v1_historical,
 )
 
 
@@ -76,13 +80,30 @@ def test_nonzero_protected_starting_state_holds(tmp_path: Path, committed: dict)
 
 
 def test_f0_explicitly_does_not_authorize_or_start_f1(committed: dict) -> None:
-    assert committed["owner_authorization"]["scope"] == "G8_F_F0_ONLY"
+    assert committed["owner_authorization"]["scope"] == "G8_F_F0_V2_REPAIR_ONLY"
     assert committed["owner_authorization"]["f1_launch_authorized"] is False
     assert committed["protected_starting_state"]["f1_started"] is False
     assert committed["protected_starting_state"]["materialized_artifact_objects"] == 0
     assert committed["protected_starting_state"]["artifact_classifier_optimizer_steps"] == 0
     assert committed["protected_starting_state"]["pass_two"] == 0
     assert committed["protected_starting_state"]["test_access"] == 0
+
+
+def test_f0_v1_is_byte_preserved_and_historically_authenticates(committed: dict) -> None:
+    del committed
+    historical = verify_f0_v1_historical()
+    assert historical["authorization_id"] == V1_AUTHORIZATION_ID
+    assert sha256_bytes(V1_AUTHORIZATION_PATH.read_bytes()) == V1_FILE_SHA256
+    assert historical["protected_starting_state"]["f1_started"] is False
+    assert historical["protected_starting_state"]["materialized_artifact_objects"] == 0
+
+
+def test_f0_v2_explicitly_supersedes_v1_before_f1(committed: dict) -> None:
+    assert committed["supersession"]["state"] == "superseded_before_F1"
+    assert committed["supersession"]["prior_authorization"]["authorization_id"] == V1_AUTHORIZATION_ID
+    assert committed["supersession"]["prior_authorization"]["file_sha256"] == V1_FILE_SHA256
+    assert committed["supersession"]["prior_production_coverage"] == 0
+    assert committed["protected_starting_state"]["f1_launch_authorized"] is False
 
 
 def test_authorization_file_is_canonical_and_self_authenticating(committed: dict) -> None:

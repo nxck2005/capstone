@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the frozen G8_F/F0 opening without starting F1."""
+"""Verify the active G8_F/F0-v2 opening without starting F1."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     print(json.dumps({
         "status": "PASS",
-        "verdict": "F0 GREEN - G8_F EXECUTION CONTRACT/AUTHORIZATION FROZEN; F1 NOT STARTED; SEPARATE OWNER/OPERATOR LAUNCH REQUIRED",
+        "verdict": "F0-V2 GREEN - RESUME/OBJECT AUTHENTICATION REPAIRED AND EXECUTION AUTHORIZATION REFROZEN; F1 REMAINS ZERO AND REQUIRES A SEPARATE OWNER LAUNCH",
         "authorization_id": value["authorization_id"],
         "authorization_file_sha256": hashlib.sha256(args.path.read_bytes()).hexdigest(),
         "intended_f1_source_commit": value["source"]["intended_f1_source_commit"],

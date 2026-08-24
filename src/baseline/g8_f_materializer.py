@@ -13,8 +13,8 @@ import json
 import os
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any, Mapping, Protocol, Sequence
+from pathlib import Path, PurePosixPath
+from typing import Any, Protocol, Sequence
 
 import numpy as np
 
@@ -31,11 +31,11 @@ from baseline.g8_f_sampler_plan import (
     derive_assignments,
     sha256_bytes,
 )
-from config.params import REPO_ROOT
+from config.params import REPO_ROOT, get
 from data.adapters import SourceSample
 from data.preprocessing import canonicalize_source, codec_downsample, codec_input, codec_upsample
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 REQUEST_ROLE = "g8_f_f1_assigned_pair_request"
 RESULT_ROLE = "g8_f_f1_artifact_result"
 SAMPLER_PLAN_ID = "g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6"
@@ -45,6 +45,11 @@ PAIR_SET_SHA256 = "255eab85aca45e4ca910f040b0752ea773630c642c8697579df056104dcb5
 CODEC_CONFIGURATION_ID = "g8dcodec-39f14b7eaba4f727c70759eb1c5250e8e13f7d5e871c0831aa6b602aef706858"
 CODEC_CONFIGURATION_HASH = "2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa"
 MANIFEST_SHA256 = "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889"
+DATASET_ARCHIVE_SHA256 = "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5"
+CANONICAL_SHAPE = list(get("datasets.imagenette160.image_size"))
+SHA256_HEX_LENGTH = 64  # literal-ok: SHA-256 hexadecimal identity width
+STABLE_ID_HEX_LENGTH = 16  # literal-ok: frozen stable-sample-ID truncation width
+ORDINAL_FILENAME_WIDTH = 5  # literal-ok: sufficient fixed width for 50,814 AM-88 ordinals
 
 
 class G8FMaterializationHold(RuntimeError):
@@ -112,6 +117,172 @@ def _require(condition: bool, message: str) -> None:
 
 def _pair_digest(pairs: Sequence[tuple[str, str]]) -> str:
     return sha256_bytes(canonical_json([[stable_id, quality_id] for stable_id, quality_id in pairs]))
+
+
+def _is_sha256(value: Any) -> bool:
+    return isinstance(value, str) and len(value) == SHA256_HEX_LENGTH and all(character in "0123456789abcdef" for character in value)
+
+
+def _safe_file(runtime_root: Path, relative: str, *, expected_relative: str) -> Path:
+    """Resolve one canonical runtime-relative file without following symlinks."""
+
+    _require(relative == expected_relative, f"runtime object path is not canonical: {relative!r}")
+    pure = PurePosixPath(relative)
+    _require(not pure.is_absolute() and pure.parts and all(part not in ("", ".", "..") for part in pure.parts), "unsafe runtime object path")
+    root = Path(runtime_root)
+    _require(not root.is_symlink(), "F1 runtime root may not be a symlink")
+    root = root.resolve()
+    candidate = root.joinpath(*pure.parts)
+    _require(candidate.parent.resolve(strict=False).is_relative_to(root), "runtime object escapes frozen root")
+    current = root
+    for part in pure.parts:
+        current = current / part
+        _require(not current.is_symlink(), f"runtime path may not be a symlink: {relative}")
+    _require(candidate.is_file(), f"runtime object is missing or not a regular file: {relative}")
+    return candidate
+
+
+def _canonical_json_object(runtime_root: Path, relative: str, *, description: str) -> tuple[dict[str, Any], bytes]:
+    path = _safe_file(runtime_root, relative, expected_relative=relative)
+    try:
+        raw = path.read_bytes()
+        value = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8FMaterializationHold(f"cannot authenticate {description}: {exc}") from None
+    _require(isinstance(value, dict), f"{description} is not a JSON object")
+    _require(raw == rendered_json(value), f"{description} is not canonical rendered JSON")
+    return value, raw
+
+
+def authenticate_request(
+    runtime_root: Path,
+    assignment: F1Assignment,
+    *,
+    expected_scientific: bool,
+) -> dict[str, Any]:
+    """Authenticate one immutable request against its exact frozen assignment."""
+
+    relative = f"requests/{assignment.ordinal:0{ORDINAL_FILENAME_WIDTH}d}.json"
+    value, _raw = _canonical_json_object(runtime_root, relative, description="existing F1 request")
+    expected_keys = {
+        "schema_version", "artifact_role", "scientific", "assignment_id", "assignment",
+        "source", "data_identity", "codec", "outcome_semantics", "request_id",
+    }
+    _require(set(value) == expected_keys, "existing F1 request schema differs")
+    _require(value["schema_version"] == SCHEMA_VERSION and value["artifact_role"] == REQUEST_ROLE, "existing F1 request header differs")
+    _require(value["scientific"] is expected_scientific, "existing F1 request scientific flag differs")
+    body = dict(value)
+    request_id = body.pop("request_id")
+    _require(request_id == "g8frequest-" + sha256_bytes(canonical_json(body)), "existing F1 request identity differs")
+    _require(value["assignment_id"] == assignment.assignment_id, "existing F1 request belongs to another assignment")
+    _require(value["assignment"] == assignment.as_dict(), "existing F1 request assignment body differs")
+
+    source = value["source"]
+    _require(isinstance(source, dict) and set(source) == {
+        "dataset", "split", "source_bytes_sha256", "canonical_pixels_sha256",
+        "canonical_shape", "encoded_pixels_sha256", "encoded_shape",
+    }, "existing F1 request source schema differs")
+    _require(source["dataset"] == "imagenette160" and source["split"] == "train", "existing F1 request is not Imagenette train")
+    for key in ("source_bytes_sha256", "canonical_pixels_sha256", "encoded_pixels_sha256"):
+        _require(_is_sha256(source[key]), f"existing F1 request has invalid {key}")
+    _require(source["source_bytes_sha256"][:STABLE_ID_HEX_LENGTH] == assignment.stable_sample_id, "existing F1 request source bytes do not reproduce stable ID")
+    _require(source["canonical_shape"] == CANONICAL_SHAPE, "existing F1 request canonical shape differs")
+    _require(source["encoded_shape"] == [assignment.encode_axis_px, assignment.encode_axis_px, 3], "existing F1 request encoded shape differs")
+
+    _require(value["data_identity"] == {
+        "dataset": "imagenette160",
+        "split": "train",
+        "training_manifest_sha256": MANIFEST_SHA256,
+        "published_archive_sha256": DATASET_ARCHIVE_SHA256,
+    }, "existing F1 request data identity differs")
+    _require(value["codec"] == {
+        "codec_configuration_id": CODEC_CONFIGURATION_ID,
+        "configuration_hash": CODEC_CONFIGURATION_HASH,
+        "payload_budget_bytes": assignment.payload_budget_bytes,
+        "encode_axis_px": assignment.encode_axis_px,
+    }, "existing F1 request codec identity differs")
+    _require(
+        value["outcome_semantics"] == "typed_codec_infeasibility_omits_exact_pair_without_replacement_or_resampling;all_other_failures_hold",
+        "existing F1 request outcome semantics differ",
+    )
+    return value
+
+
+def _authenticate_object(runtime_root: Path, record: Any, *, kind: str, request: dict[str, Any]) -> None:
+    _require(isinstance(record, dict), f"materialized {kind} record is not an object")
+    if kind == "codestream":
+        _require(set(record) == {"sha256", "bytes", "path", "backend_cache_key"}, "codestream record schema differs")
+        _require(_is_sha256(record["sha256"]), "codestream record SHA-256 is invalid")
+        _require(isinstance(record["bytes"], int) and 0 < record["bytes"] <= request["codec"]["payload_budget_bytes"], "codestream byte count is invalid")
+        _require(isinstance(record["backend_cache_key"], str), "codestream backend cache key is invalid")
+        expected_path = f"objects/codestream/{record['sha256']}.j2k"
+    else:
+        _require(set(record) == {"sha256", "bytes", "shape", "dtype", "path"}, "reconstruction record schema differs")
+        _require(_is_sha256(record["sha256"]), "reconstruction record SHA-256 is invalid")
+        _require(record["shape"] == request["source"]["canonical_shape"] and record["dtype"] == "uint8", "reconstruction shape/dtype differs")
+        expected_bytes = int(np.prod(record["shape"], dtype=np.int64))
+        _require(record["bytes"] == expected_bytes, "reconstruction byte count does not reconcile with shape/dtype")
+        expected_path = f"objects/reconstruction/{record['sha256']}.rgb"
+    _require(isinstance(record["path"], str), f"{kind} path is invalid")
+    path = _safe_file(runtime_root, record["path"], expected_relative=expected_path)
+    raw = path.read_bytes()
+    _require(len(raw) == record["bytes"], f"{kind} object byte count differs")
+    _require(hashlib.sha256(raw).hexdigest() == record["sha256"], f"{kind} object SHA-256 differs")
+
+
+def authenticate_completed_result(
+    runtime_root: Path,
+    assignment: F1Assignment,
+    *,
+    expected_scientific: bool,
+) -> dict[str, Any]:
+    """Authenticate request, result, outcome, and referenced object bytes once."""
+
+    request = authenticate_request(runtime_root, assignment, expected_scientific=expected_scientific)
+    relative = f"results/{assignment.ordinal:0{ORDINAL_FILENAME_WIDTH}d}.json"
+    value, _raw = _canonical_json_object(runtime_root, relative, description="existing F1 result")
+    expected_keys = {
+        "schema_version", "artifact_role", "scientific", "request_id", "assignment_id",
+        "assignment_ordinal", "stable_sample_id", "class_label", "quality_id",
+        "source_bytes_sha256", "canonical_pixels_sha256", "encoded_pixels_sha256",
+        "payload_budget_bytes", "encode_axis_px", "codec_configuration_id",
+        "codec_configuration_hash", "replacement_assignment", "resampled", "outcome",
+        "codestream", "reconstruction", "omission_semantics", "result_id",
+    }
+    _require(set(value) == expected_keys, "existing F1 result schema differs")
+    _require(value["schema_version"] == SCHEMA_VERSION and value["artifact_role"] == RESULT_ROLE, "existing F1 result header differs")
+    _require(value["scientific"] is expected_scientific, "existing F1 result scientific flag differs")
+    body = dict(value)
+    result_id = body.pop("result_id")
+    _require(result_id == "g8fresult-" + sha256_bytes(canonical_json(body)), "existing F1 result identity differs")
+    _require(value["request_id"] == request["request_id"], "existing F1 result belongs to another request")
+    _require(value["assignment_id"] == assignment.assignment_id, "existing F1 result belongs to another assignment")
+    reconciled = {
+        "assignment_ordinal": assignment.ordinal,
+        "stable_sample_id": assignment.stable_sample_id,
+        "class_label": assignment.label,
+        "quality_id": assignment.quality_id,
+        "source_bytes_sha256": request["source"]["source_bytes_sha256"],
+        "canonical_pixels_sha256": request["source"]["canonical_pixels_sha256"],
+        "encoded_pixels_sha256": request["source"]["encoded_pixels_sha256"],
+        "payload_budget_bytes": assignment.payload_budget_bytes,
+        "encode_axis_px": assignment.encode_axis_px,
+        "codec_configuration_id": CODEC_CONFIGURATION_ID,
+        "codec_configuration_hash": CODEC_CONFIGURATION_HASH,
+    }
+    _require(all(value[key] == expected for key, expected in reconciled.items()), "existing F1 result scientific body differs")
+    _require(value["replacement_assignment"] is None and value["resampled"] is False, "existing F1 result resampled or replaced its assignment")
+
+    if value["outcome"] == "typed_image_codec_infeasibility":
+        _require(value["codestream"] is None and value["reconstruction"] is None, "typed codec infeasibility carries an object")
+        _require(value["omission_semantics"] == "record_omitted_assigned_pair_no_replacement_no_resampling", "typed codec infeasibility omission semantics differ")
+    elif value["outcome"] == "materialized_verified_artifact":
+        _require(value["omission_semantics"] is None, "materialized result carries omission semantics")
+        _authenticate_object(runtime_root, value["codestream"], kind="codestream", request=request)
+        _authenticate_object(runtime_root, value["reconstruction"], kind="reconstruction", request=request)
+    else:
+        raise G8FMaterializationHold(f"existing F1 result outcome is not permitted: {value['outcome']!r}")
+    return value
 
 
 def load_frozen_assignments() -> tuple[F1Assignment, ...]:
@@ -232,6 +403,12 @@ class F1Materializer:
                 "encoded_pixels_sha256": encoded_sha,
                 "encoded_shape": list(encoded.shape),
             },
+            "data_identity": {
+                "dataset": "imagenette160",
+                "split": "train",
+                "training_manifest_sha256": MANIFEST_SHA256,
+                "published_archive_sha256": DATASET_ARCHIVE_SHA256,
+            },
             "codec": {
                 "codec_configuration_id": CODEC_CONFIGURATION_ID,
                 "configuration_hash": CODEC_CONFIGURATION_HASH,
@@ -241,12 +418,13 @@ class F1Materializer:
             "outcome_semantics": "typed_codec_infeasibility_omits_exact_pair_without_replacement_or_resampling;all_other_failures_hold",
         }
         request["request_id"] = "g8frequest-" + sha256_bytes(canonical_json(request))
-        request_path = self.runtime_root / "requests" / f"{assignment.ordinal:05d}.json"
+        request_path = self.runtime_root / "requests" / f"{assignment.ordinal:0{ORDINAL_FILENAME_WIDTH}d}.json"
         _publish_immutable(request_path, rendered_json(request))
+        authenticate_request(self.runtime_root, assignment, expected_scientific=self.scientific)
 
-        result_path = self.runtime_root / "results" / f"{assignment.ordinal:05d}.json"
-        if result_path.exists():
-            return self._load_existing_result(result_path, request)
+        result_path = self.runtime_root / "results" / f"{assignment.ordinal:0{ORDINAL_FILENAME_WIDTH}d}.json"
+        if result_path.exists() or result_path.is_symlink():
+            return self._load_existing_result(assignment)
 
         try:
             codec_result = self.backend.encode_to_budget(
@@ -325,36 +503,63 @@ class F1Materializer:
             })
         result["result_id"] = "g8fresult-" + sha256_bytes(canonical_json(result))
         _publish_immutable(result_path, rendered_json(result))
-        return result
+        return authenticate_completed_result(
+            self.runtime_root,
+            assignment,
+            expected_scientific=self.scientific,
+        )
 
-    @staticmethod
-    def _load_existing_result(path: Path, request: Mapping[str, Any]) -> dict[str, Any]:
-        try:
-            raw = path.read_bytes()
-            value = json.loads(raw)
-        except (OSError, json.JSONDecodeError) as exc:
-            raise G8FMaterializationHold(f"cannot authenticate existing F1 result: {exc}") from None
-        _require(raw == rendered_json(value), "existing F1 result is not canonical rendered JSON")
-        body = dict(value)
-        result_id = body.pop("result_id", None)
-        _require(result_id == "g8fresult-" + sha256_bytes(canonical_json(body)), "existing F1 result identity differs")
-        _require(value.get("request_id") == request["request_id"], "existing F1 result belongs to another request")
-        _require(value.get("assignment_id") == request["assignment_id"], "existing F1 result belongs to another assignment")
-        _require(value.get("replacement_assignment") is None and value.get("resampled") is False, "existing F1 result resampled")
-        return value
+    def _load_existing_result(self, assignment: F1Assignment) -> dict[str, Any]:
+        return authenticate_completed_result(
+            self.runtime_root,
+            assignment,
+            expected_scientific=self.scientific,
+        )
 
 
-def validate_exact_result_prefix(runtime_root: Path, assignments: Sequence[F1Assignment]) -> int:
-    """Reject holes, foreign ordinals, or results beyond the exact AM-88 list."""
+def _ordinal_namespace(root: Path, description: str) -> list[Path]:
+    if not root.exists():
+        _require(not root.is_symlink(), f"{description} root may not be a symlink")
+        return []
+    _require(root.is_dir() and not root.is_symlink(), f"{description} root is not a regular directory")
+    paths = sorted(root.iterdir(), key=lambda path: path.name)
+    _require(
+        all(path.suffix == ".json" and len(path.stem) == ORDINAL_FILENAME_WIDTH and path.stem.isdigit() and path.is_file() and not path.is_symlink() for path in paths),
+        f"{description} contains a foreign path",
+    )
+    return paths
 
-    results_root = Path(runtime_root) / "results"
-    if not results_root.exists():
-        return 0
-    paths = sorted(results_root.glob("*.json"))
-    expected_names = [f"{ordinal:05d}.json" for ordinal in range(len(paths))]
-    _require([path.name for path in paths] == expected_names, "F1 results are not an exact ordinal prefix")
-    _require(len(paths) <= len(assignments), "F1 result count exceeds supplied frozen assignment")
-    for ordinal, path in enumerate(paths):
-        value = json.loads(path.read_bytes())
-        _require(value.get("assignment_id") == assignments[ordinal].assignment_id, "F1 prefix assignment differs from AM-88")
-    return len(paths)
+
+def validate_exact_result_prefix(
+    runtime_root: Path,
+    assignments: Sequence[F1Assignment],
+    *,
+    expected_scientific: bool = True,
+) -> int:
+    """Authenticate an exact completed prefix once, plus one legal orphan request."""
+
+    runtime_root = Path(runtime_root)
+    _require(not runtime_root.is_symlink(), "F1 runtime root may not be a symlink")
+    result_paths = _ordinal_namespace(runtime_root / "results", "F1 results")
+    request_paths = _ordinal_namespace(runtime_root / "requests", "F1 requests")
+    _require(len(result_paths) <= len(assignments), "F1 result count exceeds supplied frozen assignment")
+    result_names = [f"{ordinal:0{ORDINAL_FILENAME_WIDTH}d}.json" for ordinal in range(len(result_paths))]
+    _require([path.name for path in result_paths] == result_names, "F1 results are not an exact ordinal prefix")
+    _require(len(request_paths) in {len(result_paths), len(result_paths) + 1}, "F1 requests are not the completed prefix plus at most one orphan")
+    _require(len(request_paths) <= len(assignments), "F1 request count exceeds supplied frozen assignment")
+    request_names = [f"{ordinal:0{ORDINAL_FILENAME_WIDTH}d}.json" for ordinal in range(len(request_paths))]
+    _require([path.name for path in request_paths] == request_names, "F1 requests are not an exact ordinal prefix")
+
+    for ordinal in range(len(result_paths)):
+        authenticate_completed_result(
+            runtime_root,
+            assignments[ordinal],
+            expected_scientific=expected_scientific,
+        )
+    if len(request_paths) == len(result_paths) + 1:
+        authenticate_request(
+            runtime_root,
+            assignments[len(result_paths)],
+            expected_scientific=expected_scientific,
+        )
+    return len(result_paths)

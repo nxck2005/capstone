@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate/check the owner-authorized G8_F/F0 execution handoff."""
+"""Generate/check the owner-authorized G8_F/F0-v2 execution handoff."""
 
 from __future__ import annotations
 
