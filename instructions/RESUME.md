@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-prelaunch-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f1-closed-f2-prelaunch-in-progress-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-launch-bearing-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-source-auth-preflight-frozen-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -875,9 +875,12 @@ freeze-time facts; the additive worker-successor rows below are authoritative
 for completed E2–E7. No G8_E execution may be rerun or widened. AM-87 resolves
 the BR-12 breadth hold at protocol level with frozen AM-87/AM-88 plans; the
 owner accepted AM-88, F0-v3 remains GREEN/frozen, and F1 is now GREEN/CLOSED.
-The owner-authorized F2-only pre-launch implementation is in progress under
-AM-89 with optimizer steps and F2 checkpoint-selection validation inference
-zero. F3 cached-sweep rescoring/pass two, fallback, ratio adjudication, learned
+The owner-authorized F2-only source is frozen/pushed at
+`9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca`; live Pascal/F1 authentication and
+the read-only/synthetic preflight are green (0.8081 h projected), and exact F2
+authorization `g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900`
+is frozen before optimizer step 1. Optimizer steps and F2 checkpoint-selection
+validation inference remain zero while launch-bearing commit/Actions/parity gates run. F3 cached-sweep rescoring/pass two, fallback, ratio adjudication, learned
 training and test access remain prohibited.
 
 | Step | State | Exact restart / evidence |
@@ -900,7 +903,7 @@ training and test access remain prohibited.
 | G8_F F0-v1 | superseded-before-F1 / preserved | Authorization `g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`, file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`, source `c437ff80eebd464ee7b256f2e69240a7d2f514a8`; incomplete resume/object authentication, prior production coverage 0; bytes/history unchanged. |
 | G8_F F0-v3 / F1 launch | done / frozen history | Active authorization `g8ff0v3auth-e261cd53d3bb9fdee1cdde0778f36c2a686e17507b660ff8ec42891bde102497`, file SHA `391cd81553ed2de869ddf3ad1f0a401523781289342eefaddc7ad27cb005517e`, source `6f06aa81ae2d624bae0d406904982f3a61278d93`, `confessor_pascal_cu126` / `cuda:0` TITAN Xp; F0-v1/v2 immutable superseded-before-F1; separate F1-only launch `g8ff1launch-a88fc237…`, SHA `4265b696…`; F1 completed without widening that scope. |
 | G8_F F1 corpus closeout | done / GREEN | Writer start `2026-08-24T14:58:12Z`, terminal result `2026-08-24T17:52:51.578087Z`, detached exit 0, tmux gone, lock free. Exact authenticated requests/results/prefix 50,814/50,814; materialized 44,039 / typed infeasible 6,775 / other 0; unique codestream/reconstruction objects 42,933/42,932. Completion `g8ff1completion-b5bb834a1767f639406e5589022e813a624a4f8ccd9ad4885c455c10fce24412` (file SHA `d4f9d44a01dbf53de96fb9126364d651ca999b35117b7d51c55f76f1a13d888b`), corpus `g8fcorpus-adeae50779a45e9e856af3ff47e84671b237b344867a562978599170912135c2`, manifest SHA `792cce92bd8a72f99b7ddee58511d1b5b7e908a4d0cd4178bbb08b9e1ba2d144`. Discord transient HOLDs classified as operational sampling races; authenticated final message delivered HTTP 204 and timer disabled. F1 cannot rerun or be altered. |
-| G8_F F2 source/contract/launch | in-progress / zero optimizer | **Phase-start SHA:** `1bca1fb2e3455a4b424766c6b3296af2911e72ef`; owner authorization scope is F2/BR-12 fine-tuning only. AM-89 completes the nested recipe before optimizer step 1. Dedicated assignment-row dataset, exact G1 initialization, deterministic trainer, epoch-atomic resume, authorization generator, read-only/synthetic Pascal preflight and read-only Discord monitor are under synthetic verification. Current counters: F2 optimizer 0, F2 checkpoint-selection validation 0, F3 cached-sweep 0, pass two 0, fallback 0, learned training 0, test 0. Exact restart: `.venv/bin/python -m pytest tests/test_g8_f_f2.py -q`, then freeze/push S_F2 before any live preflight or training. |
+| G8_F F2 source/contract/launch | authorization frozen / final gates / zero optimizer | **Phase-start SHA:** `1bca1fb2e3455a4b424766c6b3296af2911e72ef`; **S_F2:** `9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca` (pushed). AM-89 exact recipe, assignment-row dataset, exact G1 initialization, deterministic trainer, durable epoch-atomic resume, and read-only Discord monitor are frozen. Worker-local live F1 object verification PASS; Pascal profile/UUID/lock PASS. Preflight `results/baseline/g8_f/f2_preflight.json` SHA `9688dc77999712582bfe90302e64a146d3157b4afa5fffb778bdf99a59703446`: logical 44,039, unique reconstructions 42,932, effective 2.3876 steps/s, 144.50 s/epoch, 0.8081 h total, 1.613 GiB peak. Authorization `g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900`, file SHA `fbe1252cc2b20cbd46007f9e534468b697abca260c1f74bfee0ea904af14cb3a`, is frozen with all protected counters zero. Exact restart: commit/push authorization/preflight/docs/tests, run all four quality profiles plus focused F2 and exact-SHA Actions, establish local/origin/confessor clean parity, deploy monitor and detached wrapper, then launch only `tools/run_g8_f_f2.py --start`. F3/pass two/fallback/learned/test remain closed. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

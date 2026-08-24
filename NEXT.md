@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-24 · **Phase:** **G8_F/F2 pre-launch implementation is IN PROGRESS under the owner's separate F2-only authorization; AM-89 freezes the previously omitted output-affecting recipe inheritance before optimizer step 1. F1 remains GREEN/CLOSED: the exact 50,814-assignment `confessor` corpus is authenticated/frozen, the writer exited 0 and the bulky corpus remains worker-local. No F2 optimizer step or checkpoint-selection validation inference has occurred. G8_E is GREEN and CLOSED through E7. The
+**Last updated:** 2026-08-24 · **Phase:** **G8_F/F2 source and authorization are FROZEN before optimizer step 1; final launch-bearing quality/Actions/parity gates remain. Scientific source `9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca`; authorization `g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900`; Pascal preflight projects 0.8081 h and passes the four-hour gate. F1 remains GREEN/CLOSED: the exact 50,814-assignment `confessor` corpus is authenticated/frozen, the writer exited 0 and the bulky corpus remains worker-local. No F2 optimizer step or checkpoint-selection validation inference has occurred. G8_E is GREEN and CLOSED through E7. The
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -211,7 +211,7 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-prelaunch-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f1-closed-f2-prelaunch-in-progress-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-launch-bearing-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-source-auth-preflight-frozen-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
@@ -290,10 +290,9 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 ## Single next task
 
 **Next-session task:** continue the owner-authorized F2-only pre-launch sequence
-from `instructions/RESUME.md`: finish synthetic verification, freeze/push S_F2,
-run the read-only/synthetic Pascal wall-clock preflight, freeze/push the exact F2
-execution authorization, obtain green quality gates and launch-bearing Actions,
-then launch only the detached 20-epoch BR-12 artifact fine-tune. F1 is complete,
+from `instructions/RESUME.md`: commit/push the frozen authorization and preflight,
+obtain green quality gates and launch-bearing Actions with exact local/origin/
+`confessor` parity, then launch only the detached 20-epoch BR-12 artifact fine-tune. F1 is complete,
 authenticated and closed; do not restart it or alter/delete its worker-local
 corpus. F3 cached-sweep inference/pass two, fallback, ratio adjudication, learned
 training, test, and every completed campaign remain prohibited.
@@ -318,7 +317,7 @@ does not, it is wrong and this block is right.**
 | G-8 classical validation work | **complete — G8_E GREEN and closed through E7: E2 COMPLETE/VERIFIED at 288000/288000 on `confessor`, E3/E4 COMPLETE/VERIFIED, E5 pass one EXECUTED EXACTLY ONCE and frozen (378/378 cells), E6 lineage frozen, E7 verifier PASS; local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
 | G-8 · corrected G8_F corpus plan | **frozen — AM-87 support remains 120 qualities/8,469 train IDs; AM-88 sampler `g8fsamplerplan-d6d64ead…` assigns 6/image = 50,814 attempts with exact global/class balance** |
 | G-8 · G8_F F0/F1 | **F1 GREEN/CLOSED — exact 50,814/50,814 authenticated; 44,039 materialized / 6,775 typed infeasible / 0 other; worker exited 0 and lock is free; `g8ff1completion-b5bb834a…` + `g8fcorpus-adeae507…` frozen; bulky corpus preserved on `confessor`; F1 rerun/repair permanently closed** |
-| G-8 · G8_F F2/BR-12 | **NEXT / IN PROGRESS PRE-LAUNCH — owner F2-only authorization received; AM-89 recipe contract and dedicated loader/trainer/resume/authorization/monitor tooling under synthetic verification; scientific optimizer steps and F2 validation inference remain zero until source/profile/authorization/CI gates pass** |
+| G-8 · G8_F F2/BR-12 | **NEXT / PRE-LAUNCH GATES — S_F2 `9e57a3db…` pushed; live Pascal/F1 authenticated; 0.8081 h preflight green; exact authorization `g8ff2auth-7e828968…` frozen with optimizer/F2-validation zero; commit/push authorization, obtain exact launch-HEAD Actions/parity, then detach one 20-epoch run** |
 | BR-4 validation sweep | pass one complete/frozen; artifact-finetuned pass two not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |

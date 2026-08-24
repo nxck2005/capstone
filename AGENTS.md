@@ -108,13 +108,15 @@ Compact evidence is `results/baseline/g8_f/f1_completion.json`
 `/home/nick/projects/capstone/results/baseline/g8_f/runtime`. The transient
 Discord HOLD alerts were non-atomic read-only sampling races; final authenticated
 closeout was delivered and F1 polling disabled without deleting webhook
-configuration. The owner has now authorized F2/BR-12 artifact-classifier
-fine-tuning only after its exact source/profile/contract is frozen and every
-pre-launch gate passes; implementation is in progress with optimizer steps zero.
+configuration. The owner has authorized F2/BR-12 artifact-classifier
+fine-tuning only. Scientific source `9e57a3db…`, live Pascal/F1 authentication,
+the 0.8081-hour preflight and exact authorization `g8ff2auth-7e828968…` are
+frozen before optimizer step 1; final launch-bearing quality/Actions/parity gates
+remain, with optimizer steps zero.
 F3 inference/pass two, fallback, ratio adjudication, learned training and test
 remain closed.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-prelaunch-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f1-closed-f2-prelaunch-in-progress-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-launch-bearing-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-source-auth-preflight-frozen-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified

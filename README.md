@@ -120,9 +120,10 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: complete the owner-authorized F2-only pre-launch gates before
-BR-12 optimizer step 1. F1 is GREEN, authenticated and closed; AM-89 freezes the
-exact F2 initialization/training/validation/resume recipe.**
+**Current action: finish launch-bearing quality/Actions/parity gates for the
+owner-authorized F2-only run before BR-12 optimizer step 1. S_F2 `9e57a3db…`,
+the green Pascal preflight, and exact authorization `g8ff2auth-7e828968…` are
+frozen; F1 remains GREEN, authenticated and closed.**
 `instructions/RESUME.md` is the single operational cursor. G8_C is closed at
 3,213/3,213 and G8_D D0–D7 are GREEN. The original, first-corrected and
 corrected-v2 E1 epochs remain immutable `superseded-before-data` history.
@@ -155,8 +156,9 @@ and bounded smoke. G8_C froze its measured-only Pascal table, G8_D froze the
 validation-measurement tooling, and G8_E completed its worker-successor
 validation campaign and exactly-once pass one. The G8_F support ambiguity is
 resolved by AM-87, its practical balanced sampler by AM-88, and F1 corpus
-materialization is complete/closed. The F2-only pre-launch implementation is in
-progress with optimizer steps zero; F3/pass two and every later stage remain closed.
+materialization is complete/closed. The F2-only source/contract are frozen with optimizer steps zero; only final
+launch gates remain before the single detached run. F3/pass two and every later
+stage remain closed.
 
 A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
 corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.

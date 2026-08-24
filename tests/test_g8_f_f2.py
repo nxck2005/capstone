@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,16 @@ from training.g8_f_f2 import (
     F2Hold,
     F2Trainer,
     RECONSTRUCTION_BYTES,
+    canonical_json,
     learning_rate_for_epoch,
+    sha256_bytes,
+)
+from training.g8_f_f2_authorization import (
+    AUTHORIZATION_PATH,
+    AUTHORIZATION_PREFIX,
+    F2AuthorizationHold,
+    rendered_json,
+    verify_authorization,
 )
 
 
@@ -84,6 +94,20 @@ def _dataset(tmp_path: Path, **changes):
     }
     arguments.update(changes)
     return F2ArtifactDataset(rows, **arguments), rows, authority, runtime, digest
+
+
+def test_committed_authorization_is_exact_and_count_mutation_fails_closed(tmp_path: Path):
+    value = verify_authorization(AUTHORIZATION_PATH)
+    assert value["f1"]["materialized_training_rows"] == 44_039
+    changed = json.loads(AUTHORIZATION_PATH.read_bytes())
+    changed["f1"]["materialized_training_rows"] -= 1
+    body = dict(changed)
+    body.pop("authorization_id")
+    changed["authorization_id"] = AUTHORIZATION_PREFIX + sha256_bytes(canonical_json(body))
+    path = tmp_path / "authorization.json"
+    path.write_bytes(rendered_json(changed))
+    with pytest.raises(F2AuthorizationHold):
+        verify_authorization(path)
 
 
 def test_assignment_multiplicity_is_not_reconstruction_deduplication(tmp_path: Path):

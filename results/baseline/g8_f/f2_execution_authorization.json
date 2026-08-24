@@ -1,0 +1,431 @@
+{
+  "artifact_role": "g8_f_f2_br12_execution_authorization",
+  "authorization_id": "g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900",
+  "authorized_operations": [
+    "artifact_classifier_optimizer_steps",
+    "f2_checkpoint_selection_validation_inference",
+    "epoch_checkpoint_writes",
+    "best_checkpoint_tracking"
+  ],
+  "execution_profile": {
+    "amp": false,
+    "device": "cuda:0",
+    "execution_profile_id": "confessor_pascal_cu126",
+    "gpu_name": "NVIDIA TITAN Xp",
+    "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "host": "confessor",
+    "lock_file": "requirements-pascal.lock",
+    "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
+  },
+  "f1": {
+    "assignment_rows": 50814,
+    "completion_file_sha256": "d4f9d44a01dbf53de96fb9126364d651ca999b35117b7d51c55f76f1a13d888b",
+    "completion_id": "g8ff1completion-b5bb834a1767f639406e5589022e813a624a4f8ccd9ad4885c455c10fce24412",
+    "completion_path": "results/baseline/g8_f/f1_completion.json",
+    "corpus_id": "g8fcorpus-adeae50779a45e9e856af3ff47e84671b237b344867a562978599170912135c2",
+    "corpus_manifest_path": "results/baseline/g8_f/f1_corpus_manifest.csv",
+    "corpus_manifest_sha256": "792cce92bd8a72f99b7ddee58511d1b5b7e908a4d0cd4178bbb08b9e1ba2d144",
+    "materialized_training_rows": 44039,
+    "multiplicity": "one_logical_training_item_per_materialized_assignment_row_no_reconstruction_deduplication",
+    "test_ids": 0,
+    "typed_omissions": 6775,
+    "unexpected_outcomes": 0,
+    "validation_ids": 0
+  },
+  "g1_parent": {
+    "adjudication_file_sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
+    "adjudication_id": "g1adjudication-a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
+    "adjudication_path": "results/reference_classifier/g1_adjudication.json",
+    "architecture": "resnet18",
+    "checkpoint_bytes": 92121803,
+    "checkpoint_file_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "checkpoint_path": "checkpoints/reference_classifier/epoch-99.pt",
+    "checkpoint_schema_version": 1,
+    "class_mapping": {
+      "n01440764": 0,
+      "n02102040": 1,
+      "n02979186": 2,
+      "n03000684": 3,
+      "n03028079": 4,
+      "n03394916": 5,
+      "n03417042": 6,
+      "n03425413": 7,
+      "n03445777": 8,
+      "n03888257": 9
+    },
+    "class_mapping_source": "results/baseline/g8_e/e1_corrected_v3/scientific_data_identity_manifest.json",
+    "classifier_variant": "clean",
+    "descendant_variant": "artifact_finetuned",
+    "train_seed": 0
+  },
+  "owner_authorization": {
+    "basis": "owner prompt explicitly authorizing G8_F/F2/BR-12 artifact-classifier fine-tuning only",
+    "issued_at": "2026-08-24T23:01:22Z",
+    "single_scientific_run": true
+  },
+  "paths": {
+    "f1_runtime_read_only": "results/baseline/g8_f/runtime",
+    "f2_runtime": "results/baseline/g8_f/f2_runtime",
+    "host_ops": "/home/nick/g8-f-f2-ops",
+    "session": "g8f-f2"
+  },
+  "preflight": {
+    "checkpoint": {
+      "bytes": 44808397,
+      "cadence_epochs": 1,
+      "seconds": 0.07793868391308933
+    },
+    "dataset": {
+      "authentication_seconds": 25.59957826603204,
+      "loader_examples_per_second": 305.61321350754775,
+      "loader_steps_per_second": 2.387603230527717,
+      "logical_length": 44039,
+      "sampled_examples": 2560,
+      "unique_reconstruction_sha256": 42932
+    },
+    "kind": "read_only_artifact_io_and_synthetic_resnet18_forward_backward_no_optimizer_step",
+    "profile": {
+      "amp": true,
+      "config_hash": "74138c519e4e28187d6e6b140b9985e3bc33d48ff41695f6466520b30efbbb48",
+      "deterministic_backend": {
+        "cudnn_benchmark": false,
+        "cudnn_deterministic": true
+      },
+      "driver_version": "580.178.04",
+      "execution_profile_id": "confessor_pascal_cu126",
+      "git_commit": "9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca",
+      "git_dirty": false,
+      "gpu_compute_capability": "6.1",
+      "gpu_index": 0,
+      "gpu_name": "NVIDIA TITAN Xp",
+      "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+      "gpu_vram_mib": "12288",
+      "lock_file": "requirements-pascal.lock",
+      "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+      "numpy_version": "2.5.1",
+      "nvidia_smi_index": 1,
+      "openjpeg_version": "2.5.4",
+      "python_version": "3.14.6",
+      "sionna_version": "2.0.1",
+      "torch_cuda_build": "12.6",
+      "torch_version": "2.13.0+cu126",
+      "torchvision_version": "0.28.0+cu126"
+    },
+    "projection": {
+      "effective_steps_per_second": 2.387603230527717,
+      "epoch_seconds": 144.49637007893762,
+      "epochs": 20,
+      "max_hours": 4,
+      "optimizer_steps": 6900,
+      "total_hours": 0.8080914847825059,
+      "total_seconds": 2909.129345217021,
+      "validation_seconds_per_epoch": 0.8821584980003536,
+      "within_max_wall_clock": true
+    },
+    "protected_counters": {
+      "f2_checkpoint_selection_validation_inference": 0,
+      "f3_cached_sweep_inference": 0,
+      "fallback": 0,
+      "learned_training": 0,
+      "pass_two": 0,
+      "scientific_optimizer_steps": 0,
+      "test_access": 0
+    },
+    "schema_version": 1,
+    "synthetic_compute": {
+      "batch_size": 128,
+      "examples_per_second": 1160.7891351964163,
+      "measured_batches": 20,
+      "peak_vram_bytes": 1731677184,
+      "peak_vram_gib": 1.6127500534057617,
+      "steps_per_second": 9.068665118722002
+    }
+  },
+  "prohibited_operations": [
+    "f1_regeneration",
+    "jpeg2000_encoding",
+    "f3_cached_sweep_rescoring",
+    "pass_two",
+    "pass_three",
+    "ratio_adjudication",
+    "fallback",
+    "learned_training",
+    "test_access"
+  ],
+  "schema_version": 1,
+  "scope": "G8_F_F2_BR12_TRAINING_ONLY",
+  "source_closure": [
+    {
+      "bytes": 37979,
+      "git_blob": "b1dfa837f85ec4d6e63bb4c9317aa2d958602e5e",
+      "path": "src/training/g8_f_f2.py",
+      "sha256": "0a00c666669c3afd01eea01a0f507132898d39e59e30d8c6b0679c376f7fb6d0"
+    },
+    {
+      "bytes": 12198,
+      "git_blob": "52bded473388ee642748f9ee08d369ab785ab772",
+      "path": "src/training/g8_f_f2_authorization.py",
+      "sha256": "3fc82ed131f60f5dbdb3d9abcf0969258e13dabe3c97ce06389029a61e623ad2"
+    },
+    {
+      "bytes": 4693,
+      "git_blob": "edf0e87034d186913cb7b31745ef8d186362ecbb",
+      "path": "tools/run_g8_f_f2.py",
+      "sha256": "0ed70343565697ba1357e09b75375e400c92c37a40f31812adffe27007826397"
+    },
+    {
+      "bytes": 20537,
+      "git_blob": "28cedfa57a3a6eeae0e7a05763733e8a4a847add",
+      "path": "src/data/preprocessing.py",
+      "sha256": "1aa5eafc8d02be5e79ee10b342cb8fb901e2600ba7a77224ecaf29dbcbcbacdf"
+    },
+    {
+      "bytes": 3215,
+      "git_blob": "8ef90ef316cb0b964b2b928375624b638767c2f9",
+      "path": "src/data/classifier.py",
+      "sha256": "1108ad155e2d0dd1fc2658ef27757b0a4249926316cae5cebb9081471c92f64b"
+    },
+    {
+      "bytes": 3788,
+      "git_blob": "3b85ea979e49bbd0024eff9f6a3c66779bb7bf8a",
+      "path": "src/models/reference_classifier.py",
+      "sha256": "d2f52ee616a582657e895a9b1c56250ee83d172b963cd00bb55bb0c8942eb703"
+    },
+    {
+      "bytes": 12283,
+      "git_blob": "d8685b7bbb27d9219f3a19399b308ee789b97c5f",
+      "path": "src/models/frozen_reference_classifier.py",
+      "sha256": "6df88447c1afbcf7c7d5f9484d18a20637085a2552c326bc0ee2a33f2ab90fce"
+    },
+    {
+      "bytes": 42855,
+      "git_blob": "4899182327799ae79a1879743523d825041acd4f",
+      "path": "src/training/reference_classifier.py",
+      "sha256": "609450e323c9e020037d38e4a1d6737b7cbfef7f550417dfb30fc63893ee2cb3"
+    },
+    {
+      "bytes": 38848,
+      "git_blob": "4e46fe1e992b7a68e1a540377a7fa8303cb8b8de",
+      "path": "src/baseline/g8_f_closeout.py",
+      "sha256": "dc6c57d7810d46f6a9bb80ed550556d68177765cb778a6dac7575af0a1ce4e0a"
+    },
+    {
+      "bytes": 33971,
+      "git_blob": "122056a65e014bd3ad44e5ee0070d2c592e6d501",
+      "path": "src/baseline/g8_f_f0.py",
+      "sha256": "d454507dde4458fb6060de64d0f0c1257798c683569c93e8ca19d5408d053502"
+    },
+    {
+      "bytes": 28972,
+      "git_blob": "0b9d26bec47deb857ee398ef92fba4e4fe2ccd32",
+      "path": "src/baseline/g8_f_materializer.py",
+      "sha256": "0f1d5283f5f0920658678d139918bfbe8ab92ede0db0839a8c4f8750e4109f72"
+    },
+    {
+      "bytes": 24012,
+      "git_blob": "3ee7a704fc7cf9be361a0f301dc32208e6a97933",
+      "path": "src/baseline/g8_f_sampler_plan.py",
+      "sha256": "c9f0d39d6e1ed7853f6fc289b7fc59ebe98a27d2a33124fcf5d03aaee5db2f6c"
+    },
+    {
+      "bytes": 34219,
+      "git_blob": "d27823b0906ba8e60347bf81afdff414b8a45659",
+      "path": "src/baseline/g8_f_corpus_plan.py",
+      "sha256": "51ea6e0e947d21300c76fb222c22727731487ebc8ac366f789cc5c6aafdabd06"
+    },
+    {
+      "bytes": 44864,
+      "git_blob": "f676272bb4871aeef2e60b45b12963bbfb725d35",
+      "path": "src/baseline/g8_campaign.py",
+      "sha256": "a44d552684f0d736f1ab54a36922f89ce36567f7794ab7d23424fef13419374e"
+    },
+    {
+      "bytes": 139354,
+      "git_blob": "7ef04b48ff0e4b8e41acb746b3d65cb1380ca1b4",
+      "path": "src/baseline/g8_pascal_production.py",
+      "sha256": "cca9601cc3053fdc96df7242e38a4f023e2bd7f10175f328bf078f118667af8d"
+    },
+    {
+      "bytes": 142364,
+      "git_blob": "c4704f32c419f3c93203302a6f216b94468056aa",
+      "path": "src/baseline/g8_d.py",
+      "sha256": "921a288d842f458253eff033b3e5443065acb089287baac6fda588f4f5ca9766"
+    },
+    {
+      "bytes": 114803,
+      "git_blob": "0a591911786e7d5d5f4f1c651c2e21f8cf5fbac8",
+      "path": "src/baseline/g8_e.py",
+      "sha256": "7416da05522c3e362069b213a126a660c9b973381b4a20ca3f4194428145e11e"
+    },
+    {
+      "bytes": 42835,
+      "git_blob": "04143cb9dcde6c01df53f9088264a3676069cb63",
+      "path": "src/baseline/g8_e_corrected_v3s.py",
+      "sha256": "eaea70645c65bf8bd7c7867671fd74dea1edffcbbb09416d4036fc1a305635a8"
+    },
+    {
+      "bytes": 24012,
+      "git_blob": "3ee7a704fc7cf9be361a0f301dc32208e6a97933",
+      "path": "src/baseline/g8_f_sampler_plan.py",
+      "sha256": "c9f0d39d6e1ed7853f6fc289b7fc59ebe98a27d2a33124fcf5d03aaee5db2f6c"
+    },
+    {
+      "bytes": 19660,
+      "git_blob": "24dd9433426aeeb7753cb86b2b392e0b6663f713",
+      "path": "tools/verify_g8_f_sampler_plan.py",
+      "sha256": "8b8f96566ddb2b7a07b746b3c47a465a5243d28d363dd9e50e4bb4c7ea6c29f4"
+    },
+    {
+      "bytes": 74125,
+      "git_blob": "831c87ef2d5ef092a1d88ab4fd267358373221e7",
+      "path": "tools/verify_w4_baseline_integration.py",
+      "sha256": "2d3280501f4f63076a8ed57abef920f03054fa45521aa0ec64e50a68af4924fc"
+    },
+    {
+      "bytes": 20595,
+      "git_blob": "8a0607a1ac69628515469e0c1129da46a894164c",
+      "path": "src/baseline/j2k.py",
+      "sha256": "90a0dc1bfdbf37fcb1cd36a539f4623d0d247c20cfc04246da00cad4cc377b7e"
+    },
+    {
+      "bytes": 1550,
+      "git_blob": "4de8414d0acb07dd85eaa8aba58a627ba7693f1a",
+      "path": "src/config/params.py",
+      "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc"
+    },
+    {
+      "bytes": 16379,
+      "git_blob": "8c125a83b8a425909cd6091dc46613391ef2f7b3",
+      "path": "src/config/execution_profiles.py",
+      "sha256": "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+    },
+    {
+      "bytes": 14579,
+      "git_blob": "c0833ffaf83efece18f524e9e744a33638d5b94c",
+      "path": "src/data/adapters.py",
+      "sha256": "97f36eb4a226bedc8579a000b048119e15915495382c759b79fe0582209bcfca"
+    },
+    {
+      "bytes": 1056,
+      "git_blob": "2bfec312a9067b5a9a36b52315876dadfadffd77",
+      "path": "src/data/identity.py",
+      "sha256": "e03e0033d6d0174584c2818fb4b6968d9e33c133527a8fbab1644f6a5850f249"
+    },
+    {
+      "bytes": 11468,
+      "git_blob": "b3cf0a498dcdd94c09271c900c82fe4d96528ab7",
+      "path": "src/data/manifests.py",
+      "sha256": "28cb6de265b7f2cf5eff65e0da9bba3a35a592371924bb52a991b6682353bfdd"
+    },
+    {
+      "bytes": 13608,
+      "git_blob": "806777301082ce27e257d5da7bbc9c3e5fdeeca4",
+      "path": "src/data/provenance.py",
+      "sha256": "24a74828fda74e337aaf865ff06974cd25e9ce11a8e014bef7d9a2cf1a961b33"
+    },
+    {
+      "bytes": 6295,
+      "git_blob": "c3617adbaa0ae45ffe688b7b25db00203f32a59a",
+      "path": "src/data/registry.py",
+      "sha256": "da790dcee14835f756302a360defa9158f63a56eded87605fe383ade6297b8ae"
+    },
+    {
+      "bytes": 8308,
+      "git_blob": "b9fbc931b539f7ea3cd00b4fa194722db03308bd",
+      "path": "src/env.py",
+      "sha256": "18f32856644b243ecafdb4dee07f17aeeb71c0ca15f3f9899539b229c6a296dc"
+    },
+    {
+      "bytes": 6357,
+      "git_blob": "69d9938070dac303dc52e0073ad6201b8bf0c98a",
+      "path": "tools/run_g8_f_f1.py",
+      "sha256": "0db7b48a3dae286b63f790ee217624a8b73f7dbe77b86ec45396e7fb0142da60"
+    },
+    {
+      "bytes": 43514,
+      "git_blob": "25e42e322001e3dc8208d82b4ba6241c1d5a61dd",
+      "path": "spec/params.generated.yaml",
+      "sha256": "64d10dc51d59c6e68b084e4ddd8b329ffb5f23852e046d0a31968f49f684ae11"
+    },
+    {
+      "bytes": 6673,
+      "git_blob": "df937aacc80e0a0920ac27eae6c7cb2e0aaa641f",
+      "path": "results/baseline/g8_f/am89_f2_source_compatibility.json",
+      "sha256": "df07cbd18b877de2a904ad859446e8d377281453f7785de40985103863b45826"
+    },
+    {
+      "bytes": 82943,
+      "git_blob": "890103bbe54bcd52bfc9d1716447bd100e2c56eb",
+      "path": "requirements-pascal.lock",
+      "sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
+    }
+  ],
+  "source_commit": "9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca",
+  "status": "FROZEN_OWNER_AUTHORIZED_BEFORE_OPTIMIZER_STEP_1",
+  "training": {
+    "batch_size": 128,
+    "epochs": 20,
+    "expected_optimizer_steps": 6900,
+    "logical_dataset_length": 44039,
+    "recipe": {
+      "augmentation": [
+        "random_resized_crop",
+        "horizontal_flip"
+      ],
+      "augmentation_input": "exact_authenticated_f1_reconstruction_pixels",
+      "batch_order": "keyed_philox_permutation_per_epoch_over_materialized_assignment_rows",
+      "batch_size": 128,
+      "checkpoint_every_epochs": 1,
+      "checkpoint_metric": "validation_top1_accuracy",
+      "checkpoint_mode": "max",
+      "checkpoint_tie_break": "earliest_epoch",
+      "classifier_variant": "artifact_finetuned",
+      "corrupt_latest_checkpoint_policy": "hold_no_older_fallback",
+      "dataloader_workers": 4,
+      "drop_last": false,
+      "epochs": 20,
+      "incomplete_epoch_policy": "replay_from_latest_authenticated_completed_epoch",
+      "initialization": "exact_frozen_g1_best_clean_checkpoint",
+      "label_smoothing": 0.1,
+      "loss": "cross_entropy",
+      "lr": 0.01,
+      "lr_min": 0.0,
+      "lr_schedule": "cosine",
+      "lr_warmup_epochs": 5,
+      "lr_warmup_schedule": "linear",
+      "lr_warmup_start_factor": 0.1,
+      "mixed_precision": false,
+      "momentum": 0.9,
+      "nesterov": false,
+      "optimizer": "sgd_momentum",
+      "optimizer_implementation": "torch.optim.SGD",
+      "parent_variant": "clean",
+      "pin_memory": true,
+      "resume_unit": "authenticated_completed_epoch",
+      "scheduler_epoch_indexing": "zero_based",
+      "scheduler_step_unit": "epoch_start",
+      "test_access": "prohibited",
+      "train_seed": 0,
+      "validation_every_epochs": 1,
+      "validation_split": "imagenette160_validation_clean_canonical_view",
+      "weight_decay": 0.0005
+    },
+    "recipe_sha256": "74138c519e4e28187d6e6b140b9985e3bc33d48ff41695f6466520b30efbbb48",
+    "resume_rule": "latest_authenticated_completed_epoch_only_corrupt_latest_holds_no_older_fallback",
+    "sample_order_rule": "keyed_philox_batch_order(train_seed=0,epoch)_over_manifest_ordinal_filtered_materialized_assignment_rows",
+    "steps_per_epoch": 345,
+    "validation_role": "F2_checkpoint_selection_only_not_F3_cached_sweep",
+    "validation_rule": "clean_canonical_imagenette160_validation_1000_every_epoch_top1_max_earliest_epoch_tie"
+  },
+  "zero_at_authorization_freeze": {
+    "artifact_classifier_optimizer_steps": 0,
+    "f2_checkpoint_selection_validation_inference": 0,
+    "f3_cached_sweep_inference": 0,
+    "fallback": 0,
+    "learned_training": 0,
+    "pass_three": 0,
+    "pass_two": 0,
+    "test_access": 0
+  }
+}
