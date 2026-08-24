@@ -111,14 +111,14 @@ def sha256_file(path: Path) -> str:
 
 _HISTORICAL_CURRENT_SPEC_SHA256 = "9f45a27f46230c66fdd95cb0c2010fedd8aa77dbeea5c1f97481ab7be9202bf2"
 _HISTORICAL_CURRENT_SOURCE_SHA256 = {
-    "instructions/G8_F.txt": "f952fb37573a055596be54c11544c894ce5818c77b5b12ad4d514ca3e0d776be",
+    "instructions/G8_F.txt": "785fb0ee03cb05087d9d278f0438d0cebeee73eb8b6c6713d4dbd6077bd4d611",
     "instructions/G8.txt": "1a2fa4b62f5cffb2b2e37e6331763aa53916cbc9eda70b83976b486dce9a51bc",
     "tools/gen_g8_campaign_manifest.py": "b57f58ae36ac706e401ce366e64b5ab7023ba385614e4dffb2d14cd700887c31",
     "tools/update_g8_campaign_state.py": "29239c85981f294cdb8d6c492a8724c42166aa8fb15d92852681670ac4bc44f6",
     "tools/verify_g8_preflight.py": "06bd34354ea1237e3b3247f195dc440adb96f1a188654b0f2c44e759441c20d7",
 }
 _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256 = "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
-_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "0d7a6aa2b4c81909f9f8e7ac45e802aaab442ad76f57c733cf68de36f18b3897"
+_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "43ade92bb1600fd935da03391c5c6aabbed36995fe0f3ec69a3c99b90ad8931e"
 
 
 def _historical_campaign_source_projection(source: bytes) -> bytes:
@@ -251,7 +251,7 @@ def _verify_historical_profile_source(path: str, archived: bytes) -> None:
     current = (REPO_ROOT / path).read_bytes()
     if path == "src/baseline/g8_campaign.py":
         if sha256_bytes(_historical_campaign_source_projection(current)) != _HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256:
-            raise G8ContractError("historical G-8 campaign source is not the exact additive compatibility image")
+            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-87 image")
         if sha256_bytes(archived) != _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256:
             raise G8ContractError("historical G-8 campaign source archive is not the bound pre-AM-83 image")
         return
@@ -262,7 +262,7 @@ def _verify_historical_profile_source(path: str, archived: bytes) -> None:
             raise G8ContractError(f"historical G-8 source drift is unrelated: {path}")
         return
     if current_sha != expected_sha:
-        raise G8ContractError(f"historical G-8 source is not the exact additive compatibility image: {path}")
+        raise G8ContractError(f"historical G-8 source is not the exact AM-83..AM-87 image: {path}")
 
 
 def verify_historical_normative_sources(entries: list[Mapping[str, Any]]) -> None:
