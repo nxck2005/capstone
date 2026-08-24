@@ -53,6 +53,16 @@ backends. It proved deterministic reuse, exact-prefix resume, typed
 infeasibility/no-resampling, unexpected-failure HOLD, and validation/test
 refusal. It was explicitly non-scientific and invoked no real JPEG2000 codec.
 
+## Historical verifier compatibility
+
+Updating the current `instructions/G8_F.txt` cursor changed only instructions
+after all G8_C–G8_E measurements and pass one were closed. The historical G8_A
+manifest remains byte-identical. Its existing fail-closed source verifier was
+extended only to accept the exact new instruction SHA-256
+`f952fb37573a055596be54c11544c894ce5818c77b5b12ad4d514ca3e0d776be` and the
+corresponding exact verifier-source projection. No measurement path, plan,
+selection, result, or historical artifact byte changed.
+
 ## Adversarial closeout
 
 A–D: AM-87 remains 120; AM-88 remains six assignments for each of 8,469 IDs,
