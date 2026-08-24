@@ -476,9 +476,18 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `reference_classifier.artifact_finetune_candidate_admission` | authority_mapped_structural_identity_with_positive_reconciled_payload_budget | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_quality_set_rule` | complete_exact_projection_then_deduplicate_no_width_parameter | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_deduplication` | exact_canonical_artifact_quality_identity | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_multiplicity` | one_attempt_per_quality_per_training_stable_id | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_traversal_order` | quality_id_ascending_then_training_stable_id_ascending | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.artifact_finetune_image_codec_infeasibility` | omit_pair_record_coverage_no_substitution | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_support_plan` | results/baseline/g8_f/corpus_plan.json | AM-27, AM-36, AM-78, AM-88, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_sampling_plan` | results/baseline/g8_f/am88_sampler_plan.json | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_sampler_version` | g8_f_balanced_sampler_v1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_sampler_seed` | am88-g8f-balanced-sampler-20260824-v1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_assignment_algorithm` | sha256_keyed_stable_id_order_global_quality_permutation_class_chunks_cyclic_v1 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_variants_per_training_image` | 6 | AM-27, AM-36, AM-78, BR-4, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_assignment_information` | training_stable_id, class_label, am87_quality_id_order, sampler_seed, sampler_version | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_assignment_forbidden_information` | pass_one_expected_accuracy, pass_one_score, pass_one_rank, pass_one_margin, selected_phy_tuple, validation_e4_feasibility, validation_artifact_performance, f1_codec_outcome, pass_two_result, learned_result, test_result, runtime_order | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_balance_rule` | concatenate_class_label_ordered_attempt_chunks_over_one_seed_permuted_quality_cycle | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_multiplicity` | exactly_six_distinct_attempted_supported_qualities_per_training_stable_id | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_traversal_order` | class_label_ascending_then_seed_keyed_stable_id_then_assignment_slot | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.artifact_finetune_image_codec_infeasibility` | omit_assigned_pair_record_coverage_no_resampling_or_substitution | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_non_codec_failure` | hold_no_artifact_or_substitution | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_validation_feasibility_role` | estimate_and_audit_only_never_membership | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.artifact_finetune_recipe.optimizer` | sgd_momentum | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |

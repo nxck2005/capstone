@@ -33,8 +33,9 @@ from baseline.g8_pascal_merge import load_successor_bler_table  # noqa: E402
 HEX = re.compile(r"^[0-9a-f]{64}$")
 CONTRACT = REPO / "results/baseline/g8_d/measurement_contract.json"
 AM87_SOURCE_COMPATIBILITY = REPO / "results/baseline/g8_f/am87_g8e_source_compatibility.json"
+AM88_SOURCE_COMPATIBILITY = REPO / "results/baseline/g8_f/am88_g8e_source_compatibility.json"
 _HISTORICAL_VERIFIER_SHA256 = "f3b0fcdd719f5e0b43e684226acf607f9d6dea759236b44246845416e7dbd0d7"
-_CURRENT_VERIFIER_PROJECTION_SHA256 = "f36bb10ef05814cb0f410cd681a73123acc753867925dd1dff75a33780bea861"
+_CURRENT_VERIFIER_PROJECTION_SHA256 = "fd18eaa2ba904f5d926f654c0f1f39d14178be01d7c6b636d8ae4b57b6f57da7"
 
 
 class G8DContractVerificationError(ValueError):
@@ -84,29 +85,31 @@ def _digest(value: Any, label: str) -> None:
 
 
 def _verify_am87_g8d_source(binding: dict[str, Any]) -> None:
-    compatibility = _read(AM87_SOURCE_COMPATIBILITY, "AM-87 G8_E source compatibility")
+    am87 = _read(AM87_SOURCE_COMPATIBILITY, "AM-87 G8_E source compatibility")
+    compatibility = _read(AM88_SOURCE_COMPATIBILITY, "AM-88 G8_E source compatibility")
+    am87_body = {key: child for key, child in am87.items() if key != "compatibility_id"}
     body = {key: child for key, child in compatibility.items() if key != "compatibility_id"}
+    _require(am87.get("compatibility_id") == "g8esourcecompat-" + _sha_bytes(_canonical(am87_body)), "AM-87 G8_E compatibility ID differs")
+    _require(compatibility.get("compatibility_id") == "g8esourcecompat-" + _sha_bytes(_canonical(body)), "AM-88 G8_E compatibility ID differs")
     _require(
-        compatibility.get("compatibility_id") == "g8esourcecompat-" + _sha_bytes(_canonical(body)),
-        "AM-87 G8_E source-compatibility ID differs",
-    )
-    _require(
-        compatibility.get("amendment") == "AM-87"
-        and compatibility.get("timing") == "post_g8e_e7_pre_g8f_execution"
+        compatibility.get("amendment") == "AM-88"
+        and compatibility.get("timing") == "post_am87_pre_f0_execution_zero"
         and compatibility.get("protected_boundary", {}).get("g8_d_changed") is False,
-        "AM-87 G8_E source-compatibility boundary differs",
+        "AM-88 G8_E source-compatibility boundary differs",
     )
+    prior_entries = am87.get("entries")
     entries = compatibility.get("entries")
-    _require(isinstance(entries, list), "AM-87 G8_E source entries differ")
+    _require(isinstance(prior_entries, list) and isinstance(entries, list), "AM-87/AM-88 G8_E source entries differ")
+    prior = [entry for entry in prior_entries if isinstance(entry, dict) and entry.get("path") == binding["path"]]
     matches = [entry for entry in entries if isinstance(entry, dict) and entry.get("path") == binding["path"]]
-    _require(len(matches) == 1, "AM-87 G8_D source entry differs")
+    _require(len(prior) == len(matches) == 1, "AM-87/AM-88 G8_D source entry differs")
     entry = matches[0]
     _require(
-        entry.get("kind") == "post_d7_historical_contract_builder_only"
-        and entry.get("archived_sha256") == binding["sha256"]
+        prior[0].get("archived_sha256") == binding["sha256"]
+        and entry.get("archived_sha256") == prior[0].get("current_sha256")
         and entry.get("current_sha256") == _sha_file(REPO / binding["path"])
         and entry.get("scientific_execution_reachable") is False,
-        "AM-87 G8_D source byte chain differs",
+        "AM-87/AM-88 G8_D source byte chain differs",
     )
 
 

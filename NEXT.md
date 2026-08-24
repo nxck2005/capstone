@@ -29,14 +29,17 @@ PASS ONE FROZEN; G8_F READY; NO TRAINING OR PASS TWO**, authenticating handoff
 `g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8`
 (file SHA-256 `a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49`).
 Separately, the ci-cpu lane was repaired host-independently (commit `824d49c`;
-GitHub Actions run `32579946365` green). AM-87 now resolves the post-pass-one
-BR-12 breadth ambiguity at protocol level and freezes metadata-only plan
-`g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148`:
-120 exact deduplicated artifact-quality requests × 8,469 training stable IDs =
-1,016,280 ordered attempts. It materialized zero objects and authorizes nothing.
-Next: **owner audit of that corrected plan, then a separate narrowly scoped
-G8_F/F0 authorization only**; do not materialize the training corpus, fine-tune
-any classifier, run pass two, invoke fallback, adjudicate ratios or access test.**
+GitHub Actions run `32579946365` green). AM-87 resolves support breadth and remains immutable at 120 exact deduplicated
+artifact qualities over all 8,469 eligible training IDs. AM-88 now supersedes
+only its exhaustive Cartesian execution multiplicity: metadata-only balanced
+sampler plan `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6`
+(file SHA-256 `eca85a9891bcf2054e132e5fc277430d2c85962a78f8438c9da0604d98447e23`)
+assigns exactly six distinct supported qualities per training image, 50,814
+attempts total, with global and per-class quality-count range at most one. It
+materialized zero objects and authorizes nothing. Next: **owner audit of AM-88,
+then a separate narrowly scoped G8_F/F0 authorization only**; do not materialize
+the training corpus, fine-tune any classifier, run pass two, invoke fallback,
+adjudicate ratios or access test.**
 
 **2026-08-23 G8_E E5–E7 closeout (COMPLETE):** the takeover prompt was the
 owner's explicit E5–E7 authorization. Prerequisites were re-authenticated, not
@@ -53,7 +56,21 @@ AST scan (and the frozen bytes binding it) pins construction to tests/ only;
 the scan still proves no non-test file constructs one. Pass-one selections map
 1:1 back to logical candidate-authority IDs for the G8_F corpus lineage.
 
-**2026-08-23 G8_F / BR-12 breadth repair (PROTOCOL PLAN FROZEN; EXECUTION ZERO):**
+**2026-08-24 G8_F AM-88 balanced sampler (PROTOCOL PLAN FROZEN; EXECUTION ZERO):**
+AM-87's 120-quality support and 8,469 training-ID eligibility are unchanged.
+Frozen seed `am88-g8f-balanced-sampler-20260824-v1`, sampler
+`g8_f_balanced_sampler_v1`, assigns six distinct qualities per image through one
+seed-keyed quality permutation and continuous class-ordered cyclic chunks.
+Exact attempts 50,814 (20× below AM-87), global counts 423–424, every class
+range 0–1, duplicate pairs 0, validation/test IDs 0. Ordered/set pair SHA-256:
+`c7c29729…` / `255eab85…`. Typed codec infeasibility omits without resampling;
+all unexpected failures HOLD. No F1 benchmark ran; existing planning basis
+scales to 6.10 h expected / 7.03 h maximum-window extrapolations and 5.08 GB
+expected / 5.86 GB maximum storage. Plan `g8fsamplerplan-d6d64ead…`, audit:
+`audit/g8-f-balanced-sampler-am88-2026-08-24.md`. Owner audit and separate F0
+authorization remain next.
+
+**2026-08-23 G8_F / BR-12 breadth repair (AM-87 SUPPORT FROZEN; CARTESIAN MULTIPLICITY SUPERSEDED BY AM-88):**
 The old “preregistered feasible quality band” was proven non-executable after
 pass one and before F0: it supplied no quality tuple, band axis/width,
 feasibility level, projection, ordering, deduplication, PHY multiplicity or
@@ -70,8 +87,8 @@ membership. A typed per-image codec infeasibility omits and records the pair
 without substitution; every other failure is HOLD. G8_C/G8_D/G8_E/pass one are
 unchanged, corpus objects/training/pass two/test remain zero, and no Pascal
 worker was started. Audit:
-`audit/g8-f-corpus-breadth-repair-2026-08-23.md`. Next: OWNER AUDIT OF THE
-CORRECTED PLAN / SEPARATE F0 AUTHORIZATION.
+`audit/g8-f-corpus-breadth-repair-2026-08-23.md`. Its support remains current;
+its Cartesian multiplicity and old owner-audit cursor are superseded by AM-88.
 
 **2026-08-23 clean-checkout test-harness incident (CONTAINED):** the full-local
 gate in `/home/nick/projects/capstone-ci-clean` exposed that
@@ -254,11 +271,11 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 ## Single next task
 
 **Next-session task:** G8_E is GREEN and closed through E7 (terminal verifier
-`tools/verify_g8_e_complete.py`). AM-87's corrected metadata-only G8_F corpus
-plan is frozen and independently reproducible; execution is zero. The next
-action belongs to the OWNER: audit
-`results/baseline/g8_f/corpus_plan.json` and its protocol-repair record, then —
-only if accepted — issue a separate narrowly scoped G8_F/F0 authorization. Do
+`tools/verify_g8_e_complete.py`). AM-87's complete support is preserved and
+AM-88's balanced metadata-only G8_F sampler plan is frozen and independently
+reproducible; execution is zero. The next action belongs to the OWNER: audit
+`results/baseline/g8_f/am88_sampler_plan.json` and its protocol-repair record,
+then — only if accepted — issue a separate narrowly scoped G8_F/F0 authorization. Do
 not materialize the training-only artifact corpus, fine-tune any classifier,
 run pass two, invoke fallback, adjudicate a ratio, access test, rerun any
 completed campaign, or touch preserved history without that authorization.
@@ -281,8 +298,8 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
 | G-8 classical validation work | **complete — G8_E GREEN and closed through E7: E2 COMPLETE/VERIFIED at 288000/288000 on `confessor`, E3/E4 COMPLETE/VERIFIED, E5 pass one EXECUTED EXACTLY ONCE and frozen (378/378 cells), E6 lineage frozen, E7 verifier PASS; local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
-| G-8 · corrected G8_F corpus plan | **frozen, execution zero — AM-87 plan `g8fcorpusplan-6320ea3…`: 120 qualities, 8,469 train IDs, 1,016,280 ordered attempts; no materialization/training/pass two/test** |
-| G-8 · G8_F owner audit / F0 authorization | **next — owner audits `results/baseline/g8_f/corpus_plan.json`; F0 requires a separate authorization after acceptance; do not start Pascal or materialize/train/run pass two/access test** |
+| G-8 · corrected G8_F corpus plan | **frozen, execution zero — AM-87 support remains 120 qualities/8,469 train IDs; AM-88 sampler `g8fsamplerplan-d6d64ead…` assigns 6/image = 50,814 attempts with exact global/class balance; no materialization/training/pass two/test** |
+| G-8 · G8_F owner audit / F0 authorization | **next — owner audits `results/baseline/g8_f/am88_sampler_plan.json`; F0 requires a separate authorization after acceptance; do not start Pascal or materialize/train/run pass two/access test** |
 | BR-4 validation sweep | pass one complete/frozen; artifact-finetuned pass two not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
@@ -850,7 +867,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted before starting the G-8 work:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 197 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 198 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: exit 0; the current-document count is whatever the checker reports
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures

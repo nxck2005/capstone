@@ -13,15 +13,26 @@ G8_E is green; pass-one state and corpus specification are immutable and
 verify; no training or pass two has occurred; test is sealed; the state is the
 exact expected prefix.
 
-AM-87 additionally governs corpus breadth after the post-pass-one/pre-F0 defect
-audit. Before any F0 authorization, independently verify
-`results/baseline/g8_f/corpus_plan.json` with
-`tools/gen_g8_f_corpus_plan.py --check` and
-`tools/verify_g8_f_corpus_plan.py`. The plan freezes the complete
-authority-projected, exact-deduplicated artifact-quality request universe and
-training-ID Cartesian attempt order. It is plan-only and is not itself F0
-authorization. Owner audit of that plan is the next action. Do not materialize,
-train, score, run pass two or start Pascal while the plan awaits audit.
+AM-87 governs corpus **support breadth** after the post-pass-one/pre-F0 defect
+audit: its immutable `results/baseline/g8_f/corpus_plan.json` freezes the 120
+complete authority-projected, exact-deduplicated legitimate artifact qualities
+and all 8,469 eligible training IDs. AM-88 supersedes only AM-87's exhaustive
+Cartesian execution multiplicity. Before any F0 authorization, structurally
+verify AM-87 support, then independently reproduce
+`results/baseline/g8_f/am88_sampler_plan.json` with:
+
+```
+.venv/bin/python tools/gen_g8_f_corpus_plan.py --check
+.venv/bin/python tools/verify_g8_f_corpus_plan.py
+.venv/bin/python tools/gen_g8_f_sampler_plan.py --check
+.venv/bin/python tools/verify_g8_f_sampler_plan.py
+```
+
+AM-88 assigns exactly six distinct supported qualities to every training stable
+ID using its frozen seed/version and outcome-independent balanced cyclic rule:
+50,814 nominal attempts. Both plans are metadata-only and neither is F0
+authorization. Owner audit of AM-88 is the next action. Do not materialize,
+train, score, run pass two or start Pascal while it awaits audit.
 
 ## Exact outputs
 
@@ -54,17 +65,21 @@ corpus membership, scorer identity, checkpoint provenance, or pass-two state.
 
 ## Frozen-before-data decisions
 
-G8_E corpus spec and pass one; AM-87's post-pass-one/pre-G8F disclosed corpus
-projection, deduplication, order, multiplicity and infeasibility rule; training
+G8_E corpus spec and pass one; AM-87's post-pass-one/pre-G8F disclosed support
+projection, deduplication and quality order; AM-88's post-AM-87/pre-F0 sampler
+seed, version, six-per-image multiplicity, balanced assignment and no-resampling
+infeasibility rule; training
 split/breadth/recipe; checkpoint and resume identity; compute accounting;
 post-training scoring boundary; pass-two scorer distinction; exact-once second
 pass and two-pass termination.
 
 ## Verification commands
 
-First verify the AM-87 metadata-only plan and its exact quality/train-ID order.
-At F1, verify corpus split, complete attempt coverage, typed-infeasibility
-omissions and absence of validation/test IDs or substitutions; then verify
+First verify immutable AM-87 support and independently reproduce AM-88's exact
+50,814-pair digests, global/class balance and six assignments per training ID.
+At F1, verify the corpus split, exact assigned-attempt coverage, typed-
+infeasibility omissions without resampling, and absence of validation/test IDs
+or substitutions; then verify
 checkpoint lineage and resume equivalence, compute/accounting records,
 post-training validation ordering, distinct scorers, immutable pass one,
 exactly one pass two and no third pass, mutations, prior gates, full pytest/CPU
