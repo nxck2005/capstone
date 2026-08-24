@@ -1,0 +1,359 @@
+{
+  "artifact_role": "g8_f_f0_execution_authorization",
+  "authorization_date": "2026-08-24",
+  "authorization_id": "g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4",
+  "checkpoint": "F0",
+  "codec": {
+    "canonicalization": {
+      "canonical_image": "resize_shorter_side_then_crop_to_dataset_image_size",
+      "codec_input": "canonical_8bit_pixels",
+      "downsample_interpolation": "bilinear",
+      "source": {
+        "bytes": 20537,
+        "path": "src/data/preprocessing.py",
+        "sha256": "1aa5eafc8d02be5e79ee10b342cb8fb901e2600ba7a77224ecaf29dbcbcbacdf"
+      },
+      "upsample_interpolation": "bicubic"
+    },
+    "codec_configuration_id": "g8dcodec-39f14b7eaba4f727c70759eb1c5250e8e13f7d5e871c0831aa6b602aef706858",
+    "configuration_contract": {
+      "bytes": 19143,
+      "path": "results/baseline/g8_d/measurement_contract.json",
+      "sha256": "e0a41b7a98cef3b8c64c991405fd0aea4b3239192a7f770fbc3779b26fb53b2a"
+    },
+    "configuration_hash": "2daf597fd914f56eb9e59df7bc20a88b02816522b3b0b4fd3f2db14d7451a0fa",
+    "glymur_version": "0.14.3",
+    "openjpeg_version": "2.5.4",
+    "snapshot": {
+      "baseline": {
+        "downsample_axis_never_upscales": true,
+        "downsample_axis_px": {
+          "cifar10": [
+            32
+          ],
+          "imagenette160": [
+            160,
+            128,
+            96,
+            64
+          ],
+          "stl10": [
+            96,
+            80,
+            64,
+            48
+          ]
+        },
+        "j2k_binding": "glymur",
+        "j2k_cache_key": [
+          "canonical_pixels_sha256",
+          "budget_bytes",
+          "encode_axis_px",
+          "codec_config_hash",
+          "j2k_impl_version"
+        ],
+        "j2k_code_block_size": [
+          64,
+          64
+        ],
+        "j2k_container": "raw_codestream",
+        "j2k_emitted_size_authoritative": true,
+        "j2k_impl": "openjpeg",
+        "j2k_impl_version": "2.5.4",
+        "j2k_nonmonotone_policy": "keep_largest_codestream_at_or_below_budget",
+        "j2k_progression_order": "RPCL",
+        "j2k_rate_control": "largest_codestream_within_budget",
+        "j2k_rate_control_method": "cached_search_over_compression_ratio",
+        "j2k_resolutions": 6,
+        "j2k_search_bounds": [
+          1.0,
+          4000.0
+        ],
+        "j2k_search_max_iters": 24,
+        "j2k_search_method": "bisection_on_compression_ratio",
+        "j2k_search_tolerance_bytes": 16,
+        "j2k_tile_size": "whole_image",
+        "j2k_wavelet": "irreversible_9_7",
+        "source_codec": "jpeg2000"
+      },
+      "environment": {
+        "glymur": "0.14.3",
+        "openjpeg": "2.5.4"
+      },
+      "preprocessing": {
+        "codec_downsample_interpolation": "bilinear",
+        "codec_input": "canonical_8bit_pixels",
+        "codec_resize_preserves_aspect": true,
+        "codec_upsample_interpolation": "bicubic"
+      }
+    }
+  },
+  "data": {
+    "dataset": "imagenette160",
+    "published_archive_bytes": 99003388,
+    "published_archive_filename": "imagenette2-160.tgz",
+    "published_archive_sha256": "64d0c4859f35a461889e0147755a999a48b49bf38a7e0f9bd27003f10db02fe5",
+    "split": "train",
+    "stable_id_class_mapping_sha256": "3aa96b86be7685370bf26221a21edf29ca6f378ab90c65a789b95c94a327dd54",
+    "test_ids": 0,
+    "test_sealed": true,
+    "training_manifest": {
+      "bytes": 328954,
+      "path": "data/manifests/imagenette160.csv",
+      "sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889"
+    },
+    "training_stable_id_set_sha256": "20df375a9915d26e950ef817dfa1b6ef847f304c4dad4db100f41cfc8511cfaa",
+    "validation_ids": 0
+  },
+  "execution": {
+    "device": "cuda:0",
+    "execution_profile_id": "local_4060_cu130",
+    "live_runtime_authentication": {
+      "amp": true,
+      "config_hash": "057176e260549d2357a4fb812a5dce5140c158cbe354a86f645f26a2914d4ffc",
+      "deterministic_backend": {
+        "cudnn_benchmark": false,
+        "cudnn_deterministic": true
+      },
+      "driver_version": "592.82",
+      "execution_profile_id": "local_4060_cu130",
+      "git_commit": "c437ff80eebd464ee7b256f2e69240a7d2f514a8",
+      "git_dirty": false,
+      "gpu_compute_capability": "8.9",
+      "gpu_index": 0,
+      "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+      "gpu_uuid": "GPU-607a5795-c53b-eab2-8c04-71164b173a32",
+      "gpu_vram_mib": "8188",
+      "lock_file": "requirements.lock",
+      "lock_file_sha256": "ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd",
+      "numpy_version": "2.5.1",
+      "nvidia_smi_index": 0,
+      "openjpeg_version": "2.5.4",
+      "python_version": "3.14.6",
+      "sionna_version": "2.0.1",
+      "torch_cuda_build": "13.0",
+      "torch_version": "2.13.0+cu130",
+      "torchvision_version": "0.28.0+cu130"
+    },
+    "lock_file": "requirements.lock",
+    "lock_file_sha256": "ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd",
+    "runtime_root": "results/baseline/g8_f/runtime",
+    "runtime_root_existed_at_f0": false,
+    "sole_writer_host": "local"
+  },
+  "later_launch_command": ".venv/bin/python tools/run_g8_f_f1.py --start --f0-authorization results/baseline/g8_f/f0_execution_authorization.json --f1-launch-authorization <OWNER_ISSUED_F1_LAUNCH_AUTHORIZATION.json> --runtime-root results/baseline/g8_f/runtime",
+  "next_action": "OWNER/OPERATOR LAUNCH OF F1 USING THIS EXACT F0 AUTHORIZATION",
+  "owner_authorization": {
+    "basis": "owner_explicit_API_prompt_after_independent_AM88_audit",
+    "f1_launch_authorized": false,
+    "not_permitted": [
+      "materialize_any_production_training_pair",
+      "invoke_real_F1_JPEG2000",
+      "train_or_fine_tune_or_optimizer_step",
+      "artifact_classifier_inference_or_validation_scoring",
+      "pass_two_or_fallback_or_ratio_adjudication",
+      "learned_system_training",
+      "test_access",
+      "launch_F1_or_later_scientific_stages"
+    ],
+    "permitted": [
+      "authenticate_and_freeze_production_identities_and_prerequisites",
+      "establish_the_F1_execution_contract_and_handoff",
+      "mark_G8_F_ready_for_a_separate_F1_launch"
+    ],
+    "scope": "G8_F_F0_ONLY",
+    "separate_owner_operator_action_required": true
+  },
+  "phase": "G8_F",
+  "prerequisites": {
+    "am87_verification": "PASS_EXACT_120_SUPPORT_8469_TRAIN_IDS",
+    "am88_verification": "PASS_EXACT_6_PER_IMAGE_50814_PAIRS_BALANCED",
+    "e7_handoff": {
+      "bytes": 3095,
+      "handoff_id": "g8ee7handoff-1af54fbf248cfa233ea74dc516697f0ca9153f4562798680de5b20d35da0a4d8",
+      "path": "results/baseline/g8_e/e2_confessor_successor/e7_handoff.json",
+      "sha256": "a726a6a433fd42e0b0dcb97f1b12615a44528fee25af55a157f594e393824c49"
+    },
+    "g1_clean_classifier": {
+      "bytes": 3184,
+      "path": "results/reference_classifier/g1_adjudication.json",
+      "sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
+      "status": "FROZEN_UNCHANGED_REAUTHENTICATED_NO_RETRAINING"
+    },
+    "g8_c": "GREEN_CLOSED_REAUTHENTICATED_NO_RECOMPUTATION",
+    "g8_d": "GREEN_CLOSED_REAUTHENTICATED_NO_RECOMPUTATION",
+    "g8_e": "GREEN_THROUGH_E7_REAUTHENTICATED_NO_RECOMPUTATION",
+    "pass_one": {
+      "bytes": 618846,
+      "executed_count": 1,
+      "path": "results/baseline/g8_e/pass_one_state.json",
+      "rerun": false,
+      "sha256": "91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446",
+      "state_id": "g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413"
+    }
+  },
+  "protected_starting_state": {
+    "artifact_classifier_inference": 0,
+    "artifact_classifier_optimizer_steps": 0,
+    "confessor_started": false,
+    "f0_authorized_by_this_artifact": true,
+    "f0_previously_authorized": false,
+    "f1_started": false,
+    "fallback_invoked": 0,
+    "g8_f_execution_count": 0,
+    "image_payloads_decoded": 0,
+    "learned_system_training": 0,
+    "materialized_artifact_objects": 0,
+    "pass_two": 0,
+    "prior_science_reruns": 0,
+    "production_worker_running": false,
+    "ratio_adjudicated": 0,
+    "real_f1_jpeg2000_invocations": 0,
+    "test_access": 0
+  },
+  "protocol": {
+    "am87_support_plan": {
+      "bytes": 440099,
+      "path": "results/baseline/g8_f/corpus_plan.json",
+      "plan_id": "g8fcorpusplan-6320ea3e5299a2175a730a2cb8c2d835e756bd11e7424f4b1221948f6f148148",
+      "sha256": "733daa01614781c62f2af6a7e992bf29f9103a1b2afface5d77b610bb657858c"
+    },
+    "am88_sampler_plan": {
+      "bytes": 142512,
+      "path": "results/baseline/g8_f/am88_sampler_plan.json",
+      "plan_id": "g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a31f1fba3ff64d6",
+      "sha256": "eca85a9891bcf2054e132e5fc277430d2c85962a78f8438c9da0604d98447e23"
+    },
+    "dynamic_assignment_or_cartesian_fallback": false,
+    "generated_parameters": {
+      "bytes": 42324,
+      "path": "spec/params.generated.yaml",
+      "sha256": "be74a3c8c9ea01a9ef35fc3fa00e0eecef87d624c3d110e0874519563704af15"
+    },
+    "nominal_attempt_count": 50814,
+    "ordered_pair_sha256": "c7c29729c2e0a94646c9e1ef16f45fe240badfb4a1baf82f27883681bac65229",
+    "pair_set_sha256": "255eab85aca45e4ca910f040b0752ea773630c642c8697579df056104dcb594e",
+    "quality_count": 120,
+    "sampler": {
+      "algorithm": "sha256_keyed_stable_id_order_global_quality_permutation_class_chunks_cyclic_v1",
+      "seed": "am88-g8f-balanced-sampler-20260824-v1",
+      "variants_per_training_image": 6,
+      "version": "g8_f_balanced_sampler_v1"
+    },
+    "specification": {
+      "bytes": 387310,
+      "path": "spec/SPEC.md",
+      "sha256": "9f45a27f46230c66fdd95cb0c2010fedd8aa77dbeea5c1f97481ab7be9202bf2"
+    },
+    "training_stable_id_count": 8469,
+    "typed_codec_infeasibility": "record_omitted_assigned_pair_no_replacement_no_resampling",
+    "unexpected_failure": "HOLD"
+  },
+  "schema_version": 1,
+  "smoke": {
+    "permitted_kind": "synthetic_non_scientific_only",
+    "production_training_image_used": false,
+    "real_f1_jpeg2000_invocations": 0,
+    "scientific_coverage": 0
+  },
+  "source": {
+    "closure": [
+      {
+        "bytes": 22320,
+        "path": "src/baseline/g8_f_f0.py",
+        "sha256": "d6ae303a2feefd6ba9a3f38203730b913850b862de4f2c77d6ecd098ec959f25"
+      },
+      {
+        "bytes": 16984,
+        "path": "src/baseline/g8_f_materializer.py",
+        "sha256": "508d099a86e15645b938d3ef2bf9839f50263e28afb6e28e6cf080030fc46459"
+      },
+      {
+        "bytes": 22906,
+        "path": "src/baseline/g8_f_sampler_plan.py",
+        "sha256": "45ade7d2ede4942da266533eda87fe52b6b718902ce0e57323d0fd0dcdcc83df"
+      },
+      {
+        "bytes": 34219,
+        "path": "src/baseline/g8_f_corpus_plan.py",
+        "sha256": "51ea6e0e947d21300c76fb222c22727731487ebc8ac366f789cc5c6aafdabd06"
+      },
+      {
+        "bytes": 20595,
+        "path": "src/baseline/j2k.py",
+        "sha256": "90a0dc1bfdbf37fcb1cd36a539f4623d0d247c20cfc04246da00cad4cc377b7e"
+      },
+      {
+        "bytes": 1550,
+        "path": "src/config/params.py",
+        "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc"
+      },
+      {
+        "bytes": 16379,
+        "path": "src/config/execution_profiles.py",
+        "sha256": "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+      },
+      {
+        "bytes": 14579,
+        "path": "src/data/adapters.py",
+        "sha256": "97f36eb4a226bedc8579a000b048119e15915495382c759b79fe0582209bcfca"
+      },
+      {
+        "bytes": 1056,
+        "path": "src/data/identity.py",
+        "sha256": "e03e0033d6d0174584c2818fb4b6968d9e33c133527a8fbab1644f6a5850f249"
+      },
+      {
+        "bytes": 11468,
+        "path": "src/data/manifests.py",
+        "sha256": "28cb6de265b7f2cf5eff65e0da9bba3a35a592371924bb52a991b6682353bfdd"
+      },
+      {
+        "bytes": 20537,
+        "path": "src/data/preprocessing.py",
+        "sha256": "1aa5eafc8d02be5e79ee10b342cb8fb901e2600ba7a77224ecaf29dbcbcbacdf"
+      },
+      {
+        "bytes": 13608,
+        "path": "src/data/provenance.py",
+        "sha256": "24a74828fda74e337aaf865ff06974cd25e9ce11a8e014bef7d9a2cf1a961b33"
+      },
+      {
+        "bytes": 6295,
+        "path": "src/data/registry.py",
+        "sha256": "da790dcee14835f756302a360defa9158f63a56eded87605fe383ade6297b8ae"
+      },
+      {
+        "bytes": 8308,
+        "path": "src/env.py",
+        "sha256": "18f32856644b243ecafdb4dee07f17aeeb71c0ca15f3f9899539b229c6a296dc"
+      },
+      {
+        "bytes": 6326,
+        "path": "tools/run_g8_f_f1.py",
+        "sha256": "dcd0f81485ae4d7e4e4842f4668ad2bb76bab696cf3370de3490817ea819850e"
+      },
+      {
+        "bytes": 2943,
+        "path": "tools/verify_g8_f_f0.py",
+        "sha256": "a248ab251c2969c8e80d25d21b4569b91820bfbde2859be9e4e2afb980ef0c9c"
+      }
+    ],
+    "closure_rule": "exact_list_of_F1_output_or_admission_affecting_sources_at_intended_commit",
+    "intended_f1_source_commit": "c437ff80eebd464ee7b256f2e69240a7d2f514a8",
+    "protocol_config_sha256": "057176e260549d2357a4fb812a5dce5140c158cbe354a86f645f26a2914d4ffc"
+  },
+  "status": "F0_GREEN_EXECUTION_CONTRACT_AUTHORIZED_AND_FROZEN",
+  "storage_preflight": {
+    "all_assignment_estimated_maximum_bytes": 5858650944,
+    "destination": "/home/nick/projects/capstone",
+    "filesystem_available_bytes": 913266221056,
+    "filesystem_total_bytes": 1081101176832,
+    "filesystem_used_bytes": 112842600448,
+    "planning_only_not_scientific_measurement": true,
+    "required_with_25_percent_reserve_bytes": 7323313680,
+    "sufficient": true,
+    "validation_incidence_estimated_bytes": 5077520544
+  },
+  "terminal_statement": "F0 GREEN - G8_F EXECUTION CONTRACT/AUTHORIZATION FROZEN; F1 NOT STARTED; SEPARATE OWNER/OPERATOR LAUNCH REQUIRED."
+}

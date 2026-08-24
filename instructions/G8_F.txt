@@ -30,9 +30,26 @@ verify AM-87 support, then independently reproduce
 
 AM-88 assigns exactly six distinct supported qualities to every training stable
 ID using its frozen seed/version and outcome-independent balanced cyclic rule:
-50,814 nominal attempts. Both plans are metadata-only and neither is F0
-authorization. Owner audit of AM-88 is the next action. Do not materialize,
-train, score, run pass two or start Pascal while it awaits audit.
+50,814 nominal attempts. Both plans remain immutable metadata-only authorities.
+The owner independently accepted AM-88 and authorized **F0 only** on 2026-08-24.
+F0 is GREEN and frozen at
+`results/baseline/g8_f/f0_execution_authorization.json` (authorization
+`g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`,
+file SHA-256 `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`).
+It binds source commit `c437ff80eebd464ee7b256f2e69240a7d2f514a8`, the exact AM-87/AM-88
+identities, `local_4060_cu130`, the local lock/runtime/codec identities and the
+zero F1 prefix. Verify it with:
+
+```
+.venv/bin/python tools/verify_g8_f_f0.py --live-runtime
+.venv/bin/python tools/run_g8_f_f1.py --preflight \
+  --f0-authorization results/baseline/g8_f/f0_execution_authorization.json
+```
+
+F0 does not authorize or start F1. The production CLI refuses `--start` without
+a later owner-issued F1 launch authorization bound to these exact F0 bytes and
+source commit. No production training image or real F1 JPEG2000 invocation was
+used at F0; only synthetic, explicitly non-scientific fixture tests ran.
 
 ## Exact outputs
 
@@ -43,7 +60,7 @@ artifacts for G8_G.
 
 ## Checkpoint sequence
 
-F0 verify/open; F1 materialize and verify training-only corpus; F2 freeze
+F0 verify/open (**done and frozen; F1 zero**); F1 materialize and verify training-only corpus (**requires separate owner/operator launch**); F2 freeze
 training sources/config and preflight; F3 train with checkpoint/resume; F4
 freeze and verify checkpoint/provenance/compute; F5 score validation; F6 run
 pass two once with distinct scorer; F7 freeze pass-two outputs, mutations, full
@@ -58,8 +75,10 @@ single immutable completion record; never retry it as a new pass.
 
 ## Prohibited work
 
-No validation image enters training; no test access; no pass-one mutation; no
-third pass; no ratio adjudication or fallback; no G8_G command. Validation
+Until a separate F1 owner/operator launch is issued, no production image may
+enter the materializer and no real JPEG2000 F1 call may occur. No validation
+image enters training; no test access; no pass-one mutation; no third pass; no
+ratio adjudication or fallback; no G8_G command. Validation
 scoring begins only after training is frozen. Later phases may not reinterpret
 corpus membership, scorer identity, checkpoint provenance, or pass-two state.
 
@@ -75,9 +94,10 @@ pass and two-pass termination.
 
 ## Verification commands
 
-First verify immutable AM-87 support and independently reproduce AM-88's exact
-50,814-pair digests, global/class balance and six assignments per training ID.
-At F1, verify the corpus split, exact assigned-attempt coverage, typed-
+First verify immutable AM-87 support, independently reproduce AM-88's exact
+50,814-pair digests, global/class balance and six assignments per training ID,
+and authenticate the F0 artifact. At a separately authorized F1, verify the
+corpus split, exact assigned-attempt coverage, typed-
 infeasibility omissions without resampling, and absence of validation/test IDs
 or substitutions; then verify
 checkpoint lineage and resume equivalence, compute/accounting records,
@@ -99,3 +119,7 @@ and G8_G G0 next.
 `G8_F INCOMPLETE — RESUME AT <checkpoint and exact command>`
 
 `G8_F HOLD — <precise blocking condition>`
+
+Current checkpoint verdict:
+
+`F0 GREEN — G8_F EXECUTION CONTRACT/AUTHORIZATION FROZEN; F1 NOT STARTED; SEPARATE OWNER/OPERATOR LAUNCH REQUIRED.`

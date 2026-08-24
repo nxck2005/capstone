@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-23 · **Phase:** **G8_E is GREEN and CLOSED through E7. The
+**Last updated:** 2026-08-24 · **Phase:** **G8_F/F0 is GREEN and frozen; F1 is not started and requires a separate owner/operator launch. G8_E is GREEN and CLOSED through E7. The
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -36,10 +36,16 @@ sampler plan `g8fsamplerplan-d6d64ead5295b93c2a73aefd5f0719dd438bd6c0425286a33a3
 (file SHA-256 `eca85a9891bcf2054e132e5fc277430d2c85962a78f8438c9da0604d98447e23`)
 assigns exactly six distinct supported qualities per training image, 50,814
 attempts total, with global and per-class quality-count range at most one. It
-materialized zero objects and authorizes nothing. Next: **owner audit of AM-88,
-then a separate narrowly scoped G8_F/F0 authorization only**; do not materialize
-the training corpus, fine-tune any classifier, run pass two, invoke fallback,
-adjudicate ratios or access test.**
+materialized zero objects itself. The owner independently accepted AM-88 and
+authorized F0 only. Frozen F0 authorization
+`g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`
+(file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`)
+binds source commit `c437ff80eebd464ee7b256f2e69240a7d2f514a8` and profile
+`local_4060_cu130`. F1 counters and runtime remain zero/absent. Next:
+**a separate deliberate owner/operator F1 launch using the exact F0
+authorization**; until then do not materialize the training corpus, invoke real
+F1 JPEG2000, fine-tune any classifier, run pass two, invoke fallback, adjudicate
+ratios or access test.**
 
 **2026-08-23 G8_E E5–E7 closeout (COMPLETE):** the takeover prompt was the
 owner's explicit E5–E7 authorization. Prerequisites were re-authenticated, not
@@ -67,8 +73,8 @@ range 0–1, duplicate pairs 0, validation/test IDs 0. Ordered/set pair SHA-256:
 all unexpected failures HOLD. No F1 benchmark ran; existing planning basis
 scales to 6.10 h expected / 7.03 h maximum-window extrapolations and 5.08 GB
 expected / 5.86 GB maximum storage. Plan `g8fsamplerplan-d6d64ead…`, audit:
-`audit/g8-f-balanced-sampler-am88-2026-08-24.md`. Owner audit and separate F0
-authorization remain next.
+`audit/g8-f-balanced-sampler-am88-2026-08-24.md`. The owner audit accepted
+AM-88; F0 is now frozen and a separate F1 launch remains next.
 
 **2026-08-23 G8_F / BR-12 breadth repair (AM-87 SUPPORT FROZEN; CARTESIAN MULTIPLICITY SUPERSEDED BY AM-88):**
 The old “preregistered feasible quality band” was proven non-executable after
@@ -193,7 +199,7 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-corpus-plan-owner-audit-f0-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=immutable-zero-coverage-history; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f1-separate-owner-operator-launch; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f0-green-f1-zero; runtime_state=completed-production-state; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
@@ -270,15 +276,14 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** G8_E is GREEN and closed through E7 (terminal verifier
-`tools/verify_g8_e_complete.py`). AM-87's complete support is preserved and
-AM-88's balanced metadata-only G8_F sampler plan is frozen and independently
-reproducible; execution is zero. The next action belongs to the OWNER: audit
-`results/baseline/g8_f/am88_sampler_plan.json` and its protocol-repair record,
-then — only if accepted — issue a separate narrowly scoped G8_F/F0 authorization. Do
-not materialize the training-only artifact corpus, fine-tune any classifier,
-run pass two, invoke fallback, adjudicate a ratio, access test, rerun any
-completed campaign, or touch preserved history without that authorization.
+**Next-session task:** F0 is GREEN and frozen; verify with
+`tools/verify_g8_f_f0.py`. AM-87 support and AM-88 assignments remain immutable,
+and F1 execution is zero. The next action belongs to the OWNER/OPERATOR: issue a
+separate F1 launch authorization bound to the exact F0 artifact, then deliberately
+launch F1 using the command recorded there. Until that separate action, do not
+materialize the training-only artifact corpus, invoke production JPEG2000,
+fine-tune any classifier, run pass two, invoke fallback, adjudicate a ratio,
+access test, rerun any completed campaign, or touch preserved history.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -298,8 +303,8 @@ does not, it is wrong and this block is right.**
 | W4 · PB_2C | complete |
 | W4 · PB_3 | complete |
 | G-8 classical validation work | **complete — G8_E GREEN and closed through E7: E2 COMPLETE/VERIFIED at 288000/288000 on `confessor`, E3/E4 COMPLETE/VERIFIED, E5 pass one EXECUTED EXACTLY ONCE and frozen (378/378 cells), E6 lineage frozen, E7 verifier PASS; local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
-| G-8 · corrected G8_F corpus plan | **frozen, execution zero — AM-87 support remains 120 qualities/8,469 train IDs; AM-88 sampler `g8fsamplerplan-d6d64ead…` assigns 6/image = 50,814 attempts with exact global/class balance; no materialization/training/pass two/test** |
-| G-8 · G8_F owner audit / F0 authorization | **next — owner audits `results/baseline/g8_f/am88_sampler_plan.json`; F0 requires a separate authorization after acceptance; do not start Pascal or materialize/train/run pass two/access test** |
+| G-8 · corrected G8_F corpus plan | **frozen — AM-87 support remains 120 qualities/8,469 train IDs; AM-88 sampler `g8fsamplerplan-d6d64ead…` assigns 6/image = 50,814 attempts with exact global/class balance** |
+| G-8 · G8_F F0 authorization | **GREEN/frozen — `g8ff0auth-92189865…`, SHA `17a88e36…`, F1 source `c437ff80…`, profile `local_4060_cu130`; F1/materialization/inference/optimizer/pass-two/test all zero; next is separate owner/operator F1 launch** |
 | BR-4 validation sweep | pass one complete/frozen; artifact-finetuned pass two not started |
 | G-8 | unresolved |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
