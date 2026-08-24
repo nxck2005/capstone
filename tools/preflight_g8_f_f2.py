@@ -44,7 +44,12 @@ def main() -> int:
     args = parser.parse_args()
     if args.batches < 5:
         parser.error("--batches must be at least 5")
-    profile = authenticate_execution_profile(PROFILE_ID, device=args.device, config_hash=f2_recipe_sha256())
+    profile = authenticate_execution_profile(
+        PROFILE_ID,
+        device=args.device,
+        config_hash=f2_recipe_sha256(),
+        require_openjpeg=False,
+    )
     if profile["git_dirty"]:
         raise RuntimeError("preflight requires a clean checkout")
     started = time.monotonic()
