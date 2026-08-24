@@ -304,7 +304,7 @@ def test_f0_cli_cannot_start_without_separate_f1_owner_artifact() -> None:
             "tools/run_g8_f_f1.py",
             "--start",
             "--f0-authorization",
-            "results/baseline/g8_f/f0_v2_execution_authorization.json",
+            "results/baseline/g8_f/f0_v3_execution_authorization.json",
         ],
         capture_output=True,
         text=True,

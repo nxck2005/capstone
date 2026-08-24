@@ -36,18 +36,24 @@ from baseline.g8_f_sampler_plan import (
 from config.execution_profiles import authenticate_execution_profile, profile_definition
 from config.params import REPO_ROOT, get
 
-SCHEMA_VERSION = 2
-ARTIFACT_ROLE = "g8_f_f0_v2_execution_authorization"
-AUTHORIZATION_PREFIX = "g8ff0v2auth-"
-AUTHORIZATION_PATH = REPO_ROOT / "results/baseline/g8_f/f0_v2_execution_authorization.json"
+SCHEMA_VERSION = 3
+ARTIFACT_ROLE = "g8_f_f0_v3_execution_authorization"
+AUTHORIZATION_PREFIX = "g8ff0v3auth-"
+AUTHORIZATION_PATH = REPO_ROOT / "results/baseline/g8_f/f0_v3_execution_authorization.json"
 V1_AUTHORIZATION_PATH = REPO_ROOT / "results/baseline/g8_f/f0_execution_authorization.json"
 V1_AUTHORIZATION_ID = "g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4"
 V1_FILE_SHA256 = "17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94"
 V1_SOURCE_COMMIT = "c437ff80eebd464ee7b256f2e69240a7d2f514a8"
+V2_AUTHORIZATION_PATH = REPO_ROOT / "results/baseline/g8_f/f0_v2_execution_authorization.json"
+V2_AUTHORIZATION_ID = "g8ff0v2auth-dbcac1f4dcf76238a4222629e590372004f5dad3e4fb1316e28b6fd0b93c6f31"
+V2_FILE_SHA256 = "b14691ca26b6086d9b8e08b563027047cdba114b438311208fe6d413f5c29ce9"
+V2_SOURCE_COMMIT = "b1ee63d95de4fe86b9758ae90dbbb7b428a63635"
 RUNTIME_ROOT = REPO_ROOT / "results/baseline/g8_f/runtime"
 F1_LAUNCH_AUTHORIZATION_PATH = REPO_ROOT / "results/baseline/g8_f/f1_launch_authorization.json"
-PROFILE_ID = "local_4060_cu130"
+PROFILE_ID = "confessor_pascal_cu126"
 DEVICE = "cuda:0"
+SELECTED_GPU_NAME = "NVIDIA TITAN Xp"
+SELECTED_GPU_UUID = "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a"
 SPEC_PATH = REPO_ROOT / "spec/SPEC.md"
 PARAMS_PATH = REPO_ROOT / "spec/params.generated.yaml"
 MANIFEST_PATH = REPO_ROOT / "data/manifests/imagenette160.csv"
@@ -192,6 +198,42 @@ def verify_f0_v1_historical(path: Path = V1_AUTHORIZATION_PATH) -> dict[str, Any
     return value
 
 
+def verify_f0_v2_historical(path: Path = V2_AUTHORIZATION_PATH) -> dict[str, Any]:
+    """Authenticate immutable F0-v2 as pre-relocation, zero-coverage history."""
+
+    raw = path.read_bytes()
+    _require(sha256_bytes(raw) == V2_FILE_SHA256, "historical F0-v2 file SHA-256 differs")
+    try:
+        value = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise G8FF0Error(f"historical F0-v2 is invalid JSON: {exc}") from None
+    _require(raw == rendered_json(value), "historical F0-v2 is not canonical rendered JSON")
+    body = dict(value)
+    authorization_id = body.pop("authorization_id", None)
+    _require(authorization_id == V2_AUTHORIZATION_ID, "historical F0-v2 authorization ID differs")
+    _require(authorization_id == "g8ff0v2auth-" + sha256_bytes(canonical_json(body)), "historical F0-v2 content identity differs")
+    _require(value.get("schema_version") == 2 and value.get("artifact_role") == "g8_f_f0_v2_execution_authorization", "historical F0-v2 header differs")
+    _require(value.get("source", {}).get("intended_f1_source_commit") == V2_SOURCE_COMMIT, "historical F0-v2 source commit differs")
+    _require(value.get("execution", {}).get("execution_profile_id") == "local_4060_cu130", "historical F0-v2 profile differs")
+    _require(value.get("protected_starting_state", {}).get("f1_started") is False, "historical F0-v2 was not zero-prefix")
+    _require(value.get("protected_starting_state", {}).get("materialized_artifact_objects") == 0, "historical F0-v2 production coverage was nonzero")
+    _require(value.get("supersession", {}).get("prior_authorization", {}).get("authorization_id") == V1_AUTHORIZATION_ID, "historical F0-v2 does not bind F0-v1")
+    verify_f0_v1_historical()
+    for entry in value["source"]["closure"]:
+        try:
+            committed = subprocess.run(
+                ["git", "show", f"{V2_SOURCE_COMMIT}:{entry['path']}"],
+                cwd=REPO_ROOT,
+                check=True,
+                capture_output=True,
+                timeout=GIT_TIMEOUT_SECONDS,
+            ).stdout
+        except (OSError, subprocess.SubprocessError) as exc:
+            raise G8FF0Error(f"cannot authenticate historical F0-v2 source {entry['path']}: {exc}") from None
+        _require(len(committed) == entry["bytes"] and sha256_bytes(committed) == entry["sha256"], f"historical F0-v2 source binding differs: {entry['path']}")
+    return value
+
+
 def _protocol_hash(source_commit: str) -> str:
     value = {
         "source_commit": source_commit,
@@ -212,8 +254,9 @@ def _protocol_hash(source_commit: str) -> str:
 def build_f0_authorization(*, source_commit: str, authorization_date: str) -> dict[str, Any]:
     """Construct F0 only after authenticating the live destination and zero state."""
 
-    _require(authorization_date == "2026-08-24", "F0-v2 authorization date differs from owner action")
+    _require(authorization_date == "2026-08-24", "F0-v3 authorization date differs from owner action")
     verify_f0_v1_historical()
+    verify_f0_v2_historical()
     _require(_git("rev-parse", "HEAD") == source_commit, "generation HEAD is not the intended F1 source commit")
     _require(not _git("status", "--porcelain", "--untracked-files=all"), "F0 authorization requires a clean source checkout")
     _require(not RUNTIME_ROOT.exists(), "G8_F runtime already exists; F1 may have started")
@@ -242,6 +285,7 @@ def build_f0_authorization(*, source_commit: str, authorization_date: str) -> di
         require_openjpeg=True,
     )
     _require(live_runtime["git_commit"] == source_commit and live_runtime["git_dirty"] is False, "live profile source state differs")
+    _require(live_runtime["gpu_name"] == SELECTED_GPU_NAME and live_runtime["gpu_uuid"] == SELECTED_GPU_UUID, "selected Pascal cuda:0 TITAN Xp identity differs")
     usage = shutil.disk_usage(REPO_ROOT)
     reserve = int(_read(AM88_PATH)["compute_consequence"]["maximum_with_25_percent_safety_bytes"])
     _require(usage.free >= reserve, "execution destination lacks AM-88 storage reserve")
@@ -256,17 +300,17 @@ def build_f0_authorization(*, source_commit: str, authorization_date: str) -> di
         "schema_version": SCHEMA_VERSION,
         "artifact_role": ARTIFACT_ROLE,
         "phase": "G8_F",
-        "checkpoint": "F0-V2",
-        "status": "F0_V2_GREEN_RESUME_OBJECT_AUTHENTICATION_REPAIRED_AND_REFROZEN",
+        "checkpoint": "F0-V3",
+        "status": "F0_V3_GREEN_PASCAL_PROFILE_RELOCATION_AUTHORIZED_AND_FROZEN",
         "authorization_date": authorization_date,
         "owner_authorization": {
-            "scope": "G8_F_F0_V2_REPAIR_ONLY",
-            "basis": "owner_explicit_API_prompt_pre_F1_resume_integrity_repair",
+            "scope": "G8_F_F0_V3_PASCAL_PROFILE_RELOCATION_ONLY",
+            "basis": "owner_explicit_API_prompt_pre_F1_confessor_pascal_relocation",
             "permitted": [
                 "authenticate_and_freeze_production_identities_and_prerequisites",
-                "establish_the_F1_execution_contract_and_handoff",
+                "establish_the_Pascal_F1_execution_contract_and_handoff",
+                "supersede_F0_v2_before_F1_without_changing_scientific_protocol",
                 "mark_G8_F_ready_for_a_separate_F1_launch",
-                "supersede_F0_v1_before_F1_and_refreeze_repaired_source",
             ],
             "not_permitted": [
                 "materialize_any_production_training_pair",
@@ -282,17 +326,36 @@ def build_f0_authorization(*, source_commit: str, authorization_date: str) -> di
             "separate_owner_operator_action_required": True,
         },
         "supersession": {
-            "prior_authorization": {
+            "f0_v1": {
                 "path": str(V1_AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
                 "authorization_id": V1_AUTHORIZATION_ID,
                 "file_sha256": V1_FILE_SHA256,
                 "intended_f1_source_commit": V1_SOURCE_COMMIT,
+                "state": "superseded_before_F1",
+                "reason": "incomplete_resume_and_referenced_object_authentication",
+                "production_coverage": 0,
+                "f1_started": False,
             },
-            "state": "superseded_before_F1",
-            "reason": "incomplete_resume_and_referenced_object_authentication",
-            "prior_production_coverage": 0,
-            "prior_f1_started": False,
-            "scientific_protocol_changed": False,
+            "f0_v2": {
+                "path": str(V2_AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
+                "authorization_id": V2_AUTHORIZATION_ID,
+                "file_sha256": V2_FILE_SHA256,
+                "intended_f1_source_commit": V2_SOURCE_COMMIT,
+                "execution_profile_id": "local_4060_cu130",
+                "state": "superseded_before_F1",
+                "reason": "owner_selected_eligible_execution_profile_relocation_local_4060_cu130_to_confessor_pascal_cu126",
+                "production_coverage": 0,
+                "f1_started": False,
+                "scientific_protocol_changed": False,
+            },
+            "active": {
+                "authorization_version": "F0-v3",
+                "execution_profile_id": PROFILE_ID,
+                "device": DEVICE,
+                "gpu_name": SELECTED_GPU_NAME,
+                "gpu_uuid": SELECTED_GPU_UUID,
+                "state": "active_before_F1",
+            },
         },
         "source": {
             "intended_f1_source_commit": source_commit,
@@ -356,9 +419,11 @@ def build_f0_authorization(*, source_commit: str, authorization_date: str) -> di
             "live_runtime_authentication": live_runtime,
             "sole_writer_host": profile["scientific_writer_host"],
             "runtime_root": str(RUNTIME_ROOT.relative_to(REPO_ROOT)),
-            "runtime_root_existed_at_f0_v2": False,
+            "selected_gpu_name": SELECTED_GPU_NAME,
+            "selected_gpu_uuid": SELECTED_GPU_UUID,
+            "runtime_root_existed_at_f0_v3": False,
             "f1_launch_authorization_path": str(F1_LAUNCH_AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
-            "f1_launch_authorization_existed_at_f0_v2": False,
+            "f1_launch_authorization_existed_at_f0_v3": False,
         },
         "storage_preflight": {
             "destination": str(REPO_ROOT),
@@ -384,7 +449,9 @@ def build_f0_authorization(*, source_commit: str, authorization_date: str) -> di
         "protected_starting_state": {
             "f0_v1_previously_authorized": True,
             "f0_v1_superseded_before_f1": True,
-            "f0_v2_authorized_by_this_artifact": True,
+            "f0_v2_previously_authorized": True,
+            "f0_v2_superseded_before_f1": True,
+            "f0_v3_authorized_by_this_artifact": True,
             "f1_launch_authorized": False,
             "f1_started": False,
             "g8_f_execution_count": 0,
@@ -398,9 +465,9 @@ def build_f0_authorization(*, source_commit: str, authorization_date: str) -> di
             "real_f1_jpeg2000_invocations": 0,
             "scientific_coverage": 0,
         },
-        "next_action": "OWNER/OPERATOR LAUNCH OF F1 USING THIS EXACT F0-V2 AUTHORIZATION",
-        "later_launch_command": ".venv/bin/python tools/run_g8_f_f1.py --start --f0-authorization results/baseline/g8_f/f0_v2_execution_authorization.json --f1-launch-authorization results/baseline/g8_f/f1_launch_authorization.json --runtime-root results/baseline/g8_f/runtime",
-        "terminal_statement": "F0-V2 GREEN - RESUME/OBJECT AUTHENTICATION REPAIRED AND EXECUTION AUTHORIZATION REFROZEN; F1 REMAINS ZERO AND REQUIRES A SEPARATE OWNER LAUNCH.",
+        "next_action": "OWNER/OPERATOR LAUNCH OF F1 USING THIS EXACT PASCAL F0-V3 AUTHORIZATION",
+        "later_launch_command": ".venv-pascal/bin/python tools/run_g8_f_f1.py --start --f0-authorization results/baseline/g8_f/f0_v3_execution_authorization.json --f1-launch-authorization results/baseline/g8_f/f1_launch_authorization.json --runtime-root results/baseline/g8_f/runtime",
+        "terminal_statement": "F0-V3 GREEN - PASCAL EXECUTION-PROFILE RELOCATION AUTHORIZED AND FROZEN BEFORE F1; F1 REMAINS ZERO AND REQUIRES A SEPARATE OWNER LAUNCH.",
     }
     body["authorization_id"] = AUTHORIZATION_PREFIX + sha256_bytes(canonical_json(body))
     return body
@@ -421,24 +488,44 @@ def verify_f0_authorization(
     authorization_id = body.pop("authorization_id", None)
     _require(authorization_id == AUTHORIZATION_PREFIX + sha256_bytes(canonical_json(body)), "F0 authorization ID differs")
     _require(value.get("schema_version") == SCHEMA_VERSION and value.get("artifact_role") == ARTIFACT_ROLE, "F0 authorization header differs")
-    _require(value.get("status") == "F0_V2_GREEN_RESUME_OBJECT_AUTHENTICATION_REPAIRED_AND_REFROZEN", "F0-v2 is not green/frozen")
-    _require(value["owner_authorization"]["scope"] == "G8_F_F0_V2_REPAIR_ONLY", "owner authorization scope differs")
-    _require(value["owner_authorization"]["f1_launch_authorized"] is False, "F0-v2 improperly authorizes F1 launch")
-    _require(value["next_action"] == "OWNER/OPERATOR LAUNCH OF F1 USING THIS EXACT F0-V2 AUTHORIZATION", "F0-v2 next action differs")
+    _require(value.get("status") == "F0_V3_GREEN_PASCAL_PROFILE_RELOCATION_AUTHORIZED_AND_FROZEN", "F0-v3 is not green/frozen")
+    _require(value["owner_authorization"]["scope"] == "G8_F_F0_V3_PASCAL_PROFILE_RELOCATION_ONLY", "owner authorization scope differs")
+    _require(value["owner_authorization"]["f1_launch_authorized"] is False, "F0-v3 improperly authorizes F1 launch")
+    _require(value["next_action"] == "OWNER/OPERATOR LAUNCH OF F1 USING THIS EXACT PASCAL F0-V3 AUTHORIZATION", "F0-v3 next action differs")
     verify_f0_v1_historical()
+    verify_f0_v2_historical()
     _require(value["supersession"] == {
-        "prior_authorization": {
+        "f0_v1": {
             "path": str(V1_AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
             "authorization_id": V1_AUTHORIZATION_ID,
             "file_sha256": V1_FILE_SHA256,
             "intended_f1_source_commit": V1_SOURCE_COMMIT,
+            "state": "superseded_before_F1",
+            "reason": "incomplete_resume_and_referenced_object_authentication",
+            "production_coverage": 0,
+            "f1_started": False,
         },
-        "state": "superseded_before_F1",
-        "reason": "incomplete_resume_and_referenced_object_authentication",
-        "prior_production_coverage": 0,
-        "prior_f1_started": False,
-        "scientific_protocol_changed": False,
-    }, "F0-v1 supersession record differs")
+        "f0_v2": {
+            "path": str(V2_AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
+            "authorization_id": V2_AUTHORIZATION_ID,
+            "file_sha256": V2_FILE_SHA256,
+            "intended_f1_source_commit": V2_SOURCE_COMMIT,
+            "execution_profile_id": "local_4060_cu130",
+            "state": "superseded_before_F1",
+            "reason": "owner_selected_eligible_execution_profile_relocation_local_4060_cu130_to_confessor_pascal_cu126",
+            "production_coverage": 0,
+            "f1_started": False,
+            "scientific_protocol_changed": False,
+        },
+        "active": {
+            "authorization_version": "F0-v3",
+            "execution_profile_id": PROFILE_ID,
+            "device": DEVICE,
+            "gpu_name": SELECTED_GPU_NAME,
+            "gpu_uuid": SELECTED_GPU_UUID,
+            "state": "active_before_F1",
+        },
+    }, "F0-v3 supersession chain differs")
 
     protocol = value["protocol"]
     _require(protocol["am87_support_plan"]["plan_id"] == AM87_PLAN_ID and protocol["am87_support_plan"]["sha256"] == AM87_PLAN_FILE_SHA256, "F0 AM-87 binding differs")
@@ -459,17 +546,22 @@ def verify_f0_authorization(
     _require(value["data"]["training_manifest"]["sha256"] == MANIFEST_SHA256 and value["data"]["validation_ids"] == value["data"]["test_ids"] == 0, "F0 data membership differs")
     _require(value["codec"]["codec_configuration_id"] == CODEC_CONFIGURATION_ID and value["codec"]["configuration_hash"] == CODEC_CONFIGURATION_HASH, "F0 codec identity differs")
     _require(value["execution"]["execution_profile_id"] == PROFILE_ID and value["execution"]["lock_file_sha256"] == profile_definition(PROFILE_ID)["lock_file_sha256"], "F0 execution profile/lock differs")
+    _require(value["execution"]["device"] == DEVICE, "F0 selected CUDA device differs")
+    _require(value["execution"]["selected_gpu_name"] == SELECTED_GPU_NAME and value["execution"]["selected_gpu_uuid"] == SELECTED_GPU_UUID, "F0 selected Pascal GPU differs")
+    _require(value["execution"]["live_runtime_authentication"]["gpu_name"] == SELECTED_GPU_NAME and value["execution"]["live_runtime_authentication"]["gpu_uuid"] == SELECTED_GPU_UUID, "F0 live Pascal GPU binding differs")
     _require(value["protected_starting_state"] == {
         "f0_v1_previously_authorized": True,
         "f0_v1_superseded_before_f1": True,
-        "f0_v2_authorized_by_this_artifact": True,
+        "f0_v2_previously_authorized": True,
+        "f0_v2_superseded_before_f1": True,
+        "f0_v3_authorized_by_this_artifact": True,
         "f1_launch_authorized": False,
         "f1_started": False,
         "g8_f_execution_count": 0,
         **ZERO_COUNTERS,
         "production_worker_running": False,
         "confessor_started": False,
-    }, "F0-v2 protected starting state differs")
+    }, "F0-v3 protected starting state differs")
 
     for section_name in ("protocol", "data", "codec", "prerequisites"):
         section = value[section_name]
@@ -496,13 +588,14 @@ def verify_f0_authorization(
     reserve = value["storage_preflight"]["required_with_25_percent_reserve_bytes"]
     _require(value["storage_preflight"]["sufficient"] is True and value["storage_preflight"]["filesystem_available_bytes"] >= reserve, "recorded F0 storage preflight is insufficient")
     if require_zero_prefix:
-        _require(not (REPO_ROOT / value["execution"]["runtime_root"]).exists(), "F1 runtime exists; F0-v2 opening is no longer zero-prefix")
-        _require(not (REPO_ROOT / value["execution"]["f1_launch_authorization_path"]).exists(), "F1 launch authorization exists; F0-v2 no longer represents the pre-launch state")
+        _require(not (REPO_ROOT / value["execution"]["runtime_root"]).exists(), "F1 runtime exists; F0-v3 opening is no longer zero-prefix")
+        _require(not (REPO_ROOT / value["execution"]["f1_launch_authorization_path"]).exists(), "F1 launch authorization exists; F0-v3 no longer represents the pre-launch state")
 
     if live_runtime:
         actual = authenticate_execution_profile(PROFILE_ID, device=DEVICE, config_hash=value["source"]["protocol_config_sha256"], require_openjpeg=True)
         recorded = value["execution"]["live_runtime_authentication"]
         for key in ("execution_profile_id", "lock_file_sha256", "python_version", "torch_version", "torch_cuda_build", "torchvision_version", "numpy_version", "sionna_version", "openjpeg_version", "gpu_name", "gpu_uuid", "gpu_compute_capability"):
             _require(actual[key] == recorded[key], f"live F0 runtime differs: {key}")
+        _require(actual["gpu_name"] == SELECTED_GPU_NAME and actual["gpu_uuid"] == SELECTED_GPU_UUID, "live selected Pascal cuda:0 identity differs")
         _require(shutil.disk_usage(REPO_ROOT).free >= reserve, "live F1 destination no longer has required storage reserve")
     return value

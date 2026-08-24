@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Preflight or separately owner-launch the exact frozen G8_F/F1 assignment.
 
-F0-v2 alone is intentionally insufficient for ``--start``. This command requires
+F0-v3 alone is intentionally insufficient for ``--start``. This command requires
 an additive owner-issued F1 launch authorization whose identity binds the active
-F0-v2 file and repaired source commit. F0-v2 runs only ``--preflight`` and never
-calls this command's production loop.
+Pascal F0-v3 file and repaired source commit. F0-v3 runs only ``--preflight`` and
+never calls this command's production loop.
 """
 
 from __future__ import annotations
@@ -116,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
                 "status": "PASS",
                 "authorization_id": value["authorization_id"],
                 "f1_started": False,
-                "verdict": "F0-V2 GREEN - F1 REQUIRES SEPARATE OWNER/OPERATOR LAUNCH",
+                "verdict": "F0-V3 PASCAL GREEN - F1 REQUIRES SEPARATE OWNER/OPERATOR LAUNCH",
             }, sort_keys=True))
             return 0
         _require(args.f1_launch_authorization is not None, "--start requires a separate owner-issued F1 launch authorization")
