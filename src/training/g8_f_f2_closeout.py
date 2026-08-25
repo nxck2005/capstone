@@ -72,7 +72,7 @@ ASSIGNMENT_IDS_SHA256 = "6c149d26c03ca1655dc3ec3e4d467e9e96941382b0791b93f925516
 F1_ORDINALS_SHA256 = "278b63d8e551bd102e2dd16f42226c16f1d97a2317eb3197f1a13b1ac07a3275"
 TRAINING_HISTORY_SHA256 = "4d246fa83f8cfae86f4aebe4e425df61da8127116faf4b7ce5570bbda909566f"
 VALIDATION_HISTORY_SHA256 = "ee5ad0861456aaf0a1d66752cf858bfd0fefcdd9b0b5047ac8eb57920cc11b00"
-CHECKPOINT_MANIFEST_SHA256 = "bfc7c91452089894947da39dd31491b18a618fc3fe3435aceb0146f8cb73df2c"
+CHECKPOINT_MANIFEST_SHA256 = "0508d311eadb50f62ddb1b991af081576e3bea165e9ae8e2251935bf396d5b96"
 CLASS_MAPPING = {
     "n01440764": 0, "n02102040": 1, "n02979186": 2, "n03000684": 3,  # literal-ok: frozen Imagenette class mapping
     "n03028079": 4, "n03394916": 5, "n03417042": 6, "n03425413": 7,  # literal-ok: frozen Imagenette class mapping
@@ -410,9 +410,43 @@ def build_freeze(completion: Mapping[str, Any], completion_sha256: str) -> dict[
 
 
 def _verify_completion_object(value: Mapping[str, Any]) -> None:
+    authorization = verify_authorization()
+    _require(_sha(AUTHORIZATION_PATH) == AUTHORIZATION_SHA256, "F2 authorization file SHA-256 differs")
     _verify_id(value, field="completion_id", prefix=COMPLETION_PREFIX)
     _require(value.get("artifact_role") == "g8_f_f2_completion" and value.get("status") == "GREEN_AUTHENTICATED_TRAINING_CLOSED", "F2 completion role/status differs")
-    _require(value.get("authorization", {}).get("file_sha256") == AUTHORIZATION_SHA256, "F2 completion authorization differs")
+    _require(
+        value.get("authorization") == {
+            "path": str(AUTHORIZATION_PATH.relative_to(REPO_ROOT)),
+            "authorization_id": authorization["authorization_id"],
+            "file_sha256": AUTHORIZATION_SHA256,
+        },
+        "F2 completion authorization differs",
+    )
+    _require(value.get("scientific_source_commit") == authorization["source_commit"], "F2 completion scientific source differs")
+    _require(value.get("source_closure") == authorization["source_closure"], "F2 completion source closure differs")
+    _require(value.get("source_closure_sha256") == sha256_bytes(canonical_json(authorization["source_closure"])), "F2 completion source-closure digest differs")
+    _require(value.get("execution_profile") == authorization["execution_profile"], "F2 completion execution profile differs")
+    _require(
+        value.get("f1_corpus") == {
+            "completion_id": F1_COMPLETION_ID,
+            "completion_sha256": F1_COMPLETION_SHA256,
+            "corpus_id": F1_CORPUS_ID,
+            "manifest_sha256": F1_MANIFEST_SHA256,
+        },
+        "F2 completion F1 corpus lineage differs",
+    )
+    _require(
+        value.get("g1_parent") == {
+            "adjudication_id": G1_ADJUDICATION_ID,
+            "adjudication_sha256": G1_ADJUDICATION_SHA256,
+            "checkpoint_id": G1_CHECKPOINT_ID,
+            "checkpoint_sha256": G1_CHECKPOINT_SHA256,
+            "checkpoint_bytes": G1_CHECKPOINT_BYTES,
+            "classifier_variant": "clean",
+            "altered": False,
+        },
+        "F2 completion G1 parent lineage differs",
+    )
     _require(value.get("recipe") == f2_recipe() and value.get("recipe_sha256") == f2_recipe_sha256(), "F2 completion recipe differs")
     dataset = value.get("training_dataset", {})
     _require(dataset.get("assignment_rows") == EXPECTED_ASSIGNMENTS and dataset.get("materialized_rows") == EXPECTED_MATERIALIZED and dataset.get("omitted_rows") == EXPECTED_OMISSIONS and dataset.get("unique_reconstruction_sha256") == EXPECTED_UNIQUE_RECONSTRUCTIONS, "F2 completion data counts differ")

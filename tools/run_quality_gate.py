@@ -45,6 +45,7 @@ def _static_commands() -> tuple[list[str], ...]:
             "print('G8_F F0 offline authentication PASS:', value['authorization_id'])",
         ],
         _python_tool("tools/closeout_g8_f_f1.py", "verify"),
+        _python_tool("tools/closeout_g8_f_f2.py", "verify"),
         _python_tool("tools/gen_g8_campaign_manifest.py", "--check"),
         _python_tool("tools/gen_g8_bler_tooling_contract.py", "--check"),
         _python_tool("tools/verify_g8_bler_tooling_contract.py"),

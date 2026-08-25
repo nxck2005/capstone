@@ -120,10 +120,11 @@ imports only `build_packet_plan` from it and that function is byte-identical. Th
 **pinned to exact bytes**, so the next edit re-raises the HOLD, and `verify_g2_adjudication.py`
 prints `runtime_readjudicated=[...]` so it is never silent.
 
-**Current action: finish launch-bearing quality/Actions/parity gates for the
-owner-authorized F2-only run before BR-12 optimizer step 1. S_F2 `9e57a3db…`,
-the green Pascal preflight, and exact authorization `g8ff2auth-7e828968…` are
-frozen; F1 remains GREEN, authenticated and closed.**
+**Current action: F2 is GREEN, authenticated and frozen; training is closed.
+The single authorized BR-12 run completed 20/20 epochs and 6,900 optimizer
+steps, selecting zero-based epoch 17 at 0.890 validation top-1 under the frozen
+rule. Obtain separate owner authorization before F3 cached validation rescoring
+or BR-4 pass two; do not perform either under F2 closeout authority.**
 `instructions/RESUME.md` is the single operational cursor. G8_C is closed at
 3,213/3,213 and G8_D D0–D7 are GREEN. The original, first-corrected and
 corrected-v2 E1 epochs remain immutable `superseded-before-data` history.
@@ -156,9 +157,10 @@ and bounded smoke. G8_C froze its measured-only Pascal table, G8_D froze the
 validation-measurement tooling, and G8_E completed its worker-successor
 validation campaign and exactly-once pass one. The G8_F support ambiguity is
 resolved by AM-87, its practical balanced sampler by AM-88, and F1 corpus
-materialization is complete/closed. The F2-only source/contract are frozen with optimizer steps zero; only final
-launch gates remain before the single detached run. F3/pass two and every later
-stage remain closed.
+materialization is complete/closed. F2 is complete/closed with exactly 44,039
+assignment rows per epoch, 20 epochs, 6,900 optimizer steps, and the frozen
+artifact-finetuned scorer at checkpoint `468710ba…`; the clean G1 scorer remains
+independently frozen. F3/pass two and every later stage remain closed.
 
 A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
 corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.
@@ -170,8 +172,9 @@ unchanged at 47409/288000. The containment and separation proof are recorded in
 The committed G-2 BLER evidence characterises one physical-layer identity at
 four SNR points per modulation. It is a conformance artifact, remains valid for
 G-2, and **must not be extrapolated** into the BR-4 characterization table.
-The training-only artifact corpus, classifier fine-tune, pass two and
-adjudication remain future G8_F/G work.
+The training-only artifact corpus and classifier fine-tune are complete and
+frozen. Cached artifact-classifier rescoring, pass two and adjudication remain
+future G8_F/G work behind separate authorization.
 The selection entry point remains closed unless an explicit typed
 `G8Authorization` is constructed; no tracked non-test file constructs one.
 **PB_3C** corrected the `classical_fixed_mod` curve to *read* `params.baseline.core_modulation`

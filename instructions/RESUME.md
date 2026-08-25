@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-launch-bearing-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-source-auth-preflight-frozen-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f3-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-green-artifact-classifier-frozen; runtime_state=f2-worker-closed-checkpoints-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -80,8 +80,13 @@ hole, foreign, duplicate, replacement or resampling. Completion
 `g8ff1completion-b5bb834a…`, corpus `g8fcorpus-adeae507…` and manifest SHA
 `792cce92…` are frozen; worker exit 0 and free lock were proved. Bulky data
 remains under `/home/nick/projects/capstone/results/baseline/g8_f/runtime` on
-`confessor`. F2/classifier training, inference/pass two, fallback, ratio
-adjudication, learned training and test remain closed.
+`confessor`. **F2 is GREEN/CLOSED:** its detached worker exited 0 after exactly
+20 epochs and 6,900 optimizer steps over all 44,039 materialized assignment rows
+per epoch; the frozen rule selected zero-based epoch 17 at 0.890 validation
+top-1. Completion `g8ff2completion-659cf7d…`, classifier freeze
+`g8fclassifierfreeze-fb8a410f…` and checkpoint `468710ba…` authenticate the
+second scorer identity without altering G1. F3 inference/pass two, fallback,
+ratio adjudication, learned training and test remain closed.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -178,10 +183,12 @@ verify|merge|aggregate`); custody record
 (`g8ecloseout-1422804d…`). E5/pass one subsequently executed exactly once and
 is immutable; do not rerun it. AM-87/AM-88 are frozen, active Pascal F0-v3 and
 the separate F1-only owner launch remain frozen, and exact F1 is GREEN/CLOSED
-at 50,814/50,814. The owner has separately authorized F2/BR-12 fine-tuning
-only after exact source/profile/contract and all pre-launch gates freeze; the
-implementation step is in progress with optimizer and F2 validation counters
-zero. F3/pass two and all later stages remain closed.**
+at 50,814/50,814. **F2/BR-12 is GREEN and CLOSED:** the single authorized
+fine-tune completed 20/20 epochs and 6,900 optimizer steps, with no resume or
+extra step; zero-based epoch 17 was selected solely by the frozen
+validation-top-1/max/earliest-tie rule at 0.890. Its artifact-classifier freeze
+preserves G1 as the distinct clean scorer. F3/pass two and all later stages
+remain closed pending separate owner authorization.**
 The authenticated Pascal campaign is
 `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca` on
 `confessor_pascal_cu126`. The old local campaign is immutable superseded history
@@ -219,11 +226,17 @@ resolved selection-source identities, and must refuse to resume or adjudicate if
 **Changing the tie-break order after the sweep starts invalidates the campaign.**
 
 **Everything in all four phases (PA, PB_1, PB_2, PB_3) is `done`, PB_3C is
-complete, and G8_C C3-C7 is `done`.** The full BR-4 validation sweep and
-operating-point decision have not run, no bandwidth ratio has been selected,
-nothing has been trained or fine-tuned, λ is uncalibrated, ER-9 is unimplemented,
-and the test split is sealed until G-12 at W11. G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
-The corrected-v3 G8_E E1 epochs are pre-data history; the partial local campaign was owner-aborted at 47409/288000 and the additive worker-successor epoch completed verified E2–E4 on `confessor` (288000/288000; E3 exact set; E4 measured accuracy objects); E5/pass one awaits its own owner authorization, and training, fallback, ratio adjudication and test access remain forbidden. PR-1 (literature review), PR-2 (Gantt) and PR-9
+complete, and G8_C C3-C7 is `done`.** BR-4 pass one is complete/frozen, while
+artifact-classifier cached rescoring/pass two and the operating-point decision
+have not run; no bandwidth ratio has been selected. The authorized BR-12 F2
+classifier fine-tune is complete/frozen, while λ is uncalibrated, ER-9 is
+unimplemented, and the test split is sealed until G-12 at W11. G8_D D0–D7 are
+complete and GREEN. The corrected-v3 G8_E E1 epochs are pre-data history; the
+partial local campaign was owner-aborted at 47409/288000, the additive
+worker-successor epoch completed verified E2–E4 on `confessor` (288000/288000;
+E3 exact set; E4 measured accuracy objects), and E5 pass one executed exactly
+once. Further training, F3/pass two, fallback, ratio adjudication and test access
+remain forbidden without their separate gates. PR-1 (literature review), PR-2 (Gantt) and PR-9
 (deployment dossier and author/guide acknowledgement) remain outstanding
 programme deliverables.
 
@@ -876,12 +889,14 @@ for completed E2–E7. No G8_E execution may be rerun or widened. AM-87 resolves
 the BR-12 breadth hold at protocol level with frozen AM-87/AM-88 plans; the
 owner accepted AM-88, F0-v3 remains GREEN/frozen, and F1 is now GREEN/CLOSED.
 The owner-authorized F2-only source is frozen/pushed at
-`9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca`; live Pascal/F1 authentication and
-the read-only/synthetic preflight are green (0.8081 h projected), and exact F2
-authorization `g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900`
-is frozen before optimizer step 1. Optimizer steps and F2 checkpoint-selection
-validation inference remain zero while launch-bearing commit/Actions/parity gates run. F3 cached-sweep rescoring/pass two, fallback, ratio adjudication, learned
-training and test access remain prohibited.
+`9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca`, and exact F2 authorization
+`g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900`
+remains the immutable pre-step boundary. The detached Pascal worker exited 0
+after 20/20 epochs and exactly 6,900 optimizer steps; no resume or extra step
+occurred. The frozen validation-top-1/max/earliest-tie rule selected zero-based
+epoch 17 at 0.890. F2 checkpoint-selection validation inference totals 20,000
+images as authorized. F3 cached-sweep rescoring/pass two, fallback, ratio
+adjudication, learned training and test access remain zero/prohibited.
 
 | Step | State | Exact restart / evidence |
 |---|---|---|
@@ -903,7 +918,7 @@ training and test access remain prohibited.
 | G8_F F0-v1 | superseded-before-F1 / preserved | Authorization `g8ff0auth-92189865202e4b6cb400a0a86cee101b8ad8a7bdf5ea9d5a78ae96ab49a365b4`, file SHA `17a88e36201d42b3b2ace190b0b5b5f3b34aeb3afb48f8a84e26db159b86de94`, source `c437ff80eebd464ee7b256f2e69240a7d2f514a8`; incomplete resume/object authentication, prior production coverage 0; bytes/history unchanged. |
 | G8_F F0-v3 / F1 launch | done / frozen history | Active authorization `g8ff0v3auth-e261cd53d3bb9fdee1cdde0778f36c2a686e17507b660ff8ec42891bde102497`, file SHA `391cd81553ed2de869ddf3ad1f0a401523781289342eefaddc7ad27cb005517e`, source `6f06aa81ae2d624bae0d406904982f3a61278d93`, `confessor_pascal_cu126` / `cuda:0` TITAN Xp; F0-v1/v2 immutable superseded-before-F1; separate F1-only launch `g8ff1launch-a88fc237…`, SHA `4265b696…`; F1 completed without widening that scope. |
 | G8_F F1 corpus closeout | done / GREEN | Writer start `2026-08-24T14:58:12Z`, terminal result `2026-08-24T17:52:51.578087Z`, detached exit 0, tmux gone, lock free. Exact authenticated requests/results/prefix 50,814/50,814; materialized 44,039 / typed infeasible 6,775 / other 0; unique codestream/reconstruction objects 42,933/42,932. Completion `g8ff1completion-b5bb834a1767f639406e5589022e813a624a4f8ccd9ad4885c455c10fce24412` (file SHA `d4f9d44a01dbf53de96fb9126364d651ca999b35117b7d51c55f76f1a13d888b`), corpus `g8fcorpus-adeae50779a45e9e856af3ff47e84671b237b344867a562978599170912135c2`, manifest SHA `792cce92bd8a72f99b7ddee58511d1b5b7e908a4d0cd4178bbb08b9e1ba2d144`. Discord transient HOLDs classified as operational sampling races; authenticated final message delivered HTTP 204 and timer disabled. F1 cannot rerun or be altered. |
-| G8_F F2 source/contract/launch | authorization frozen / final gates / zero optimizer | **Phase-start SHA:** `1bca1fb2e3455a4b424766c6b3296af2911e72ef`; **S_F2:** `9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca` (pushed). AM-89 exact recipe, assignment-row dataset, exact G1 initialization, deterministic trainer, durable epoch-atomic resume, and read-only Discord monitor are frozen. Worker-local live F1 object verification PASS; Pascal profile/UUID/lock PASS. Preflight `results/baseline/g8_f/f2_preflight.json` SHA `9688dc77999712582bfe90302e64a146d3157b4afa5fffb778bdf99a59703446`: logical 44,039, unique reconstructions 42,932, effective 2.3876 steps/s, 144.50 s/epoch, 0.8081 h total, 1.613 GiB peak. Authorization `g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900`, file SHA `fbe1252cc2b20cbd46007f9e534468b697abca260c1f74bfee0ea904af14cb3a`, is frozen with all protected counters zero. Exact restart: commit/push authorization/preflight/docs/tests, run all four quality profiles plus focused F2 and exact-SHA Actions, establish local/origin/confessor clean parity, deploy monitor and detached wrapper, then launch only `tools/run_g8_f_f2.py --start`. F3/pass two/fallback/learned/test remain closed. |
+| G8_F F2 source/contract/training/closeout | done / GREEN / training closed | **Phase-start SHA:** `1bca1fb2e3455a4b424766c6b3296af2911e72ef`; **S_F2:** `9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca`; launch HEAD `3b6068891772ba016448a4c978cfdd8de56bbbeb`. Authorization `g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900`, file SHA `fbe1252cc2b20cbd46007f9e534468b697abca260c1f74bfee0ea904af14cb3a`. Detached run `2026-08-24T23:58:03Z`–`2026-08-25T00:14:58.928747Z`, exit 0, no stdout/stderr, no resume: 20 epochs × 345 = 6,900 optimizer steps, extra steps 0. Dataset multiplicity is exactly 44,039 materialized F1 assignment rows per epoch, 6,775 omissions excluded, 42,932 unique reconstructions not deduplicated; validation/test training IDs 0/0. Frozen max-top-1/earliest-tie selection chose zero-based epoch 17, 890/1000 = 0.890. Selected checkpoint ID/SHA `468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1`, 89,555,403 bytes, strict load PASS, durably published under GitHub release tag `g8-f-f2-artifact-classifier-2026-08-25`. Completion `g8ff2completion-659cf7d08371fd218f6d04a3fa8abeeec09047d38178f11731232a39adf82a10`, file SHA `62706399a349bfdaf6971b1cc0972bfb56aa1e00dc66f4ee3124afbe35d748ed`; freeze `g8fclassifierfreeze-fb8a410f71999fc0ca9e8d8c1510d27f166f9b93a0ebd27153c54d6c01c408be`, file SHA `505017081582f80390a537edf4580f457f93ba096df17a838dfd049712793fbc`. Discord exact completion HTTP 204; F2 timer disabled, webhook injection retained. F2 checkpoint-selection validation = 20,000; F3/pass two/fallback/learned/test = 0. Exact next action: obtain separate owner authorization for F3 cached G8_E validation rescoring/pass two; do not perform it under F2 authority. |
 
 ## G8_A — contract, structural enumeration, state and preflight
 

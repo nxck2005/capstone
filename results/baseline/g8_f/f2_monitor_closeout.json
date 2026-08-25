@@ -1,0 +1,59 @@
+{
+  "artifact_role": "g8_f_f2_discord_monitor_closeout",
+  "bindings": {
+    "closeout_source": {
+      "bytes": 3259,
+      "path": "/home/nick/g8-discord-monitor/closeout_g8f_f2.py",
+      "sha256": "d619598a3fc857bca257e8bf3496add92bb2b0c12a092be7a7cf445cab129a2a"
+    },
+    "log": {
+      "bytes": 21104,
+      "path": "/home/nick/g8-discord-monitor/g8f-f2-monitor.log",
+      "sha256": "08b15ef376ad483d69e1ba5d6f29a9bdbd1aa8b3d171c12ce57f431acd96a0f2"
+    },
+    "service_unit": {
+      "bytes": 553,
+      "path": "/home/nick/.config/systemd/user/g8-discord-monitor.service",
+      "sha256": "8bd2cb68eb6307021f84799fb5f7d26875c02aca0c4d5e102324db6f14ed9451"
+    },
+    "state": {
+      "bytes": 393,
+      "path": "/home/nick/g8-discord-monitor/f2_closeout_state.json",
+      "sha256": "e483f9ecab642fbdfb6db77d34b39e5eefcf17a4a569ae1178584ee1fc790364"
+    },
+    "timer_unit": {
+      "bytes": 194,
+      "path": "/home/nick/.config/systemd/user/g8-discord-monitor.timer",
+      "sha256": "1a05c01f71de5c1217ba9fc4fe53418db563843e2eecafb1fdfdb25b7819ad56"
+    }
+  },
+  "completion_id": "g8ff2completion-659cf7d08371fd218f6d04a3fa8abeeec09047d38178f11731232a39adf82a10",
+  "delivery": {
+    "contains": {
+      "best_epoch_zero_based": 17,
+      "best_validation_top1": 0.89,
+      "elapsed_seconds": 1015.928747,
+      "epochs": "20/20",
+      "f3_pass_two_closed": true,
+      "optimizer_steps": 6900,
+      "selected_checkpoint_id": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+      "status": "F2 COMPLETE"
+    },
+    "delivered_at": "2026-08-25T13:12:00Z",
+    "http_status": 204,
+    "message_sha256": "08a970d43c4c2a0d9d6bf61311bfb04d11625839a30012c4757573dde84e9ce5"
+  },
+  "freeze_id": "g8fclassifierfreeze-fb8a410f71999fc0ca9e8d8c1510d27f166f9b93a0ebd27153c54d6c01c408be",
+  "monitor_closeout_id": "g8fmonitorcloseout-648d4a9596b705f4863baf6eeefa9b1a43c33eaaf8753c93af01ff678dae502d",
+  "schema_version": 1,
+  "secret_disclosure": false,
+  "status": "COMPLETE",
+  "transition": {
+    "active_f2_polling": false,
+    "automatic_f3_launch": false,
+    "service_active": "inactive",
+    "timer_active": "inactive",
+    "timer_enabled": "disabled",
+    "webhook_configuration_deleted": false
+  }
+}

@@ -108,15 +108,22 @@ Compact evidence is `results/baseline/g8_f/f1_completion.json`
 `/home/nick/projects/capstone/results/baseline/g8_f/runtime`. The transient
 Discord HOLD alerts were non-atomic read-only sampling races; final authenticated
 closeout was delivered and F1 polling disabled without deleting webhook
-configuration. The owner has authorized F2/BR-12 artifact-classifier
-fine-tuning only. Scientific source `9e57a3db…`, live Pascal/F1 authentication,
-the 0.8081-hour preflight and exact authorization `g8ff2auth-7e828968…` are
-frozen before optimizer step 1; final launch-bearing quality/Actions/parity gates
-remain, with optimizer steps zero.
-F3 inference/pass two, fallback, ratio adjudication, learned training and test
-remain closed.
+configuration. The owner-authorized F2/BR-12 artifact-classifier fine-tune is **GREEN and
+CLOSED**. The stopped `confessor` worker exited 0 after 20/20 epochs and exactly
+6,900 optimizer steps over all 44,039 materialized F1 assignment rows per epoch;
+6,775 typed omissions were not trained, and the 42,932 unique reconstructions
+were not used to deduplicate assignment multiplicity. The preregistered
+validation-top-1/max/earliest-tie rule selected zero-based epoch 17 at 890/1000.
+Completion `g8ff2completion-659cf7d…` and classifier freeze
+`g8fclassifierfreeze-fb8a410f…` bind selected checkpoint
+`468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1`;
+the checkpoint is durably hosted through the existing GitHub Release policy and
+loads strictly. F2 checkpoint-selection validation inference is complete as
+authorized (20,000 images); F3 cached-sweep rescoring, pass two, fallback, ratio
+adjudication, learned training and test remain zero and closed. Do not rerun F2
+or add optimizer steps.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f2-launch-bearing-gates; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-source-auth-preflight-frozen-zero-optimizer; runtime_state=f1-worker-closed-corpus-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f3-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-green-artifact-classifier-frozen; runtime_state=f2-worker-closed-checkpoints-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified
@@ -166,7 +173,7 @@ resume the old RTX4060 suffix, ingest predecessor results, or alter completed
 runtime evidence. This prohibition does not block the separately authorized
 G8_F/F1 sole writer bound to active Pascal F0-v3.
 G8_C remains green and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete.
-G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and was authorized E2–E4-only (commit `493d656`); production E2 completed at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) and E3/E4 are complete and verified (closeout provenance `g8ecloseout-1422804d…`; corrected entry points `tools/closeout_g8_e_v3s.py`). G8_E is GREEN and closed through E7 with pass one executed exactly once and frozen; do not rerun it or widen its scope. AM-87 freezes the complete G8_F quality support, AM-88 freezes the balanced six-variant-per-image sampler, Pascal F0-v3 is GREEN/frozen, and the separate F1 owner launch authorization is frozen. F1 is closed and must not rerun. The owner-authorized F2-only pre-launch implementation is in progress under AM-89 with optimizer steps zero; F3 and every later stage remain closed. C3-C7 closeout is now bound by
+G8_E E0 and corrected-v3 E1 are complete with zero validation coverage at their freeze times. The partial local_4060_cu130 E2 campaign was owner-aborted at exact prefix 47409/288000 (`PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`, evidence preserved, locally excluded runtime). The additive worker-successor epoch `results/baseline/g8_e/e2_confessor_successor/` is frozen (contract `g8econtractcorrectedv3s-2831f47d…`, campaign `g8e-v3s-85354d3d…`, source commit `ed0b92a3…`) and was authorized E2–E4-only (commit `493d656`); production E2 completed at exactly 288000/288000 on `confessor` (`confessor_pascal_cu126`, `cuda:0` TITAN Xp) and E3/E4 are complete and verified (closeout provenance `g8ecloseout-1422804d…`; corrected entry points `tools/closeout_g8_e_v3s.py`). G8_E is GREEN and closed through E7 with pass one executed exactly once and frozen; do not rerun it or widen its scope. AM-87 freezes the complete G8_F quality support, AM-88 freezes the balanced six-variant-per-image sampler, Pascal F0-v3 is GREEN/frozen, and the separate F1 owner launch authorization is frozen. F1 is closed and must not rerun. The AM-89 F2 artifact-classifier run is GREEN, authenticated and frozen after exactly 20 epochs/6,900 optimizer steps; zero-based epoch 17 is the preregistered best checkpoint at 0.890 validation top-1. F2 training is closed; F3 and every later stage remain closed pending separate owner authorization. C3-C7 closeout is now bound by
 `results/baseline/g8_pascal_successor/successor_bler_merge_report.json`,
 `successor_bler_table.json` and `successor_closeout_provenance.json`: 153 curves,
 3,213 measured points and 16,065,000 trials. The merge ID is

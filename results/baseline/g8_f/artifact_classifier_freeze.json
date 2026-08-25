@@ -1,0 +1,100 @@
+{
+  "architecture": {
+    "class_count": 10,
+    "class_mapping": {
+      "n01440764": 0,
+      "n02102040": 1,
+      "n02979186": 2,
+      "n03000684": 3,
+      "n03028079": 4,
+      "n03394916": 5,
+      "n03417042": 6,
+      "n03425413": 7,
+      "n03445777": 8,
+      "n03888257": 9
+    },
+    "name": "resnet18",
+    "parameter_shape_sha256": "13ed53ce03531381d08029291d51dba7637ae7ead743515c8e4444b501fc7d9b",
+    "strict_load": true,
+    "synthetic_forward_shape": [
+      1,
+      10
+    ]
+  },
+  "artifact_role": "artifact_finetuned_br12_reference_classifier_freeze",
+  "authorization_id": "g8ff2auth-7e828968cdb4cbb382d780290623151e618a3c09562ac199f8005fb3c0676900",
+  "authorization_sha256": "fbe1252cc2b20cbd46007f9e534468b697abca260c1f74bfee0ea904af14cb3a",
+  "best_epoch": 17,
+  "best_validation_top1": 0.89,
+  "checkpoint_bytes": 89555403,
+  "checkpoint_external_artifact": {
+    "asset_name": "artifact-finetuned-imagenette160-epoch17-468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1.pt",
+    "bytes": 89555403,
+    "provider": "github_release",
+    "release_tag": "g8-f-f2-artifact-classifier-2026-08-25",
+    "repository": "nxck2005/capstone",
+    "sha256": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1"
+  },
+  "checkpoint_file_sha256": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+  "checkpoint_id": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+  "checkpoint_loadability": "PASS",
+  "checkpoint_repository_path": "checkpoints/artifact_classifier/epoch-17.pt",
+  "classifier_variant": "artifact_finetuned",
+  "distinct_scorers": [
+    {
+      "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+      "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+      "classifier_variant": "clean",
+      "scorer_identity": "g1_clean_trained_reference_classifier"
+    },
+    {
+      "checkpoint_id": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+      "checkpoint_sha256": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+      "classifier_variant": "artifact_finetuned",
+      "scorer_identity": "br12_artifact_finetuned_reference_classifier"
+    }
+  ],
+  "ended_at": "2026-08-25T00:14:58.928747Z",
+  "epochs": 20,
+  "execution_profile": {
+    "amp": false,
+    "device": "cuda:0",
+    "execution_profile_id": "confessor_pascal_cu126",
+    "gpu_name": "NVIDIA TITAN Xp",
+    "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "host": "confessor",
+    "lock_file": "requirements-pascal.lock",
+    "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
+  },
+  "f1_corpus_id": "g8fcorpus-adeae50779a45e9e856af3ff47e84671b237b344867a562978599170912135c2",
+  "f1_corpus_sha256": "792cce92bd8a72f99b7ddee58511d1b5b7e908a4d0cd4178bbb08b9e1ba2d144",
+  "f2_completion": {
+    "completion_id": "g8ff2completion-659cf7d08371fd218f6d04a3fa8abeeec09047d38178f11731232a39adf82a10",
+    "file_sha256": "62706399a349bfdaf6971b1cc0972bfb56aa1e00dc66f4ee3124afbe35d748ed",
+    "path": "results/baseline/g8_f/f2_completion.json"
+  },
+  "freeze_id": "g8fclassifierfreeze-fb8a410f71999fc0ca9e8d8c1510d27f166f9b93a0ebd27153c54d6c01c408be",
+  "optimizer_steps": 6900,
+  "parent_g1_checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+  "parent_g1_checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+  "protected_state": {
+    "f3_cached_sweep_rescoring": 0,
+    "fallback": 0,
+    "learned_training": 0,
+    "pass_three": 0,
+    "pass_two": 0,
+    "ratio_adjudication": 0,
+    "test_access": 0
+  },
+  "recipe_sha256": "74138c519e4e28187d6e6b140b9985e3bc33d48ff41695f6466520b30efbbb48",
+  "run_exit_state": "EXITED_0_COMPLETE_NO_RESUME",
+  "schema_version": 1,
+  "scientific_source_commit": "9e57a3db93f33f4c737e4fc155ed4d78bafaf6ca",
+  "scorer_identity": "br12_artifact_finetuned_reference_classifier",
+  "started_at": "2026-08-24T23:58:03Z",
+  "status": "FROZEN_TRAINING_CLOSED_F3_CLOSED",
+  "test_access": 0,
+  "train_seed": 0,
+  "training_dataset_logical_rows_sha256": "6f089ac46c62290b2ac709e5419ba2976ba23eefe74e43e63b7af2703878defd",
+  "validation_history_sha256": "ee5ad0861456aaf0a1d66752cf858bfd0fefcdd9b0b5047ac8eb57920cc11b00"
+}

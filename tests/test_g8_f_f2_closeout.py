@@ -15,6 +15,7 @@ from training.g8_f_f2_closeout import (
     _verify_id,
     identified,
     select_best,
+    verify_compact,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +66,13 @@ def test_closeout_protected_boundary_is_exactly_zero() -> None:
         "learned_training": 0,
         "test_access": 0,
     }
+
+
+def test_committed_closeout_freeze_and_monitor_authenticate() -> None:
+    completion, freeze = verify_compact()
+    assert completion["completion_id"].startswith(COMPLETION_PREFIX)
+    assert freeze["checkpoint_id"] == BEST_RELEASE["sha256"]
+    assert completion["protected_state"] == freeze["protected_state"] == PROTECTED
 
 
 def test_closeout_has_no_training_or_later_phase_entry_point() -> None:
