@@ -31,6 +31,7 @@ RUNTIME_ROOT = v3s.V3S_RUNTIME_ROOT
 F3_ROOT = REPO_ROOT / "results/baseline/g8_f/f3"
 CACHE_MANIFEST_PATH = F3_ROOT / "cache_manifest.json"
 CONTRACT_PATH = F3_ROOT / "f3_contract.json"
+SUPERSEDED_CONTRACT_PATH = F3_ROOT / "f3_contract_v1_superseded_before_inference.json"
 AGGREGATE_PATH = F3_ROOT / "f3_scoring_aggregate.json"
 REMOTE_SCORE_DIRNAME = "f3_artifact_scores"
 F2_FREEZE_PATH = REPO_ROOT / "results/baseline/g8_f/artifact_classifier_freeze.json"
@@ -291,12 +292,13 @@ def build_contract(*, source_commit: str, runtime_root: Path = RUNTIME_ROOT) -> 
         "aggregation_rule": "integer correct-count sum over exactly 1000 authority-ordered binary rows per structural identity; no omissions or substitutions",
         "output_schema": {"unit_schema_version": 1, "unit_path": f"{REMOTE_SCORE_DIRNAME}/<measurement_identity_id>.json", "aggregate_path": str(AGGREGATE_PATH.relative_to(REPO_ROOT))},
         "protected_starting_state": {"f3_cached_sweep_rescoring": 0, "pass_two": 0, "pass_three": 0, "fallback_training": 0, "learned_training": 0, "test_access": 0},
+        "supersedes_before_inference": None if not SUPERSEDED_CONTRACT_PATH.exists() else {"path": str(SUPERSEDED_CONTRACT_PATH.relative_to(REPO_ROOT)), "file_sha256": sha256_file(SUPERSEDED_CONTRACT_PATH), "reason": "v1 clean-checkout verifier required worker-only inventory bytes; no inference or science occurred"},
         "inference_only": {"model_eval": True, "torch_inference_mode": True, "optimizer": "absent", "checkpoint_writes": "evidence_metadata_only", "random_eval_transforms": False, "jpeg2000_encoding": False},
     }
     return identified(body, field="contract_id", prefix=CONTRACT_PREFIX)
 
 
-def verify_contract(path: Path = CONTRACT_PATH) -> dict[str, Any]:
+def verify_contract(path: Path = CONTRACT_PATH, *, require_inventory: bool = False) -> dict[str, Any]:
     raw = path.read_bytes()
     value = json.loads(raw)
     require(raw == rendered_json(value), "F3 contract is not canonical")
@@ -310,7 +312,8 @@ def verify_contract(path: Path = CONTRACT_PATH) -> dict[str, Any]:
     cache = json.loads(cache_raw)
     require(value["cache_manifest"]["id"] == cache["cache_manifest_id"] and value["cache_manifest"]["file_sha256"] == sha256_bytes(cache_raw), "F3 cache-manifest binding differs")
     inventory = Path(cache["inventory_path"])
-    require(inventory.is_file() and sha256_file(inventory) == value["cache_manifest"]["inventory_sha256"], "F3 inventory differs")
+    if require_inventory:
+        require(inventory.is_file() and sha256_file(inventory) == value["cache_manifest"]["inventory_sha256"], "F3 inventory differs")
     freeze = _json(F2_FREEZE_PATH)
     require(value["artifact_classifier"]["freeze_id"] == freeze["freeze_id"] and value["artifact_classifier"]["checkpoint_sha256"] == freeze["checkpoint_file_sha256"], "F3 artifact-scorer binding differs")
     return value
@@ -397,7 +400,7 @@ def _score_unit(*, structural: Mapping[str, Any], e4_object: Mapping[str, Any], 
 
 
 def run_f3(*, runtime_root: Path, checkpoint_path: Path, device: str = "cuda:0", batch_size: int = DEFAULT_BATCH_SIZE) -> None:
-    contract = verify_contract(); cache = _json(CACHE_MANIFEST_PATH); inventory = _load_inventory(cache)
+    contract = verify_contract(require_inventory=True); cache = _json(CACHE_MANIFEST_PATH); inventory = _load_inventory(cache)
     require(str(Path(runtime_root).resolve()) == cache["runtime_root"], "F3 runtime root differs from contract cache")
     require(device == contract["device"] and batch_size > 0, "F3 device/batch size differs")
     require(checkpoint_path.stat().st_size == contract["artifact_classifier"]["checkpoint_bytes"] and sha256_file(checkpoint_path) == contract["artifact_classifier"]["checkpoint_sha256"], "F3 artifact checkpoint bytes differ")

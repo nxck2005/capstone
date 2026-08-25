@@ -55,4 +55,10 @@ Selected new-science profile before first F3 inference:
    adjudication. Pass three is structurally refused.
 
 No F3 inference or pass-two selection had occurred when this ledger was first
-published.
+published. Cache preflight later authenticated the exact live universe with
+zero inference. Its first contract is preserved as superseded-before-inference:
+the contract itself was sound, but its clean-checkout verifier required the
+worker-only 22-MiB identity inventory. The additive successor makes that live
+inventory requirement execution-only while retaining its digest in portable
+compact evidence; no source/cache/scorer/policy/science changed and inference
+remained zero.
