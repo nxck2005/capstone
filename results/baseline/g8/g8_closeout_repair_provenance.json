@@ -1,0 +1,40 @@
+{
+  "artifact_content_sha256": "7206c563f3d6a44fb13d7bfaefe109307192331988e422c3324739db4f094cb3",
+  "artifact_role": "g8_closeout_only_additive_repair_provenance",
+  "defect": "closeout preimplementation applied G-8 format-overhead non-degeneracy to every low-SNR selected outage/robust candidate instead of the ER-3 error-free ceiling quality and the ratio-level feasible LDPC-rate universe; authorization verification also compared historical launch sources to HEAD rather than authenticating the bound Git image",
+  "pass_two_completion_file_sha256": "1c9bedfbd93704f4b680252843095c897f2467779aca09649fa70b99a0d9fa89",
+  "pass_two_completion_id": "g8fpass2complete-ff2a2c31f0c16cbecddcd0343648fcd51ee45ccb2247a7c2f21394c71182382b",
+  "pass_two_source_commit": "ad083ec9c8eacce2cb9360f46268f0d1d7ea4508",
+  "repair": "authenticate authorization source rows from the exact launch-bearing Git commit; assess more-than-one-rate feasibility among ratio-level emitted configurations whose format overhead is below half budget; separately require the selected error-free ceiling quality itself to meet the half-budget criterion",
+  "repair_id": "g8closeoutrepair-cbce84d506909b9e5b2ce598faa1b89ccce4729ecf00d06dbe48d1aeb62c3e83",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "bler_change": 0,
+    "candidate_change": 0,
+    "composition_change": 0,
+    "f3_inference_rerun": 0,
+    "fallback_training": 0,
+    "learned_training": 0,
+    "pass_three": 0,
+    "pass_two_rerun": 0,
+    "test_access": 0,
+    "tie_break_change": 0
+  },
+  "source_rows": [
+    {
+      "launch_bearing_bytes": 16814,
+      "launch_bearing_sha256": "7cf1576d9be189af176e072d2ad431509e56cf8e664ff0e91f64141d2c99126e",
+      "path": "src/baseline/g8_f_pass_two.py",
+      "repaired_bytes": 17160,
+      "repaired_sha256": "e5d81cac3fca67d6fef65c2285954f9cd0b1f60215a9a3d9bfed2b9f4c422347"
+    },
+    {
+      "launch_bearing_bytes": 27390,
+      "launch_bearing_sha256": "cfe635e5eab28f1c87fd8cd4a5a4dfc7e397eb414eb92663426f6b4fec5e605c",
+      "path": "src/baseline/g8_g_closeout.py",
+      "repaired_bytes": 28900,
+      "repaired_sha256": "d7d67ec3370e8cb94e27546b743b87dfd6b92bab925cafc22f9b5ad0e938b496"
+    }
+  ],
+  "status": "REPAIRED_BEFORE_G8_ADJUDICATION_NO_SELECTION_CHANGE"
+}

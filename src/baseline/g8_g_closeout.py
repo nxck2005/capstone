@@ -36,6 +36,7 @@ G8_D_HANDOFF_PATH = REPO_ROOT / "results/baseline/g8_d/d7_handoff.json"
 G8_E_HANDOFF_PATH = REPO_ROOT / "results/baseline/g8_e/e2_confessor_successor/e7_handoff.json"
 F1_COMPLETION_PATH = REPO_ROOT / "results/baseline/g8_f/f1_completion.json"
 F2_COMPLETION_PATH = REPO_ROOT / "results/baseline/g8_f/f2_completion.json"
+REPAIR_PROVENANCE_PATH = ROOT / "g8_closeout_repair_provenance.json"
 INPUT_PREFIX = "g8ginput-"
 CLOSEOUT_PREFIX = "g8closeout-"
 MANIFEST_PREFIX = "g8gsource-"
@@ -78,6 +79,10 @@ def _verify_identified(value: Mapping[str, Any], *, field: str, prefix: str) -> 
 
 def _head() -> str:
     return subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO_ROOT, check=True, capture_output=True, text=True).stdout.strip()
+
+
+def _closeout_source_commit() -> str:
+    return subprocess.run(["git", "log", "-1", "--format=%H", "--", "src/baseline/g8_g_closeout.py"], cwd=REPO_ROOT, check=True, capture_output=True, text=True).stdout.strip()
 
 
 def _clean_validation_vector() -> tuple[list[str], np.ndarray, dict[str, Any]]:
@@ -275,15 +280,24 @@ def _h2_freeze(state: Mapping[str, Any], headline: str) -> dict[str, Any]:
 def build_closeout() -> dict[str, Any]:
     inputs = verify_adjudication_input(); state = pass_two.verify_state(); comparison = pass_two.verify_comparison(); context = pass_one.authenticate_inputs()
     ratios = _selected_ratios(inputs)
-    selected, mapping = _selected_candidate_details(state, context)
+    selected, _ = _selected_candidate_details(state, context)
     overhead = {row["measurement_identity_id"]: row for row in inputs["overhead_by_structural"]}
     nondegenerate: list[dict[str, Any]] = []
-    for ratio in (ratios["efficiency_ratio"], ratios["crossover_ratio"]):
-        selected_at_ratio = [row for row in selected if row["ratio"] == ratio and row["mode"] == "classical_adaptive"]
-        rate_count = len({row["ldpc_rate"] for row in selected_at_ratio})
-        bad = [row for row in selected_at_ratio if not overhead[row["measurement_identity_id"]]["format_overhead_below_half_budget"]]
-        require(rate_count > 1 and not bad, f"classical non-degeneracy/format-overhead gate failed at {ratio}")
-        nondegenerate.append({"ratio": ratio, "selected_ldpc_rate_count": rate_count, "selected_ldpc_rates": sorted({row["ldpc_rate"] for row in selected_at_ratio}), "selected_cell_count": len(selected_at_ratio), "all_selected_format_overhead_below_half_budget": True, "maximum_selected_header_fraction_of_budget": max(overhead[row["measurement_identity_id"]]["maximum_header_fraction_of_budget"] for row in selected_at_ratio)})
+    structural = {row["structural_identity_id"]: row for row in context["measurement_authority"]["structural_identities"]}
+    qualities = {row["quality_id"]: row for row in inputs["quality_summary"]}
+    ceilings = {row["ratio"]: row for row in inputs["ratio_ceilings"]}
+    for ratio in dict.fromkeys((ratios["efficiency_ratio"], ratios["crossover_ratio"])):
+        # G-8 selects ratios from the error-free codec ceiling.  Its matching
+        # non-degeneracy check therefore applies to that ceiling quality and
+        # its physical aliases, not to low-SNR outage candidates that emit no
+        # codestream by design.
+        quality = qualities[ceilings[ratio]["selected_quality_id"]]
+        source_ids = [source_id for source_id in quality["source_structural_ids"] if structural[source_id]["ratio"] == ratio]
+        ceiling_overhead = [overhead[source_id] for source_id in source_ids]
+        qualifying_ids = [source_id for source_id, identity in structural.items() if identity["dataset"] == "imagenette160" and identity["ratio"] == ratio and overhead[source_id]["format_overhead_below_half_budget"]]
+        rates = sorted({structural[source_id]["ldpc_rate"] for source_id in qualifying_ids})
+        require(len(rates) > 1 and ceiling_overhead and all(row["format_overhead_below_half_budget"] for row in ceiling_overhead), f"classical ceiling non-degeneracy/format-overhead gate failed at {ratio}")
+        nondegenerate.append({"ratio": ratio, "ceiling_quality_id": quality["quality_id"], "ceiling_payload_budget_bytes": quality["identity"]["payload_budget_bytes"], "feasible_below_half_overhead_ldpc_rate_count": len(rates), "feasible_below_half_overhead_ldpc_rates": rates, "feasible_below_half_overhead_structural_count": len(qualifying_ids), "ceiling_physical_alias_count_at_ratio": len(source_ids), "all_ceiling_quality_format_overhead_below_half_budget": True, "maximum_ceiling_header_fraction_of_budget": max(row["maximum_header_fraction_of_budget"] for row in ceiling_overhead)})
     adaptive = _calls_by_key(state)[(ratios["crossover_ratio"], "classical_adaptive")]
     points = adaptive["per_snr"]
     high = points[len(points) - 1]; previous = points[len(points) - 2]
@@ -292,9 +306,9 @@ def build_closeout() -> dict[str, Any]:
     schedule = {"decision": "headline_ratio_only_full_strength_efficiency_at_sweep_strength", "full_strength_ratios": [ratios["headline_ratio"]], "one_ratio_ldpc_hours": get("compute.er1_projected_ldpc_decode_hours_one_ratio"), "two_ratio_ldpc_hours": get("compute.er1_projected_ldpc_decode_hours_two_ratios"), "per_run_cap_hours": get("compute.max_wall_clock_hours_per_run"), "total_hours_status": get("compute.er1_projected_total_hours_status"), "cost_axes": get("compute.schedule_cost_compared_as"), "reason": "two-ratio aggregate total wall clock remains unmeasured, so affordability on both required axes is not established"}
     h2 = _h2_freeze(state, ratios["headline_ratio"])
     bindings = {}
-    for name, path in {"g8_c_bler_table": G8_C_TABLE_PATH, "g8_d_handoff": G8_D_HANDOFF_PATH, "g8_e_e4": v3s.V3S_E4_PATH, "g8_e_e7": G8_E_HANDOFF_PATH, "pass_one": f3.PASS_ONE_PATH, "am87_corpus_plan": CORPUS_PLAN_PATH, "am88_sampler_plan": REPO_ROOT / "results/baseline/g8_f/am88_sampler_plan.json", "f1_completion": F1_COMPLETION_PATH, "f2_completion": F2_COMPLETION_PATH, "f2_classifier_freeze": f3.F2_FREEZE_PATH, "f3_scores": f3.AGGREGATE_PATH, "pass_two_authorization": pass_two.AUTHORIZATION_PATH, "pass_two_completion": pass_two.STATE_PATH, "pass_comparison": pass_two.COMPARISON_PATH, "adjudication_input": INPUT_PATH}.items():
+    for name, path in {"g8_c_bler_table": G8_C_TABLE_PATH, "g8_d_handoff": G8_D_HANDOFF_PATH, "g8_e_e4": v3s.V3S_E4_PATH, "g8_e_e7": G8_E_HANDOFF_PATH, "pass_one": f3.PASS_ONE_PATH, "am87_corpus_plan": CORPUS_PLAN_PATH, "am88_sampler_plan": REPO_ROOT / "results/baseline/g8_f/am88_sampler_plan.json", "f1_completion": F1_COMPLETION_PATH, "f2_completion": F2_COMPLETION_PATH, "f2_classifier_freeze": f3.F2_FREEZE_PATH, "f3_scores": f3.AGGREGATE_PATH, "pass_two_authorization": pass_two.AUTHORIZATION_PATH, "pass_two_completion": pass_two.STATE_PATH, "pass_comparison": pass_two.COMPARISON_PATH, "adjudication_input": INPUT_PATH, "closeout_repair_provenance": REPAIR_PROVENANCE_PATH}.items():
         value = _json(path); bindings[name] = {"path": str(path.relative_to(REPO_ROOT)), "id": next((value[key] for key in ("table_id", "handoff_id", "e4_id", "state_id", "plan_id", "completion_id", "freeze_id", "aggregate_id", "authorization_id", "comparison_id", "input_id") if key in value), None), "file_sha256": f3.sha256_file(path)}
-    body = {"schema_version": SCHEMA_VERSION, "artifact_role": "g8_terminal_validation_side_closeout", "status": "G8_GREEN_VALIDATION_SIDE_CLOSED", "terminal_verdict": "G8 GREEN — BR-12 ARTIFACT SCORER FROZEN; VALIDATION CACHE RE-SCORED; BR-4 PASS TWO EXECUTED EXACTLY ONCE AND FROZEN; G8 VALIDATION-SIDE OPERATING POINTS CLOSED; TEST AND LEARNED-SYSTEM TRAINING REMAIN SEALED.", "source_commit": state["source_commit"], "bindings": bindings, "policy": {"selection_policy_sha256": state["inputs"]["selection_policy_sha256"], "tie_break_order": state["tie_break_order"], "composition": "P(success)*acc_clean+(1-P(success))*acc_outage", "bler_interpolation": False}, "ratio_rule_evaluations": inputs["ratio_ceilings"], "operating_points": ratios, "upper_grid_saturation": {"ratio_checked": ratios["crossover_ratio"], "previous_snr_db": previous["snr_db"], "maximum_snr_db": high["snr_db"], "previous_expected_accuracy": previous["selected_composition"]["expected_accuracy"], "maximum_expected_accuracy": high["selected_composition"]["expected_accuracy"], "still_rising": False}, "classical_nondegeneracy": nondegenerate, "er1_strength": schedule, "br16_h2_validation_freeze": h2, "dataset_disposition": {"primary": "imagenette160", "efficiency_threshold_satisfied": True, "stl10_fallback_invoked": False}, "artifact_classifier_release": {"released_for_classical_scoring": True, "scorer": f3.verify_aggregate()["scorer"], "fallback_training": 0}, "pass_two": {"completion_id": state["completion_id"], "calls": state["call_count"], "candidate_evaluations": state["totals"]["candidates_evaluated"], "snr_cells": state["totals"]["snr_cells_with_selection"], "tie_breaks": state["totals"]["tie_breaks_applied"], "selection_terminates_after_pass": 2, "pass_three_exists": False}, "pass_one_pass_two_comparison": {"comparison_id": comparison["comparison_id"], "changed_cells": comparison["changed_cells"], "unchanged_cells": comparison["unchanged_cells"], "tie_status_changed_cells": comparison["tie_status_changed_cells"]}, "selected_operating_points": selected, "protected_counters": {"pass_one": 1, "pass_two": 1, "pass_three": 0, "f2_optimizer_steps_during_closure": 0, "fallback_training": 0, "ratio_adjudication": 1, "learned_training": 0, "test_access": 0}, "learned_blind_ratio_selection": True, "learned_result_used_for_ratio_selection": False, "learned_versus_classical_crossover_decided": False, "test_split": "SEALED", "next_gate_not_authorized": "learned-system training"}
+    body = {"schema_version": SCHEMA_VERSION, "artifact_role": "g8_terminal_validation_side_closeout", "status": "G8_GREEN_VALIDATION_SIDE_CLOSED", "closeout_source_commit": _closeout_source_commit(), "terminal_verdict": "G8 GREEN — BR-12 ARTIFACT SCORER FROZEN; VALIDATION CACHE RE-SCORED; BR-4 PASS TWO EXECUTED EXACTLY ONCE AND FROZEN; G8 VALIDATION-SIDE OPERATING POINTS CLOSED; TEST AND LEARNED-SYSTEM TRAINING REMAIN SEALED.", "source_commit": state["source_commit"], "bindings": bindings, "policy": {"selection_policy_sha256": state["inputs"]["selection_policy_sha256"], "tie_break_order": state["tie_break_order"], "composition": "P(success)*acc_clean+(1-P(success))*acc_outage", "bler_interpolation": False}, "ratio_rule_evaluations": inputs["ratio_ceilings"], "operating_points": ratios, "upper_grid_saturation": {"ratio_checked": ratios["crossover_ratio"], "previous_snr_db": previous["snr_db"], "maximum_snr_db": high["snr_db"], "previous_expected_accuracy": previous["selected_composition"]["expected_accuracy"], "maximum_expected_accuracy": high["selected_composition"]["expected_accuracy"], "still_rising": False}, "classical_nondegeneracy": nondegenerate, "er1_strength": schedule, "br16_h2_validation_freeze": h2, "dataset_disposition": {"primary": "imagenette160", "efficiency_threshold_satisfied": True, "stl10_fallback_invoked": False}, "artifact_classifier_release": {"released_for_classical_scoring": True, "scorer": f3.verify_aggregate()["scorer"], "fallback_training": 0}, "pass_two": {"completion_id": state["completion_id"], "calls": state["call_count"], "candidate_evaluations": state["totals"]["candidates_evaluated"], "snr_cells": state["totals"]["snr_cells_with_selection"], "tie_breaks": state["totals"]["tie_breaks_applied"], "selection_terminates_after_pass": 2, "pass_three_exists": False}, "pass_one_pass_two_comparison": {"comparison_id": comparison["comparison_id"], "changed_cells": comparison["changed_cells"], "unchanged_cells": comparison["unchanged_cells"], "tie_status_changed_cells": comparison["tie_status_changed_cells"]}, "selected_operating_points": selected, "protected_counters": {"pass_one": 1, "pass_two": 1, "pass_three": 0, "f2_optimizer_steps_during_closure": 0, "fallback_training": 0, "ratio_adjudication": 1, "learned_training": 0, "test_access": 0}, "learned_blind_ratio_selection": True, "learned_result_used_for_ratio_selection": False, "learned_versus_classical_crossover_decided": False, "test_split": "SEALED", "next_gate_not_authorized": "learned-system training"}
     return _identified(body, field="closeout_id", prefix=CLOSEOUT_PREFIX)
 
 
@@ -311,7 +325,7 @@ def verify_closeout(path: Path = CLOSEOUT_PATH) -> dict[str, Any]:
 def build_source_manifest() -> dict[str, Any]:
     closeout = verify_closeout()
     rows = [{"path": path, "bytes": (REPO_ROOT / path).stat().st_size, "sha256": f3.sha256_file(REPO_ROOT / path)} for path in SOURCE_PATHS]
-    body = {"schema_version": SCHEMA_VERSION, "artifact_role": "g8_g_closeout_source_manifest", "status": "FROZEN", "source_commit": closeout["source_commit"], "closeout_id": closeout["closeout_id"], "closeout_file_sha256": f3.sha256_file(CLOSEOUT_PATH), "sources": rows}
+    body = {"schema_version": SCHEMA_VERSION, "artifact_role": "g8_g_closeout_source_manifest", "status": "FROZEN", "source_commit": closeout["closeout_source_commit"], "pass_two_source_commit": closeout["source_commit"], "closeout_id": closeout["closeout_id"], "closeout_file_sha256": f3.sha256_file(CLOSEOUT_PATH), "sources": rows}
     return _identified(body, field="manifest_id", prefix=MANIFEST_PREFIX)
 
 

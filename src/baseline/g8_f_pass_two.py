@@ -126,8 +126,11 @@ def verify_authorization(path: Path = AUTHORIZATION_PATH) -> dict[str, Any]:
     require(value["status"] == "AUTHORIZED_NOT_CONSUMED" and value["scope"] == SCOPE, "pass-two authorization status/scope differs")
     require(value["pre_execution_counters"] == {"pass_two": 0, "pass_three": 0, "fallback": 0, "test_access": 0}, "pass-two pre-execution counters differ")
     for row in value["source_manifest"]:
-        path = REPO_ROOT / row["path"]
-        require(path.stat().st_size == row["bytes"] and f3.sha256_file(path) == row["sha256"], f"pass-two source bytes differ: {row['path']}")
+        # Authenticate the exact launch-bearing Git image.  Closeout-only
+        # verifier repairs after immutable pass-two publication do not rewrite
+        # that history and need not remain byte-identical at HEAD.
+        historical = subprocess.run(["git", "show", f"{value['source_commit']}:{row['path']}"], cwd=REPO_ROOT, check=True, capture_output=True).stdout
+        require(len(historical) == row["bytes"] and f3.sha256_bytes(historical) == row["sha256"], f"pass-two historical source bytes differ: {row['path']}")
     context, aggregate = _f3_context()
     require(value["f3"]["aggregate_id"] == aggregate["aggregate_id"] and value["f3"]["file_sha256"] == f3.sha256_file(f3.AGGREGATE_PATH), "pass-two F3 binding differs")
     require(value["pascal_bler_table"]["table_id"] == context["chain"]["bler_table_id"] and value["pascal_bler_table"]["file_sha256"] == context["chain"]["bler_table_sha256"], "pass-two BLER binding differs")
