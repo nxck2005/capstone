@@ -407,13 +407,10 @@ def build() -> dict[str, Any]:
     outage = json.loads((EVIDENCE_DIR / "outage_policy.json").read_text())
     summary = json.loads((EVIDENCE_DIR / "smoke_summary.json").read_text())
 
-    provisional = {}
-    for name in PROVISIONAL_OPERATING_POINTS:
-        provisional[name] = {
-            "value": get(f"bandwidth.{name}"),
-            "status": get(f"bandwidth.{name}_status"),
-            "selected_by_w4": False,
-        }
+    # W4 regeneration preserves the values that were provisional at W4 even
+    # after AM-90 resolves the live parameters at G-8.
+    historical = {"efficiency_ratio": "r_1_6", "crossover_ratio": "r_1_3", "low_ratio_operating_point": "r_1_12"}
+    provisional = {name: {"value": historical[name], "status": "provisional_until_G-8", "selected_by_w4": False} for name in PROVISIONAL_OPERATING_POINTS}
 
     return {
         "schema_version": ADJUDICATION_SCHEMA_VERSION,

@@ -142,17 +142,17 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `bandwidth.ratios.r_1_12` | 1/12 | AM-41, DEC-11, ER-3, G-8 |
 | `bandwidth.ratios.r_1_24` | 1/24 | AM-41, DEC-11, ER-3, G-8 |
 | `bandwidth.ratios.r_1_48` | 1/48 | AM-41, DEC-11, ER-3, G-8 |
-| `bandwidth.crossover_ratio` | r_1_3 | AM-26, DEC-11, ER-1, ER-3 |
-| `bandwidth.crossover_ratio_status` | provisional_until_G-8 | - |
-| `bandwidth.efficiency_ratio` | r_1_6 | AM-26, DEC-11, ER-3, ER-11 |
-| `bandwidth.efficiency_ratio_status` | provisional_until_G-8 | - |
+| `bandwidth.crossover_ratio` | r_1_6 | AM-26, AM-90, DEC-11, ER-1, ER-3 |
+| `bandwidth.crossover_ratio_status` | selected_at_G-8 | - |
+| `bandwidth.efficiency_ratio` | r_1_24 | AM-26, AM-90, DEC-11, ER-3, ER-11 |
+| `bandwidth.efficiency_ratio_status` | selected_at_G-8 | - |
 | `bandwidth.efficiency_ratio_threshold_pp` | 5 | ER-3 |
 | `bandwidth.crossover_ratio_threshold_pp` | 2 | ER-3 |
 | `bandwidth.crossover_ratio_unsatisfiable_fallback` | efficiency_ratio | AM-41, ER-3 |
 | `bandwidth.ladder_bottom_saturation_rule` | extend_downward_and_resweep | ER-3, ER-9, G-8 |
-| `bandwidth.headline_ratio` | crossover_ratio | AM-26, AM-41, BR-1, BR-16, ER-1, ER-2, ER-3, ER-11, ER-12, G-8, SR-16 |
-| `bandwidth.low_ratio_operating_point` | r_1_12 | AM-12, AM-24, BR-10, DEC-11, ER-3, ER-11, G-8 |
-| `bandwidth.low_ratio_operating_point_status` | provisional_until_G-8 | - |
+| `bandwidth.headline_ratio` | crossover_ratio | AM-26, AM-41, AM-90, BR-1, BR-16, ER-1, ER-2, ER-3, ER-11, ER-12, G-8, SR-16 |
+| `bandwidth.low_ratio_operating_point` | r_1_24 | AM-12, AM-24, AM-90, BR-10, DEC-11, ER-3, ER-11, G-8 |
+| `bandwidth.low_ratio_operating_point_status` | selected_at_G-8 | - |
 | `bandwidth.low_ratio_rule` | exactly_two_ordered_ladder_rungs_below_headline | AM-59, ER-3, G-8 |
 | `bandwidth.low_ratio_boundary_rule` | nearest_available_rung_below_headline_if_two_steps_unavailable | ER-3 |
 | `bandwidth.ceiling_definition` | error_free_codec_validation_accuracy_per_br4 | ER-3 |

@@ -31,15 +31,15 @@ Requirements extracted from [`SPEC.md`](../SPEC.md). This view is for focused re
 | `artifacts.per_image_storage` | content_addressed_release_artifact_with_committed_manifest |
 | `bandwidth.ceiling_definition` | error_free_codec_validation_accuracy_per_br4 |
 | `bandwidth.ceiling_rule` | lcb95_of_codec_ceiling_minus_clean_accuracy_at_least_negative_t |
-| `bandwidth.crossover_ratio` | r_1_3 |
+| `bandwidth.crossover_ratio` | r_1_6 |
 | `bandwidth.crossover_ratio_threshold_pp` | 2 |
 | `bandwidth.crossover_ratio_unsatisfiable_fallback` | efficiency_ratio |
-| `bandwidth.efficiency_ratio` | r_1_6 |
+| `bandwidth.efficiency_ratio` | r_1_24 |
 | `bandwidth.efficiency_ratio_threshold_pp` | 5 |
 | `bandwidth.headline_ratio` | crossover_ratio |
 | `bandwidth.ladder_bottom_saturation_rule` | extend_downward_and_resweep |
 | `bandwidth.low_ratio_boundary_rule` | nearest_available_rung_below_headline_if_two_steps_unavailable |
-| `bandwidth.low_ratio_operating_point` | r_1_12 |
+| `bandwidth.low_ratio_operating_point` | r_1_24 |
 | `bandwidth.low_ratio_rule` | exactly_two_ordered_ladder_rungs_below_headline |
 | `bandwidth.ratios` | *(see datasheet)* |
 | `bandwidth.upper_grid_saturation_check` | extend_upper_grid_if_adaptive_validation_baseline_still_rising_at_18db |

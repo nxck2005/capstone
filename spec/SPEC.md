@@ -204,17 +204,18 @@ bandwidth:
     r_1_12: "1/12"
     r_1_24: "1/24"
     r_1_48: "1/48"
-  crossover_ratio: r_1_3
-  crossover_ratio_status: provisional_until_G-8
-  efficiency_ratio: r_1_6
-  efficiency_ratio_status: provisional_until_G-8
+  # AM-90: final learned-blind G-8 selections from the frozen pass-two validation evidence.
+  crossover_ratio: r_1_6
+  crossover_ratio_status: selected_at_G-8
+  efficiency_ratio: r_1_24
+  efficiency_ratio_status: selected_at_G-8
   efficiency_ratio_threshold_pp: 5
   crossover_ratio_threshold_pp: 2
   crossover_ratio_unsatisfiable_fallback: efficiency_ratio
   ladder_bottom_saturation_rule: extend_downward_and_resweep
   headline_ratio: crossover_ratio
-  low_ratio_operating_point: r_1_12
-  low_ratio_operating_point_status: provisional_until_G-8
+  low_ratio_operating_point: r_1_24
+  low_ratio_operating_point_status: selected_at_G-8
   low_ratio_rule: exactly_two_ordered_ladder_rungs_below_headline
   low_ratio_boundary_rule: nearest_available_rung_below_headline_if_two_steps_unavailable
   ceiling_definition: error_free_codec_validation_accuracy_per_br4
@@ -1320,3 +1321,7 @@ This section is append-only in one direction: an amendment that is itself later 
 **Amendment round 19 — 2026-08-24, F1 GREEN/CLOSED and before F2 optimizer step 1.** Source: the owner-authorized F2 implementation preflight, resolving only output-affecting recipe inheritance that the existing nested recipe left open.
 
 - **AM-89** — **BR-12 fixed eight fine-tuning scalars but did not uniquely fix the parent initialization, warmup/cosine endpoint, transforms, assignment-row order, validation checkpoint selection or resume boundary.** Changed: `params.reference_classifier.artifact_finetune_recipe` is self-contained and freezes the exact G1 best clean checkpoint as parent of a distinct `artifact_finetuned` ResNet18, train seed 0, Torch SGD without Nesterov, cross-entropy, the existing keyed random-resized-crop/horizontal-flip applied to exact authenticated F1 reconstruction pixels, five-epoch linear warmup into the AM-78 zero-based epoch-start cosine schedule ending at zero, deterministic keyed permutation over all materialized assignment rows with no drop, no AMP, four workers, clean canonical Imagenette validation every epoch, maximum validation top-1 with earliest-epoch tie-break, atomic checkpointing every epoch and fail-closed epoch-boundary resume with no older-checkpoint fallback; BR-12 records that inheritance explicitly. Why: the old nested map named optimizer, LR, momentum, weight decay, schedule family, epochs, batch size and label smoothing only. Multiple output-affecting implementations could therefore comply, including random initialization, no warmup, a different cosine endpoint, clean-image substitution, deduplicated-object ordering or a different best-checkpoint rule. The narrow completion reuses the already-frozen clean-classifier controls where mathematically applicable, chooses no alternatives after observing F2 validation, and changes neither AM-87 support nor AM-88 assignments, F1 bytes, pass one, any validation artifact score, test access or another campaign. §2, §13, every verify clause, DEC-12, BR-4, BR-8, BR-12, G-8, G-12 and current hand-written documentation were re-read; at freeze, artifact-classifier optimizer steps, F2 validation inference, F3 cached-sweep rescoring, pass two, fallback, learned training and test access are all zero. Raised by: owner-authorized G8_F/F2 pre-optimizer contract audit.
+
+**Amendment round 20 — 2026-08-25, G8 validation closure.** Source: deterministic application of the already-frozen ER-3/G-8 rules to the exact pass-two evidence.
+
+- **AM-90** — **The provisional G-8 operating-point parameters are replaced by their learned-blind frozen selections.** Changed: `params.bandwidth.efficiency_ratio` resolves to `r_1_24`, `params.bandwidth.crossover_ratio` resolves to `r_1_6`, and `params.bandwidth.low_ratio_operating_point` resolves to `r_1_24`; their statuses become `selected_at_G-8`, while `params.bandwidth.headline_ratio` continues to point to `crossover_ratio` and therefore resolves to `r_1_6`. Why: the F3 artifact-scorer layer and BR-4 pass two are exact and frozen; the preregistered selection-aware paired lower bound first meets 5 pp at `r_1_24` and 2 pp at `r_1_6`, the adaptive curve is flat from 15 to 18 dB, neither bottom-ladder nor asymmetric fallback applies, and the low-ratio rule places the low point exactly two rungs below the headline. No learned-system result, test row, new candidate, BLER change, tie-break change, third pass, fallback training or prior-science rerun informed these values. Raised by: owner-authorized validation-only F3–F5 closure.

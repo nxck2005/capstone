@@ -146,8 +146,8 @@ stopped `confessor` writer completed exact authenticated prefix 50,814/50,814.
 The frozen corpus has 44,039 materialized artifacts, 6,775 typed codec
 infeasibilities and zero other outcomes. Compact completion and the exact
 50,814-row manifest live under `results/baseline/g8_f/`; bulky objects remain
-worker-local. Training, pass two, fallback, ratio adjudication and test access
-remain zero/prohibited.
+worker-local. At F1 closure, training, pass two, fallback, ratio adjudication
+and test access were zero/prohibited.
 
 W4, G8_A, G8_B, G8_C and G8_D are complete. G8_A froze the contract, policy
 bindings, 12,096 structural candidates, 3,213 required BLER work units and
@@ -160,7 +160,11 @@ resolved by AM-87, its practical balanced sampler by AM-88, and F1 corpus
 materialization is complete/closed. F2 is complete/closed with exactly 44,039
 assignment rows per epoch, 20 epochs, 6,900 optimizer steps, and the frozen
 artifact-finetuned scorer at checkpoint `468710ba…`; the clean G1 scorer remains
-independently frozen. F3/pass two and every later stage remain closed.
+independently frozen. G8 is now GREEN/CLOSED: F3 re-scored the exact historical
+288,000-row validation cache without encoding, pass two executed exactly once
+(18 calls, 8,190 evaluations, 378 cells, 95 ties, 162 changes), and AM-90 froze
+efficiency `r_1_24`, crossover/headline `r_1_6`, and low ratio `r_1_24`.
+Pass three, learned training and test access remain zero/sealed.
 
 A 2026-08-23 clean-checkout test-harness defect created a separate unauthorized
 corrected-v3 runtime at 42704/288000 in `/home/nick/projects/capstone-ci-clean`.
@@ -172,11 +176,11 @@ unchanged at 47409/288000. The containment and separation proof are recorded in
 The committed G-2 BLER evidence characterises one physical-layer identity at
 four SNR points per modulation. It is a conformance artifact, remains valid for
 G-2, and **must not be extrapolated** into the BR-4 characterization table.
-The training-only artifact corpus and classifier fine-tune are complete and
-frozen. Cached artifact-classifier rescoring, pass two and adjudication remain
-future G8_F/G work behind separate authorization.
-The selection entry point remains closed unless an explicit typed
-`G8Authorization` is constructed; no tracked non-test file constructs one.
+The training-only artifact corpus, classifier fine-tune, cached artifact
+rescoring, exactly-once pass two and validation-side G8 adjudication are complete
+and frozen. Learned-system training and test remain behind later separate gates.
+The pass-two selection entry point is permanently closed by its immutable
+completion record; pass three is prohibited.
 **PB_3C** corrected the `classical_fixed_mod` curve to *read* `params.baseline.core_modulation`
 instead of searching for a modulation (BR-9), made resumed campaign state an exact ordered prefix of
 the permitted passes instead of trusting stored results, and froze the selection tie-break order
@@ -189,7 +193,7 @@ PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose ac
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **nineteen amendment rounds** across 89 `AM` entries, and is the file to read before
+records **twenty amendment rounds** across 90 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -201,7 +205,7 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 199 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 200 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures

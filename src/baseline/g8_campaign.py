@@ -32,6 +32,8 @@ CAMPAIGN_STATE = REPO_ROOT / "results/baseline/g8/campaign_state.json"
 AM87_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am87_post_campaign_source_compatibility.json"
 AM88_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am88_post_campaign_source_compatibility.json"
 AM89_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am89_f2_source_compatibility.json"
+AM90_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8/g8_am90_source_compatibility.json"
+AM90_PRIOR_COMMIT = "9638c3dde728295a997883041c218520a070f419"
 AM87_FINAL_COMMIT = "6ea39f6e5e7744175ed1b367a6368b44ad3909a6"
 AM89_PRIOR_COMMIT = "1bca1fb2e3455a4b424766c6b3296af2911e72ef"
 PHASE_ORDER = tuple(f"G8_{letter}" for letter in "ABCDEFG")
@@ -174,6 +176,50 @@ def _leaf_difference_paths(old: Any, new: Any, prefix: str = "") -> set[str]:
     return set() if old == new else {prefix}
 
 
+def _load_am90_compatibility(am89: Mapping[str, Any], am89_raw: bytes) -> dict[str, Any]:
+    try:
+        raw = AM90_SOURCE_COMPATIBILITY.read_bytes()
+        value = json.loads(raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8ContractError(f"cannot load AM-90 source compatibility: {exc}") from None
+    body = {key: child for key, child in value.items() if key != "compatibility_id"}
+    if value.get("compatibility_id") != "g8postsource-" + sha256_bytes(canonical_json(body)):
+        raise G8ContractError("AM-90 compatibility identity differs")
+    allowed = [
+        "bandwidth.crossover_ratio", "bandwidth.crossover_ratio_status",
+        "bandwidth.efficiency_ratio", "bandwidth.efficiency_ratio_status",
+        "bandwidth.low_ratio_operating_point", "bandwidth.low_ratio_operating_point_status",
+    ]
+    if (
+        value.get("amendment") != "AM-90"
+        or value.get("timing") != "g8_pass_two_frozen_validation_closeout"
+        or value.get("prior_commit") != AM90_PRIOR_COMMIT
+        or value.get("prior_compatibility") != {"path": str(AM89_SOURCE_COMPATIBILITY.relative_to(REPO_ROOT)), "compatibility_id": am89["compatibility_id"], "sha256": sha256_bytes(am89_raw)}
+        or value.get("allowed_parameter_paths") != allowed
+        or value.get("protected_boundary") != {"f3_rerun": 0, "pass_two": 1, "pass_two_rerun": 0, "pass_three": 0, "fallback_training": 0, "learned_training": 0, "test_access": 0}
+    ):
+        raise G8ContractError("AM-90 compatibility boundary differs")
+    entries = value.get("entries")
+    expected_paths = ["spec/SPEC.md", "spec/params.generated.yaml", "src/baseline/g8_campaign.py", "src/training/g8_f_f2_authorization.py", "tools/gen_w4_integration_adjudication.py", "tools/verify_w4_baseline_integration.py"]
+    if not isinstance(entries, list) or [entry.get("path") for entry in entries if isinstance(entry, Mapping)] != expected_paths:
+        raise G8ContractError("AM-90 compatibility entries differ")
+    prior_parameters = current_parameters = None
+    for entry in entries:
+        prior = subprocess.run(["git", "show", f"{AM90_PRIOR_COMMIT}:{entry['path']}"], cwd=REPO_ROOT, check=False, capture_output=True)
+        current = (REPO_ROOT / entry["path"]).read_bytes()
+        if prior.returncode != 0 or entry.get("archived_bytes") != len(prior.stdout) or entry.get("archived_sha256") != sha256_bytes(prior.stdout) or entry.get("current_bytes") != len(current) or entry.get("current_sha256") != sha256_bytes(current):
+            raise G8ContractError(f"AM-90 exact source chain differs: {entry['path']}")
+        if entry["path"] == "spec/params.generated.yaml":
+            prior_parameters, current_parameters = prior.stdout, current
+    try:
+        differences = _leaf_difference_paths(yaml.safe_load(prior_parameters), yaml.safe_load(current_parameters))
+    except yaml.YAMLError as exc:
+        raise G8ContractError(f"AM-90 parameter YAML differs: {exc}") from None
+    if differences != set(allowed):
+        raise G8ContractError("AM-90 parameter drift exceeds exact selected operating-point leaves")
+    return value
+
+
 def _load_am89_compatibility() -> dict[str, Any]:
     try:
         raw = AM89_SOURCE_COMPATIBILITY.read_bytes()
@@ -213,9 +259,11 @@ def _load_am89_compatibility() -> dict[str, Any]:
             ["git", "show", f"{AM89_PRIOR_COMMIT}:{entry['path']}"], cwd=REPO_ROOT,
             check=False, capture_output=True,
         )
-        current = (REPO_ROOT / entry["path"]).read_bytes()
+        current_result = subprocess.run(["git", "show", f"{AM90_PRIOR_COMMIT}:{entry['path']}"], cwd=REPO_ROOT, check=False, capture_output=True)
+        current = current_result.stdout
         if (
             prior_result.returncode != 0
+            or current_result.returncode != 0
             or entry.get("archived_bytes") != len(prior_result.stdout)
             or entry.get("archived_sha256") != sha256_bytes(prior_result.stdout)
             or entry.get("current_bytes") != len(current)
@@ -236,7 +284,15 @@ def _load_am89_compatibility() -> dict[str, Any]:
         or not all(path.startswith("reference_classifier.artifact_finetune_recipe.") for path in allowed)
     ):
         raise G8ContractError("AM-89 parameter drift exceeds exact F2 recipe leaves")
-    return value
+    successor = _load_am90_compatibility(value, raw)
+    successor_entries = {entry["path"]: entry for entry in successor["entries"]}
+    projection = json.loads(json.dumps(value))
+    for entry in projection["entries"]:
+        if entry["path"] in successor_entries:
+            entry["current_bytes"] = successor_entries[entry["path"]]["current_bytes"]
+            entry["current_sha256"] = successor_entries[entry["path"]]["current_sha256"]
+    projection["allowed_parameter_paths"] = sorted(set(projection["allowed_parameter_paths"]) | set(successor["allowed_parameter_paths"]))
+    return projection
 
 
 def _verify_am87_generated_params(archived: bytes) -> None:
@@ -320,21 +376,19 @@ def _verify_am87_generated_params(archived: bytes) -> None:
         or not isinstance(allowed_am89, list)
         or allowed_am89 != sorted(set(allowed_am89))
         or _leaf_difference_paths(new, current_parameters) != set(allowed_am89)
-        or not all(path.startswith("reference_classifier.artifact_finetune_recipe.") for path in allowed_am89)
+        or not all(path.startswith("reference_classifier.artifact_finetune_recipe.") or path in {"bandwidth.crossover_ratio", "bandwidth.crossover_ratio_status", "bandwidth.efficiency_ratio", "bandwidth.efficiency_ratio_status", "bandwidth.low_ratio_operating_point", "bandwidth.low_ratio_operating_point_status"} for path in allowed_am89)
     ):
-        raise G8ContractError("AM-89 parameter drift exceeds exact F2 recipe leaves")
+        raise G8ContractError("AM-89/AM-90 parameter drift exceeds the exact F2 recipe and G8 selection leaves")
 
 
 def _verify_historical_profile_spec(archived: bytes) -> None:
-    """Allow the exact AM-89 additive F2 protocol completion, and nothing else."""
+    """Allow the exact additive AM-89 → AM-90 protocol chain, and nothing else."""
 
     current = (REPO_ROOT / "spec/SPEC.md").read_bytes()
-    if sha256_bytes(current) != _HISTORICAL_AM89_SPEC_SHA256:
-        raise G8ContractError("historical SPEC compatibility requires the exact AM-89 bytes")
     compatibility = _load_am89_compatibility()
     entry = next(item for item in compatibility["entries"] if item["path"] == "spec/SPEC.md")
-    if entry.get("archived_sha256") != _HISTORICAL_CURRENT_SPEC_SHA256 or entry.get("current_sha256") != _HISTORICAL_AM89_SPEC_SHA256:
-        raise G8ContractError("historical SPEC compatibility requires the exact AM-89 bytes")
+    if entry.get("archived_sha256") != _HISTORICAL_CURRENT_SPEC_SHA256 or entry.get("current_sha256") != sha256_bytes(current):
+        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-90 bytes")
     if not archived:
         raise G8ContractError("historical SPEC archive is empty")
 

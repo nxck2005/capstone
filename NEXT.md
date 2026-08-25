@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-25 · **Phase:** **F3 GREEN/CLOSED; PASS-TWO SOURCE/PREAUTHORIZATION NOT YET FROZEN. F3 authenticated and accounted for exactly 288,000 historical G8_E validation rows (264,000 delivered artifact-classifier inferences + 24,000 frozen binary outage rows), 288 structural identities and all 104,000 unique reconstruction objects without encoding or substitution. Aggregate `g8ff3scores-fecfa3c…` binds ordered/set scoring digests `dbca4f12…` / `cd63c8be…`; F2 optimizer, pass two/three, fallback, learned training and test remain zero. The immutable pass-two source must now be finalized, pushed and green before a separate authorization is issued. The validation-only closure boundary and checkpoint/restart plan are frozen in `instructions/G8_F3_F5.txt`. `confessor_pascal_cu126` was the sole F3 writer. F2 GREEN — the BR-12 artifact-finetuned reference classifier is authenticated and frozen; training is closed. The stopped `confessor` worker exited 0 after 20/20 epochs and exactly 6,900 optimizer steps over 44,039 assignment rows per epoch, with no resume. The preregistered max-validation-top-1/earliest-tie rule selected zero-based epoch 17 at 890/1000; checkpoint `468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1` loads strictly and is durable under the existing GitHub Release policy. Completion `g8ff2completion-659cf7d…` and freeze `g8fclassifierfreeze-fb8a410f…` are compact. F2 checkpoint-selection validation inference is complete as authorized (20,000 images); F3 cached-sweep rescoring, pass two, fallback, ratio adjudication, learned training and test are zero. G8_E is GREEN and CLOSED through E7. The
+**Last updated:** 2026-08-26 · **Phase:** **G8 GREEN/CLOSED; TEST AND LEARNED-SYSTEM TRAINING SEALED.** F3 authenticated and re-scored exactly 288,000 historical G8_E validation rows (264,000 delivered inferences + 24,000 frozen outage rows) without re-encoding. BR-4 pass two executed exactly once under pre-pushed authorization `g8fpass2auth-985e57e…`: 18 calls, 8,190 candidate evaluations, 378/378 selected cells, 95 ties and 162 changed selections; pass three is prohibited. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6`, low ratio `r_1_24`, and BR-16/H2 at QAM16, rate 1/2, axis 160, design 7 dB, window 3–7 dB (79 pp classical point drop). Terminal closeout `g8closeout-07526958…` is at `results/baseline/g8/g8_closeout.json`. F2 optimizer steps during this closure, fallback training, learned training and test access are all zero. The exact next action is to obtain separate owner authorization for the post-G8 learned-training phase; do not train or open test now. G8_E remains GREEN and CLOSED through E7. The
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -211,7 +211,7 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-pass-two-source-freeze; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f3-green-exact-pass-two-zero; runtime_state=f3-worker-closed-units-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=post-g8-learned-training-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=g8-green-validation-closed-test-sealed; runtime_state=f3-worker-closed-units-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
@@ -289,12 +289,12 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** obtain a separate owner authorization before F3 cached
-G8_E validation rescoring or BR-4 pass two. Do not perform F3 under the F2
-closeout authority. F1 and F2 are complete, authenticated and closed; do not
-restart either, add optimizer steps, or alter/delete their worker-local runtime.
-Fallback, ratio adjudication, learned training, test, and every completed
-campaign remain prohibited.
+**Next-session task:** obtain separate owner authorization for W5 learned-system
+implementation/training work after G8. Do not train under the F3–F5 validation
+closure authority and do not open test. F1, F2, F3, pass two and G8 adjudication
+are complete, authenticated and closed; do not restart them, add optimizer
+steps, or alter/delete their worker-local runtime. Pass three and fallback
+training remain prohibited.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -316,10 +316,11 @@ does not, it is wrong and this block is right.**
 | G-8 classical validation work | **complete — G8_E GREEN and closed through E7: E2 COMPLETE/VERIFIED at 288000/288000 on `confessor`, E3/E4 COMPLETE/VERIFIED, E5 pass one EXECUTED EXACTLY ONCE and frozen (378/378 cells), E6 lineage frozen, E7 verifier PASS; local partial campaign 47409/288000 preserved as `PARTIAL_OWNER_ABORTED_PROFILE_RELOCATION`; G8_D GREEN D0–D7; successor execution and C3-C7 closeout complete at 3213/3213** |
 | G-8 · corrected G8_F corpus plan | **frozen — AM-87 support remains 120 qualities/8,469 train IDs; AM-88 sampler `g8fsamplerplan-d6d64ead…` assigns 6/image = 50,814 attempts with exact global/class balance** |
 | G-8 · G8_F F0/F1 | **F1 GREEN/CLOSED — exact 50,814/50,814 authenticated; 44,039 materialized / 6,775 typed infeasible / 0 other; worker exited 0 and lock is free; `g8ff1completion-b5bb834a…` + `g8fcorpus-adeae507…` frozen; bulky corpus preserved on `confessor`; F1 rerun/repair permanently closed** |
-| G-8 · G8_F F2/BR-12 | **GREEN/CLOSED — exact 20/20 epochs and 6,900 optimizer steps authenticated over 44,039 assignment rows/epoch; zero-based best epoch 17 at 0.890 validation top-1; checkpoint `468710ba…`, completion `g8ff2completion-659cf7d…` and freeze `g8fclassifierfreeze-fb8a410f…` frozen; F3/pass two still unauthorized** |
-| G-8 · G8_F F3/pass-two owner authorization | **NEXT — obtain separate owner authorization; do not run cached G8_E validation rescoring or pass two yet** |
-| BR-4 validation sweep | pass one complete/frozen; artifact-finetuned pass two not started |
-| G-8 | unresolved |
+| G-8 · G8_F F2/BR-12 | **GREEN/CLOSED — exact 20/20 epochs and 6,900 optimizer steps authenticated over 44,039 assignment rows/epoch; zero-based best epoch 17 at 0.890 validation top-1; checkpoint `468710ba…`, completion `g8ff2completion-659cf7d…` and freeze `g8fclassifierfreeze-fb8a410f…` frozen** |
+| G-8 · F3/F4/F5 terminal closure | **GREEN/CLOSED — F3 exact 288,000 rows; pass two exactly once, 18 calls/8,190 evaluations/378 cells/95 ties/162 changes; AM-90 ratios frozen; `g8closeout-07526958…`; pass three/learned/test zero** |
+| BR-4 validation sweep | complete/frozen after exactly two passes |
+| G-8 | GREEN/CLOSED |
+| W5 learned-system implementation/training authorization | **NEXT — obtain separate owner authorization; do not perform it under F3–F5 authority and do not open test** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
@@ -867,9 +868,10 @@ rerun it or widen its scope — E5/pass one awaits a separate owner authorizatio
 `instructions/RESUME.md`; its predecessor commands do not apply to the Pascal runtime. The
 committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
 not be extrapolated. Read "What G-8 actually has to build" above before starting, and
-`instructions/RESUME.md` for the facts that work needs. The sweep entry point remains separately
-authorization-gated, and no `G8Authorization` exists in this repository.
-Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
+`instructions/RESUME.md` for the facts that work needs. G8 is now GREEN/CLOSED after F3, exactly-once pass two and frozen adjudication;
+the sweep entry point is permanently closed and pass three does not exist.
+**Next, obtain separate owner authorization for W5 learned-system work; do not
+train or open test under the completed G8 authority.** Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
 does not gate G8, but it is required to complete the user-fixed First Review package.
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
@@ -885,7 +887,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted before starting the G-8 work:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 199 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 200 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: exit 0; the current-document count is whatever the checker reports
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures
@@ -1149,7 +1151,7 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
 probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The Pascal successor
 production campaign and G8_C C3-C7 closeout are complete at 3213/3213, with 153 measured curves
-frozen; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN. Corrected-v3 G8_E E1 is frozen pre-data with zero validation coverage; the owner E2–E4 authorization is issued (commit `7a51588`) and production E2 is executing/resumable; the full BR-4 validation sweep and operating-point decision remain later gates.
+frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **Next, obtain separate owner authorization for W5 learned-system work; do not train or open test under G8 authority.**
 W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed

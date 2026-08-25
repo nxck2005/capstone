@@ -152,17 +152,17 @@ bandwidth:
     r_1_12: 1/12
     r_1_24: 1/24
     r_1_48: 1/48
-  crossover_ratio: r_1_3
-  crossover_ratio_status: provisional_until_G-8
-  efficiency_ratio: r_1_6
-  efficiency_ratio_status: provisional_until_G-8
+  crossover_ratio: r_1_6
+  crossover_ratio_status: selected_at_G-8
+  efficiency_ratio: r_1_24
+  efficiency_ratio_status: selected_at_G-8
   efficiency_ratio_threshold_pp: 5
   crossover_ratio_threshold_pp: 2
   crossover_ratio_unsatisfiable_fallback: efficiency_ratio
   ladder_bottom_saturation_rule: extend_downward_and_resweep
   headline_ratio: crossover_ratio
-  low_ratio_operating_point: r_1_12
-  low_ratio_operating_point_status: provisional_until_G-8
+  low_ratio_operating_point: r_1_24
+  low_ratio_operating_point_status: selected_at_G-8
   low_ratio_rule: exactly_two_ordered_ladder_rungs_below_headline
   low_ratio_boundary_rule: nearest_available_rung_below_headline_if_two_steps_unavailable
   ceiling_definition: error_free_codec_validation_accuracy_per_br4

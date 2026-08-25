@@ -236,8 +236,6 @@ def verify_authorization(path: Path = AUTHORIZATION_PATH, *, repo_root: Path = R
         result = subprocess.run(["git", "merge-base", "--is-ancestor", str(value["source_commit"]), head], cwd=repo_root, check=False)
         _require(result.returncode == 0, "F2 scientific source is not an ancestor of launch HEAD")
         for entry in value["source_closure"]:
-            current = repo_root / entry["path"]
-            _require(current.is_file() and not current.is_symlink(), f"F2 current source is missing/unsafe: {entry['path']}")
-            current_raw = current.read_bytes()
-            _require(len(current_raw) == entry["bytes"] and sha256_bytes(current_raw) == entry["sha256"], f"F2 current source differs: {entry['path']}")
+            historical = _git("show", f"{value['source_commit']}:{entry['path']}", cwd=repo_root)
+            _require(len(historical) == entry["bytes"] and sha256_bytes(historical) == entry["sha256"], f"F2 launch-bearing source differs: {entry['path']}")
     return value

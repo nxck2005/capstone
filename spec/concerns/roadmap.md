@@ -63,11 +63,11 @@ Requirements extracted from [`SPEC.md`](../SPEC.md). This view is for focused re
 | --- | --- |
 | `artifacts.csv_schema` | run_id, timestamp, git_commit, git_dirty, config_hash, checkpoint_id, system, dataset, split, n, k, bw_ratio, channel, train_snr_db, test_snr_db, train_seed, channel_seed, lambda, source_codec, jpeg_quality, j2k_target_bytes, ldpc_rate, modulation, top1_acc, n_correct, n_test, psnr_db, ssim, bytes_sent, header_bytes, payload_bytes, papr_db, decode_failure_rate, infeasible_rate, coverage_rate, acc_given_delivery, test_subset, wall_clock_s, peak_vram_gb, classifier_variant, quantiser_bits, transmit_dim, entropy_stream_bytes, entropy_table_bytes, side_information_bytes, tb_crc_type, base_graph, lifting_size, num_codeblocks, filler_bits, effective_code_rate, model_param_count |
 | `artifacts.freeze_manifest_file` | results/freeze_manifest.json |
-| `bandwidth.crossover_ratio` | r_1_3 |
-| `bandwidth.efficiency_ratio` | r_1_6 |
+| `bandwidth.crossover_ratio` | r_1_6 |
+| `bandwidth.efficiency_ratio` | r_1_24 |
 | `bandwidth.headline_ratio` | crossover_ratio |
 | `bandwidth.ladder_bottom_saturation_rule` | extend_downward_and_resweep |
-| `bandwidth.low_ratio_operating_point` | r_1_12 |
+| `bandwidth.low_ratio_operating_point` | r_1_24 |
 | `bandwidth.low_ratio_rule` | exactly_two_ordered_ladder_rungs_below_headline |
 | `bandwidth.ratios` | *(see datasheet)* |
 | `baseline.crc_spec` | *(see datasheet)* |

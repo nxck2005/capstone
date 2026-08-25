@@ -1,0 +1,28 @@
+{
+  "artifact_content_sha256": "4c363fb139b821a6f2e5dfcbb50d8c7ac3d5b89b93ac883fe880a623dab89ec2",
+  "artifact_role": "g8_g_closeout_source_manifest",
+  "closeout_file_sha256": "4db4ae531fd20fdfb9c5b44d6b09beb2bc14f95b96e439c43ca6441fe9a4171b",
+  "closeout_id": "g8closeout-07526958639a3b0040c45264d0ec10e51ee3269755b5d3f8aac48c4c2f3ef2a7",
+  "manifest_id": "g8gsource-4af639a6a440980bb186eee330c89e250a90f4ce3c7377282d2e663521908ae6",
+  "pass_two_source_commit": "ad083ec9c8eacce2cb9360f46268f0d1d7ea4508",
+  "schema_version": 1,
+  "source_commit": "9638c3dde728295a997883041c218520a070f419",
+  "sources": [
+    {
+      "bytes": 28900,
+      "path": "src/baseline/g8_g_closeout.py",
+      "sha256": "d7d67ec3370e8cb94e27546b743b87dfd6b92bab925cafc22f9b5ad0e938b496"
+    },
+    {
+      "bytes": 17160,
+      "path": "src/baseline/g8_f_pass_two.py",
+      "sha256": "e5d81cac3fca67d6fef65c2285954f9cd0b1f60215a9a3d9bfed2b9f4c422347"
+    },
+    {
+      "bytes": 2414,
+      "path": "tools/closeout_g8.py",
+      "sha256": "229c4ecce61b3705ba5db936bef783892eae4200dd89b40daa6a5f3068aea9c2"
+    }
+  ],
+  "status": "FROZEN"
+}

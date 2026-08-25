@@ -148,18 +148,24 @@ def _am87_post_am86_parameters() -> dict[str, Any]:
     am89_body = {key: child for key, child in am89.items() if key != "compatibility_id"}
     am89_canonical = json.dumps(am89_body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
     am89_params = [entry for entry in am89.get("entries", []) if isinstance(entry, dict) and entry.get("path") == "spec/params.generated.yaml"]
+    am90_path = REPO / "results/baseline/g8/g8_am90_source_compatibility.json"
+    am90 = json.loads(am90_path.read_bytes())
+    am90_body = {key: child for key, child in am90.items() if key != "compatibility_id"}
+    am90_canonical = json.dumps(am90_body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
+    am90_params = [entry for entry in am90.get("entries", []) if isinstance(entry, dict) and entry.get("path") == "spec/params.generated.yaml"]
     current_sha = hashlib.sha256((REPO / "spec/params.generated.yaml").read_bytes()).hexdigest()
     if (
-        len(am88_params) != 1
-        or len(am89_params) != 1
+        len(am88_params) != 1 or len(am89_params) != 1 or len(am90_params) != 1
         or am89.get("compatibility_id") != "g8postsource-" + hashlib.sha256(am89_canonical).hexdigest()
-        or am89.get("amendment") != "AM-89"
-        or am89.get("protected_boundary", {}).get("f2_optimizer_steps") != 0
+        or am89.get("amendment") != "AM-89" or am89.get("protected_boundary", {}).get("f2_optimizer_steps") != 0
+        or am90.get("compatibility_id") != "g8postsource-" + hashlib.sha256(am90_canonical).hexdigest()
+        or am90.get("amendment") != "AM-90" or am90.get("protected_boundary", {}).get("pass_two") != 1
         or am88_params[0].get("archived_sha256") != params[0].get("current_sha256")
         or am89_params[0].get("archived_sha256") != am88_params[0].get("current_sha256")
-        or am89_params[0].get("current_sha256") != current_sha
+        or am90_params[0].get("archived_sha256") != am89_params[0].get("current_sha256")
+        or am90_params[0].get("current_sha256") != current_sha
     ):
-        raise ValueError("AM-87/AM-88/AM-89 generated-parameter chain differs")
+        raise ValueError("AM-87/AM-88/AM-89/AM-90 generated-parameter chain differs")
     post_am86 = git_bytes(
         "426110b05161e73e4d819bdc01f4857c012d6d59",
         "spec/params.generated.yaml",
@@ -1446,29 +1452,22 @@ def check_integration_adjudication(evidence: Path) -> dict[str, Any]:
         "the adjudication's sweep-guard limits do not match the module",
     )
 
-    # The three provisional operating points must be exactly where G-8 left them.
+    # W4's artifact remains immutable provisional history after G-8 resolves
+    # the live parameters.  Authenticate both layers rather than requiring the
+    # historical record to equal post-G-8 config.
     provisional = payload.get("provisional_operating_points") or {}
-    _require(
-        sorted(provisional) == sorted(PROVISIONAL_OPERATING_POINTS),
-        f"{ADJUDICATION_FILE} does not record all three provisional operating "
-        "points",
-    )
+    historical_points = {"efficiency_ratio": "r_1_6", "crossover_ratio": "r_1_3", "low_ratio_operating_point": "r_1_12"}
+    _require(sorted(provisional) == sorted(PROVISIONAL_OPERATING_POINTS), f"{ADJUDICATION_FILE} does not record all three provisional operating points")
     for name in PROVISIONAL_OPERATING_POINTS:
         entry = provisional[name]
-        _require(
-            entry.get("value") == get(f"bandwidth.{name}"),
-            f"the provisional {name} has moved: recorded {entry.get('value')!r}, "
-            f"params says {get(f'bandwidth.{name}')!r}",
-        )
-        _require(
-            entry.get("status") == get(f"bandwidth.{name}_status")
-            == "provisional_until_G-8",
-            f"{name} is no longer provisional_until_G-8",
-        )
-        _require(
-            entry.get("selected_by_w4") is False,
-            f"the adjudication claims W4 selected {name}",
-        )
+        _require(entry.get("value") == historical_points[name], f"the historical provisional {name} has moved")
+        _require(entry.get("status") == "provisional_until_G-8", f"{name} is no longer provisional_until_G-8")
+        _require(entry.get("selected_by_w4") is False, f"the adjudication claims W4 selected {name}")
+    closeout_path = REPO / "results/baseline/g8/g8_closeout.json"
+    if closeout_path.is_file():
+        final = _json(closeout_path)["operating_points"]
+        _require(get("bandwidth.efficiency_ratio") == final["efficiency_ratio"] and get("bandwidth.crossover_ratio") == final["crossover_ratio"] and get("bandwidth.low_ratio_operating_point") == final["low_ratio_operating_point"], "post-G-8 operating-point parameters differ from terminal closeout")
+        _require(get("bandwidth.efficiency_ratio_status") == get("bandwidth.crossover_ratio_status") == get("bandwidth.low_ratio_operating_point_status") == "selected_at_G-8", "post-G-8 operating-point statuses differ")
 
     # The outage measurement, cross-checked against the frozen artifact.
     outage = payload.get("outage") or {}

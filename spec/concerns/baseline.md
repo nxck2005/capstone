@@ -29,7 +29,7 @@ Requirements extracted from [`SPEC.md`](../SPEC.md). This view is for focused re
 | Parameter | Value |
 | --- | --- |
 | `bandwidth.headline_ratio` | crossover_ratio |
-| `bandwidth.low_ratio_operating_point` | r_1_12 |
+| `bandwidth.low_ratio_operating_point` | r_1_24 |
 | `baseline.base_graph_pinned_at_seam` | true |
 | `baseline.base_graph_selection_rule` | ts_38212_7_2_2_from_transport_block_A_and_R |
 | `baseline.bg2_min_coderate` | 0.2 |

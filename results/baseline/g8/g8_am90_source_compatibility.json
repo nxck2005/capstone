@@ -1,0 +1,74 @@
+{
+  "allowed_parameter_paths": [
+    "bandwidth.crossover_ratio",
+    "bandwidth.crossover_ratio_status",
+    "bandwidth.efficiency_ratio",
+    "bandwidth.efficiency_ratio_status",
+    "bandwidth.low_ratio_operating_point",
+    "bandwidth.low_ratio_operating_point_status"
+  ],
+  "amendment": "AM-90",
+  "artifact_role": "g8_am90_post_selection_source_compatibility",
+  "compatibility_id": "g8postsource-d37645a5d86068d996877604e87d3dac051636a03638ac8974ae599cebc37d95",
+  "entries": [
+    {
+      "archived_bytes": 391332,
+      "archived_sha256": "4cfbb260f0537572a8451fa01c648c12f4431096655c76ae7f796be13c2b9394",
+      "current_bytes": 392624,
+      "current_sha256": "f9a1aa15423fde759deb5eaa70e7a74f36c7efd4875aabc0c4108bc1ae6dd46d",
+      "path": "spec/SPEC.md"
+    },
+    {
+      "archived_bytes": 43514,
+      "archived_sha256": "64d10dc51d59c6e68b084e4ddd8b329ffb5f23852e046d0a31968f49f684ae11",
+      "current_bytes": 43497,
+      "current_sha256": "c2445dddd75e338e523eb4a162dae8f9f12d33a73e37100357c3cbcb20cec266",
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "archived_bytes": 44864,
+      "archived_sha256": "a44d552684f0d736f1ab54a36922f89ce36567f7794ab7d23424fef13419374e",
+      "current_bytes": 49007,
+      "current_sha256": "b49cf58cbccd7955c3cca7cc309d759f9cb63964aea3c526ad5016b29276ade8",
+      "path": "src/baseline/g8_campaign.py"
+    },
+    {
+      "archived_bytes": 12198,
+      "archived_sha256": "3fc82ed131f60f5dbdb3d9abcf0969258e13dabe3c97ce06389029a61e623ad2",
+      "current_bytes": 12080,
+      "current_sha256": "9718a3ae24f752e349714610144a2038611f53828427725377179185a5874eea",
+      "path": "src/training/g8_f_f2_authorization.py"
+    },
+    {
+      "archived_bytes": 21897,
+      "archived_sha256": "4f48762836a5abeb67fe935c1ee2fc36234311a7be412bdb62e1065cc82f88d8",
+      "current_bytes": 22051,
+      "current_sha256": "e28a5603b02e3093cb99be7b09b878fab53ac64c51473bb9cd7cfac94f473aad",
+      "path": "tools/gen_w4_integration_adjudication.py"
+    },
+    {
+      "archived_bytes": 74125,
+      "archived_sha256": "2d3280501f4f63076a8ed57abef920f03054fa45521aa0ec64e50a68af4924fc",
+      "current_bytes": 75564,
+      "current_sha256": "d11d9897f38060be27251b9b8cd978a1a867700bba6f6517c28d183cb943aa16",
+      "path": "tools/verify_w4_baseline_integration.py"
+    }
+  ],
+  "prior_commit": "9638c3dde728295a997883041c218520a070f419",
+  "prior_compatibility": {
+    "compatibility_id": "g8postsource-e2d5f88f7112fa45b0bfe9f4ac32cb6810749f0257e8c925fafdf5f70f91a739",
+    "path": "results/baseline/g8_f/am89_f2_source_compatibility.json",
+    "sha256": "df07cbd18b877de2a904ad859446e8d377281453f7785de40985103863b45826"
+  },
+  "protected_boundary": {
+    "f3_rerun": 0,
+    "fallback_training": 0,
+    "learned_training": 0,
+    "pass_three": 0,
+    "pass_two": 1,
+    "pass_two_rerun": 0,
+    "test_access": 0
+  },
+  "schema_version": 1,
+  "timing": "g8_pass_two_frozen_validation_closeout"
+}
