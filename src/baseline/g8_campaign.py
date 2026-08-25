@@ -115,6 +115,7 @@ def sha256_file(path: Path) -> str:
 
 _HISTORICAL_CURRENT_SPEC_SHA256 = "9f45a27f46230c66fdd95cb0c2010fedd8aa77dbeea5c1f97481ab7be9202bf2"
 _HISTORICAL_AM89_SPEC_SHA256 = "4cfbb260f0537572a8451fa01c648c12f4431096655c76ae7f796be13c2b9394"
+_HISTORICAL_AM90_SPEC_SHA256 = "f9a1aa15423fde759deb5eaa70e7a74f36c7efd4875aabc0c4108bc1ae6dd46d"
 _HISTORICAL_CURRENT_SOURCE_SHA256 = {
     "instructions/G8_F.txt": "785fb0ee03cb05087d9d278f0438d0cebeee73eb8b6c6713d4dbd6077bd4d611",
     "instructions/G8.txt": "1a2fa4b62f5cffb2b2e37e6331763aa53916cbc9eda70b83976b486dce9a51bc",
@@ -123,7 +124,7 @@ _HISTORICAL_CURRENT_SOURCE_SHA256 = {
     "tools/verify_g8_preflight.py": "06bd34354ea1237e3b3247f195dc440adb96f1a188654b0f2c44e759441c20d7",
 }
 _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256 = "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
-_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "9189178d33861ca9390b6d2299c11e53053763c7d3751d10632bf8075f8b958d"
+_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "8b8d3dd680dd2a31c55a6d87125689e7894164fa5a0ba9dc6bc1b33e007a3952"
 
 
 def _historical_campaign_source_projection(source: bytes) -> bytes:
@@ -385,6 +386,8 @@ def _verify_historical_profile_spec(archived: bytes) -> None:
     """Allow the exact additive AM-89 → AM-90 protocol chain, and nothing else."""
 
     current = (REPO_ROOT / "spec/SPEC.md").read_bytes()
+    if sha256_bytes(current) not in {_HISTORICAL_AM89_SPEC_SHA256, _HISTORICAL_AM90_SPEC_SHA256}:
+        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-90 bytes")
     compatibility = _load_am89_compatibility()
     entry = next(item for item in compatibility["entries"] if item["path"] == "spec/SPEC.md")
     if entry.get("archived_sha256") != _HISTORICAL_CURRENT_SPEC_SHA256 or entry.get("current_sha256") != sha256_bytes(current):

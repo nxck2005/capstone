@@ -9,7 +9,7 @@
   ],
   "amendment": "AM-90",
   "artifact_role": "g8_am90_post_selection_source_compatibility",
-  "compatibility_id": "g8postsource-e369c7a2201e989f12fe17d6c15838e057baef9d4beabdd0fbc19e1e6e2439b9",
+  "compatibility_id": "g8postsource-b754feb324de8a98c47aced8f2f04a7278e155a9b50e60fdaeae9eb8ac9e9108",
   "entries": [
     {
       "archived_bytes": 391332,
@@ -28,8 +28,8 @@
     {
       "archived_bytes": 44864,
       "archived_sha256": "a44d552684f0d736f1ab54a36922f89ce36567f7794ab7d23424fef13419374e",
-      "current_bytes": 49007,
-      "current_sha256": "864c295d6280c48282dade1038a9f402f7c1e96ef6e2eb0dc0801382522fb43a",
+      "current_bytes": 49303,
+      "current_sha256": "87f336d56ed01de03de83105ef89a1e98f574a854d56380d985dbe93836298cc",
       "path": "src/baseline/g8_campaign.py"
     },
     {
