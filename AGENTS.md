@@ -123,7 +123,7 @@ authorized (20,000 images); F3 cached-sweep rescoring, pass two, fallback, ratio
 adjudication, learned training and test remain zero and closed. Do not rerun F2
 or add optimizer steps.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f3-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-green-artifact-classifier-frozen; runtime_state=f2-worker-closed-checkpoints-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f3-contract-freeze; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f3-f5-owner-authorized-h0-green; runtime_state=f2-worker-closed-f3-not-run; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified
