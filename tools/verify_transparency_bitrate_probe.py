@@ -973,8 +973,14 @@ def verify(
         summary["provisional_bandwidth_parameters"] == expected_provisional,
         "a provisional bandwidth parameter changed",
     )
-    for key, expected in expected_provisional.items():
-        _require(get(f"bandwidth.{key}") == expected, "current provisional bandwidth parameters changed")
+    closeout_path = REPO / "results/baseline/g8/g8_closeout.json"
+    if closeout_path.is_file():
+        final = json.loads(closeout_path.read_bytes())["operating_points"]
+        expected_current = {"crossover_ratio": final["crossover_ratio"], "crossover_ratio_status": "selected_at_G-8", "efficiency_ratio": final["efficiency_ratio"], "efficiency_ratio_status": "selected_at_G-8", "low_ratio_operating_point": final["low_ratio_operating_point"], "low_ratio_operating_point_status": "selected_at_G-8"}
+    else:
+        expected_current = expected_provisional
+    for key, expected in expected_current.items():
+        _require(get(f"bandwidth.{key}") == expected, "current bandwidth parameters differ from their historical or terminal G8 layer")
     _require(
         resolved["source"] == "configs/transparency-bitrate-probe.yaml"
         and resolved["design"] == design

@@ -9,7 +9,7 @@
   ],
   "amendment": "AM-90",
   "artifact_role": "g8_am90_post_selection_source_compatibility",
-  "compatibility_id": "g8postsource-b754feb324de8a98c47aced8f2f04a7278e155a9b50e60fdaeae9eb8ac9e9108",
+  "compatibility_id": "g8postsource-db39827532331713b02097644b50cea621acca47f4106dbb4a190a9c3da59ce4",
   "entries": [
     {
       "archived_bytes": 391332,
@@ -28,8 +28,8 @@
     {
       "archived_bytes": 44864,
       "archived_sha256": "a44d552684f0d736f1ab54a36922f89ce36567f7794ab7d23424fef13419374e",
-      "current_bytes": 49303,
-      "current_sha256": "87f336d56ed01de03de83105ef89a1e98f574a854d56380d985dbe93836298cc",
+      "current_bytes": 49349,
+      "current_sha256": "7ec6492fa0818c40288187cec4c37704a22d9f2c87e082a7a0ff7ab42487e01a",
       "path": "src/baseline/g8_campaign.py"
     },
     {
@@ -45,6 +45,13 @@
       "current_bytes": 22051,
       "current_sha256": "e28a5603b02e3093cb99be7b09b878fab53ac64c51473bb9cd7cfac94f473aad",
       "path": "tools/gen_w4_integration_adjudication.py"
+    },
+    {
+      "archived_bytes": 39758,
+      "archived_sha256": "de60ad67979f171a651d028b9bbec003f00c56c82b2cf206e14d6ab06d716b82",
+      "current_bytes": 40346,
+      "current_sha256": "5a7c0ddf113d8e29b6cb1271a1598664a8ff62b3382574d9acaa2e81e3119e52",
+      "path": "tools/verify_transparency_bitrate_probe.py"
     },
     {
       "archived_bytes": 74125,

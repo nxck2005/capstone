@@ -124,7 +124,7 @@ _HISTORICAL_CURRENT_SOURCE_SHA256 = {
     "tools/verify_g8_preflight.py": "06bd34354ea1237e3b3247f195dc440adb96f1a188654b0f2c44e759441c20d7",
 }
 _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256 = "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
-_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "8b8d3dd680dd2a31c55a6d87125689e7894164fa5a0ba9dc6bc1b33e007a3952"
+_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "28029562e4dbcb2f897b6d2cbb5d450e75d7adfe77fc9197a346f53b86167f99"
 
 
 def _historical_campaign_source_projection(source: bytes) -> bytes:
@@ -201,7 +201,7 @@ def _load_am90_compatibility(am89: Mapping[str, Any], am89_raw: bytes) -> dict[s
     ):
         raise G8ContractError("AM-90 compatibility boundary differs")
     entries = value.get("entries")
-    expected_paths = ["spec/SPEC.md", "spec/params.generated.yaml", "src/baseline/g8_campaign.py", "src/training/g8_f_f2_authorization.py", "tools/gen_w4_integration_adjudication.py", "tools/verify_w4_baseline_integration.py"]
+    expected_paths = ["spec/SPEC.md", "spec/params.generated.yaml", "src/baseline/g8_campaign.py", "src/training/g8_f_f2_authorization.py", "tools/gen_w4_integration_adjudication.py", "tools/verify_transparency_bitrate_probe.py", "tools/verify_w4_baseline_integration.py"]
     if not isinstance(entries, list) or [entry.get("path") for entry in entries if isinstance(entry, Mapping)] != expected_paths:
         raise G8ContractError("AM-90 compatibility entries differ")
     prior_parameters = current_parameters = None
