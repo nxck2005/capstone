@@ -1,0 +1,129 @@
+{
+  "aggregation_rule": "integer correct-count sum over exactly 1000 authority-ordered binary rows per structural identity; no omissions or substitutions",
+  "artifact_classifier": {
+    "checkpoint_bytes": 89555403,
+    "checkpoint_id": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+    "checkpoint_path": "checkpoints/artifact_classifier/epoch-17.pt",
+    "checkpoint_sha256": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+    "freeze_file_sha256": "505017081582f80390a537edf4580f457f93ba096df17a838dfd049712793fbc",
+    "freeze_id": "g8fclassifierfreeze-fb8a410f71999fc0ca9e8d8c1510d27f166f9b93a0ebd27153c54d6c01c408be",
+    "scorer_identity": "br12_artifact_finetuned_reference_classifier"
+  },
+  "artifact_content_sha256": "a51947335e0e421ac9125af16e53aa3dc7a2d368fe7c0b0718acc9a5046ea780",
+  "artifact_role": "g8_f_f3_pre_inference_contract",
+  "cache_manifest": {
+    "file_sha256": "4b7f1d5e96a1295e8d99f97074636f12a8196ab5ae8b6db86d5b71002145f774",
+    "id": "g8ff3cache-12617a8e9b9e97d212fd3ae60d5f5cf17ea030e4e64148e365cf7da2d281dc9f",
+    "inventory_sha256": "17940cf850cb31510a94cfdd49bf6702dff354a892a6d5f94d52fb134159f3c4",
+    "ordered_record_identity_sha256": "99a4f22efbb96b52db3444c9b49311ea1a38522cf480643ea30148cd50382e19",
+    "reconstruction_object_identity_set_sha256": "40784f1c824f986ee44663afe951949930ea27abaaf6736e693488f859e6bb7a"
+  },
+  "clean_g1_scorer": {
+    "adjudication_file_sha256": "a1d6a59ce45fb6006271f60df9487a0c07c65fba562a1987cc51526d70a53efd",
+    "checkpoint_id": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "checkpoint_sha256": "9c37362347a0203597d6e8e9d9a58fde30ba286f3cec9b4d2f800bd8a3256002",
+    "historical_scores_immutable": true
+  },
+  "contract_id": "g8ff3contract-21b92eb4c14fb449c7730e45ed99512d79f3761ac4ad095ccb4495c79dfffb34",
+  "denominator_semantics": "all 1000 frozen validation rows per structural identity; delivered correctness from artifact scorer and every failure from frozen binary constant-class outage",
+  "device": "cuda:0",
+  "e4": {
+    "file_sha256": "ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3",
+    "id": "g8ee4v3-4b5206cb5a7f752dc46f45996fd2d74a927ba0770813445915ab7a64f0e714f1"
+  },
+  "execution_profile": {
+    "amp": false,
+    "device": "cuda:0",
+    "execution_profile_id": "confessor_pascal_cu126",
+    "gpu_name": "NVIDIA TITAN Xp",
+    "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "host": "confessor",
+    "lock_file": "requirements-pascal.lock",
+    "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
+  },
+  "inference_only": {
+    "checkpoint_writes": "evidence_metadata_only",
+    "jpeg2000_encoding": false,
+    "model_eval": true,
+    "optimizer": "absent",
+    "random_eval_transforms": false,
+    "torch_inference_mode": true
+  },
+  "outage_policy": {
+    "applies_to": [
+      "structural_infeasibility",
+      "codec_infeasibility",
+      "decode_failure"
+    ],
+    "class_counts": [
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100,
+      100
+    ],
+    "denominator": 1000,
+    "numerator": 100,
+    "path": "results/baseline/w4/outage_policy.json",
+    "selected_class": 0,
+    "selection_is_count_derived": true,
+    "sha256": "ebcc34133f7a1e38635e8a958cb41a4b8f019b02fd97bd2f0ad606a0a1396121"
+  },
+  "output_schema": {
+    "aggregate_path": "results/baseline/g8_f/f3/f3_scoring_aggregate.json",
+    "unit_path": "f3_artifact_scores/<measurement_identity_id>.json",
+    "unit_schema_version": 1
+  },
+  "pass_one": {
+    "file_sha256": "91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446",
+    "id": "g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413",
+    "immutable": true
+  },
+  "protected_starting_state": {
+    "f3_cached_sweep_rescoring": 0,
+    "fallback_training": 0,
+    "learned_training": 0,
+    "pass_three": 0,
+    "pass_two": 0,
+    "test_access": 0
+  },
+  "schema_version": 1,
+  "scope": "G8_F_F3_EXISTING_G8E_VALIDATION_CACHE_RESCORING_ONLY",
+  "source_commit": "a6239796494c7aaa2731ea0f4e2280af61306a59",
+  "source_manifest": [
+    {
+      "bytes": 34723,
+      "path": "src/baseline/g8_f_f3.py",
+      "sha256": "8dc05cbe4f733982f7b4805735ac50b742523806eb9ffecb10d814588a7ebabd"
+    },
+    {
+      "bytes": 2022,
+      "path": "tools/preflight_g8_f_f3.py",
+      "sha256": "c8b4563bbb70e3cdffafc5aa4a7cb805c1163c13753917e123d55a81075d0cd6"
+    },
+    {
+      "bytes": 2196,
+      "path": "tools/run_g8_f_f3.py",
+      "sha256": "1ed45e8ce54888a3aaeea42b73a7b465151539d694335dc5c03425441bdeacbc"
+    }
+  ],
+  "status": "FROZEN_PRE_INFERENCE",
+  "supersedes_before_inference": {
+    "file_sha256": "e05004cd12673a03471c64bf86bfe9aff35e4e4185283cf321345563fb9eee59",
+    "path": "results/baseline/g8_f/f3/f3_contract_v1_superseded_before_inference.json",
+    "reason": "v1 clean-checkout verifier required worker-only inventory bytes; no inference or science occurred"
+  },
+  "validation_membership": {
+    "dataset": "imagenette160",
+    "manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+    "row_count": 288000,
+    "rows_per_structural_identity": 1000,
+    "split": "val",
+    "structural_identity_count": 288
+  }
+}
