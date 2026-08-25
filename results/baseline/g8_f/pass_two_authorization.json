@@ -1,0 +1,156 @@
+{
+  "artifact_classifier": {
+    "checkpoint_bytes": 89555403,
+    "checkpoint_id": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+    "checkpoint_path": "checkpoints/artifact_classifier/epoch-17.pt",
+    "checkpoint_sha256": "468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1",
+    "freeze_file_sha256": "505017081582f80390a537edf4580f457f93ba096df17a838dfd049712793fbc",
+    "freeze_id": "g8fclassifierfreeze-fb8a410f71999fc0ca9e8d8c1510d27f166f9b93a0ebd27153c54d6c01c408be",
+    "scorer_identity": "br12_artifact_finetuned_reference_classifier"
+  },
+  "artifact_content_sha256": "0dfa04a6c5fddf97aad684db54c68345e7011f17f09bc8b436db3f5a78c9c206",
+  "artifact_role": "g8_f_owner_pass_two_authorization",
+  "authorization_id": "g8fpass2auth-985e57e1ceb8e88814a871a4bee628ebf71836e7ffeb632a2da004f5b3165795",
+  "authorized_by": "repository owner via explicit F3-F5 validation-only closure prompt",
+  "composition_policy": {
+    "fingerprint": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "formula": "P(success)*acc_clean+(1-P(success))*acc_outage",
+    "module": "src/baseline/classical/composition.py",
+    "success_probability": "product_r(1-BLER_r)"
+  },
+  "e4_candidate_authority": {
+    "candidate_authority_file_sha256": "0d31e766e5c8a8e2e30f1331f84f8388a1b312b605fa2da5773891d20f5280f0",
+    "e4_id": "g8ee4v3-4b5206cb5a7f752dc46f45996fd2d74a927ba0770813445915ab7a64f0e714f1",
+    "e4_sha256": "ee2693460036539049b325c66a81e01298f7a66226c68715670ef26caf90f3b3",
+    "selection_call_plan_sha256": "dc57837c2a7b833fb9a15e9e8bbd6e16234ba3afba97590d3e6a34d697c4e94c"
+  },
+  "f3": {
+    "aggregate_id": "g8ff3scores-fecfa3c992c855ef5aa0ad07baadff609bb97b9acd3ccef40e0822dd8379bfdc",
+    "file_sha256": "7528b8b458a1817f4cf7cc0c1d5884ce0b681aceceea4590a6db1b28d7d56879",
+    "ordered_scoring_sha256": "dbca4f12dba2dbf55079def594c49132680c4351d8538fcc8c193552a724285f",
+    "scoring_set_sha256": "cd63c8bee2a09f0ca3b9ca3129a39ec7ba9618b3cdeb09d7c3b2f95d206ffc82"
+  },
+  "github_actions": {
+    "conclusion": "success",
+    "run_id": 32872446895,
+    "sha": "ad083ec9c8eacce2cb9360f46268f0d1d7ea4508",
+    "url": "https://github.com/nxck2005/capstone/actions/runs/32872446895"
+  },
+  "non_scorer_inputs_unchanged": [
+    "candidate_authority",
+    "logical_structural_mapping",
+    "codec_qualities",
+    "ratios",
+    "encode_axes",
+    "snr_grid",
+    "ldpc_rates",
+    "modulations",
+    "packet_mode",
+    "pascal_bler_table",
+    "no_interpolation",
+    "composition_equation",
+    "outage_probability",
+    "eligibility",
+    "tie_break"
+  ],
+  "output_path": "results/baseline/g8_f/pass_two_state.json",
+  "pascal_bler_table": {
+    "extrapolation": false,
+    "file_sha256": "2c330c4d68dd5b1274374cde9f1528900074f8ed3b2792467194f27aa0d7e7a5",
+    "interpolation": false,
+    "table_id": "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f"
+  },
+  "pass_one": {
+    "executed_count": 1,
+    "file_sha256": "91d6ac9d17386a8d5a5a584cf1605e1b382e5416c9ffbaa6e3a204aaee016446",
+    "immutable": true,
+    "state_id": "g8epassone-1b12616866e248c3320d0d12248e3c543fd553cc8f5eac88e1d76837878bc413"
+  },
+  "pre_execution_counters": {
+    "fallback": 0,
+    "pass_three": 0,
+    "pass_two": 0,
+    "test_access": 0
+  },
+  "schema_version": 1,
+  "scope": "G8_BR4_SELECTION_PASS_TWO_ONLY",
+  "source_commit": "ad083ec9c8eacce2cb9360f46268f0d1d7ea4508",
+  "source_manifest": [
+    {
+      "bytes": 16814,
+      "path": "src/baseline/g8_f_pass_two.py",
+      "sha256": "7cf1576d9be189af176e072d2ad431509e56cf8e664ff0e91f64141d2c99126e"
+    },
+    {
+      "bytes": 27390,
+      "path": "src/baseline/g8_g_closeout.py",
+      "sha256": "cfe635e5eab28f1c87fd8cd4a5a4dfc7e397eb414eb92663426f6b4fec5e605c"
+    },
+    {
+      "bytes": 38550,
+      "path": "src/baseline/g8_e_pass_one.py",
+      "sha256": "94132aefebdd614fdd88ddaac16ac9247701ca2955360568ed910b7c58b204ac"
+    },
+    {
+      "bytes": 34723,
+      "path": "src/baseline/g8_f_f3.py",
+      "sha256": "8dc05cbe4f733982f7b4805735ac50b742523806eb9ffecb10d814588a7ebabd"
+    },
+    {
+      "bytes": 72000,
+      "path": "src/baseline/classical/composition.py",
+      "sha256": "e3135ecefd612c5505bd1137bbf9a8a8212cf338080dde24bf5b25e07212b744"
+    },
+    {
+      "bytes": 2844,
+      "path": "tools/run_g8_f_pass_two.py",
+      "sha256": "7e72484cf0bbde64bdd40435cdcd1eb51a0ca0903ac7d17e413336cdd5f5e4b8"
+    },
+    {
+      "bytes": 2414,
+      "path": "tools/closeout_g8.py",
+      "sha256": "229c4ecce61b3705ba5db936bef783892eae4200dd89b40daa6a5f3068aea9c2"
+    },
+    {
+      "bytes": 1365,
+      "path": "tests/g8_e5_gate.py",
+      "sha256": "373ebf81854e6ec38e4afd45bb24f50bcdeb6f166821069fb78c03e495d2d1d6"
+    }
+  ],
+  "status": "AUTHORIZED_NOT_CONSUMED",
+  "tie_break": {
+    "covered_fields": {
+      "fixed_modulation.configured_value": "qpsk",
+      "fixed_modulation.source": "params.baseline.core_modulation",
+      "selection_passes": [
+        1,
+        2
+      ],
+      "selection_termination_pass": 2,
+      "tie_break_order": [
+        "expected_accuracy_descending",
+        "success_probability_descending",
+        "modulation_bits_per_symbol_ascending",
+        "ldpc_rate_ascending",
+        "encode_axis_px_descending",
+        "candidate_id_ascending"
+      ],
+      "tie_equality": "exact float equality; no tolerance parameter"
+    },
+    "fingerprint": "6a4ffa98a26ee627f8339f1668f11305e097ca813e246d46a235dbfb2476db0e",
+    "order": [
+      "expected_accuracy_descending",
+      "success_probability_descending",
+      "modulation_bits_per_symbol_ascending",
+      "ldpc_rate_ascending",
+      "encode_axis_px_descending",
+      "candidate_id_ascending"
+    ]
+  },
+  "universe": {
+    "call_count": 18,
+    "candidate_evaluations": 8190,
+    "samples_per_cell": 1000,
+    "snr_cells": 378
+  }
+}
