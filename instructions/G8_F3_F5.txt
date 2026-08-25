@@ -1,0 +1,58 @@
+# G8 F3–F5 validation-only closure ledger
+
+Owner authorization received: 2026-08-25 prompt authorizing F3 cached-validation
+rescoring, F4 BR-4 pass two exactly once, and F5 deterministic validation-side
+G8 adjudication/closeout only.
+
+## Frozen boundary
+
+Allowed: authenticate and rescore the existing worker-successor G8_E validation
+runtime with the frozen F2 artifact classifier; execute the frozen BR-4 second
+selection pass once after a separate committed owner authorization; instantiate
+only already-normative G8 validation adjudications.
+
+Forbidden: G8_C/D/E replay, JPEG2000 encoding, F1/F2 replay, optimizer steps,
+classifier fallback training, pass one replay, pass three, candidate/BLER/
+composition/tie-break changes, learned-system training, and test access.
+Missing or corrupt cached scientific bytes produce `G8 PASS-TWO HOLD` and are
+never regenerated under this authorization.
+
+## H0 authenticated opening — complete
+
+Starting/source HEAD: `4ce6c39d00f5ceb5d5de0df397f8635975fd52fd`, equal to
+`origin/main` with a clean worktree. Read AGENTS/NEXT/RESUME/SPEC/params and the
+current G8/F1/F2 chain. The frozen verifiers passed for G8_C successor and its
+closeout, G8_D, G8_E through E7, AM-87, AM-88, F1 compact closeout, F2 compact
+closeout, and G1. Active F0-v3 correctly reports historical HOLD after the F1
+launch exists; this is lifecycle closure, not a prerequisite failure.
+
+Verified frozen facts: pass one = exactly one; 18 calls; 8,190 eligible ranked
+evaluations; 378/378 selected cells; 85 ties; pass two/pass three/test = zero.
+G8_E E4 = 288 identities × 1,000 rows, exactly 264,000 delivered and 24,000
+typed codec infeasible, no decode/structural failures. The exact 15-GiB worker
+runtime remains on `confessor` with 288,000 records, 104,000 reconstruction
+objects, 120,000 codec objects and 104,000 clean-observation objects. F2 remains
+20 epochs/6,900 historical optimizer steps, selected epoch 17 at 890/1000;
+checkpoint SHA-256 `468710ba5e6426d2daeaba50af331b498d5d079726476538d69e2fd3b6355ca1`.
+
+Selected new-science profile before first F3 inference:
+`confessor_pascal_cu126`, `cuda:0`, TITAN Xp. The host is the sole F3 writer.
+
+## Checkpoint plan
+
+1. Implement F3 exact-set contract/rescorer/verifier and synthetic guards.
+   Commit/push source before freezing the F3 contract.
+2. Freeze an F3 contract bound to that source and the selected profile;
+   commit/push it before inference.
+3. On `confessor`, authenticate all 288,000 historical rows and referenced
+   reconstructions without encoding, run inference-only scoring, then publish
+   compact F3 evidence. Restart command is the same F3 runner in resume/verify
+   mode; no scientific row may be replaced or regenerated.
+4. Implement/finalize pass-two and G8 closeout code, run all pre-execution gates,
+   commit/push, and require the exact pass-two-bearing GitHub SHA green.
+5. Freeze and push a separate pass-two authorization with pre-count zero. Run
+   pass two exactly once, freeze completion, then perform deterministic G8
+   adjudication. Pass three is structurally refused.
+
+No F3 inference or pass-two selection had occurred when this ledger was first
+published.

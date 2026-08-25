@@ -16,7 +16,7 @@ verification determine validity, and complete commit/push/parity remains
 mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f3-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f2-green-artifact-classifier-frozen; runtime_state=f2-worker-closed-checkpoints-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=g8-f-f3-contract-freeze; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=f3-f5-owner-authorized-h0-green; runtime_state=f2-worker-closed-f3-not-run; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
@@ -85,8 +85,7 @@ remains under `/home/nick/projects/capstone/results/baseline/g8_f/runtime` on
 per epoch; the frozen rule selected zero-based epoch 17 at 0.890 validation
 top-1. Completion `g8ff2completion-659cf7d…`, classifier freeze
 `g8fclassifierfreeze-fb8a410f…` and checkpoint `468710ba…` authenticate the
-second scorer identity without altering G1. F3 inference/pass two, fallback,
-ratio adjudication, learned training and test remain closed.
+second scorer identity without altering G1. The owner has now authorized only validation-side F3 cached rescoring, F4 pass two exactly once, and F5 deterministic G8 adjudication/closeout. H0 prerequisites verify and `confessor_pascal_cu126` is selected as sole F3 writer; F3 has not yet run. The durable boundary and checkpoint plan are `instructions/G8_F3_F5.txt`. F1/F2 replay, fallback training, pass three, learned training and test remain closed.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
