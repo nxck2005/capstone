@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -18,6 +19,57 @@ def test_historical_g8_artifacts_accept_the_exact_am83_to_am87_addition() -> Non
     manifest = _manifest()
     g8_campaign.verify_historical_normative_sources(manifest["normative_sources"])
     g8_campaign.verify_historical_contract_sources(manifest["contract_sources"])
+
+
+def _write_am91_mutation(tmp_path: Path, mutate: Any) -> Path:
+    value = json.loads(g8_campaign.AM91_SOURCE_COMPATIBILITY.read_bytes())
+    mutate(value)
+    body = {key: child for key, child in value.items() if key != "compatibility_id"}
+    value["compatibility_id"] = "g8postsource-" + g8_campaign.sha256_bytes(
+        g8_campaign.canonical_json(body)
+    )
+    path = tmp_path / "am91.json"
+    path.write_text(json.dumps(value), encoding="utf-8")
+    return path
+
+
+def test_am91_compatibility_rejects_broadened_parameter_acceptance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _write_am91_mutation(
+        tmp_path,
+        lambda value: value["allowed_parameter_paths"].append("baseline.ldpc_max_iters"),
+    )
+    monkeypatch.setattr(g8_campaign, "AM91_SOURCE_COMPATIBILITY", path)
+    am90 = json.loads(g8_campaign.AM90_SOURCE_COMPATIBILITY.read_bytes())
+    with pytest.raises(g8_campaign.G8ContractError, match="boundary differs"):
+        g8_campaign._load_am91_compatibility(am90)
+
+
+def test_am91_compatibility_rejects_weakened_protected_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _write_am91_mutation(
+        tmp_path,
+        lambda value: value["protected_boundary"].update({"test_access": 1}),
+    )
+    monkeypatch.setattr(g8_campaign, "AM91_SOURCE_COMPATIBILITY", path)
+    am90 = json.loads(g8_campaign.AM90_SOURCE_COMPATIBILITY.read_bytes())
+    with pytest.raises(g8_campaign.G8ContractError, match="boundary differs"):
+        g8_campaign._load_am91_compatibility(am90)
+
+
+def test_am91_compatibility_rejects_entry_path_substitution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = _write_am91_mutation(
+        tmp_path,
+        lambda value: value["entries"][0].update({"path": "spec/concerns/system.md"}),
+    )
+    monkeypatch.setattr(g8_campaign, "AM91_SOURCE_COMPATIBILITY", path)
+    am90 = json.loads(g8_campaign.AM90_SOURCE_COMPATIBILITY.read_bytes())
+    with pytest.raises(g8_campaign.G8ContractError, match="entries differ"):
+        g8_campaign._load_am91_compatibility(am90)
 
 
 def test_historical_compatibility_rejects_unrelated_spec_drift(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -40,34 +40,6 @@ class TrainingClassifierDataset(Dataset[tuple[torch.Tensor, int]]):
         ), label
 
 
-class TrainingDJSCCDataset(Dataset[tuple[torch.Tensor, int, str]]):
-    """Train-only DJSCC view retaining stable IDs for keyed channel noise."""
-
-    def __init__(self, dataset: str, train_seed: int, epoch: int, *, repo_root=None) -> None:
-        if not isinstance(train_seed, int) or isinstance(train_seed, bool):
-            raise TypeError("train_seed must be an integer")
-        if not isinstance(epoch, int) or isinstance(epoch, bool) or epoch < 0:
-            raise ValueError("epoch must be a non-negative integer")
-        self.dataset = dataset
-        self.train_seed = train_seed
-        self.epoch = epoch
-        # This class deliberately has no split argument. Model-facing test data
-        # remains reachable only through data.test_access after G-12.
-        self._source = _load(dataset, "train", repo_root)
-
-    def __len__(self) -> int:
-        return len(self._source)
-
-    def __getitem__(self, index: int) -> tuple[torch.Tensor, int, str]:
-        product, label = self._source[index]
-        identity = {
-            "stable_sample_id": product.stable_sample_id,
-            "train_seed": self.train_seed,
-            "epoch": self.epoch,
-        }
-        return training_input(product, identity), label, product.stable_sample_id
-
-
 class ValidationClassifierDataset(Dataset[tuple[torch.Tensor, int]]):
     """The stable-manifest-order deterministic validation view."""
 

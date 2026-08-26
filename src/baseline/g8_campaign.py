@@ -33,7 +33,9 @@ AM87_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am87_post_campaig
 AM88_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am88_post_campaign_source_compatibility.json"
 AM89_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8_f/am89_f2_source_compatibility.json"
 AM90_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8/g8_am90_source_compatibility.json"
+AM91_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8/g8_am91_source_compatibility.json"
 AM90_PRIOR_COMMIT = "9638c3dde728295a997883041c218520a070f419"
+AM91_PRIOR_COMMIT = "e9e273b1665e90f4244e59b785f71384d1efa008"
 AM87_FINAL_COMMIT = "6ea39f6e5e7744175ed1b367a6368b44ad3909a6"
 AM89_PRIOR_COMMIT = "1bca1fb2e3455a4b424766c6b3296af2911e72ef"
 PHASE_ORDER = tuple(f"G8_{letter}" for letter in "ABCDEFG")
@@ -116,6 +118,57 @@ def sha256_file(path: Path) -> str:
 _HISTORICAL_CURRENT_SPEC_SHA256 = "9f45a27f46230c66fdd95cb0c2010fedd8aa77dbeea5c1f97481ab7be9202bf2"
 _HISTORICAL_AM89_SPEC_SHA256 = "4cfbb260f0537572a8451fa01c648c12f4431096655c76ae7f796be13c2b9394"
 _HISTORICAL_AM90_SPEC_SHA256 = "f9a1aa15423fde759deb5eaa70e7a74f36c7efd4875aabc0c4108bc1ae6dd46d"
+_HISTORICAL_AM91_SPEC_SHA256 = "5ff6655bdc24d24f4a78b226b7055300e82b4bd430cb4445be3941aa16d9c9e7"
+_AM91_ALLOWED_PARAMETER_PATHS = (
+    "artifacts.rng_identity_fields.training_channel_noise",
+    "artifacts.rng_purposes",
+    "learned_system.accumulation_gradient_rule",
+    "learned_system.adam_amsgrad",
+    "learned_system.adam_beta1",
+    "learned_system.adam_beta2",
+    "learned_system.adam_capturable",
+    "learned_system.adam_differentiable",
+    "learned_system.adam_epsilon",
+    "learned_system.adam_foreach",
+    "learned_system.adam_fused",
+    "learned_system.adam_maximize",
+    "learned_system.adam_weight_decay",
+    "learned_system.amp_device_type",
+    "learned_system.amp_dtype",
+    "learned_system.batch_order",
+    "learned_system.batch_size_policy",
+    "learned_system.checkpoint_every_epochs",
+    "learned_system.checkpoint_resume_unit",
+    "learned_system.checkpoint_schema_version",
+    "learned_system.checkpoint_selection_metric",
+    "learned_system.checkpoint_selection_mode",
+    "learned_system.checkpoint_selection_split",
+    "learned_system.checkpoint_selection_tie_break",
+    "learned_system.checkpoint_timing",
+    "learned_system.corrupt_latest_checkpoint_policy",
+    "learned_system.dataloader_workers",
+    "learned_system.drop_last",
+    "learned_system.execution_profile_required",
+    "learned_system.final_partial_accumulation",
+    "learned_system.grad_scaler_backoff_factor",
+    "learned_system.grad_scaler_enabled",
+    "learned_system.grad_scaler_growth_factor",
+    "learned_system.grad_scaler_growth_interval",
+    "learned_system.grad_scaler_init_scale",
+    "learned_system.incomplete_epoch_policy",
+    "learned_system.lr_min",
+    "learned_system.lr_schedule_equation",
+    "learned_system.lr_warmup_epochs",
+    "learned_system.optimizer_implementation",
+    "learned_system.pin_memory",
+    "learned_system.production_accumulation_factor",
+    "learned_system.production_physical_batch_size",
+    "learned_system.scheduler_epoch_indexing",
+    "learned_system.scheduler_resume_state",
+    "learned_system.scheduler_step_unit",
+    "learned_system.scheduler_steps_under_accumulation",
+    "learned_system.w5_checkpoint_selection",
+)
 _HISTORICAL_CURRENT_SOURCE_SHA256 = {
     "instructions/G8_F.txt": "785fb0ee03cb05087d9d278f0438d0cebeee73eb8b6c6713d4dbd6077bd4d611",
     "instructions/G8.txt": "1a2fa4b62f5cffb2b2e37e6331763aa53916cbc9eda70b83976b486dce9a51bc",
@@ -124,7 +177,7 @@ _HISTORICAL_CURRENT_SOURCE_SHA256 = {
     "tools/verify_g8_preflight.py": "06bd34354ea1237e3b3247f195dc440adb96f1a188654b0f2c44e759441c20d7",
 }
 _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256 = "ced0dfaba9bd42a662cd604b2112cd8bfcf9bf163421f20a52e826273e231dbd"
-_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "28029562e4dbcb2f897b6d2cbb5d450e75d7adfe77fc9197a346f53b86167f99"
+_HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256 = "c9ec2ec1b373491df0676a6bc702b6f45df96ac1ecac88152ef531dc35f2a161"
 
 
 def _historical_campaign_source_projection(source: bytes) -> bytes:
@@ -207,8 +260,12 @@ def _load_am90_compatibility(am89: Mapping[str, Any], am89_raw: bytes) -> dict[s
     prior_parameters = current_parameters = None
     for entry in entries:
         prior = subprocess.run(["git", "show", f"{AM90_PRIOR_COMMIT}:{entry['path']}"], cwd=REPO_ROOT, check=False, capture_output=True)
-        current = (REPO_ROOT / entry["path"]).read_bytes()
-        if prior.returncode != 0 or entry.get("archived_bytes") != len(prior.stdout) or entry.get("archived_sha256") != sha256_bytes(prior.stdout) or entry.get("current_bytes") != len(current) or entry.get("current_sha256") != sha256_bytes(current):
+        current_result = subprocess.run(
+            ["git", "show", f"{AM91_PRIOR_COMMIT}:{entry['path']}"],
+            cwd=REPO_ROOT, check=False, capture_output=True,
+        )
+        current = current_result.stdout
+        if prior.returncode != 0 or current_result.returncode != 0 or entry.get("archived_bytes") != len(prior.stdout) or entry.get("archived_sha256") != sha256_bytes(prior.stdout) or entry.get("current_bytes") != len(current) or entry.get("current_sha256") != sha256_bytes(current):
             raise G8ContractError(f"AM-90 exact source chain differs: {entry['path']}")
         if entry["path"] == "spec/params.generated.yaml":
             prior_parameters, current_parameters = prior.stdout, current
@@ -218,6 +275,91 @@ def _load_am90_compatibility(am89: Mapping[str, Any], am89_raw: bytes) -> dict[s
         raise G8ContractError(f"AM-90 parameter YAML differs: {exc}") from None
     if differences != set(allowed):
         raise G8ContractError("AM-90 parameter drift exceeds exact selected operating-point leaves")
+    return value
+
+
+def _load_am91_compatibility(am90: Mapping[str, Any]) -> dict[str, Any]:
+    """Authenticate AM-91's exact post-G8, pre-smoke normative addition."""
+
+    try:
+        raw = AM91_SOURCE_COMPATIBILITY.read_bytes()
+        value = json.loads(raw)
+        prior_raw = AM90_SOURCE_COMPATIBILITY.read_bytes()
+        prior = json.loads(prior_raw)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise G8ContractError(f"cannot load AM-91 source compatibility: {exc}") from None
+    body = {key: child for key, child in value.items() if key != "compatibility_id"}
+    if value.get("compatibility_id") != "g8postsource-" + sha256_bytes(canonical_json(body)):
+        raise G8ContractError("AM-91 compatibility identity differs")
+    expected_boundary = {
+        "g8_scientific_change": 0,
+        "f3_rerun": 0,
+        "f2_optimizer_steps": 0,
+        "pass_two": 1,
+        "pass_two_rerun": 0,
+        "pass_three": 0,
+        "candidate_change": 0,
+        "bler_change": 0,
+        "composition_change": 0,
+        "tie_break_change": 0,
+        "ratio_change": 0,
+        "br16_change": 0,
+        "h2_change": 0,
+        "fallback_training": 0,
+        "scientific_learned_training": 0,
+        "w5_optimizer_smoke_before_freeze": 0,
+        "test_access": 0,
+    }
+    if (
+        prior != am90
+        or value.get("amendment") != "AM-91"
+        or value.get("timing") != "post_g8_closeout_pre_w5_optimizer_smoke"
+        or value.get("prior_commit") != AM91_PRIOR_COMMIT
+        or value.get("prior_compatibility") != {
+            "path": str(AM90_SOURCE_COMPATIBILITY.relative_to(REPO_ROOT)),
+            "compatibility_id": prior["compatibility_id"],
+            "sha256": sha256_bytes(prior_raw),
+        }
+        or value.get("allowed_parameter_paths") != list(_AM91_ALLOWED_PARAMETER_PATHS)
+        or value.get("protected_boundary") != expected_boundary
+    ):
+        raise G8ContractError("AM-91 compatibility boundary differs")
+    entries = value.get("entries")
+    expected_paths = [
+        "spec/SPEC.md",
+        "spec/params.generated.yaml",
+        "src/baseline/g8_campaign.py",
+    ]
+    if (
+        not isinstance(entries, list)
+        or [entry.get("path") for entry in entries if isinstance(entry, Mapping)] != expected_paths
+    ):
+        raise G8ContractError("AM-91 compatibility entries differ")
+    prior_parameters = current_parameters = None
+    for entry in entries:
+        prior_result = subprocess.run(
+            ["git", "show", f"{AM91_PRIOR_COMMIT}:{entry['path']}"],
+            cwd=REPO_ROOT, check=False, capture_output=True,
+        )
+        current = (REPO_ROOT / entry["path"]).read_bytes()
+        if (
+            prior_result.returncode != 0
+            or entry.get("archived_bytes") != len(prior_result.stdout)
+            or entry.get("archived_sha256") != sha256_bytes(prior_result.stdout)
+            or entry.get("current_bytes") != len(current)
+            or entry.get("current_sha256") != sha256_bytes(current)
+        ):
+            raise G8ContractError(f"AM-91 exact source chain differs: {entry['path']}")
+        if entry["path"] == "spec/params.generated.yaml":
+            prior_parameters, current_parameters = prior_result.stdout, current
+    try:
+        differences = _leaf_difference_paths(
+            yaml.safe_load(prior_parameters), yaml.safe_load(current_parameters)
+        )
+    except yaml.YAMLError as exc:
+        raise G8ContractError(f"AM-91 parameter YAML differs: {exc}") from None
+    if differences != set(_AM91_ALLOWED_PARAMETER_PATHS):
+        raise G8ContractError("AM-91 parameter drift exceeds exact W5 recipe leaves")
     return value
 
 
@@ -285,14 +427,18 @@ def _load_am89_compatibility() -> dict[str, Any]:
         or not all(path.startswith("reference_classifier.artifact_finetune_recipe.") for path in allowed)
     ):
         raise G8ContractError("AM-89 parameter drift exceeds exact F2 recipe leaves")
-    successor = _load_am90_compatibility(value, raw)
-    successor_entries = {entry["path"]: entry for entry in successor["entries"]}
+    am90 = _load_am90_compatibility(value, raw)
+    am91 = _load_am91_compatibility(am90)
     projection = json.loads(json.dumps(value))
-    for entry in projection["entries"]:
-        if entry["path"] in successor_entries:
-            entry["current_bytes"] = successor_entries[entry["path"]]["current_bytes"]
-            entry["current_sha256"] = successor_entries[entry["path"]]["current_sha256"]
-    projection["allowed_parameter_paths"] = sorted(set(projection["allowed_parameter_paths"]) | set(successor["allowed_parameter_paths"]))
+    for successor in (am90, am91):
+        successor_entries = {entry["path"]: entry for entry in successor["entries"]}
+        for entry in projection["entries"]:
+            if entry["path"] in successor_entries:
+                entry["current_bytes"] = successor_entries[entry["path"]]["current_bytes"]
+                entry["current_sha256"] = successor_entries[entry["path"]]["current_sha256"]
+        projection["allowed_parameter_paths"] = sorted(
+            set(projection["allowed_parameter_paths"]) | set(successor["allowed_parameter_paths"])
+        )
     return projection
 
 
@@ -377,21 +523,36 @@ def _verify_am87_generated_params(archived: bytes) -> None:
         or not isinstance(allowed_am89, list)
         or allowed_am89 != sorted(set(allowed_am89))
         or _leaf_difference_paths(new, current_parameters) != set(allowed_am89)
-        or not all(path.startswith("reference_classifier.artifact_finetune_recipe.") or path in {"bandwidth.crossover_ratio", "bandwidth.crossover_ratio_status", "bandwidth.efficiency_ratio", "bandwidth.efficiency_ratio_status", "bandwidth.low_ratio_operating_point", "bandwidth.low_ratio_operating_point_status"} for path in allowed_am89)
+        or not all(
+            path.startswith("reference_classifier.artifact_finetune_recipe.")
+            or path in {
+                "bandwidth.crossover_ratio", "bandwidth.crossover_ratio_status",
+                "bandwidth.efficiency_ratio", "bandwidth.efficiency_ratio_status",
+                "bandwidth.low_ratio_operating_point", "bandwidth.low_ratio_operating_point_status",
+            }
+            or path in _AM91_ALLOWED_PARAMETER_PATHS
+            for path in allowed_am89
+        )
     ):
-        raise G8ContractError("AM-89/AM-90 parameter drift exceeds the exact F2 recipe and G8 selection leaves")
+        raise G8ContractError(
+            "AM-89/AM-91 parameter drift exceeds the exact F2, G8 selection, and W5 recipe leaves"
+        )
 
 
 def _verify_historical_profile_spec(archived: bytes) -> None:
-    """Allow the exact additive AM-89 → AM-90 protocol chain, and nothing else."""
+    """Allow the exact additive AM-89 → AM-91 protocol chain, and nothing else."""
 
     current = (REPO_ROOT / "spec/SPEC.md").read_bytes()
-    if sha256_bytes(current) not in {_HISTORICAL_AM89_SPEC_SHA256, _HISTORICAL_AM90_SPEC_SHA256}:
-        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-90 bytes")
+    if sha256_bytes(current) not in {
+        _HISTORICAL_AM89_SPEC_SHA256,
+        _HISTORICAL_AM90_SPEC_SHA256,
+        _HISTORICAL_AM91_SPEC_SHA256,
+    }:
+        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91 bytes")
     compatibility = _load_am89_compatibility()
     entry = next(item for item in compatibility["entries"] if item["path"] == "spec/SPEC.md")
     if entry.get("archived_sha256") != _HISTORICAL_CURRENT_SPEC_SHA256 or entry.get("current_sha256") != sha256_bytes(current):
-        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-90 bytes")
+        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91 bytes")
     if not archived:
         raise G8ContractError("historical SPEC archive is empty")
 

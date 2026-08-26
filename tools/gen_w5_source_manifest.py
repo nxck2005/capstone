@@ -27,6 +27,7 @@ SOURCES = {
     "src/config/params.py": "parameter_loader",
     "src/config/run_config.py": "resolved_run_config",
     "src/data/classifier.py": "training_dataset_sampler",
+    "src/data/djscc_training.py": "stable_identity_training_dataset",
     "src/data/preprocessing.py": "augmentation_preprocessing",
     "src/data/registry.py": "common_dataset_registry",
     "src/env.py": "determinism_execution_profile",

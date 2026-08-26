@@ -20,15 +20,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 from torch import nn
 from torch.optim import Adam
 from torch.utils.data import DataLoader, Dataset
 
-from channels.awgn import keyed_training_complex_noise
+from artifacts.rng import keyed_standard_normal
 from config.params import REPO_ROOT, get
 from config.run_config import RunConfig, canonical_sha256, config_hash
-from data.classifier import EpochPermutationSampler, TrainingDJSCCDataset
+from data.classifier import EpochPermutationSampler
+from data.djscc_training import TrainingDJSCCDataset
 from models.djscc import DJSCC, build_djscc
 from training.djscc_loss import DJSCCObjective
 
@@ -69,6 +71,41 @@ RNG_STATE_POLICY = {
 
 class W5Hold(RuntimeError):
     """A fail-closed W5 schema, lineage, checkpoint or scope violation."""
+
+
+_STANDARD_COMPLEX_SCALE = 1.0 / math.sqrt(2.0)
+
+
+def keyed_training_complex_noise(
+    identities: Sequence[Mapping[str, object]],
+    k: int,
+    *,
+    dtype: torch.dtype = torch.complex64,
+    device: torch.device | str | None = None,
+) -> torch.Tensor:
+    """Construct stateless per-sample AM-91 training-channel noise."""
+
+    expected = list(get("artifacts.rng_identity_fields.training_channel_noise"))
+    if not identities:
+        raise ValueError("training noise requires one or more identities")
+    if not isinstance(k, int) or isinstance(k, bool) or k <= 0:
+        raise ValueError("k must be a positive integer")
+    if dtype not in (torch.complex64, torch.complex128):
+        raise TypeError("keyed training complex noise dtype must be complex64 or complex128")
+    rows: list[np.ndarray] = []
+    for identity in identities:
+        missing = set(expected) - set(identity)
+        extra = set(identity) - set(expected)
+        if missing or extra:
+            raise ValueError(
+                "training noise identity differs: "
+                f"missing={sorted(missing)}, extra={sorted(extra)}"
+            )
+        components = keyed_standard_normal(
+            "training_channel_noise", identity, size=(2, k)
+        )
+        rows.append((components[0] + 1j * components[1]) * _STANDARD_COMPLEX_SCALE)
+    return torch.as_tensor(np.stack(rows), dtype=dtype, device=device)
 
 
 def _require(condition: bool, message: str) -> None:
@@ -379,7 +416,9 @@ class DJSCCTrainer:
         return [
             {
                 "dataset_version": resolved["dataset_version"],
-                "split_manifest_hash": resolved["split_manifest_hash"],
+                "split_manifest_hash": get(
+                    f"datasets.{resolved['dataset']}.manifest_sha256"
+                ),
                 "stable_sample_id": stable_id,
                 "train_seed": resolved["train_seed"],
                 "channel_seed": resolved["channel_seed"],
@@ -561,7 +600,9 @@ class DJSCCTrainer:
             "resolved_config": self.config.to_dict(),
             "dataset": resolved["dataset"],
             "dataset_version": resolved["dataset_version"],
-            "split_manifest_hash": resolved["split_manifest_hash"],
+            "split_manifest_hash": get(
+                f"datasets.{resolved['dataset']}.manifest_sha256"
+            ),
             "execution_profile_id": resolved["execution_profile_id"],
             "architecture": resolved["architecture"],
             "bw_ratio": resolved["bw_ratio"],

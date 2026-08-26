@@ -13,7 +13,6 @@ import pytest
 import torch
 from torch.utils.data import Dataset
 
-from channels.awgn import keyed_training_complex_noise
 from config.params import get
 from config.run_config import RunConfig, load_experiment
 from training.djscc import (
@@ -24,6 +23,7 @@ from training.djscc import (
     W5SmokeLimits,
     default_source_lineage_for_tests,
     deterministic_history,
+    keyed_training_complex_noise,
     learned_recipe,
     learning_rate_for_epoch,
     model_state_sha256,
