@@ -207,6 +207,10 @@ tempCodeRunnerFile.py
 # G8_F/F2 durable epoch checkpoints are worker-local scientific runtime evidence.
 /results/baseline/g8_f/f2_runtime/
 
+# W5 checkpoints/trajectories are immutable local non-scientific smoke runtime;
+# compact authenticated evidence is tracked separately.
+/results/learned/w5/runtime/
+
 # G8_C runtime locks are coordination state, never scientific evidence.
 /results/baseline/g8/work_units/.locks/
 /results/baseline/g8_pascal_successor/runtime/.locks/
