@@ -17,7 +17,7 @@ from channels.power import (
 )
 from channels.registry import build_channel
 from config.run_config import RunConfig
-from models.reference_classifier import build_reference_classifier
+from models.reference_classifier import ChannelNormalisation, build_reference_classifier
 from models.task_heads import DEFAULT_TASK_HEAD, build_task_head
 
 # These constants define the named djscc_residual_v1 topology. They are
@@ -137,6 +137,7 @@ class DJSCCEncoder(nn.Module):
         peak_constraint: PeakPowerConstraint | None,
     ) -> None:
         super().__init__()
+        self.input_normalisation = ChannelNormalisation()
         self.stem = nn.Sequential(
             nn.Conv2d(
                 _RGB_CHANNELS,
@@ -171,7 +172,9 @@ class DJSCCEncoder(nn.Module):
         self.peak_constraint = peak_constraint
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        features = self.residual(self.body_entry(self.stem(inputs)))
+        features = self.residual(
+            self.body_entry(self.stem(self.input_normalisation(inputs)))
+        )
         symbols = pack_complex_symbols(self.projection(features))
         symbols = normalize_unit_average_power(symbols)
         if self.peak_constraint is not None:

@@ -219,6 +219,12 @@ def _validate_named_choices(resolved: Mapping[str, Any]) -> None:
     if bw_ratio not in get("bandwidth.ratios"):
         raise ValueError(f"unknown bandwidth-ratio choice: {bw_ratio}")
 
+    if "execution_profile_id" in resolved:
+        profile = resolved["execution_profile_id"]
+        eligible = get("compute.execution_profile_policy.eligible_profiles")
+        if profile not in eligible:
+            raise ValueError(f"unknown or ineligible execution profile: {profile}")
+
     # The classical arm's per-cell selections. These are optional because the
     # learned arm does not carry them, but a *present* one must name a
     # configured value: a typo would otherwise become a silently distinct run
@@ -299,6 +305,7 @@ def load_experiment(path: str | Path, **overrides: Any) -> RunConfig:
     bw_ratio = resolved["bw_ratio"]
     version_field = get("config.dataset_version_rule")
     resolved["dataset_version"] = get(f"datasets.{dataset}.{version_field}")
+    resolved["split_manifest_hash"] = get(f"datasets.{dataset}.manifest_sha256")
     resolved["analysis_version"] = get("config.analysis_version")
     resolved["k"] = get(f"bandwidth.k_symbols.{dataset}.{bw_ratio}")
     resolved["project_id"] = get("project.id")

@@ -1,0 +1,21 @@
+experiment: learned_w5_imagenette_r1_24_non_scientific_plumbing_smoke
+choices:
+  system: learned
+  dataset: imagenette160
+  split: train
+  bw_ratio: r_1_24
+  channel: awgn
+  train_snr_db: train_snr_db_fixed
+  lambda: lambda_core
+  classifier_variant: clean
+  train_seed: 0
+  channel_seed: 0
+  architecture: djscc_residual_v1
+  execution_profile_id: local_4060_cu130
+  artifact_role: W5_NON_SCIENTIFIC_PLUMBING_SMOKE
+  selection_eligibility: NOT_ELIGIBLE_FOR_SELECTION
+  reporting_eligibility: NOT_ELIGIBLE_FOR_REPORTING
+  w7_g4_eligibility: NOT_ELIGIBLE_FOR_W7_G4
+  w8_eligibility: NOT_ELIGIBLE_FOR_W8
+  test_eligibility: NOT_ELIGIBLE_FOR_TEST
+sweep_axes: {}

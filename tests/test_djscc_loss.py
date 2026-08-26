@@ -30,6 +30,33 @@ def test_lambda_zero_retains_mse_record_but_contributes_zero_gradient(
     assert torch.count_nonzero(logits.grad)
 
 
+def test_reconstruction_mse_and_task_ce_reach_their_registered_heads(run_config_factory):
+    config = run_config_factory("cifar10", "r_1_48")
+    model = build_djscc(config)
+    inputs = torch.rand(2, 3, 32, 32)
+    noise = keyed_complex_noise(["head-a", "head-b"], config.resolved["k"])
+    output = model(inputs, config.resolved["train_snr_db"], unit_noise=noise)
+
+    mse = torch.nn.functional.mse_loss(output.reconstruction, inputs)
+    mse.backward(retain_graph=True)
+    reconstruction_gradients = [
+        parameter.grad for parameter in model.decoder.reconstruction_head.parameters()
+        if parameter.grad is not None
+    ]
+    assert reconstruction_gradients
+    assert any(torch.count_nonzero(value) for value in reconstruction_gradients)
+
+    model.zero_grad(set_to_none=True)
+    ce = torch.nn.functional.cross_entropy(output.logits, torch.tensor([1, 2]))
+    ce.backward()
+    task_gradients = [
+        parameter.grad for parameter in model.decoder.task_head.parameters()
+        if parameter.grad is not None
+    ]
+    assert task_gradients
+    assert any(torch.count_nonzero(value) for value in task_gradients)
+
+
 def test_complete_encoder_awgn_decoder_backward_has_finite_nonzero_encoder_gradients(
     run_config_factory,
 ):

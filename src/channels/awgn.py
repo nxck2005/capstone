@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from math import sqrt
 
 import numpy as np
@@ -25,6 +25,47 @@ def _validate_complex_symbols(symbols: torch.Tensor, *, label: str) -> None:
         raise TypeError(f"{label} must use a native complex PyTorch dtype")
     if not torch.isfinite(symbols).all():
         raise ValueError(f"{label} must contain only finite values")
+
+
+def keyed_training_complex_noise(
+    identities: Sequence[Mapping[str, object]],
+    k: int,
+    *,
+    dtype: torch.dtype = torch.complex64,
+    device: torch.device | str | None = None,
+) -> torch.Tensor:
+    """Construct per-sample training noise from AM-91's complete identity.
+
+    No mutable Python, NumPy, Torch, CUDA, worker, or channel generator is
+    consumed. Consequently row ordering, batching and process resume cannot
+    change a sample's configured training-channel draw.
+    """
+
+    expected = list(get("artifacts.rng_identity_fields.training_channel_noise"))
+    if not identities:
+        raise ValueError("training noise requires one or more identities")
+    if not isinstance(k, int) or isinstance(k, bool) or k <= 0:
+        raise ValueError("k must be a positive integer")
+    if dtype not in (torch.complex64, torch.complex128):
+        raise TypeError("keyed training complex noise dtype must be complex64 or complex128")
+    rows: list[np.ndarray] = []
+    for identity in identities:
+        if list(identity) != expected and set(identity) != set(expected):
+            # The shared keyed helper performs the authoritative exact-key
+            # check; this message keeps accidental unordered/incomplete caller
+            # mappings understandable.
+            missing = set(expected) - set(identity)
+            extra = set(identity) - set(expected)
+            if missing or extra:
+                raise ValueError(
+                    "training noise identity differs: "
+                    f"missing={sorted(missing)}, extra={sorted(extra)}"
+                )
+        components = keyed_standard_normal(
+            "training_channel_noise", identity, size=(2, k)
+        )
+        rows.append((components[0] + 1j * components[1]) * _STANDARD_COMPLEX_SCALE)
+    return torch.as_tensor(np.stack(rows), dtype=dtype, device=device)
 
 
 def keyed_complex_noise(

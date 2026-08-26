@@ -16,6 +16,10 @@
       "type": "string",
       "pattern": "^[0-9a-f]{64}$"
     },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
     "eligibility": {
       "type": "object",
       "additionalProperties": false,
@@ -60,7 +64,7 @@
         "predecessor_checkpoint_id"
       ],
       "properties": {
-        "source_commit": {"$ref": "#/$defs/sha256"},
+        "source_commit": {"$ref": "#/$defs/git_commit"},
         "source_manifest_id": {"type": "string", "minLength": 1},
         "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
         "config_hash": {"$ref": "#/$defs/sha256"},
@@ -179,7 +183,7 @@
         "next_epoch": {"type": "integer", "minimum": 1},
         "global_optimizer_step": {"type": "integer", "minimum": 1},
         "config_hash": {"$ref": "#/$defs/sha256"},
-        "source_commit": {"$ref": "#/$defs/sha256"},
+        "source_commit": {"$ref": "#/$defs/git_commit"},
         "execution_profile_id": {"type": "string", "minLength": 1}
       }
     },
@@ -189,6 +193,7 @@
       "required": [
         "schema_version",
         "artifact_role",
+        "smoke_id",
         "eligibility",
         "lineage",
         "scope",
@@ -203,6 +208,7 @@
       "properties": {
         "schema_version": {"const": 1},
         "artifact_role": {"const": "w5_djscc_smoke_result"},
+        "smoke_id": {"type": "string", "pattern": "^w5smoke-[0-9a-f]{64}$"},
         "eligibility": {"$ref": "#/$defs/eligibility"},
         "lineage": {"type": "object"},
         "scope": {"type": "object"},

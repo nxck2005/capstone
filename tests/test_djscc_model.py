@@ -113,6 +113,16 @@ def test_task_head_registry_stub_and_failures_do_not_change_encoder_or_channel(
         assert torch.equal(value, stub_model.encoder.state_dict()[key])
     assert type(default_model.channel) is type(stub_model.channel)
 
+    inputs = torch.rand(2, 3, 32, 32)
+    noise = keyed_complex_noise(["stub-train-a", "stub-train-b"], config.resolved["k"])
+    output = stub_model(inputs, config.resolved["train_snr_db"], unit_noise=noise)
+    loss = torch.nn.functional.cross_entropy(output.logits, torch.tensor([1, 2]))
+    loss.backward()
+    assert any(
+        parameter.grad is not None and torch.count_nonzero(parameter.grad)
+        for parameter in stub_model.decoder.task_head.parameters()
+    )
+
 
 def test_keyed_initialization_is_seeded_and_does_not_mutate_ambient_rng(
     run_config_factory,
@@ -134,6 +144,14 @@ def test_keyed_initialization_is_seeded_and_does_not_mutate_ambient_rng(
         for key, value in first.state_dict().items()
         if value.is_floating_point()
     )
+
+
+def test_djscc_owns_configured_input_normalisation(run_config_factory):
+    model = build_djscc(run_config_factory())
+    mean = model.encoder.input_normalisation.mean.flatten().tolist()
+    std = model.encoder.input_normalisation.std.flatten().tolist()
+    assert mean == pytest.approx(list(get("preprocessing.channel_mean")))
+    assert std == pytest.approx(list(get("preprocessing.channel_std")))
 
 
 def test_model_rejects_non_configured_input(run_config_factory):
