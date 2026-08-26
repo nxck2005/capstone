@@ -440,6 +440,31 @@ class DJSCCTrainer:
             "nonzero": bool(gradients) and any(torch.count_nonzero(gradient).item() > 0 for gradient in gradients),
         }
 
+    @staticmethod
+    def _optimizer_gradient_status(optimizer: torch.optim.Optimizer) -> dict[str, int | bool]:
+        """Classify every gradient that GradScaler inspects for this optimizer."""
+
+        parameters = [
+            parameter
+            for group in optimizer.param_groups
+            for parameter in group["params"]
+        ]
+        identities = [id(parameter) for parameter in parameters]
+        _require(
+            len(identities) == len(set(identities)),
+            "optimizer owns a parameter more than once",
+        )
+        gradients = [parameter.grad for parameter in parameters if parameter.grad is not None]
+        return {
+            "parameter_count": len(parameters),
+            "gradient_count": len(gradients),
+            "present": bool(gradients),
+            "finite": bool(gradients)
+            and all(torch.isfinite(gradient).all().item() for gradient in gradients),
+            "nonzero": bool(gradients)
+            and any(torch.count_nonzero(gradient).item() > 0 for gradient in gradients),
+        }
+
     def train_epoch(
         self,
         epoch: int,
@@ -506,24 +531,39 @@ class DJSCCTrainer:
             encoder_status = self._gradient_status(list(self.model.encoder.parameters()))
             reconstruction_status = self._gradient_status(list(self.model.decoder.reconstruction_head.parameters()))
             task_status = self._gradient_status(list(self.model.decoder.task_head.parameters()))
-            gradients_finite = all(
+            named_gradients_finite = all(
                 status["finite"]
                 for status in (encoder_status, reconstruction_status, task_status)
             )
+            optimizer_status = self._optimizer_gradient_status(self.optimizer)
+            optimizer_gradients_finite = bool(optimizer_status["finite"])
             optimizer_step_applied = False
             if self.scaler is None:
-                _require(gradients_finite, "non-finite W5 gradient without GradScaler")
+                _require(
+                    optimizer_gradients_finite,
+                    "non-finite optimizer-owned W5 gradient without GradScaler",
+                )
                 self.optimizer.step()
                 optimizer_step_applied = True
             else:
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
                 scale_after = float(self.scaler.get_scale())
-                optimizer_step_applied = gradients_finite
-                _require(
-                    gradients_finite or scale_after < float(scale_before),
-                    "GradScaler did not back off after non-finite W5 gradient",
-                )
+                if optimizer_gradients_finite:
+                    _require(
+                        scale_after >= float(scale_before),
+                        "GradScaler backed off despite finite optimizer-owned W5 gradients",
+                    )
+                    optimizer_step_applied = True
+                else:
+                    _require(
+                        scale_after < float(scale_before),
+                        "GradScaler did not skip/back off after a non-finite optimizer-owned W5 gradient",
+                    )
+            _require(
+                named_gradients_finite or not optimizer_step_applied,
+                "GradScaler applied a step with a non-finite named W5 gradient",
+            )
             if optimizer_step_applied:
                 _require(
                     encoder_status["nonzero"] and task_status["nonzero"],
@@ -562,6 +602,7 @@ class DJSCCTrainer:
                     "training_noise_sha256": hashlib.sha256(noise_bytes).hexdigest(),
                     "optimizer_step": self.global_optimizer_step,
                     "optimizer_step_applied": optimizer_step_applied,
+                    "optimizer_gradient_checks": optimizer_status,
                     "grad_scaler_scale_before": scale_before,
                     "grad_scaler_scale_after": scale_after,
                     "lr": lr,
@@ -720,6 +761,16 @@ class DJSCCTrainer:
             "grad_scaler_skips", "global_optimizer_step", "total_loss", "cross_entropy",
             "reconstruction_mse", "duration_seconds", "gradient_checks", "trace",
         }
+        trace_required = {
+            "microbatch", "stable_sample_ids", "augmentation_ids",
+            "training_noise_ids", "training_noise_sha256", "optimizer_step",
+            "optimizer_step_applied", "optimizer_gradient_checks",
+            "grad_scaler_scale_before", "grad_scaler_scale_after", "lr", "total",
+            "cross_entropy", "reconstruction_mse",
+        }
+        gradient_status_required = {
+            "parameter_count", "gradient_count", "present", "finite", "nonzero",
+        }
         prior_step = 0
         for record in records:
             _require(isinstance(record, Mapping) and set(record) == required, "W5 history record schema differs")
@@ -729,7 +780,62 @@ class DJSCCTrainer:
                 == len(record["trace"]),
                 "W5 history step arithmetic differs",
             )
-            prior_step += record["optimizer_steps"]
+            applied_count = 0
+            skipped_count = 0
+            for trace in record["trace"]:
+                _require(
+                    isinstance(trace, Mapping) and set(trace) == trace_required,
+                    "W5 history trace schema differs",
+                )
+                status = trace["optimizer_gradient_checks"]
+                _require(
+                    isinstance(status, Mapping)
+                    and set(status) == gradient_status_required
+                    and _is_int(status["parameter_count"])
+                    and status["parameter_count"] > 0
+                    and _is_int(status["gradient_count"])
+                    and 0 < status["gradient_count"] <= status["parameter_count"]
+                    and all(isinstance(status[key], bool) for key in ("present", "finite", "nonzero"))
+                    and status["present"],
+                    "W5 history optimizer-gradient status differs",
+                )
+                applied = trace["optimizer_step_applied"]
+                _require(isinstance(applied, bool), "W5 history applied-step marker differs")
+                _require(
+                    applied == status["finite"],
+                    "W5 history applied-step/optimizer-gradient classification differs",
+                )
+                if applied:
+                    applied_count += 1
+                    prior_step += 1
+                else:
+                    skipped_count += 1
+                _require(
+                    trace["optimizer_step"] == prior_step,
+                    "W5 history trace optimizer-step arithmetic differs",
+                )
+                scale_before = trace["grad_scaler_scale_before"]
+                scale_after = trace["grad_scaler_scale_after"]
+                if scale_before is None or scale_after is None:
+                    _require(
+                        scale_before is None and scale_after is None and applied,
+                        "W5 history unscaled step semantics differ",
+                    )
+                elif applied:
+                    _require(
+                        float(scale_after) >= float(scale_before),
+                        "W5 history applied GradScaler step backed off",
+                    )
+                else:
+                    _require(
+                        float(scale_after) < float(scale_before),
+                        "W5 history skipped GradScaler step did not back off",
+                    )
+            _require(
+                applied_count == record["optimizer_steps"]
+                and skipped_count == record["grad_scaler_skips"],
+                "W5 history trace step counts differ",
+            )
             _require(record["global_optimizer_step"] == prior_step, "W5 history global step differs")
             _require(record["samples"] > 0 and all(math.isfinite(float(record[key])) for key in ("lr", "total_loss", "cross_entropy", "reconstruction_mse", "duration_seconds")), "W5 history numeric value differs")
         _require(prior_step == global_step, "W5 history/checkpoint global step differs")

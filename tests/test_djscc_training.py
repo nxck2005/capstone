@@ -119,6 +119,134 @@ def test_grad_scaler_overflow_is_authenticated_skip_and_backoff(tmp_path: Path):
     assert trainer.global_optimizer_step == 0
 
 
+@pytest.mark.parametrize("nonfinite", [float("inf"), float("nan")])
+def test_grad_scaler_shared_decoder_overflow_is_not_counted_as_optimizer_step(
+    tmp_path: Path, nonfinite: float
+):
+    trainer = _trainer(tmp_path)
+    target_name = "decoder.ingress.0.weight"
+    target = dict(trainer.model.named_parameters())[target_name]
+    named_ids = {
+        id(parameter)
+        for module in (
+            trainer.model.encoder,
+            trainer.model.decoder.reconstruction_head,
+            trainer.model.decoder.task_head,
+        )
+        for parameter in module.parameters()
+    }
+    assert id(target) not in named_ids
+    before = {
+        name: parameter.detach().clone()
+        for name, parameter in trainer.model.named_parameters()
+    }
+
+    class _OptimizerWideScaler:
+        def __init__(self) -> None:
+            self.scale_value = 65536.0
+            self.skipped: bool | None = None
+
+        def get_scale(self) -> float:
+            return self.scale_value
+
+        def scale(self, loss: torch.Tensor) -> torch.Tensor:
+            return loss
+
+        def unscale_(self, optimizer: object) -> None:
+            del optimizer
+            assert target.grad is not None
+            target.grad.view(-1)[0] = nonfinite
+
+        def step(self, optimizer: torch.optim.Optimizer) -> None:
+            gradients = [
+                parameter.grad
+                for group in optimizer.param_groups
+                for parameter in group["params"]
+                if parameter.grad is not None
+            ]
+            self.skipped = not all(torch.isfinite(gradient).all().item() for gradient in gradients)
+            if not self.skipped:
+                optimizer.step()
+
+        def update(self) -> None:
+            if self.skipped:
+                self.scale_value /= 2
+
+    scaler = _OptimizerWideScaler()
+    trainer.scaler = scaler  # type: ignore[assignment]
+    record = trainer.train_epoch(0, _TinyCifarTrain(0, count=2))
+    trace = record["trace"][0]
+    assert all(
+        record["gradient_checks"][name]["finite"]
+        for name in ("encoder", "reconstruction_head", "task_head")
+    )
+    assert trace["optimizer_gradient_checks"]["parameter_count"] == sum(
+        len(group["params"]) for group in trainer.optimizer.param_groups
+    )
+    assert trace["optimizer_gradient_checks"]["finite"] is False
+    assert scaler.skipped is True
+    assert trace["optimizer_step_applied"] is False
+    assert record["optimizer_steps"] == 0
+    assert record["grad_scaler_skips"] == 1
+    assert trainer.global_optimizer_step == 0
+    assert trace["grad_scaler_scale_before"] == 65536.0
+    assert trace["grad_scaler_scale_after"] == 32768.0
+    assert all(
+        torch.equal(before[name], parameter)
+        for name, parameter in trainer.model.named_parameters()
+    )
+
+
+def test_grad_scaler_all_optimizer_gradients_finite_counts_exactly_one_step(tmp_path: Path):
+    trainer = _trainer(tmp_path)
+    before = {
+        name: parameter.detach().clone()
+        for name, parameter in trainer.model.named_parameters()
+    }
+
+    class _FiniteScaler:
+        def __init__(self) -> None:
+            self.scale_value = 65536.0
+            self.step_calls = 0
+
+        def get_scale(self) -> float:
+            return self.scale_value
+
+        def scale(self, loss: torch.Tensor) -> torch.Tensor:
+            return loss
+
+        def unscale_(self, optimizer: object) -> None:
+            del optimizer
+
+        def step(self, optimizer: torch.optim.Optimizer) -> None:
+            assert all(
+                torch.isfinite(parameter.grad).all().item()
+                for group in optimizer.param_groups
+                for parameter in group["params"]
+                if parameter.grad is not None
+            )
+            self.step_calls += 1
+            optimizer.step()
+
+        def update(self) -> None:
+            pass
+
+    scaler = _FiniteScaler()
+    trainer.scaler = scaler  # type: ignore[assignment]
+    record = trainer.train_epoch(0, _TinyCifarTrain(0, count=2))
+    trace = record["trace"][0]
+    assert trace["optimizer_gradient_checks"]["finite"] is True
+    assert trace["optimizer_step_applied"] is True
+    assert record["optimizer_steps"] == 1
+    assert record["grad_scaler_skips"] == 0
+    assert trainer.global_optimizer_step == 1
+    assert scaler.step_calls == 1
+    assert any(
+        not torch.equal(before[name], parameter)
+        for name, parameter in trainer.model.named_parameters()
+    )
+
+
 def test_training_noise_is_ambient_rng_and_batch_order_independent():
     config = _config()
     trainer = _trainer(Path("unused-w5-test-runtime"), config)
@@ -232,6 +360,13 @@ def _mutate_authenticated_checkpoint(root: Path, mutation) -> None:
         (lambda p: p.__setitem__("scaler_state", {"scale": 1}), "unexpectedly carries scaler"),
         (lambda p: p.__setitem__("protected_counters", {**PROTECTED_COUNTERS, "test_access": 1}), "protected counters"),
         (lambda p: p.__setitem__("rng_state_policy", {"channel": "ambient"}), "RNG policy"),
+        (
+            lambda p: (
+                p["training_history"][0]["trace"][0].__setitem__("optimizer_step_applied", False),
+                p["training_history"][0]["trace"][0]["optimizer_gradient_checks"].__setitem__("finite", False),
+            ),
+            "trace optimizer-step arithmetic",
+        ),
     ],
 )
 def test_resume_rejects_authenticated_checkpoint_mutations(tmp_path: Path, mutation, match: str):

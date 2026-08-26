@@ -101,11 +101,50 @@ def _git_clean() -> bool:
     return not subprocess.run(["git", "status", "--porcelain"], cwd=REPO, capture_output=True, text=True, check=True).stdout
 
 
+def _optimizer_step_accounting(trajectory: dict[str, Any]) -> dict[str, Any]:
+    expected_step = 0
+    applied = 0
+    skipped = 0
+    optimizer_parameter_counts: set[int] = set()
+    for record in trajectory["history"]:
+        record_applied = 0
+        record_skipped = 0
+        for trace in record["trace"]:
+            status = trace["optimizer_gradient_checks"]
+            optimizer_parameter_counts.add(int(status["parameter_count"]))
+            if not (0 < int(status["gradient_count"]) <= int(status["parameter_count"])):
+                raise RuntimeError("W5 optimizer-gradient coverage count differs")
+            if trace["optimizer_step_applied"] != status["finite"]:
+                raise RuntimeError("W5 applied-step marker differs from optimizer-wide gradient status")
+            if trace["optimizer_step_applied"]:
+                expected_step += 1
+                applied += 1
+                record_applied += 1
+            else:
+                skipped += 1
+                record_skipped += 1
+            if trace["optimizer_step"] != expected_step:
+                raise RuntimeError("W5 trace optimizer-step arithmetic differs")
+        if record["optimizer_steps"] != record_applied or record["grad_scaler_skips"] != record_skipped:
+            raise RuntimeError("W5 epoch optimizer-step accounting differs")
+        if record["global_optimizer_step"] != expected_step:
+            raise RuntimeError("W5 epoch global optimizer-step accounting differs")
+    if trajectory["global_optimizer_step"] != expected_step:
+        raise RuntimeError("W5 trajectory global optimizer-step accounting differs")
+    return {
+        "actual_applied_optimizer_steps": applied,
+        "grad_scaler_skips": skipped,
+        "global_optimizer_step_matches_trace": True,
+        "optimizer_wide_finiteness_matches_applied_markers": True,
+        "optimizer_parameter_counts": sorted(optimizer_parameter_counts),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source-manifest", type=Path, default=REPO / "results/learned/w5/w5_source_manifest_v3.json")
-    parser.add_argument("--runtime-root", type=Path, default=REPO / "results/learned/w5/runtime_attempt_3")
-    parser.add_argument("--output", type=Path, default=REPO / "results/learned/w5/w5_smoke_result.json")
+    parser.add_argument("--source-manifest", type=Path, default=REPO / "results/learned/w5/w5_source_manifest_v4.json")
+    parser.add_argument("--runtime-root", type=Path, default=REPO / "results/learned/w5/runtime_attempt_4")
+    parser.add_argument("--output", type=Path, default=REPO / "results/learned/w5/w5_smoke_result_attempt_4.json")
     parser.add_argument("--device", default="cuda:0")
     args = parser.parse_args()
     if not _git_clean():
@@ -169,7 +208,18 @@ def main() -> int:
         checks = trajectory["history"][-1]["gradient_checks"]
         if trajectory["bw_ratio"] != ratio or not all(checks[head]["finite"] and checks[head]["nonzero"] for head in ("encoder", "reconstruction_head", "task_head")):
             raise RuntimeError(f"selected Imagenette ratio plumbing failed for {ratio}")
-    actual_steps = uninterrupted["global_optimizer_step"] + resumed["global_optimizer_step"] + sum(value["global_optimizer_step"] for value in selected.values())
+    trajectories = {
+        "cifar_uninterrupted": uninterrupted,
+        "cifar_resumed": resumed,
+        **{f"imagenette_{ratio}": value for ratio, value in selected.items()},
+    }
+    accounting = {
+        name: _optimizer_step_accounting(trajectory)
+        for name, trajectory in trajectories.items()
+    }
+    actual_steps = sum(
+        value["actual_applied_optimizer_steps"] for value in accounting.values()
+    )
     result = {
         "schema_version": 1,
         "artifact_role": "w5_djscc_smoke_result",
@@ -210,6 +260,12 @@ def main() -> int:
             "encoder_finite_nonzero": True,
             "reconstruction_head_finite_nonzero": True,
             "task_head_finite_nonzero": True,
+        },
+        "optimizer_step_accounting": {
+            "definition": "actual GradScaler step iff all optimizer-owned gradients are finite and no backoff occurs",
+            "all_optimizer_owned_gradients_covered": True,
+            "trajectories": accounting,
+            "actual_applied_optimizer_steps": actual_steps,
         },
         "checkpoint_resume": {
             "process_boundary": True,

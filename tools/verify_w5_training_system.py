@@ -14,9 +14,16 @@ REPO = Path(__file__).resolve().parent.parent
 W5 = REPO / "results/learned/w5"
 SCHEMA_PATH = REPO / "spec/schemas/w5_training_artifacts.schema.json"
 CONTRACT_PATH = REPO / "instructions/W5.txt"
-SOURCE_MANIFEST_PATH = W5 / "w5_source_manifest_v3.json"
-SMOKE_PATH = W5 / "w5_smoke_result.json"
-COMPLETION_PATH = W5 / "w5_completion.json"
+HISTORICAL_SOURCE_MANIFEST_PATH = W5 / "w5_source_manifest_v3.json"
+HISTORICAL_SMOKE_PATH = W5 / "w5_smoke_result.json"
+HISTORICAL_COMPLETION_PATH = W5 / "w5_completion.json"
+SOURCE_MANIFEST_PATH = W5 / "w5_source_manifest_v4.json"
+SMOKE_PATH = W5 / "w5_smoke_result_attempt_4.json"
+COMPLETION_PATH = W5 / "w5_gradscaler_accounting_repair_completion.json"
+HISTORICAL_COMPLETION_ID = "w5completion-680b2688dc761a30a7a68aee91c021fe057bbb726b44b614bdffd19712c5fc70"
+HISTORICAL_COMPLETION_SHA256 = "cb5afdf0f0d85742b27a82ee27265c592b598f522a1f6bb3b5ef30c78ca5a539"
+HISTORICAL_SMOKE_ID = "w5smoke-9868ecda4c29b61e21b055b78ca315fea2eb51d4bbea80414a70ae17b606e67a"
+HISTORICAL_SMOKE_SHA256 = "2dc04add556614dba643bff9848232c1e9de3aee5da07e8d259e70bc72da463a"
 G8_CLOSEOUT_PATH = REPO / "results/baseline/g8/g8_closeout.json"
 G8_CORRECTION_PATH = REPO / "results/baseline/g8/g8_terminal_binding_metadata_correction.json"
 
@@ -96,6 +103,37 @@ def verify_g8_lineage() -> dict[str, Any]:
     }
 
 
+def verify_historical_completion() -> dict[str, Any]:
+    completion = _load(HISTORICAL_COMPLETION_PATH)
+    _require(_sha(HISTORICAL_COMPLETION_PATH) == HISTORICAL_COMPLETION_SHA256, "historical W5 completion bytes differ")
+    _require(completion.get("completion_id") == HISTORICAL_COMPLETION_ID, "historical W5 completion ID differs")
+    _identity("w5completion-", completion, "completion_id")
+    _require(completion.get("artifact_role") == "w5_training_infrastructure_completion", "historical W5 completion role differs")
+    _require(completion.get("protected_counters") == PROTECTED_COUNTERS, "historical W5 completion protected counters differ")
+    smoke = _load(HISTORICAL_SMOKE_PATH)
+    _require(_sha(HISTORICAL_SMOKE_PATH) == HISTORICAL_SMOKE_SHA256, "historical W5 attempt-3 smoke bytes differ")
+    _require(smoke.get("smoke_id") == HISTORICAL_SMOKE_ID, "historical W5 attempt-3 smoke ID differs")
+    _require(completion.get("smoke_lineage", {}).get("smoke_id") == HISTORICAL_SMOKE_ID, "historical W5 completion smoke binding differs")
+    manifest = _load(HISTORICAL_SOURCE_MANIFEST_PATH)
+    _require(
+        _sha(HISTORICAL_SOURCE_MANIFEST_PATH)
+        == "2a734bb2f07aa8a506050d25d068197d8a9209a82bdbea1d099208cd797b9841",
+        "historical W5 source-manifest bytes differ",
+    )
+    _require(
+        manifest.get("manifest_id")
+        == "w5source-170e34c0bc1f7bfe4b2ec2c48b12dbf856bd59b48e9dae23570917b14b9b0015",
+        "historical W5 source-manifest ID differs",
+    )
+    _require(completion.get("source_lineage", {}).get("manifest_id") == manifest["manifest_id"], "historical W5 completion source binding differs")
+    return {
+        "path": str(HISTORICAL_COMPLETION_PATH.relative_to(REPO)),
+        "completion_id": HISTORICAL_COMPLETION_ID,
+        "file_sha256": HISTORICAL_COMPLETION_SHA256,
+        "status": "PRESERVED_HISTORICAL_NON_SCIENTIFIC_EVIDENCE",
+    }
+
+
 def verify_source() -> dict[str, Any]:
     manifest = _load(SOURCE_MANIFEST_PATH)
     verify_source_manifest(manifest, current=True)
@@ -120,8 +158,8 @@ def verify_smoke(runtime_root: Path | None = None) -> dict[str, Any]:
     smoke = _load(SMOKE_PATH)
     required = {
         "schema_version", "artifact_role", "smoke_id", "eligibility", "lineage",
-        "scope", "environment", "training", "gradients", "checkpoint_resume",
-        "selected_ratio_plumbing", "data_isolation", "protected_counters",
+        "scope", "environment", "training", "gradients", "optimizer_step_accounting",
+        "checkpoint_resume", "selected_ratio_plumbing", "data_isolation", "protected_counters",
     }
     _require(set(smoke) == required and smoke["schema_version"] == 1 and smoke["artifact_role"] == "w5_djscc_smoke_result", "W5 smoke schema/role differs")
     _identity("w5smoke-", smoke, "smoke_id")
@@ -149,6 +187,26 @@ def verify_smoke(runtime_root: Path | None = None) -> dict[str, Any]:
     _require(all(value == 0 for value in smoke["data_isolation"].values()), "W5 data-isolation counter is nonzero")
     _require(smoke["training"]["w5_non_scientific_optimizer_steps"] > 0, "W5 smoke optimizer steps were not counted")
     _require(smoke["training"]["finite_total_ce_mse"] is True, "W5 smoke loss is non-finite")
+    accounting = smoke["optimizer_step_accounting"]
+    _require(
+        isinstance(accounting, dict)
+        and accounting.get("all_optimizer_owned_gradients_covered") is True
+        and accounting.get("actual_applied_optimizer_steps")
+        == smoke["training"]["w5_non_scientific_optimizer_steps"],
+        "W5 optimizer-step accounting summary differs",
+    )
+    _require(set(accounting.get("trajectories", {})) == {
+        "cifar_uninterrupted", "cifar_resumed", "imagenette_r_1_6", "imagenette_r_1_24",
+    }, "W5 optimizer-step accounting trajectory set differs")
+    for name, proof in accounting["trajectories"].items():
+        _require(
+            proof.get("global_optimizer_step_matches_trace") is True
+            and proof.get("optimizer_wide_finiteness_matches_applied_markers") is True
+            and proof.get("actual_applied_optimizer_steps") >= 0
+            and proof.get("grad_scaler_skips") >= 0
+            and proof.get("optimizer_parameter_counts"),
+            f"W5 optimizer-step accounting proof differs for {name}",
+        )
     if runtime_root is not None:
         for pointer in sorted(runtime_root.glob("*/latest.json")):
             sidecar = _load(pointer)
@@ -165,71 +223,111 @@ def verify_smoke(runtime_root: Path | None = None) -> dict[str, Any]:
     }
 
 
+def _scientific_boundary() -> dict[str, int]:
+    return {
+        "g8_scientific_change": 0,
+        "f2_optimizer_steps": 0,
+        "f3_reruns": 0,
+        "pass_two_reruns": 0,
+        "pass_three": 0,
+        "scientific_learned_training_runs": 0,
+        "w7_lambda_pilots": 0,
+        "w8_final_runs": 0,
+        "learned_validation_selection": 0,
+        "learned_test_inference": 0,
+        "test_access": 0,
+    }
+
+
 def build_completion(verification_record: Path) -> dict[str, Any]:
-    schema = verify_schema()
-    contract = verify_contract()
-    g8 = verify_g8_lineage()
+    historical = verify_historical_completion()
     source = verify_source()
-    smoke = verify_smoke(W5 / "runtime_attempt_3")
+    smoke = verify_smoke(W5 / "runtime_attempt_4")
     verification = _load(verification_record)
+    _require(
+        verification.get("artifact_role") == "w5_gradscaler_accounting_repair_verification"
+        and verification.get("verdict") == "PASS",
+        "W5 repair verification record differs",
+    )
     body = {
         "schema_version": 1,
-        "artifact_role": "w5_training_infrastructure_completion",
-        "w5_contract": contract,
-        "w5_schema": {
-            "version": schema["schema_version"],
-            "path": str(SCHEMA_PATH.relative_to(REPO)),
-            "schema_id": "w5schema-" + _sha(SCHEMA_PATH),
-            "sha256": _sha(SCHEMA_PATH),
+        "artifact_role": "w5_gradscaler_accounting_repair_completion",
+        "supersedes": historical,
+        "defect": {
+            "classification": "IMPLEMENTATION DEFECT",
+            "summary": "named-region finiteness could disagree with GradScaler optimizer-wide skip semantics",
+            "repair": "all optimizer-owned gradients now determine applied-step accounting",
+            "am91_recipe_changed": False,
+            "amendment_added": False,
         },
-        "g8_lineage": g8,
+        "g8_lineage": verify_g8_lineage(),
         "source_lineage": source,
-        "recipe": {
-            "amendment": "AM-91",
-            "lambda_status": get("learned_system.lambda_status"),
-            "optimizer": get("learned_system.optimizer_implementation"),
-            "lr": get("learned_system.lr"),
-            "schedule": get("learned_system.lr_schedule_equation"),
-            "warmup_epochs": get("learned_system.lr_warmup_epochs"),
-            "amp": get("learned_system.amp"),
-            "amp_dtype": get("learned_system.amp_dtype"),
-            "checkpoint_every_epochs": get("learned_system.checkpoint_every_epochs"),
-            "selection": get("learned_system.w5_checkpoint_selection"),
+        "regression_tests": verification["regression_tests"],
+        "pre_smoke_ci": verification["pre_smoke_ci"],
+        "attempt_4": smoke,
+        "optimizer_step_accounting": {
+            "attempt_1_optimizer_steps": 0,
+            "attempt_2_optimizer_steps": 2,
+            "attempt_3_historically_recorded_optimizer_steps": 4,
+            "attempt_3_applied_step_certainty_not_strengthened": True,
+            "attempt_4_verified_applied_optimizer_steps": smoke["optimizer_steps"],
+            "scientific_learned_optimizer_steps": 0,
         },
-        "rng_policy": {
-            "stream": get("artifacts.rng_stream"),
-            "training_purpose": "training_channel_noise",
-            "identity_fields": list(get("artifacts.rng_identity_fields.training_channel_noise")),
-            "sequential_channel_rng_state": None,
-        },
-        "smoke_lineage": smoke,
-        "verification": verification,
+        "kill_resume": verification["kill_resume"],
+        "selected_ratio_plumbing": verification["selected_ratio_plumbing"],
+        "scientific_boundary": _scientific_boundary(),
         "protected_counters": dict(PROTECTED_COUNTERS),
+        "verification": verification,
+        "supersession_reason": "attempt 3 remains historical non-scientific evidence from the pre-repair accounting implementation; attempt 4 verifies the repaired successor source epoch",
         "next_gate": "SEPARATE_W6_OWNER_AUTHORIZATION_REQUIRED",
     }
-    body["completion_id"] = "w5completion-" + hashlib.sha256(_canonical(body)).hexdigest()
+    body["repair_id"] = "w5repaircompletion-" + hashlib.sha256(_canonical(body)).hexdigest()
     return body
 
 
 def verify_completion() -> dict[str, Any]:
     completion = _load(COMPLETION_PATH)
     required = {
-        "schema_version", "artifact_role", "completion_id", "w5_contract", "w5_schema",
-        "g8_lineage", "source_lineage", "recipe", "rng_policy", "smoke_lineage",
-        "verification", "protected_counters", "next_gate",
+        "schema_version", "artifact_role", "repair_id", "supersedes", "defect",
+        "g8_lineage", "source_lineage", "regression_tests", "pre_smoke_ci",
+        "attempt_4", "optimizer_step_accounting", "kill_resume",
+        "selected_ratio_plumbing", "scientific_boundary", "protected_counters",
+        "verification", "supersession_reason", "next_gate",
     }
-    _require(set(completion) == required and completion["schema_version"] == 1 and completion["artifact_role"] == "w5_training_infrastructure_completion", "W5 completion schema/role differs")
-    _identity("w5completion-", completion, "completion_id")
-    _require(completion["w5_contract"] == verify_contract(), "W5 completion contract binding differs")
-    _require(completion["w5_schema"]["sha256"] == _sha(SCHEMA_PATH), "W5 completion schema binding differs")
-    _require(completion["g8_lineage"] == verify_g8_lineage(), "W5 completion G8 binding differs")
-    _require(completion["source_lineage"] == verify_source(), "W5 completion source binding differs")
     _require(
-        completion["smoke_lineage"] == verify_smoke(W5 / "runtime_attempt_3"),
-        "W5 completion smoke binding differs",
+        set(completion) == required
+        and completion["schema_version"] == 1
+        and completion["artifact_role"] == "w5_gradscaler_accounting_repair_completion",
+        "W5 repair completion schema/role differs",
     )
-    _require(completion["protected_counters"] == PROTECTED_COUNTERS, "W5 completion protected counters differ")
-    _require(completion["next_gate"] == "SEPARATE_W6_OWNER_AUTHORIZATION_REQUIRED", "W5 completion next gate differs")
+    _identity("w5repaircompletion-", completion, "repair_id")
+    _require(completion["supersedes"] == verify_historical_completion(), "W5 historical completion binding differs")
+    _require(completion["defect"] == {
+        "classification": "IMPLEMENTATION DEFECT",
+        "summary": "named-region finiteness could disagree with GradScaler optimizer-wide skip semantics",
+        "repair": "all optimizer-owned gradients now determine applied-step accounting",
+        "am91_recipe_changed": False,
+        "amendment_added": False,
+    }, "W5 repair defect semantics differ")
+    _require(completion["g8_lineage"] == verify_g8_lineage(), "W5 repair G8 binding differs")
+    _require(completion["source_lineage"] == verify_source(), "W5 repair source binding differs")
+    _require(completion["attempt_4"] == verify_smoke(W5 / "runtime_attempt_4"), "W5 attempt-4 binding differs")
+    _require(completion["scientific_boundary"] == _scientific_boundary(), "W5 repair scientific boundary differs")
+    _require(completion["protected_counters"] == PROTECTED_COUNTERS, "W5 repair protected counters differ")
+    accounting = completion["optimizer_step_accounting"]
+    _require(
+        accounting.get("attempt_3_historically_recorded_optimizer_steps") == 4
+        and accounting.get("attempt_3_applied_step_certainty_not_strengthened") is True
+        and accounting.get("attempt_4_verified_applied_optimizer_steps") == completion["attempt_4"]["optimizer_steps"]
+        and accounting.get("scientific_learned_optimizer_steps") == 0,
+        "W5 repair optimizer-step custody differs",
+    )
+    _require(
+        completion["verification"].get("artifact_role") == "w5_gradscaler_accounting_repair_verification"
+        and completion["verification"].get("verdict") == "PASS",
+        "W5 repair verification differs",
+    )
+    _require(completion["next_gate"] == "SEPARATE_W6_OWNER_AUTHORIZATION_REQUIRED", "W5 repair next gate differs")
     return completion
 
 
@@ -243,7 +341,11 @@ def main() -> int:
     contract = verify_contract()
     verify_g8_lineage()
     if args.pre_source:
-        print(f"W5 pre-source contract/schema PASS: {contract['contract_id']}")
+        historical = verify_historical_completion()
+        print(
+            "W5 repair pre-source contract/schema/historical evidence PASS: "
+            f"{contract['contract_id']} {historical['completion_id']}"
+        )
         return 0
     if args.generate_completion:
         if args.verification_record is None:
@@ -251,10 +353,10 @@ def main() -> int:
         value = build_completion(args.verification_record)
         COMPLETION_PATH.parent.mkdir(parents=True, exist_ok=True)
         COMPLETION_PATH.write_bytes(_canonical(value))
-        print(f"wrote {COMPLETION_PATH.relative_to(REPO)}: {value['completion_id']}")
+        print(f"wrote {COMPLETION_PATH.relative_to(REPO)}: {value['repair_id']}")
         return 0
     completion = verify_completion()
-    print(f"W5 GREEN verifier PASS: {completion['completion_id']}")
+    print(f"W5 GREEN repaired verifier PASS: {completion['repair_id']}")
     return 0
 
 

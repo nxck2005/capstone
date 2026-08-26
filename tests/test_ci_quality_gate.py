@@ -21,8 +21,7 @@ def test_software_profile_uses_offline_runner_verification():
     commands = _joined("static")
     assert "verify_g8_bler_runner_contract_offline.py" in commands
     assert "verify_g8_bler_characterization_manifest_v2.py" in commands
-    assert "verify_w5_training_system.py" in commands
-    assert "verify_w5_training_system.py --pre-source" not in commands
+    assert "verify_w5_training_system.py --pre-source" in commands
     assert "gen_g8_bler_runner_contract.py" not in commands
 
 

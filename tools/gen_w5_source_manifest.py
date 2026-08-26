@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 REPO = Path(__file__).resolve().parent.parent
-OUTPUT = REPO / "results/learned/w5/w5_source_manifest_v3.json"
+OUTPUT = REPO / "results/learned/w5/w5_source_manifest_v4.json"
 SOURCES = {
     "instructions/W5.txt": "w5_contract",
     "spec/SPEC.md": "normative_specification",
@@ -39,6 +39,8 @@ SOURCES = {
     "tools/run_djscc_training.py": "process_runner",
     "tools/run_w5_training_smoke.py": "fresh_process_smoke_orchestrator",
     "tools/verify_w5_training_system.py": "w5_verifier",
+    "tests/test_djscc_training.py": "optimizer_step_accounting_regression",
+    "tests/test_w5_training_system.py": "w5_verifier_mutation_regression",
 }
 
 
