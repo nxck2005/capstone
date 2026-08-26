@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:capstone:w5-training-artifacts:v1",
+  "title": "W5 learned DJSCC training artifact contract",
+  "schema_version": 1,
+  "eligibility_constants": {
+    "artifact_role": "W5_NON_SCIENTIFIC_PLUMBING_SMOKE",
+    "selection_eligibility": "NOT_ELIGIBLE_FOR_SELECTION",
+    "reporting_eligibility": "NOT_ELIGIBLE_FOR_REPORTING",
+    "w7_g4_eligibility": "NOT_ELIGIBLE_FOR_W7_G4",
+    "w8_eligibility": "NOT_ELIGIBLE_FOR_W8",
+    "test_eligibility": "NOT_ELIGIBLE_FOR_TEST"
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_role",
+        "selection_eligibility",
+        "reporting_eligibility",
+        "w7_g4_eligibility",
+        "w8_eligibility",
+        "test_eligibility"
+      ],
+      "properties": {
+        "artifact_role": {"const": "W5_NON_SCIENTIFIC_PLUMBING_SMOKE"},
+        "selection_eligibility": {"const": "NOT_ELIGIBLE_FOR_SELECTION"},
+        "reporting_eligibility": {"const": "NOT_ELIGIBLE_FOR_REPORTING"},
+        "w7_g4_eligibility": {"const": "NOT_ELIGIBLE_FOR_W7_G4"},
+        "w8_eligibility": {"const": "NOT_ELIGIBLE_FOR_W8"},
+        "test_eligibility": {"const": "NOT_ELIGIBLE_FOR_TEST"}
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_commit",
+        "source_manifest_id",
+        "source_manifest_sha256",
+        "config_hash",
+        "resolved_config",
+        "dataset",
+        "dataset_version",
+        "split_manifest_hash",
+        "execution_profile_id",
+        "architecture",
+        "bw_ratio",
+        "k",
+        "train_seed",
+        "channel_seed",
+        "train_snr_db",
+        "lambda",
+        "recipe_sha256",
+        "predecessor_checkpoint_id"
+      ],
+      "properties": {
+        "source_commit": {"$ref": "#/$defs/sha256"},
+        "source_manifest_id": {"type": "string", "minLength": 1},
+        "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "config_hash": {"$ref": "#/$defs/sha256"},
+        "resolved_config": {"type": "object"},
+        "dataset": {"enum": ["imagenette160", "stl10", "cifar10"]},
+        "dataset_version": {"$ref": "#/$defs/sha256"},
+        "split_manifest_hash": {"$ref": "#/$defs/sha256"},
+        "execution_profile_id": {"type": "string", "minLength": 1},
+        "architecture": {"type": "string", "minLength": 1},
+        "bw_ratio": {"type": "string", "minLength": 1},
+        "k": {"type": "integer", "minimum": 1},
+        "train_seed": {"type": "integer"},
+        "channel_seed": {"type": "integer"},
+        "train_snr_db": {"type": "number"},
+        "lambda": {"type": "number", "minimum": 0},
+        "recipe_sha256": {"$ref": "#/$defs/sha256"},
+        "predecessor_checkpoint_id": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/sha256"}
+          ]
+        }
+      }
+    },
+    "protected_counters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scientific_learned_training_runs",
+        "w7_lambda_pilot_runs",
+        "w8_final_training_runs",
+        "learned_validation_selection",
+        "learned_test_inference",
+        "test_access",
+        "f2_optimizer_steps_during_w5",
+        "f3_reruns",
+        "pass_two_reruns",
+        "pass_three"
+      ],
+      "properties": {
+        "scientific_learned_training_runs": {"const": 0},
+        "w7_lambda_pilot_runs": {"const": 0},
+        "w8_final_training_runs": {"const": 0},
+        "learned_validation_selection": {"const": 0},
+        "learned_test_inference": {"const": 0},
+        "test_access": {"const": 0},
+        "f2_optimizer_steps_during_w5": {"const": 0},
+        "f3_reruns": {"const": 0},
+        "pass_two_reruns": {"const": 0},
+        "pass_three": {"const": 0}
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "artifact_role",
+        "eligibility",
+        "lineage",
+        "completed_epoch",
+        "next_epoch",
+        "global_optimizer_step",
+        "accumulation_position",
+        "model_state",
+        "optimizer_state",
+        "scheduler_state",
+        "scaler_state",
+        "rng_state_policy",
+        "training_history",
+        "protected_counters"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "artifact_role": {"const": "w5_djscc_training_checkpoint"},
+        "eligibility": {"$ref": "#/$defs/eligibility"},
+        "lineage": {"$ref": "#/$defs/lineage"},
+        "completed_epoch": {"type": "integer", "minimum": 0},
+        "next_epoch": {"type": "integer", "minimum": 1},
+        "global_optimizer_step": {"type": "integer", "minimum": 1},
+        "accumulation_position": {"const": 0},
+        "model_state": {"type": "object"},
+        "optimizer_state": {"type": "object"},
+        "scheduler_state": {"type": "object"},
+        "scaler_state": {"type": ["object", "null"]},
+        "rng_state_policy": {"type": "object"},
+        "training_history": {"type": "array"},
+        "protected_counters": {"$ref": "#/$defs/protected_counters"}
+      }
+    },
+    "checkpoint_sidecar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "artifact_role",
+        "eligibility",
+        "checkpoint_path",
+        "checkpoint_id",
+        "checkpoint_bytes",
+        "completed_epoch",
+        "next_epoch",
+        "global_optimizer_step",
+        "config_hash",
+        "source_commit",
+        "execution_profile_id"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "artifact_role": {"const": "w5_djscc_checkpoint_sidecar"},
+        "eligibility": {"$ref": "#/$defs/eligibility"},
+        "checkpoint_path": {"type": "string", "pattern": "^checkpoints/epoch-[0-9]{4}\\.pt$"},
+        "checkpoint_id": {"$ref": "#/$defs/sha256"},
+        "checkpoint_bytes": {"type": "integer", "minimum": 1},
+        "completed_epoch": {"type": "integer", "minimum": 0},
+        "next_epoch": {"type": "integer", "minimum": 1},
+        "global_optimizer_step": {"type": "integer", "minimum": 1},
+        "config_hash": {"$ref": "#/$defs/sha256"},
+        "source_commit": {"$ref": "#/$defs/sha256"},
+        "execution_profile_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "smoke_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "artifact_role",
+        "eligibility",
+        "lineage",
+        "scope",
+        "environment",
+        "training",
+        "gradients",
+        "checkpoint_resume",
+        "selected_ratio_plumbing",
+        "data_isolation",
+        "protected_counters"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "artifact_role": {"const": "w5_djscc_smoke_result"},
+        "eligibility": {"$ref": "#/$defs/eligibility"},
+        "lineage": {"type": "object"},
+        "scope": {"type": "object"},
+        "environment": {"type": "object"},
+        "training": {"type": "object"},
+        "gradients": {"type": "object"},
+        "checkpoint_resume": {"type": "object"},
+        "selected_ratio_plumbing": {"type": "object"},
+        "data_isolation": {"type": "object"},
+        "protected_counters": {"$ref": "#/$defs/protected_counters"}
+      }
+    },
+    "completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "artifact_role",
+        "completion_id",
+        "w5_contract",
+        "w5_schema",
+        "g8_lineage",
+        "source_lineage",
+        "recipe",
+        "rng_policy",
+        "smoke_lineage",
+        "verification",
+        "protected_counters",
+        "next_gate"
+      ],
+      "properties": {
+        "schema_version": {"const": 1},
+        "artifact_role": {"const": "w5_training_infrastructure_completion"},
+        "completion_id": {"type": "string", "pattern": "^w5completion-[0-9a-f]{64}$"},
+        "w5_contract": {"type": "object"},
+        "w5_schema": {"type": "object"},
+        "g8_lineage": {"type": "object"},
+        "source_lineage": {"type": "object"},
+        "recipe": {"type": "object"},
+        "rng_policy": {"type": "object"},
+        "smoke_lineage": {"type": "object"},
+        "verification": {"type": "object"},
+        "protected_counters": {"$ref": "#/$defs/protected_counters"},
+        "next_gate": {"const": "SEPARATE_W6_OWNER_AUTHORIZATION_REQUIRED"}
+      }
+    }
+  }
+}

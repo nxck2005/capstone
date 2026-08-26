@@ -1,0 +1,53 @@
+W5 LEARNED DJSCC TRAINING-INFRASTRUCTURE CONTRACT
+Frozen: 2026-08-26, after G8 validation-side closure and before the first W5 optimizer smoke.
+Authority: the owner's W5 prompt; spec/SPEC.md remains normative and AM-91 freezes previously open output-affecting semantics.
+
+PURPOSE
+Production-ready, config-derived learned DJSCC training infrastructure with the existing dual-head objective, deterministic keyed execution, authenticated checkpoint/resume, schema-exact records, and non-scientific plumbing validation.
+
+AUTHORIZED
+- Implement the generic learned DJSCC trainer, checkpoint/resume, runner, verifier, schemas, tests, compact W5 evidence and living-document closeout.
+- Run bounded non-scientific CIFAR-10 plumbing, including a true fresh-process kill/resume test.
+- Run bounded forward/backward checks for the two exact selected Imagenette ratios r_1_6 and r_1_24.
+- Use lambda=0 or the provisional configured lambda only as plumbing inputs.
+
+FORBIDDEN
+- W6, W7, G-4, W8, scientific learned training, validation-based lambda/model/checkpoint/architecture selection, learned result curves, ER-1/ER-2, ER-9, PAPR-constrained production training, G-10, G-12, model-facing test access, and any G8/F1/F2/F3/BR-4/BLER rerun or change.
+
+ELIGIBILITY
+Every W5 checkpoint and result MUST carry all of:
+- artifact_role = W5_NON_SCIENTIFIC_PLUMBING_SMOKE
+- selection_eligibility = NOT_ELIGIBLE_FOR_SELECTION
+- reporting_eligibility = NOT_ELIGIBLE_FOR_REPORTING
+- w7_g4_eligibility = NOT_ELIGIBLE_FOR_W7_G4
+- w8_eligibility = NOT_ELIGIBLE_FOR_W8
+- test_eligibility = NOT_ELIGIBLE_FOR_TEST
+No W5 checkpoint is a scientific parent or a best checkpoint. Attractive smoke metrics have no decision role.
+
+RECIPE
+- Existing djscc_residual_v1, task-head registry, dual heads, unit-average-power layer, AWGN registry and DJSCCObjective are reused; no architecture selection occurs.
+- Objective is CE + lambda*MSE. The MSE target is the same augmented unit-interval tensor passed to the model. Lambda zero uses the identical model and trainer.
+- Adam and every optimizer option, LR, exact epoch-start cosine, no warmup, AMP/autocast/GradScaler, batches, accumulation, final partial, ordering, augmentation, checkpoint cadence and selection rule are exactly params.learned_system as amended by AM-91. No Torch default is implicit.
+- Fixed training SNR and lambda come only from the fully resolved RunConfig. The configured lambda remains provisional until G-4.
+- The execution_profile_id is explicit. local_4060_cu130 is selected only for the authorized final W5 CUDA smoke; it is not a hidden universal default.
+
+RNG
+Initialization, augmentation and batch order retain their exact keyed identities. Training-channel unit noise uses purpose training_channel_noise and exactly the identity fields in params.artifacts.rng_identity_fields.training_channel_noise. It is a pure per-sample/per-epoch function, independent of ambient Python/NumPy/Torch RNG, batching, workers, interruption and resume. No sequential channel RNG state exists.
+
+CHECKPOINT/RESUME
+- Schema version 1 under spec/schemas/w5_training_artifacts.schema.json.
+- Completed-epoch checkpoints only. Incomplete epochs replay from the latest authenticated completed epoch.
+- A checkpoint is immutable and named by epoch; publication is temporary write, flush, fsync, atomic rename without replacement, directory fsync, exact-byte SHA-256 sidecar publication, then latest-pointer publication.
+- Resume authenticates sidecar SHA/length before torch.load and then exact schema, role/eligibility, source/config/data/profile/model/ratio/k/seeds/SNR/lambda/optimizer/scheduler/scaler/counters and checkpoint predecessor.
+- Corrupt or incompatible latest state is HOLD. There is no silent fresh start and no older-checkpoint fallback.
+- Keyed/stateless streams have no serialized mutable RNG state. GradScaler state is serialized when enabled. No other sequential RNG is consumed by the trainer.
+
+W5 PROOF
+- CPU/unit tests cover model/loss/resource/determinism/schema/data-isolation/checkpoint attacks and eligibility.
+- The final CUDA smoke executes only after an exact source commit and source manifest are CI-green.
+- CIFAR-10 kill/resume compares an uninterrupted branch with a fresh-process resumed branch at the same predetermined completed-epoch boundary.
+- r_1_6 and r_1_24 each instantiate and complete bounded Imagenette forward/backward gradient plumbing.
+- Protected scientific, selection, prior-G8 and test counters remain zero. W5 smoke optimizer steps are counted separately and truthfully.
+
+NEXT GATE
+W5 closeout stops. W6 requires separate owner authorization; W7/G-4 and W8 remain unopened.

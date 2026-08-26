@@ -15,6 +15,18 @@ from config.params import get
 def _identity(purpose: str) -> dict[str, object]:
     identities: dict[str, dict[str, object]] = {
         "channel_noise": {"noise_id": "noise-sha256"},
+        "training_channel_noise": {
+            "dataset_version": "dataset-sha256",
+            "split_manifest_hash": "split-sha256",
+            "stable_sample_id": "sample-a",
+            "train_seed": 17,
+            "channel_seed": 101,
+            "epoch": 4,
+            "channel": "awgn",
+            "bw_ratio": "r_1_6",
+            "k": 128,
+            "train_snr_db": 7,
+        },
         "outage_label": {
             "split_manifest_hash": "split-sha256",
             "stable_sample_id": "sample-a",

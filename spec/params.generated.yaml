@@ -282,12 +282,41 @@ learned_system:
   lambda_calibration_ratio: headline_ratio
   train_snr_protocol: one_model_per_ratio_at_fixed_snr
   optimizer: adam
+  optimizer_implementation: torch.optim.Adam
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-08
+  adam_weight_decay: 0.0
+  adam_amsgrad: false
+  adam_maximize: false
+  adam_foreach: false
+  adam_capturable: false
+  adam_differentiable: false
+  adam_fused: false
   lr: 0.001
   lr_schedule: cosine
+  lr_schedule_equation: lr(e) = lr_min + (lr - lr_min) * 0.5 * (1 + cos(pi * e / max(E
+    - 1, 1))) for zero-based epoch e
+  lr_min: 0.0
+  lr_warmup_epochs: 0
+  scheduler_step_unit: epoch_start
+  scheduler_epoch_indexing: zero_based
+  scheduler_resume_state: completed_epoch
   augmentation:
   - random_resized_crop
   - horizontal_flip
+  batch_order: keyed_philox_permutation_per_epoch
+  drop_last: false
+  dataloader_workers: 4
+  pin_memory: true
   amp: true
+  amp_device_type: cuda
+  amp_dtype: float16
+  grad_scaler_enabled: true
+  grad_scaler_init_scale: 65536.0
+  grad_scaler_growth_factor: 2.0
+  grad_scaler_backoff_factor: 0.5
+  grad_scaler_growth_interval: 2000
   grad_accumulation_allowed: true
   max_params_millions: 10
   max_params_policy: not_to_exceed_reference_classifier
@@ -295,11 +324,36 @@ learned_system:
     imagenette160: 32
     stl10: 64
     cifar10: 128
-  batch_size_policy: target_not_binding
+  batch_size_policy: effective_target_with_profile_bound_physical_microbatch
+  production_physical_batch_size:
+    local_4060_cu130:
+      imagenette160: 32
+      stl10: 64
+      cifar10: 128
+  production_accumulation_factor:
+    local_4060_cu130:
+      imagenette160: 1
+      stl10: 1
+      cifar10: 1
+  accumulation_gradient_rule: sample_weighted_mean_over_effective_batch
+  final_partial_accumulation: optimizer_step_over_all_remaining_samples_no_drop
+  scheduler_steps_under_accumulation: once_per_epoch_at_epoch_start_not_per_optimizer_step
   epochs:
     imagenette160: 100
     stl10: 200
     cifar10: 150
+  checkpoint_every_epochs: 1
+  checkpoint_timing: after_completed_epoch_and_before_next_epoch
+  checkpoint_resume_unit: authenticated_completed_epoch
+  corrupt_latest_checkpoint_policy: hold_no_older_fallback
+  incomplete_epoch_policy: replay_from_latest_authenticated_completed_epoch
+  checkpoint_schema_version: 1
+  checkpoint_selection_split: validation
+  checkpoint_selection_metric: top1_accuracy
+  checkpoint_selection_mode: max
+  checkpoint_selection_tie_break: earliest_epoch
+  w5_checkpoint_selection: prohibited_non_scientific_smoke_only
+  execution_profile_required: true
   papr_report_required: true
   peak_power_constraint_available: true
   papr_constrained_variant_required: true
@@ -1095,6 +1149,7 @@ artifacts:
   rng_stream: counter_based_keyed_not_sequential
   rng_purposes:
   - channel_noise
+  - training_channel_noise
   - outage_label
   - augmentation
   - init
@@ -1102,6 +1157,17 @@ artifacts:
   rng_identity_fields:
     channel_noise:
     - noise_id
+    training_channel_noise:
+    - dataset_version
+    - split_manifest_hash
+    - stable_sample_id
+    - train_seed
+    - channel_seed
+    - epoch
+    - channel
+    - bw_ratio
+    - k
+    - train_snr_db
     outage_label:
     - split_manifest_hash
     - stable_sample_id

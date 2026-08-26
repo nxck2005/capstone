@@ -194,58 +194,107 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 
 | Parameter | Value | Cited by |
 | --- | --- | --- |
-| `learned_system.framework` | pytorch | AM-27, AM-48 |
-| `learned_system.encoder` | conv_downsample_to_k_symbols | AM-27, AM-48 |
-| `learned_system.encoder_arch` | djscc_residual_v1 | AM-27, AM-48 |
-| `learned_system.encoder_downsample_factor` | 4 | AM-27, AM-48 |
-| `learned_system.encoder_stem_channels` | 64 | AM-27, AM-48 |
-| `learned_system.encoder_body_channels` | 128 | AM-27, AM-48 |
-| `learned_system.encoder_residual_blocks` | 2 | AM-27, AM-48 |
-| `learned_system.encoder_activation` | prelu | AM-27, AM-48 |
-| `learned_system.encoder_norm` | groupnorm | AM-27, AM-48 |
-| `learned_system.encoder_complex_packing` | channel_pairs_to_real_imag | AM-27, AM-48 |
-| `learned_system.encoder_output_complex_channels.r_1_2` | 24 | AM-27, AM-48 |
-| `learned_system.encoder_output_complex_channels.r_1_3` | 16 | AM-27, AM-48 |
-| `learned_system.encoder_output_complex_channels.r_1_6` | 8 | AM-27, AM-48 |
-| `learned_system.encoder_output_complex_channels.r_1_12` | 4 | AM-27, AM-48 |
-| `learned_system.encoder_output_complex_channels.r_1_24` | 2 | AM-27, AM-48 |
-| `learned_system.encoder_output_complex_channels.r_1_48` | 1 | AM-27, AM-48 |
-| `learned_system.decoder_arch` | mirror_of_encoder_with_two_heads | AM-27, AM-48 |
-| `learned_system.decoder_upsample` | transposed_conv | AM-27, AM-48 |
-| `learned_system.arch_fallback` | width_halved_djscc_residual_v1 | AM-27, AM-48 |
-| `learned_system.arch_freeze_gate` | G-7 | AM-27, AM-48 |
-| `learned_system.decoder_heads` | reconstruction, classification | AM-27, AM-48, SR-8 |
-| `learned_system.loss` | CE + lambda * MSE | AM-27, AM-48, SR-8 |
-| `learned_system.lambda_core` | 1.0 | AM-27, AM-48, SR-9 |
-| `learned_system.lambda_status` | provisional_until_G-4 | AM-27, AM-48 |
-| `learned_system.lambda_calibration_gate` | G-4 | AM-27, AM-48 |
-| `learned_system.lambda_grid` | 0.0, 0.1, 0.3, 1.0, 3.0 | AM-7, AM-27, AM-48, G-4, SR-9 |
-| `learned_system.lambda_acc_tolerance_pp` | 1.0 | AM-27, AM-48, SR-9 |
-| `learned_system.lambda_psnr_floor_db` | 20 | AM-27, AM-48, SR-9 |
-| `learned_system.lambda_psnr_floor_relaxed_db` | 16 | AM-27, AM-48, DEC-2, SR-9 |
-| `learned_system.lambda_calibration_snr_db` | 7 | AM-27, AM-35, AM-48, SR-9 |
-| `learned_system.lambda_psnr_eval_snr_db` | 15 | AM-27, AM-48, SR-9 |
-| `learned_system.lambda_calibration_ratio` | headline_ratio | AM-27, AM-48, SR-9 |
-| `learned_system.train_snr_protocol` | one_model_per_ratio_at_fixed_snr | AM-27, AM-48 |
-| `learned_system.optimizer` | adam | AM-27, AM-48 |
-| `learned_system.lr` | 0.001 | AM-27, AM-48 |
-| `learned_system.lr_schedule` | cosine | AM-27, AM-48 |
-| `learned_system.augmentation` | random_resized_crop, horizontal_flip | AM-27, AM-48 |
-| `learned_system.amp` | true | AM-27, AM-48 |
-| `learned_system.grad_accumulation_allowed` | true | AM-27, AM-48, SR-11 |
-| `learned_system.max_params_millions` | 10 | AM-27, AM-48, SR-14 |
-| `learned_system.max_params_policy` | not_to_exceed_reference_classifier | AM-27, AM-36, AM-48, SR-14 |
-| `learned_system.batch_size.imagenette160` | 32 | AM-27, AM-48, SR-11 |
-| `learned_system.batch_size.stl10` | 64 | AM-27, AM-48, SR-11 |
-| `learned_system.batch_size.cifar10` | 128 | AM-27, AM-48, SR-11 |
-| `learned_system.batch_size_policy` | target_not_binding | AM-27, AM-48 |
-| `learned_system.epochs.imagenette160` | 100 | AM-27, AM-48 |
-| `learned_system.epochs.stl10` | 200 | AM-27, AM-48 |
-| `learned_system.epochs.cifar10` | 150 | AM-27, AM-48 |
-| `learned_system.papr_report_required` | true | AM-27, AM-48, SR-16 |
-| `learned_system.peak_power_constraint_available` | true | AM-27, AM-48, SR-16 |
-| `learned_system.papr_constrained_variant_required` | true | AM-27, AM-44, AM-48, SR-16 |
-| `learned_system.papr_constrained_variant_seeds` | 1 | AM-27, AM-48, SR-16 |
+| `learned_system.framework` | pytorch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder` | conv_downsample_to_k_symbols | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_arch` | djscc_residual_v1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_downsample_factor` | 4 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_stem_channels` | 64 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_body_channels` | 128 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_residual_blocks` | 2 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_activation` | prelu | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_norm` | groupnorm | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_complex_packing` | channel_pairs_to_real_imag | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_output_complex_channels.r_1_2` | 24 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_output_complex_channels.r_1_3` | 16 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_output_complex_channels.r_1_6` | 8 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_output_complex_channels.r_1_12` | 4 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_output_complex_channels.r_1_24` | 2 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.encoder_output_complex_channels.r_1_48` | 1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.decoder_arch` | mirror_of_encoder_with_two_heads | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.decoder_upsample` | transposed_conv | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.arch_fallback` | width_halved_djscc_residual_v1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.arch_freeze_gate` | G-7 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.decoder_heads` | reconstruction, classification | AM-27, AM-48, AM-91, SR-8, SR-10 |
+| `learned_system.loss` | CE + lambda * MSE | AM-27, AM-48, AM-91, SR-8, SR-10 |
+| `learned_system.lambda_core` | 1.0 | AM-27, AM-48, AM-91, SR-9, SR-10 |
+| `learned_system.lambda_status` | provisional_until_G-4 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lambda_calibration_gate` | G-4 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lambda_grid` | 0.0, 0.1, 0.3, 1.0, 3.0 | AM-7, AM-27, AM-48, AM-91, G-4, SR-9, SR-10 |
+| `learned_system.lambda_acc_tolerance_pp` | 1.0 | AM-27, AM-48, AM-91, SR-9, SR-10 |
+| `learned_system.lambda_psnr_floor_db` | 20 | AM-27, AM-48, AM-91, SR-9, SR-10 |
+| `learned_system.lambda_psnr_floor_relaxed_db` | 16 | AM-27, AM-48, AM-91, DEC-2, SR-9, SR-10 |
+| `learned_system.lambda_calibration_snr_db` | 7 | AM-27, AM-35, AM-48, AM-91, SR-9, SR-10 |
+| `learned_system.lambda_psnr_eval_snr_db` | 15 | AM-27, AM-48, AM-91, SR-9, SR-10 |
+| `learned_system.lambda_calibration_ratio` | headline_ratio | AM-27, AM-48, AM-91, SR-9, SR-10 |
+| `learned_system.train_snr_protocol` | one_model_per_ratio_at_fixed_snr | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.optimizer` | adam | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.optimizer_implementation` | torch.optim.Adam | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_beta1` | 0.9 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_beta2` | 0.999 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_epsilon` | 1e-08 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_weight_decay` | 0.0 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_amsgrad` | false | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_maximize` | false | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_foreach` | false | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_capturable` | false | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_differentiable` | false | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.adam_fused` | false | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lr` | 0.001 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lr_schedule` | cosine | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lr_schedule_equation` | lr(e) = lr_min + (lr - lr_min) * 0.5 * (1 + cos(pi * e / max(E - 1, 1))) for zero-based epoch e | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lr_min` | 0.0 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lr_warmup_epochs` | 0 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.scheduler_step_unit` | epoch_start | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.scheduler_epoch_indexing` | zero_based | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.scheduler_resume_state` | completed_epoch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.augmentation` | random_resized_crop, horizontal_flip | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.batch_order` | keyed_philox_permutation_per_epoch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.drop_last` | false | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.dataloader_workers` | 4 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.pin_memory` | true | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.amp` | true | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.amp_device_type` | cuda | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.amp_dtype` | float16 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.grad_scaler_enabled` | true | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.grad_scaler_init_scale` | 65536.0 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.grad_scaler_growth_factor` | 2.0 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.grad_scaler_backoff_factor` | 0.5 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.grad_scaler_growth_interval` | 2000 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.grad_accumulation_allowed` | true | AM-27, AM-48, AM-91, SR-10, SR-11 |
+| `learned_system.max_params_millions` | 10 | AM-27, AM-48, AM-91, SR-10, SR-14 |
+| `learned_system.max_params_policy` | not_to_exceed_reference_classifier | AM-27, AM-36, AM-48, AM-91, SR-10, SR-14 |
+| `learned_system.batch_size.imagenette160` | 32 | AM-27, AM-48, AM-91, SR-10, SR-11 |
+| `learned_system.batch_size.stl10` | 64 | AM-27, AM-48, AM-91, SR-10, SR-11 |
+| `learned_system.batch_size.cifar10` | 128 | AM-27, AM-48, AM-91, SR-10, SR-11 |
+| `learned_system.batch_size_policy` | effective_target_with_profile_bound_physical_microbatch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.production_physical_batch_size.local_4060_cu130.imagenette160` | 32 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.production_physical_batch_size.local_4060_cu130.stl10` | 64 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.production_physical_batch_size.local_4060_cu130.cifar10` | 128 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.production_accumulation_factor.local_4060_cu130.imagenette160` | 1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.production_accumulation_factor.local_4060_cu130.stl10` | 1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.production_accumulation_factor.local_4060_cu130.cifar10` | 1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.accumulation_gradient_rule` | sample_weighted_mean_over_effective_batch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.final_partial_accumulation` | optimizer_step_over_all_remaining_samples_no_drop | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.scheduler_steps_under_accumulation` | once_per_epoch_at_epoch_start_not_per_optimizer_step | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.epochs.imagenette160` | 100 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.epochs.stl10` | 200 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.epochs.cifar10` | 150 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_every_epochs` | 1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_timing` | after_completed_epoch_and_before_next_epoch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_resume_unit` | authenticated_completed_epoch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.corrupt_latest_checkpoint_policy` | hold_no_older_fallback | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.incomplete_epoch_policy` | replay_from_latest_authenticated_completed_epoch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_schema_version` | 1 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_selection_split` | validation | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_selection_metric` | top1_accuracy | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_selection_mode` | max | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_selection_tie_break` | earliest_epoch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.w5_checkpoint_selection` | prohibited_non_scientific_smoke_only | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.execution_profile_required` | true | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.papr_report_required` | true | AM-27, AM-48, AM-91, SR-10, SR-16 |
+| `learned_system.peak_power_constraint_available` | true | AM-27, AM-48, AM-91, SR-10, SR-16 |
+| `learned_system.papr_constrained_variant_required` | true | AM-27, AM-44, AM-48, AM-91, SR-10, SR-16 |
+| `learned_system.papr_constrained_variant_seeds` | 1 | AM-27, AM-48, AM-91, SR-10, SR-16 |
 
 ## baseline
 
@@ -714,8 +763,9 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `artifacts.pair_id_key` | analysis_cell_id, stable_sample_id, bw_ratio, test_snr_db, noise_id | AM-78, SR-13, SR-18 |
 | `artifacts.pair_id_excludes` | system, comparison | AM-78, SR-13, SR-18 |
 | `artifacts.rng_stream` | counter_based_keyed_not_sequential | AM-78, SR-13, SR-18 |
-| `artifacts.rng_purposes` | channel_noise, outage_label, augmentation, init, batch_order | AM-78, SR-13, SR-18 |
+| `artifacts.rng_purposes` | channel_noise, training_channel_noise, outage_label, augmentation, init, batch_order | AM-78, AM-91, SR-13, SR-18 |
 | `artifacts.rng_identity_fields.channel_noise` | noise_id | AM-78, SR-13 |
+| `artifacts.rng_identity_fields.training_channel_noise` | dataset_version, split_manifest_hash, stable_sample_id, train_seed, channel_seed, epoch, channel, bw_ratio, k, train_snr_db | AM-78, SR-13 |
 | `artifacts.rng_identity_fields.outage_label` | split_manifest_hash, stable_sample_id, channel_seed | AM-78, SR-13 |
 | `artifacts.rng_identity_fields.augmentation` | stable_sample_id, train_seed, epoch | AM-78, SR-13 |
 | `artifacts.rng_identity_fields.init` | train_seed, component_path | AM-78, SR-13 |
