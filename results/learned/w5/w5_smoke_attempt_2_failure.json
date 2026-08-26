@@ -1,0 +1,39 @@
+{
+  "artifact_role": "w5_non_scientific_smoke_failed_attempt_custody",
+  "attempt": 2,
+  "classification": "IMPLEMENTATION DEFECT",
+  "error": "RuntimeError: selected Imagenette ratio plumbing failed for r_1_6",
+  "execution_profile_id": "local_4060_cu130",
+  "failure_reason": "The bounded selected-ratio smoke stopped after two GradScaler backoffs, before the frozen initial scale reached the first finite task-head backward at scale 16384.",
+  "immutable_runtime_path": "results/learned/w5/runtime_attempt_2/",
+  "lineage": {
+    "execution_commit": "55f0b06608b8691ad20e78e7c264fa962e76bf25",
+    "source_commit": "20c3c5e8ad02e4878ad8c09d5b73dc99beb18f4c",
+    "source_manifest_id": "w5source-f4ca5a03332c0950e70e872ac0b41cf521b48429f7c2a212cd980080321f14aa",
+    "source_manifest_path": "results/learned/w5/w5_source_manifest_v2.json",
+    "source_manifest_sha256": "9cd0a04ac95a1bd7e4f098d8dc4219f731da9780a5682b0d1e30508d4ca03780"
+  },
+  "observed": {
+    "checkpoint_publications": 8,
+    "cifar_exact_kill_resume": true,
+    "cifar_physical_optimizer_steps": 2,
+    "imagenette_r_1_24_optimizer_steps": 0,
+    "imagenette_r_1_6_optimizer_steps": 0,
+    "selected_ratio_final_scaler_scale": 16384.0
+  },
+  "outcome": "FAILED_NON_SCIENTIFIC_PLUMBING_ATTEMPT_PRESERVED_ZERO_COMPLETION_COVERAGE",
+  "protected_counters": {
+    "f2_optimizer_steps": 0,
+    "f3_reruns": 0,
+    "learned_validation_selection": 0,
+    "pass_three": 0,
+    "pass_two_reruns": 0,
+    "scientific_learned_training_runs": 0,
+    "test_access": 0,
+    "w5_non_scientific_optimizer_steps": 2,
+    "w7_lambda_pilot_runs": 0,
+    "w8_final_training_runs": 0
+  },
+  "schema_version": 1,
+  "successor_policy": "Attempt 2 is immutable and contributes zero completion coverage; attempt 3 may add exactly one further selected-ratio epoch after a new source manifest and exact-SHA CI green."
+}
