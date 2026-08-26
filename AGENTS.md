@@ -127,10 +127,19 @@ selections. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6`, and
 low ratio `r_1_24`; BR-16 freezes QAM16/rate-1/2/axis-160 at 7 dB and the H2
 3–7 dB window (79 pp classical point drop). Terminal closeout is
 `results/baseline/g8/g8_closeout.json` (`g8closeout-07526958…`). Pass three,
-fallback training, learned training and test access remain zero. Do not rerun
-F2/F3/pass two or add optimizer steps.
+fallback training, scientific learned training and test access remain zero. Do
+not rerun F2/F3/pass two or add optimizer steps. **W5 is GREEN and CLOSED as a
+training-infrastructure gate only.** AM-91 freezes the explicit Adam/cosine/AMP/
+accumulation/checkpoint and keyed training-noise semantics. Completion
+`w5completion-680b2688…` binds the non-scientific `local_4060_cu130` smoke,
+exact fresh-process kill/resume equality and finite/nonzero gradients for both
+selected Imagenette ratios. Two failed plumbing attempts remain preserved with
+zero completion coverage; total W5-only non-scientific optimizer steps are six.
+No lambda, architecture, checkpoint or validation result was scientifically
+selected. W7/G-4, W8 and test remain unopened. Do not begin W6 without separate
+owner authorization.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=post-g8-learned-training-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=g8-green-validation-closed-test-sealed; runtime_state=f3-worker-closed-units-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w6-separate-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-infrastructure-only-test-sealed; runtime_state=w5-attempt3-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified

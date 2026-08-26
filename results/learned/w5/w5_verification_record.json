@@ -1,0 +1,78 @@
+{
+  "artifact_role": "w5_training_system_verification_record",
+  "cuda_smoke": {
+    "attempt_1": {
+      "custody": "results/learned/w5/w5_smoke_attempt_1_failure.json",
+      "outcome": "FAILED_PRESERVED_ZERO_COMPLETION_COVERAGE",
+      "w5_non_scientific_optimizer_steps": 0
+    },
+    "attempt_2": {
+      "custody": "results/learned/w5/w5_smoke_attempt_2_failure.json",
+      "outcome": "FAILED_PRESERVED_ZERO_COMPLETION_COVERAGE",
+      "w5_non_scientific_optimizer_steps": 2
+    },
+    "attempt_3": {
+      "file_sha256": "2dc04add556614dba643bff9848232c1e9de3aee5da07e8d259e70bc72da463a",
+      "outcome": "PASS",
+      "path": "results/learned/w5/w5_smoke_result.json",
+      "smoke_id": "w5smoke-9868ecda4c29b61e21b055b78ca315fea2eb51d4bbea80414a70ae17b606e67a",
+      "w5_non_scientific_optimizer_steps": 4
+    },
+    "execution_commit": "6b1d34e12cf2b6a904a3891e25f3ea8ff54d0fb1",
+    "execution_profile_id": "local_4060_cu130",
+    "source_commit": "a2b1a888a319f715a314ba38572b68b5bdb333cd",
+    "total_w5_non_scientific_optimizer_steps_all_attempts": 6
+  },
+  "executed_at": "2026-08-27T03:13:12+05:30",
+  "github_pre_smoke": {
+    "manifest_carrier": {
+      "commit": "6b1d34e12cf2b6a904a3891e25f3ea8ff54d0fb1",
+      "conclusion": "success",
+      "job_id": 98323311218,
+      "run_id": 33012842982,
+      "url": "https://github.com/nxck2005/capstone/actions/runs/33012842982"
+    },
+    "source": {
+      "commit": "a2b1a888a319f715a314ba38572b68b5bdb333cd",
+      "conclusion": "success",
+      "job_id": 98317625691,
+      "run_id": 33011201226,
+      "url": "https://github.com/nxck2005/capstone/actions/runs/33011201226"
+    }
+  },
+  "local_gates": [
+    {
+      "command": ".venv/bin/python -m pytest -q tests/test_djscc_training.py tests/test_djscc_model.py tests/test_djscc_loss.py tests/test_channel_power.py tests/test_channel_registry.py tests/test_artifact_rng.py tests/test_execution_profile_rng.py tests/test_run_config.py tests/test_test_access.py tests/test_g8_terminal_binding_metadata.py tests/test_g8_historical_compatibility.py tests/test_w5_training_system.py",
+      "result": "PASS",
+      "tests": 167
+    },
+    {
+      "command": ".venv/bin/python tools/run_quality_gate.py evidence",
+      "result": "PASS",
+      "tests": 11
+    },
+    {
+      "command": ".venv/bin/python tools/run_quality_gate.py full-local",
+      "result": "PASS",
+      "tests": 2536
+    },
+    {
+      "command": ".venv/bin/python tools/run_quality_gate.py ci-cpu",
+      "result": "PASS"
+    }
+  ],
+  "protected_counters": {
+    "f2_optimizer_steps_during_w5": 0,
+    "f3_reruns": 0,
+    "learned_test_inference": 0,
+    "learned_validation_selection": 0,
+    "pass_three": 0,
+    "pass_two_reruns": 0,
+    "scientific_learned_training_runs": 0,
+    "test_access": 0,
+    "w7_lambda_pilot_runs": 0,
+    "w8_final_training_runs": 0
+  },
+  "schema_version": 1,
+  "verdict": "PASS"
+}

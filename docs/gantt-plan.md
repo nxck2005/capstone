@@ -1,6 +1,6 @@
 # Project Gantt Plan
 
-**Baseline date:** 2026-08-18
+**Baseline date:** 2026-08-27
 **Owner:** project author  
 **Control source:** [`spec/SPEC.md` §13](../spec/SPEC.md#13-schedule--gates)  
 **Fixed review windows:** First 2026-08-18–22; Second 2026-09-29–10-03; Final 2026-11-17–21
@@ -8,10 +8,11 @@
 
 This is the maintained PR-2 time-plan artifact. `spec/SPEC.md` governs sequence and gates if this chart ever disagrees. Engineering checkpoints W0–W4 were completed ahead of the nominal teaching-week windows; the remaining bars preserve the normative gate order. Dates show the planned windows; status reflects authenticated repository evidence, not percentage estimates.
 
-**Planning correction (2026-08-18):** the G-8 work is shown as its actual
-three-phase path—G8_E, G8_F, then G8_G—before later learned-system work. The
-planned downstream windows are resequenced to expose those dependencies; the
-fixed review/report dates and every authenticated status remain unchanged.
+**Status correction (2026-08-27):** G8_E–G8_G and W5 are authenticated complete.
+W5 was a training-infrastructure gate only: its bounded CUDA work is explicitly
+non-scientific and selected no lambda, architecture, checkpoint or validation
+result. W6 is next but unopened; W7/G-4, W8 and test remain unexecuted/sealed.
+Planned downstream windows preserve the normative order and fixed review dates.
 
 ## 1. Calendar view
 
@@ -31,14 +32,14 @@ gantt
     section Current critical path
     G8_C full-strength BLER characterization        :done, g8c, 2026-08-09, 2026-08-15
     G8_D validation-measurement tooling             :done, g8d, after g8c, 3d
-    G8_E validation measurement + pass one          :g8e, 2026-08-18, 4d
-    G8_F artifact classifier + pass two             :g8f, 2026-08-22, 4d
-    G8_G final G-8 ratio/adjudication              :g8g, 2026-08-26, 2d
+    G8_E validation measurement + pass one          :done, g8e, 2026-08-18, 4d
+    G8_F artifact classifier + pass two             :done, g8f, 2026-08-22, 4d
+    G8_G final G-8 ratio/adjudication               :done, g8g, 2026-08-26, 2d
     First Review deliverables and rehearsal         :reviewdocs, 2026-08-11, 2026-08-17
     First Review window                             :crit, r1, 2026-08-18, 5d
 
     section Learned system and validation
-    W5 training loop, dual head, resume             :w5, 2026-08-28, 7d
+    W5 training loop, dual head, resume             :done, w5, 2026-08-27, 1d
     W6 classical evidence closure                   :w6, 2026-09-04, 7d
     W7 one-seed pilot and lambda calibration G-4    :crit, w7, 2026-09-11, 7d
     W8 final paired multi-seed training             :crit, w8, 2026-09-18, 7d
@@ -71,13 +72,13 @@ gantt
 | W3 digital physical layer | 30 Jul–2 Aug | W1 | G-2; exact packetisation and independent BLER agreement | Complete |
 | W4 baseline integration | 1–9 Aug | W3 | Bounded JPEG 2000 + LDPC path; BR-4 selection machinery | Complete |
 | G8_C BLER characterization | 9–15 Aug | G8_A/B contracts and manifests | Authenticated full-strength characterization coverage sufficient to freeze the BLER table | **Complete** — Pascal successor is 3,213/3,213; 153 measured-only curves and the successor `BlerTable` are frozen; predecessor contribution is zero |
-| G8_D validation-measurement tooling | 15–18 Aug | G8_C exact coverage | Codec search, reconstruction cache, BR-11 accounting, count-derived records, atomic resume and bounded smoke | **Complete** — D0–D7 GREEN; G8_E/E0 released; full validation campaign and pass one not started |
-| G8_E full validation measurement + pass one | 18–21 Aug | G8_D GREEN and E0 | Validation-only measurements, measured accuracy records, one authorized pass-one selection and a training-only corpus specification | Planned / not started |
-| G8_F artifact classifier and pass two | 22–25 Aug | G8_E GREEN | Training-only artifact corpus, fine-tuned artifact classifier, post-training validation scores and one authorized pass-two result | Planned / not started |
-| G8_G final G-8 adjudication | 26–27 Aug | G8_F GREEN | Final pass-two disposition; freeze `efficiency_ratio`, named `crossover_ratio`, `low_ratio_operating_point` and the G-8 outputs | Planned / not started |
+| G8_D validation-measurement tooling | 15–18 Aug | G8_C exact coverage | Codec search, reconstruction cache, BR-11 accounting, count-derived records, atomic resume and bounded smoke | **Complete** — D0–D7 GREEN |
+| G8_E full validation measurement + pass one | 18–21 Aug | G8_D GREEN and E0 | Validation-only measurements, measured accuracy records, one authorized pass-one selection and a training-only corpus specification | **Complete** — 288,000 rows authenticated; pass one frozen |
+| G8_F artifact classifier and pass two | 22–25 Aug | G8_E GREEN | Training-only artifact corpus, fine-tuned artifact classifier, post-training validation scores and one authorized pass-two result | **Complete** — F1/F2/F3 closed; pass two executed exactly once |
+| G8_G final G-8 adjudication | 26–27 Aug | G8_F GREEN | Final pass-two disposition; freeze `efficiency_ratio`, named `crossover_ratio`, `low_ratio_operating_point` and the G-8 outputs | **Complete** — G8 GREEN/CLOSED; ratios, BR-16 and H2 frozen |
 | First Review package | 11–17 Aug | W0–W4 evidence | Polished 10–12-slide deck; ≥25-reference review; corrected Gantt; four-member technical readiness; viva evidence; deployment dossier plus guide acknowledgement; final package under `deliverables/review-1/`; `review-1-basis` tag | Backing documents complete; deck/export, four-member rehearsal, guide acknowledgement, final package and snapshot remain |
-| W5 training system | 28 Aug–3 Sep | G8_G adjudication | Checkpoint/resume learned-system training loop and schema-exact records | Not started |
-| W6 classical evidence closure | 4–10 Sep | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | Not started |
+| W5 training system | 27 Aug | G8_G adjudication | Checkpoint/resume learned-system training loop and schema-exact records | **Complete** — authenticated non-scientific CUDA plumbing; exact kill/resume; no selection |
+| W6 classical evidence closure | 4–10 Sep | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | **Next; not authorized or started** |
 | W7 pilot and λ calibration | 11–17 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
 | W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | Not started |
 | W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | Not started |
@@ -94,7 +95,7 @@ gantt
 
 The scientific critical path is:
 
-`G8_C → G8_D tooling → G8_E validation/pass one → G8_F artifact-classifier training/pass two → G8_G final G-8 ratio/adjudication → W5 learned-system training → G-4 λ calibration → W8 final training → G-10/G-11 → validation rehearsal → G-12 test release → G-5 Tier 1 freeze → report figures`.
+`G8_C → G8_D tooling → G8_E validation/pass one → G8_F artifact-classifier training/pass two → G8_G final G-8 ratio/adjudication → W5 learned-training infrastructure → W6 classical evidence closure → W7/G-4 λ calibration → W8 final training → G-10/G-11 → validation rehearsal → G-12 test release → G-5 Tier 1 freeze → report figures`.
 
 Control rules:
 
@@ -121,7 +122,8 @@ These are observed repository records, not forecasts:
 - G-1: Imagenette-160 clean validation top-1 accuracy `898/1000 = 0.898`, above the `0.88` floor.
 - G-7: the 1.64 M-parameter DJSCC profile ran a full 8,469-image epoch at batch size 32 in 48.68 s, reserving 1.004 GiB VRAM; 100 epochs projected to 1.35 h on the profiled device.
 - G-2: golden vectors and all three independent BLER waterfall comparisons passed the 0.5 dB tolerance.
-- W4: a bounded end-to-end classical run and its source-bound verifier pass; the full G-8 validation sweep has not run.
-- G8_C is complete: the Pascal successor covers 3,213/3,213 identities and its measured-only BLER table is frozen. G8_D validation-measurement tooling is GREEN and complete; G8_E full validation/pass one, G8_F artifact-classifier training/pass two, G8_G final ratio adjudication, later learned-system training and test access remain unfinished.
+- W4: a bounded end-to-end classical run and its source-bound verifier pass.
+- G8 is GREEN and closed: the Pascal BLER table, 288,000-row validation campaign, pass one, artifact scorer, pass two, operating ratios, BR-16 and H2 are frozen.
+- W5 is complete as infrastructure only: exact fresh-process kill/resume and both selected-ratio gradient paths passed on CUDA. Its smoke accuracy was not recorded and every checkpoint is machine-labelled ineligible.
 
-No learned-vs-classical headline result exists yet. The First Review must not present bounded smoke data as a scientific comparison.
+No learned-vs-classical headline result exists yet. Historical First Review material must not present W5 smoke data as a scientific comparison.
