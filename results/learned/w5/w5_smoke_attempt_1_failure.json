@@ -1,0 +1,33 @@
+{
+  "artifact_role": "w5_non_scientific_smoke_failed_attempt_custody",
+  "attempt": 1,
+  "classification": "IMPLEMENTATION DEFECT",
+  "error": "training.djscc.W5Hold: non-finite W5 gradient",
+  "execution_profile_id": "local_4060_cu130",
+  "failed_at": "first CIFAR-10 microbatch after GradScaler unscale and before optimizer.step",
+  "failure_reason": "The trainer rejected the initial, expected GradScaler overflow instead of applying standard skip-and-backoff semantics.",
+  "immutable_runtime_path": "results/learned/w5/runtime/",
+  "lineage": {
+    "execution_commit": "3a7d465d539ad55fe6c9b27e41d181c147f93a4d",
+    "source_commit": "ccbcebf5b550169662619c8bd29024b38a3a4469",
+    "source_manifest_id": "w5source-b3a0e4c9cd1f842d2901ffc3225a595c00eb4445c4830fedce3d3a448bc7b568",
+    "source_manifest_path": "results/learned/w5/w5_source_manifest.json",
+    "source_manifest_sha256": "8131a04a5693f2276ac70a62f634487991f49620a3ab5e65acfc02d1a77a4e23"
+  },
+  "outcome": "FAILED_NON_SCIENTIFIC_PLUMBING_ATTEMPT_PRESERVED_ZERO_COVERAGE",
+  "protected_counters": {
+    "checkpoint_publications": 0,
+    "f2_optimizer_steps": 0,
+    "f3_reruns": 0,
+    "learned_validation_selection": 0,
+    "pass_three": 0,
+    "pass_two_reruns": 0,
+    "scientific_learned_training_runs": 0,
+    "test_access": 0,
+    "w5_non_scientific_optimizer_steps": 0,
+    "w7_lambda_pilot_runs": 0,
+    "w8_final_training_runs": 0
+  },
+  "schema_version": 1,
+  "successor_policy": "Attempt 1 is immutable and contributes zero completion coverage; only a new additive source manifest and runtime namespace may execute after exact-SHA CI green."
+}

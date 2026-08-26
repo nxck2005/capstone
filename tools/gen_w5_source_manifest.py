@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 REPO = Path(__file__).resolve().parent.parent
-OUTPUT = REPO / "results/learned/w5/w5_source_manifest.json"
+OUTPUT = REPO / "results/learned/w5/w5_source_manifest_v2.json"
 SOURCES = {
     "instructions/W5.txt": "w5_contract",
     "spec/SPEC.md": "normative_specification",

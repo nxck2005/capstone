@@ -103,8 +103,8 @@ def _git_clean() -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--source-manifest", type=Path, default=REPO / "results/learned/w5/w5_source_manifest.json")
-    parser.add_argument("--runtime-root", type=Path, default=REPO / "results/learned/w5/runtime")
+    parser.add_argument("--source-manifest", type=Path, default=REPO / "results/learned/w5/w5_source_manifest_v2.json")
+    parser.add_argument("--runtime-root", type=Path, default=REPO / "results/learned/w5/runtime_attempt_2")
     parser.add_argument("--output", type=Path, default=REPO / "results/learned/w5/w5_smoke_result.json")
     parser.add_argument("--device", default="cuda:0")
     args = parser.parse_args()
@@ -137,8 +137,8 @@ def main() -> int:
         _run(config="configs/learned-w5-smoke.yaml", runtime=branches["uninterrupted"], device=args.device, source_commit=head, manifest_id=manifest["manifest_id"], manifest_sha=manifest_sha, final_epoch=1, batch=4, perturbation=101)
         _run(config="configs/learned-w5-smoke.yaml", runtime=branches["resumed"], device=args.device, source_commit=head, manifest_id=manifest["manifest_id"], manifest_sha=manifest_sha, final_epoch=0, batch=4, perturbation=202)
         _run(config="configs/learned-w5-smoke.yaml", runtime=branches["resumed"], device=args.device, source_commit=head, manifest_id=manifest["manifest_id"], manifest_sha=manifest_sha, final_epoch=1, batch=4, perturbation=303, resume=True)
-        _run(config="configs/learned-w5-imagenette-r1-6-smoke.yaml", runtime=branches["imagenette_r_1_6"], device=args.device, source_commit=head, manifest_id=manifest["manifest_id"], manifest_sha=manifest_sha, final_epoch=0, batch=1, perturbation=404)
-        _run(config="configs/learned-w5-imagenette-r1-24-smoke.yaml", runtime=branches["imagenette_r_1_24"], device=args.device, source_commit=head, manifest_id=manifest["manifest_id"], manifest_sha=manifest_sha, final_epoch=0, batch=1, perturbation=505)
+        _run(config="configs/learned-w5-imagenette-r1-6-smoke.yaml", runtime=branches["imagenette_r_1_6"], device=args.device, source_commit=head, manifest_id=manifest["manifest_id"], manifest_sha=manifest_sha, final_epoch=1, batch=1, perturbation=404)
+        _run(config="configs/learned-w5-imagenette-r1-24-smoke.yaml", runtime=branches["imagenette_r_1_24"], device=args.device, source_commit=head, manifest_id=manifest["manifest_id"], manifest_sha=manifest_sha, final_epoch=1, batch=1, perturbation=505)
     except BaseException:
         # Failed evidence is preserved exactly for diagnosis. It is never
         # interpreted as completion and this launcher refuses to overwrite it.
@@ -166,7 +166,7 @@ def main() -> int:
         for ratio, name in (("r_1_6", "imagenette_r_1_6"), ("r_1_24", "imagenette_r_1_24"))
     }
     for ratio, trajectory in selected.items():
-        checks = trajectory["history"][0]["gradient_checks"]
+        checks = trajectory["history"][-1]["gradient_checks"]
         if trajectory["bw_ratio"] != ratio or not all(checks[head]["finite"] and checks[head]["nonzero"] for head in ("encoder", "reconstruction_head", "task_head")):
             raise RuntimeError(f"selected Imagenette ratio plumbing failed for {ratio}")
     actual_steps = uninterrupted["global_optimizer_step"] + resumed["global_optimizer_step"] + sum(value["global_optimizer_step"] for value in selected.values())
@@ -226,7 +226,7 @@ def main() -> int:
                 "k": trajectory["k"],
                 "steps": trajectory["global_optimizer_step"],
                 "samples": trajectory["samples"],
-                "gradient_checks": trajectory["history"][0]["gradient_checks"],
+                "gradient_checks": trajectory["history"][-1]["gradient_checks"],
             }
             for ratio, trajectory in selected.items()
         },

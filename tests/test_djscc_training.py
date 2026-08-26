@@ -81,6 +81,44 @@ def test_recipe_is_explicit_and_cosine_has_frozen_endpoints():
     assert learning_rate_for_epoch(config, final) == recipe["lr_min"]
 
 
+def test_grad_scaler_overflow_is_authenticated_skip_and_backoff(tmp_path: Path):
+    trainer = _trainer(tmp_path)
+
+    class _OverflowScaler:
+        def __init__(self) -> None:
+            self.scale_value = 65536.0
+
+        def get_scale(self) -> float:
+            return self.scale_value
+
+        def scale(self, loss: torch.Tensor) -> torch.Tensor:
+            return loss
+
+        def unscale_(self, optimizer: object) -> None:
+            del optimizer
+            gradient = next(
+                parameter.grad
+                for parameter in trainer.model.parameters()
+                if parameter.grad is not None
+            )
+            gradient.view(-1)[0] = float("inf")
+
+        def step(self, optimizer: object) -> None:
+            del optimizer
+
+        def update(self) -> None:
+            self.scale_value /= 2
+
+    trainer.scaler = _OverflowScaler()  # type: ignore[assignment]
+    record = trainer.train_epoch(0, _TinyCifarTrain(0, count=2))
+    assert record["optimizer_steps"] == 0
+    assert record["grad_scaler_skips"] == 1
+    assert record["trace"][0]["optimizer_step_applied"] is False
+    assert record["trace"][0]["grad_scaler_scale_before"] == 65536.0
+    assert record["trace"][0]["grad_scaler_scale_after"] == 32768.0
+    assert trainer.global_optimizer_step == 0
+
+
 def test_training_noise_is_ambient_rng_and_batch_order_independent():
     config = _config()
     trainer = _trainer(Path("unused-w5-test-runtime"), config)

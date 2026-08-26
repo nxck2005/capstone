@@ -463,6 +463,8 @@ class DJSCCTrainer:
         ce_weighted = 0.0
         mse_weighted = 0.0
         samples = 0
+        optimizer_steps = 0
+        scaler_skips = 0
         traces: list[dict[str, Any]] = []
         encoder_status = {"present": False, "finite": False, "nonzero": False}
         reconstruction_status = dict(encoder_status)
@@ -493,24 +495,49 @@ class DJSCCTrainer:
                     unit_noise=unit_noise,
                 )
                 loss = self.objective(output, labels, inputs)
+            scale_before: float | None = None
+            scale_after: float | None = None
             if self.scaler is None:
                 loss.total.backward()
             else:
+                scale_before = float(self.scaler.get_scale())
                 self.scaler.scale(loss.total).backward()
                 self.scaler.unscale_(self.optimizer)
             encoder_status = self._gradient_status(list(self.model.encoder.parameters()))
             reconstruction_status = self._gradient_status(list(self.model.decoder.reconstruction_head.parameters()))
             task_status = self._gradient_status(list(self.model.decoder.task_head.parameters()))
-            _require(all(status["finite"] for status in (encoder_status, reconstruction_status, task_status)), "non-finite W5 gradient")
-            _require(encoder_status["nonzero"] and task_status["nonzero"], "required W5 encoder/task gradient is zero")
-            if float(self.config.resolved["lambda"]) > 0:
-                _require(reconstruction_status["nonzero"], "nonzero-lambda reconstruction gradient is zero")
+            gradients_finite = all(
+                status["finite"]
+                for status in (encoder_status, reconstruction_status, task_status)
+            )
+            optimizer_step_applied = False
             if self.scaler is None:
+                _require(gradients_finite, "non-finite W5 gradient without GradScaler")
                 self.optimizer.step()
+                optimizer_step_applied = True
             else:
                 self.scaler.step(self.optimizer)
                 self.scaler.update()
-            self.global_optimizer_step += 1
+                scale_after = float(self.scaler.get_scale())
+                optimizer_step_applied = gradients_finite
+                _require(
+                    gradients_finite or scale_after < float(scale_before),
+                    "GradScaler did not back off after non-finite W5 gradient",
+                )
+            if optimizer_step_applied:
+                _require(
+                    encoder_status["nonzero"] and task_status["nonzero"],
+                    "required W5 encoder/task gradient is zero",
+                )
+                if float(self.config.resolved["lambda"]) > 0:
+                    _require(
+                        reconstruction_status["nonzero"],
+                        "nonzero-lambda reconstruction gradient is zero",
+                    )
+                self.global_optimizer_step += 1
+                optimizer_steps += 1
+            else:
+                scaler_skips += 1
             count = int(labels.numel())
             values = {
                 "total": float(loss.total.detach().float().item()),
@@ -534,6 +561,9 @@ class DJSCCTrainer:
                     "training_noise_ids": [canonical_sha256(identity) for identity in identities],
                     "training_noise_sha256": hashlib.sha256(noise_bytes).hexdigest(),
                     "optimizer_step": self.global_optimizer_step,
+                    "optimizer_step_applied": optimizer_step_applied,
+                    "grad_scaler_scale_before": scale_before,
+                    "grad_scaler_scale_after": scale_after,
                     "lr": lr,
                     **values,
                 }
@@ -546,7 +576,8 @@ class DJSCCTrainer:
             "lr": lr,
             "samples": samples,
             "microbatches": len(traces),
-            "optimizer_steps": len(traces),
+            "optimizer_steps": optimizer_steps,
+            "grad_scaler_skips": scaler_skips,
             "global_optimizer_step": self.global_optimizer_step,
             "total_loss": total_weighted / samples,
             "cross_entropy": ce_weighted / samples,
@@ -686,13 +717,18 @@ class DJSCCTrainer:
         _require([record.get("epoch") for record in records] == list(range(completed + 1)), "W5 history epochs differ")
         required = {
             "epoch", "lr", "samples", "microbatches", "optimizer_steps",
-            "global_optimizer_step", "total_loss", "cross_entropy",
+            "grad_scaler_skips", "global_optimizer_step", "total_loss", "cross_entropy",
             "reconstruction_mse", "duration_seconds", "gradient_checks", "trace",
         }
         prior_step = 0
         for record in records:
             _require(isinstance(record, Mapping) and set(record) == required, "W5 history record schema differs")
-            _require(record["optimizer_steps"] == record["microbatches"] == len(record["trace"]), "W5 history step arithmetic differs")
+            _require(
+                record["optimizer_steps"] + record["grad_scaler_skips"]
+                == record["microbatches"]
+                == len(record["trace"]),
+                "W5 history step arithmetic differs",
+            )
             prior_step += record["optimizer_steps"]
             _require(record["global_optimizer_step"] == prior_step, "W5 history global step differs")
             _require(record["samples"] > 0 and all(math.isfinite(float(record[key])) for key in ("lr", "total_loss", "cross_entropy", "reconstruction_mse", "duration_seconds")), "W5 history numeric value differs")

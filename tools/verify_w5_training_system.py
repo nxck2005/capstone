@@ -14,7 +14,7 @@ REPO = Path(__file__).resolve().parent.parent
 W5 = REPO / "results/learned/w5"
 SCHEMA_PATH = REPO / "spec/schemas/w5_training_artifacts.schema.json"
 CONTRACT_PATH = REPO / "instructions/W5.txt"
-SOURCE_MANIFEST_PATH = W5 / "w5_source_manifest.json"
+SOURCE_MANIFEST_PATH = W5 / "w5_source_manifest_v2.json"
 SMOKE_PATH = W5 / "w5_smoke_result.json"
 COMPLETION_PATH = W5 / "w5_completion.json"
 G8_CLOSEOUT_PATH = REPO / "results/baseline/g8/g8_closeout.json"
@@ -170,7 +170,7 @@ def build_completion(verification_record: Path) -> dict[str, Any]:
     contract = verify_contract()
     g8 = verify_g8_lineage()
     source = verify_source()
-    smoke = verify_smoke(W5 / "runtime")
+    smoke = verify_smoke(W5 / "runtime_attempt_2")
     verification = _load(verification_record)
     body = {
         "schema_version": 1,
@@ -224,7 +224,10 @@ def verify_completion() -> dict[str, Any]:
     _require(completion["w5_schema"]["sha256"] == _sha(SCHEMA_PATH), "W5 completion schema binding differs")
     _require(completion["g8_lineage"] == verify_g8_lineage(), "W5 completion G8 binding differs")
     _require(completion["source_lineage"] == verify_source(), "W5 completion source binding differs")
-    _require(completion["smoke_lineage"] == verify_smoke(W5 / "runtime"), "W5 completion smoke binding differs")
+    _require(
+        completion["smoke_lineage"] == verify_smoke(W5 / "runtime_attempt_2"),
+        "W5 completion smoke binding differs",
+    )
     _require(completion["protected_counters"] == PROTECTED_COUNTERS, "W5 completion protected counters differ")
     _require(completion["next_gate"] == "SEPARATE_W6_OWNER_AUTHORIZATION_REQUIRED", "W5 completion next gate differs")
     return completion

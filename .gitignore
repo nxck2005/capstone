@@ -210,6 +210,7 @@ tempCodeRunnerFile.py
 # W5 checkpoints/trajectories are immutable local non-scientific smoke runtime;
 # compact authenticated evidence is tracked separately.
 /results/learned/w5/runtime/
+/results/learned/w5/runtime_attempt_2/
 
 # G8_C runtime locks are coordination state, never scientific evidence.
 /results/baseline/g8/work_units/.locks/
