@@ -37,9 +37,64 @@ G8_E_HANDOFF_PATH = REPO_ROOT / "results/baseline/g8_e/e2_confessor_successor/e7
 F1_COMPLETION_PATH = REPO_ROOT / "results/baseline/g8_f/f1_completion.json"
 F2_COMPLETION_PATH = REPO_ROOT / "results/baseline/g8_f/f2_completion.json"
 REPAIR_PROVENANCE_PATH = ROOT / "g8_closeout_repair_provenance.json"
+TERMINAL_BINDING_CORRECTION_PATH = ROOT / "g8_terminal_binding_metadata_correction.json"
 INPUT_PREFIX = "g8ginput-"
 CLOSEOUT_PREFIX = "g8closeout-"
 MANIFEST_PREFIX = "g8gsource-"
+TERMINAL_BINDING_CORRECTION_PREFIX = "g8bindingcorrection-"
+
+# The schema/role/identity field is explicit for every G8 terminal binding.
+# Ordered ID-key probing is retained nowhere on the current/future path.
+_BINDING_SPECS: dict[str, tuple[Path, int, str, str, str]] = {
+    "g8_c_bler_table": (G8_C_TABLE_PATH, 1, "g8_c_pascal_successor_bler_table", "table_id", "g8pblertable-"),
+    "g8_d_handoff": (G8_D_HANDOFF_PATH, 1, "g8_d_handoff", "artifact_id", "g8dhandoff-"),
+    "g8_e_e4": (v3s.V3S_E4_PATH, 3, "g8_e_v3_e4_count_derived_objects", "e4_id", "g8ee4v3-"),
+    "g8_e_e7": (G8_E_HANDOFF_PATH, 1, "g8_e_e7_handoff", "handoff_id", "g8ee7handoff-"),
+    "pass_one": (f3.PASS_ONE_PATH, 1, "g8_e_pass_one_immutable_completion_record", "state_id", "g8epassone-"),
+    "am87_corpus_plan": (CORPUS_PLAN_PATH, 1, "g8_f_am87_metadata_only_corpus_plan", "plan_id", "g8fcorpusplan-"),
+    "am88_sampler_plan": (REPO_ROOT / "results/baseline/g8_f/am88_sampler_plan.json", 1, "g8_f_am88_metadata_only_balanced_sampler_plan", "plan_id", "g8fsamplerplan-"),
+    "f1_completion": (F1_COMPLETION_PATH, 1, "g8_f_f1_completion", "completion_id", "g8ff1completion-"),
+    "f2_completion": (F2_COMPLETION_PATH, 1, "g8_f_f2_completion", "completion_id", "g8ff2completion-"),
+    "f2_classifier_freeze": (f3.F2_FREEZE_PATH, 1, "artifact_finetuned_br12_reference_classifier_freeze", "freeze_id", "g8fclassifierfreeze-"),
+    "f3_scores": (f3.AGGREGATE_PATH, 1, "g8_f_f3_artifact_scorer_aggregate", "aggregate_id", "g8ff3scores-"),
+    "pass_two_authorization": (pass_two.AUTHORIZATION_PATH, 1, "g8_f_owner_pass_two_authorization", "authorization_id", "g8fpass2auth-"),
+    "pass_two_completion": (pass_two.STATE_PATH, 1, "g8_f_br4_pass_two_immutable_completion", "completion_id", "g8fpass2complete-"),
+    "pass_comparison": (pass_two.COMPARISON_PATH, 1, "g8_f_pass_one_pass_two_descriptive_comparison", "comparison_id", "g8fpass2compare-"),
+    "adjudication_input": (INPUT_PATH, 1, "g8_g_validation_adjudication_exact_input", "input_id", "g8ginput-"),
+    "closeout_repair_provenance": (REPAIR_PROVENANCE_PATH, 1, "g8_closeout_only_additive_repair_provenance", "repair_id", "g8closeoutrepair-"),
+}
+_HISTORICAL_CLOSEOUT_SHA256 = "4db4ae531fd20fdfb9c5b44d6b09beb2bc14f95b96e439c43ca6441fe9a4171b"
+_HISTORICAL_CLOSEOUT_ID = "g8closeout-07526958639a3b0040c45264d0ec10e51ee3269755b5d3f8aac48c4c2f3ef2a7"
+_HISTORICAL_SOURCE_MANIFEST_SHA256 = "153f57dddf7c3c27d83c00af5811c29efa2c297bb1b8cc88e0e8dcd26ee45218"
+_HISTORICAL_PRESENTATION_IDS = {
+    "adjudication_input": "g8fpass2compare-ac713b219348383a27152d4a3ba746f695e5899d8c585fea0d663f2f6a228c5f",
+    "g8_d_handoff": None,
+    "closeout_repair_provenance": None,
+}
+_HISTORICAL_BR16_FIXED_CONFIGURATION = {
+    "design_snr_db": 7.0,  # literal-ok: exact frozen historical closeout value
+    "encode_axis_px": 160,  # literal-ok: exact frozen historical closeout value
+    "ldpc_rate": "1/2",
+    "modulation": "qam16",
+    "packet_count": 1,
+}
+_HISTORICAL_H2_WINDOW = (3.0, 7.0)  # literal-ok: exact frozen historical closeout endpoints
+_SCIENTIFIC_BOUNDARY_ZERO = {
+    "f3_rerun": 0,
+    "f2_optimizer_steps": 0,
+    "pass_two_rerun": 0,
+    "pass_three": 0,
+    "candidate_change": 0,
+    "bler_change": 0,
+    "composition_change": 0,
+    "tie_break_change": 0,
+    "ratio_change": 0,
+    "br16_change": 0,
+    "h2_change": 0,
+    "fallback_training": 0,
+    "learned_training": 0,
+    "test_access": 0,
+}
 BOOTSTRAP_SEED = 20260730  # literal-ok: frozen validation-only transparency-probe seed
 VALIDATION_COUNT = f3.EXPECTED_PER_STRUCTURAL
 STRUCTURAL_COUNT = f3.EXPECTED_STRUCTURAL
@@ -63,9 +118,97 @@ def require(condition: bool, message: str) -> None:
         raise G8CloseoutHold(message)
 
 
+def _strict_json_bytes(raw: bytes, *, label: str) -> dict[str, Any]:
+    def reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        value: dict[str, Any] = {}
+        for key, child in pairs:
+            require(key not in value, f"{label} contains duplicate JSON key {key!r}")
+            value[key] = child
+        return value
+
+    try:
+        value = json.loads(raw, object_pairs_hook=reject_duplicates)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise G8CloseoutHold(f"cannot parse {label}: {exc}") from None
+    require(isinstance(value, dict), f"{label} is not a JSON object")
+    return value
+
+
 def _json(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_bytes())
-    require(isinstance(value, dict), f"{path} is not a JSON object")
+    return _strict_json_bytes(path.read_bytes(), label=str(path))
+
+
+def typed_artifact_binding(name: str, *, path: Path | None = None) -> dict[str, Any]:
+    """Build one current binding from its exact schema/role/own-ID contract."""
+
+    require(name in _BINDING_SPECS, f"unknown G8 terminal artifact type: {name}")
+    expected_path, schema_version, role, identity_field, prefix = _BINDING_SPECS[name]
+    actual_path = expected_path if path is None else Path(path)
+    value = _json(actual_path)
+    require(value.get("schema_version") == schema_version, f"unknown schema for G8 terminal artifact type {name}")
+    require(value.get("artifact_role") == role, f"artifact role differs for G8 terminal artifact type {name}")
+    require(identity_field in value, f"G8 terminal artifact {name} is missing own identity {identity_field}")
+    identity = value[identity_field]
+    require(isinstance(identity, str) and identity.startswith(prefix) and len(identity) > len(prefix), f"G8 terminal artifact {name} has invalid own identity {identity_field}")
+    return {
+        "path": str(expected_path.relative_to(REPO_ROOT)),
+        "id": identity,
+        "identity_field": identity_field,
+        "artifact_role": role,
+        "schema_version": schema_version,
+        "file_sha256": f3.sha256_file(actual_path),
+    }
+
+
+def current_typed_bindings() -> dict[str, dict[str, Any]]:
+    return {name: typed_artifact_binding(name) for name in _BINDING_SPECS}
+
+
+def build_terminal_binding_correction() -> dict[str, Any]:
+    affected: list[dict[str, Any]] = []
+    reasons = {
+        "adjudication_input": "legacy ordered probing selected the upstream comparison_id before the artifact's own input_id",
+        "g8_d_handoff": "legacy ordered probing did not include the handoff artifact's own artifact_id field",
+        "closeout_repair_provenance": "legacy ordered probing did not include the provenance artifact's own repair_id field",
+    }
+    for name in ("adjudication_input", "g8_d_handoff", "closeout_repair_provenance"):
+        binding = typed_artifact_binding(name)
+        affected.append({
+            "binding_name": name,
+            "path": binding["path"],
+            "file_sha256": binding["file_sha256"],
+            "previously_recorded_binding_id": _HISTORICAL_PRESENTATION_IDS[name],
+            "corrected_own_artifact_id": binding["id"],
+            "identity_field": binding["identity_field"],
+            "artifact_role": binding["artifact_role"],
+            "schema_version": binding["schema_version"],
+            "reason": reasons[name],
+        })
+    body = {
+        "schema_version": 1,
+        "artifact_role": "g8_terminal_binding_identity_metadata_correction",
+        "status": "ADDITIVE_METADATA_ONLY_HISTORICAL_CLOSEOUT_UNCHANGED",
+        "historical_closeout_id": _HISTORICAL_CLOSEOUT_ID,
+        "historical_closeout_file_sha256": _HISTORICAL_CLOSEOUT_SHA256,
+        "historical_interpretation": {
+            "acceptance": "exact_frozen_schema_1_closeout_bytes_and_exact_legacy_presentation_ids_only",
+            "scope": "generic_ordered_id_probe_is_not_authorized_for_any_other_artifact_or_closeout",
+        },
+        "current_and_future_interpretation": "schema_role_typed_own_artifact_identity_only",
+        "affected_bindings": affected,
+        "scientific_boundary": dict(_SCIENTIFIC_BOUNDARY_ZERO),
+        "amendment": "none_no_requirement_decision_parameter_or_gate_changed",
+    }
+    return _identified(body, field="correction_id", prefix=TERMINAL_BINDING_CORRECTION_PREFIX)
+
+
+def verify_terminal_binding_correction(path: Path = TERMINAL_BINDING_CORRECTION_PATH) -> dict[str, Any]:
+    raw = path.read_bytes()
+    value = _strict_json_bytes(raw, label=str(path))
+    require(raw == f3.rendered_json(value), "G8 terminal-binding correction is not canonical")
+    _verify_identified(value, field="correction_id", prefix=TERMINAL_BINDING_CORRECTION_PREFIX)
+    require(value == build_terminal_binding_correction(), "G8 terminal-binding correction does not reproduce from exact unchanged artifacts")
+    require(value["scientific_boundary"] == _SCIENTIFIC_BOUNDARY_ZERO, "G8 terminal-binding correction scientific boundary differs")
     return value
 
 
@@ -305,20 +448,57 @@ def build_closeout() -> dict[str, Any]:
     require(not rising, "adaptive validation baseline is still rising at 18 dB; upper-grid extension is required")
     schedule = {"decision": "headline_ratio_only_full_strength_efficiency_at_sweep_strength", "full_strength_ratios": [ratios["headline_ratio"]], "one_ratio_ldpc_hours": get("compute.er1_projected_ldpc_decode_hours_one_ratio"), "two_ratio_ldpc_hours": get("compute.er1_projected_ldpc_decode_hours_two_ratios"), "per_run_cap_hours": get("compute.max_wall_clock_hours_per_run"), "total_hours_status": get("compute.er1_projected_total_hours_status"), "cost_axes": get("compute.schedule_cost_compared_as"), "reason": "two-ratio aggregate total wall clock remains unmeasured, so affordability on both required axes is not established"}
     h2 = _h2_freeze(state, ratios["headline_ratio"])
-    bindings = {}
-    for name, path in {"g8_c_bler_table": G8_C_TABLE_PATH, "g8_d_handoff": G8_D_HANDOFF_PATH, "g8_e_e4": v3s.V3S_E4_PATH, "g8_e_e7": G8_E_HANDOFF_PATH, "pass_one": f3.PASS_ONE_PATH, "am87_corpus_plan": CORPUS_PLAN_PATH, "am88_sampler_plan": REPO_ROOT / "results/baseline/g8_f/am88_sampler_plan.json", "f1_completion": F1_COMPLETION_PATH, "f2_completion": F2_COMPLETION_PATH, "f2_classifier_freeze": f3.F2_FREEZE_PATH, "f3_scores": f3.AGGREGATE_PATH, "pass_two_authorization": pass_two.AUTHORIZATION_PATH, "pass_two_completion": pass_two.STATE_PATH, "pass_comparison": pass_two.COMPARISON_PATH, "adjudication_input": INPUT_PATH, "closeout_repair_provenance": REPAIR_PROVENANCE_PATH}.items():
-        value = _json(path); bindings[name] = {"path": str(path.relative_to(REPO_ROOT)), "id": next((value[key] for key in ("table_id", "handoff_id", "e4_id", "state_id", "plan_id", "completion_id", "freeze_id", "aggregate_id", "authorization_id", "comparison_id", "input_id") if key in value), None), "file_sha256": f3.sha256_file(path)}
+    # New construction always selects the artifact's schema/role-specific own ID.
+    bindings = {
+        name: {
+            "path": binding["path"],
+            "id": binding["id"],
+            "file_sha256": binding["file_sha256"],
+        }
+        for name, binding in current_typed_bindings().items()
+    }
     body = {"schema_version": SCHEMA_VERSION, "artifact_role": "g8_terminal_validation_side_closeout", "status": "G8_GREEN_VALIDATION_SIDE_CLOSED", "closeout_source_commit": _closeout_source_commit(), "terminal_verdict": "G8 GREEN — BR-12 ARTIFACT SCORER FROZEN; VALIDATION CACHE RE-SCORED; BR-4 PASS TWO EXECUTED EXACTLY ONCE AND FROZEN; G8 VALIDATION-SIDE OPERATING POINTS CLOSED; TEST AND LEARNED-SYSTEM TRAINING REMAIN SEALED.", "source_commit": state["source_commit"], "bindings": bindings, "policy": {"selection_policy_sha256": state["inputs"]["selection_policy_sha256"], "tie_break_order": state["tie_break_order"], "composition": "P(success)*acc_clean+(1-P(success))*acc_outage", "bler_interpolation": False}, "ratio_rule_evaluations": inputs["ratio_ceilings"], "operating_points": ratios, "upper_grid_saturation": {"ratio_checked": ratios["crossover_ratio"], "previous_snr_db": previous["snr_db"], "maximum_snr_db": high["snr_db"], "previous_expected_accuracy": previous["selected_composition"]["expected_accuracy"], "maximum_expected_accuracy": high["selected_composition"]["expected_accuracy"], "still_rising": False}, "classical_nondegeneracy": nondegenerate, "er1_strength": schedule, "br16_h2_validation_freeze": h2, "dataset_disposition": {"primary": "imagenette160", "efficiency_threshold_satisfied": True, "stl10_fallback_invoked": False}, "artifact_classifier_release": {"released_for_classical_scoring": True, "scorer": f3.verify_aggregate()["scorer"], "fallback_training": 0}, "pass_two": {"completion_id": state["completion_id"], "calls": state["call_count"], "candidate_evaluations": state["totals"]["candidates_evaluated"], "snr_cells": state["totals"]["snr_cells_with_selection"], "tie_breaks": state["totals"]["tie_breaks_applied"], "selection_terminates_after_pass": 2, "pass_three_exists": False}, "pass_one_pass_two_comparison": {"comparison_id": comparison["comparison_id"], "changed_cells": comparison["changed_cells"], "unchanged_cells": comparison["unchanged_cells"], "tie_status_changed_cells": comparison["tie_status_changed_cells"]}, "selected_operating_points": selected, "protected_counters": {"pass_one": 1, "pass_two": 1, "pass_three": 0, "f2_optimizer_steps_during_closure": 0, "fallback_training": 0, "ratio_adjudication": 1, "learned_training": 0, "test_access": 0}, "learned_blind_ratio_selection": True, "learned_result_used_for_ratio_selection": False, "learned_versus_classical_crossover_decided": False, "test_split": "SEALED", "next_gate_not_authorized": "learned-system training"}
     return _identified(body, field="closeout_id", prefix=CLOSEOUT_PREFIX)
 
 
+def verify_historical_closeout(path: Path = CLOSEOUT_PATH) -> dict[str, Any]:
+    """Authenticate only the exact frozen legacy closeout under bounded semantics."""
+
+    raw = path.read_bytes()
+    require(f3.sha256_bytes(raw) == _HISTORICAL_CLOSEOUT_SHA256, "historical G8 closeout bytes differ")
+    value = _strict_json_bytes(raw, label=str(path))
+    require(raw == f3.rendered_json(value), "historical G8 closeout is not canonical")
+    _verify_identified(value, field="closeout_id", prefix=CLOSEOUT_PREFIX)
+    require(value.get("schema_version") == 1 and value.get("closeout_id") == _HISTORICAL_CLOSEOUT_ID, "historical G8 closeout identity/schema differs")
+    require(set(value.get("bindings", {})) == set(_BINDING_SPECS), "historical G8 binding set differs")
+    correction = verify_terminal_binding_correction()
+    corrections = {row["binding_name"]: row for row in correction["affected_bindings"]}
+    for name, binding in value["bindings"].items():
+        expected_path = _BINDING_SPECS[name][0]
+        require(binding.get("path") == str(expected_path.relative_to(REPO_ROOT)), f"historical G8 binding path differs: {name}")
+        require(binding.get("file_sha256") == f3.sha256_file(expected_path), f"historical G8 binding file hash differs: {name}")
+        typed = typed_artifact_binding(name)
+        if name in _HISTORICAL_PRESENTATION_IDS:
+            require(binding.get("id") == _HISTORICAL_PRESENTATION_IDS[name], f"historical G8 legacy presentation ID differs: {name}")
+            require(corrections[name]["corrected_own_artifact_id"] == typed["id"], f"G8 correction own identity differs: {name}")
+        else:
+            require(binding.get("id") == typed["id"], f"historical G8 binding own identity differs: {name}")
+    require(value["protected_counters"] == {"pass_one": 1, "pass_two": 1, "pass_three": 0, "f2_optimizer_steps_during_closure": 0, "fallback_training": 0, "ratio_adjudication": 1, "learned_training": 0, "test_access": 0}, "G8 closeout counters differ")
+    require(value["operating_points"] == {"asymmetric_fallback_applied": False, "crossover_ratio": "r_1_6", "crossover_threshold_satisfied": True, "efficiency_ratio": "r_1_24", "headline_ratio": "r_1_6", "headline_ratio_selector": "crossover_ratio", "ladder_high_to_low": ["r_1_2", "r_1_3", "r_1_6", "r_1_12", "r_1_24", "r_1_48"], "low_ratio_boundary_rule_applied": False, "low_ratio_operating_point": "r_1_24"}, "historical G8 operating points differ")
+    require(value["br16_h2_validation_freeze"]["fixed_configuration"] == _HISTORICAL_BR16_FIXED_CONFIGURATION, "historical BR-16 configuration differs")
+    require((value["br16_h2_validation_freeze"]["low_snr_db"], value["br16_h2_validation_freeze"]["high_snr_db"]) == _HISTORICAL_H2_WINDOW, "historical H2 window differs")
+    require(value["test_split"] == "SEALED" and not value["learned_versus_classical_crossover_decided"], "G8 scope boundary differs")
+    return value
+
+
 def verify_closeout(path: Path = CLOSEOUT_PATH) -> dict[str, Any]:
-    raw = path.read_bytes(); value = json.loads(raw)
+    raw = path.read_bytes()
+    if f3.sha256_bytes(raw) == _HISTORICAL_CLOSEOUT_SHA256:
+        return verify_historical_closeout(path)
+    value = _strict_json_bytes(raw, label=str(path))
     require(raw == f3.rendered_json(value), "G8 closeout is not canonical")
     _verify_identified(value, field="closeout_id", prefix=CLOSEOUT_PREFIX)
-    require(value == build_closeout(), "G8 closeout does not reproduce from frozen inputs")
-    require(value["protected_counters"] == {"pass_one": 1, "pass_two": 1, "pass_three": 0, "f2_optimizer_steps_during_closure": 0, "fallback_training": 0, "ratio_adjudication": 1, "learned_training": 0, "test_access": 0}, "G8 closeout counters differ")
-    require(value["test_split"] == "SEALED" and not value["learned_versus_classical_crossover_decided"], "G8 scope boundary differs")
+    require(value == build_closeout(), "current G8 closeout does not reproduce with typed bindings")
     return value
 
 
@@ -330,8 +510,14 @@ def build_source_manifest() -> dict[str, Any]:
 
 
 def verify_source_manifest(path: Path = SOURCE_MANIFEST_PATH) -> dict[str, Any]:
-    raw = path.read_bytes(); value = json.loads(raw)
+    raw = path.read_bytes()
+    require(f3.sha256_bytes(raw) == _HISTORICAL_SOURCE_MANIFEST_SHA256, "historical G8 source-manifest bytes differ")
+    value = _strict_json_bytes(raw, label=str(path))
     require(raw == f3.rendered_json(value), "G8 source manifest is not canonical")
     _verify_identified(value, field="manifest_id", prefix=MANIFEST_PREFIX)
-    require(value == build_source_manifest(), "G8 source manifest does not reproduce")
+    closeout = verify_historical_closeout()
+    require(value["closeout_id"] == closeout["closeout_id"] and value["closeout_file_sha256"] == _HISTORICAL_CLOSEOUT_SHA256, "historical G8 source manifest closeout binding differs")
+    for row in value["sources"]:
+        result = subprocess.run(["git", "show", f"{value['source_commit']}:{row['path']}"], cwd=REPO_ROOT, check=True, capture_output=True)
+        require(len(result.stdout) == row["bytes"] and f3.sha256_bytes(result.stdout) == row["sha256"], f"historical G8 source bytes differ at bound commit: {row['path']}")
     return value

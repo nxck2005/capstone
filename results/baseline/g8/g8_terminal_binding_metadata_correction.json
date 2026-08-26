@@ -1,0 +1,66 @@
+{
+  "affected_bindings": [
+    {
+      "artifact_role": "g8_g_validation_adjudication_exact_input",
+      "binding_name": "adjudication_input",
+      "corrected_own_artifact_id": "g8ginput-89b7e1572c70a7baf1ab2c01180273c8e7d3c367ebc7d327a470f5575936ecd5",
+      "file_sha256": "88c9167bf0523884ca5c3ef2d1e121c60ff910f789455de0ff14bd5e56f7919a",
+      "identity_field": "input_id",
+      "path": "results/baseline/g8/g8_validation_adjudication_input.json",
+      "previously_recorded_binding_id": "g8fpass2compare-ac713b219348383a27152d4a3ba746f695e5899d8c585fea0d663f2f6a228c5f",
+      "reason": "legacy ordered probing selected the upstream comparison_id before the artifact's own input_id",
+      "schema_version": 1
+    },
+    {
+      "artifact_role": "g8_d_handoff",
+      "binding_name": "g8_d_handoff",
+      "corrected_own_artifact_id": "g8dhandoff-31c48fcabe765a0e70bcd7bcfec5f4bd705b88ee3cb0d140ba9aecf67e1dfd4c",
+      "file_sha256": "fa38c9bbc5e02ea3b16539eed17a9008079386f9655f1b8d789034056432e408",
+      "identity_field": "artifact_id",
+      "path": "results/baseline/g8_d/d7_handoff.json",
+      "previously_recorded_binding_id": null,
+      "reason": "legacy ordered probing did not include the handoff artifact's own artifact_id field",
+      "schema_version": 1
+    },
+    {
+      "artifact_role": "g8_closeout_only_additive_repair_provenance",
+      "binding_name": "closeout_repair_provenance",
+      "corrected_own_artifact_id": "g8closeoutrepair-cbce84d506909b9e5b2ce598faa1b89ccce4729ecf00d06dbe48d1aeb62c3e83",
+      "file_sha256": "36e5ef48f94455d9a9306701097ca05d38d4465ee2e9b4b854aeec3915192bc6",
+      "identity_field": "repair_id",
+      "path": "results/baseline/g8/g8_closeout_repair_provenance.json",
+      "previously_recorded_binding_id": null,
+      "reason": "legacy ordered probing did not include the provenance artifact's own repair_id field",
+      "schema_version": 1
+    }
+  ],
+  "amendment": "none_no_requirement_decision_parameter_or_gate_changed",
+  "artifact_content_sha256": "46748b4eff8ca05f5824b87494b89d33ce67997fa098812884129a0e938bb948",
+  "artifact_role": "g8_terminal_binding_identity_metadata_correction",
+  "correction_id": "g8bindingcorrection-1bff458ee803b41599d969016da6b04d393b2a425df3b5fc9fa0e9e823523610",
+  "current_and_future_interpretation": "schema_role_typed_own_artifact_identity_only",
+  "historical_closeout_file_sha256": "4db4ae531fd20fdfb9c5b44d6b09beb2bc14f95b96e439c43ca6441fe9a4171b",
+  "historical_closeout_id": "g8closeout-07526958639a3b0040c45264d0ec10e51ee3269755b5d3f8aac48c4c2f3ef2a7",
+  "historical_interpretation": {
+    "acceptance": "exact_frozen_schema_1_closeout_bytes_and_exact_legacy_presentation_ids_only",
+    "scope": "generic_ordered_id_probe_is_not_authorized_for_any_other_artifact_or_closeout"
+  },
+  "schema_version": 1,
+  "scientific_boundary": {
+    "bler_change": 0,
+    "br16_change": 0,
+    "candidate_change": 0,
+    "composition_change": 0,
+    "f2_optimizer_steps": 0,
+    "f3_rerun": 0,
+    "fallback_training": 0,
+    "h2_change": 0,
+    "learned_training": 0,
+    "pass_three": 0,
+    "pass_two_rerun": 0,
+    "ratio_change": 0,
+    "test_access": 0,
+    "tie_break_change": 0
+  },
+  "status": "ADDITIVE_METADATA_ONLY_HISTORICAL_CLOSEOUT_UNCHANGED"
+}

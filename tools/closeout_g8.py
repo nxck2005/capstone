@@ -18,12 +18,14 @@ from baseline.g8_g_closeout import (
     CLOSEOUT_PATH,
     INPUT_PATH,
     SOURCE_MANIFEST_PATH,
+    TERMINAL_BINDING_CORRECTION_PATH,
     build_adjudication_input,
     build_closeout,
     build_source_manifest,
     verify_adjudication_input,
     verify_closeout,
     verify_source_manifest,
+    verify_terminal_binding_correction,
 )
 
 
@@ -53,8 +55,8 @@ def main() -> int:
         verify_source_manifest()
         print("G8 CLOSED:", closeout["closeout_id"], json.dumps(closeout["operating_points"], sort_keys=True))
         return 0
-    closeout = verify_closeout(); manifest = verify_source_manifest()
-    print(json.dumps({"status": "PASS", "closeout_id": closeout["closeout_id"], "source_manifest_id": manifest["manifest_id"], "operating_points": closeout["operating_points"], "pass_two": 1, "pass_three": 0, "learned_training": 0, "test": 0}, sort_keys=True))
+    closeout = verify_closeout(); manifest = verify_source_manifest(); correction = verify_terminal_binding_correction()
+    print(json.dumps({"status": "PASS", "closeout_id": closeout["closeout_id"], "source_manifest_id": manifest["manifest_id"], "terminal_binding_correction_id": correction["correction_id"], "terminal_binding_correction_path": str(TERMINAL_BINDING_CORRECTION_PATH.relative_to(ROOT)), "operating_points": closeout["operating_points"], "pass_two": 1, "pass_three": 0, "learned_training": 0, "test": 0}, sort_keys=True))
     return 0
 
 
