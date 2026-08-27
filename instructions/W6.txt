@@ -1,0 +1,32 @@
+W6-A PRE-TEST CLASSICAL EVIDENCE/IMPLEMENTATION CLOSURE CONTRACT
+Frozen: 2026-08-28, after repaired W5 closed GREEN and before W7/G-4.
+Authority: the owner's W6-A-only prompt; spec/SPEC.md remains normative.
+
+PURPOSE
+W6 closes the pre-test classical implementation and evidence boundary. W6-A reconstructs that boundary, authenticates its inputs, freezes the index/matrix/verifier implementation, and proves that a later test campaign can load frozen pass-two selections without selecting again.
+
+AUTHORIZED IN W6-A
+- Read-only authentication of frozen G-1, G-2, W4, G8_C/D/E/F/G and repaired-W5 evidence.
+- A typed evidence index and requirement/status matrix.
+- A deterministic builder, fail-closed verifier, selected-config loader, mutation tests, source freeze, commit, push and exact-SHA CI.
+
+PROHIBITED
+- W6 terminal completion or terminal GREEN publication.
+- Test evaluation or model-facing test access.
+- Scientific learned training, W7/G-4 or W8.
+- Any G8 validation selection rerun, pass one rerun, pass two rerun, pass three, BLER measurement, validation-corpus re-encoding, F1 corpus regeneration, F2 retraining, F3 rescoring, ratio change, ER-1 strength change, BR-16 change or H2 change.
+
+BOUNDARY
+W6_REQUIRED means a pre-test implementation or frozen input needed before future evaluation. FUTURE_G12_TEST_EXECUTION means a scientific row, per-image outcome, figure, inference result or secondary test curve that correctly does not exist before the single G-12 campaign. A future classification cannot hide an unresolved output-affecting pre-test implementation requirement.
+
+ARTIFACT CORPUS CUSTODY
+The F1 corpus is available through compact tracked evidence plus its frozen content-addressed object-set digests and historical worker custody. W6 does not duplicate the multi-gigabyte runtime. F1's raw training corpus is not needed by W7, W8 or W11 after the artifact classifier and F3/pass-two outputs are frozen.
+
+SELECTION CONSUMPTION
+The W6 loader reads the immutable pass-two state and candidate authority, authenticates their identities and binding, and returns the already-selected candidate. It contains no selection, scoring, interpolation, codec, training or test-loader entry point.
+
+SCHEMA
+W6-A index and matrix schema version is 1. Unknown versions fail closed. Every JSON artifact is canonical UTF-8 JSON with sorted keys and a trailing LF. Content IDs are SHA-256 over canonical bytes with the artifact's own ID field omitted. Bindings explicitly name the own-artifact ID field; legacy artifacts without an own ID use exact-file-SHA identity and never borrow a nested/upstream ID.
+
+NEXT GATE
+W6-A stops after exact-SHA CI GREEN. W6 terminal completion requires separate W6-B owner authorization. W7/G-4, W8 and test remain closed.

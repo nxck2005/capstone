@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-27 · **Phase:** **W5 GREEN/CLOSED AFTER ADDITIVE GRADSCALER ACCOUNTING REPAIR; W6 REQUIRES SEPARATE OWNER AUTHORIZATION; W7/G-4, W8 AND TEST REMAIN SEALED.** G8 remains scientifically frozen at terminal closeout `g8closeout-07526958…`; its additive typed-identity correction is `g8bindingcorrection-1bff458e…`, and the historical closeout bytes remain unchanged. AM-91 is unchanged. The W5 optimizer-step accounting implementation now classifies all optimizer-owned gradients; Inf/NaN regressions in shared decoder ingress prove a skipped GradScaler update cannot advance global step. Historical attempts 1–3 and `w5completion-680b2688…` remain byte-identical custody (attempt 3 retains four historically recorded steps without strengthened certainty). Successor attempt 4's preserved raw output is `w5smoke-2fbae18d…`; its schema-v1 exact canonical projection is the terminal non-scientific CUDA smoke `w5smoke-3d77765c…` on `local_4060_cu130`: four verified applied W5-only steps, exact fresh-process kill/resume equality and finite/nonzero gradients at both selected Imagenette ratios. Current additive closeout is `w5repaircompletion-8b2fa917…` at `results/learned/w5/w5_gradscaler_accounting_repair_completion.json`. No lambda, architecture, scientific checkpoint or validation result was selected; scientific learned training, W7 pilot runs, W8 runs, learned test inference and test access remain zero. A sole-writer OS lock remains required before any later separately authorized scientific W7 step. **Exact next action: obtain separate W6 owner authorization; do not continue into W6 or W7 from this handoff.** G8_E remains GREEN and CLOSED through E7. The
+**Last updated:** 2026-08-28 · **Phase:** **W6-A PRE-TEST CLASSICAL EVIDENCE/IMPLEMENTATION CLOSURE PREPARATION COMPLETE; W6 TERMINAL COMPLETION REQUIRES SEPARATE W6-B OWNER AUTHORIZATION; W7/G-4, W8 AND TEST REMAIN SEALED.** Contract `w6acontract-d2378ea5…`, deterministic evidence index `w6aindex-ac05dbad…` and requirement matrix `w6amatrix-d1a1add6…` reconstruct the W6 boundary without scientific recomputation. The matrix has 21 W6-required/satisfied, 0 required/missing, 9 frozen-upstream, 14 future-G12 and 2 not-applicable obligations. The read-only selected-config loader authenticates the immutable pass-two state and candidate authority and consumes one frozen candidate without running selection. W6-A does not publish terminal W6 completion. G8 remains scientifically frozen at terminal closeout `g8closeout-07526958…`; its additive typed-identity correction is `g8bindingcorrection-1bff458e…`, and the historical closeout bytes remain unchanged. AM-91 is unchanged. The repaired W5 authority remains `w5repaircompletion-8b2fa917…`; scientific learned training, W7 pilot runs, W8 runs, learned test inference and test access remain zero. A sole-writer OS lock remains required before any later separately authorized scientific W7 step. **Exact next action: obtain separate W6-B terminal-closure authorization; do not publish W6 completion or continue into W7.** G8_E remains GREEN and CLOSED through E7. The
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -289,12 +289,12 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** obtain separate owner authorization for W5 learned-system
-implementation/training work after G8. Do not train under the F3–F5 validation
-closure authority and do not open test. F1, F2, F3, pass two and G8 adjudication
-are complete, authenticated and closed; do not restart them, add optimizer
-steps, or alter/delete their worker-local runtime. Pass three and fallback
-training remain prohibited.
+**Next-session task:** obtain separate W6-B owner authorization for terminal
+W6 closure publication. W6-A's contract, deterministic index/matrix, verifier,
+mutation tests and read-only frozen-selection loader are prepared; do not publish
+a terminal W6 completion under W6-A authority. Do not begin W7/G-4, learned
+training or test. F1, F2, F3, pass two and G8 adjudication are complete,
+authenticated and closed; pass three and fallback training remain prohibited.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -320,7 +320,9 @@ does not, it is wrong and this block is right.**
 | G-8 · F3/F4/F5 terminal closure | **GREEN/CLOSED — F3 exact 288,000 rows; pass two exactly once, 18 calls/8,190 evaluations/378 cells/95 ties/162 changes; AM-90 ratios frozen; `g8closeout-07526958…`; pass three/learned/test zero** |
 | BR-4 validation sweep | complete/frozen after exactly two passes |
 | G-8 | GREEN/CLOSED |
-| W5 learned-system implementation/training authorization | **NEXT — obtain separate owner authorization; do not perform it under F3–F5 authority and do not open test** |
+| W5 learned-system infrastructure | **GREEN/CLOSED after additive GradScaler accounting repair; scientific training remains zero** |
+| W6-A classical evidence preparation | **COMPLETE — typed index/matrix/verifier and frozen-selection consumer prepared** |
+| W6-B terminal classical closure | **NEXT — requires separate owner authorization; do not publish terminal W6 completion under W6-A authority** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
@@ -870,8 +872,9 @@ committed G-2 table covers one physical-layer identity at four SNR points per mo
 not be extrapolated. Read "What G-8 actually has to build" above before starting, and
 `instructions/RESUME.md` for the facts that work needs. G8 is now GREEN/CLOSED after F3, exactly-once pass two and frozen adjudication;
 the sweep entry point is permanently closed and pass three does not exist.
-**Next, obtain separate owner authorization for W5 learned-system work; do not
-train or open test under the completed G8 authority.** Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
+**W6-A preparation is complete. Next, obtain separate W6-B terminal-closure
+authorization; do not publish W6 completion, begin W7/G-4, train or open test.**
+Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
 does not gate G8, but it is required to complete the user-fixed First Review package.
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
@@ -1151,7 +1154,7 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
 probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The Pascal successor
 production campaign and G8_C C3-C7 closeout are complete at 3213/3213, with 153 measured curves
-frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **Next, obtain separate owner authorization for W5 learned-system work; do not train or open test under G8 authority.**
+frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **W6-A preparation is complete. Next, obtain separate W6-B terminal-closure authorization; do not publish W6 completion, begin W7/G-4, train or open test.**
 W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed

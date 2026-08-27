@@ -13,7 +13,9 @@ W5 was a training-infrastructure gate only: its bounded CUDA work is explicitly
 non-scientific and selected no lambda, architecture, checkpoint or validation
 result. Its additive optimizer-wide GradScaler accounting repair and successor
 attempt-4 kill/resume smoke are GREEN; historical evidence remains immutable.
-W6 is next but unopened; W7/G-4, W8 and test remain unexecuted/sealed.
+W6-A pre-test evidence/implementation closure preparation is complete; terminal
+W6 closure remains separately gated as W6-B. W7/G-4, W8 and test remain
+unexecuted/sealed.
 Planned downstream windows preserve the normative order and fixed review dates.
 
 ## 1. Calendar view
@@ -80,7 +82,7 @@ gantt
 | G8_G final G-8 adjudication | 26–27 Aug | G8_F GREEN | Final pass-two disposition; freeze `efficiency_ratio`, named `crossover_ratio`, `low_ratio_operating_point` and the G-8 outputs | **Complete** — G8 GREEN/CLOSED; ratios, BR-16 and H2 frozen |
 | First Review package | 11–17 Aug | W0–W4 evidence | Polished 10–12-slide deck; ≥25-reference review; corrected Gantt; four-member technical readiness; viva evidence; deployment dossier plus guide acknowledgement; final package under `deliverables/review-1/`; `review-1-basis` tag | Backing documents complete; deck/export, four-member rehearsal, guide acknowledgement, final package and snapshot remain |
 | W5 training system | 27 Aug | G8_G adjudication | Checkpoint/resume learned-system training loop and schema-exact records | **Complete** — optimizer-wide GradScaler accounting repaired; authenticated successor non-scientific CUDA plumbing; exact kill/resume; no selection |
-| W6 classical evidence closure | 4–10 Sep | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | **Next; not authorized or started** |
+| W6 classical evidence closure | 4–10 Sep | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | **W6-A complete** — boundary reconstructed; typed index/matrix/verifier and frozen-selection loader prepared; terminal W6-B publication separately gated |
 | W7 pilot and λ calibration | 11–17 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
 | W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | Not started |
 | W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | Not started |
