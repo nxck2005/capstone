@@ -14,7 +14,7 @@ non-scientific and selected no lambda, architecture, checkpoint or validation
 result. Its additive optimizer-wide GradScaler accounting repair and successor
 attempt-4 kill/resume smoke are GREEN; historical evidence remains immutable.
 W6 pre-test classical implementation/evidence closure is GREEN/CLOSED at
-terminal completion `w6completion-d7df2e37…`; W7/G-4 requires separate owner
+terminal completion `w6completion-ad60dde0…`; W7/G-4 requires separate owner
 authorization. W8 and test remain unexecuted/sealed.
 Planned downstream windows preserve the normative order and fixed review dates.
 
@@ -82,7 +82,7 @@ gantt
 | G8_G final G-8 adjudication | 26–27 Aug | G8_F GREEN | Final pass-two disposition; freeze `efficiency_ratio`, named `crossover_ratio`, `low_ratio_operating_point` and the G-8 outputs | **Complete** — G8 GREEN/CLOSED; ratios, BR-16 and H2 frozen |
 | First Review package | 11–17 Aug | W0–W4 evidence | Polished 10–12-slide deck; ≥25-reference review; corrected Gantt; four-member technical readiness; viva evidence; deployment dossier plus guide acknowledgement; final package under `deliverables/review-1/`; `review-1-basis` tag | Backing documents complete; deck/export, four-member rehearsal, guide acknowledgement, final package and snapshot remain |
 | W5 training system | 27 Aug | G8_G adjudication | Checkpoint/resume learned-system training loop and schema-exact records | **Complete** — optimizer-wide GradScaler accounting repaired; authenticated successor non-scientific CUDA plumbing; exact kill/resume; no selection |
-| W6 classical evidence closure | 27 Aug | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | **GREEN/CLOSED** — terminal completion `w6completion-d7df2e37…` and `tools/verify_w6_complete.py` authenticate the accepted W6-A epoch, G-1/G-2/W4 readiness, frozen corpus, operating points and final pass-two outputs; no classical science recomputed |
+| W6 classical evidence closure | 27 Aug | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | **GREEN/CLOSED** — terminal completion `w6completion-ad60dde0…` and `tools/verify_w6_complete.py` authenticate the accepted W6-A epoch, G-1/G-2/W4 readiness, frozen corpus, operating points and final pass-two outputs; no classical science recomputed |
 | W7 pilot and λ calibration | 11–17 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
 | W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | Not started |
 | W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | Not started |

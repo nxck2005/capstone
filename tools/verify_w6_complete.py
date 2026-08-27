@@ -28,6 +28,7 @@ if str(SRC) not in sys.path:
 if str(TOOLS) not in sys.path:
     sys.path.insert(0, str(TOOLS))
 
+from baseline import g8_e_corrected_v3s as g8_e_v3s  # noqa: E402
 from baseline import g8_f_closeout as f1_closeout  # noqa: E402
 from baseline import g8_f_f3 as f3  # noqa: E402
 from baseline import g8_f_pass_two as pass_two  # noqa: E402
@@ -600,7 +601,12 @@ def _reauthenticate() -> None:
     _run_tool(W4_TOOL)
     verify_g8_c()
     verify_g8_d()
-    _run_tool(G8_E_TOOL)
+    # The full G8_E CLI also performs live archive-byte verification, which is
+    # intentionally unavailable on a clean hosted checkout.  This existing
+    # contract verifier is the strong read-only source/contract check with the
+    # live dataset probe explicitly disabled; the frozen E2--E7 artifacts below
+    # remain independently bound by _assert_frozen_science().
+    g8_e_v3s.verify_frozen_contract(verify_live_sources=True, verify_live_data=False)
     f1_value = f1_closeout.verify_closeout()
     f1_closeout.verify_monitor_closeout(completion=f1_value)
     f2_closeout.verify_compact()

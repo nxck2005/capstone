@@ -35,18 +35,21 @@ false.
 
 ## Terminal publication
 
-The additive completion is
+The final additive completion is
 `results/baseline/w6/w6_completion.json`:
 
-- completion ID: `w6completion-d7df2e37b34c68754b5b1a638e74a0726ef4d868b743457fedbd3a17d3267142`;
-- canonical content SHA-256: `4181b0d756177955f78c7eb2e1aca9b81424b4d5e8230d9b6921ae2a4686d34c`;
-- file SHA-256: `7e8aaf4adcc867da8b2cf6ccb2414b5f674f202498050d7483ca741956663dfa`.
+- completion ID: `w6completion-ad60dde0344fd27183757bc3adb8d816df82b19f7896b221c109b7fc0a5344bc`;
+- canonical content SHA-256: `bf5486747704c17532250a61d2d5eb725320fb8a5da90756e0b41cdfd04937aa`;
+- file SHA-256: `6482b68dca40ee2ea71da708c369ff481817f88d43ea67ef7f18f67af9a796cf`.
 
 `tools/verify_w6_complete.py` is the terminal verifier (source SHA-256
-`eea6ecfa2353887611d4bf51ef133878636425638cfa1ade9aaf8dd9e8f402f1`). It
+`c78e4e3f8320ecf34584f7dfe20eabf4534f4edb5e58733c0a0f7b06f6ba527b`). It
 reconstructs the completion from current bytes and independently invokes the
-existing read-only readiness/closeout verifiers. Publication is exclusive and
-same-directory fsync-backed; replacement is refused.
+existing read-only readiness/closeout verifiers. Its G8_E contract check uses
+the existing archive-independent frozen-contract verifier on hosted clean
+checkouts; the local full G8_E verifier remains a separate read-only gate.
+Publication is exclusive and same-directory fsync-backed; replacement is
+refused.
 
 The accepted W6-A index and matrix remain exact:
 
@@ -136,10 +139,15 @@ also passed, including the complete local pytest invocation and all static
 checks. The first pushed candidate `4b07de0` exposed a CI portability defect: the
 quality gate invoked the optional upstream W6-A replay, which expects ignored
 local dataset archives unavailable in a clean hosted checkout. The gate was
-hardened to use W6-A's exact `--no-upstream` verification in CI; terminal W6
-still independently reauthenticates G-1/G-2/W4 and all downstream closeouts.
-This changed no evidence or science. Exact-final-SHA CI remains the final
-publication check after the corrective gate commit is pushed.
+hardened to use W6-A's exact `--no-upstream` verification in CI. The next
+candidate exposed the same hosted-archive assumption through the terminal
+G8_E CLI; the terminal verifier now calls the existing archive-independent
+`g8_e_corrected_v3s.verify_frozen_contract(verify_live_sources=True,
+verify_live_data=False)` and separately binds the immutable E2–E7/pass-one
+artifacts. The local full G8_E verifier remains a separate read-only gate.
+These are verification portability fixes only: no evidence or science changed.
+Exact-final-SHA CI remains the final publication check after the corrective
+commit is pushed.
 
 **Next:** W6 is GREEN/CLOSED. W7/G-4 requires separate owner authorization;
 W8 and test remain sealed.
