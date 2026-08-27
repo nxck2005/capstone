@@ -255,17 +255,17 @@ def main() -> int:
             ),
             "wall_clock_seconds": sum(value["wall_clock_seconds"] for value in (uninterrupted, resumed, *selected.values())),
             "peak_vram_bytes": max(value["peak_vram_bytes"] for value in (uninterrupted, resumed, *selected.values())),
+            "optimizer_step_accounting": {
+                "definition": "actual GradScaler step iff all optimizer-owned gradients are finite and no backoff occurs",
+                "all_optimizer_owned_gradients_covered": True,
+                "trajectories": accounting,
+                "actual_applied_optimizer_steps": actual_steps,
+            },
         },
         "gradients": {
             "encoder_finite_nonzero": True,
             "reconstruction_head_finite_nonzero": True,
             "task_head_finite_nonzero": True,
-        },
-        "optimizer_step_accounting": {
-            "definition": "actual GradScaler step iff all optimizer-owned gradients are finite and no backoff occurs",
-            "all_optimizer_owned_gradients_covered": True,
-            "trajectories": accounting,
-            "actual_applied_optimizer_steps": actual_steps,
         },
         "checkpoint_resume": {
             "process_boundary": True,

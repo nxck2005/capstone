@@ -129,17 +129,22 @@ low ratio `r_1_24`; BR-16 freezes QAM16/rate-1/2/axis-160 at 7 dB and the H2
 `results/baseline/g8/g8_closeout.json` (`g8closeout-07526958…`). Pass three,
 fallback training, scientific learned training and test access remain zero. Do
 not rerun F2/F3/pass two or add optimizer steps. **W5 is GREEN and CLOSED as a
-training-infrastructure gate only.** AM-91 freezes the explicit Adam/cosine/AMP/
-accumulation/checkpoint and keyed training-noise semantics. Completion
-`w5completion-680b2688…` binds the non-scientific `local_4060_cu130` smoke,
-exact fresh-process kill/resume equality and finite/nonzero gradients for both
-selected Imagenette ratios. Two failed plumbing attempts remain preserved with
-zero completion coverage; total W5-only non-scientific optimizer steps are six.
-No lambda, architecture, checkpoint or validation result was scientifically
-selected. W7/G-4, W8 and test remain unopened. Do not begin W6 without separate
-owner authorization.
+training-infrastructure gate only, including its additive GradScaler accounting
+repair.** AM-91 remains unchanged. The repaired trainer classifies finiteness
+across every optimizer-owned gradient; targeted Inf/NaN regressions cover shared
+decoder ingress outside the three named gradient regions. Historical attempts
+1–3 and completion `w5completion-680b2688…` remain byte-identical; attempt 3's
+four steps are described only as historically recorded. Successor source epoch
+`w5source-af58f018…` and schema-v1 exact non-scientific
+`local_4060_cu130` attempt-4 projection `w5smoke-3d77765c…` (raw output
+`w5smoke-2fbae18d…` preserved) prove four genuinely applied W5-only steps, exact fresh-
+process kill/resume and both selected Imagenette ratio gradients. Additive
+closeout is `w5repaircompletion-8b2fa917…`. No lambda, architecture, checkpoint
+or validation result was scientifically selected. W7/G-4, W8 and test remain
+unopened. A sole-writer OS lock is still required before any later scientific
+W7 optimizer step. Do not begin W6 without separate owner authorization.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w6-separate-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-infrastructure-only-test-sealed; runtime_state=w5-attempt3-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w6-separate-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified

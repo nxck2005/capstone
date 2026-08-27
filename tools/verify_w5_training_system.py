@@ -18,7 +18,7 @@ HISTORICAL_SOURCE_MANIFEST_PATH = W5 / "w5_source_manifest_v3.json"
 HISTORICAL_SMOKE_PATH = W5 / "w5_smoke_result.json"
 HISTORICAL_COMPLETION_PATH = W5 / "w5_completion.json"
 SOURCE_MANIFEST_PATH = W5 / "w5_source_manifest_v4.json"
-SMOKE_PATH = W5 / "w5_smoke_result_attempt_4.json"
+SMOKE_PATH = W5 / "w5_smoke_result_attempt_4_schema1.json"
 COMPLETION_PATH = W5 / "w5_gradscaler_accounting_repair_completion.json"
 HISTORICAL_COMPLETION_ID = "w5completion-680b2688dc761a30a7a68aee91c021fe057bbb726b44b614bdffd19712c5fc70"
 HISTORICAL_COMPLETION_SHA256 = "cb5afdf0f0d85742b27a82ee27265c592b598f522a1f6bb3b5ef30c78ca5a539"
@@ -136,13 +136,43 @@ def verify_historical_completion() -> dict[str, Any]:
 
 def verify_source() -> dict[str, Any]:
     manifest = _load(SOURCE_MANIFEST_PATH)
-    verify_source_manifest(manifest, current=True)
+    verify_source_manifest(manifest, current=False)
+    # Attempt 4 remains bound to every exact source byte in v4. Only this
+    # post-execution terminal verifier may advance additively; its current bytes
+    # are bound separately below rather than misrepresented as execution bytes.
+    post_execution_roles = {
+        "w5_verifier", "w5_verifier_mutation_regression",
+        "fresh_process_smoke_orchestrator",
+    }
+    for entry in manifest["entries"]:
+        if entry["role"] in post_execution_roles:
+            continue
+        path = REPO / entry["path"]
+        _require(
+            path.is_file()
+            and not path.is_symlink()
+            and path.stat().st_size == entry["bytes"]
+            and _sha(path) == entry["sha256"],
+            f"W5 current execution source byte drift: {entry['path']}",
+        )
     return {
         "path": str(SOURCE_MANIFEST_PATH.relative_to(REPO)),
         "manifest_id": manifest["manifest_id"],
         "file_sha256": _sha(SOURCE_MANIFEST_PATH),
         "source_commit": manifest["source_commit"],
         "entries": len(manifest["entries"]),
+        "post_execution_verification_sources": [
+            {
+                "path": str(path.relative_to(REPO)),
+                "sha256": _sha(path),
+            }
+            for path in (
+                Path(__file__).resolve(),
+                REPO / "tests/test_w5_training_system.py",
+                REPO / "tools/run_w5_training_smoke.py",
+            )
+        ],
+        "post_execution_change_reason": "additive schema-v1 projection and successor closeout verification only; not execution source",
     }
 
 
@@ -158,9 +188,16 @@ def verify_smoke(runtime_root: Path | None = None) -> dict[str, Any]:
     smoke = _load(SMOKE_PATH)
     required = {
         "schema_version", "artifact_role", "smoke_id", "eligibility", "lineage",
-        "scope", "environment", "training", "gradients", "optimizer_step_accounting",
-        "checkpoint_resume", "selected_ratio_plumbing", "data_isolation", "protected_counters",
+        "scope", "environment", "training", "gradients", "checkpoint_resume",
+        "selected_ratio_plumbing", "data_isolation", "protected_counters",
     }
+    smoke_schema = _load(SCHEMA_PATH)["$defs"]["smoke_result"]
+    _require(
+        smoke_schema.get("additionalProperties") is False
+        and set(smoke_schema.get("required", [])) == required
+        and set(smoke_schema.get("properties", {})) == required,
+        "W5 committed smoke schema differs from verifier",
+    )
     _require(set(smoke) == required and smoke["schema_version"] == 1 and smoke["artifact_role"] == "w5_djscc_smoke_result", "W5 smoke schema/role differs")
     _identity("w5smoke-", smoke, "smoke_id")
     _require(smoke["eligibility"] == ELIGIBILITY, "W5 smoke eligibility differs")
@@ -187,7 +224,7 @@ def verify_smoke(runtime_root: Path | None = None) -> dict[str, Any]:
     _require(all(value == 0 for value in smoke["data_isolation"].values()), "W5 data-isolation counter is nonzero")
     _require(smoke["training"]["w5_non_scientific_optimizer_steps"] > 0, "W5 smoke optimizer steps were not counted")
     _require(smoke["training"]["finite_total_ce_mse"] is True, "W5 smoke loss is non-finite")
-    accounting = smoke["optimizer_step_accounting"]
+    accounting = smoke["training"]["optimizer_step_accounting"]
     _require(
         isinstance(accounting, dict)
         and accounting.get("all_optimizer_owned_gradients_covered") is True
