@@ -141,7 +141,7 @@ four steps are described only as historically recorded. Successor source epoch
 process kill/resume and both selected Imagenette ratio gradients. Additive
 closeout is `w5repaircompletion-8b2fa917…`. No lambda, architecture, checkpoint
 or validation result was scientifically selected. W6 is GREEN/CLOSED at terminal
-completion `w6completion-ad60dde0…`; W7/G-4, W8 and test remain unopened. A
+completion `w6completion-f992e38e…`; W7/G-4, W8 and test remain unopened. A
 sole-writer OS lock is still required before any later scientific W7 optimizer
 step. Do not begin W7/G-4 without separate owner authorization.
 

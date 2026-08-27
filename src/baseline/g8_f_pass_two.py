@@ -73,9 +73,9 @@ def _source_manifest() -> list[dict[str, Any]]:
     return [{"path": path, "sha256": f3.sha256_file(REPO_ROOT / path), "bytes": (REPO_ROOT / path).stat().st_size} for path in SOURCE_PATHS]
 
 
-def _f3_context() -> tuple[dict[str, Any], dict[str, Any]]:
+def _f3_context(*, verify_live_data: bool = True) -> tuple[dict[str, Any], dict[str, Any]]:
     aggregate = f3.verify_aggregate()
-    context = pass_one.authenticate_inputs()
+    context = pass_one.authenticate_inputs(verify_live_data=verify_live_data)
     by_id = {obj["measurement_identity_id"]: obj for obj in aggregate["objects"]}
     require(len(by_id) == f3.EXPECTED_STRUCTURAL, "F3 structural score universe differs")
     replacement_objects = []
@@ -119,7 +119,11 @@ def build_authorization(*, source_commit: str, github_actions: Mapping[str, Any]
     return _identified(body, field="authorization_id", prefix=AUTH_PREFIX)
 
 
-def verify_authorization(path: Path = AUTHORIZATION_PATH) -> dict[str, Any]:
+def verify_authorization(
+    path: Path = AUTHORIZATION_PATH,
+    *,
+    verify_live_data: bool = True,
+) -> dict[str, Any]:
     raw = path.read_bytes(); value = json.loads(raw)
     require(raw == f3.rendered_json(value), "pass-two authorization is not canonical")
     _verify_identified(value, field="authorization_id", prefix=AUTH_PREFIX)
@@ -131,7 +135,7 @@ def verify_authorization(path: Path = AUTHORIZATION_PATH) -> dict[str, Any]:
         # that history and need not remain byte-identical at HEAD.
         historical = subprocess.run(["git", "show", f"{value['source_commit']}:{row['path']}"], cwd=REPO_ROOT, check=True, capture_output=True).stdout
         require(len(historical) == row["bytes"] and f3.sha256_bytes(historical) == row["sha256"], f"pass-two historical source bytes differ: {row['path']}")
-    context, aggregate = _f3_context()
+    context, aggregate = _f3_context(verify_live_data=verify_live_data)
     require(value["f3"]["aggregate_id"] == aggregate["aggregate_id"] and value["f3"]["file_sha256"] == f3.sha256_file(f3.AGGREGATE_PATH), "pass-two F3 binding differs")
     require(value["pascal_bler_table"]["table_id"] == context["chain"]["bler_table_id"] and value["pascal_bler_table"]["file_sha256"] == context["chain"]["bler_table_sha256"], "pass-two BLER binding differs")
     policy, _ = pass_one.recompute_selection_policy()
@@ -184,17 +188,21 @@ def run_pass_two(*, output_path: Path = STATE_PATH) -> dict[str, Any]:
     return value
 
 
-def verify_state(path: Path = STATE_PATH) -> dict[str, Any]:
+def verify_state(
+    path: Path = STATE_PATH,
+    *,
+    verify_live_data: bool = True,
+) -> dict[str, Any]:
     raw = path.read_bytes(); value = json.loads(raw)
     require(raw == f3.rendered_json(value), "pass-two state is not canonical")
     _verify_identified(value, field="completion_id", prefix=STATE_PREFIX)
-    owner = verify_authorization()
+    owner = verify_authorization(verify_live_data=verify_live_data)
     require(value["status"] == "PASS_TWO_COMPLETE_SELECTION_TERMINATED" and value["authorization_id"] == owner["authorization_id"], "pass-two state header/authorization differs")
     require(value["counters"] == {"pass_one": 1, "pass_two": 1, "pass_three": 0, "fallback_training": 0, "ratio_adjudication": 0, "learned_training": 0, "test_access": 0}, "pass-two protected counters differ")
     require(value["selection_passes"] == [1, 2] and value["selection_terminates_after_pass"] == 2 and composition.selection_passes() == (1, 2), "pass-two termination/pass-three guard differs")
     require(value["call_count"] == owner["universe"]["call_count"] and value["totals"]["candidates_evaluated"] == owner["universe"]["candidate_evaluations"] and value["totals"]["snr_cells_with_selection"] == owner["universe"]["snr_cells"] and value["totals"]["snr_cells_without_selection"] == 0, "pass-two exact scope differs")
     # Recompute every selection from frozen inputs.  No publication occurs.
-    context, _ = _f3_context(); typed = _typed_authorization(owner, context["plan"])
+    context, _ = _f3_context(verify_live_data=verify_live_data); typed = _typed_authorization(owner, context["plan"])
     calls: list[dict[str, Any]] = []
     totals = {"candidates_evaluated": 0, "eligible_evaluations": 0, "infeasible_evaluations": 0, "uncharacterized_evaluations": 0, "snr_cells_with_selection": 0, "snr_cells_without_selection": 0, "tie_breaks_applied": 0}
     for call in context["plan"]["calls"]:
@@ -205,9 +213,9 @@ def verify_state(path: Path = STATE_PATH) -> dict[str, Any]:
     return value
 
 
-def build_comparison() -> dict[str, Any]:
-    first = json.loads(f3.PASS_ONE_PATH.read_bytes()); second = verify_state()
-    context = pass_one.authenticate_inputs()
+def build_comparison(*, verify_live_data: bool = True) -> dict[str, Any]:
+    first = json.loads(f3.PASS_ONE_PATH.read_bytes()); second = verify_state(verify_live_data=verify_live_data)
+    context = pass_one.authenticate_inputs(verify_live_data=verify_live_data)
     candidates = {row["candidate_id"]: dict(row) for row in context["candidate_authority"]["candidates"]}
     structural = {row["structural_identity_id"]: row for row in context["measurement_authority"]["structural_identities"]}
     for mapping in context["mapping"]["mapping_rows"]:
@@ -231,9 +239,13 @@ def build_comparison() -> dict[str, Any]:
     return _identified(body, field="comparison_id", prefix=COMPARISON_PREFIX)
 
 
-def verify_comparison(path: Path = COMPARISON_PATH) -> dict[str, Any]:
+def verify_comparison(
+    path: Path = COMPARISON_PATH,
+    *,
+    verify_live_data: bool = True,
+) -> dict[str, Any]:
     raw = path.read_bytes(); value = json.loads(raw)
     require(raw == f3.rendered_json(value), "pass comparison is not canonical")
     _verify_identified(value, field="comparison_id", prefix=COMPARISON_PREFIX)
-    require(value == build_comparison(), "pass comparison does not reproduce")
+    require(value == build_comparison(verify_live_data=verify_live_data), "pass comparison does not reproduce")
     return value

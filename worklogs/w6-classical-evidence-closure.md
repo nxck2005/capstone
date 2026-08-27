@@ -38,12 +38,12 @@ false.
 The final additive completion is
 `results/baseline/w6/w6_completion.json`:
 
-- completion ID: `w6completion-ad60dde0344fd27183757bc3adb8d816df82b19f7896b221c109b7fc0a5344bc`;
-- canonical content SHA-256: `bf5486747704c17532250a61d2d5eb725320fb8a5da90756e0b41cdfd04937aa`;
-- file SHA-256: `6482b68dca40ee2ea71da708c369ff481817f88d43ea67ef7f18f67af9a796cf`.
+- completion ID: `w6completion-f992e38e553dce4075406ef8f08df0d42feb2a141a3b00b0ae29a0490e834515`;
+- canonical content SHA-256: `394ebeb3b2d02b24da578b5d0a80d33cf38c51689a7fd17a8b55e7ebc14731b9`;
+- file SHA-256: `8fcad25149eb1610c5a5a44d2eae084267b2330b601c0ed501466ad7e1bde2e3`.
 
 `tools/verify_w6_complete.py` is the terminal verifier (source SHA-256
-`c78e4e3f8320ecf34584f7dfe20eabf4534f4edb5e58733c0a0f7b06f6ba527b`). It
+`e8ea0146da63bbe4f37091e1e184ff5954787f98e91d7f687b27671a626341d7`). It
 reconstructs the completion from current bytes and independently invokes the
 existing read-only readiness/closeout verifiers. Its G8_E contract check uses
 the existing archive-independent frozen-contract verifier on hosted clean
@@ -144,8 +144,11 @@ candidate exposed the same hosted-archive assumption through the terminal
 G8_E CLI; the terminal verifier now calls the existing archive-independent
 `g8_e_corrected_v3s.verify_frozen_contract(verify_live_sources=True,
 verify_live_data=False)` and separately binds the immutable E2–E7/pass-one
-artifacts. The local full G8_E verifier remains a separate read-only gate.
-These are verification portability fixes only: no evidence or science changed.
+artifacts. Its pass-two/G8 read-only replays use additive `verify_live_data=False`
+verification parameters whose default remains the original live-data check; a
+clean-checkout archive-free terminal run passes. The local full G8_E verifier
+remains a separate read-only gate. These are verification portability fixes
+only: no evidence or science changed.
 Exact-final-SHA CI remains the final publication check after the corrective
 commit is pushed.
 

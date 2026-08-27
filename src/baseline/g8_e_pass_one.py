@@ -318,7 +318,7 @@ def authenticate_marker(
     return value
 
 
-def authenticate_frozen_chain() -> dict[str, Any]:
+def authenticate_frozen_chain(*, verify_live_data: bool = True) -> dict[str, Any]:
     """Authenticate every frozen pass-one input without any authorization.
 
     This is the generator's view: it derives the exact binding values a narrow
@@ -326,7 +326,10 @@ def authenticate_frozen_chain() -> dict[str, Any]:
     fails closed on any drift of the frozen chain.
     """
 
-    bundle = v3s.verify_frozen_contract()
+    bundle = v3s.verify_frozen_contract(
+        verify_live_sources=True,
+        verify_live_data=verify_live_data,
+    )
     contract = bundle["contract"]
     data_identity = closeout.load_bound_data_identity(contract)
 
@@ -431,10 +434,12 @@ def authenticate_frozen_chain() -> dict[str, Any]:
 
 def authenticate_inputs(
     authorization_path: Path = E5_AUTHORIZATION_PATH,
+    *,
+    verify_live_data: bool = True,
 ) -> dict[str, Any]:
     """Authenticate the frozen chain plus the narrow E5 authorization."""
 
-    context = authenticate_frozen_chain()
+    context = authenticate_frozen_chain(verify_live_data=verify_live_data)
     authorization = authenticate_owner_authorization(
         authorization_path, context["contract"]
     )

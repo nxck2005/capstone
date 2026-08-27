@@ -354,11 +354,15 @@ def build_adjudication_input(*, runtime_root: Path = v3s.V3S_RUNTIME_ROOT) -> di
     return _identified(body, field="input_id", prefix=INPUT_PREFIX)
 
 
-def verify_adjudication_input(path: Path = INPUT_PATH) -> dict[str, Any]:
+def verify_adjudication_input(
+    path: Path = INPUT_PATH,
+    *,
+    verify_live_data: bool = True,
+) -> dict[str, Any]:
     raw = path.read_bytes(); value = json.loads(raw)
     require(raw == f3.rendered_json(value), "G8 adjudication input is not canonical")
     _verify_identified(value, field="input_id", prefix=INPUT_PREFIX)
-    state = pass_two.verify_state()
+    state = pass_two.verify_state(verify_live_data=verify_live_data)
     require(value["status"] == "COMPLETE_READ_ONLY_HISTORICAL_CACHE" and value["pass_two_id"] == state["completion_id"], "G8 input status/pass-two binding differs")
     require(value["quality_count"] == EXPECTED_QUALITY_COUNT and value["overhead_structural_count"] == STRUCTURAL_COUNT and value["validation_stable_id_count"] == VALIDATION_COUNT, "G8 input exact counts differ")
     require(value["protected_counters"] == {"pass_two": 1, "pass_three": 0, "f2_optimizer_steps_during_closure": 0, "fallback_training": 0, "learned_training": 0, "test_access": 0}, "G8 input protected counters differ")
