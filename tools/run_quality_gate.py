@@ -58,6 +58,9 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/verify_g8_bler_characterization_manifest_v2.py"),
         _python_tool("tools/verify_w4_baseline_integration.py"),
         _python_tool("tools/verify_g2_adjudication.py"),
+        _python_tool("tools/build_w6_classical_evidence.py", "--check"),
+        _python_tool("tools/verify_w6_classical_evidence.py"),
+        _python_tool("tools/verify_w6_complete.py"),
         ["git", "diff", "--check"],
     )
 

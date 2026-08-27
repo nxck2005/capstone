@@ -216,7 +216,7 @@ PASCAL_COMPLETED_STATE = {
     "execution": "complete",
     "coverage": "3213/3213",
     "evidence": "published",
-    "next": "w6-separate-owner-authorization",
+    "next": "w7-g4-separate-owner-authorization",
     "bler_table": "frozen",
     "g8_d": "d7-complete",
     "g8_e_e2e4": "complete-verified",
@@ -264,7 +264,7 @@ def test_pascal_cursor_catches_stale_current_zero_coverage_guidance() -> None:
     assert any("instructions/RESUME.md" in finding and "coverage" in finding for finding in findings)
 
 
-def test_pascal_cursor_accepts_completed_execution_and_d1_next_gate() -> None:
+def test_pascal_cursor_accepts_completed_execution_and_w7_g4_next_gate() -> None:
     documents = _pascal_documents()
 
     assert cdc.pascal_cursor_findings(documents) == []

@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-28 · **Phase:** **W6-A PRE-TEST CLASSICAL EVIDENCE/IMPLEMENTATION CLOSURE PREPARATION COMPLETE; W6 TERMINAL COMPLETION REQUIRES SEPARATE W6-B OWNER AUTHORIZATION; W7/G-4, W8 AND TEST REMAIN SEALED.** Contract `w6acontract-d2378ea5…`, deterministic evidence index `w6aindex-ac05dbad…` and requirement matrix `w6amatrix-d1a1add6…` reconstruct the W6 boundary without scientific recomputation. The matrix has 21 W6-required/satisfied, 0 required/missing, 9 frozen-upstream, 14 future-G12 and 2 not-applicable obligations. The read-only selected-config loader authenticates the immutable pass-two state and candidate authority and consumes one frozen candidate without running selection. W6-A does not publish terminal W6 completion. G8 remains scientifically frozen at terminal closeout `g8closeout-07526958…`; its additive typed-identity correction is `g8bindingcorrection-1bff458e…`, and the historical closeout bytes remain unchanged. AM-91 is unchanged. The repaired W5 authority remains `w5repaircompletion-8b2fa917…`; scientific learned training, W7 pilot runs, W8 runs, learned test inference and test access remain zero. A sole-writer OS lock remains required before any later separately authorized scientific W7 step. **Exact next action: obtain separate W6-B terminal-closure authorization; do not publish W6 completion or continue into W7.** G8_E remains GREEN and CLOSED through E7. The
+**Last updated:** 2026-08-27 · **Phase:** **W6 GREEN/CLOSED — CLASSICAL PRE-TEST IMPLEMENTATION AND EVIDENCE BOUNDARY AUTHENTICATED; W7/G-4 REQUIRES SEPARATE OWNER AUTHORIZATION; W8 AND TEST REMAIN SEALED.** Contract `w6acontract-d2378ea5…`, deterministic evidence index `w6aindex-ac05dbad…` and requirement matrix `w6amatrix-d1a1add6…` reconstruct the W6 boundary without scientific recomputation. The matrix has 21 W6-required/satisfied, 0 required/missing, 9 frozen-upstream, 14 future-G12 and 2 not-applicable obligations. The read-only selected-config loader authenticates the immutable pass-two state and candidate authority and consumes one frozen candidate without running selection. Terminal W6 completion is published at `results/baseline/w6/w6_completion.json` as `w6completion-d7df2e37…` (file SHA-256 `7e8aaf4d…`), and `tools/verify_w6_complete.py` independently reauthenticates the frozen W6-A boundary, G-1/G-2/W4 readiness and downstream classical inputs. G8 remains scientifically frozen at terminal closeout `g8closeout-07526958…`; its additive typed-identity correction is `g8bindingcorrection-1bff458e…`, and the historical closeout bytes remain unchanged. AM-91 is unchanged. The repaired W5 authority remains `w5repaircompletion-8b2fa917…`; scientific learned training, W7 pilot runs, W8 runs, learned test inference and test access remain zero. A sole-writer OS lock remains required before any later separately authorized scientific W7 step. **Exact next action: obtain separate owner authorization for W7/G-4; do not run learned scientific work, W8 or test.** G8_E remains GREEN and CLOSED through E7. The
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -211,7 +211,7 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w6-separate-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w7-g4-separate-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
@@ -289,11 +289,11 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** obtain separate W6-B owner authorization for terminal
-W6 closure publication. W6-A's contract, deterministic index/matrix, verifier,
-mutation tests and read-only frozen-selection loader are prepared; do not publish
-a terminal W6 completion under W6-A authority. Do not begin W7/G-4, learned
-training or test. F1, F2, F3, pass two and G8 adjudication are complete,
+**Next-session task:** obtain separate owner authorization for W7/G-4. W6 is
+GREEN/CLOSED: terminal completion `w6completion-d7df2e37…` binds the accepted
+W6-A source epoch, exact index/matrix, machine-checked G-1/G-2/W4 readiness,
+frozen corpus and final classical pass-two outputs. Do not execute learned
+scientific work, W8 or test. F1, F2, F3, pass two and G8 adjudication remain complete,
 authenticated and closed; pass three and fallback training remain prohibited.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
@@ -321,8 +321,8 @@ does not, it is wrong and this block is right.**
 | BR-4 validation sweep | complete/frozen after exactly two passes |
 | G-8 | GREEN/CLOSED |
 | W5 learned-system infrastructure | **GREEN/CLOSED after additive GradScaler accounting repair; scientific training remains zero** |
-| W6-A classical evidence preparation | **COMPLETE — typed index/matrix/verifier and frozen-selection consumer prepared** |
-| W6-B terminal classical closure | **NEXT — requires separate owner authorization; do not publish terminal W6 completion under W6-A authority** |
+| W6 classical evidence closure | **GREEN/CLOSED — terminal completion `w6completion-d7df2e37…`; W6-A source epoch, index/matrix, classical readiness and pass-two boundary authenticated** |
+| W7/G-4 learned pilot and λ calibration | **NEXT — requires separate owner authorization; W8 and test remain sealed** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
@@ -865,15 +865,14 @@ open another full-spec audit round without new evidence. **The owner-opened Pasc
 completed its full 3213/3213 authenticated production campaign and G8_C C3-C7 closeout.** Its
 153-curve successor table is frozen from measured points only; the predecessor-bound table tools
 cannot be substituted. `src/baseline/classical/composition.py` remains later selection machinery;
-G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN; corrected-v3 G8_E E1 is frozen pre-data with zero validation coverage, the owner E2–E4 authorization was issued for the worker successor (commit `493d656`), and production E2 completed at exactly 288000/288000 on `confessor` with E3 exact-set closure and E4 measured accuracy objects verified; do not
-rerun it or widen its scope — E5/pass one awaits a separate owner authorization. The historical C3–C7 contract remains in
+G8_D D0–D7 are complete and GREEN; corrected-v3 G8_E E2–E4 completed on the worker successor, E5 pass one executed exactly once with 378/378 cells selected, and E6/E7 are complete; G8_F F1/F2/F3 and pass two are complete, and G8_G is GREEN/CLOSED. Do not
+rerun or widen any of those closed scopes. The historical C3–C7 contract remains in
 `instructions/RESUME.md`; its predecessor commands do not apply to the Pascal runtime. The
 committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
 not be extrapolated. Read "What G-8 actually has to build" above before starting, and
 `instructions/RESUME.md` for the facts that work needs. G8 is now GREEN/CLOSED after F3, exactly-once pass two and frozen adjudication;
 the sweep entry point is permanently closed and pass three does not exist.
-**W6-A preparation is complete. Next, obtain separate W6-B terminal-closure
-authorization; do not publish W6 completion, begin W7/G-4, train or open test.**
+**W6 is GREEN/CLOSED. Next, obtain separate owner authorization for W7/G-4; do not begin learned scientific work, W8 or test.**
 Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
 does not gate G8, but it is required to complete the user-fixed First Review package.
 
@@ -1154,7 +1153,7 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
 probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The Pascal successor
 production campaign and G8_C C3-C7 closeout are complete at 3213/3213, with 153 measured curves
-frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **W6-A preparation is complete. Next, obtain separate W6-B terminal-closure authorization; do not publish W6 completion, begin W7/G-4, train or open test.**
+frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **W6 is GREEN/CLOSED. Next, obtain separate owner authorization for W7/G-4; do not begin learned scientific work, W8 or test.**
 W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed
