@@ -133,8 +133,13 @@ readiness, corpus, scorer, pass counts, ratios, ER-1, nondegeneracy, BR-16,
 H2, W5, protected counters and the future boundary. The current terminal
 verifier and deterministic evidence checks pass. The `full-local` quality gate
 also passed, including the complete local pytest invocation and all static
-checks. Exact-final-SHA CI remains the final publication check after the
-terminal commit is pushed.
+checks. The first pushed candidate `4b07de0` exposed a CI portability defect: the
+quality gate invoked the optional upstream W6-A replay, which expects ignored
+local dataset archives unavailable in a clean hosted checkout. The gate was
+hardened to use W6-A's exact `--no-upstream` verification in CI; terminal W6
+still independently reauthenticates G-1/G-2/W4 and all downstream closeouts.
+This changed no evidence or science. Exact-final-SHA CI remains the final
+publication check after the corrective gate commit is pushed.
 
 **Next:** W6 is GREEN/CLOSED. W7/G-4 requires separate owner authorization;
 W8 and test remain sealed.
