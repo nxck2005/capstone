@@ -349,6 +349,7 @@ python spec/evidence/check_packetisation.py --json spec/evidence/packetisation_r
 .venv/bin/python tools/verify_w4_baseline_integration.py # network-free bounded W4 evidence + BR-4 selection-machinery cross-check
 .venv/bin/python tools/gen_g8_e_e7_handoff.py --check    # authenticate deterministic E7 handoff and incident-audit binding
 .venv/bin/python tools/verify_g8_e_complete.py           # terminal G8_E verifier including E7 handoff
+.venv/bin/python tools/verify_w6_complete.py              # terminal W6-B classical pre-test evidence verifier
 .venv/bin/python -m pytest              # project test suite; config is in pyproject.toml
 ```
 
