@@ -131,11 +131,91 @@
       }
     },
     "epoch_record": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "epoch", "next_epoch", "samples", "stable_id_order_sha256", "microbatches", "optimizer_steps", "grad_scaler_skips", "global_optimizer_step"]},
-    "validation_epoch_summary": {"type": "object", "additionalProperties": false, "required": ["schema_version", "artifact_role", "epoch", "checkpoint_id", "n_correct", "n_total", "top1_accuracy", "prediction_digest", "evaluation_config_hash", "noise_policy", "noise_policy_hash", "noise_id_digest", "row_digest"]},
+    "validation_epoch_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "artifact_role", "epoch", "checkpoint_id", "n_correct", "n_total", "top1_accuracy", "prediction_digest", "evaluation_config_hash", "noise_policy", "noise_policy_hash", "noise_id_digest", "row_digest", "summary_id"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "artifact_role": {"const": "W7_VALIDATION_EPOCH_SUMMARY"},
+        "epoch": {"type": "integer", "minimum": 0},
+        "checkpoint_id": {"$ref": "#/$defs/sha256"},
+        "n_correct": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "n_total": {"const": 1000},
+        "top1_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+        "prediction_digest": {"$ref": "#/$defs/sha256"},
+        "evaluation_config_hash": {"$ref": "#/$defs/sha256"},
+        "noise_policy": {"const": "keyed_channel_noise_same_per_image_across_lambda"},
+        "noise_policy_hash": {"$ref": "#/$defs/sha256"},
+        "noise_id_digest": {"$ref": "#/$defs/sha256"},
+        "row_digest": {"$ref": "#/$defs/sha256"},
+        "summary_id": {"$ref": "#/$defs/sha256"}
+      }
+    },
     "selected_validation": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "checkpoint_id", "checkpoint_epoch", "selection", "calibration_validation", "psnr_evaluation"]},
-    "lambda_candidate": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "candidate_id", "status", "authentication_status", "eligibility", "lambda", "lineage", "selected_validation", "psnr_evaluation", "test_access"]},
-    "campaign_completion": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "status", "candidates", "g4_adjudication_run", "lambda_core_updated"]},
-    "g4_adjudication": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "status", "candidate_lambdas", "selected_lambda"]},
+    "lambda_candidate": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "candidate_id", "status", "authentication_status", "eligibility", "lambda", "lineage", "selected_validation", "psnr_evaluation", "selected_validation_result_digest", "selected_evidence", "test_access"]},
+    "profile_report": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "artifact_role", "status", "scientific_status", "eligibility", "execution_profile_id", "execution_image_family", "source_lineage", "config", "gpu_binding", "batch", "training_epoch", "memory", "validation", "test_access", "g4_coverage", "profile_optimizer_steps", "w7_scientific_optimizer_steps", "protected_counters", "report_id"]
+    },
+    "profile_freeze": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "artifact_role", "status", "execution_profile_id", "attempts", "selected_attempt_index", "selected_report", "gpu_uuid", "physical_batch_size", "accumulation_factor", "effective_batch_size", "validation_batch_size", "profile_config_hash", "projected_runtime", "scientific_status", "promotion", "protected_counters", "profile_freeze_id"]
+    },
+    "final_source_profile_confirmation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "artifact_role", "status", "scientific_status", "source_lineage", "profile_freeze", "config_hash", "gpu_binding", "batch", "optimizer_steps", "validation", "g4_coverage", "test_access", "protected_counters", "confirmation_id"]
+    },
+    "source_manifest": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "artifact_role", "source_commit", "entries", "scientific_execution_authorization", "manifest_id"]
+    },
+    "w7_a_completion": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "artifact_role", "completion_id", "status", "scientific_execution_authorization", "g4_status", "lambda_status", "w8_status", "test_status", "protocol", "contract", "schema", "source_manifest", "profile", "protected_counters", "unauthorized_scientific_outputs", "tests", "next_action"]
+    },
+    "execution_authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "artifact_role", "status", "authorization_id", "campaign_id", "source_commit", "source_manifest_id", "source_manifest_sha256", "profile_freeze_id", "profile_freeze_sha256", "execution_image_family", "gpu_uuid", "lambda_grid", "lambda_order", "w7_a_completion_id", "w7_a_completion_sha256", "scientific_execution_authorization", "test_access"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "artifact_role": {"const": "W7_G4_SCIENTIFIC_EXECUTION_AUTHORIZATION"},
+        "status": {"const": "AUTHORIZED"},
+        "authorization_id": {"type": "string", "pattern": "^w7auth-[0-9a-f]{64}$"},
+        "campaign_id": {"type": "string", "minLength": 1},
+        "source_commit": {"$ref": "#/$defs/git_commit"},
+        "source_manifest_id": {"type": "string", "minLength": 1},
+        "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "profile_freeze_id": {"type": "string", "pattern": "^w7profilefreeze-[0-9a-f]{64}$"},
+        "profile_freeze_sha256": {"$ref": "#/$defs/sha256"},
+        "execution_image_family": {"const": "pascal-cu126-requirements-pascal-lock-v1"},
+        "gpu_uuid": {"const": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b"},
+        "lambda_grid": {"const": [0.0, 0.1, 0.3, 1.0, 3.0]},
+        "lambda_order": {"const": "exact_configured_lambda_grid_order"},
+        "w7_a_completion_id": {"type": "string", "pattern": "^w7acompletion-[0-9a-f]{64}$"},
+        "w7_a_completion_sha256": {"$ref": "#/$defs/sha256"},
+        "scientific_execution_authorization": {"const": "PRESENT"},
+        "test_access": {"const": "SEALED"}
+      }
+    },
+    "campaign_manifest": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "artifact_role", "status", "manifest_id", "campaign_id", "authorization_id", "source_manifest_id", "profile_freeze_id", "gpu_uuid", "lambda_grid", "lambda_order", "scientific_execution_authorization", "g4_adjudication_run", "lambda_core_updated"]
+    },
+    "scientific_checkpoint": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "artifact_role", "eligibility", "lineage", "execution_profile", "completed_epoch", "next_epoch", "global_optimizer_step", "accumulation_position", "model_state", "optimizer_state", "scheduler_state", "scaler_state", "rng_state_policy", "epoch_manifest", "predecessor_checkpoint_id", "protected_counters"]
+    },
+    "campaign_completion": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "status", "completion_id", "campaign_id", "candidate_lambdas", "candidate_paths", "candidates", "g4_adjudication_run", "lambda_core_updated", "scientific_execution_authorization"]},
+    "g4_adjudication": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "status", "adjudication_id", "candidate_lambdas", "selected_lambda"]},
     "w7_terminal_completion": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "scientific_execution_authorization", "g4_status", "protected_counters"]}
   }
 }

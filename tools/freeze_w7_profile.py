@@ -51,23 +51,34 @@ def run(args: argparse.Namespace) -> int:
     if len(args.reports) == 0 or len(args.reports) > len(GPU_ORDER):
         raise ValueError("provide one report per attempted Pascal GPU, in ladder order")
     reports: list[dict[str, Any]] = []
+    passed_seen = False
     for index, path in enumerate(args.reports):
         value = json.loads(path.read_bytes())
-        if value.get("gpu_uuid") != GPU_ORDER[index]:
+        if passed_seen:
+            raise ValueError("a later Pascal profile attempt is forbidden after the first qualifying GPU")
+        gpu_uuid = value.get("gpu_uuid")
+        if gpu_uuid is None and isinstance(value.get("gpu_binding"), dict):
+            gpu_uuid = value["gpu_binding"].get("gpu_uuid")
+        if gpu_uuid != GPU_ORDER[index]:
             raise ValueError("profile attempts are not in the GTX-first/Titan-fallback order")
         if value.get("status") == "PASSED":
             verify(value)
+            passed_seen = True
         elif value.get("status") != "FAILED_HARD_PROFILE":
             raise ValueError("profile attempt status is neither pass nor hard failure")
         reports.append({
             "path": str(path),
             "report_id": value.get("report_id"),
             "sha256": _sha(path),
-            "gpu_uuid": value.get("gpu_uuid"),
-            "gpu_name": GPU_NAMES.get(value.get("gpu_uuid")),
+            "gpu_uuid": gpu_uuid,
+            "gpu_name": GPU_NAMES.get(gpu_uuid),
             "status": value.get("status"),
-            "physical_batch_size": value.get("physical_batch_size"),
-            "accumulation_factor": value.get("accumulation_factor"),
+            "physical_batch_size": value.get("physical_batch_size")
+            if value.get("physical_batch_size") is not None
+            else value.get("batch", {}).get("physical_batch_size"),
+            "accumulation_factor": value.get("accumulation_factor")
+            if value.get("accumulation_factor") is not None
+            else value.get("batch", {}).get("accumulation_factor"),
         })
     selected_index = next((index for index, report in enumerate(reports) if report["status"] == "PASSED"), None)
     if selected_index is None:

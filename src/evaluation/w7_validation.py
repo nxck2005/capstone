@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from channels.awgn import keyed_complex_noise
 from config.params import get
 from data.djscc_validation import ValidationDJSCCDataset, validation_noise_id
+from data.preprocessing import clip_reconstruction_for_metrics, reconstruction_psnr
 from training.deterministic_core import canonical_bytes, canonical_sha256
 from training.w7_g4 import W7_CHECKPOINT_ROLE, W7Trainer, W7Hold
 from training.w7_protocol import (
@@ -50,10 +51,23 @@ def _finite_float(value: object, label: str) -> float:
     return converted
 
 
-def _psnr(mse: float, data_range: float) -> float | str:
-    if mse == 0.0:
-        return PSNR_INFINITY_TOKEN
-    return 10.0 * math.log10((data_range * data_range) / mse)  # literal-ok: canonical PSNR definition
+def _canonical_metric_values(
+    target: np.ndarray,
+    reconstruction: np.ndarray,
+) -> tuple[float, float | str]:
+    """Use the project PSNR implementation and expose its finite JSON form."""
+
+    target_hwc = np.transpose(target, (1, 2, 0))
+    reconstruction_hwc = np.transpose(reconstruction, (1, 2, 0))
+    psnr_value = reconstruction_psnr(target_hwc, reconstruction_hwc)
+    psnr: float | str = (
+        PSNR_INFINITY_TOKEN if math.isinf(psnr_value) else float(psnr_value)
+    )
+    clipped = clip_reconstruction_for_metrics(reconstruction_hwc)
+    mse = _finite_float(
+        np.mean(np.square(target_hwc - clipped), dtype=np.float64), "validation MSE"
+    )
+    return mse, psnr
 
 
 def _mean_metric(values: Sequence[float | str]) -> float | str:
@@ -147,11 +161,7 @@ def evaluate_validation(
                 total += 1
                 target = targets[index]
                 reconstructed = reconstruction[index]
-                data_range = float(get("preprocessing.psnr_data_range"))
-                if bool(get("preprocessing.reconstruction_clipped_before_metrics")):
-                    reconstructed = np.clip(reconstructed, 0.0, data_range)
-                mse = _finite_float(np.mean(np.square(target - reconstructed), dtype=np.float64), "validation MSE")
-                psnr = _psnr(mse, data_range)
+                mse, psnr = _canonical_metric_values(target, reconstructed)
                 papr_value = _finite_float(papr[index], "validation PAPR")
                 all_ids.append(stable_id)
                 all_predictions.append(prediction)
@@ -212,6 +222,7 @@ def evaluate_validation(
         "noise_id_digest": canonical_sha256(all_noise_ids),
         "row_digest": canonical_sha256(rows),
     }
+    summary["summary_id"] = canonical_sha256(summary)
     return ValidationEvaluation(summary=summary, rows=tuple(rows) if retain_rows else tuple())
 
 
@@ -225,20 +236,31 @@ def select_checkpoint_epoch(summaries: Sequence[Mapping[str, Any]], *, expected_
         if set(summary) != {
             "schema_version", "artifact_role", "epoch", "checkpoint_id", "n_correct",
             "n_total", "top1_accuracy", "prediction_digest", "evaluation_config_hash",
-            "noise_policy", "noise_policy_hash", "noise_id_digest", "row_digest",
+            "noise_policy", "noise_policy_hash", "noise_id_digest", "row_digest", "summary_id",
         }:
             raise W7Hold("validation epoch summary schema differs")
+        summary_body = dict(summary)
+        summary_id = summary_body.pop("summary_id", None)
+        if summary_id != canonical_sha256(summary_body):
+            raise W7Hold("validation epoch summary digest differs")
         epoch = summary["epoch"]
-        if not isinstance(epoch, int) or epoch in by_epoch:
+        if not isinstance(epoch, int) or isinstance(epoch, bool) or epoch in by_epoch:
             raise W7Hold("validation epoch history has duplicate/invalid epoch")
         if summary["artifact_role"] != "W7_VALIDATION_EPOCH_SUMMARY":
             raise W7Hold("validation summary role differs")
-        if summary["n_total"] <= 0 or summary["top1_accuracy"] != summary["n_correct"] / summary["n_total"]:
+        expected_total = int(get(f"datasets.{W7_DATASET}.val_images"))
+        if summary["n_total"] != expected_total:
+            raise W7Hold("validation denominator differs from the committed split")
+        if not isinstance(summary["n_correct"], int) or isinstance(summary["n_correct"], bool) or not 0 <= summary["n_correct"] <= expected_total:
+            raise W7Hold("validation correct-count is invalid")
+        if summary["top1_accuracy"] != summary["n_correct"] / summary["n_total"]:
             raise W7Hold("validation top-1 is not count-derived")
         by_epoch[epoch] = summary
     if sorted(by_epoch) != list(range(expected_epochs)):
         raise W7Hold("validation epoch history is not an exact prefix")
     maximum = max(float(summary["top1_accuracy"]) for summary in by_epoch.values())
+    if not math.isfinite(maximum):
+        raise W7Hold("validation top-1 is non-finite")
     selected_epoch = min(epoch for epoch, summary in by_epoch.items() if float(summary["top1_accuracy"]) == maximum)
     selected = dict(by_epoch[selected_epoch])
     return {
@@ -318,13 +340,10 @@ def evaluate_reconstruction_metrics(
             reconstruction = output.reconstruction.detach().float().cpu().numpy()
             targets = inputs.detach().float().cpu().numpy()
             papr = output.papr_db.detach().float().cpu().numpy()
-            data_range = float(get("preprocessing.psnr_data_range"))
             for index, stable_id in enumerate(ids_batch):
                 reconstructed = reconstruction[index]
-                if bool(get("preprocessing.reconstruction_clipped_before_metrics")):
-                    reconstructed = np.clip(reconstructed, 0.0, data_range)
-                mse = _finite_float(np.mean(np.square(targets[index] - reconstructed), dtype=np.float64), "PSNR MSE")
-                psnr_values.append(_psnr(mse, data_range))
+                _mse, psnr = _canonical_metric_values(targets[index], reconstructed)
+                psnr_values.append(psnr)
                 papr_values.append(_finite_float(papr[index], "PAPR"))
                 ids.append(stable_id)
     if len(ids) != expected_total or ids != sorted(ids) or len(set(ids)) != len(ids):

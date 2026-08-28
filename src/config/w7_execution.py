@@ -84,6 +84,8 @@ def authenticate_w7_gpu(
         raise W7ExecutionHold(f"Pascal profile authentication failed: {exc}") from None
     if base.get("gpu_uuid") != expected or base.get("gpu_name") != name:
         raise W7ExecutionHold("authenticated Torch and profile GPU identity disagree")
+    if base.get("git_dirty") is not False:
+        raise W7ExecutionHold("W7 scientific/profile checkout is dirty")
     if str(base.get("gpu_compute_capability")) != capability:
         raise W7ExecutionHold("authenticated GPU compute capability differs")
     binding = {

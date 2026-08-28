@@ -45,11 +45,14 @@ def _git(*args: str) -> str:
     return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
 
 
-def _write_report(path: Path, value: dict[str, Any]) -> None:
+def _write_report(path: Path, value: dict[str, Any]) -> dict[str, Any]:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() or path.is_symlink():
+        raise RuntimeError(f"profile report already exists; refusing overwrite: {path}")
     body = dict(value)
     body["report_id"] = "w7profile-" + canonical_sha256(body)
     path.write_bytes(canonical_bytes(body))
+    return body
 
 
 def _base_failure(args: argparse.Namespace, error: str) -> dict[str, Any]:
@@ -213,8 +216,8 @@ def run(args: argparse.Namespace) -> int:
                 "test_model_facing_access": 0,
             },
         }
-        _write_report(output, report)
-        print(f"W7 non-scientific real-data profile PASS: {output} {report.get('report_id', '')}")
+        written = _write_report(output, report)
+        print(f"W7 non-scientific real-data profile PASS: {output} {written['report_id']}")
         return 0
     except BaseException as exc:
         _write_report(output, _base_failure(args, f"{type(exc).__name__}: {exc}"))

@@ -850,6 +850,7 @@ class W7Trainer:
             except (OSError, UnicodeDecodeError, json.JSONDecodeError):
                 raise W7Hold("W7 evaluation sidecar is corrupt") from None
             self._validate_sidecar(sidecar)
+            _require(sidecar["completed_epoch"] == index, "W7 evaluation checkpoint filename/epoch differs")
             sidecars.append(dict(sidecar))
             expected_predecessor = None if index == 0 else sidecars[index - 1]["checkpoint_id"]
             _require(sidecar["predecessor_checkpoint_id"] == expected_predecessor, "W7 evaluation checkpoint predecessor differs")
@@ -904,9 +905,15 @@ class W7Trainer:
         _require(value["schema_version"] == W7_CHECKPOINT_SCHEMA_VERSION and value["artifact_role"] == expected_role, "W7 sidecar role/version differs")
         _require(value["eligibility"] == eligibility_for_role(self.policy.role), "W7 sidecar eligibility differs")
         _require(_full_sha(value["checkpoint_id"], 64), "W7 checkpoint ID is invalid")  # literal-ok: SHA-256 width
+        _require(_full_sha(value["source_commit"], 40), "W7 sidecar source commit is invalid")  # literal-ok: Git SHA-1 width
+        _require(_full_sha(value["source_manifest_sha256"], 64), "W7 sidecar source manifest SHA is invalid")  # literal-ok: SHA-256 width
+        _require(_full_sha(value["epoch_record_id"], 64), "W7 epoch record ID is invalid")  # literal-ok: SHA-256 width
+        _require(_full_sha(value["epoch_record_sha256"], 64), "W7 epoch record SHA is invalid")  # literal-ok: SHA-256 width
         _require(_is_int(value["checkpoint_bytes"]) and value["checkpoint_bytes"] > 0, "W7 checkpoint byte count is invalid")
         completed = value["completed_epoch"]
         _require(_is_int(completed) and completed >= 0 and value["next_epoch"] == completed + 1, "W7 sidecar epoch differs")
+        _require(_is_int(value["global_optimizer_step"]) and value["global_optimizer_step"] >= 0, "W7 sidecar optimizer step is invalid")
+        _require(value["accumulation_position"] == 0, "W7 sidecar accumulation position differs")
         _require(value["checkpoint_path"] == f"checkpoints/epoch-{completed:04d}.pt", "W7 sidecar path differs")
         _require(value["epoch_record_path"] == f"epochs/epoch-{completed:04d}.json", "W7 epoch record path differs")
         _require(value["config_hash"] == self.config_hash, "W7 sidecar config hash differs")
@@ -917,6 +924,18 @@ class W7Trainer:
         _require(value["execution_image"] == self.source_lineage.execution_image, "W7 sidecar execution image differs")
         _require(value["execution_profile_id"] == self.config.resolved["execution_profile_id"], "W7 sidecar profile differs")
         _require(value["gpu_uuid"] == self.profile_binding["gpu_uuid"], "W7 sidecar GPU differs")
+        expected_fields = {
+            "dataset": self.config.resolved["dataset"],
+            "ratio": self.config.resolved["bw_ratio"],
+            "k": self.config.resolved["k"],
+            "lambda": self.config.resolved["lambda"],
+            "train_seed": self.config.resolved["train_seed"],
+            "channel_seed": self.config.resolved["channel_seed"],
+            "train_snr_db": self.config.resolved["train_snr_db"],
+        }
+        for field, expected in expected_fields.items():
+            _require(value[field] == expected, f"W7 sidecar {field} differs")
+        _require(isinstance(value["checkpoint_write_seconds"], int | float) and not isinstance(value["checkpoint_write_seconds"], bool) and math.isfinite(float(value["checkpoint_write_seconds"])) and float(value["checkpoint_write_seconds"]) >= 0, "W7 checkpoint write duration is invalid")
         checkpoint = self.runtime_root / value["checkpoint_path"]
         _require(checkpoint.is_file() and not checkpoint.is_symlink(), "W7 checkpoint is missing or unsafe")
         _require(checkpoint.stat().st_size == value["checkpoint_bytes"], "W7 checkpoint byte length differs")
@@ -925,7 +944,11 @@ class W7Trainer:
         _require(record.is_file() and not record.is_symlink(), "W7 epoch record is missing or unsafe")
         raw = record.read_bytes()
         _require(hashlib.sha256(raw).hexdigest() == value["epoch_record_sha256"], "W7 epoch record SHA differs")
-        record_value = json.loads(raw)
+        try:
+            record_value = json.loads(raw)
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise W7Hold("W7 epoch record is corrupt") from None
+        _require(isinstance(record_value, dict), "W7 epoch record is not a mapping")
         record_id = record_value.pop("record_id", None)
         _require(record_id == value["epoch_record_id"], "W7 epoch record ID differs")
         _require(canonical_sha256(record_value) == record_id, "W7 epoch record content digest differs")
@@ -941,8 +964,17 @@ class W7Trainer:
         _require([path.stem for path in checkpoints] == expected_names, "W7 checkpoint prefix is not exact")
         _require([path.name.removesuffix(".sidecar.json") for path in sidecars] == expected_names, "W7 sidecar prefix is not exact")
         _require([path.stem for path in epochs] == expected_names, "W7 epoch-record prefix is not exact")
-        for path in sidecars:
-            self._validate_sidecar(json.loads(path.read_bytes()))
+        _require(all(not path.is_symlink() for path in [*checkpoints, *sidecars, *epochs]), "W7 runtime prefix contains a symlink")
+        expected_predecessor: str | None = None
+        for index, path in enumerate(sidecars):
+            try:
+                sidecar = json.loads(path.read_bytes())
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                raise W7Hold("W7 checkpoint sidecar is corrupt") from None
+            self._validate_sidecar(sidecar)
+            _require(sidecar["completed_epoch"] == index, "W7 checkpoint filename/epoch differs")
+            _require(sidecar["predecessor_checkpoint_id"] == expected_predecessor, "W7 checkpoint predecessor chain differs")
+            expected_predecessor = sidecar["checkpoint_id"]
         _require(sidecars[-1].read_bytes() == (self.runtime_root / "latest.json").read_bytes(), "W7 latest pointer is not the newest authenticated sidecar")
         _require(latest["completed_epoch"] == completed, "W7 latest epoch differs")
 

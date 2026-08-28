@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -26,12 +28,38 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _publish_immutable(path: Path, raw: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() or path.is_symlink():
+        raise RuntimeError(f"W7-A completion already exists: {path}")
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
+    )
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.link(temporary, path, follow_symlinks=False)
+        temporary.unlink()
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
 def build(*, ci: dict[str, Any] | None = None) -> dict[str, Any]:
     contract_path = W7_ROOT / "w7_a_contract.json"
     schema_path = REPO / "spec/schemas/w7_g4_artifacts.schema.json"
     source_path = W7_ROOT / "w7_source_manifest.json"
     report_path = W7_ROOT / "w7_pascal_profile.json"
     freeze_path = W7_ROOT / "w7_pascal_profile_freeze.json"
+    confirmation_path = W7_ROOT / "w7_final_source_profile_confirmation.json"
     w5_path = REPO / "results/learned/w5/w5_gradscaler_accounting_repair_completion.json"
     w6_path = REPO / "results/baseline/w6/w6_completion.json"
     contract = json.loads(contract_path.read_bytes())
@@ -39,6 +67,7 @@ def build(*, ci: dict[str, Any] | None = None) -> dict[str, Any]:
     source = json.loads(source_path.read_bytes())
     report = json.loads(report_path.read_bytes())
     freeze = json.loads(freeze_path.read_bytes())
+    confirmation = json.loads(confirmation_path.read_bytes())
     w5 = json.loads(w5_path.read_bytes())
     w6 = json.loads(w6_path.read_bytes())
     tests = ci or {"status": "PENDING_EXACT_SHA_CI", "run_id": None, "job_id": None, "head_sha": None}
@@ -102,6 +131,13 @@ def build(*, ci: dict[str, Any] | None = None) -> dict[str, Any]:
             "five_lambda_projected_seconds": freeze["projected_runtime"]["five_lambda_seconds"],
             "per_run_cap_hours": float(get("compute.max_wall_clock_hours_per_run")),
             "scientific_coverage": 0,
+            "final_source_confirmation": {
+                "path": str(confirmation_path.relative_to(REPO)),
+                "confirmation_id": confirmation["confirmation_id"],
+                "sha256": _sha(confirmation_path),
+                "checkout_commit": confirmation["source_lineage"]["checkout_commit"],
+                "execution_source_commit": confirmation["source_lineage"]["execution_source_commit"],
+            },
         },
         "protected_counters": {
             "w7_scientific_optimizer_steps": 0,
@@ -137,8 +173,7 @@ def build(*, ci: dict[str, Any] | None = None) -> dict[str, Any]:
 def write(path: Path = OUTPUT, *, ci: dict[str, Any] | None = None) -> dict[str, Any]:
     value = build(ci=ci)
     value["completion_id"] = "w7acompletion-" + hashlib.sha256(canonical_bytes(value)).hexdigest()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(canonical_bytes(value))
+    _publish_immutable(path, canonical_bytes(value))
     return value
 
 

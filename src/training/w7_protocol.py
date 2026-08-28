@@ -17,6 +17,8 @@ from config.run_config import FrozenMap, RunConfig, canonical_sha256, load_exper
 W7_CONTRACT_VERSION = "w7-g4-pre-execution-v1"
 W7_PROFILE_ID = "confessor_pascal_cu126"
 W7_EXECUTION_IMAGE_FAMILY = "pascal-cu126-requirements-pascal-lock-v1"
+W7_SELECTED_GPU_UUID = "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b"
+W7_SELECTED_GPU_NAME = "NVIDIA GeForce GTX 1080 Ti"
 W7_DATASET = "imagenette160"
 W7_RATIO = "r_1_6"
 W7_TRAIN_SEED = 0
@@ -161,6 +163,9 @@ def validate_w7_config(config: RunConfig) -> None:
         raise ValueError("W7 channel seed differs from the frozen seed pair")
     if float(resolved.get("lambda")) not in _expected_lambda_grid():
         raise ValueError("W7 lambda is outside the configured grid")
+    expected_lambda_index = W7_LAMBDA_GRID.index(float(resolved["lambda"]))
+    if resolved.get("lambda_grid_index") != expected_lambda_index:
+        raise ValueError("W7 lambda grid index differs from the frozen order")
     if resolved.get("execution_profile_id") != W7_PROFILE_ID:
         raise ValueError("W7 execution profile is not confessor_pascal_cu126")
     if resolved.get("architecture") != get("learned_system.encoder_arch"):
@@ -180,8 +185,8 @@ def validate_w7_config(config: RunConfig) -> None:
         raise ValueError("W7 physical batch × accumulation must equal effective batch 32")
     if physical not in {target_batch // factor for factor in (1, 2, 4, 8, 16)}:  # literal-ok: owner-frozen W7 accumulation ladder
         raise ValueError("W7 physical batch is outside the predetermined accumulation ladder")
-    if not isinstance(validation, int) or isinstance(validation, bool) or validation <= 0:
-        raise ValueError("W7 validation batch size must be a positive integer")
+    if not isinstance(validation, int) or isinstance(validation, bool) or validation != W7_VALIDATION_BATCH_SIZE:
+        raise ValueError("W7 validation batch size differs from the frozen batch 32")
     role = resolved.get("artifact_role")
     if role not in {
         "W7_G4_SCIENTIFIC_PILOT_CHECKPOINT",
