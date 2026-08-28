@@ -286,7 +286,7 @@ def test_execution_authorization_role_mutation_holds_after_resigning(tmp_path: P
     value["authorization_id"] = "w7auth-" + canonical_sha256(body)
     path = tmp_path / "authorization.json"
     path.write_bytes(campaign.canonical_bytes(value))
-    with pytest.raises(RuntimeError, match="not active"):
+    with pytest.raises(RuntimeError, match="schema differs"):
         campaign._load_authorization(path)
 
 
@@ -324,9 +324,11 @@ def test_orchestrator_is_sequential_and_completes_not_adjudicated(
         "execution_image_family": W7_EXECUTION_IMAGE_FAMILY,
         "gpu_uuid": W7_SELECTED_GPU_UUID,
         "w7_a_completion_id": "completion-fixture",
+        "w7_test_hardening_completion_id": "hardening-fixture",
+        "w7_test_hardening_completion_sha256": "c" * 64,
     }
     monkeypatch.setattr(campaign, "_load_authorization", lambda _path: authorization)
-    monkeypatch.setattr(campaign, "verify_source_manifest", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(campaign, "verify_source_manifest", lambda *_args, **_kwargs: source)
     monkeypatch.setattr(campaign, "verify_profile_freeze", lambda value: value)
     monkeypatch.setattr(campaign, "_verify_upstream", lambda: None)
     monkeypatch.setattr(campaign, "authenticate_w7_gpu", lambda **kwargs: {"config_hash": kwargs["config_hash"]})

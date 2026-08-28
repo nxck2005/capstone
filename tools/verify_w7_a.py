@@ -212,8 +212,8 @@ def verify(*, run_upstream: bool = True) -> dict[str, Any]:
     json.loads(SCHEMA_PATH.read_bytes())
     source = json.loads(SOURCE_MANIFEST_PATH.read_bytes())
     # The historical W7-A source epoch remains authenticated at its bound Git
-    # commit. Current-byte applicability is carried only by the additive
-    # test-hardening successor manifest; historical bytes are not rewritten.
+    # commit. Current-byte applicability is carried by a later B1 successor;
+    # historical bytes are not rewritten or treated as current science.
     verify_source_manifest(source, current=False)
     profile_report = verify_profile(json.loads(PROFILE_REPORT_PATH.read_bytes()))
     freeze = verify_profile_freeze(json.loads(PROFILE_FREEZE_PATH.read_bytes()))
@@ -238,7 +238,7 @@ def verify(*, run_upstream: bool = True) -> dict[str, Any]:
         if path.is_file() and any(token in path.name for token in ("candidate", "campaign_completion", "g4_adjudication")):
             forbidden.append(str(path.relative_to(REPO)))
     _require(not forbidden, f"W7-A has unauthorized scientific output files: {forbidden}")
-    _successor_source, successor = verify_test_hardening(current=True)
+    _successor_source, successor = verify_test_hardening(current=False)
     _require(
         successor["historical_w7_a_completion"]["completion_id"] == completion["completion_id"],
         "W7-A test-hardening successor does not bind the historical completion",

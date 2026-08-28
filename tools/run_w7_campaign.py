@@ -30,7 +30,12 @@ from config.params import get  # noqa: E402
 from config.run_config import config_hash as run_config_hash  # noqa: E402
 from config.w7_execution import authenticate_w7_gpu, verify_frozen_gpu_binding  # noqa: E402
 from evaluation.w7_validation import evaluate_validation, selected_checkpoint_result, select_checkpoint_epoch  # noqa: E402
-from gen_w7_source_manifest import verify as verify_source_manifest  # noqa: E402
+from verify_w7_b1 import (  # noqa: E402
+    AUTHORIZATION_ROLE,
+    verify_authorization_path,
+    verify_scientific_checkout,
+    verify_source_path,
+)
 from training.deterministic_core import canonical_bytes, canonical_sha256  # noqa: E402
 from training.w7_g4 import W7_G4_PILOT_POLICY, W7SourceLineage, W7Trainer  # noqa: E402
 from training.w7_protocol import (
@@ -47,11 +52,15 @@ from training.w7_protocol import (
     load_w7_config,
     protocol_config_hash,
 )  # noqa: E402
-from verify_w7_a import verify as verify_w7_a, verify_profile_freeze  # noqa: E402
+from verify_w7_a import verify_profile_freeze  # noqa: E402
 from runtime.w7_lock import W7CampaignLock  # noqa: E402
 
 
-AUTHORIZATION_ROLE = "W7_G4_SCIENTIFIC_EXECUTION_AUTHORIZATION"
+# Compatibility name for the existing campaign-state tests; this is the B1
+# successor verifier, never the historical gen_w7_source_manifest verifier.
+verify_source_manifest = verify_source_path
+
+
 CAMPAIGN_MANIFEST_ROLE = "W7_G4_CAMPAIGN_MANIFEST"
 CAMPAIGN_ROLE = "W7_G4_CAMPAIGN_COMPLETE_NOT_ADJUDICATED"
 HEARTBEAT_ROLE = "W7_OPERATIONAL_HEARTBEAT"
@@ -123,45 +132,12 @@ def _write_heartbeat(path: Path, *, campaign_id: str, lambda_value: float | None
 
 
 def _load_authorization(path: Path) -> dict[str, Any]:
-    if not path.is_file() or path.is_symlink():
-        raise RuntimeError("W7 execution authorization is absent; W7-B is not authorized")
     try:
-        value = json.loads(path.read_bytes())
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
-        raise RuntimeError("W7 execution authorization is corrupt") from None
-    required = {
-        "schema_version", "artifact_role", "status", "authorization_id", "campaign_id",
-        "source_commit", "source_manifest_id", "source_manifest_sha256",
-        "profile_freeze_id", "profile_freeze_sha256", "execution_image_family",
-        "gpu_uuid", "lambda_grid", "lambda_order", "w7_a_completion_id",
-        "w7_a_completion_sha256", "scientific_execution_authorization", "test_access",
-    }
-    if not isinstance(value, dict) or set(value) != required:
-        raise RuntimeError("W7 execution authorization schema differs")
-    body = dict(value)
-    authorization_id = body.pop("authorization_id")
-    if authorization_id != "w7auth-" + canonical_sha256(body):
-        raise RuntimeError("W7 execution authorization digest differs")
-    if value["schema_version"] != 1 or value["artifact_role"] != AUTHORIZATION_ROLE or value["status"] != "AUTHORIZED":
-        raise RuntimeError("W7 execution authorization is not active")
-    if value["scientific_execution_authorization"] != "PRESENT":
-        raise RuntimeError("W7 scientific execution authorization is not present")
-    if value["test_access"] != "SEALED":
-        raise RuntimeError("W7 execution authorization does not preserve the test seal")
-    if value["lambda_grid"] != list(W7_LAMBDA_GRID) or value["lambda_order"] != "exact_configured_lambda_grid_order":
-        raise RuntimeError("W7 authorization lambda grid/order differs")
-    if value["gpu_uuid"] != W7_SELECTED_GPU_UUID or value["execution_image_family"] != W7_EXECUTION_IMAGE_FAMILY:
-        raise RuntimeError("W7 authorization GPU/image binding differs")
-    if not isinstance(value["source_commit"], str) or len(value["source_commit"]) != 40 or any(character not in "0123456789abcdef" for character in value["source_commit"]):
-        raise RuntimeError("W7 authorization source commit is invalid")
-    for field in ("source_manifest_sha256", "profile_freeze_sha256", "w7_a_completion_sha256"):
-        if not isinstance(value[field], str) or len(value[field]) != 64 or any(character not in "0123456789abcdef" for character in value[field]):
-            raise RuntimeError(f"W7 authorization {field} is invalid")
-    completion = verify_w7_a(run_upstream=False)
-    completion_path = W7_A_COMPLETION_PATH
-    if value["w7_a_completion_id"] != completion["completion_id"] or value["w7_a_completion_sha256"] != hashlib.sha256(completion_path.read_bytes()).hexdigest():
-        raise RuntimeError("W7 execution authorization does not bind the current W7-A completion")
-    return value
+        return verify_authorization_path(path, repo_root=REPO, verify_source=False)
+    except Exception as exc:
+        if isinstance(exc, RuntimeError):
+            raise
+        raise RuntimeError(str(exc)) from None
 
 
 def _verify_upstream() -> None:
@@ -191,6 +167,8 @@ def _campaign_manifest(
         "campaign_id": campaign_id,
         "authorization_id": authorization["authorization_id"],
         "w7_a_completion_id": authorization["w7_a_completion_id"],
+        "w7_test_hardening_completion_id": authorization["w7_test_hardening_completion_id"],
+        "w7_test_hardening_completion_sha256": authorization["w7_test_hardening_completion_sha256"],
         "source_commit": source_commit,
         "execution_source_commit": source_manifest["source_commit"],
         "source_manifest_id": source_manifest["manifest_id"],
@@ -527,8 +505,7 @@ def run(args: argparse.Namespace) -> int:
         raise RuntimeError("W7 launch GPU/image differs from execution authorization")
     if args.gpu_uuid != W7_SELECTED_GPU_UUID:
         raise RuntimeError("W7 launch GPU differs from the frozen Pascal selection")
-    manifest = json.loads(args.source_manifest.read_bytes())
-    verify_source_manifest(manifest, current=True)
+    manifest = verify_source_manifest(args.source_manifest, current=True, repo_root=REPO)
     manifest_sha256 = _sha256_path(args.source_manifest)
     if manifest["manifest_id"] != authorization["source_manifest_id"] or manifest_sha256 != authorization["source_manifest_sha256"] or manifest["source_commit"] != authorization["source_commit"]:
         raise RuntimeError("W7 source manifest differs from authorization")
@@ -547,9 +524,12 @@ def run(args: argparse.Namespace) -> int:
     if args.execution_image != W7_EXECUTION_IMAGE_FAMILY:
         raise RuntimeError("W7 execution image family differs from the frozen contract")
     _verify_upstream()
-    source_commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
-    if subprocess.run(["git", "status", "--porcelain", "--untracked-files=all"], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip():
-        raise RuntimeError("W7 scientific checkout is dirty")
+    try:
+        source_commit = verify_scientific_checkout(manifest["source_commit"], repo_root=REPO)
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(str(exc)) from None
     source_lineage = W7SourceLineage(source_commit, manifest["manifest_id"], hashlib.sha256(args.source_manifest.read_bytes()).hexdigest(), args.execution_image)
     source_lineage.validate()
     _write_heartbeat(args.heartbeat, campaign_id=args.campaign_id, lambda_value=None, epoch=None, state="WAITING_FOR_LOCK", checkpoint_id=None)
