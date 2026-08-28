@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:capstone:w7-g4-artifacts:v1",
+  "title": "W7-A/G-4 deterministic pilot artifact contract",
+  "schema_version": 1,
+  "scientific_execution_authorization": "ABSENT_DURING_W7_A",
+  "roles": {
+    "NON_SCIENTIFIC_PROFILE": {
+      "selection": "NOT_ELIGIBLE_FOR_SELECTION",
+      "g4": "NOT_ELIGIBLE_FOR_W7_G4",
+      "w8": "NOT_ELIGIBLE_FOR_W8",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    },
+    "W7_G4_SCIENTIFIC_PILOT_CHECKPOINT": {
+      "selection": "ELIGIBLE_FOR_OWN_G4_ONLY",
+      "g4": "ELIGIBLE_FOR_G4_CANDIDATE",
+      "w8": "NOT_ELIGIBLE_FOR_W8_INITIALIZATION",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    },
+    "CAMPAIGN_COMPLETE_NOT_ADJUDICATED": {
+      "selection": "NOT_APPLICABLE",
+      "g4": "AWAITING_G4",
+      "w8": "NOT_ELIGIBLE_FOR_W8",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    },
+    "G4_ADJUDICATED": {
+      "selection": "G4_RESULT_ONLY",
+      "g4": "CLOSED",
+      "w8": "REQUIRES_SEPARATE_W8_AUTHORIZATION",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    },
+    "W8_INELIGIBLE": {
+      "selection": "NOT_ELIGIBLE",
+      "g4": "NOT_ELIGIBLE",
+      "w8": "NOT_ELIGIBLE",
+      "test": "NOT_ELIGIBLE"
+    }
+  },
+  "frozen_protocol": {
+    "dataset": "imagenette160",
+    "ratio": "r_1_6",
+    "lambda_grid": [0.0, 0.1, 0.3, 1.0, 3.0],
+    "train_seed": 0,
+    "channel_seed": 0,
+    "training_snr_db": 7,
+    "calibration_snr_db": 7,
+    "psnr_eval_snr_db": 15,
+    "accuracy_tolerance_pp": 1.0,
+    "primary_psnr_floor_db": 20.0,
+    "relaxed_psnr_floor_db": 16.0,
+    "validation_batch_size": 32,
+    "validation_denominator": 1000,
+    "psnr_zero_mse": "inf",
+    "psnr_data_range": 1.0,
+    "campaign_order": "exact_configured_lambda_grid_order"
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "git_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "infinity_or_number": {
+      "oneOf": [
+        {"type": "number", "minimum": -1000000000},
+        {"const": "inf"}
+      ]
+    },
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifact_role", "selection_eligibility", "reporting_eligibility", "w7_g4_eligibility", "w8_eligibility", "test_eligibility"],
+      "properties": {
+        "artifact_role": {"type": "string"},
+        "selection_eligibility": {"type": "string"},
+        "reporting_eligibility": {"type": "string"},
+        "w7_g4_eligibility": {"type": "string"},
+        "w8_eligibility": {"type": "string"},
+        "test_eligibility": {"const": "NOT_ELIGIBLE_FOR_TEST"}
+      }
+    },
+    "profile_binding": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["schema_version", "authentication_status", "execution_profile_id", "gpu_uuid", "gpu_name", "gpu_compute_capability", "lock_file_sha256", "git_commit", "config_hash", "binding_sha256"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "authentication_status": {"const": "PASSED"},
+        "execution_profile_id": {"const": "confessor_pascal_cu126"},
+        "gpu_uuid": {"type": "string", "pattern": "^GPU-[0-9A-Fa-f-]+$"},
+        "gpu_name": {"type": "string", "minLength": 1},
+        "gpu_compute_capability": {"const": "6.1"},
+        "lock_file_sha256": {"$ref": "#/$defs/sha256"},
+        "git_commit": {"$ref": "#/$defs/git_commit"},
+        "config_hash": {"$ref": "#/$defs/sha256"},
+        "binding_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "checkpoint_sidecar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "artifact_role", "eligibility", "checkpoint_path", "checkpoint_id", "checkpoint_bytes", "completed_epoch", "next_epoch", "global_optimizer_step", "config_hash", "protocol_config_hash", "source_commit", "source_manifest_id", "source_manifest_sha256", "execution_image", "execution_profile_id", "gpu_uuid", "dataset", "ratio", "k", "lambda", "train_seed", "channel_seed", "train_snr_db", "predecessor_checkpoint_id", "epoch_record_path", "epoch_record_id", "epoch_record_sha256", "checkpoint_write_seconds"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "artifact_role": {"enum": ["W7_G4_SCIENTIFIC_PILOT_CHECKPOINT_SIDECAR", "NON_SCIENTIFIC_PROFILE_CHECKPOINT_SIDECAR"]},
+        "eligibility": {"$ref": "#/$defs/eligibility"},
+        "checkpoint_path": {"type": "string", "pattern": "^checkpoints/epoch-[0-9]{4}\\.pt$"},
+        "checkpoint_id": {"$ref": "#/$defs/sha256"},
+        "checkpoint_bytes": {"type": "integer", "minimum": 1},
+        "completed_epoch": {"type": "integer", "minimum": 0},
+        "next_epoch": {"type": "integer", "minimum": 1},
+        "global_optimizer_step": {"type": "integer", "minimum": 0},
+        "accumulation_position": {"const": 0},
+        "config_hash": {"$ref": "#/$defs/sha256"},
+        "protocol_config_hash": {"$ref": "#/$defs/sha256"},
+        "source_commit": {"$ref": "#/$defs/git_commit"},
+        "source_manifest_id": {"type": "string", "minLength": 1},
+        "source_manifest_sha256": {"$ref": "#/$defs/sha256"},
+        "execution_image": {"type": "string", "minLength": 1},
+        "execution_profile_id": {"const": "confessor_pascal_cu126"},
+        "gpu_uuid": {"type": "string", "minLength": 1},
+        "dataset": {"const": "imagenette160"},
+        "ratio": {"const": "r_1_6"},
+        "k": {"type": "integer", "minimum": 1},
+        "lambda": {"type": "number", "minimum": 0},
+        "train_seed": {"const": 0},
+        "channel_seed": {"const": 0},
+        "train_snr_db": {"const": 7},
+        "predecessor_checkpoint_id": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+        "epoch_record_path": {"type": "string", "pattern": "^epochs/epoch-[0-9]{4}\\.json$"},
+        "epoch_record_id": {"$ref": "#/$defs/sha256"},
+        "epoch_record_sha256": {"$ref": "#/$defs/sha256"},
+        "checkpoint_write_seconds": {"type": "number", "minimum": 0}
+      }
+    },
+    "epoch_record": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "epoch", "next_epoch", "samples", "stable_id_order_sha256", "microbatches", "optimizer_steps", "grad_scaler_skips", "global_optimizer_step"]},
+    "validation_epoch_summary": {"type": "object", "additionalProperties": false, "required": ["schema_version", "artifact_role", "epoch", "checkpoint_id", "n_correct", "n_total", "top1_accuracy", "prediction_digest", "evaluation_config_hash", "noise_policy", "noise_policy_hash", "noise_id_digest", "row_digest"]},
+    "selected_validation": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "checkpoint_id", "checkpoint_epoch", "selection", "calibration_validation", "psnr_evaluation"]},
+    "lambda_candidate": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "candidate_id", "status", "authentication_status", "eligibility", "lambda", "lineage", "selected_validation", "psnr_evaluation", "test_access"]},
+    "campaign_completion": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "status", "candidates", "g4_adjudication_run", "lambda_core_updated"]},
+    "g4_adjudication": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "status", "candidate_lambdas", "selected_lambda"]},
+    "w7_terminal_completion": {"type": "object", "additionalProperties": true, "required": ["schema_version", "artifact_role", "scientific_execution_authorization", "g4_status", "protected_counters"]}
+  }
+}

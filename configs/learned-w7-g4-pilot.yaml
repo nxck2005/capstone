@@ -1,0 +1,24 @@
+experiment: learned_w7_g4_pre_execution_pilot
+choices:
+  system: learned
+  dataset: imagenette160
+  split: train
+  bw_ratio: r_1_6
+  channel: awgn
+  train_snr_db: train_snr_db_fixed
+  lambda: lambda_core
+  classifier_variant: clean
+  train_seed: 0
+  channel_seed: 0
+  architecture: djscc_residual_v1
+  execution_profile_id: confessor_pascal_cu126
+  artifact_role: W7_G4_SCIENTIFIC_PILOT_CHECKPOINT
+  selection_eligibility: ELIGIBLE_FOR_OWN_G4_ONLY
+  reporting_eligibility: NOT_ELIGIBLE_UNTIL_G4
+  w7_g4_eligibility: ELIGIBLE_FOR_G4_CANDIDATE
+  w8_eligibility: NOT_ELIGIBLE_FOR_W8_INITIALIZATION
+  test_eligibility: NOT_ELIGIBLE_FOR_TEST
+  physical_batch_size: 32
+  accumulation_factor: 1
+  validation_batch_size: 32
+sweep_axes: {}
