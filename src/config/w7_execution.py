@@ -39,7 +39,13 @@ def _torch_uuid(device: str) -> tuple[str, str, str]:
     if torch.cuda.device_count() != 1 or not torch.cuda.is_available():
         raise W7ExecutionHold("W7 requires exactly one process-visible CUDA device")
     properties = torch.cuda.get_device_properties(0)
-    uuid = _normalise_uuid(getattr(properties, "uuid", None))
+    raw_uuid = getattr(properties, "uuid", None)
+    if raw_uuid is None:
+        raise W7ExecutionHold("Torch did not expose a CUDA GPU UUID")
+    # Recent Torch returns torch._C._CUuuid rather than a Python str.  The
+    # textual form is the same UUID reported by nvidia-smi; authenticate that
+    # representation, never an ordinal.
+    uuid = _normalise_uuid(str(raw_uuid))
     return uuid, str(properties.name), f"{properties.major}.{properties.minor}"
 
 
