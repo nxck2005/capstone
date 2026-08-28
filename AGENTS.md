@@ -141,15 +141,18 @@ four steps are described only as historically recorded. Successor source epoch
 process kill/resume and both selected Imagenette ratio gradients. Additive
 closeout is `w5repaircompletion-8b2fa917…`. No lambda, architecture, checkpoint
 or validation result was scientifically selected. W6 is GREEN/CLOSED at terminal
-completion `w6completion-f992e38e…`; **W7-A TEST-HARDENING is
-GREEN/PRE-SCIENCE**: additive completion `w7testhardening-a7011b78…` and source
-manifest `w7testsource-1cf7ce96…` bind executable trainer/resume,
-validation/common-noise and campaign state-machine regressions. The frozen G-4
-protocol is unchanged; the historical successful Pascal profile remains
-applicable and was not rerun. No W7 scientific optimizer step, λ result, G-4
-adjudication or λ selection exists; W7-B, W8 and test remain unopened. A
-sole-writer OS lock is still required before any later scientific W7 optimizer
-step. Next return for independent audit before W7-B1 authorization.
+completion `w6completion-f992e38e…`; **W7-B1 is GREEN/PRE-SCIENCE**: the additive test-hardening completion
+`w7testhardening-a7011b78…` remains explicitly bound, and successor source
+manifest `w7b1source-ef005dc4…` binds the repaired detached launcher and
+verification boundary. Execution authorization `w7auth-1d44b668…` binds the
+historical W7-A completion, current test-hardening completion, full protocol
+and frozen Pascal profile. The separate CUDA smoke passed on the GTX 1080 Ti
+with six non-scientific optimizer steps across a genuine fresh-process resume;
+the historical real-data Pascal profile remains applicable and was not rerun.
+No W7 scientific optimizer step, λ result, G-4 adjudication or λ selection
+exists; W8 and test remain unopened. A sole-writer OS lock is still required
+before later scientific W7 work. Next return for independent audit and separate
+W7-B2 five-λ launch authorization.
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w7-g4-separate-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
