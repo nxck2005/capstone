@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-08-27 · **Phase:** **W7-A GREEN/PRE-EXECUTION — G-4 PROTOCOL AND PASCAL EXECUTION PATH FROZEN; W7-B REQUIRES SEPARATE OWNER AUTHORIZATION; W8 AND TEST REMAIN SEALED.** Contract `w6acontract-d2378ea5…`, deterministic evidence index `w6aindex-ac05dbad…` and requirement matrix `w6amatrix-d1a1add6…` reconstruct the W6 boundary without scientific recomputation. The matrix has 21 W6-required/satisfied, 0 required/missing, 9 frozen-upstream, 14 future-G12 and 2 not-applicable obligations. The read-only selected-config loader authenticates the immutable pass-two state and candidate authority and consumes one frozen candidate without running selection. Terminal W6 completion is published at `results/baseline/w6/w6_completion.json` as `w6completion-f992e38e…` (file SHA-256 `8fcad251…`), and `tools/verify_w6_complete.py` independently reauthenticates the frozen W6-A boundary, G-1/G-2/W4 readiness and downstream classical inputs. G8 remains scientifically frozen at terminal closeout `g8closeout-07526958…`; its additive typed-identity correction is `g8bindingcorrection-1bff458e…`, and the historical closeout bytes remain unchanged. AM-91 is unchanged. The repaired W5 authority remains `w5repaircompletion-8b2fa917…`; W7-A is GREEN/PRE-EXECUTION with a real-data non-scientific Pascal profile, frozen source/config lineage and zero G-4 coverage. Scientific learned training, W7 pilot runs, W8 runs, learned test inference and test access remain zero. A sole-writer OS lock remains required before any later separately authorized scientific W7 step. **Exact next action: obtain separate W7-B scientific campaign authorization on confessor; do not run learned scientific work, G-4 adjudication, W8 or test.** G8_E remains GREEN and CLOSED through E7. The
+**Last updated:** 2026-08-28 · **Phase:** **W7-A TEST-HARDENING GREEN/PRE-SCIENCE — ADDITIVE TRAINER/RESUME, VALIDATION/COMMON-NOISE AND CAMPAIGN REGRESSIONS FROZEN; INDEPENDENT AUDIT REQUIRED BEFORE W7-B1 AUTHORIZATION; W8 AND TEST REMAIN SEALED.** Contract `w6acontract-d2378ea5…`, deterministic evidence index `w6aindex-ac05dbad…` and requirement matrix `w6amatrix-d1a1add6…` reconstruct the W6 boundary without scientific recomputation. The matrix has 21 W6-required/satisfied, 0 required/missing, 9 frozen-upstream, 14 future-G12 and 2 not-applicable obligations. The read-only selected-config loader authenticates the immutable pass-two state and candidate authority and consumes one frozen candidate without running selection. Terminal W6 completion is published at `results/baseline/w6/w6_completion.json` as `w6completion-f992e38e…` (file SHA-256 `8fcad251…`), and `tools/verify_w6_complete.py` independently reauthenticates the frozen W6-A boundary, G-1/G-2/W4 readiness and downstream classical inputs. G8 remains scientifically frozen at terminal closeout `g8closeout-07526958…`; its additive typed-identity correction is `g8bindingcorrection-1bff458e…`, and the historical closeout bytes remain unchanged. AM-91 is unchanged. The repaired W5 authority remains `w5repaircompletion-8b2fa917…`; W7-A is TEST-HARDENING GREEN/PRE-SCIENCE under additive completion `w7testhardening-a7011b78…` and source manifest `w7testsource-1cf7ce96…`, with the historical real-data non-scientific Pascal profile still applicable and zero G-4 coverage. Scientific learned training, W7 pilot runs, W8 runs, learned test inference and test access remain zero. A sole-writer OS lock remains required before any later separately authorized scientific W7 step. **Exact next action: return for independent audit before W7-B1 authorization; do not run learned scientific work, G-4 adjudication, W8 or test.** G8_E remains GREEN and CLOSED through E7. The
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -289,12 +289,14 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Next-session task:** obtain separate W7-B scientific campaign authorization on
-confessor. W7-A is GREEN/PRE-EXECUTION: terminal completion
-`w7acompletion-e623063c…` binds the frozen G-4 protocol, source/schema lineage,
-Pascal profile, production batch policy and final-source confirmation. W5 and
-W6 remain GREEN/CLOSED; do not execute learned scientific work, G-4 adjudication,
-W8 or test. F1, F2, F3, pass two and G8 adjudication remain complete,
+**Next-session task:** return the additive W7-A test-hardening authority for
+independent audit before W7-B1 authorization. Historical completion
+`w7acompletion-e623063c…` remains byte-identical; successor completion
+`w7testhardening-a7011b78…` and source manifest `w7testsource-1cf7ce96…` bind
+28 new trainer/resume, validation/common-noise and campaign regressions. The
+Pascal profile was not rerun and remains applicable. W5 and W6 remain
+GREEN/CLOSED; do not execute learned scientific work, G-4 adjudication, W8 or
+test. F1, F2, F3, pass two and G8 adjudication remain complete,
 authenticated and closed; pass three and fallback training remain prohibited.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
@@ -323,8 +325,9 @@ does not, it is wrong and this block is right.**
 | G-8 | GREEN/CLOSED |
 | W5 learned-system infrastructure | **GREEN/CLOSED after additive GradScaler accounting repair; scientific training remains zero** |
 | W6 classical evidence closure | **GREEN/CLOSED — terminal completion `w6completion-f992e38e…`; W6-A source epoch, index/matrix, classical readiness and pass-two boundary authenticated** |
-| W7-A protocol/profile/source freeze | **GREEN/PRE-EXECUTION — complete; zero scientific coverage** |
-| W7-B learned pilot and λ calibration | **NEXT — requires separate owner authorization; W8 and test remain sealed** |
+| W7-A protocol/profile/source freeze | **TEST-HARDENING GREEN/PRE-SCIENCE — additive executable regressions complete; zero scientific coverage** |
+| W7-A independent test-hardening audit | **NEXT — required before W7-B1 authorization** |
+| W7-B learned pilot and λ calibration | **HELD — independent audit required before W7-B1 authorization; W8 and test remain sealed** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
@@ -874,7 +877,7 @@ committed G-2 table covers one physical-layer identity at four SNR points per mo
 not be extrapolated. Read "What G-8 actually has to build" above before starting, and
 `instructions/RESUME.md` for the facts that work needs. G8 is now GREEN/CLOSED after F3, exactly-once pass two and frozen adjudication;
 the sweep entry point is permanently closed and pass three does not exist.
-**W7-A is GREEN/PRE-EXECUTION. Next, obtain separate W7-B scientific campaign authorization on confessor; do not begin learned scientific work, G-4 adjudication, W8 or test.**
+**W7-A TEST-HARDENING is GREEN/PRE-SCIENCE. Next, return for independent audit before W7-B1 authorization; do not begin learned scientific work, G-4 adjudication, W8 or test.**
 Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
 does not gate G8, but it is required to complete the user-fixed First Review package.
 
@@ -1155,7 +1158,7 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
 probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The Pascal successor
 production campaign and G8_C C3-C7 closeout are complete at 3213/3213, with 153 measured curves
-frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **W7-A is GREEN/PRE-EXECUTION: its G-4 protocol, Pascal profile, source freeze and campaign lock are authenticated with zero scientific coverage. Next, obtain separate W7-B scientific campaign authorization on confessor; do not begin learned scientific work, G-4 adjudication, W8 or test.**
+frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **W7-A TEST-HARDENING is GREEN/PRE-SCIENCE: its frozen G-4 protocol and Pascal profile remain authenticated, and additive trainer/resume, validation/common-noise and campaign regressions now cover the production paths with zero scientific coverage. Next, return for independent audit before W7-B1 authorization; do not begin learned scientific work, G-4 adjudication, W8 or test.**
 W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed
