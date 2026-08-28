@@ -14,9 +14,13 @@ non-scientific and selected no lambda, architecture, checkpoint or validation
 result. Its additive optimizer-wide GradScaler accounting repair and successor
 attempt-4 kill/resume smoke are GREEN; historical evidence remains immutable.
 W6 pre-test classical implementation/evidence closure is GREEN/CLOSED at
-terminal completion `w6completion-f992e38e…`; W7/G-4 requires separate owner
-authorization. W8 and test remain unexecuted/sealed.
-Planned downstream windows preserve the normative order and fixed review dates.
+terminal completion `w6completion-f992e38e…`. **W7-A is GREEN/PRE-EXECUTION**:
+the G-4 protocol, source/schema lineage, Pascal execution path, real-data
+profile, production batch policy and campaign-level sole-writer lock are
+frozen; no W7 scientific optimizer step, λ result, G-4 adjudication or λ
+selection exists. W7-B requires separate owner authorization. W8 and test
+remain unexecuted/sealed. Planned downstream windows preserve the normative
+order and fixed review dates.
 
 ## 1. Calendar view
 
@@ -45,8 +49,9 @@ gantt
     section Learned system and validation
     W5 training loop, dual head, resume             :done, w5, 2026-08-27, 1d
     W6 classical evidence closure                   :done, w6, 2026-08-27, 1d
-    W7 one-seed pilot and lambda calibration G-4    :crit, w7, 2026-09-11, 7d
-    W8 final paired multi-seed training             :crit, w8, 2026-09-18, 7d
+    W7-A protocol, profile and source freeze        :done, w7a, 2026-08-27, 1d
+    W7-B one-seed pilot and lambda calibration G-4   :crit, w7, 2026-09-11, 7d
+    W8 final paired multi-seed training              :crit, w8, 2026-09-18, 7d
     W9 G-10, ER-9 control, mismatch study, G-11     :crit, w9, 2026-09-25, 7d
     W10 paired inference and validation rehearsal    :crit, w10, 2026-10-02, 7d
     Second Review window                            :milestone, r2, 2026-09-29, 0d
@@ -83,7 +88,8 @@ gantt
 | First Review package | 11–17 Aug | W0–W4 evidence | Polished 10–12-slide deck; ≥25-reference review; corrected Gantt; four-member technical readiness; viva evidence; deployment dossier plus guide acknowledgement; final package under `deliverables/review-1/`; `review-1-basis` tag | Backing documents complete; deck/export, four-member rehearsal, guide acknowledgement, final package and snapshot remain |
 | W5 training system | 27 Aug | G8_G adjudication | Checkpoint/resume learned-system training loop and schema-exact records | **Complete** — optimizer-wide GradScaler accounting repaired; authenticated successor non-scientific CUDA plumbing; exact kill/resume; no selection |
 | W6 classical evidence closure | 27 Aug | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | **GREEN/CLOSED** — terminal completion `w6completion-f992e38e…` and `tools/verify_w6_complete.py` authenticate the accepted W6-A epoch, G-1/G-2/W4 readiness, frozen corpus, operating points and final pass-two outputs; no classical science recomputed |
-| W7 pilot and λ calibration | 11–17 Sep | W5–W6 | One-seed pilot and G-4 | Not started |
+| W7-A protocol/profile/source freeze | 27 Aug | W5–W6 | Pre-result G-4 contract, Pascal profile, source freeze and lock proof | **Complete — GREEN/PRE-EXECUTION; zero scientific coverage** |
+| W7-B pilot and λ calibration | 11–17 Sep | W7-A + separate owner authorization | One-seed pilot and G-4 | **Not authorized; not started** |
 | W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | Not started |
 | W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | Not started |
 | W10 validation rehearsal | 2–8 Oct | W9 | Paired full-grid validation rehearsal and Second Review figures | Not started |
@@ -99,7 +105,7 @@ gantt
 
 The scientific critical path is:
 
-`G8_C → G8_D tooling → G8_E validation/pass one → G8_F artifact-classifier training/pass two → G8_G final G-8 ratio/adjudication → W5 learned-training infrastructure → W6 classical evidence closure → W7/G-4 λ calibration → W8 final training → G-10/G-11 → validation rehearsal → G-12 test release → G-5 Tier 1 freeze → report figures`.
+`G8_C → G8_D tooling → G8_E validation/pass one → G8_F artifact-classifier training/pass two → G8_G final G-8 ratio/adjudication → W5 learned-training infrastructure → W6 classical evidence closure → W7-A protocol/profile/source freeze → W7-B G-4 λ calibration → W8 final training → G-10/G-11 → validation rehearsal → G-12 test release → G-5 Tier 1 freeze → report figures`.
 
 Control rules:
 

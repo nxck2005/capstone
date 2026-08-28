@@ -141,9 +141,13 @@ four steps are described only as historically recorded. Successor source epoch
 process kill/resume and both selected Imagenette ratio gradients. Additive
 closeout is `w5repaircompletion-8b2fa917…`. No lambda, architecture, checkpoint
 or validation result was scientifically selected. W6 is GREEN/CLOSED at terminal
-completion `w6completion-f992e38e…`; W7/G-4, W8 and test remain unopened. A
-sole-writer OS lock is still required before any later scientific W7 optimizer
-step. Do not begin W7/G-4 without separate owner authorization.
+completion `w6completion-f992e38e…`; **W7-A is GREEN/PRE-EXECUTION**: the
+G-4 protocol, source/schema lineage, Pascal execution path, real-data profile,
+production batch policy and campaign-level sole-writer lock are frozen. No W7
+scientific optimizer step, λ result, G-4 adjudication or λ selection exists;
+W7-B, W8 and test remain unopened. A sole-writer OS lock is still required
+before any later scientific W7 optimizer step. Do not begin W7-B without
+separate owner authorization.
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w7-g4-separate-owner-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
