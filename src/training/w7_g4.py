@@ -534,12 +534,18 @@ class W7Trainer:
 
         def apply_group() -> OptimizerUpdate:
             nonlocal group_samples, group_microbatches, optimizer_steps, scaler_skips
+            nonlocal all_finite, optimizer_status_last
             _require(group_samples > 0 and group_microbatches > 0, "W7 empty accumulation group")
             update = apply_optimizer_update(
                 self.optimizer,
                 self.scaler,
                 denominator=group_samples,
             )
+            # GradScaler can expose a non-finite value only while unscaling.
+            # The post-unscale optimizer-wide classification is authoritative;
+            # the pre-unscale snapshot above exists only for coverage counts.
+            optimizer_status_last = dict(update.optimizer_gradients)
+            all_finite = all_finite and bool(update.optimizer_gradients["finite"])
             if update.applied:
                 optimizer_steps += 1
                 self.global_optimizer_step += 1
@@ -834,7 +840,11 @@ class W7Trainer:
         completed = int(sidecar["completed_epoch"])
         self._validate_runtime_prefix(completed, sidecar)
         payload = self._load_authenticated_payload(sidecar)
-        self._restore_payload(payload, int(sidecar["completed_epoch"]))
+        self._restore_payload(
+            payload,
+            int(sidecar["completed_epoch"]),
+            checkpoint_id=str(sidecar["checkpoint_id"]),
+        )
         return dict(sidecar)
 
     def load_checkpoint_epoch(self, epoch: int) -> dict[str, Any]:
@@ -856,7 +866,11 @@ class W7Trainer:
             _require(sidecar["predecessor_checkpoint_id"] == expected_predecessor, "W7 evaluation checkpoint predecessor differs")
         sidecar = sidecars[-1]
         payload = self._load_authenticated_payload(sidecar)
-        self._restore_payload(payload, int(sidecar["completed_epoch"]))
+        self._restore_payload(
+            payload,
+            int(sidecar["completed_epoch"]),
+            checkpoint_id=str(sidecar["checkpoint_id"]),
+        )
         return sidecar
 
     def _load_authenticated_payload(self, sidecar: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -869,7 +883,13 @@ class W7Trainer:
         _require(isinstance(payload, Mapping), "W7 checkpoint payload is not a mapping")
         return payload
 
-    def _restore_payload(self, payload: Mapping[str, Any], completed: int) -> None:
+    def _restore_payload(
+        self,
+        payload: Mapping[str, Any],
+        completed: int,
+        *,
+        checkpoint_id: str,
+    ) -> None:
         try:
             self.model.load_state_dict(payload["model_state"], strict=True)
             self.optimizer.load_state_dict(payload["optimizer_state"])
@@ -885,7 +905,9 @@ class W7Trainer:
         _require(self.optimizer.param_groups[0]["lr"] == learning_rate_for_epoch(self.config, completed), "W7 optimizer LR state differs")
         self.completed_epoch = completed
         self.global_optimizer_step = int(payload["global_optimizer_step"])
-        self.predecessor_checkpoint_id = payload["predecessor_checkpoint_id"]
+        # The next publication descends from the checkpoint just restored, not
+        # from that checkpoint's own predecessor.
+        self.predecessor_checkpoint_id = checkpoint_id
 
     def _validate_sidecar(self, sidecar: object) -> None:
         required = {

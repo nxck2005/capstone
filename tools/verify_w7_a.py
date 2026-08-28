@@ -29,6 +29,7 @@ from training.w7_protocol import (
 )  # noqa: E402
 from gen_w7_a_contract import verify as verify_contract  # noqa: E402
 from gen_w7_source_manifest import verify as verify_source_manifest  # noqa: E402
+from gen_w7_test_hardening import verify_all as verify_test_hardening  # noqa: E402
 from verify_w7_profile import verify as verify_profile  # noqa: E402
 
 
@@ -210,7 +211,10 @@ def verify(*, run_upstream: bool = True) -> dict[str, Any]:
     verify_contract(contract)
     json.loads(SCHEMA_PATH.read_bytes())
     source = json.loads(SOURCE_MANIFEST_PATH.read_bytes())
-    verify_source_manifest(source, current=True)
+    # The historical W7-A source epoch remains authenticated at its bound Git
+    # commit. Current-byte applicability is carried only by the additive
+    # test-hardening successor manifest; historical bytes are not rewritten.
+    verify_source_manifest(source, current=False)
     profile_report = verify_profile(json.loads(PROFILE_REPORT_PATH.read_bytes()))
     freeze = verify_profile_freeze(json.loads(PROFILE_FREEZE_PATH.read_bytes()))
     confirmation = verify_profile_confirmation(
@@ -234,6 +238,11 @@ def verify(*, run_upstream: bool = True) -> dict[str, Any]:
         if path.is_file() and any(token in path.name for token in ("candidate", "campaign_completion", "g4_adjudication")):
             forbidden.append(str(path.relative_to(REPO)))
     _require(not forbidden, f"W7-A has unauthorized scientific output files: {forbidden}")
+    _successor_source, successor = verify_test_hardening(current=True)
+    _require(
+        successor["historical_w7_a_completion"]["completion_id"] == completion["completion_id"],
+        "W7-A test-hardening successor does not bind the historical completion",
+    )
     return completion
 
 
@@ -242,7 +251,11 @@ def main() -> int:
     parser.add_argument("--no-upstream", action="store_true")
     args = parser.parse_args()
     value = verify(run_upstream=not args.no_upstream)
-    print(f"W7-A GREEN — pre-execution verifier PASS: {value['completion_id']}")
+    successor = json.loads((REPO / "results/learned/w7/w7_a_test_hardening_completion.json").read_bytes())
+    print(
+        "W7-A GREEN — pre-execution test-hardened verifier PASS: "
+        f"{value['completion_id']} + {successor['completion_id']}"
+    )
     return 0
 
 
