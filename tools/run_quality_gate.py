@@ -61,6 +61,7 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/build_w6_classical_evidence.py", "--check"),
         _python_tool("tools/verify_w6_classical_evidence.py", "--no-upstream"),
         _python_tool("tools/verify_w6_complete.py"),
+        _python_tool("tools/verify_w7_b1.py", "verify"),
         ["git", "diff", "--check"],
     )
 
