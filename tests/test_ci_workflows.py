@@ -51,7 +51,9 @@ def test_workflows_are_read_only_and_pin_github_actions():
 
 def test_ci_has_one_lane_and_bounded_timeouts():
     value, source = _load("ci.yml")
-    assert value["jobs"]["verify"]["timeout-minutes"] == "30"
+    # The complete static/upstream/B2R + CPU suite now exceeds 30 minutes;
+    # 45 remains the bounded hosted limit.
+    assert value["jobs"]["verify"]["timeout-minutes"] == "45"
     assert "software" in source and "evidence" in source
     assert "run_one_unit" not in source
     assert "run_g8_bler_characterization" not in source
