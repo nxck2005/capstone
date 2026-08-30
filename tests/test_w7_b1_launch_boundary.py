@@ -12,10 +12,13 @@ from gen_w7_source_manifest import verify as verify_historical_source
 from gen_w7_test_hardening import verify_source as verify_hardening_source
 
 
-def test_current_successor_source_manifest_uses_real_launcher_verifier():
+def test_successor_source_manifest_uses_real_launcher_verifier_after_w7c():
+    # B1's source authority is historical and remains byte-authenticated. W7-C
+    # updates the generated normative parameter views additively, so the
+    # post-closeout check must not pretend those historical bytes are current.
     value = campaign.verify_source_manifest(
         b1.B1_SOURCE_PATH,
-        current=True,
+        current=False,
         repo_root=campaign.REPO,
     )
     assert value["artifact_role"] == b1.B1_SOURCE_ROLE
@@ -35,8 +38,8 @@ def test_historical_v1_cannot_be_used_as_current_scientific_source():
             repo_root=campaign.REPO,
         )
 
-    # The old verifier's exact pre-fix failure remains independently visible:
-    # v1's Git-bound source set contains the old W7 trainer bytes.
+    # The historical verifier also fails closed against the post-W7-C current
+    # checkout; its source authority is not silently rewritten.
     historical = json.loads(b1.HISTORICAL_SOURCE_PATH.read_bytes())
-    with pytest.raises(ValueError, match="current source byte drift: src/training/w7_g4.py"):
+    with pytest.raises(ValueError, match="W7 current source byte drift:"):
         verify_historical_source(historical, current=True)

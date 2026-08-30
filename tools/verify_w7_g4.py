@@ -23,11 +23,11 @@ if str(REPO / "src") not in sys.path:
 if str(REPO / "tools") not in sys.path:
     sys.path.insert(0, str(REPO / "tools"))
 
+from config.params import get  # noqa: E402
 from gen_w7_g4_authorization import (  # noqa: E402
     ADJUDICATOR_BLOB,
     ADJUDICATOR_PATH,
     AUTHORIZATION_PATH,
-    AUTHORIZATION_PREFIX,
     B2R_EVIDENCE,
     FROZEN_PROTOCOL,
     SCIENTIFIC_SOURCE_COMMIT,
@@ -35,12 +35,59 @@ from gen_w7_g4_authorization import (  # noqa: E402
     canonical_sha256,
     verify_authorization,
 )
+from training.deterministic_core import canonical_sha256 as frozen_canonical_sha256  # noqa: E402
 from verify_w7_b2r import verify_artifacts  # noqa: E402
 
 G4_PATH = REPO / "results/learned/w7/w7_g4_result.json"
 TERMINAL_PATH = REPO / "results/learned/w7/w7_completion.json"
 G4_OUTER_PREFIX = "w7g4adjudication-"
 SCHEMA_VERSION = 1
+TERMINAL_PREFIX = "w7completion-"
+TERMINAL_SELECTED_LAMBDA = 3.0
+TERMINAL_SELECTED_STATUS = "selected_at_G-4"
+TERMINAL_W7C_AUTH_CI = {
+    "run_id": 33333468110,
+    "job_id": 99316097630,
+    "head_sha": "a5d60d8704e2b3c1e2680d1bea606f2b7a8266fc",
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "ci",
+}
+TERMINAL_B2R_CI = {
+    "run_id": 33330122577,
+    "job_id": 99307087064,
+    "head_sha": STARTING_MAIN_SHA,
+    "status": "completed",
+    "conclusion": "success",
+    "workflow": "ci",
+}
+TERMINAL_B2R_CI_CLOSURE = {
+    "path": "audit/w7-b2r-ci-provenance-closure-2026-08-30.md",
+    "file_sha256": "081177997c0c3eb2fa27fdcdc1cbac4b4b6c333d12f4c7dbea0dfbd6e19d1816",
+    "git_blob_sha1": "117a4b0ba402176afe7e5a5c23b7f2d4d138783c",
+    "accepted_terminal_ci": TERMINAL_B2R_CI,
+}
+TERMINAL_UPSTREAM = (
+    ("W5_REPAIRED_COMPLETION", "results/learned/w5/w5_gradscaler_accounting_repair_completion.json", "repair_id", "w5repaircompletion-8b2fa9178cc0dec943d32f1eebec85f50d152075d29188a32e42f40d6d63fb89", "fdfc1515139afc4796156b88c80f11e939d85d7e947a50c39e67b88984193dd7"),
+    ("W6_COMPLETION", "results/baseline/w6/w6_completion.json", "completion_id", "w6completion-f992e38e553dce4075406ef8f08df0d42feb2a141a3b00b0ae29a0490e834515", "8fcad25149eb1610c5a5a44d2eae084267b2330b601c0ed501466ad7e1bde2e3"),
+    ("W7_A_COMPLETION", "results/learned/w7/w7_a_completion.json", "completion_id", "w7acompletion-e623063c65348e23833fcec31588ef04ac43f793eeb2be0272af158071b7ba17", "61f6de39d43cee82d8ae05e7e9ada33fc659f1e57574a437509343e343c8d2ff"),
+    ("W7_A_TEST_HARDENING_COMPLETION", "results/learned/w7/w7_a_test_hardening_completion.json", "completion_id", "w7testhardening-a7011b78b327184bd08bd58c6e85cd04253bc583e617a376f74392f467effab3", "d54e5aa7507f7d9e976fdac029ead08c346acab53c17ca1254773df16dad2bf2"),
+    ("W7_B1_EXECUTION_AUTHORIZATION", "results/learned/w7/w7_execution_authorization.json", "authorization_id", "w7auth-1d44b66884f48f980576dde94c43eb745227b4ecc48fb964acf90285a854862d", "5784ec7ece15051586f915e4e834ca732778f09c2ce537dbd8af4f6e597a8349"),
+    ("W7_B1_SOURCE_MANIFEST", "results/learned/w7/w7_b1_source_manifest.json", "manifest_id", "w7b1source-ef005dc427ea83a2ff38904362c6a85612ff133a253e880fc671f2654a4aeb3f", "163d83e25e2dbeb2d0dfd77610634fc2c975a218a4d3a6f1cb189fe24352e392"),
+    ("W7_B1_COMPLETION", "results/learned/w7/w7_b1_completion.json", "completion_id", "w7b1completion-701c12a084aa7a5b47b1d05f74a4b31ae5cbce4df622a82f0aafcdc9cd5228a3", "c27eedf99cf158af436fda507be99ab1ed4e1753a7e5b0389098818045d30472"),
+)
+TERMINAL_GENERATED_SPEC_PATHS = (
+    "spec/params.generated.yaml",
+    "spec/DATASHEET.md",
+    "spec/concerns/amendments.md",
+    "spec/concerns/baseline.md",
+    "spec/concerns/demo.md",
+    "spec/concerns/experiments.md",
+    "spec/concerns/hardware.md",
+    "spec/concerns/programme.md",
+    "spec/concerns/roadmap.md",
+    "spec/concerns/system.md",
+)
 
 
 class VerificationError(RuntimeError):
@@ -55,6 +102,19 @@ def _git(*args: str) -> str:
     return subprocess.run(
         ["git", *args], cwd=REPO, check=True, capture_output=True, text=True
     ).stdout.strip()
+
+
+def _is_ancestor(base: str, tip: str) -> bool:
+    try:
+        result = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", base, tip],
+            cwd=REPO,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as exc:
+        fail(f"cannot authenticate B2R main ancestry: {exc}")
+    return result.returncode == 0
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -177,7 +237,7 @@ def reconstruct_frozen_decision(candidates: list[dict[str, Any]]) -> dict[str, A
                 "candidate_lambdas": list(FROZEN_PROTOCOL["lambda_grid"]),
                 "scientific_side_effects": {"lambda_core_updated": False},
             }
-            result["adjudication_id"] = "g4adjudication-" + canonical_sha256(result)
+            result["adjudication_id"] = "g4adjudication-" + frozen_canonical_sha256(result)
             return result
     result = {
         "schema_version": SCHEMA_VERSION,
@@ -195,7 +255,7 @@ def reconstruct_frozen_decision(candidates: list[dict[str, Any]]) -> dict[str, A
         "candidate_lambdas": list(FROZEN_PROTOCOL["lambda_grid"]),
         "scientific_side_effects": {"lambda_core_updated": False},
     }
-    result["adjudication_id"] = "g4adjudication-" + canonical_sha256(result)
+    result["adjudication_id"] = "g4adjudication-" + frozen_canonical_sha256(result)
     return result
 
 
@@ -227,7 +287,7 @@ def _verify_b2r_and_authority() -> tuple[dict[str, Any], dict[str, Any]]:
         "test_model_facing_access": 0,
     }:
         fail("B2R protected counters or identities differ")
-    if _git("merge-base", "--is-ancestor", STARTING_MAIN_SHA, "HEAD") is None:  # pragma: no cover
+    if not _is_ancestor(STARTING_MAIN_SHA, _git("rev-parse", "HEAD")):
         fail("authenticated B2R main is not an ancestor of HEAD")
     return authorization, _load_b2r_index()
 
@@ -331,6 +391,214 @@ def verify_adjudication(path: Path = G4_PATH) -> dict[str, Any]:
     return value
 
 
+def _terminal_ref(
+    path_text: str,
+    *,
+    identity_field: str | None = None,
+    identity: str | None = None,
+    expected_sha256: str | None = None,
+) -> dict[str, Any]:
+    path = REPO / path_text
+    if not path.is_file() or path.is_symlink():
+        fail(f"terminal-bound artifact is missing or unsafe: {path_text}")
+    if identity_field is not None:
+        value = _read_json(path)
+        if value.get(identity_field) != identity:
+            fail(f"terminal-bound identity differs: {path_text}")
+    file_sha = _sha256_file(path)
+    if expected_sha256 is not None and file_sha != expected_sha256:
+        fail(f"terminal-bound file SHA differs: {path_text}")
+    return {
+        "path": path_text,
+        "identity_field": identity_field,
+        "identity": identity,
+        "file_sha256": file_sha,
+        "git_blob_sha1": _git("hash-object", path_text),
+    }
+
+
+def _expected_terminal_upstream() -> list[dict[str, Any]]:
+    upstream = (
+        ("W5_REPAIRED_COMPLETION", "results/learned/w5/w5_gradscaler_accounting_repair_completion.json", "repair_id", "w5repaircompletion-8b2fa9178cc0dec943d32f1eebec85f50d152075d29188a32e42f40d6d63fb89", "fdfc1515139afc4796156b88c80f11e939d85d7e947a50c39e67b88984193dd7"),
+        ("W6_COMPLETION", "results/baseline/w6/w6_completion.json", "completion_id", "w6completion-f992e38e553dce4075406ef8f08df0d42feb2a141a3b00b0ae29a0490e834515", "8fcad25149eb1610c5a5a44d2eae084267b2330b601c0ed501466ad7e1bde2e3"),
+        ("W7_A_COMPLETION", "results/learned/w7/w7_a_completion.json", "completion_id", "w7acompletion-e623063c65348e23833fcec31588ef04ac43f793eeb2be0272af158071b7ba17", "61f6de39d43cee82d8ae05e7e9ada33fc659f1e57574a437509343e343c8d2ff"),
+        ("W7_A_TEST_HARDENING_COMPLETION", "results/learned/w7/w7_a_test_hardening_completion.json", "completion_id", "w7testhardening-a7011b78b327184bd08bd58c6e85cd04253bc583e617a376f74392f467effab3", "d54e5aa7507f7d9e976fdac029ead08c346acab53c17ca1254773df16dad2bf2"),
+        ("W7_B1_EXECUTION_AUTHORIZATION", "results/learned/w7/w7_execution_authorization.json", "authorization_id", "w7auth-1d44b66884f48f980576dde94c43eb745227b4ecc48fb964acf90285a854862d", "5784ec7ece15051586f915e4e834ca732778f09c2ce537dbd8af4f6e597a8349"),
+        ("W7_B1_SOURCE_MANIFEST", "results/learned/w7/w7_b1_source_manifest.json", "manifest_id", "w7b1source-ef005dc427ea83a2ff38904362c6a85612ff133a253e880fc671f2654a4aeb3f", "163d83e25e2dbeb2d0dfd77610634fc2c975a218a4d3a6f1cb189fe24352e392"),
+        ("W7_B1_COMPLETION", "results/learned/w7/w7_b1_completion.json", "completion_id", "w7b1completion-701c12a084aa7a5b47b1d05f74a4b31ae5cbce4df622a82f0aafcdc9cd5228a3", "c27eedf99cf158af436fda507be99ab1ed4e1753a7e5b0389098818045d30472"),
+    )
+    refs = []
+    for role, path, identity_field, identity, file_sha in upstream:
+        ref = _terminal_ref(path, identity_field=identity_field, identity=identity, expected_sha256=file_sha)
+        ref["role"] = role
+        refs.append(ref)
+    return refs
+
+
+def verify_terminal_completion(path: Path = TERMINAL_PATH, *, g4: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Authenticate the W7 terminal state without scientific execution."""
+
+    authorization, _ = _verify_b2r_and_authority()
+    if g4 is None:
+        g4 = verify_adjudication(G4_PATH)
+    value = _read_json(path)
+    expected_keys = {
+        "schema_version", "artifact_role", "status", "upstream", "b2r_terminal",
+        "b2r_ci_provenance_closure", "w7c_authorization", "g4_adjudication",
+        "normative_lambda", "protected_counters", "w7_pilot_weights",
+        "scientific_boundary", "future_boundary", "completion_id",
+    }
+    _expect_keys(value, expected_keys, "W7 terminal completion")
+    if value["completion_id"] != TERMINAL_PREFIX + canonical_sha256({key: item for key, item in value.items() if key != "completion_id"}):
+        fail("W7 terminal completion ID does not authenticate its body")
+    if value["schema_version"] != SCHEMA_VERSION or value["artifact_role"] != "W7_TERMINAL_COMPLETION" or value["status"] != "W7_GREEN_CLOSED":
+        fail("W7 terminal completion role/status differs")
+    if value["upstream"] != _expected_terminal_upstream():
+        fail("W7 terminal upstream completion binding differs")
+
+    evidence_by_role = {item["role"]: dict(item) for item in B2R_EVIDENCE}
+    expected_b2r = {
+        "candidate_index_id": evidence_by_role["B2R_CANDIDATE_INDEX"]["content_id"],
+        "completion_id": evidence_by_role["B2R_COMPLETION"]["content_id"],
+        "common_noise_audit_id": evidence_by_role["B2R_COMMON_NOISE_AUDIT"]["content_id"],
+        "custody_id": evidence_by_role["B2R_CHECKPOINT_CUSTODY"]["content_id"],
+        "reconciliation_id": evidence_by_role["B2R_RECONCILIATION"]["content_id"],
+        "evidence": [dict(item) for item in B2R_EVIDENCE],
+        "candidate_count": 5,
+        "completed_epoch_cycles": 500,
+        "checkpoint_count": 500,
+        "g4_adjudication_run_before_closeout": 0,
+        "lambda_decision_before_closeout": "NOT_PERFORMED",
+        "lambda_core_updated_before_closeout": False,
+    }
+    if value["b2r_terminal"] != expected_b2r:
+        fail("W7 terminal B2R binding differs")
+    expected_ci_closure = {
+        "path": "audit/w7-b2r-ci-provenance-closure-2026-08-30.md",
+        "file_sha256": "081177997c0c3eb2fa27fdcdc1cbac4b4b6c333d12f4c7dbea0dfbd6e19d1816",
+        "git_blob_sha1": "117a4b0ba402176afe7e5a5c23b7f2d4d138783c",
+        "accepted_terminal_ci": TERMINAL_B2R_CI,
+    }
+    if value["b2r_ci_provenance_closure"] != expected_ci_closure:
+        fail("B2R CI/provenance closure binding differs")
+    if _terminal_ref(expected_ci_closure["path"], expected_sha256=expected_ci_closure["file_sha256"])["git_blob_sha1"] != expected_ci_closure["git_blob_sha1"]:
+        fail("B2R CI/provenance closure Git blob differs")
+
+    expected_auth_ref = _terminal_ref(
+        "results/learned/w7/w7_g4_procedural_authorization.json",
+        identity_field="authorization_id",
+        identity=authorization["authorization_id"],
+        expected_sha256="b1ad0d032eac17bd07d785323ae4ff3468017b53d971f2226abff0e880faa584",
+    )
+    expected_auth = {
+        **expected_auth_ref,
+        "authorization_scope": "EXACTLY_ONE_DETERMINISTIC_G4_ADJUDICATION",
+        "ci": TERMINAL_W7C_AUTH_CI,
+        "commit": TERMINAL_W7C_AUTH_CI["head_sha"],
+    }
+    if value["w7c_authorization"] != expected_auth:
+        fail("W7-C authorization/CI binding differs")
+
+    expected_g4_ref = _terminal_ref(
+        "results/learned/w7/w7_g4_result.json",
+        identity_field="adjudication_id",
+        identity=g4["adjudication_id"],
+    )
+    expected_candidate_table = [
+        {
+            "candidate_id": item["candidate_id"],
+            "lambda": item["lambda"],
+            "selected_epoch": item["selected_epoch"],
+            "selected_checkpoint_id": item["selected_checkpoint_id"],
+        }
+        for item in g4["candidates"]
+    ]
+    expected_g4 = {
+        **expected_g4_ref,
+        "status": g4["status"],
+        "selection_tier": g4["selection_tier"],
+        "selected_lambda": g4["selected_lambda"],
+        "candidate_table": expected_candidate_table,
+        "candidate_ids": list(g4["candidate_ids"]),
+        "candidate_lambdas": list(g4["candidate_lambdas"]),
+        "inner_adjudication_id": g4["adjudicator_output"]["adjudication_id"],
+        "g4_adjudication_run": g4["adjudication_boundary"]["g4_adjudication_run"],
+        "accuracy_baseline_A0": g4["A0"],
+        "accuracy_floor": g4["accuracy_floor"],
+        "accuracy_tolerance_pp": g4["accuracy_tolerance_pp"],
+        "primary_qualifying_lambdas": list(g4["primary_qualifying_lambdas"]),
+        "relaxed_qualifying_lambdas": list(g4["relaxed_qualifying_lambdas"]),
+    }
+    if value["g4_adjudication"] != expected_g4:
+        fail("W7 terminal G-4 binding differs")
+
+    expected_source_ref = _terminal_ref("spec/SPEC.md")
+    expected_generated_refs = [_terminal_ref(item) for item in TERMINAL_GENERATED_SPEC_PATHS]
+    if value["normative_lambda"] != {
+        "source_of_truth": "spec/SPEC.md",
+        "lambda_core": TERMINAL_SELECTED_LAMBDA,
+        "lambda_status": TERMINAL_SELECTED_STATUS,
+        "provisional_g4_status_cleared": True,
+        "spec_views": {"source": expected_source_ref, "generated_views": expected_generated_refs},
+    }:
+        fail("W7 terminal normative lambda binding differs")
+    if get("learned_system.lambda_core") != TERMINAL_SELECTED_LAMBDA or get("learned_system.lambda_status") != TERMINAL_SELECTED_STATUS:
+        fail("current normative lambda state is not the authenticated G-4 selection")
+
+    if value["protected_counters"] != {
+        "w7_lambda_pilot_runs": 5,
+        "completed_epoch_cycles": 500,
+        "checkpoint_count": 500,
+        "g4_adjudications": 1,
+        "g4_adjudication_run": 1,
+        "lambda_decision": "PERFORMED",
+        "lambda_core_updated": True,
+        "w8_final_training_runs": 0,
+        "w8_state": "UNOPENED",
+        "test_model_facing_access": 0,
+        "learned_test_inference": 0,
+        "test_state": "SEALED",
+    }:
+        fail("W7 terminal protected counters differ")
+    if value["w7_pilot_weights"] != {
+        "status": "NOT_ELIGIBLE_FOR_W8_INITIALIZATION",
+        "w8_initialization_eligibility": "NOT_ELIGIBLE_FOR_W8_INITIALIZATION",
+        "optimizer_state_transfer": False,
+        "scheduler_state_transfer": False,
+        "scaler_state_transfer": False,
+        "checkpoint_initialization_transfer": False,
+    }:
+        fail("W7 pilot W8-ineligibility binding differs")
+    if value["scientific_boundary"] != {
+        "scientific_source_commit": SCIENTIFIC_SOURCE_COMMIT,
+        "adjudicator_path": ADJUDICATOR_PATH,
+        "adjudicator_git_blob_sha1": ADJUDICATOR_BLOB,
+        "scientific_source_adjudicator_git_blob_sha1": ADJUDICATOR_BLOB,
+        "adjudicator_invocations": 1,
+        "training_performed": False,
+        "model_inference_performed": False,
+        "validation_inference_performed": False,
+        "psnr_inference_performed": False,
+        "papr_inference_performed": False,
+        "checkpoint_opened": False,
+    }:
+        fail("W7 terminal scientific boundary differs")
+    if value["future_boundary"] != {
+        "w8_state": "UNOPENED",
+        "w8_requires_separate_authorization": True,
+        "w8_final_training_runs": 0,
+        "w8_initialization_from_w7_pilot": False,
+        "test_state": "SEALED",
+        "test_model_facing_access": 0,
+        "learned_test_inference": 0,
+        "next_action": "SEPARATE_W8_FINAL_MULTI_SEED_TRAINING_AUTHORIZATION",
+    }:
+        fail("W7 terminal future boundary differs")
+    if _git("hash-object", ADJUDICATOR_PATH) != ADJUDICATOR_BLOB or _git("rev-parse", f"{SCIENTIFIC_SOURCE_COMMIT}:{ADJUDICATOR_PATH}") != ADJUDICATOR_BLOB:
+        fail("terminal frozen adjudicator blob equality failed")
+    return value
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("verify",))
@@ -338,10 +606,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         value = verify_adjudication(args.path)
+        terminal = None
+        if args.path == G4_PATH and TERMINAL_PATH.exists():
+            terminal = verify_terminal_completion(TERMINAL_PATH, g4=value)
     except (VerificationError, RuntimeError, ValueError, KeyError, OSError, json.JSONDecodeError, subprocess.SubprocessError) as exc:
         print(json.dumps({"status": "HOLD", "reason": str(exc)}, sort_keys=True))
         return 2
-    print(json.dumps({
+    output = {
         "status": "PASS",
         "adjudication_id": value["adjudication_id"],
         "selected_lambda": value["selected_lambda"],
@@ -349,7 +620,12 @@ def main(argv: list[str] | None = None) -> int:
         "g4_adjudication_run": value["adjudication_boundary"]["g4_adjudication_run"],
         "w8_final_training_runs": value["adjudication_boundary"]["w8_final_training_runs"],
         "test_model_facing_access": value["adjudication_boundary"]["test_model_facing_access"],
-    }, sort_keys=True))
+    }
+    if terminal is not None:
+        output["terminal_completion_id"] = terminal["completion_id"]
+        output["lambda_core"] = terminal["normative_lambda"]["lambda_core"]
+        output["lambda_status"] = terminal["normative_lambda"]["lambda_status"]
+    print(json.dumps(output, sort_keys=True))
     return 0
 
 

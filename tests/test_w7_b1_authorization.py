@@ -28,8 +28,11 @@ def _authorization() -> dict:
     return json.loads(b1.AUTHORIZATION_PATH.read_bytes())
 
 
-def test_successor_source_manifest_is_accepted_by_real_launcher_verification():
-    value = campaign.verify_source_manifest(b1.B1_SOURCE_PATH, current=True, repo_root=campaign.REPO)
+def test_successor_source_manifest_is_accepted_by_real_launcher_verification_after_w7c():
+    # B1's source authority remains historical and immutable. W7-C changes
+    # generated normative views additively, so authenticate this predecessor
+    # manifest without asserting that its old bytes are still current.
+    value = campaign.verify_source_manifest(b1.B1_SOURCE_PATH, current=False, repo_root=campaign.REPO)
     assert value["artifact_role"] == b1.B1_SOURCE_ROLE
     assert value["source_commit"] != json.loads(b1.HARDENING_SOURCE_PATH.read_bytes())["source_commit"]
 
@@ -38,10 +41,10 @@ def test_historical_v1_is_rejected_as_current_scientific_source():
     with pytest.raises(b1.W7B1Hold, match="schema differs"):
         campaign.verify_source_manifest(b1.HISTORICAL_SOURCE_PATH, current=True, repo_root=campaign.REPO)
 
-    # Preserve the precise pre-fix reason independently: the old verifier can
-    # authenticate v1's own Git bytes but not current W7 production bytes.
+    # The historical verifier also fails closed against the post-W7-C current
+    # checkout; its source authority is not silently rewritten.
     historical = json.loads(b1.HISTORICAL_SOURCE_PATH.read_bytes())
-    with pytest.raises(ValueError, match="current source byte drift: src/training/w7_g4.py"):
+    with pytest.raises(ValueError, match="W7 current source byte drift:"):
         verify_historical_source(historical, current=True)
 
 
@@ -131,5 +134,5 @@ def test_authorization_cannot_implicitly_open_g4_w8_or_test(tmp_path: Path):
 
 def test_verification_only_paths_do_not_construct_a_trainer(monkeypatch):
     monkeypatch.setattr(campaign, "W7Trainer", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("verification constructed trainer")))
-    assert b1.verify_source_path(b1.B1_SOURCE_PATH, current=True)["artifact_role"] == b1.B1_SOURCE_ROLE
+    assert b1.verify_source_path(b1.B1_SOURCE_PATH, current=False)["artifact_role"] == b1.B1_SOURCE_ROLE
     assert b1.verify_authorization_path(b1.AUTHORIZATION_PATH, verify_source=True)["status"] == "AUTHORIZED"

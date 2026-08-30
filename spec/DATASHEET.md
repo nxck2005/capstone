@@ -216,8 +216,8 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `learned_system.arch_freeze_gate` | G-7 | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.decoder_heads` | reconstruction, classification | AM-27, AM-48, AM-91, SR-8, SR-10 |
 | `learned_system.loss` | CE + lambda * MSE | AM-27, AM-48, AM-91, SR-8, SR-10 |
-| `learned_system.lambda_core` | 1.0 | AM-27, AM-48, AM-91, SR-9, SR-10 |
-| `learned_system.lambda_status` | provisional_until_G-4 | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.lambda_core` | 3.0 | AM-27, AM-48, AM-91, AM-92, SR-9, SR-10 |
+| `learned_system.lambda_status` | selected_at_G-4 | AM-27, AM-48, AM-91, AM-92, SR-10 |
 | `learned_system.lambda_calibration_gate` | G-4 | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.lambda_grid` | 0.0, 0.1, 0.3, 1.0, 3.0 | AM-7, AM-27, AM-48, AM-91, G-4, SR-9, SR-10 |
 | `learned_system.lambda_acc_tolerance_pp` | 1.0 | AM-27, AM-48, AM-91, SR-9, SR-10 |

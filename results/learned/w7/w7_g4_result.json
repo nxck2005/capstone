@@ -1,0 +1,328 @@
+{
+  "A0": 0.827,
+  "accuracy_floor": 0.817,
+  "accuracy_qualification": [
+    {
+      "lambda": 0.0,
+      "qualified": true,
+      "top1_accuracy": 0.827
+    },
+    {
+      "lambda": 0.1,
+      "qualified": true,
+      "top1_accuracy": 0.835
+    },
+    {
+      "lambda": 0.3,
+      "qualified": true,
+      "top1_accuracy": 0.822
+    },
+    {
+      "lambda": 1.0,
+      "qualified": true,
+      "top1_accuracy": 0.828
+    },
+    {
+      "lambda": 3.0,
+      "qualified": true,
+      "top1_accuracy": 0.832
+    }
+  ],
+  "accuracy_tolerance_pp": 1.0,
+  "adjudication_boundary": {
+    "g4_adjudication_run": 1,
+    "g4_adjudications": 1,
+    "lambda_core_updated": false,
+    "lambda_decision": "PERFORMED",
+    "learned_test_inference": 0,
+    "test_access": 0,
+    "test_model_facing_access": 0,
+    "test_state": "SEALED",
+    "w8_final_training_runs": 0,
+    "w8_state": "UNOPENED"
+  },
+  "adjudication_id": "w7g4adjudication-2136277dbb5e4d3f8a467c6e4137e959e5b1ffc947777c70b487aa3e884e3ec0",
+  "adjudicator_output": {
+    "accuracy_floor": 0.817,
+    "accuracy_tolerance_pp": 1.0,
+    "adjudication_id": "g4adjudication-fb609307b34abd36ba4eb0a99fa95d6aadf57e756d8744b42933f48640fd68e6",
+    "artifact_role": "G4_ADJUDICATED",
+    "baseline_lambda_zero_top1": 0.827,
+    "candidate_lambdas": [
+      0.0,
+      0.1,
+      0.3,
+      1.0,
+      3.0
+    ],
+    "primary_psnr_floor_db": 20.0,
+    "primary_qualifying_lambdas": [
+      3.0
+    ],
+    "relaxed_psnr_floor_db": 16.0,
+    "relaxed_qualifying_lambdas": [
+      0.1,
+      0.3,
+      1.0,
+      3.0
+    ],
+    "schema_version": 1,
+    "scientific_side_effects": {
+      "lambda_core_updated": false
+    },
+    "selected_lambda": 3.0,
+    "selection_tier": "PRIMARY",
+    "status": "G4_ADJUDICATED_PRIMARY"
+  },
+  "artifact_role": "W7_G4_ADJUDICATION",
+  "b2r_evidence": [
+    {
+      "content_id": "w7b2rcompletion-172842c61df0231efd451d3d66b7857b5a67e79af887ff2d2bd8bcd9c801bee3",
+      "file_sha256": "569b53bc41852d20936d11c3f0df3f5089ab783e2e6dcc534a5f8e69a7087395",
+      "git_blob_sha1": "2ea930cd2206af38cf6a3541fdf8bf0f3884aaf5",
+      "path": "results/learned/w7/w7_b2_completion.json",
+      "role": "B2R_COMPLETION"
+    },
+    {
+      "content_id": "w7b2rindex-171ac64c8c56a00bff1e943aacfbe9fb92d1ecfc23686d9f6f55054c1ffbf3f0",
+      "file_sha256": "d1019e85bb4da8a5ba3e21b016e663b09bcb2f911abfbc3814025dcb75fe834a",
+      "git_blob_sha1": "81578bd39685945e2c3ea32eaba1699506398146",
+      "path": "results/learned/w7/w7_b2_reconciliation_index.json",
+      "role": "B2R_CANDIDATE_INDEX"
+    },
+    {
+      "content_id": "w7b2rnoise-f7f162de8664c8b03e15983e436f66918827cce8bcd1444ed2c53ff3d72662e5",
+      "file_sha256": "fd7f59e8f91c5139ffd3cfae49f03c4fda492233f3aa53517ba1fd801cd8bf89",
+      "git_blob_sha1": "7bd9399844bd656dedf00479217baf013555e870",
+      "path": "results/learned/w7/w7_b2_common_noise_audit.json",
+      "role": "B2R_COMMON_NOISE_AUDIT"
+    },
+    {
+      "content_id": "w7b2rcustody-1bbe4b083907b5debdb8104a3818ee9a5161d2bbccf963bc1ce1e2a0c53eb9ec",
+      "file_sha256": "79725464fd666299bf8f71cf733db9d9948b7fa8b78fc16d0cdb4c4be2d8d634",
+      "git_blob_sha1": "225de028ff39ac22a0d7f53b85717bac1d39e996",
+      "path": "results/learned/w7/w7_b2_checkpoint_custody.json",
+      "role": "B2R_CHECKPOINT_CUSTODY"
+    },
+    {
+      "content_id": "w7b2rreconciliation-981bce14b3d851dd68a8304823fec86d5b6bcf9a948b1f1914ca7e4cd4cf168e",
+      "file_sha256": "6d41ff5c6d852eb892132eb7772c03fc22c107d41c612218ab297f9065c031de",
+      "git_blob_sha1": "81219aa29fcc6bceac17cb19ca93d2abeefc3e9f",
+      "path": "results/learned/w7/w7_b2_reconciliation.json",
+      "role": "B2R_RECONCILIATION"
+    }
+  ],
+  "candidate_ids": [
+    "w7candidate-c6ac3a2f7ad64ee235c08de83ea307d592fd83edcf3f687fcc2f5bb23cddbd9f",
+    "w7candidate-dd27923529377563b86865021e3eae6a1caf7764f0f5fd85fc9b539ddbcaab9e",
+    "w7candidate-31e4f41260e30bb51fbe1e56b1dc9c976dd46557891618b02213e46e7fa032ea",
+    "w7candidate-217624ebca2873aaa1f1d390bc273a5f156984df83857f554a97a3c9fbd46f00",
+    "w7candidate-da38e05591d58e4a7390288b1ed6857e20bb9c5b106f0e8e814cabac2262aace"
+  ],
+  "candidate_lambdas": [
+    0.0,
+    0.1,
+    0.3,
+    1.0,
+    3.0
+  ],
+  "candidates": [
+    {
+      "candidate_id": "w7candidate-c6ac3a2f7ad64ee235c08de83ea307d592fd83edcf3f687fcc2f5bb23cddbd9f",
+      "factual_papr": {
+        "mean_papr": 14.65714945602417,
+        "snr_db": 15
+      },
+      "lambda": 0.0,
+      "psnr_evaluation": {
+        "mean_psnr_db": 9.694692739555979,
+        "snr_db": 15
+      },
+      "selected_checkpoint_id": "c8205655059ad0bc06680475bfa6fcc1ce2b894d6ee795ca2a05d1769cc0cc90",
+      "selected_epoch": 84,
+      "validation": {
+        "n_correct": 827,
+        "n_total": 1000,
+        "snr_db": 7,
+        "top1_accuracy": 0.827
+      }
+    },
+    {
+      "candidate_id": "w7candidate-dd27923529377563b86865021e3eae6a1caf7764f0f5fd85fc9b539ddbcaab9e",
+      "factual_papr": {
+        "mean_papr": 13.856762214660645,
+        "snr_db": 15
+      },
+      "lambda": 0.1,
+      "psnr_evaluation": {
+        "mean_psnr_db": 17.578482467024816,
+        "snr_db": 15
+      },
+      "selected_checkpoint_id": "042d3eaf9c648f256ba56ffbee9370187e1cf1e0a94f915054cab45996feadeb",
+      "selected_epoch": 75,
+      "validation": {
+        "n_correct": 835,
+        "n_total": 1000,
+        "snr_db": 7,
+        "top1_accuracy": 0.835
+      }
+    },
+    {
+      "candidate_id": "w7candidate-31e4f41260e30bb51fbe1e56b1dc9c976dd46557891618b02213e46e7fa032ea",
+      "factual_papr": {
+        "mean_papr": 13.51724162864685,
+        "snr_db": 15
+      },
+      "lambda": 0.3,
+      "psnr_evaluation": {
+        "mean_psnr_db": 18.653016507513296,
+        "snr_db": 15
+      },
+      "selected_checkpoint_id": "406f81f662407969a214076df0d78bb3cc1398917513493013ef7f8bf36d84f1",
+      "selected_epoch": 71,
+      "validation": {
+        "n_correct": 822,
+        "n_total": 1000,
+        "snr_db": 7,
+        "top1_accuracy": 0.822
+      }
+    },
+    {
+      "candidate_id": "w7candidate-217624ebca2873aaa1f1d390bc273a5f156984df83857f554a97a3c9fbd46f00",
+      "factual_papr": {
+        "mean_papr": 13.573455365180969,
+        "snr_db": 15
+      },
+      "lambda": 1.0,
+      "psnr_evaluation": {
+        "mean_psnr_db": 19.94929665053924,
+        "snr_db": 15
+      },
+      "selected_checkpoint_id": "a5f07bd612b2627c7fe910e869299a5f37656fa96faa01d8ed1518176697c829",
+      "selected_epoch": 67,
+      "validation": {
+        "n_correct": 828,
+        "n_total": 1000,
+        "snr_db": 7,
+        "top1_accuracy": 0.828
+      }
+    },
+    {
+      "candidate_id": "w7candidate-da38e05591d58e4a7390288b1ed6857e20bb9c5b106f0e8e814cabac2262aace",
+      "factual_papr": {
+        "mean_papr": 13.218187811851502,
+        "snr_db": 15
+      },
+      "lambda": 3.0,
+      "psnr_evaluation": {
+        "mean_psnr_db": 21.228510863568925,
+        "snr_db": 15
+      },
+      "selected_checkpoint_id": "a5893313d1199ecb8378fa103dc412930c9d074857d09eb2ec6edaf14e67518b",
+      "selected_epoch": 92,
+      "validation": {
+        "n_correct": 832,
+        "n_total": 1000,
+        "snr_db": 7,
+        "top1_accuracy": 0.832
+      }
+    }
+  ],
+  "exact_frozen_adjudicator_identity": {
+    "git_blob_sha1": "f1071971bce8dc6a48ddf504e5743e3faea5edfa",
+    "path": "src/adjudication/w7_g4.py",
+    "scientific_source_commit": "cc704fcacec706719bc2791ae14a6c9d71dd4032",
+    "scientific_source_git_blob_sha1": "f1071971bce8dc6a48ddf504e5743e3faea5edfa"
+  },
+  "execution_proof": {
+    "adjudicator_invocations": 1,
+    "checkpoint_opened": false,
+    "model_inference_performed": false,
+    "papr_inference_performed": false,
+    "psnr_inference_performed": false,
+    "training_performed": false,
+    "validation_inference_performed": false
+  },
+  "frozen_protocol": {
+    "accuracy_tolerance_pp": 1.0,
+    "calibration_ratio": "r_1_6",
+    "calibration_ratio_parameter": "params.learned_system.lambda_calibration_ratio",
+    "calibration_snr_db": 7,
+    "dataset": "imagenette160",
+    "lambda_grid": [
+      0.0,
+      0.1,
+      0.3,
+      1.0,
+      3.0
+    ],
+    "lambda_order": "exact_configured_lambda_grid_order",
+    "papr_role": "factual_evidence_only_not_a_selection_input",
+    "primary_psnr_floor_db": 20.0,
+    "psnr_evaluation_snr_db": 15,
+    "relaxed_psnr_floor_db": 16.0,
+    "selection": "smallest_numeric_lambda_in_the_applicable_qualifying_tier",
+    "validation_denominator": 1000,
+    "validation_noise_policy": "keyed_channel_noise_same_per_image_across_lambda",
+    "validation_split": "validation"
+  },
+  "homogeneity_authority": {
+    "architecture": "djscc_residual_v1",
+    "calibration_snr_db": 7,
+    "candidate_count": 5,
+    "channel_seed": 0,
+    "common_validation_noise": true,
+    "dataset": "imagenette160",
+    "execution_image_family": "pascal-cu126-requirements-pascal-lock-v1",
+    "execution_profile_id": "confessor_pascal_cu126",
+    "gpu_name": "NVIDIA GeForce GTX 1080 Ti",
+    "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+    "k": 12800,
+    "only_intended_candidate_field": "lambda",
+    "profile_freeze_id": "w7profilefreeze-fab8a6960a6124de7276599c8b6e9971e93266fa23f58cc2a65e3498b41573b9",
+    "profile_freeze_sha256": "d0eb628a910d93b350a6e9b542f845b5ec418211850899868f16278364ff2301",
+    "psnr_evaluation_snr_db": 15,
+    "ratio": "r_1_6",
+    "source_commit": "cc704fcacec706719bc2791ae14a6c9d71dd4032",
+    "source_manifest_id": "w7b1source-ef005dc427ea83a2ff38904362c6a85612ff133a253e880fc671f2654a4aeb3f",
+    "source_manifest_sha256": "163d83e25e2dbeb2d0dfd77610634fc2c975a218a4d3a6f1cb189fe24352e392",
+    "train_seed": 0,
+    "training_snr_db": 7,
+    "unexpected_differences": []
+  },
+  "primary_psnr_floor_db": 20.0,
+  "primary_qualifying_lambdas": [
+    3.0
+  ],
+  "procedural_authorization": {
+    "authorization_id": "w7c4auth-723cc5cfe875108b5b2db1bbe198a101186b368ed19a4a2add7dd143452ae5ec",
+    "file_sha256": "b1ad0d032eac17bd07d785323ae4ff3468017b53d971f2226abff0e880faa584",
+    "git_blob_sha1": "8b5e47eca8ada7d847e05b28ce0e3be92b427ef5",
+    "path": "results/learned/w7/w7_g4_procedural_authorization.json"
+  },
+  "relaxed_psnr_floor_db": 16.0,
+  "relaxed_qualifying_lambdas": [
+    0.1,
+    0.3,
+    1.0,
+    3.0
+  ],
+  "schema_version": 1,
+  "scientific_execution_authorization": "W7_C_PROCEDURAL_AUTHORIZATION_ONLY",
+  "scientific_source": {
+    "adjudicator_git_blob_sha1": "f1071971bce8dc6a48ddf504e5743e3faea5edfa",
+    "adjudicator_path": "src/adjudication/w7_g4.py",
+    "scientific_source_adjudicator_git_blob_sha1": "f1071971bce8dc6a48ddf504e5743e3faea5edfa",
+    "source_commit": "cc704fcacec706719bc2791ae14a6c9d71dd4032"
+  },
+  "selected_lambda": 3.0,
+  "selection_tier": "PRIMARY",
+  "status": "G4_ADJUDICATED_PRIMARY",
+  "w7_pilot_weights": {
+    "checkpoint_initialization_transfer": false,
+    "optimizer_state_transfer": false,
+    "scaler_state_transfer": false,
+    "scheduler_state_transfer": false,
+    "w8_initialization_eligibility": "NOT_ELIGIBLE_FOR_W8_INITIALIZATION"
+  }
+}

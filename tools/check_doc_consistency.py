@@ -119,7 +119,7 @@ PASCAL_CURSOR_EXPECTED = {
     "execution": "complete",
     "coverage": "3213/3213",
     "evidence": "published",
-    "next": "w7-g4-separate-owner-authorization",
+    "next": "w8-separate-authorization",
     "bler_table": "frozen",
     "g8_d": "d7-complete",
     "g8_e_e2e4": "complete-verified",

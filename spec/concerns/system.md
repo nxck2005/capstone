@@ -103,7 +103,7 @@ Requirements extracted from [`SPEC.md`](../SPEC.md). This view is for focused re
 | `learned_system.lambda_acc_tolerance_pp` | 1.0 |
 | `learned_system.lambda_calibration_ratio` | headline_ratio |
 | `learned_system.lambda_calibration_snr_db` | 7 |
-| `learned_system.lambda_core` | 1.0 |
+| `learned_system.lambda_core` | 3.0 |
 | `learned_system.lambda_grid` | 0.0, 0.1, 0.3, 1.0, 3.0 |
 | `learned_system.lambda_psnr_eval_snr_db` | 15 |
 | `learned_system.lambda_psnr_floor_db` | 20 |

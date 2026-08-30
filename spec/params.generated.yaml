@@ -265,8 +265,8 @@ learned_system:
   - reconstruction
   - classification
   loss: CE + lambda * MSE
-  lambda_core: 1.0
-  lambda_status: provisional_until_G-4
+  lambda_core: 3.0
+  lambda_status: selected_at_G-4
   lambda_calibration_gate: G-4
   lambda_grid:
   - 0.0

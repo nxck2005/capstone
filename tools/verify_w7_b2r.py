@@ -29,7 +29,6 @@ if str(REPO / "tools") not in sys.path:
     sys.path.insert(0, str(REPO / "tools"))
 
 from config.params import get  # noqa: E402
-from config.run_config import config_hash as run_config_hash  # noqa: E402
 from config.w7_execution import verify_frozen_gpu_binding  # noqa: E402
 from data.djscc_validation import validation_noise_id  # noqa: E402
 from training.deterministic_core import canonical_bytes, canonical_sha256  # noqa: E402
@@ -51,7 +50,6 @@ from training.w7_protocol import (  # noqa: E402
     W7_VALIDATION_NOISE_POLICY,
     eligibility_for_role,
     load_w7_config,
-    protocol_config_hash,
 )
 from reconcile_w7_b2r import (  # noqa: E402
     AUTHORIZATION_ID,
@@ -111,6 +109,19 @@ W5_COMPLETION_ID = "w5repaircompletion-8b2fa9178cc0dec943d32f1eebec85f50d152075d
 W6_COMPLETION_ID = "w6completion-f992e38e553dce4075406ef8f08df0d42feb2a141a3b00b0ae29a0490e834515"
 PROFILE_VERIFIER_ID = "w7profile-c2e70848dc6857fe4df3868c90af1ccff4d6e0c7d267cbad8b9ad49b228e5d69"
 INITIAL_CARRIER_COMMIT = "a3665b854dd1e9065a8082a66680a69ce29a10c1"
+
+# B2R compact evidence was produced and authenticated against the complete
+# pre-G4 parameter snapshot. G-4 is an additive normative state transition;
+# this frozen map lets the read-only historical verifier authenticate those
+# bytes after lambda_core is updated, without accepting a recomputed hash.
+B2R_FROZEN_CONFIG_HASHES = {
+    0.0: "6dcbc4c28ba37e595ba2fd6dff9d80ad435430be4251816d0a087093e8f77378",
+    0.1: "d2ef79bf199dcef4b274253c50f78e7799950a27b11a768df94c0dbcc709ed07",
+    0.3: "ef5ed03f49c8f4fa4a1200f8ccf880e4a12eabbb4f63f52e732776c47fa6e022",
+    1.0: "89770e5e27da148fe5132ae598dc3e6c46ba519fc75fd88575f1beadfa951b58",
+    3.0: "4dea658d94d563ad76874f2dd486263c94d6186022f99eefebd31ffb96b71553",
+}
+B2R_FROZEN_PROTOCOL_HASH = PROTOCOL_HASH
 
 INDEX_KEYS = {
     "schema_version", "artifact_role", "campaign_id", "campaign_manifest", "campaign_completion",
@@ -558,8 +569,11 @@ def verify_index(index: dict[str, Any]) -> dict[str, Any]:
         if candidate["campaign_order"] != order or candidate["lambda"] != lambda_value or candidate["candidate_root"] != f"/home/nick/w7-b2-g4-pascal-20260829/{dirname}":
             fail(f"candidate order/root/lambda differs for lambda {lambda_value}")
         config = load_w7_config(lambda_value=lambda_value, role=W7_CHECKPOINT_ROLE, physical_batch_size=W7_PHYSICAL_BATCH_SIZE, accumulation_factor=1, validation_batch_size=W7_VALIDATION_BATCH_SIZE)
-        expected_config = run_config_hash(config)
-        if candidate["config_hash"] != expected_config or candidate["protocol_config_hash"] != PROTOCOL_HASH or protocol_config_hash(config) != PROTOCOL_HASH:
+        try:
+            expected_config = B2R_FROZEN_CONFIG_HASHES[lambda_value]
+        except KeyError:
+            fail(f"candidate lambda lacks a frozen B2R config hash: {lambda_value}")
+        if candidate["config_hash"] != expected_config or candidate["protocol_config_hash"] != B2R_FROZEN_PROTOCOL_HASH:
             fail(f"candidate config/protocol hash differs for lambda {lambda_value}")
         expected_row = expected_homogeneity(lambda_value, config)
         if candidate["homogeneity"] != expected_row or index["homogeneity"]["candidate_rows"][order] != expected_row:
