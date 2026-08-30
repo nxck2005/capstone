@@ -16,7 +16,9 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The complete offline verifier plus CPU regression suite exceeds the old
+    # hosted 30-minute budget; retain the full gate rather than dropping checks.
+    timeout-minutes: 45
     env:
       CUDA_VISIBLE_DEVICES: ""
       PIP_CACHE_DIR: ~/.cache/pip
