@@ -1,0 +1,164 @@
+{
+  "artifact_role": "W7_B2R_RECONCILIATION",
+  "campaign_completion_id": "w7campaign-c6d366c580ee1b2feb8d378b2052cee43484a16e150011b284bf81a58c01efd1",
+  "campaign_id": "w7-b2-g4-pascal-20260829",
+  "campaign_manifest_id": "w7campaignmanifest-35951e9e85e10b1f176dd5ae7a84512d7ccffb5ee8800afe6dd0bb16776bc661",
+  "campaign_status": "COMPLETE_NOT_YET_ADJUDICATED",
+  "candidate_index_id": "w7b2rindex-171ac64c8c56a00bff1e943aacfbe9fb92d1ecfc23686d9f6f55054c1ffbf3f0",
+  "common_noise_audit_id": "w7b2rnoise-f7f162de8664c8b03e15983e436f66918827cce8bcd1444ed2c53ff3d72662e5",
+  "custody_id": "w7b2rcustody-1bbe4b083907b5debdb8104a3818ee9a5161d2bbccf963bc1ce1e2a0c53eb9ec",
+  "decision_boundary": "return_for_hostile_audit_then_separate_W7_C_authorization",
+  "factual_candidate_measurements": [
+    {
+      "applied_optimizer_steps": 26485,
+      "gradscaler_skips": 15,
+      "lambda": 0.0,
+      "mean_papr": 14.65714945602417,
+      "mean_psnr_db": 9.694692739555979,
+      "n_correct": 827,
+      "n_total": 1000,
+      "selected_checkpoint_id": "c8205655059ad0bc06680475bfa6fcc1ce2b894d6ee795ca2a05d1769cc0cc90",
+      "selected_epoch": 84,
+      "top1_accuracy": 0.827
+    },
+    {
+      "applied_optimizer_steps": 26483,
+      "gradscaler_skips": 17,
+      "lambda": 0.1,
+      "mean_papr": 13.856762214660645,
+      "mean_psnr_db": 17.578482467024816,
+      "n_correct": 835,
+      "n_total": 1000,
+      "selected_checkpoint_id": "042d3eaf9c648f256ba56ffbee9370187e1cf1e0a94f915054cab45996feadeb",
+      "selected_epoch": 75,
+      "top1_accuracy": 0.835
+    },
+    {
+      "applied_optimizer_steps": 26484,
+      "gradscaler_skips": 16,
+      "lambda": 0.3,
+      "mean_papr": 13.51724162864685,
+      "mean_psnr_db": 18.653016507513296,
+      "n_correct": 822,
+      "n_total": 1000,
+      "selected_checkpoint_id": "406f81f662407969a214076df0d78bb3cc1398917513493013ef7f8bf36d84f1",
+      "selected_epoch": 71,
+      "top1_accuracy": 0.822
+    },
+    {
+      "applied_optimizer_steps": 26484,
+      "gradscaler_skips": 16,
+      "lambda": 1.0,
+      "mean_papr": 13.573455365180969,
+      "mean_psnr_db": 19.94929665053924,
+      "n_correct": 828,
+      "n_total": 1000,
+      "selected_checkpoint_id": "a5f07bd612b2627c7fe910e869299a5f37656fa96faa01d8ed1518176697c829",
+      "selected_epoch": 67,
+      "top1_accuracy": 0.828
+    },
+    {
+      "applied_optimizer_steps": 26485,
+      "gradscaler_skips": 15,
+      "lambda": 3.0,
+      "mean_papr": 13.218187811851502,
+      "mean_psnr_db": 21.228510863568925,
+      "n_correct": 832,
+      "n_total": 1000,
+      "selected_checkpoint_id": "a5893313d1199ecb8378fa103dc412930c9d074857d09eb2ec6edaf14e67518b",
+      "selected_epoch": 92,
+      "top1_accuracy": 0.832
+    }
+  ],
+  "homogeneity": {
+    "candidate_count": 5,
+    "only_intended_candidate_field": "lambda",
+    "result": "PASS",
+    "unexpected_differences": []
+  },
+  "no_model_facing_recomputation": true,
+  "operational_closeout": {
+    "campaign_process_absent": true,
+    "global_campaign_lock": "FREE",
+    "heartbeat": {
+      "artifact_role": "W7_OPERATIONAL_HEARTBEAT",
+      "campaign_id": "w7-b2-g4-pascal-20260829",
+      "checkpoint_id": null,
+      "current_epoch": null,
+      "current_lambda": null,
+      "process_state": "COMPLETE_NOT_ADJUDICATED",
+      "schema_version": 1,
+      "updated_at_utc": "2026-08-30T00:30:58Z"
+    },
+    "heartbeat_file_sha256": "bbee63b79a3a6546f1ec0ff14cf7d40320dd96758e0e73908969a78c70fd6512",
+    "heartbeat_path": "/home/nick/w7-b2-g4-pascal-20260829/heartbeat.json",
+    "monitor_is_operational_only": true,
+    "process_state": "COMPLETE_NOT_ADJUDICATED",
+    "tmux_w7_g4_absent": true,
+    "worker_runtime_mutated": false,
+    "worker_source_worktree_clean": true
+  },
+  "protected_boundary": {
+    "bler_regeneration": 0,
+    "f1_reruns": 0,
+    "f2_optimizer_steps": 0,
+    "f3_reruns": 0,
+    "g4_adjudications": 0,
+    "g8_reruns": 0,
+    "lambda_core_updated": false,
+    "lambda_decision": "NOT_PERFORMED",
+    "lambda_status": "provisional_until_G-4",
+    "learned_test_inference": 0,
+    "pass_one_reruns": 0,
+    "pass_three": 0,
+    "pass_two_reruns": 0,
+    "test_model_facing_access": 0,
+    "test_state": "SEALED",
+    "w8_final_training_runs": 0,
+    "w8_state": "UNOPENED"
+  },
+  "reconciliation_id": "w7b2rreconciliation-981bce14b3d851dd68a8304823fec86d5b6bcf9a948b1f1914ca7e4cd4cf168e",
+  "reconciliation_tooling_base_commit": "a3665b854dd1e9065a8082a66680a69ce29a10c1",
+  "schema_version": 1,
+  "scientific_source_commit": "cc704fcacec706719bc2791ae14a6c9d71dd4032",
+  "status": "GREEN",
+  "upstream_reauthentication": {
+    "pascal_profile": {
+      "command": "tools/verify_w7_profile.py results/learned/w7/w7_pascal_profile.json",
+      "profile_id": "w7profile-c2e70848dc6857fe4df3868c90af1ccff4d6e0c7d267cbad8b9ad49b228e5d69",
+      "status": "PASS"
+    },
+    "w5": {
+      "command": "tools/verify_w5_training_system.py",
+      "completion_id": "w5repaircompletion-8b2fa9178cc0dec943d32f1eebec85f50d152075d29188a32e42f40d6d63fb89",
+      "status": "PASS"
+    },
+    "w6": {
+      "command": "tools/verify_w6_complete.py",
+      "completion_id": "w6completion-f992e38e553dce4075406ef8f08df0d42feb2a141a3b00b0ae29a0490e834515",
+      "pass_one": 1,
+      "pass_three": 0,
+      "pass_two": 1,
+      "status": "PASS",
+      "test": "SEALED"
+    },
+    "w7_a": {
+      "command": "tools/verify_w7_a.py --no-upstream",
+      "completion_id": "w7acompletion-e623063c65348e23833fcec31588ef04ac43f793eeb2be0272af158071b7ba17",
+      "status": "PASS",
+      "test_hardening_completion_id": "w7testhardening-a7011b78b327184bd08bd58c6e85cd04253bc583e617a376f74392f467effab3"
+    },
+    "w7_b1": {
+      "authorization_id": "w7auth-1d44b66884f48f980576dde94c43eb745227b4ecc48fb964acf90285a854862d",
+      "command": "tools/verify_w7_b1.py verify",
+      "source_manifest_id": "w7b1source-ef005dc427ea83a2ff38904362c6a85612ff133a253e880fc671f2654a4aeb3f",
+      "status": "PASS"
+    }
+  },
+  "worker_custody": {
+    "bytes_preserved_on_worker": true,
+    "checkpoint_count": 500,
+    "expected_checkpoint_count": 500,
+    "hostname": "confessor"
+  }
+}

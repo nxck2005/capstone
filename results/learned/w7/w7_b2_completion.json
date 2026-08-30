@@ -1,0 +1,56 @@
+{
+  "artifact_role": "W7_B2R_RECONCILIATION_COMPLETE_NOT_YET_ADJUDICATED",
+  "campaign_id": "w7-b2-g4-pascal-20260829",
+  "candidate_count": 5,
+  "candidate_index_id": "w7b2rindex-171ac64c8c56a00bff1e943aacfbe9fb92d1ecfc23686d9f6f55054c1ffbf3f0",
+  "candidate_references": [
+    {
+      "candidate_completion_file_sha256": "d23c81cd2ab7ec9b47046f96787e4fdeacad5318372ee8537d4196990332cb3f",
+      "candidate_id": "w7candidate-c6ac3a2f7ad64ee235c08de83ea307d592fd83edcf3f687fcc2f5bb23cddbd9f",
+      "lambda": 0.0
+    },
+    {
+      "candidate_completion_file_sha256": "e7f664a245d33fc94aea55b74d3b01011c9bc72c2eb2beedb75d2d9a272fdf74",
+      "candidate_id": "w7candidate-dd27923529377563b86865021e3eae6a1caf7764f0f5fd85fc9b539ddbcaab9e",
+      "lambda": 0.1
+    },
+    {
+      "candidate_completion_file_sha256": "ee702814530d6cb20429740fae26d84d4d7a3a97db5e2ced474bff7cffa86766",
+      "candidate_id": "w7candidate-31e4f41260e30bb51fbe1e56b1dc9c976dd46557891618b02213e46e7fa032ea",
+      "lambda": 0.3
+    },
+    {
+      "candidate_completion_file_sha256": "5d47595c932ec0fe48d153332c56b9d591440f9f7ec2a09d5a5b8040cc7f0686",
+      "candidate_id": "w7candidate-217624ebca2873aaa1f1d390bc273a5f156984df83857f554a97a3c9fbd46f00",
+      "lambda": 1.0
+    },
+    {
+      "candidate_completion_file_sha256": "5ac75d105458d71e9b2f060f5eb334483d7426e80928a0b33e5edf9b1f1980b2",
+      "candidate_id": "w7candidate-da38e05591d58e4a7390288b1ed6857e20bb9c5b106f0e8e814cabac2262aace",
+      "lambda": 3.0
+    }
+  ],
+  "common_noise_audit_id": "w7b2rnoise-f7f162de8664c8b03e15983e436f66918827cce8bcd1444ed2c53ff3d72662e5",
+  "complete_candidate_count": 5,
+  "completed_epoch_cycles": 500,
+  "completion_id": "w7b2rcompletion-172842c61df0231efd451d3d66b7857b5a67e79af887ff2d2bd8bcd9c801bee3",
+  "custody_id": "w7b2rcustody-1bbe4b083907b5debdb8104a3818ee9a5161d2bbccf963bc1ce1e2a0c53eb9ec",
+  "execution_profile_id": "confessor_pascal_cu126",
+  "g4_adjudication_run": 0,
+  "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+  "lambda_core_updated": false,
+  "lambda_decision": "NOT_PERFORMED",
+  "lambda_status": "provisional_until_G-4",
+  "learned_test_inference": 0,
+  "no_scientific_execution_performed_by_reconciliation": true,
+  "reconciliation_id": "w7b2rreconciliation-981bce14b3d851dd68a8304823fec86d5b6bcf9a948b1f1914ca7e4cd4cf168e",
+  "schema_version": 1,
+  "source_commit": "cc704fcacec706719bc2791ae14a6c9d71dd4032",
+  "status": "COMPLETE_NOT_YET_ADJUDICATED",
+  "test_model_facing_access": 0,
+  "test_state": "SEALED",
+  "w8_final_training_runs": 0,
+  "w8_state": "UNOPENED",
+  "worker_campaign_completion_file_sha256": "7d1a8e8ea6c2df192dfcd455857cd854f1e418e1ed87cb2d761bcf9815202961",
+  "worker_campaign_completion_id": "w7campaign-c6d366c580ee1b2feb8d378b2052cee43484a16e150011b284bf81a58c01efd1"
+}

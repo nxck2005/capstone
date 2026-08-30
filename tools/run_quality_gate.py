@@ -62,6 +62,9 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/verify_w6_classical_evidence.py", "--no-upstream"),
         _python_tool("tools/verify_w6_complete.py"),
         _python_tool("tools/verify_w7_b1.py", "verify"),
+        # W5/W6/B1 are authenticated immediately above; avoid duplicating their
+        # expensive upstream traversals while retaining the standalone B2R check.
+        _python_tool("tools/verify_w7_b2r.py", "verify", "--skip-upstream"),
         ["git", "diff", "--check"],
     )
 

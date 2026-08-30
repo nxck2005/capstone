@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:capstone:w7-b2r-reconciliation:v1",
+  "title": "W7-B2R post-campaign reconciliation and worker-custody evidence contract",
+  "schema_version": 1,
+  "purpose": "Authenticate five completed owner-authorized W7/G-4 pilot candidates without performing G-4 adjudication.",
+  "roles": {
+    "W7_B2R_CANDIDATE_INDEX": {
+      "meaning": "portable candidate, history, checkpoint-lineage and selected-result index",
+      "decision": "NOT_PERFORMED"
+    },
+    "W7_B2R_CHECKPOINT_CUSTODY_MANIFEST": {
+      "meaning": "read-only worker custody binding for all completed epoch checkpoints",
+      "bytes": "REMAIN_ON_WORKER"
+    },
+    "W7_B2R_COMMON_VALIDATION_NOISE_AUDIT": {
+      "meaning": "sample-paired validation-noise identity audit across all five candidates",
+      "mismatch_requirement": 0
+    },
+    "W7_B2R_RECONCILIATION": {
+      "meaning": "scientific reconciliation, not candidate adjudication",
+      "status": "COMPLETE_NOT_YET_ADJUDICATED"
+    },
+    "W7_B2R_RECONCILIATION_COMPLETE_NOT_YET_ADJUDICATED": {
+      "meaning": "campaign closeout after authentication and before any separate W7-C decision",
+      "g4_adjudication_run": 0,
+      "lambda_decision": "NOT_PERFORMED",
+      "w8_state": "UNOPENED",
+      "test_state": "SEALED"
+    }
+  },
+  "frozen_protocol": {
+    "campaign_id": "w7-b2-g4-pascal-20260829",
+    "dataset": "imagenette160",
+    "ratio": "r_1_6",
+    "lambda_grid": [0.0, 0.1, 0.3, 1.0, 3.0],
+    "lambda_order": "exact_configured_lambda_grid_order",
+    "train_seed": 0,
+    "channel_seed": 0,
+    "training_snr_db": 7,
+    "validation_snr_db": 7,
+    "psnr_snr_db": 15,
+    "epochs": 100,
+    "training_denominator": 8469,
+    "validation_denominator": 1000,
+    "physical_batch_size": 32,
+    "accumulation_factor": 1,
+    "effective_batch_size": 32,
+    "validation_batch_size": 32,
+    "drop_last": false,
+    "validation_noise_policy": "keyed_channel_noise_same_per_image_across_lambda",
+    "checkpoint_selection": {
+      "metric": "top1_accuracy",
+      "mode": "max",
+      "tie_break": "earliest_epoch",
+      "snr_db": 7
+    },
+    "psnr_definition": "per_image_mse_all_RGB_pixels_then_arithmetic_mean",
+    "papr_definition": "symbol_domain_per_image_then_arithmetic_mean"
+  },
+  "frozen_execution": {
+    "source_commit": "cc704fcacec706719bc2791ae14a6c9d71dd4032",
+    "execution_profile_id": "confessor_pascal_cu126",
+    "execution_image": "pascal-cu126-requirements-pascal-lock-v1",
+    "gpu_name": "NVIDIA GeForce GTX 1080 Ti",
+    "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+    "worker_hostname": "confessor"
+  },
+  "homogeneity": {
+    "only_intended_candidate_difference": "lambda",
+    "fields": [
+      "source_commit",
+      "source_manifest_id",
+      "source_manifest_sha256",
+      "campaign_id",
+      "authorization_id",
+      "execution_profile_id",
+      "execution_image",
+      "gpu_name",
+      "gpu_uuid",
+      "dataset",
+      "dataset_version",
+      "split_manifest_hash",
+      "architecture",
+      "ratio",
+      "k",
+      "train_seed",
+      "channel_seed",
+      "training_snr_db",
+      "validation_snr_db",
+      "psnr_snr_db",
+      "epochs",
+      "optimizer",
+      "optimizer_implementation",
+      "scheduler",
+      "scheduler_indexing",
+      "scheduler_step_unit",
+      "physical_batch_size",
+      "accumulation_factor",
+      "effective_batch_size",
+      "drop_last",
+      "validation_batch_size",
+      "validation_noise_policy",
+      "checkpoint_selection"
+    ],
+    "unexpected_differences": []
+  },
+  "protected_boundary": {
+    "g4_adjudications": 0,
+    "lambda_core_updated": false,
+    "lambda_decision": "NOT_PERFORMED",
+    "lambda_status": "provisional_until_G-4",
+    "w8_final_training_runs": 0,
+    "w8_state": "UNOPENED",
+    "test_model_facing_access": 0,
+    "learned_test_inference": 0,
+    "test_state": "SEALED",
+    "g8_reruns": 0,
+    "f1_reruns": 0,
+    "f2_optimizer_steps": 0,
+    "f3_reruns": 0,
+    "pass_one_reruns": 0,
+    "pass_two_reruns": 0,
+    "pass_three": 0,
+    "bler_regeneration": 0
+  },
+  "artifacts": {
+    "candidate_index": {
+      "path": "results/learned/w7/w7_b2_reconciliation_index.json",
+      "role": "W7_B2R_CANDIDATE_INDEX",
+      "id_key": "index_id",
+      "id_prefix": "w7b2rindex-",
+      "candidate_count": 5,
+      "completed_epoch_cycles": 500
+    },
+    "checkpoint_custody": {
+      "path": "results/learned/w7/w7_b2_checkpoint_custody.json",
+      "role": "W7_B2R_CHECKPOINT_CUSTODY_MANIFEST",
+      "id_key": "custody_id",
+      "id_prefix": "w7b2rcustody-",
+      "expected_checkpoint_count": 500
+    },
+    "common_noise_audit": {
+      "path": "results/learned/w7/w7_b2_common_noise_audit.json",
+      "role": "W7_B2R_COMMON_VALIDATION_NOISE_AUDIT",
+      "id_key": "audit_id",
+      "id_prefix": "w7b2rnoise-",
+      "selected_validation_denominator": 1000,
+      "pairwise_mismatch_count": 0
+    },
+    "reconciliation": {
+      "path": "results/learned/w7/w7_b2_reconciliation.json",
+      "role": "W7_B2R_RECONCILIATION",
+      "id_key": "reconciliation_id",
+      "id_prefix": "w7b2rreconciliation-",
+      "status": "COMPLETE_NOT_YET_ADJUDICATED"
+    },
+    "completion": {
+      "path": "results/learned/w7/w7_b2_completion.json",
+      "role": "W7_B2R_RECONCILIATION_COMPLETE_NOT_YET_ADJUDICATED",
+      "id_key": "completion_id",
+      "id_prefix": "w7b2rcompletion-",
+      "candidate_count": 5,
+      "completed_epoch_cycles": 500
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "candidate_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lambda",
+        "selected_epoch",
+        "selected_checkpoint_id",
+        "n_correct",
+        "n_total",
+        "top1_accuracy",
+        "mean_psnr_db",
+        "mean_papr",
+        "applied_optimizer_steps",
+        "gradscaler_skips"
+      ],
+      "properties": {
+        "lambda": {"type": "number", "minimum": 0},
+        "selected_epoch": {"type": "integer", "minimum": 0, "maximum": 99},
+        "selected_checkpoint_id": {"$ref": "#/$defs/sha256"},
+        "n_correct": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "n_total": {"const": 1000},
+        "top1_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+        "mean_psnr_db": {"type": "number"},
+        "mean_papr": {"type": "number"},
+        "applied_optimizer_steps": {"type": "integer", "minimum": 0},
+        "gradscaler_skips": {"type": "integer", "minimum": 0}
+      }
+    },
+    "not_adjudicated_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "g4_adjudications",
+        "lambda_core_updated",
+        "lambda_decision",
+        "w8_final_training_runs",
+        "test_model_facing_access"
+      ],
+      "properties": {
+        "g4_adjudications": {"const": 0},
+        "lambda_core_updated": {"const": false},
+        "lambda_decision": {"const": "NOT_PERFORMED"},
+        "w8_final_training_runs": {"const": 0},
+        "test_model_facing_access": {"const": 0}
+      }
+    }
+  }
+}
