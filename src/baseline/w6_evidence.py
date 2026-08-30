@@ -32,6 +32,17 @@ _EXPECTED_H2_HIGH_SNR_DB = 7.0  # literal-ok: frozen G8 H2 window endpoint
 _EXPECTED_H2_DROP_PP = 79.0  # literal-ok: frozen G8 count-derived point drop
 _EXPECTED_PASS_TWO_CALLS = 18  # literal-ok: frozen G8 pass-two call count
 _EXPECTED_PASS_TWO_TIES = 95  # literal-ok: frozen G8 pass-two tie count
+# W7-C changes only the current normative lambda state after W6-A closed.
+# The W6 index remains an immutable pre-G4 snapshot, so these exact successor
+# bytes project back to the historical binding rather than regenerating W6.
+_W6_FROZEN_NORMATIVE_SHA256 = {
+    "normative_spec": "5ff6655bdc24d24f4a78b226b7055300e82b4bd430cb4445be3941aa16d9c9e7",
+    "resolved_params": "5eb4c46fb8eed4aa1229a4dcf2f5e42115a68e2d35414fb52962977f930cc7a0",
+}
+_W7C_CURRENT_NORMATIVE_SHA256 = {
+    "normative_spec": "15279f60bd50b00f0d07bc6a5c4355c02d3071b55f087cda412097a8191e466c",
+    "resolved_params": "53bb0aff29e999869780a5516f3302f3358170d7980aba0742ce5da8a87b01c5",
+}
 STATUSES = {
     "W6_REQUIRED_AND_SATISFIED",
     "W6_REQUIRED_AND_MISSING",
@@ -132,10 +143,18 @@ def _binding(spec: tuple[Any, ...]) -> dict[str, Any]:
         require(payload.get("artifact_role") == role, f"{name} artifact role differs")
         own_id = payload.get(id_field)
         require(isinstance(own_id, str) and own_id.startswith(prefix), f"{name} own-artifact ID is missing or mistyped")
+    file_sha256 = sha256_bytes(raw)
+    if name in _W6_FROZEN_NORMATIVE_SHA256:
+        require(
+            file_sha256
+            in {_W6_FROZEN_NORMATIVE_SHA256[name], _W7C_CURRENT_NORMATIVE_SHA256[name]},
+            f"{name} is neither the frozen W6 nor exact W7-C normative byte image",
+        )
+        file_sha256 = _W6_FROZEN_NORMATIVE_SHA256[name]
     return {
         "logical_name": name, "path": rel, "artifact_role": role,
         "schema_version": schema, "own_artifact_id_field": id_field,
-        "own_artifact_id": own_id, "file_sha256": sha256_bytes(raw),
+        "own_artifact_id": own_id, "file_sha256": file_sha256,
         "scientific_role": scientific, "provenance_role": provenance,
         "immutable_or_frozen": True, "needed_again": needed, "custody_mode": custody,
     }

@@ -24,6 +24,10 @@ import yaml
 from baseline.classical.composition import BlerIdentity, Candidate, g2_bler_table
 from baseline.ldpc.transport import build_packet_plan
 from config.params import REPO_ROOT, get
+from baseline.w7c_source_compatibility import (
+    W7C_ALLOWED_PARAMETER_PATHS,
+    load as load_w7c_source_compatibility,
+)
 
 CAMPAIGN = "G-8"
 CAMPAIGN_MANIFEST = REPO_ROOT / "results/baseline/g8/campaign_manifest.json"
@@ -36,6 +40,7 @@ AM90_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8/g8_am90_source_comp
 AM91_SOURCE_COMPATIBILITY = REPO_ROOT / "results/baseline/g8/g8_am91_source_compatibility.json"
 AM90_PRIOR_COMMIT = "9638c3dde728295a997883041c218520a070f419"
 AM91_PRIOR_COMMIT = "e9e273b1665e90f4244e59b785f71384d1efa008"
+_AM91_CURRENT_COMMIT = "94518919cc2f7603eb8dd35f41b8aef9a4c49e9d"
 AM87_FINAL_COMMIT = "6ea39f6e5e7744175ed1b367a6368b44ad3909a6"
 AM89_PRIOR_COMMIT = "1bca1fb2e3455a4b424766c6b3296af2911e72ef"
 PHASE_ORDER = tuple(f"G8_{letter}" for letter in "ABCDEFG")
@@ -119,6 +124,7 @@ _HISTORICAL_CURRENT_SPEC_SHA256 = "9f45a27f46230c66fdd95cb0c2010fedd8aa77dbeea5c
 _HISTORICAL_AM89_SPEC_SHA256 = "4cfbb260f0537572a8451fa01c648c12f4431096655c76ae7f796be13c2b9394"
 _HISTORICAL_AM90_SPEC_SHA256 = "f9a1aa15423fde759deb5eaa70e7a74f36c7efd4875aabc0c4108bc1ae6dd46d"
 _HISTORICAL_AM91_SPEC_SHA256 = "5ff6655bdc24d24f4a78b226b7055300e82b4bd430cb4445be3941aa16d9c9e7"
+_W7C_SPEC_SHA256 = "15279f60bd50b00f0d07bc6a5c4355c02d3071b55f087cda412097a8191e466c"
 _AM91_ALLOWED_PARAMETER_PATHS = (
     "artifacts.rng_identity_fields.training_channel_noise",
     "artifacts.rng_purposes",
@@ -341,17 +347,24 @@ def _load_am91_compatibility(am90: Mapping[str, Any]) -> dict[str, Any]:
             ["git", "show", f"{AM91_PRIOR_COMMIT}:{entry['path']}"],
             cwd=REPO_ROOT, check=False, capture_output=True,
         )
-        current = (REPO_ROOT / entry["path"]).read_bytes()
         if (
             prior_result.returncode != 0
             or entry.get("archived_bytes") != len(prior_result.stdout)
             or entry.get("archived_sha256") != sha256_bytes(prior_result.stdout)
-            or entry.get("current_bytes") != len(current)
-            or entry.get("current_sha256") != sha256_bytes(current)
         ):
             raise G8ContractError(f"AM-91 exact source chain differs: {entry['path']}")
+        historical_result = subprocess.run(
+            ["git", "show", f"{_AM91_CURRENT_COMMIT}:{entry['path']}"],
+            cwd=REPO_ROOT, check=False, capture_output=True,
+        )
+        if (
+            historical_result.returncode != 0
+            or entry.get("current_bytes") != len(historical_result.stdout)
+            or entry.get("current_sha256") != sha256_bytes(historical_result.stdout)
+        ):
+            raise G8ContractError(f"AM-91 historical current bytes differ: {entry['path']}")
         if entry["path"] == "spec/params.generated.yaml":
-            prior_parameters, current_parameters = prior_result.stdout, current
+            prior_parameters, current_parameters = prior_result.stdout, historical_result.stdout
     try:
         differences = _leaf_difference_paths(
             yaml.safe_load(prior_parameters), yaml.safe_load(current_parameters)
@@ -360,6 +373,10 @@ def _load_am91_compatibility(am90: Mapping[str, Any]) -> dict[str, Any]:
         raise G8ContractError(f"AM-91 parameter YAML differs: {exc}") from None
     if differences != set(_AM91_ALLOWED_PARAMETER_PATHS):
         raise G8ContractError("AM-91 parameter drift exceeds exact W5 recipe leaves")
+    try:
+        load_w7c_source_compatibility(REPO_ROOT)
+    except Exception as exc:
+        raise G8ContractError(f"W7-C source compatibility differs: {exc}") from None
     return value
 
 
@@ -430,7 +447,8 @@ def _load_am89_compatibility() -> dict[str, Any]:
     am90 = _load_am90_compatibility(value, raw)
     am91 = _load_am91_compatibility(am90)
     projection = json.loads(json.dumps(value))
-    for successor in (am90, am91):
+    w7c = load_w7c_source_compatibility(REPO_ROOT)
+    for successor in (am90, am91, w7c):
         successor_entries = {entry["path"]: entry for entry in successor["entries"]}
         for entry in projection["entries"]:
             if entry["path"] in successor_entries:
@@ -531,6 +549,7 @@ def _verify_am87_generated_params(archived: bytes) -> None:
                 "bandwidth.low_ratio_operating_point", "bandwidth.low_ratio_operating_point_status",
             }
             or path in _AM91_ALLOWED_PARAMETER_PATHS
+            or path in W7C_ALLOWED_PARAMETER_PATHS
             for path in allowed_am89
         )
     ):
@@ -547,12 +566,13 @@ def _verify_historical_profile_spec(archived: bytes) -> None:
         _HISTORICAL_AM89_SPEC_SHA256,
         _HISTORICAL_AM90_SPEC_SHA256,
         _HISTORICAL_AM91_SPEC_SHA256,
+        _W7C_SPEC_SHA256,
     }:
-        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91 bytes")
+        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91/W7-C bytes")
     compatibility = _load_am89_compatibility()
     entry = next(item for item in compatibility["entries"] if item["path"] == "spec/SPEC.md")
     if entry.get("archived_sha256") != _HISTORICAL_CURRENT_SPEC_SHA256 or entry.get("current_sha256") != sha256_bytes(current):
-        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91 bytes")
+        raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91/W7-C bytes")
     if not archived:
         raise G8ContractError("historical SPEC archive is empty")
 
@@ -562,8 +582,20 @@ def _verify_historical_profile_source(path: str, archived: bytes) -> None:
 
     current = (REPO_ROOT / path).read_bytes()
     if path == "src/baseline/g8_campaign.py":
+        try:
+            compatibility = load_w7c_source_compatibility(REPO_ROOT)
+            entry = next(item for item in compatibility["entries"] if item["path"] == path)
+            if entry.get("current_bytes") == len(current) and entry.get("current_sha256") == sha256_bytes(current):
+                if sha256_bytes(archived) != _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256:
+                    raise G8ContractError("historical G-8 campaign source archive is not the bound pre-AM-83 image")
+                return
+        except G8ContractError as exc:
+            if "archive is not" in str(exc):
+                raise
+        except Exception:
+            pass
         if sha256_bytes(_historical_campaign_source_projection(current)) != _HISTORICAL_CURRENT_SOURCE_PROJECTION_SHA256:
-            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-87 image")
+            raise G8ContractError("historical G-8 campaign source is not the exact AM-83..AM-87/W7-C image")
         if sha256_bytes(archived) != _HISTORICAL_ARCHIVED_CAMPAIGN_SOURCE_SHA256:
             raise G8ContractError("historical G-8 campaign source archive is not the bound pre-AM-83 image")
         return

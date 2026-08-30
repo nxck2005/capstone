@@ -1,0 +1,54 @@
+{
+  "allowed_parameter_paths": [
+    "learned_system.lambda_core",
+    "learned_system.lambda_status"
+  ],
+  "amendment": "W7-C",
+  "artifact_role": "w7_c_normative_lambda_transition_source_compatibility",
+  "base_commit": "002bc698e2059d941cc279ee6d700a646f56573f",
+  "compatibility_id": "w7csource-bc37eecfb1b3dfddff04a850e9ffa8988305c1e1473b4080f2c622c96b5afa6c",
+  "entries": [
+    {
+      "archived_bytes": 398026,
+      "archived_sha256": "5ff6655bdc24d24f4a78b226b7055300e82b4bd430cb4445be3941aa16d9c9e7",
+      "current_bytes": 399552,
+      "current_sha256": "15279f60bd50b00f0d07bc6a5c4355c02d3071b55f087cda412097a8191e466c",
+      "path": "spec/SPEC.md"
+    },
+    {
+      "archived_bytes": 45687,
+      "archived_sha256": "5eb4c46fb8eed4aa1229a4dcf2f5e42115a68e2d35414fb52962977f930cc7a0",
+      "current_bytes": 45681,
+      "current_sha256": "53bb0aff29e999869780a5516f3302f3358170d7980aba0742ce5da8a87b01c5",
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "archived_bytes": 55914,
+      "archived_sha256": "361826a403468bb8ee58aab3ac96b218acd20e491c5a979aea9ad03a99b15eca",
+      "current_bytes": 57523,
+      "current_sha256": "6979875d351682c54547a8dde509499ea37a2e1549a771fa9234f0309f2c05af",
+      "path": "src/baseline/g8_campaign.py"
+    }
+  ],
+  "prior_compatibility": {
+    "compatibility_id": "g8postsource-f92b28458d9462a4d722c065906e753e0b1edf38f4a2775ad4cf3bce02032935",
+    "path": "results/baseline/g8/g8_am91_source_compatibility.json",
+    "sha256": "f919907712a2aa9d1be17851249f02bf413b0b8b1cfe752591f4580e91f21a34"
+  },
+  "protected_boundary": {
+    "g4_adjudication_run": 1,
+    "g8_scientific_change": 0,
+    "model_inference": 0,
+    "test_access": 0,
+    "training": 0,
+    "w8_final_training_runs": 0
+  },
+  "schema_version": 1,
+  "scientific_source": {
+    "adjudicator_git_blob_sha1": "f1071971bce8dc6a48ddf504e5743e3faea5edfa",
+    "adjudicator_path": "src/adjudication/w7_g4.py",
+    "selected_lambda": 3.0,
+    "source_commit": "cc704fcacec706719bc2791ae14a6c9d71dd4032"
+  },
+  "timing": "post_g4_selection_before_w8_authorization"
+}

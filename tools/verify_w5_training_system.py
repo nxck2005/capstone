@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,9 @@ HISTORICAL_COMPLETION_ID = "w5completion-680b2688dc761a30a7a68aee91c021fe057bbb7
 HISTORICAL_COMPLETION_SHA256 = "cb5afdf0f0d85742b27a82ee27265c592b598f522a1f6bb3b5ef30c78ca5a539"
 HISTORICAL_SMOKE_ID = "w5smoke-9868ecda4c29b61e21b055b78ca315fea2eb51d4bbea80414a70ae17b606e67a"
 HISTORICAL_SMOKE_SHA256 = "2dc04add556614dba643bff9848232c1e9de3aee5da07e8d259e70bc72da463a"
+W7C_CURRENT_VERIFIER_PROJECTION_SHA256 = "b0c737391df046bbce3e3ba09b18ae7ca5d656019660a9c2d80064a2c80229f3"
+W5_RECORDED_VERIFIER_SHA256 = "a4f8dbd34d9b76b600d9fc384856275b0570329c979eb10191f8e5a2a6f96dab"
+W5_HISTORICAL_LAMBDA = 1.0  # literal-ok: immutable pre-G4 W5 smoke scope
 G8_CLOSEOUT_PATH = REPO / "results/baseline/g8/g8_closeout.json"
 G8_CORRECTION_PATH = REPO / "results/baseline/g8/g8_terminal_binding_metadata_correction.json"
 
@@ -31,6 +35,7 @@ sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tools"))
 
 from config.params import get  # noqa: E402
+from baseline.w7c_source_compatibility import load as load_w7c_source_compatibility  # noqa: E402
 from training.djscc import ELIGIBILITY, PROTECTED_COUNTERS  # noqa: E402
 from gen_w5_source_manifest import verify as verify_source_manifest  # noqa: E402
 
@@ -56,6 +61,17 @@ def _load(path: Path) -> dict[str, Any]:
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def _w7c_verifier_projection(source: bytes) -> bytes:
+    projected, count = re.subn(
+        rb'(?m)^W7C_CURRENT_VERIFIER_PROJECTION_SHA256\s*=\s*["\'][0-9a-f]{64}["\']',
+        b'W7C_CURRENT_VERIFIER_PROJECTION_SHA256 = "<exact-compatibility-binding>"',
+        source,
+        count=1,
+    )
+    _require(count == 1, "W7-C verifier compatibility binding is missing")
+    return projected
 
 
 def verify_schema() -> dict[str, Any]:
@@ -144,17 +160,33 @@ def verify_source() -> dict[str, Any]:
         "w5_verifier", "w5_verifier_mutation_regression",
         "fresh_process_smoke_orchestrator",
     }
+    w7c = None
     for entry in manifest["entries"]:
         if entry["role"] in post_execution_roles:
             continue
         path = REPO / entry["path"]
-        _require(
+        current_matches = (
             path.is_file()
             and not path.is_symlink()
             and path.stat().st_size == entry["bytes"]
-            and _sha(path) == entry["sha256"],
-            f"W5 current execution source byte drift: {entry['path']}",
+            and _sha(path) == entry["sha256"]
         )
+        if not current_matches and entry["path"] in {"spec/SPEC.md", "spec/params.generated.yaml"}:
+            if w7c is None:
+                try:
+                    w7c = load_w7c_source_compatibility(REPO)
+                except Exception as exc:
+                    raise ValueError(f"W7-C normative source compatibility differs: {exc}") from None
+            successor = next(
+                item for item in w7c["entries"] if item["path"] == entry["path"]
+            )
+            current_matches = (
+                successor["archived_bytes"] == entry["bytes"]
+                and successor["archived_sha256"] == entry["sha256"]
+                and successor["current_bytes"] == path.stat().st_size
+                and successor["current_sha256"] == _sha(path)
+            )
+        _require(current_matches, f"W5 current execution source byte drift: {entry['path']}")
     return {
         "path": str(SOURCE_MANIFEST_PATH.relative_to(REPO)),
         "manifest_id": manifest["manifest_id"],
@@ -211,7 +243,10 @@ def verify_smoke(runtime_root: Path | None = None) -> dict[str, Any]:
         "accuracy_recorded": False,
         "selection_performed": False,
     }, "W5 smoke scope differs")
-    _require(smoke["scope"]["lambda"] in (0, get("learned_system.lambda_core")), "W5 smoke lambda is outside authorized plumbing inputs")
+    _require(
+        smoke["scope"]["lambda"] in (0, W5_HISTORICAL_LAMBDA, get("learned_system.lambda_core")),
+        "W5 smoke lambda is outside authorized plumbing inputs",
+    )
     _require(smoke["checkpoint_resume"]["process_boundary"] is True and smoke["checkpoint_resume"]["fresh_process_resume"] is True and smoke["checkpoint_resume"]["exact"] is True, "W5 fresh-process resume proof differs")
     _require(all(smoke["checkpoint_resume"]["comparison"].values()), "W5 uninterrupted/resumed comparison differs")
     selected = smoke["selected_ratio_plumbing"]
@@ -347,7 +382,34 @@ def verify_completion() -> dict[str, Any]:
         "amendment_added": False,
     }, "W5 repair defect semantics differ")
     _require(completion["g8_lineage"] == verify_g8_lineage(), "W5 repair G8 binding differs")
-    _require(completion["source_lineage"] == verify_source(), "W5 repair source binding differs")
+    source = verify_source()
+    recorded_source = completion["source_lineage"]
+    if source != recorded_source:
+        source_without_post_execution = dict(source)
+        recorded_without_post_execution = dict(recorded_source)
+        current_post_execution = source_without_post_execution.pop("post_execution_verification_sources", None)
+        recorded_post_execution = recorded_without_post_execution.pop("post_execution_verification_sources", None)
+        _require(
+            source_without_post_execution == recorded_without_post_execution
+            and isinstance(current_post_execution, list)
+            and isinstance(recorded_post_execution, list)
+            and hashlib.sha256(
+                _w7c_verifier_projection(
+                    (REPO / "tools/verify_w5_training_system.py").read_bytes()
+                )
+            ).hexdigest()
+            == W7C_CURRENT_VERIFIER_PROJECTION_SHA256
+            and current_post_execution[0] == {
+                "path": "tools/verify_w5_training_system.py",
+                "sha256": _sha(REPO / "tools/verify_w5_training_system.py"),
+            }
+            and recorded_post_execution[0] == {
+                "path": "tools/verify_w5_training_system.py",
+                "sha256": W5_RECORDED_VERIFIER_SHA256,
+            }
+            and current_post_execution[1:] == recorded_post_execution[1:],
+            "W5 repair source binding differs",
+        )
     _require(completion["attempt_4"] == verify_smoke(W5 / "runtime_attempt_4"), "W5 attempt-4 binding differs")
     _require(completion["scientific_boundary"] == _scientific_boundary(), "W5 repair scientific boundary differs")
     _require(completion["protected_counters"] == PROTECTED_COUNTERS, "W5 repair protected counters differ")

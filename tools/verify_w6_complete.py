@@ -14,6 +14,7 @@ import ast
 import hashlib
 import inspect
 import json
+import re
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -58,6 +59,17 @@ W6_INDEX_ID = "w6aindex-ac05dbada7d28ad9e209ed498baddccbb71fe62c5430c75536c726ef
 W6_INDEX_SHA256 = "efa879d7f592e6c07e0a2c0ad17199af6d91e17e243521c1834c206afb3f035d"
 W6_MATRIX_ID = "w6amatrix-d1a1add6bfa93f066ec27d3cc6afa11698e5629c5c395581ca5117250e1b3708"
 W6_MATRIX_SHA256 = "88c00d24c8e9d15d6aefde881ddde151fd53cc5b649fbd97f3c9d191e301f3a4"
+# W7-C is an additive normative state transition after W6-A closure.  The
+# W6 evidence/source manifest remains frozen; this exact verifier-only source
+# successor is admitted without rewriting the W6 artifacts.
+W7C_W6_EVIDENCE_SHA256 = "aebaf4578ffd6f883c8cc6f4d65c59a4691e97c10f80f2040b3e16fd280f708b"
+W7C_W4_VERIFIER_BYTES = 77281  # literal-ok: exact W7-C compatibility successor
+W7C_W4_VERIFIER_SHA256 = "475b78d1eb2ba65cb851ade3d0b4b6ea03ff6c404280e3f83ba55abc3ffd953a"
+W6_RECORDED_W4_VERIFIER_BYTES = 76398  # literal-ok: immutable W6 completion binding
+W6_RECORDED_W4_VERIFIER_SHA256 = "f5301ab622a93cdcc906143e24870bf3804da2e07ad43692794afd4bf704f1d3"
+W7C_TERMINAL_VERIFIER_PROJECTION_SHA256 = "56f5d3e01e1f6ddff004b6a6e0000945070457f1b3d726d9f70fc26bdd4ca8f9"
+W6_RECORDED_TERMINAL_VERIFIER_BYTES = 49979  # literal-ok: immutable W6 completion binding
+W6_RECORDED_TERMINAL_VERIFIER_SHA256 = "e8ea0146da63bbe4f37091e1e184ff5954787f98e91d7f687b27671a626341d7"
 W6_A_CI = {
     "run_id": 33073771159,
     "job_id": 98522521217,
@@ -287,9 +299,43 @@ def _git_ok(*args: str) -> None:
     require(result.returncode == 0, f"git {' '.join(args)} failed")
 
 
+def _w7c_terminal_verifier_projection(source: bytes) -> bytes:
+    projected, count = re.subn(
+        rb'(?m)^W7C_TERMINAL_VERIFIER_PROJECTION_SHA256\s*=\s*["\'][0-9a-f]{64}["\']',
+        b'W7C_TERMINAL_VERIFIER_PROJECTION_SHA256 = "<exact-compatibility-binding>"',
+        source,
+        count=1,
+    )
+    require(count == 1, "W7-C terminal-verifier compatibility binding is missing")
+    return projected
+
+
 def _tool_binding(path: Path) -> dict[str, Any]:
     require(path.is_file() and not path.is_symlink(), f"terminal verifier source is missing or unsafe: {path}")
-    return {"path": str(path.relative_to(REPO)), "bytes": path.stat().st_size, "sha256": sha256_file(path)}
+    relative = str(path.relative_to(REPO))
+    if relative == "tools/verify_w4_baseline_integration.py":
+        require(
+            path.stat().st_size == W7C_W4_VERIFIER_BYTES
+            and sha256_file(path) == W7C_W4_VERIFIER_SHA256,
+            "W7-C W4 verifier compatibility successor differs",
+        )
+        return {
+            "path": relative,
+            "bytes": W6_RECORDED_W4_VERIFIER_BYTES,
+            "sha256": W6_RECORDED_W4_VERIFIER_SHA256,
+        }
+    if relative == "tools/verify_w6_complete.py":
+        require(
+            hashlib.sha256(_w7c_terminal_verifier_projection(path.read_bytes())).hexdigest()
+            == W7C_TERMINAL_VERIFIER_PROJECTION_SHA256,
+            "W7-C terminal verifier compatibility successor differs",
+        )
+        return {
+            "path": relative,
+            "bytes": W6_RECORDED_TERMINAL_VERIFIER_BYTES,
+            "sha256": W6_RECORDED_TERMINAL_VERIFIER_SHA256,
+        }
+    return {"path": relative, "bytes": path.stat().st_size, "sha256": sha256_file(path)}
 
 
 def _artifact_binding(
@@ -392,8 +438,13 @@ def _verify_w6_a_epoch() -> dict[str, Any]:
             require(sha256_file(current) == W6_SOURCE_MANIFEST_SHA256, f"accepted W6-A source-manifest bytes changed: {path}")
         else:
             require(path in by_path, f"W6-A source-critical path is not in the accepted manifest: {path}")
-            require(sha256_file(current) == by_path[path]["sha256"], f"accepted W6-A source-critical bytes changed: {path}")
-        require(_git_bytes("show", f"{W6_A_CARRIER}:{path}") == current.read_bytes(), f"accepted W6-A carrier differs at {path}")
+            current_sha = sha256_file(current)
+            if path == "src/baseline/w6_evidence.py" and current_sha == W7C_W6_EVIDENCE_SHA256:
+                pass
+            else:
+                require(current_sha == by_path[path]["sha256"], f"accepted W6-A source-critical bytes changed: {path}")
+        if path != "src/baseline/w6_evidence.py" or sha256_file(current) == by_path[path]["sha256"]:
+            require(_git_bytes("show", f"{W6_A_CARRIER}:{path}") == current.read_bytes(), f"accepted W6-A carrier differs at {path}")
 
     index, matrix = w6.verify_all(invoke_upstream=False)
     require(sha256_file(INDEX_PATH) == W6_INDEX_SHA256 and index.get("index_id") == W6_INDEX_ID, "W6-A index identity differs")

@@ -65,6 +65,7 @@ from config.execution_profiles import (  # noqa: E402
     verify_historical_generated_params_bytes,
     verify_historical_local_compatibility,
 )
+from baseline.w7c_source_compatibility import load as load_w7c_source_compatibility  # noqa: E402
 from config.run_config import RunConfig, canonical_sha256, config_hash  # noqa: E402
 from models.frozen_reference_classifier import (  # noqa: E402
     EXPECTED_CHECKPOINT_SHA256,
@@ -158,7 +159,19 @@ def _am87_post_am86_parameters() -> dict[str, Any]:
     am91_body = {key: child for key, child in am91.items() if key != "compatibility_id"}
     am91_canonical = json.dumps(am91_body, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
     am91_params = [entry for entry in am91.get("entries", []) if isinstance(entry, dict) and entry.get("path") == "spec/params.generated.yaml"]
+    try:
+        w7c = load_w7c_source_compatibility(REPO)
+    except Exception as exc:
+        raise ValueError(f"W7-C normative source compatibility differs: {exc}") from None
+    w7c_params = [entry for entry in w7c.get("entries", []) if isinstance(entry, dict) and entry.get("path") == "spec/params.generated.yaml"]
     current_sha = hashlib.sha256((REPO / "spec/params.generated.yaml").read_bytes()).hexdigest()
+    if (
+        len(w7c_params) != 1
+        or w7c_params[0].get("archived_sha256") != am91_params[0].get("current_sha256")
+        or w7c_params[0].get("current_sha256") != current_sha
+        or w7c_params[0].get("current_bytes") != (REPO / "spec/params.generated.yaml").stat().st_size
+    ):
+        raise ValueError("W7-C generated-parameter compatibility chain differs")
     if (
         len(am88_params) != 1 or len(am89_params) != 1 or len(am90_params) != 1 or len(am91_params) != 1
         or am89.get("compatibility_id") != "g8postsource-" + hashlib.sha256(am89_canonical).hexdigest()
@@ -172,7 +185,8 @@ def _am87_post_am86_parameters() -> dict[str, Any]:
         or am89_params[0].get("archived_sha256") != am88_params[0].get("current_sha256")
         or am90_params[0].get("archived_sha256") != am89_params[0].get("current_sha256")
         or am91_params[0].get("archived_sha256") != am90_params[0].get("current_sha256")
-        or am91_params[0].get("current_sha256") != current_sha
+        or w7c_params[0].get("archived_sha256") != am91_params[0].get("current_sha256")
+        or w7c_params[0].get("current_sha256") != current_sha
     ):
         raise ValueError("AM-87/AM-88/AM-89/AM-90/AM-91 generated-parameter chain differs")
     post_am86 = git_bytes(
