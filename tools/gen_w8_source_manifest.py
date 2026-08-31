@@ -74,6 +74,8 @@ CRITICAL_SOURCES: tuple[tuple[str, str], ...] = (
     ("tools/gen_w8_a_completion.py", "w8_pre_execution_completion_builder"),
     ("src/baseline/w8_spec_compatibility.py", "w8_spec_compatibility_verifier"),
     ("src/baseline/w7c_source_compatibility.py", "w7c_successor_compatibility_verifier"),
+    ("src/baseline/g8_campaign.py", "historical_g8_campaign_contract_verifier"),
+    ("results/learned/w7/w8_g8_campaign_source_compatibility.json", "w8_g8_campaign_source_compatibility_authority"),
     ("src/baseline/w6_evidence.py", "historical_w6_evidence_compatibility_verifier"),
     ("results/learned/w7/w7_spec_additive_compatibility.json", "w7_spec_additive_compatibility_authority"),
     ("results/learned/w7/w8_spec_additive_compatibility.json", "w8_spec_additive_compatibility_authority"),

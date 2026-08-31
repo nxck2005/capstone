@@ -1,0 +1,39 @@
+{
+  "allowed_parameter_paths": [],
+  "amendment": "AM-93",
+  "artifact_role": "W8_HISTORICAL_G8_CAMPAIGN_SOURCE_COMPATIBILITY",
+  "base_compatibility": {
+    "compatibility_id": "w7csource-bc37eecfb1b3dfddff04a850e9ffa8988305c1e1473b4080f2c622c96b5afa6c",
+    "path": "results/learned/w7/w7_c_normative_source_compatibility.json",
+    "sha256": "506dc8ccaa7c9cc706b623ddccc0a1b48114248aa68980c0aa12397d64b4bcbe"
+  },
+  "compatibility_id": "w8g8source-94456a6e684987148cc099108984e40cc644b38a752177a0086fb2d9210ff079",
+  "entries": [
+    {
+      "archived_bytes": 57523,
+      "archived_sha256": "6979875d351682c54547a8dde509499ea37a2e1549a771fa9234f0309f2c05af",
+      "current_bytes": 58091,
+      "current_sha256": "ddfd95cbd910cb898034c833929f4c1b1832c4d048c4dbfa0df87d49e0eea302",
+      "path": "src/baseline/g8_campaign.py"
+    }
+  ],
+  "protected_boundary": {
+    "g4_result_changed": false,
+    "g8_campaign_measurement": 0,
+    "g8_scientific_change": 0,
+    "test_access": 0,
+    "w7_result_changed": false,
+    "w8_science_performed": false
+  },
+  "schema_version": 1,
+  "scientific_boundary": {
+    "g4_result_changed": false,
+    "g8_result_changed": false,
+    "source_only_historical_verifier_repair": true,
+    "test_access": 0,
+    "w7_result_changed": false,
+    "w8_science_performed": false
+  },
+  "status": "ADDITIVE_FAIL_CLOSED",
+  "timing": "after_w7_g4_before_w8_source_freeze"
+}

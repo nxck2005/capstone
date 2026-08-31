@@ -34,6 +34,12 @@ W7C_BASE_COMMIT = "002bc698e2059d941cc279ee6d700a646f56573f"
 # closed rather than becoming a new accepted source epoch.
 W7C_COMPATIBILITY_ID = "w7csource-bc37eecfb1b3dfddff04a850e9ffa8988305c1e1473b4080f2c622c96b5afa6c"
 W7C_COMPATIBILITY_SHA256 = "506dc8ccaa7c9cc706b623ddccc0a1b48114248aa68980c0aa12397d64b4bcbe"
+W8_G8_SOURCE_COMPATIBILITY_RELATIVE_PATH = "results/learned/w7/w8_g8_campaign_source_compatibility.json"
+W8_G8_SOURCE_COMPATIBILITY_ID = "w8g8source-94456a6e684987148cc099108984e40cc644b38a752177a0086fb2d9210ff079"
+W8_G8_SOURCE_COMPATIBILITY_SHA256 = "cb80c87fda984a68a1597fb6eb020cdc7818cff23980be80a2e52431545c0c47"
+W8_G8_SOURCE_PATH = "src/baseline/g8_campaign.py"
+W8_G8_BASE_BYTES = 57523
+W8_G8_BASE_SHA256 = "6979875d351682c54547a8dde509499ea37a2e1549a771fa9234f0309f2c05af"
 
 W7C_ALLOWED_PARAMETER_PATHS = (
     "learned_system.lambda_core",
@@ -130,6 +136,80 @@ def _git_bytes(root: Path, commit: str, path: str) -> bytes:
     return result.stdout
 
 
+def load_w8_g8_campaign_source_compatibility(root: Path = REPO_ROOT) -> dict[str, Any]:
+    """Authenticate the one exact AM-93 successor image for G8 history."""
+
+    root = Path(root).resolve()
+    path = root / W8_G8_SOURCE_COMPATIBILITY_RELATIVE_PATH
+    value, raw = _read_object(path, "W8 G8-campaign source compatibility")
+    _require(raw == rendered(value), "W8 G8-campaign source compatibility is not canonical rendered JSON")
+    _require(sha256_bytes(raw) == W8_G8_SOURCE_COMPATIBILITY_SHA256, "W8 G8-campaign source compatibility bytes differ")
+    body = {key: child for key, child in value.items() if key != "compatibility_id"}
+    _require(
+        value.get("compatibility_id") == W8_G8_SOURCE_COMPATIBILITY_ID
+        and value.get("compatibility_id") == "w8g8source-" + sha256_bytes(canonical(body)),
+        "W8 G8-campaign source compatibility ID differs",
+    )
+    _require(
+        set(value)
+        == {
+            "schema_version", "artifact_role", "status", "amendment", "timing",
+            "base_compatibility", "allowed_parameter_paths", "protected_boundary",
+            "scientific_boundary", "entries", "compatibility_id",
+        },
+        "W8 G8-campaign source compatibility schema differs",
+    )
+    _require(
+        value.get("schema_version") == 1
+        and value.get("artifact_role") == "W8_HISTORICAL_G8_CAMPAIGN_SOURCE_COMPATIBILITY"
+        and value.get("status") == "ADDITIVE_FAIL_CLOSED"
+        and value.get("amendment") == "AM-93"
+        and value.get("timing") == "after_w7_g4_before_w8_source_freeze"
+        and value.get("base_compatibility") == {
+            "path": COMPATIBILITY_RELATIVE_PATH,
+            "compatibility_id": W7C_COMPATIBILITY_ID,
+            "sha256": W7C_COMPATIBILITY_SHA256,
+        }
+        and value.get("allowed_parameter_paths") == []
+        and value.get("protected_boundary") == {
+            "g8_scientific_change": 0,
+            "g8_campaign_measurement": 0,
+            "w7_result_changed": False,
+            "g4_result_changed": False,
+            "w8_science_performed": False,
+            "test_access": 0,
+        }
+        and value.get("scientific_boundary") == {
+            "source_only_historical_verifier_repair": True,
+            "g8_result_changed": False,
+            "w7_result_changed": False,
+            "g4_result_changed": False,
+            "w8_science_performed": False,
+            "test_access": 0,
+        },
+        "W8 G8-campaign source compatibility boundary differs",
+    )
+    entries = value.get("entries")
+    _require(
+        isinstance(entries, list) and len(entries) == 1
+        and isinstance(entries[0], Mapping)
+        and set(entries[0]) == {"path", "archived_bytes", "archived_sha256", "current_bytes", "current_sha256"}
+        and entries[0]["path"] == W8_G8_SOURCE_PATH
+        and entries[0]["archived_bytes"] == W8_G8_BASE_BYTES
+        and entries[0]["archived_sha256"] == W8_G8_BASE_SHA256,
+        "W8 G8-campaign source compatibility entries differ",
+    )
+    current_path = root / W8_G8_SOURCE_PATH
+    _require(current_path.is_file() and not current_path.is_symlink(), "W8 G8-campaign successor source is missing")
+    current = current_path.read_bytes()
+    _require(
+        entries[0]["current_bytes"] == len(current)
+        and entries[0]["current_sha256"] == sha256_bytes(current),
+        "W8 G8-campaign successor source bytes differ",
+    )
+    return value
+
+
 def load(root: Path = REPO_ROOT) -> dict[str, Any]:
     """Authenticate the one exact W7-C successor of the AM-91 source image."""
 
@@ -204,6 +284,7 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
     _require(set(prior_entries) >= set(W7C_PATHS), "AM-91 prior source entries are incomplete")
 
     w8_spec: dict[str, Any] | None = None
+    w8_g8_source: dict[str, Any] | None = None
     for entry in entries:
         _require(isinstance(entry, Mapping), "W7-C source entry is malformed")
         _require(
@@ -234,6 +315,18 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
                 f"W8 successor is not chained from W7-C: {path_text}",
             )
             continue
+        if path_text == W8_G8_SOURCE_PATH:
+            if w8_g8_source is None:
+                w8_g8_source = load_w8_g8_campaign_source_compatibility(root)
+            successor = w8_g8_source["entries"][0]
+            _require(
+                successor["archived_bytes"] == entry["current_bytes"]
+                and successor["archived_sha256"] == entry["current_sha256"]
+                and successor["current_bytes"] == len(current)
+                and successor["current_sha256"] == sha256_bytes(current),
+                "W8 G8-campaign source successor is not chained from W7-C",
+            )
+            continue
         _require(False, f"W7-C current source bytes differ: {path_text}")
 
     params_entry = next(entry for entry in entries if entry["path"] == "spec/params.generated.yaml")
@@ -259,15 +352,19 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         _leaf_difference_paths(old_yaml, current_yaml) == allowed_parameter_paths,
         "W7-C generated-parameter drift exceeds the authenticated successor leaves",
     )
-    if w8_spec is None:
+    if w8_spec is None and w8_g8_source is None:
         return value
     # Consumers of this historical verifier need the authenticated *current*
     # byte frontier as well as the original W7-C record.  Return a read-only
-    # projection whose entries are advanced only for the two exact AM-93
-    # normative paths; the published record itself remains byte-identical and
-    # was authenticated above.
+    # projection whose entries are advanced only for the exact AM-93
+    # normative/source paths; the published record itself remains byte-identical
+    # and was authenticated above.
     projection = json.loads(json.dumps(value))
-    successor_entries = {entry["path"]: entry for entry in w8_spec["entries"]}
+    successor_entries: dict[str, Mapping[str, Any]] = {}
+    if w8_spec is not None:
+        successor_entries.update({entry["path"]: entry for entry in w8_spec["entries"]})
+    if w8_g8_source is not None:
+        successor_entries.update({entry["path"]: entry for entry in w8_g8_source["entries"]})
     for entry in projection["entries"]:
         successor = successor_entries.get(entry["path"])
         if successor is not None:
