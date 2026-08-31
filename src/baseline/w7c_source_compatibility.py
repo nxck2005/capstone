@@ -19,6 +19,7 @@ from typing import Any
 import yaml
 
 from config.params import REPO_ROOT
+from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
 
 COMPATIBILITY_RELATIVE_PATH = "results/learned/w7/w7_c_normative_source_compatibility.json"
 AM91_RELATIVE_PATH = "results/baseline/g8/g8_am91_source_compatibility.json"
@@ -202,6 +203,7 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
     }
     _require(set(prior_entries) >= set(W7C_PATHS), "AM-91 prior source entries are incomplete")
 
+    w8_spec: dict[str, Any] | None = None
     for entry in entries:
         _require(isinstance(entry, Mapping), "W7-C source entry is malformed")
         _require(
@@ -216,15 +218,23 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
             f"W7-C source transition does not start at AM-91: {path_text}",
         )
         current_path = root / path_text
-        try:
-            current = current_path.read_bytes()
-        except OSError as exc:
-            raise W7CSourceCompatibilityError(f"cannot read W7-C source {path_text}: {exc}") from None
-        _require(
-            entry["current_bytes"] == len(current)
-            and entry["current_sha256"] == sha256_bytes(current),
-            f"W7-C current source bytes differ: {path_text}",
-        )
+        _require(current_path.is_file() and not current_path.is_symlink(), f"cannot read W7-C source {path_text}")
+        current = current_path.read_bytes()
+        if entry["current_bytes"] == len(current) and entry["current_sha256"] == sha256_bytes(current):
+            continue
+        if path_text in {"spec/SPEC.md", "spec/params.generated.yaml"}:
+            if w8_spec is None:
+                w8_spec = load_w8_spec_compatibility(root)
+            successor = next(item for item in w8_spec["entries"] if item["path"] == path_text)
+            _require(
+                successor["base_bytes"] == entry["current_bytes"]
+                and successor["base_sha256"] == entry["current_sha256"]
+                and successor["current_bytes"] == len(current)
+                and successor["current_sha256"] == sha256_bytes(current),
+                f"W8 successor is not chained from W7-C: {path_text}",
+            )
+            continue
+        _require(False, f"W7-C current source bytes differ: {path_text}")
 
     params_entry = next(entry for entry in entries if entry["path"] == "spec/params.generated.yaml")
     old_params = _git_bytes(root, AM91_CURRENT_COMMIT, "spec/params.generated.yaml")
@@ -239,8 +249,29 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         current_yaml = yaml.safe_load(current_params)
     except yaml.YAMLError as exc:
         raise W7CSourceCompatibilityError(f"W7-C generated parameters are not YAML: {exc}") from None
+    allowed_parameter_paths = set(W7C_ALLOWED_PARAMETER_PATHS)
+    if w8_spec is not None:
+        # AM-93 is a chained successor of this exact W7-C image.  Admit only
+        # its one additional generated-parameter leaf; the W7-C λ transition
+        # remains independently constrained above.
+        allowed_parameter_paths.add("learned_system.checkpoint_selection_snr_db")
     _require(
-        _leaf_difference_paths(old_yaml, current_yaml) == set(W7C_ALLOWED_PARAMETER_PATHS),
-        "W7-C generated-parameter drift exceeds the selected lambda leaves",
+        _leaf_difference_paths(old_yaml, current_yaml) == allowed_parameter_paths,
+        "W7-C generated-parameter drift exceeds the authenticated successor leaves",
     )
-    return value
+    if w8_spec is None:
+        return value
+    # Consumers of this historical verifier need the authenticated *current*
+    # byte frontier as well as the original W7-C record.  Return a read-only
+    # projection whose entries are advanced only for the two exact AM-93
+    # normative paths; the published record itself remains byte-identical and
+    # was authenticated above.
+    projection = json.loads(json.dumps(value))
+    successor_entries = {entry["path"]: entry for entry in w8_spec["entries"]}
+    for entry in projection["entries"]:
+        successor = successor_entries.get(entry["path"])
+        if successor is not None:
+            entry["current_bytes"] = successor["current_bytes"]
+            entry["current_sha256"] = successor["current_sha256"]
+    projection["allowed_parameter_paths"] = sorted(allowed_parameter_paths)
+    return projection

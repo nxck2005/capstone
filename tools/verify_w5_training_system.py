@@ -25,7 +25,7 @@ HISTORICAL_COMPLETION_ID = "w5completion-680b2688dc761a30a7a68aee91c021fe057bbb7
 HISTORICAL_COMPLETION_SHA256 = "cb5afdf0f0d85742b27a82ee27265c592b598f522a1f6bb3b5ef30c78ca5a539"
 HISTORICAL_SMOKE_ID = "w5smoke-9868ecda4c29b61e21b055b78ca315fea2eb51d4bbea80414a70ae17b606e67a"
 HISTORICAL_SMOKE_SHA256 = "2dc04add556614dba643bff9848232c1e9de3aee5da07e8d259e70bc72da463a"
-W7C_CURRENT_VERIFIER_PROJECTION_SHA256 = "b0c737391df046bbce3e3ba09b18ae7ca5d656019660a9c2d80064a2c80229f3"
+W7C_CURRENT_VERIFIER_PROJECTION_SHA256 = "b8390c4f12894e0f1074a73ca7b0821a825e7e5223e7d584ca5a28de84c89f59"
 W5_RECORDED_VERIFIER_SHA256 = "a4f8dbd34d9b76b600d9fc384856275b0570329c979eb10191f8e5a2a6f96dab"
 W5_HISTORICAL_LAMBDA = 1.0  # literal-ok: immutable pre-G4 W5 smoke scope
 G8_CLOSEOUT_PATH = REPO / "results/baseline/g8/g8_closeout.json"
@@ -36,6 +36,7 @@ sys.path.insert(0, str(REPO / "tools"))
 
 from config.params import get  # noqa: E402
 from baseline.w7c_source_compatibility import load as load_w7c_source_compatibility  # noqa: E402
+from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility  # noqa: E402
 from training.djscc import ELIGIBILITY, PROTECTED_COUNTERS  # noqa: E402
 from gen_w5_source_manifest import verify as verify_source_manifest  # noqa: E402
 
@@ -161,6 +162,7 @@ def verify_source() -> dict[str, Any]:
         "fresh_process_smoke_orchestrator",
     }
     w7c = None
+    w8_spec = None
     for entry in manifest["entries"]:
         if entry["role"] in post_execution_roles:
             continue
@@ -183,9 +185,28 @@ def verify_source() -> dict[str, Any]:
             current_matches = (
                 successor["archived_bytes"] == entry["bytes"]
                 and successor["archived_sha256"] == entry["sha256"]
+                and path.is_file()
+                and not path.is_symlink()
                 and successor["current_bytes"] == path.stat().st_size
                 and successor["current_sha256"] == _sha(path)
             )
+            if not current_matches:
+                if w8_spec is None:
+                    try:
+                        w8_spec = load_w8_spec_compatibility(REPO)
+                    except Exception as exc:
+                        raise ValueError(f"AM-93 normative source compatibility differs: {exc}") from None
+                successor_w8 = next(
+                    item for item in w8_spec["entries"] if item["path"] == entry["path"]
+                )
+                current_matches = (
+                    successor["current_bytes"] == successor_w8["base_bytes"]
+                    and successor["current_sha256"] == successor_w8["base_sha256"]
+                    and path.is_file()
+                    and not path.is_symlink()
+                    and successor_w8["current_bytes"] == path.stat().st_size
+                    and successor_w8["current_sha256"] == _sha(path)
+                )
         _require(current_matches, f"W5 current execution source byte drift: {entry['path']}")
     return {
         "path": str(SOURCE_MANIFEST_PATH.relative_to(REPO)),

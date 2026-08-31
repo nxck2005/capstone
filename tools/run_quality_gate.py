@@ -28,6 +28,29 @@ def _python_tool(path: str, *args: str) -> list[str]:
     return [PYTHON, str(REPO / path), *args]
 
 
+def _w8_a_commands() -> tuple[list[str], ...]:
+    """Run the carrier-only W8-A verifier when its immutable records exist.
+
+    The scientific source epoch intentionally has no W8 authority files, so it
+    cannot run this carrier check.  Once the later carrier contains the six
+    immutable pre-execution records, every software lane authenticates them in
+    source-only mode without requiring the ignored dataset archive.
+    """
+
+    authority_root = REPO / "results/learned/w8"
+    required = (
+        authority_root / "w8_source_manifest.json",
+        authority_root / "w8_execution_authorization.json",
+        authority_root / "w8_a_smoke.json",
+        authority_root / "w8_data_verification.json",
+        authority_root / "w8_runtime_estimate.json",
+        authority_root / "w8_a_completion.json",
+    )
+    if all(path.is_file() and not path.is_symlink() for path in required):
+        return (_python_tool("tools/verify_w8_a.py", "--skip-data"),)
+    return ()
+
+
 def _static_commands() -> tuple[list[str], ...]:
     return (
         _python_tool("tools/gen_spec_views.py", "--check"),
@@ -62,9 +85,12 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/verify_w6_classical_evidence.py", "--no-upstream"),
         _python_tool("tools/verify_w6_complete.py"),
         _python_tool("tools/verify_w7_b1.py", "verify"),
-        # W5/W6/B1 are authenticated immediately above; avoid duplicating their
-        # expensive upstream traversals while retaining the standalone B2R check.
+        # W5/W6/B1 are authenticated immediately above; retain the standalone
+        # B2R and terminal G-4 checks so every software lane sees the exact
+        # upstream boundary that W8 preflight invokes.
         _python_tool("tools/verify_w7_b2r.py", "verify", "--skip-upstream"),
+        _python_tool("tools/verify_w7_g4.py", "verify"),
+        *_w8_a_commands(),
         ["git", "diff", "--check"],
     )
 

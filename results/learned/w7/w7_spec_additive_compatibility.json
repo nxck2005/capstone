@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "artifact_role": "W7_HISTORICAL_SPEC_ADDITIVE_COMPATIBILITY",
+  "status": "ADDITIVE_FAIL_CLOSED",
+  "terminal_completion_id": "w7completion-fcd91d565ec3c98e1aff6c69a71b86af398971e7f8e898efa0499dc6e5c3dc1f",
+  "historical_commit": "11be6d6f519094fe37ada347bdc678c99d066521",
+  "historical_spec_views": {
+    "source": {"path": "spec/SPEC.md", "identity_field": null, "identity": null, "file_sha256": "15279f60bd50b00f0d07bc6a5c4355c02d3071b55f087cda412097a8191e466c", "git_blob_sha1": "cfe8d3c76ea56ae6e77d2bde7091c6b975dfc6d2"},
+    "generated_views": [
+      {"path": "spec/params.generated.yaml", "identity_field": null, "identity": null, "file_sha256": "53bb0aff29e999869780a5516f3302f3358170d7980aba0742ce5da8a87b01c5", "git_blob_sha1": "26657b43d921371bbd61408f42095c3f50f78fa4"},
+      {"path": "spec/DATASHEET.md", "identity_field": null, "identity": null, "file_sha256": "addc9ce9d88f9b90dd5f2c88b22e63fea597111e9e08aa44a7e922bb15fd5af6", "git_blob_sha1": "3f6574bc5694e3d6a37a8858a294921d3e215ac0"},
+      {"path": "spec/concerns/amendments.md", "identity_field": null, "identity": null, "file_sha256": "a91dc02f20bd3a14500a994bcafaa8db8a0a94c50b69e80635896ad5874890df", "git_blob_sha1": "57998f782795be5b4630762521b645a5bc65c94d"},
+      {"path": "spec/concerns/baseline.md", "identity_field": null, "identity": null, "file_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f", "git_blob_sha1": "3ee60f51bc45ee53c27bc0ae4d4527eb0778764b"},
+      {"path": "spec/concerns/demo.md", "identity_field": null, "identity": null, "file_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3", "git_blob_sha1": "f05afdf80be75c2cd4761e8a43c9920f949ae1ae"},
+      {"path": "spec/concerns/experiments.md", "identity_field": null, "identity": null, "file_sha256": "a9bda259769d9fba3ef581610ef3c00ee3d9684358f31f2d55e732b1f95b31ff", "git_blob_sha1": "5b5b2c240b91c46327bca35ffd08e11fa69a36a9"},
+      {"path": "spec/concerns/hardware.md", "identity_field": null, "identity": null, "file_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43", "git_blob_sha1": "4c12949fc4438cca4e59f6572e4c5ca5df284877"},
+      {"path": "spec/concerns/programme.md", "identity_field": null, "identity": null, "file_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16", "git_blob_sha1": "78aad011a3d399affc147b0040e45b66147eae46"},
+      {"path": "spec/concerns/roadmap.md", "identity_field": null, "identity": null, "file_sha256": "ad5681a9c8ad61b17132482547fe5401fa0437985a98ee2b40a15f18681e065a", "git_blob_sha1": "041f4906c0c250f780cc941016d6afc49854daf2"},
+      {"path": "spec/concerns/system.md", "identity_field": null, "identity": null, "file_sha256": "e3aa96b4595ad082ee565d059ee02c73d06f78d2aae8e2f23d2ef4021e448034", "git_blob_sha1": "cd6afc346c8e58a20e83b32351b53323ee29fe11"}
+    ]
+  },
+  "current_spec_views": {
+    "source": {"path": "spec/SPEC.md", "identity_field": null, "identity": null, "file_sha256": "b05a2f04d6b3fa0e8110d0544900c29f823c96c424a75090a092433bb72cc68b", "git_blob_sha1": "faa2c144de30b0138165f30f5e5a8f7ef3518786"},
+    "generated_views": [
+      {"path": "spec/params.generated.yaml", "identity_field": null, "identity": null, "file_sha256": "c5f598e4e9292f831279bed5584cd399c42cc769b6550f8921a7bf94d7e20234", "git_blob_sha1": "f30d5be776bcb5d6b0db525cd7c2c97c142319ff"},
+      {"path": "spec/DATASHEET.md", "identity_field": null, "identity": null, "file_sha256": "c5b9b78270099bd909a8248cf490ff00307ecb61672a98e5b1d29894340f7e68", "git_blob_sha1": "cba11561ecb4653753e84b463e5b0b2dd507d686"},
+      {"path": "spec/concerns/amendments.md", "identity_field": null, "identity": null, "file_sha256": "12191834c4a76005243f7e0846d446e55cf934a44728fbac93dc0aeebab7b697", "git_blob_sha1": "5c3116ec89bff4d61416d8fe5f82f75113989e9d"},
+      {"path": "spec/concerns/baseline.md", "identity_field": null, "identity": null, "file_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f", "git_blob_sha1": "3ee60f51bc45ee53c27bc0ae4d4527eb0778764b"},
+      {"path": "spec/concerns/demo.md", "identity_field": null, "identity": null, "file_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3", "git_blob_sha1": "f05afdf80be75c2cd4761e8a43c9920f949ae1ae"},
+      {"path": "spec/concerns/experiments.md", "identity_field": null, "identity": null, "file_sha256": "a9bda259769d9fba3ef581610ef3c00ee3d9684358f31f2d55e732b1f95b31ff", "git_blob_sha1": "5b5b2c240b91c46327bca35ffd08e11fa69a36a9"},
+      {"path": "spec/concerns/hardware.md", "identity_field": null, "identity": null, "file_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43", "git_blob_sha1": "4c12949fc4438cca4e59f6572e4c5ca5df284877"},
+      {"path": "spec/concerns/programme.md", "identity_field": null, "identity": null, "file_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16", "git_blob_sha1": "78aad011a3d399affc147b0040e45b66147eae46"},
+      {"path": "spec/concerns/roadmap.md", "identity_field": null, "identity": null, "file_sha256": "a6c79a0a2bfc1f7edaef5f7e739cbf6fc14188cdaaf539894922546ec08c2ee2", "git_blob_sha1": "4f6b2bfab23db11f3afd6f5431adc3804b12fdd2"},
+      {"path": "spec/concerns/system.md", "identity_field": null, "identity": null, "file_sha256": "7db78c26ff492d54b4bd434f5007b94dc2aa88ae79c5c4c7f789dc501461208d", "git_blob_sha1": "49e5dde8d185750789db30e788589045bdce4868"}
+    ]
+  },
+  "allowed_change": {
+    "amendment": "AM-93",
+    "parameter": "params.learned_system.checkpoint_selection_snr_db",
+    "resolution": "params.channel.train_snr_db_fixed",
+    "paths": ["spec/SPEC.md", "spec/params.generated.yaml", "spec/DATASHEET.md", "spec/concerns/amendments.md", "spec/concerns/baseline.md", "spec/concerns/demo.md", "spec/concerns/experiments.md", "spec/concerns/hardware.md", "spec/concerns/programme.md", "spec/concerns/roadmap.md", "spec/concerns/system.md"],
+    "schedule": "G-4 -> W8 -> W9/G-10/G-11"
+  },
+  "scientific_effect": {
+    "w7_result_changed": false,
+    "g4_result_changed": false,
+    "w8_science_performed": false,
+    "test_access": 0,
+    "scope": "checkpoint-selection-SNR clarification and schedule-wording correction only"
+  },
+  "compatibility_id": "w7speccompat-3d51f1fe7bda993d7ad4b69edb5bed2e6b736b0fdb9e708faf2be926a90ca4f8"
+}

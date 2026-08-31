@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from config.params import REPO_ROOT
+from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
 
 SCHEMA_VERSION = 1
 W6_ROOT = REPO_ROOT / "results/baseline/w6"
@@ -42,6 +43,10 @@ _W6_FROZEN_NORMATIVE_SHA256 = {
 _W7C_CURRENT_NORMATIVE_SHA256 = {
     "normative_spec": "15279f60bd50b00f0d07bc6a5c4355c02d3071b55f087cda412097a8191e466c",
     "resolved_params": "53bb0aff29e999869780a5516f3302f3358170d7980aba0742ce5da8a87b01c5",
+}
+_W8_CURRENT_NORMATIVE_SHA256 = {
+    "normative_spec": "b05a2f04d6b3fa0e8110d0544900c29f823c96c424a75090a092433bb72cc68b",
+    "resolved_params": "c5f598e4e9292f831279bed5584cd399c42cc769b6550f8921a7bf94d7e20234",
 }
 STATUSES = {
     "W6_REQUIRED_AND_SATISFIED",
@@ -145,10 +150,19 @@ def _binding(spec: tuple[Any, ...]) -> dict[str, Any]:
         require(isinstance(own_id, str) and own_id.startswith(prefix), f"{name} own-artifact ID is missing or mistyped")
     file_sha256 = sha256_bytes(raw)
     if name in _W6_FROZEN_NORMATIVE_SHA256:
+        allowed = {
+            _W6_FROZEN_NORMATIVE_SHA256[name],
+            _W7C_CURRENT_NORMATIVE_SHA256[name],
+        }
+        if file_sha256 == _W8_CURRENT_NORMATIVE_SHA256[name]:
+            # AM-93 is an additive post-W7-C clarification.  Authenticate its
+            # exact compatibility record before projecting back to the frozen
+            # W6 index bytes; never accept a live hash by name alone.
+            load_w8_spec_compatibility(REPO_ROOT)
+            allowed.add(_W8_CURRENT_NORMATIVE_SHA256[name])
         require(
-            file_sha256
-            in {_W6_FROZEN_NORMATIVE_SHA256[name], _W7C_CURRENT_NORMATIVE_SHA256[name]},
-            f"{name} is neither the frozen W6 nor exact W7-C normative byte image",
+            file_sha256 in allowed,
+            f"{name} is neither the frozen W6 nor an authenticated successor normative byte image",
         )
         file_sha256 = _W6_FROZEN_NORMATIVE_SHA256[name]
     return {

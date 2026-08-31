@@ -352,6 +352,7 @@ learned_system:
   checkpoint_selection_metric: top1_accuracy
   checkpoint_selection_mode: max
   checkpoint_selection_tie_break: earliest_epoch
+  checkpoint_selection_snr_db: train_snr_db_fixed
   w5_checkpoint_selection: prohibited_non_scientific_smoke_only
   execution_profile_required: true
   papr_report_required: true

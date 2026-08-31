@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:capstone:w8-final-multi-seed-artifacts:v1",
+  "title": "W8 final multi-seed pre-execution and run artifact contract",
+  "schema_version": 1,
+  "scientific_execution_authorization": "SIX_CORE_RUNS_ONLY_AFTER_SEPARATE_W8_B_AUTHORIZATION",
+  "test_release": "G-12_ONLY",
+  "frozen_protocol": {
+    "dataset": "imagenette160",
+    "ratios": {
+      "r_1_6": {"k": 12800},
+      "r_1_24": {"k": 3200}
+    },
+    "train_seeds": [0, 1, 2],
+    "channel_seeds": [0, 1, 2],
+    "seed_pairing": "zipped_not_cross_product",
+    "lambda": 3.0,
+    "train_snr_parameter": "params.channel.train_snr_db_fixed",
+    "train_snr_db": 7,
+    "epochs_per_run": 100,
+    "physical_batch": 32,
+    "accumulation": 1,
+    "effective_batch": 32,
+    "validation_batch": 32,
+    "train_denominator": 8469,
+    "validation_denominator": 1000,
+    "checkpoint_selection": {
+      "split": "validation",
+      "metric": "validation_top1_accuracy",
+      "mode": "max",
+      "tie_break": "earliest_epoch",
+      "snr_parameter": "params.learned_system.checkpoint_selection_snr_db",
+      "snr_resolution": "params.channel.train_snr_db_fixed",
+      "channel_seed_rule": "run_channel_seed",
+      "fixed_noise_across_epochs": true,
+      "forbidden_inputs": ["psnr", "papr", "reconstruction_loss"]
+    },
+    "initialization": "fresh_keyed_init_train_seed_component_path_no_w7_transfer"
+  },
+  "execution_profile": {
+    "id": "confessor_pascal_cu126",
+    "host": "confessor",
+    "gpu_name": "NVIDIA GeForce GTX 1080 Ti",
+    "gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+    "lock_file": "requirements-pascal.lock",
+    "lock_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82"
+  },
+  "roles": {
+    "W8_FINAL_MULTI_SEED_RUN": {
+      "scientific_status": "SCIENTIFIC_W8_FINAL_TRAINING",
+      "selection": "PER_RUN_VALIDATION_ONLY",
+      "g10": "NOT_ELIGIBLE_UNTIL_W8_RECONCILIATION",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    },
+    "W8_FINAL_TRAINING_EPOCH_RECORD": {
+      "content": "one completed training epoch with stable-ID and optimizer/GradScaler accounting",
+      "resume": "NOT_A_MODEL_STATE; AUTHENTICATED_WITH_SAME_RUN_CHECKPOINT"
+    },
+    "W8_FINAL_TRAINING_CHECKPOINT": {
+      "resume": "SAME_RUN_ONLY_UNTIL_RECONCILIATION",
+      "w7_transfer": "FORBIDDEN",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    },
+    "W8_SELECTED_CHECKPOINT": {
+      "selection": "ONE_RUN_ONLY",
+      "downstream": "PRE_TEST_VALIDATION_ONLY_AFTER_W8_RECONCILIATION",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    },
+    "W8_CAMPAIGN_MANIFEST": {"status": "FROZEN_BEFORE_FIRST_RUN"},
+    "W8_CAMPAIGN_COMPLETION": {"status": "COMPLETE_NOT_YET_RECONCILED"},
+    "W8_NON_SCIENTIFIC_SMOKE": {
+      "scientific_status": "NON_SCIENTIFIC",
+      "w8": "NOT_ELIGIBLE_FOR_W8_RESULT",
+      "g10": "NOT_ELIGIBLE_FOR_G10",
+      "test": "NOT_ELIGIBLE_FOR_TEST"
+    }
+  },
+  "boundaries": {
+    "er2_randomized_training": "NOT_AUTHORIZED",
+    "papr_constrained_training": "NOT_AUTHORIZED_BOUND_REQUIRES_DOWNSTREAM_PROTOCOL_ITEM",
+    "er9_training": "NOT_AUTHORIZED",
+    "g10": "NOT_AUTHORIZED",
+    "test": "SEALED"
+  }
+}

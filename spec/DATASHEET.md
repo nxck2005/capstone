@@ -185,7 +185,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `channel.snr_conversion` | Es/N0_dB = Eb/N0_dB + 10*log10(bits_per_symbol * code_rate); every published reference curve MUST be converted with this identity before comparison | BR-2 |
 | `channel.models_supported` | awgn | SR-5 |
 | `channel.models_planned` | rayleigh_block, rayleigh_fast | SR-5 |
-| `channel.train_snr_db_fixed` | 7 | AM-3, BR-12, DEC-11, ER-2 |
+| `channel.train_snr_db_fixed` | 7 | AM-3, AM-93, BR-12, DEC-11, ER-2, SR-10 |
 | `channel.train_snr_db_set` | 1, 4, 7, 13, 19 | AM-45, ER-2 |
 | `channel.test_snr_grid_db` | -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 15, 18 | AM-52, BR-16, DR-1, ER-1, ER-11, G-9 |
 | `channel.grid_rationale` | three waterfalls have to be resolved, not one. BPSK at rate 1/3 -- which BR-4 selects at the noisy end and which AM-15 relies on for roughly 3 dB of extra reach -- decodes around Es/N0 = -4 to -5 dB, measured at W0 as BER 0.0 at -4 dB and 0.31 at -8 dB, so the region from -8 to -2 carries 1 dB spacing: it is where the classical cliff H2 measures actually falls, and 2 dB spacing there could smear or miss it entirely. The QPSK waterfall spans roughly -1 dB (rate 1/3) to 5 dB (rate 5/6), so density is spent there too. The grid then extends to 18 dB because 16-QAM at rate 5/6 does not decode until roughly 11-12 dB, and truncating earlier would engineer a crossover under DEC-16 and then fail to measure it | - |
@@ -289,6 +289,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `learned_system.checkpoint_selection_metric` | top1_accuracy | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.checkpoint_selection_mode` | max | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.checkpoint_selection_tie_break` | earliest_epoch | AM-27, AM-48, AM-91, SR-10 |
+| `learned_system.checkpoint_selection_snr_db` | train_snr_db_fixed | AM-27, AM-48, AM-91, AM-93, SR-10 |
 | `learned_system.w5_checkpoint_selection` | prohibited_non_scientific_smoke_only | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.execution_profile_required` | true | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.papr_report_required` | true | AM-27, AM-48, AM-91, SR-10, SR-16 |

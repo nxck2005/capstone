@@ -14,6 +14,7 @@ import json
 import math
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -88,6 +89,11 @@ TERMINAL_GENERATED_SPEC_PATHS = (
     "spec/concerns/roadmap.md",
     "spec/concerns/system.md",
 )
+# AM-93 changes only the current normative views.  The W7 terminal embeds the
+# pre-AM-93 bytes, so this later additive record lets the old verifier retain
+# those exact bytes without treating current spec drift as a general exception.
+SPEC_COMPATIBILITY_PATH = REPO / "results/learned/w7/w7_spec_additive_compatibility.json"
+SPEC_COMPATIBILITY_PREFIX = "w7speccompat-"
 
 
 class VerificationError(RuntimeError):
@@ -417,6 +423,113 @@ def _terminal_ref(
     }
 
 
+def _git_bytes_at(commit: str, path: str) -> tuple[bytes, str]:
+    try:
+        raw = subprocess.run(
+            ["git", "show", f"{commit}:{path}"],
+            cwd=REPO,
+            capture_output=True,
+            check=True,
+        ).stdout
+        blob = subprocess.run(
+            ["git", "rev-parse", f"{commit}:{path}"],
+            cwd=REPO,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        fail(f"cannot read historical W7 spec view {commit}:{path}: {exc}")
+    return raw, blob
+
+
+def _historical_spec_ref(ref: Mapping[str, Any], commit: str) -> dict[str, Any]:
+    _expect_keys(
+        ref,
+        {"path", "identity_field", "identity", "file_sha256", "git_blob_sha1"},
+        "historical W7 spec reference",
+    )
+    if ref["identity_field"] is not None or ref["identity"] is not None:
+        fail("historical W7 spec reference carries an unexpected identity")
+    raw, blob = _git_bytes_at(commit, str(ref["path"]))
+    expected = {
+        "path": str(ref["path"]),
+        "identity_field": None,
+        "identity": None,
+        "file_sha256": hashlib.sha256(raw).hexdigest(),
+        "git_blob_sha1": blob,
+    }
+    if dict(ref) != expected:
+        fail(f"historical W7 spec view bytes differ: {ref.get('path')}")
+    return expected
+
+
+def _terminal_spec_view_refs() -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Return the immutable pre-AM-93 refs embedded by the W7 terminal.
+
+    Before AM-93 the current files were the terminal refs.  After it, the
+    additive compatibility artifact pins both sides and authenticates the old
+    refs directly from their historical Git commit; no broad "ignore current
+    params" behaviour is permitted.
+    """
+
+    current_source = _terminal_ref("spec/SPEC.md")
+    current_generated = [_terminal_ref(item) for item in TERMINAL_GENERATED_SPEC_PATHS]
+    if not SPEC_COMPATIBILITY_PATH.exists():
+        return current_source, current_generated
+    compatibility = _read_json(SPEC_COMPATIBILITY_PATH)
+    expected_keys = {
+        "schema_version", "artifact_role", "status", "terminal_completion_id",
+        "historical_commit", "historical_spec_views", "current_spec_views",
+        "allowed_change", "scientific_effect", "compatibility_id",
+    }
+    _expect_keys(compatibility, expected_keys, "W7 spec compatibility")
+    body = dict(compatibility)
+    identifier = body.pop("compatibility_id")
+    if identifier != SPEC_COMPATIBILITY_PREFIX + canonical_sha256(body):
+        fail("W7 spec compatibility ID does not authenticate its body")
+    if compatibility["schema_version"] != 1 or compatibility["artifact_role"] != "W7_HISTORICAL_SPEC_ADDITIVE_COMPATIBILITY" or compatibility["status"] != "ADDITIVE_FAIL_CLOSED":
+        fail("W7 spec compatibility role/status differs")
+    if compatibility["terminal_completion_id"] != "w7completion-fcd91d565ec3c98e1aff6c69a71b86af398971e7f8e898efa0499dc6e5c3dc1f":
+        fail("W7 spec compatibility terminal binding differs")
+    commit = compatibility["historical_commit"]
+    if not isinstance(commit, str) or len(commit) != 40 or any(character not in "0123456789abcdef" for character in commit) or commit != "11be6d6f519094fe37ada347bdc678c99d066521":  # literal-ok: Git SHA-1 width
+        fail("W7 spec compatibility historical commit differs")
+    historical = compatibility["historical_spec_views"]
+    _expect_keys(historical, {"source", "generated_views"}, "historical W7 spec views")
+    if len(historical["generated_views"]) != len(TERMINAL_GENERATED_SPEC_PATHS):
+        fail("historical W7 generated view count differs")
+    expected_historical_source = _historical_spec_ref(historical["source"], commit)
+    expected_historical_generated = [
+        _historical_spec_ref(ref, commit) for ref in historical["generated_views"]
+    ]
+    if [ref["path"] for ref in expected_historical_generated] != list(TERMINAL_GENERATED_SPEC_PATHS):
+        fail("historical W7 generated view order differs")
+    current = compatibility["current_spec_views"]
+    _expect_keys(current, {"source", "generated_views"}, "current W7 spec views")
+    if current != {"source": current_source, "generated_views": current_generated}:
+        fail("current W7 spec view bytes differ from the additive compatibility record")
+    if compatibility["allowed_change"] != {
+        "amendment": "AM-93",
+        "parameter": "params.learned_system.checkpoint_selection_snr_db",
+        "resolution": "params.channel.train_snr_db_fixed",
+        "paths": ["spec/SPEC.md", *TERMINAL_GENERATED_SPEC_PATHS],
+        "schedule": "G-4 -> W8 -> W9/G-10/G-11",
+    }:
+        fail("W7 spec compatibility allowance differs")
+    if compatibility["scientific_effect"] != {
+        "w7_result_changed": False,
+        "g4_result_changed": False,
+        "w8_science_performed": False,
+        "test_access": 0,
+        "scope": "checkpoint-selection-SNR clarification and schedule-wording correction only",
+    }:
+        fail("W7 spec compatibility scientific boundary differs")
+    if get("learned_system.checkpoint_selection_snr_db") != "train_snr_db_fixed":
+        fail("current W8 checkpoint-selection SNR is not the AM-93 binding")
+    return expected_historical_source, expected_historical_generated
+
+
 def _expected_terminal_upstream() -> list[dict[str, Any]]:
     upstream = (
         ("W5_REPAIRED_COMPLETION", "results/learned/w5/w5_gradscaler_accounting_repair_completion.json", "repair_id", "w5repaircompletion-8b2fa9178cc0dec943d32f1eebec85f50d152075d29188a32e42f40d6d63fb89", "fdfc1515139afc4796156b88c80f11e939d85d7e947a50c39e67b88984193dd7"),
@@ -532,8 +645,7 @@ def verify_terminal_completion(path: Path = TERMINAL_PATH, *, g4: dict[str, Any]
     if value["g4_adjudication"] != expected_g4:
         fail("W7 terminal G-4 binding differs")
 
-    expected_source_ref = _terminal_ref("spec/SPEC.md")
-    expected_generated_refs = [_terminal_ref(item) for item in TERMINAL_GENERATED_SPEC_PATHS]
+    expected_source_ref, expected_generated_refs = _terminal_spec_view_refs()
     if value["normative_lambda"] != {
         "source_of_truth": "spec/SPEC.md",
         "lambda_core": TERMINAL_SELECTED_LAMBDA,

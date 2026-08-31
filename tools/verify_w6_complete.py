@@ -63,11 +63,14 @@ W6_MATRIX_SHA256 = "88c00d24c8e9d15d6aefde881ddde151fd53cc5b649fbd97f3c9d191e301
 # W6 evidence/source manifest remains frozen; this exact verifier-only source
 # successor is admitted without rewriting the W6 artifacts.
 W7C_W6_EVIDENCE_SHA256 = "aebaf4578ffd6f883c8cc6f4d65c59a4691e97c10f80f2040b3e16fd280f708b"
+# AM-93 is a further additive normative successor after W7-C; its exact
+# compatibility record is authenticated by src/baseline/w6_evidence.py.
+W8_W6_EVIDENCE_SHA256 = "eac17c4007f9b7c828caa4fdfc498ce01f5cf6f655855b773a9700e6f81039b1"
 W7C_W4_VERIFIER_BYTES = 77281  # literal-ok: exact W7-C compatibility successor
 W7C_W4_VERIFIER_SHA256 = "475b78d1eb2ba65cb851ade3d0b4b6ea03ff6c404280e3f83ba55abc3ffd953a"
 W6_RECORDED_W4_VERIFIER_BYTES = 76398  # literal-ok: immutable W6 completion binding
 W6_RECORDED_W4_VERIFIER_SHA256 = "f5301ab622a93cdcc906143e24870bf3804da2e07ad43692794afd4bf704f1d3"
-W7C_TERMINAL_VERIFIER_PROJECTION_SHA256 = "56f5d3e01e1f6ddff004b6a6e0000945070457f1b3d726d9f70fc26bdd4ca8f9"
+W7C_TERMINAL_VERIFIER_PROJECTION_SHA256 = "8fb954b851349c95d3971077b87d8c2c2a0b2f0022816a964c0eecd91dd86c9d"
 W6_RECORDED_TERMINAL_VERIFIER_BYTES = 49979  # literal-ok: immutable W6 completion binding
 W6_RECORDED_TERMINAL_VERIFIER_SHA256 = "e8ea0146da63bbe4f37091e1e184ff5954787f98e91d7f687b27671a626341d7"
 W6_A_CI = {
@@ -439,7 +442,7 @@ def _verify_w6_a_epoch() -> dict[str, Any]:
         else:
             require(path in by_path, f"W6-A source-critical path is not in the accepted manifest: {path}")
             current_sha = sha256_file(current)
-            if path == "src/baseline/w6_evidence.py" and current_sha == W7C_W6_EVIDENCE_SHA256:
+            if path == "src/baseline/w6_evidence.py" and current_sha in {W7C_W6_EVIDENCE_SHA256, W8_W6_EVIDENCE_SHA256}:
                 pass
             else:
                 require(current_sha == by_path[path]["sha256"], f"accepted W6-A source-critical bytes changed: {path}")

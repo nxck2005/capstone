@@ -193,7 +193,7 @@ PB_3C's terminal handoff is `39c43e327573f33011c561c6de22bd05ff93c068`, whose ac
 Gate G-9 passed on 2026-07-27: the LDPC spike ran clean on the target hardware, and the golden
 vectors match an independent MATLAB-derived reference bit-exactly. The spec has been through
 repeated independent adversarial review and revised accordingly — [`spec/SPEC.md`](spec/SPEC.md) §17
-records **twenty-two amendment rounds** across 92 `AM` entries, and is the file to read before
+records **twenty-three amendment rounds** across 93 `AM` entries, and is the file to read before
 re-litigating any decision. §16 records what is still provisional and which risks are being carried.
 The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](audit/), built the
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
@@ -205,7 +205,7 @@ record, the golden-vector cross-check, and a TS 38.212 packetisation conformance
 under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 202 requirements, 10 generated files
+.venv/bin/python tools/gen_spec_views.py --check       # 203 requirements, 10 generated files
 .venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
 .venv/bin/python tools/check_literals.py               # no parameter-valued source literals
 .venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
