@@ -50,6 +50,7 @@ from training.w8_protocol import (  # noqa: E402
     W8_VALIDATION_BATCH_SIZE,
     W8_VALIDATION_SAMPLE_COUNT,
     checkpoint_selection_snr_db,
+    protocol_config_hash,
     protocol_descriptor,
     run_cells,
     load_w8_config,
@@ -114,7 +115,7 @@ def _config_bindings() -> list[dict[str, Any]]:
             {
                 "run_index": cell.run_index,
                 "config_hash": run_config_hash(config),
-                "protocol_config_hash": canonical_sha256({"protocol": protocol_descriptor(), "config": config.to_dict()}),
+                "protocol_config_hash": protocol_config_hash(config),
             }
         )
     return values
