@@ -148,9 +148,11 @@ cycles, selected-checkpoint metrics and common validation-noise pairing. The
 frozen adjudicator selected primary-tier λ `3.0`; `lambda_core` is now
 normatively `3.0` with its provisional G-4 status cleared. W7-C authorization,
 G-4 evidence and terminal completion are immutable; W7 pilot weights remain
-ineligible for W8 initialization, W8 remains unopened and test remains sealed.
-The next safe action is a separate W8 final multi-seed training authorization;
-do not rerun the campaign, adjudication or alter worker custody.
+ineligible for W8 initialization. W8-A is GREEN/PRE-EXECUTION: the exact six-run
+source/authorization boundary is frozen, scientific W8 coverage remains zero,
+and test remains sealed. The next safe action is an independent hostile audit
+followed by a separate W8-B detached launch authorization; do not rerun the
+campaign, adjudication or alter worker custody.
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w8-separate-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
