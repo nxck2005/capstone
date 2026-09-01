@@ -12,6 +12,7 @@ import torch
 import training.w8_final as w8_training
 from training.deterministic_core import canonical_bytes, state_tree_sha256
 from training.w8_final import W8Hold, checkpoint_state_digest
+from training.w8_protocol import W8_CHECKPOINT_SIDECAR_ROLE
 from tests.w8_hardening_fixtures import TinyDJSCC, TinyW8Dataset, tiny_config, tiny_trainer
 
 
@@ -25,6 +26,114 @@ def _tiny_checkpoint_model(monkeypatch):
 def _run_epoch_and_save(trainer, epoch: int, count: int = 5):
     record = trainer.train_epoch(epoch, TinyW8Dataset(epoch, count))
     return record, trainer.save_checkpoint(record)
+
+
+def _project_scientific_epoch_to_tiny_fixture(monkeypatch) -> None:
+    """Keep the scientific policy and transaction path, but bound the fixture."""
+
+    monkeypatch.setattr(w8_training, "W8_TRAIN_SAMPLE_COUNT", 5)
+    monkeypatch.setattr(w8_training, "W8_EXPECTED_MICROBATCHES", 1)
+    monkeypatch.setattr(w8_training, "W8_FINAL_PARTIAL_BATCH", 5)
+
+
+def _scientific_tiny_trainer(root: Path, *, run_id: str | None = None):
+    return tiny_trainer(root, role="W8_FINAL_MULTI_SEED_RUN", run_id=run_id)
+
+
+def test_scientific_checkpoint_sidecar_latest_and_resume_are_authenticated(
+    monkeypatch, tmp_path: Path
+):
+    _project_scientific_epoch_to_tiny_fixture(monkeypatch)
+    root = tmp_path / "scientific"
+    writer = _scientific_tiny_trainer(root)
+
+    record, sidecar = _run_epoch_and_save(writer, 0)
+    assert writer.policy.scientific is True
+    assert record["artifact_role"] == "W8_FINAL_TRAINING_EPOCH_RECORD"
+    assert sidecar["artifact_role"] == W8_CHECKPOINT_SIDECAR_ROLE
+    assert sidecar["artifact_role"] == "W8_FINAL_TRAINING_CHECKPOINT_SIDECAR"
+
+    epoch_path = root / "epochs/epoch-0000.json"
+    checkpoint_path = root / "checkpoints/epoch-0000.pt"
+    sidecar_path = root / "checkpoints/epoch-0000.sidecar.json"
+    latest_path = root / "latest.json"
+    assert epoch_path.is_file()
+    assert checkpoint_path.is_file()
+    assert sidecar_path.is_file()
+    assert latest_path.is_file()
+    assert json.loads(sidecar_path.read_bytes()) == sidecar
+    assert json.loads(latest_path.read_bytes()) == sidecar
+    writer._validate_sidecar(sidecar)
+
+    resumed = _scientific_tiny_trainer(root)
+    assert resumed.resume() == sidecar
+    assert resumed.completed_epoch == 0
+    assert resumed.global_optimizer_step == writer.global_optimizer_step == 1
+    assert not (root / "validation").exists()
+
+    smoke_root = tmp_path / "smoke"
+    smoke = tiny_trainer(smoke_root)
+    _record, smoke_sidecar = _run_epoch_and_save(smoke, 0)
+    assert smoke_sidecar["artifact_role"] == "W8_NON_SCIENTIFIC_SMOKE_CHECKPOINT_SIDECAR"
+    assert smoke_sidecar["artifact_role"] != sidecar["artifact_role"]
+
+
+def test_scientific_checkpoint_failure_before_sidecar_is_not_resumable(
+    monkeypatch, tmp_path: Path
+):
+    _project_scientific_epoch_to_tiny_fixture(monkeypatch)
+    root = tmp_path / "before-sidecar"
+    writer = _scientific_tiny_trainer(root)
+    record = writer.train_epoch(0, TinyW8Dataset(0, count=5))
+    original_publish = w8_training._publish_new_bytes
+
+    def fail_before_sidecar(path: Path, raw: bytes) -> None:
+        if path.name == "epoch-0000.sidecar.json":
+            raise RuntimeError("injected failure before scientific sidecar")
+        original_publish(path, raw)
+
+    monkeypatch.setattr(w8_training, "_publish_new_bytes", fail_before_sidecar)
+    with pytest.raises(RuntimeError, match="before scientific sidecar"):
+        writer.save_checkpoint(record)
+
+    assert (root / "epochs/epoch-0000.json").is_file()
+    assert (root / "checkpoints/epoch-0000.pt").is_file()
+    assert not (root / "checkpoints/epoch-0000.sidecar.json").exists()
+    assert not (root / "latest.json").exists()
+    with pytest.raises(W8Hold, match="latest pointer is missing"):
+        _scientific_tiny_trainer(root).resume()
+
+
+def test_invalid_scientific_sidecar_and_foreign_checkpoint_are_rejected(
+    monkeypatch, tmp_path: Path
+):
+    _project_scientific_epoch_to_tiny_fixture(monkeypatch)
+    root = tmp_path / "invalid-sidecar"
+    writer = _scientific_tiny_trainer(root)
+    _record, sidecar = _run_epoch_and_save(writer, 0)
+    invalid = dict(sidecar)
+    invalid["artifact_role"] = "W8_NON_SCIENTIFIC_SMOKE_CHECKPOINT_SIDECAR"
+    (root / "checkpoints/epoch-0000.sidecar.json").write_bytes(canonical_bytes(invalid))
+    with pytest.raises(W8Hold, match="sidecar role/version differs"):
+        _scientific_tiny_trainer(root).resume()
+
+    foreign_root = tmp_path / "foreign-w8"
+    foreign_writer = _scientific_tiny_trainer(foreign_root)
+    _run_epoch_and_save(foreign_writer, 0)
+    with pytest.raises(W8Hold, match="sidecar run|run differs"):
+        _scientific_tiny_trainer(foreign_root, run_id="w8-foreign-run").resume()
+
+    with pytest.raises(W8Hold, match="initial checkpoint"):
+        # Constructor-level initial-checkpoint rejection is the W7 boundary;
+        w8_training.W8Trainer(
+            tiny_config(role="W8_FINAL_MULTI_SEED_RUN"),
+            device="cpu",
+            runtime_root=tmp_path / "foreign-w7",
+            source_lineage=writer.source_lineage,
+            profile_binding=writer.profile_binding,
+            model=TinyDJSCC(),
+            initial_checkpoint=Path("results/learned/w7/checkpoints/epoch-0000.pt"),
+        )
 
 
 def test_synthetic_smoke_is_explicitly_ineligible_and_resume_is_exact(tmp_path: Path):
