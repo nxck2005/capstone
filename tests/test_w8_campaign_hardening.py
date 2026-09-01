@@ -184,6 +184,15 @@ def test_detached_launch_requires_exact_owner_scope_and_rejects_mutations(tmp_pa
         lambda item: item["scope"].__setitem__("g10", True),
         lambda item: item["test"].__setitem__("model_facing_access", 1),
         lambda item: item.__setitem__("campaign_id", "foreign"),
+        lambda item: item.__setitem__("w8_a_authorization_id", "w8auth-foreign"),
+        lambda item: item.__setitem__("source_commit", "c" * 40),
+        lambda item: item.__setitem__("source_manifest_id", "w8source-foreign"),
+        lambda item: item["profile"].__setitem__("gpu_uuid", "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a"),
+        lambda item: item["scope"].__setitem__("core_runs", 5),
+        lambda item: item["scope"].__setitem__("er2_randomized_training", True),
+        lambda item: item["scope"].__setitem__("papr_constrained_training", True),
+        lambda item: item["scope"].__setitem__("er9_training", True),
+        lambda item: item.__setitem__("owner_authorization", False),
     ):
         changed = json.loads(json.dumps(original))
         mutation(changed)

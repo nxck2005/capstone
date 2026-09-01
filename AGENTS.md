@@ -148,13 +148,16 @@ cycles, selected-checkpoint metrics and common validation-noise pairing. The
 frozen adjudicator selected primary-tier λ `3.0`; `lambda_core` is now
 normatively `3.0` with its provisional G-4 status cleared. W7-C authorization,
 G-4 evidence and terminal completion are immutable; W7 pilot weights remain
-ineligible for W8 initialization. W8-A is GREEN/PRE-EXECUTION: the exact six-run
-source/authorization boundary is frozen, scientific W8 coverage remains zero,
-and test remains sealed. The next safe action is an independent hostile audit
-followed by a separate W8-B detached launch authorization; do not rerun the
-campaign, adjudication or alter worker custody.
+ineligible for W8 initialization. W8-B1 is GREEN/PRE-LAUNCH: the exact six-run
+source/execution boundary and separate owner-scoped detached launch authority
+`w8blaunch-99ae8a71508aa35bfbb763142faaf1364d9ed976b212b7311f37b128d53d73c4`
+(file SHA-256 `6ac3268bae88accd86f49407c52ff0a8e25d8da40f868d48d06e6a83830be94b`)
+are frozen, scientific W8 coverage remains zero, and test remains sealed. The
+next safe action is an independent hosted-CI/authority audit followed only then
+by a separate W8-B2 detached launch; do not launch under W8-B1, rerun the
+campaign or adjudication, or alter worker custody.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w8-separate-authorization; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w8-b1-independent-ci-authority-audit; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified
