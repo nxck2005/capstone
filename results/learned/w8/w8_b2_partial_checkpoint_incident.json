@@ -1,0 +1,199 @@
+{
+  "artifact_role": "W8_B2_PARTIAL_CHECKPOINT_INCIDENT",
+  "incident_version": 1,
+  "incident_id": "w8b2incident-feb598220d1a32143944e1d7a343fff00de43387e255d92c033289e4afcde8c2",
+  "current_main_starting_sha": "349d4e59e7f86820856c66346d9b9f0a1f856ed5",
+  "classification": [
+    "IMPLEMENTATION DEFECT",
+    "SCIENTIFIC-LAUNCH BLOCKING",
+    "PARTIAL SCIENTIFIC EXECUTION",
+    "ZERO ACCEPTED W8 RESULT COVERAGE"
+  ],
+  "original_w8_authority": {
+    "source_commit": "c5a8b70563b1a9e4056c42bca785414924c11fa2",
+    "w8_a_authorization_id": "w8auth-e36e5882f06e4af46d2b0dbde5f198064f0499def869e60859377bfc092d8727",
+    "source_manifest_id": "w8source-66b6558938bef496e16f72c63b854d92fa10d5aae5a805ae3b4abd0eb37a997d",
+    "source_manifest_sha256": "db6aab4ef8d6cec146da2d6ee989ab0ddb60ca37f0ad3729af61c5da9ade8755",
+    "launch_authorization_id": "w8blaunch-99ae8a71508aa35bfbb763142faaf1364d9ed976b212b7311f37b128d53d73c4",
+    "campaign_id": "w8-final-pascal-20260831",
+    "campaign_root": "/home/nick/w8-final-pascal-20260831"
+  },
+  "source_defect_reproduction": {
+    "category": "IMPLEMENTATION DEFECT",
+    "launch_blocking": true,
+    "protocol_constant": {
+      "path": "src/training/w8_protocol.py",
+      "line": 47,
+      "name": "W8_CHECKPOINT_SIDECAR_ROLE",
+      "value": "W8_FINAL_TRAINING_CHECKPOINT_SIDECAR"
+    },
+    "scientific_reference": {
+      "path": "src/training/w8_final.py",
+      "line": 947,
+      "expression": "W8_CHECKPOINT_SIDECAR_ROLE if self.policy.scientific else W8_SMOKE_SIDECAR_ROLE"
+    },
+    "scientific_validation_reference": {
+      "path": "src/training/w8_final.py",
+      "line": 1193,
+      "expression": "W8_CHECKPOINT_SIDECAR_ROLE if self.policy.scientific else W8_SMOKE_SIDECAR_ROLE"
+    },
+    "scientific_import_present": false,
+    "import_block_path": "src/training/w8_final.py:47-74",
+    "missing_import": "from training.w8_protocol import W8_CHECKPOINT_SIDECAR_ROLE",
+    "smoke_role": {
+      "name": "W8_SMOKE_SIDECAR_ROLE",
+      "path": "src/training/w8_final.py",
+      "line": 81,
+      "value": "W8_NON_SCIENTIFIC_SMOKE_CHECKPOINT_SIDECAR",
+      "branch": "non-scientific smoke branch"
+    },
+    "classification_boundary": "implementation defect, scientific-launch blocking; not a protocol defect and not a model-training defect"
+  },
+  "old_campaign_manifest": {
+    "path": "/home/nick/w8-final-pascal-20260831/campaign_manifest.json",
+    "bytes": 3714,
+    "sha256": "09a0b9140d79a128464e24b30094179f07f66b2b0f1fd12c401bd1f978c46818",
+    "manifest_id": "w8campaignmanifest-eed9f6123527a9d9072159772d5fe8c79e8e05dc1888c31b0e339f7a017e844c"
+  },
+  "old_campaign_inventory": {
+    "host": "confessor",
+    "root": "/home/nick/w8-final-pascal-20260831",
+    "read_only_capture": true,
+    "root_mutated": false,
+    "path_count_including_directories": 6,
+    "file_count": 3,
+    "digest_algorithm": "sha256 of sorted LF-terminated UTF-8 lines TYPE<TAB>relative_path[<TAB>byte_length<TAB>sha256]",
+    "inventory_digest": "da6f18be2545d59298c64cc890aa4842b436de1e7e6fc44dc6e22dd6f64cf4aa",
+    "paths": [
+      {"type": "FILE", "path": "campaign_manifest.json", "bytes": 3714, "sha256": "09a0b9140d79a128464e24b30094179f07f66b2b0f1fd12c401bd1f978c46818"},
+      {"type": "DIR", "path": "run-01-r_1_6-train0-channel0"},
+      {"type": "DIR", "path": "run-01-r_1_6-train0-channel0/checkpoints"},
+      {"type": "FILE", "path": "run-01-r_1_6-train0-channel0/checkpoints/epoch-0000.pt", "bytes": 18942699, "sha256": "ff89322a795e437994ff5eaaf5c7157fd7e751aed8bafb2f42cee950d371b55c"},
+      {"type": "DIR", "path": "run-01-r_1_6-train0-channel0/epochs"},
+      {"type": "FILE", "path": "run-01-r_1_6-train0-channel0/epochs/epoch-0000.json", "bytes": 206345, "sha256": "becb208afc383e6e55569d17d9f701ad949e308ac19a3c329c46ab23776977b6"}
+    ]
+  },
+  "external_operations_evidence": {
+    "attempt_2_stdout": {
+      "path": "/home/nick/w8-final-pascal-20260831.stdout.log",
+      "bytes": 1626,
+      "sha256": "ca524a4b23d7f1a2a45ebf278a9d26b893c1c8d5f741cf542bdc94e929b09273"
+    },
+    "attempt_1_stdout": {
+      "path": "/home/nick/w8-final-pascal-20260831.attempt1.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "attempt_1_incident": {
+      "path": "/home/nick/w8-b2-launch-attempt-1-incident.json",
+      "bytes": 2445,
+      "sha256": "8c5fb9b9f45cb43a4fcd94983ab41b12b23e10280f9e5f24a32f13cd467ff34b",
+      "status": "OPERATIONAL_LAUNCH_FAILURE",
+      "scientific_execution": false
+    },
+    "attempt_2_operations_incident": {
+      "path": "/home/nick/w8-b2-launch-attempt-2-incident.json",
+      "bytes": 7119,
+      "sha256": "e94862fa24644bfdac7d8ffdc15371cac476a93255ec20664ce290766309485e"
+    }
+  },
+  "failure_boundary": {
+    "traceback_exception": "NameError: name 'W8_CHECKPOINT_SIDECAR_ROLE' is not defined",
+    "failure_call": "trainer.save_checkpoint(record)",
+    "failure_source_location": "src/training/w8_final.py:947",
+    "epoch_record_present": true,
+    "checkpoint_payload_present": true,
+    "scientific_sidecar_present": false,
+    "latest_pointer_present": false
+  },
+  "observed_campaign_state": {
+    "campaign_manifest_present": true,
+    "epoch_0000_record_present": true,
+    "checkpoint_payload_present": true,
+    "scientific_sidecar_present": false,
+    "latest_pointer_present": false,
+    "validation_summary_present": false,
+    "run_completion_present": false,
+    "selected_checkpoint_present": false,
+    "run_02_or_later_state_present": false,
+    "campaign_completion_present": false
+  },
+  "structural_epoch_accounting": {
+    "epoch": 0,
+    "samples": 8469,
+    "microbatches": 265,
+    "optimizer_step_opportunities": 265,
+    "applied_scientific_optimizer_steps": 259,
+    "grad_scaler_skips": 6,
+    "global_optimizer_step": 259,
+    "run_id": "w8-r_1_6-train0-channel0",
+    "ratio": "r_1_6",
+    "train_seed": 0,
+    "channel_seed": 0,
+    "source_commit": "c5a8b70563b1a9e4056c42bca785414924c11fa2"
+  },
+  "accepted_coverage": {
+    "historical_scientific_optimizer_steps_executed": 259,
+    "accepted_w8_optimizer_step_coverage": 0,
+    "authenticated_completed_epoch_cycles": 0,
+    "accepted_w8_checkpoints": 0,
+    "validation_measurements": 0,
+    "completed_w8_runs": 0,
+    "completed_campaign": false
+  },
+  "partial_checkpoint_eligibility": {
+    "checkpoint_path": "/home/nick/w8-final-pascal-20260831/run-01-r_1_6-train0-channel0/checkpoints/epoch-0000.pt",
+    "not_eligible_for_resume": true,
+    "not_eligible_for_w8_result": true,
+    "not_eligible_for_g10": true,
+    "not_eligible_for_test": true,
+    "post_hoc_sidecar_forbidden": true,
+    "payload_quality_inspection_forbidden": true,
+    "old_root_reuse_forbidden": true
+  },
+  "protected_boundaries": {
+    "g10": 0,
+    "er2_randomized_training": 0,
+    "papr_constrained": 0,
+    "er9": 0,
+    "test_model_facing_access": 0,
+    "learned_test_inference": 0
+  },
+  "repair_policy": {
+    "new_source_required": true,
+    "fresh_deterministic_initialization_required": true,
+    "successor_source_branch": "repair/w8-b2-sidecar-source",
+    "successor_source_commit": "d52d85dd60bac0c816a7ba249e4453045723277b",
+    "successor_campaign_id": "w8-final-pascal-20260901-r1",
+    "successor_campaign_root": "/home/nick/w8-final-pascal-20260901-r1",
+    "successor_heartbeat": "/home/nick/w8-final-pascal-20260901-r1.heartbeat.json",
+    "successor_stdout": "/home/nick/w8-final-pascal-20260901-r1.stdout.log",
+    "successor_tmux": "w8-final-r1",
+    "global_lock": "/tmp/capstone-w8-final-global.lock",
+    "successor_root_created": false,
+    "successor_launch_authorization_created": false,
+    "scientific_training_performed_by_repair": false
+  },
+  "source_diff_classification": {
+    "base_commit": "c5a8b70563b1a9e4056c42bca785414924c11fa2",
+    "result_affecting_training_logic": "NONE",
+    "checkpoint_implementation": [
+      "import canonical W8_CHECKPOINT_SIDECAR_ROLE from training.w8_protocol"
+    ],
+    "campaign_lineage_operations": [
+      "CAMPAIGN_ID old -> w8-final-pascal-20260901-r1",
+      "CAMPAIGN_ROOT old -> /home/nick/w8-final-pascal-20260901-r1",
+      "HEARTBEAT_PATH old -> /home/nick/w8-final-pascal-20260901-r1.heartbeat.json",
+      "STDOUT_LOG_PATH old -> /home/nick/w8-final-pascal-20260901-r1.stdout.log"
+    ],
+    "tests": [
+      "synthetic scientific epoch record/checkpoint/sidecar/latest publication",
+      "same-run authenticated fresh-process resume",
+      "injected pre-sidecar failure remains non-resumable",
+      "invalid scientific sidecar rejection",
+      "foreign W8 run and W7 initial-checkpoint rejection",
+      "smoke sidecar role remains separate"
+    ],
+    "other_scientific_source_drift": []
+  }
+}
