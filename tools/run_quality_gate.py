@@ -51,6 +51,54 @@ def _w8_a_commands() -> tuple[list[str], ...]:
     return ()
 
 
+def _w8_c_commands() -> tuple[list[str], ...]:
+    """Run the compact, read-only W8-C reconciliation checks when published.
+
+    Full worker custody is intentionally not part of a normal checkout.  The
+    compact verifier is therefore the carrier-side gate; ``verify-live``
+    remains the explicit worker-custody command used at reconciliation time.
+    """
+
+    evidence_root = REPO / "results/learned/w8"
+    reconciliation = evidence_root / "w8_c_reconciliation.json"
+    inventory = evidence_root / "w8_c_root_inventory.jsonl"
+    completion = evidence_root / "w8_completion.json"
+    authority_files = (
+        evidence_root / "w8_r1_source_manifest.json",
+        evidence_root / "w8_r1_execution_authorization.json",
+        evidence_root / "w8_r1_launch_authorization.json",
+        evidence_root / "w8_r1_successor_lineage.json",
+    )
+    if (
+        reconciliation.is_file()
+        and inventory.is_file()
+        and completion.is_file()
+        and all(path.is_file() and not path.is_symlink() for path in authority_files)
+    ):
+        return (
+            _python_tool(
+                "tools/verify_w8_c.py",
+                "verify-compact",
+                "--reconciliation",
+                str(reconciliation),
+                "--inventory",
+                str(inventory),
+                "--authority-dir",
+                str(evidence_root),
+            ),
+            _python_tool(
+                "tools/verify_w8_c.py",
+                "verify-terminal",
+                "--completion",
+                str(completion),
+                "--reconciliation",
+                str(reconciliation),
+            ),
+            [PYTHON, "-m", "pytest", "-q", "tests/test_w8_c_reconciliation.py"],
+        )
+    return ()
+
+
 def _static_commands() -> tuple[list[str], ...]:
     return (
         _python_tool("tools/gen_spec_views.py", "--check"),
@@ -91,6 +139,7 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/verify_w7_b2r.py", "verify", "--skip-upstream"),
         _python_tool("tools/verify_w7_g4.py", "verify"),
         *_w8_a_commands(),
+        *_w8_c_commands(),
         ["git", "diff", "--check"],
     )
 
