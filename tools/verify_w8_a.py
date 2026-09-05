@@ -23,6 +23,7 @@ from gen_w8_execution_authorization import (  # noqa: E402
     AUTHORIZATION_ROLE,
     CAMPAIGN_ID,
     CAMPAIGN_ROOT,
+    _am94_predecessor_config_bindings,
     verify_authorization,
 )
 from gen_w8_source_manifest import CRITICAL_SOURCES, verify_manifest  # noqa: E402
@@ -37,6 +38,9 @@ from run_w8_campaign import (  # noqa: E402
 )
 from training.deterministic_core import canonical_sha256  # noqa: E402
 from config.run_config import config_hash as run_config_hash  # noqa: E402
+from evaluation.g10_spec_compatibility import (  # noqa: E402
+    verify_w8_carrier_source_transition,
+)
 from training.w8_protocol import (  # noqa: E402
     W8_EXPECTED_K,
     W8_EXPECTED_RATIOS,
@@ -86,10 +90,13 @@ def _read(path: Path, label: str) -> dict[str, Any]:
 
 
 def _verify_current_sources(manifest: dict[str, Any]) -> None:
+    compatible = verify_w8_carrier_source_transition(manifest, REPO)
     for entry in manifest["entries"]:
         path = REPO / str(entry["path"])
         _require(path.is_file() and not path.is_symlink(), f"W8 source entry is missing: {entry['path']}")
-        _require(path.stat().st_size == entry["bytes"] and _sha(path) == entry["sha256"], f"W8 carrier changed source entry: {entry['path']}")
+        if path.stat().st_size == entry["bytes"] and _sha(path) == entry["sha256"]:
+            continue
+        _require(entry["path"] in compatible, f"W8 carrier changed source entry: {entry['path']}")
 
 
 def _verify_smoke(path: Path, source_commit: str) -> dict[str, Any]:
@@ -143,6 +150,9 @@ def _verify_smoke(path: Path, source_commit: str) -> dict[str, Any]:
             "artifact_role": W8_SMOKE_ROLE,
             "eligibility": expected_eligibility,
         }
+        if item != expected:
+            historical = _am94_predecessor_config_bindings(role=W8_SMOKE_ROLE)
+            expected.update(historical[cell.run_index - 1])
         _require(item == expected, "W8 smoke cell/configuration differs")
     _require(
         value["fresh_initialization_checks"] == {

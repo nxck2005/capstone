@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-09-04 · **Phase:** **W8-C GREEN/CLOSED — the six-run repaired successor is independently reconciled from immutable worker custody: 600 epoch/checkpoint/sidecar/validation transactions, exact optimizer/GradScaler accounting, and six validation-top-1/earliest-tie selections. G10, ER2, PAPR-constrained training, ER9 and test remain closed/sealed.** Reconciliation `w8creconcile-95215c9d5b426357009758bd0bcac7178c6db35a241801c3a6dc7129b81bb976` (file SHA-256 `01d72b6b9ea4b4d77dcdbfb1e7fa4c6aa6e064d694b2dab16fa15c3720851257`) and terminal completion `w8completion-c1ffa6f9894d2ce014595a7bb2126f7adf3fb38ae23d8f3815eb025c4c826e28` (file SHA-256 `c0801f5a7d76319e58b18c4804f2179569892e4efb2d17721e024463d1188798`) are additive carrier evidence. Exact next action after owner audit: W9 / G10 validation-only work; do not run G10, open test, restart W8 or choose among the six seeds.
+**Last updated:** 2026-09-05 · **Phase:** **W9-A AM-94 PRE-SCIENCE SEMANTICS FROZEN — the exact G-10 aggregate count/rational gap, expected-direction sign/zero-run predicate, no-interpolation location, multiple-event handling, population seed spread and deterministic outcome classes are executable. No G-10 learned outcome was observed. G-10 model-facing count, ER-2 randomized training, ER-9, G-11, W10 and test remain zero/unopened/sealed.** Predecessor is `7fc415e2debeda61e1cc95049596c2eac46062b1`; freeze `g10semantics-e55bacf…` binds normative source SHA-256 `75af7748…`. Exact next action: separate owner authorization and preflight for the 63 G-10 validation-only evaluations; do not run them under AM-94, open test, restart W8 or choose among the six seeds.
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -211,7 +211,7 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 **2026-08-16 completion record (supersedes the pre-launch zero-coverage text below):** the external sole-writer runtime `/home/nick/g8_pascal_successor_runtime` contains exactly 3,213 accepted identities, zero available/claimed/request-published/result-published/failed/terminal-invalid states, zero unresolved required ordinals, 3,215 request files and 3,215 result files. Every accepted identity has 5,000 completed trials and binds campaign `g8p-1da44d1fecf684375a0055624abc3c554ecdaf3875b41ee1a13f603f9abe2eca`, profile `confessor_pascal_cu126`, source commit `426110b05161e73e4d819bdc01f4857c012d6d59`, and production-contract SHA-256 `dcb2446d9b7974edb87b00c73691589f5cca49ae50806583097126269e07031b`. The aggregate state SHA-256 is `4e7510e850e59d047b512c1df0e7f5916b4ae6d814505d1bb9e042bc1585655e`; protected counters and `test_access` are zero and `old_result_ingest` is false. The remote audit and final successor verifier both pass; the canonical repository import at `results/baseline/g8_pascal_successor/runtime/` matches the external evidence under normalized tar-stream SHA-256 `dde5a45a2c58320b9b28e13afa459a8cbf2db1614939ad8ff790d42edc27f14b` and passes the same audit/verifier. The 17:30 snapshot's remaining ordinals were 3207, 3209 and 3211; each ended accepted on shard 1 / `cuda:1` / GTX 1080 Ti, attempt 1, complete with 5,000 trials. The coordinator's earlier shard-0 exit code 1 reflected a global in-progress sibling during its final reconciliation, not failed evidence; the later shard-1 reconciliation is complete. The successor-specific C3-C7 closeout now freezes 153 Pascal curves and 3,213 measured points from that runtime; G8_D D0 is authorized but has not started.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w8-b1-independent-ci-authority-audit; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=w9-g10-separate-authority-preflight; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w5-green-repaired-infrastructure-only-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
@@ -289,16 +289,13 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Current terminal task:** W7-C G-4 adjudication is complete and W7 is GREEN/CLOSED.
-The authenticated primary-tier selection is λ `3.0`; `lambda_core` is normatively
-`3.0` and its provisional G-4 status is cleared. W7 pilot weights remain
-ineligible for W8 initialization. The owner-authorized W8-B2 successor completed
-all six fresh runs, and W8-C independently reconciled the complete campaign from
-immutable worker custody: 600 epoch/checkpoint/sidecar/validation transactions,
-exact optimizer/GradScaler accounting, and six published selections matching the
-frozen validation-top-1/earliest-tie rule. **Exact next action: owner audit, then
-W9 / G10 validation-only work; do not run G10, open test, restart or resume W8,
-or choose among the six seeds.**
+**Current terminal task:** W9-A AM-94 is a semantics-only pre-science freeze.
+It closes the G-10 decision ambiguity without reading a checkpoint, creating a
+checkpoint×SNR outcome, or moving any scientific/model-facing counter. W8-C
+remains GREEN/CLOSED and all six selected checkpoints remain frozen without
+cross-seed filtering. **Exact next action: obtain separate owner authorization
+and perform the G-10 validation-only launch preflight; do not run G-10 under
+AM-94, open test, restart or resume W8, or choose among the six seeds.**
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -335,7 +332,8 @@ does not, it is wrong and this block is right.**
 | W7-C final G-4 adjudication | **complete — exactly one frozen-rule adjudication; primary-tier λ `3.0` selected and normative state updated** |
 | W8 final learned training | **W8-B2 complete — exact six fresh runs, 600 epochs and six selected checkpoints reconciled; W7 pilot initialization forbidden** |
 | W8-C terminal reconciliation | **GREEN/CLOSED — complete root custody, transaction, accounting, validation-noise, selection and predecessor-exclusion checks passed** |
-| W9 / G10 validation-only work | **NEXT after owner audit — validation-only boundary; test remains sealed** |
+| W9-A / G10 semantics | **AM-94 frozen pre-science — exact count/rational predicate executable; model-facing evaluation count remains 0** |
+| W9 / G10 validation-only execution | **NEXT only under separate owner authority — 63 outcomes remain absent; test sealed** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
@@ -902,7 +900,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted before starting the G-8 work:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 203 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 204 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: exit 0; the current-document count is whatever the checker reports
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures

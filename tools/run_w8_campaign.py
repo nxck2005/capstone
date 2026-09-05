@@ -60,6 +60,7 @@ from gen_w8_execution_authorization import (  # noqa: E402
     W7_TERMINAL_ID,
     W7_TERMINAL_PATH,
     W7_TERMINAL_SHA256,
+    _am94_predecessor_config_bindings,
     verify_authorization,
 )
 from gen_w8_source_manifest import verify_manifest  # noqa: E402
@@ -433,6 +434,11 @@ def _validate_authorization_contract(
             "config_hash": run_config_hash(config),
             "protocol_config_hash": protocol_config_hash(config),
         })
+    if value["campaign"]["config_bindings"] != expected_configs:
+        try:
+            expected_configs = _am94_predecessor_config_bindings()
+        except Exception as exc:
+            raise W8CampaignHold(f"W8 AM-94 config compatibility differs: {exc}") from None
     _require(value["campaign"]["config_bindings"] == expected_configs, "W8 config bindings differ")
     _require(value["training"]["dataset"] == W8_DATASET, "W8 dataset binding differs")
     _require(value["training"]["lambda"] == 3.0 and value["training"]["lambda_status"] == "selected_at_G-4", "W8 training lambda differs")

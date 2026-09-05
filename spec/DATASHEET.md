@@ -625,8 +625,21 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | --- | --- | --- |
 | `evaluation.train_seeds` | 0, 1, 2 | AM-31, BR-1, BR-16, ER-1, ER-2, ER-10, ER-11, ER-12 |
 | `evaluation.channel_seeds` | 0, 1, 2 | AM-31, ER-1, ER-10 |
-| `evaluation.seed_pairing` | zipped_not_cross_product | AM-17, AM-31, ER-1, ER-10 |
+| `evaluation.seed_pairing` | zipped_not_cross_product | AM-17, AM-31, ER-1, ER-10, G-10 |
 | `evaluation.seed_cell_interpretation` | compound_replicate | AM-31, ER-10 |
+| `evaluation.g10_ratio` | r_1_6 | - |
+| `evaluation.g10_learned_cells` | exactly_three_frozen_w8_headline_seed_cells | - |
+| `evaluation.g10_learned_aggregation` | arithmetic_mean_of_unrounded_correct_count_fractions | - |
+| `evaluation.g10_gap_orientation` | learned_minus_classical_adaptive | - |
+| `evaluation.g10_classical_comparator` | classical_adaptive | - |
+| `evaluation.g10_fixed_profile_role` | context_and_secondary_diagnostic_only | - |
+| `evaluation.g10_exact_arithmetic` | rational_correct_count_over_denominator_no_tolerance | - |
+| `evaluation.g10_expected_direction` | positive_to_negative_with_increasing_snr | - |
+| `evaluation.g10_zero_rule` | maximal_zero_run_is_crossover_only_when_bracketed_by_positive_then_negative | - |
+| `evaluation.g10_interpolation` | forbidden_for_decision_and_canonical_location | - |
+| `evaluation.g10_headline_event` | first_expected_direction_event_in_ascending_snr | - |
+| `evaluation.g10_multiple_event_rule` | retain_all_crossings_and_recrossings_in_ascending_snr | - |
+| `evaluation.g10_seed_spread` | population_standard_deviation_ddof_0_descriptive_only | - |
 | `evaluation.split_seed` | 1337 | SR-17 |
 | `evaluation.split_rule` | val carved deterministically from the published train split by evaluation.split_seed; the test split is never used for any selection | SR-17 |
 | `evaluation.ci` | paired_bootstrap_95 | AM-3, ER-1, ER-10 |

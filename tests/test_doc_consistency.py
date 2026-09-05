@@ -216,7 +216,7 @@ PASCAL_COMPLETED_STATE = {
     "execution": "complete",
     "coverage": "3213/3213",
     "evidence": "published",
-    "next": "w8-b1-independent-ci-authority-audit",
+    "next": "w9-g10-separate-authority-preflight",
     "bler_table": "frozen",
     "g8_d": "d7-complete",
     "g8_e_e2e4": "complete-verified",

@@ -26,7 +26,14 @@ if str(REPO / "tools") not in sys.path:
     sys.path.insert(0, str(REPO / "tools"))
 
 from config.params import get  # noqa: E402
-from config.run_config import config_hash as run_config_hash  # noqa: E402
+from config.run_config import (  # noqa: E402
+    canonical_sha256 as run_config_canonical_sha256,
+    config_hash as run_config_hash,
+)
+from evaluation.g10_spec_compatibility import (  # noqa: E402
+    ALLOWED_PARAMETER_PATHS as AM94_ALLOWED_PARAMETER_PATHS,
+    load as load_am94_spec_compatibility,
+)
 from gen_w8_source_manifest import CRITICAL_SOURCES, verify_manifest  # noqa: E402
 from training.deterministic_core import canonical_bytes, canonical_sha256  # noqa: E402
 from training.w8_protocol import (  # noqa: E402
@@ -34,6 +41,7 @@ from training.w8_protocol import (  # noqa: E402
     W8_CHECKPOINT_SELECTION_CHANNEL_SEED_RULE,
     W8_CHECKPOINT_SELECTION_SNR_PARAMETER,
     W8_CHANNEL_SEEDS,
+    W8_CORE_ROLE,
     W8_DATASET,
     W8_EPOCHS,
     W8_EFFECTIVE_BATCH_SIZE,
@@ -116,6 +124,45 @@ def _config_bindings() -> list[dict[str, Any]]:
                 "run_index": cell.run_index,
                 "config_hash": run_config_hash(config),
                 "protocol_config_hash": protocol_config_hash(config),
+            }
+        )
+    return values
+
+
+def _am94_predecessor_config_bindings(*, role: str = W8_CORE_ROLE) -> list[dict[str, Any]]:
+    """Reconstruct the exact pre-AM-94 hashes for frozen W8 authority."""
+
+    load_am94_spec_compatibility(REPO)
+    names = []
+    for path in AM94_ALLOWED_PARAMETER_PATHS:
+        prefix = "evaluation."
+        if not path.startswith(prefix) or "." in path[len(prefix):]:
+            raise ValueError("AM-94 compatibility contains a non-evaluation leaf")
+        names.append(path[len(prefix):])
+    values: list[dict[str, Any]] = []
+    for cell in run_cells():
+        config = load_w8_config(
+            cell.ratio, cell.train_seed, cell.channel_seed, role=role
+        )
+        historical = config.to_dict()
+        evaluation = historical["parameters"]["evaluation"]
+        for name in names:
+            if name not in evaluation:
+                raise ValueError(f"AM-94 parameter is absent from W8 config: {name}")
+            del evaluation[name]
+        values.append(
+            {
+                "run_index": cell.run_index,
+                "config_hash": run_config_canonical_sha256(
+                    {
+                        "fingerprint_schema_version": historical["fingerprint_schema_version"],
+                        "resolved": historical["resolved"],
+                        "parameters": historical["parameters"],
+                    }
+                ),
+                "protocol_config_hash": run_config_canonical_sha256(
+                    {"protocol": protocol_descriptor(), "config": historical}
+                ),
             }
         )
     return values
@@ -438,7 +485,12 @@ def verify_authorization(
         "config_bindings": _config_bindings(),
     }
     if value["campaign"] != expected_campaign:
-        raise ValueError("W8 authorization campaign binding differs")
+        try:
+            expected_campaign["config_bindings"] = _am94_predecessor_config_bindings()
+        except Exception as exc:
+            raise ValueError(f"W8 authorization AM-94 compatibility differs: {exc}") from None
+        if value["campaign"] != expected_campaign:
+            raise ValueError("W8 authorization campaign binding differs")
 
     expected_training = {
         "dataset": W8_DATASET,

@@ -102,6 +102,7 @@ def _w8_c_commands() -> tuple[list[str], ...]:
 def _static_commands() -> tuple[list[str], ...]:
     return (
         _python_tool("tools/gen_spec_views.py", "--check"),
+        _python_tool("tools/verify_g10_semantics_freeze.py"),
         _python_tool("tools/check_doc_consistency.py", "-v"),
         _python_tool("tools/check_literals.py", "-v"),
         _python_tool("tools/gen_g8_f_corpus_plan.py", "--check"),

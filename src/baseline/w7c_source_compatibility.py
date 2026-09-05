@@ -20,6 +20,7 @@ import yaml
 
 from config.params import REPO_ROOT
 from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
+from evaluation.g10_spec_compatibility import ALLOWED_PARAMETER_PATHS as AM94_ALLOWED_PARAMETER_PATHS
 
 COMPATIBILITY_RELATIVE_PATH = "results/learned/w7/w7_c_normative_source_compatibility.json"
 AM91_RELATIVE_PATH = "results/baseline/g8/g8_am91_source_compatibility.json"
@@ -40,6 +41,8 @@ W8_G8_SOURCE_COMPATIBILITY_SHA256 = "cb80c87fda984a68a1597fb6eb020cdc7818cff2398
 W8_G8_SOURCE_PATH = "src/baseline/g8_campaign.py"
 W8_G8_BASE_BYTES = 57523
 W8_G8_BASE_SHA256 = "6979875d351682c54547a8dde509499ea37a2e1549a771fa9234f0309f2c05af"
+AM94_G8_CURRENT_BYTES = 58680
+AM94_G8_CURRENT_SHA256 = "2317ad14be2ba3c081f2a1bb4ff55d5b9a102a16acecf60b4412198de7f5cc69"
 
 W7C_ALLOWED_PARAMETER_PATHS = (
     "learned_system.lambda_core",
@@ -199,15 +202,24 @@ def load_w8_g8_campaign_source_compatibility(root: Path = REPO_ROOT) -> dict[str
         and entries[0]["archived_sha256"] == W8_G8_BASE_SHA256,
         "W8 G8-campaign source compatibility entries differ",
     )
+    am93 = _git_bytes(root, "7fc415e2debeda61e1cc95049596c2eac46062b1", W8_G8_SOURCE_PATH)
+    _require(
+        entries[0]["current_bytes"] == len(am93)
+        and entries[0]["current_sha256"] == sha256_bytes(am93),
+        "W8 G8-campaign AM-93 source bytes differ",
+    )
     current_path = root / W8_G8_SOURCE_PATH
-    _require(current_path.is_file() and not current_path.is_symlink(), "W8 G8-campaign successor source is missing")
+    _require(current_path.is_file() and not current_path.is_symlink(), "AM-94 G8-campaign verifier source is missing")
     current = current_path.read_bytes()
     _require(
-        entries[0]["current_bytes"] == len(current)
-        and entries[0]["current_sha256"] == sha256_bytes(current),
-        "W8 G8-campaign successor source bytes differ",
+        len(current) == AM94_G8_CURRENT_BYTES
+        and sha256_bytes(current) == AM94_G8_CURRENT_SHA256,
+        "AM-94 G8-campaign verifier source bytes differ",
     )
-    return value
+    projection = json.loads(json.dumps(value))
+    projection["entries"][0]["current_bytes"] = AM94_G8_CURRENT_BYTES
+    projection["entries"][0]["current_sha256"] = AM94_G8_CURRENT_SHA256
+    return projection
 
 
 def load(root: Path = REPO_ROOT) -> dict[str, Any]:
@@ -344,10 +356,11 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         raise W7CSourceCompatibilityError(f"W7-C generated parameters are not YAML: {exc}") from None
     allowed_parameter_paths = set(W7C_ALLOWED_PARAMETER_PATHS)
     if w8_spec is not None:
-        # AM-93 is a chained successor of this exact W7-C image.  Admit only
-        # its one additional generated-parameter leaf; the W7-C λ transition
-        # remains independently constrained above.
+        # The W8 compatibility loader independently authenticates AM-93 and
+        # its exact AM-94 successor.  Admit only those named parameter leaves;
+        # the W7-C lambda transition remains independently constrained above.
         allowed_parameter_paths.add("learned_system.checkpoint_selection_snr_db")
+        allowed_parameter_paths.update(AM94_ALLOWED_PARAMETER_PATHS)
     _require(
         _leaf_difference_paths(old_yaml, current_yaml) == allowed_parameter_paths,
         "W7-C generated-parameter drift exceeds the authenticated successor leaves",

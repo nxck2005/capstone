@@ -17,6 +17,10 @@ from pathlib import Path
 from typing import Any
 
 from config.params import REPO_ROOT
+from evaluation.g10_spec_compatibility import (
+    PREDECESSOR_COMMIT as AM94_PREDECESSOR_COMMIT,
+    load as load_am94_spec_compatibility,
+)
 
 COMPATIBILITY_RELATIVE_PATH = "results/learned/w7/w8_spec_additive_compatibility.json"
 COMPATIBILITY_ID = "w8speccompat-0d2184356d3adf0a339b68ab9d1435e45f8105f1b0e8614ee37470d34dbb3436"
@@ -100,7 +104,7 @@ def _expected_entries() -> list[dict[str, Any]]:
 
 
 def load(root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Authenticate the one exact W7-current → AM-93 successor transition."""
+    """Authenticate AM-93 and project through the exact AM-94 successor."""
 
     root = Path(root).resolve()
     path = root / COMPATIBILITY_RELATIVE_PATH
@@ -153,11 +157,25 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
     for path_text, base_bytes, base_sha256, current_bytes, current_sha256 in VIEW_HASHES:
         historical = _git_bytes(root, BASE_COMMIT, path_text)
         _require(len(historical) == base_bytes and sha256_bytes(historical) == base_sha256, f"AM-93 base bytes differ: {path_text}")
-        current_path = root / path_text
-        _require(current_path.is_file() and not current_path.is_symlink(), f"AM-93 current bytes are missing or unsafe: {path_text}")
-        try:
-            current = current_path.read_bytes()
-        except OSError as exc:
-            raise W8SpecCompatibilityError(f"cannot read current AM-93 bytes: {path_text}") from exc
-        _require(len(current) == current_bytes and sha256_bytes(current) == current_sha256, f"AM-93 current bytes differ: {path_text}")
-    return value
+        am93 = _git_bytes(root, AM94_PREDECESSOR_COMMIT, path_text)
+        _require(len(am93) == current_bytes and sha256_bytes(am93) == current_sha256, f"AM-93 historical current bytes differ: {path_text}")
+
+    try:
+        successor = load_am94_spec_compatibility(root)
+    except Exception as exc:
+        raise W8SpecCompatibilityError(f"AM-94 successor differs: {exc}") from None
+    successor_entries = {entry["path"]: entry for entry in successor["entries"]}
+    projection = dict(value)
+    projection["entries"] = []
+    for entry in value["entries"]:
+        later = successor_entries[entry["path"]]
+        _require(
+            later["base_bytes"] == entry["current_bytes"]
+            and later["base_sha256"] == entry["current_sha256"],
+            f"AM-94 successor is not chained from AM-93: {entry['path']}",
+        )
+        projected = dict(entry)
+        projected["current_bytes"] = later["current_bytes"]
+        projected["current_sha256"] = later["current_sha256"]
+        projection["entries"].append(projected)
+    return projection

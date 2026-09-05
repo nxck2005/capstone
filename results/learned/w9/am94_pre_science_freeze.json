@@ -1,0 +1,125 @@
+{
+  "allowed_parameter_paths": [
+    "evaluation.g10_classical_comparator",
+    "evaluation.g10_exact_arithmetic",
+    "evaluation.g10_expected_direction",
+    "evaluation.g10_fixed_profile_role",
+    "evaluation.g10_gap_orientation",
+    "evaluation.g10_headline_event",
+    "evaluation.g10_interpolation",
+    "evaluation.g10_learned_aggregation",
+    "evaluation.g10_learned_cells",
+    "evaluation.g10_multiple_event_rule",
+    "evaluation.g10_ratio",
+    "evaluation.g10_seed_spread",
+    "evaluation.g10_zero_rule"
+  ],
+  "amendment": "AM-94",
+  "artifact_role": "G10_PRE_SCIENCE_NORMATIVE_SEMANTICS_FREEZE",
+  "entries": [
+    {
+      "base_bytes": 401661,
+      "base_sha256": "b05a2f04d6b3fa0e8110d0544900c29f823c96c424a75090a092433bb72cc68b",
+      "current_bytes": 407696,
+      "current_sha256": "75af7748f17245cb7771fd8e7078b506ce557bf920c7986bd49bd034aab8b6ad",
+      "path": "spec/SPEC.md"
+    },
+    {
+      "base_bytes": 45731,
+      "base_sha256": "c5f598e4e9292f831279bed5584cd399c42cc769b6550f8921a7bf94d7e20234",
+      "current_bytes": 46590,
+      "current_sha256": "48e5fee874fe4b6c72ee60be3b92e0cd9da51edab87e74bc5f3af964c6f9e534",
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "base_bytes": 86257,
+      "base_sha256": "c5b9b78270099bd909a8248cf490ff00307ecb61672a98e5b1d29894340f7e68",
+      "current_bytes": 87382,
+      "current_sha256": "1e8cdef23ce80598af806d53ffc95e1b7b1b3057982feb3ce4133c7c0af38617",
+      "path": "spec/DATASHEET.md"
+    },
+    {
+      "base_bytes": 144957,
+      "base_sha256": "12191834c4a76005243f7e0846d446e55cf934a44728fbac93dc0aeebab7b697",
+      "current_bytes": 146618,
+      "current_sha256": "8920d40befd8140e7671570dffc6f3af5680482e7370826c3045d6453faaa8b1",
+      "path": "spec/concerns/amendments.md"
+    },
+    {
+      "base_bytes": 56342,
+      "base_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "current_bytes": 56342,
+      "current_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "path": "spec/concerns/baseline.md"
+    },
+    {
+      "base_bytes": 1803,
+      "base_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "current_bytes": 1803,
+      "current_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "path": "spec/concerns/demo.md"
+    },
+    {
+      "base_bytes": 34282,
+      "base_sha256": "a9bda259769d9fba3ef581610ef3c00ee3d9684358f31f2d55e732b1f95b31ff",
+      "current_bytes": 34282,
+      "current_sha256": "a9bda259769d9fba3ef581610ef3c00ee3d9684358f31f2d55e732b1f95b31ff",
+      "path": "spec/concerns/experiments.md"
+    },
+    {
+      "base_bytes": 3051,
+      "base_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "current_bytes": 3051,
+      "current_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "path": "spec/concerns/hardware.md"
+    },
+    {
+      "base_bytes": 11927,
+      "base_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "current_bytes": 11927,
+      "current_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "path": "spec/concerns/programme.md"
+    },
+    {
+      "base_bytes": 40175,
+      "base_sha256": "a6c79a0a2bfc1f7edaef5f7e739cbf6fc14188cdaaf539894922546ec08c2ee2",
+      "current_bytes": 43452,
+      "current_sha256": "bc8c8c40a307d6f9c16de854a33b5804c13026c7357b9b7c02fa67a049170b91",
+      "path": "spec/concerns/roadmap.md"
+    },
+    {
+      "base_bytes": 37315,
+      "base_sha256": "7db78c26ff492d54b4bd434f5007b94dc2aa88ae79c5c4c7f789dc501461208d",
+      "current_bytes": 37315,
+      "current_sha256": "7db78c26ff492d54b4bd434f5007b94dc2aa88ae79c5c4c7f789dc501461208d",
+      "path": "spec/concerns/system.md"
+    }
+  ],
+  "freeze_id": "g10semantics-e55bacf7372135cb0b49500d1def4ee0037b67169e8aed775c0c51552e33f6ff",
+  "predecessor_commit": "7fc415e2debeda61e1cc95049596c2eac46062b1",
+  "prior_compatibility": {
+    "compatibility_id": "w8speccompat-0d2184356d3adf0a339b68ab9d1435e45f8105f1b0e8614ee37470d34dbb3436",
+    "path": "results/learned/w7/w8_spec_additive_compatibility.json",
+    "sha256": "94eea47b7f4e244ee4d97a1207fb49e7c123d6d0c244e1a214d135bcb8c6a05c"
+  },
+  "schema_version": 1,
+  "scientific_boundary": {
+    "er2_randomized_training": 0,
+    "er9_training": 0,
+    "g10_learned_outcomes_observed": 0,
+    "g10_model_facing_evaluations": 0,
+    "g11": 0,
+    "learned_test_inference": 0,
+    "test_model_facing_access": 0,
+    "test_split": "SEALED",
+    "w10": 0
+  },
+  "status": "SEMANTICS_ONLY_FROZEN",
+  "timing": "post_w8_c_pre_g10_model_facing_evaluation",
+  "w8_terminal_evidence": {
+    "completion_id": "w8completion-c1ffa6f9894d2ce014595a7bb2126f7adf3fb38ae23d8f3815eb025c4c826e28",
+    "completion_sha256": "c0801f5a7d76319e58b18c4804f2179569892e4efb2d17721e024463d1188798",
+    "reconciliation_id": "w8creconcile-95215c9d5b426357009758bd0bcac7178c6db35a241801c3a6dc7129b81bb976",
+    "reconciliation_sha256": "01d72b6b9ea4b4d77dcdbfb1e7fa4c6aa6e064d694b2dab16fa15c3720851257"
+  }
+}

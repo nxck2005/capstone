@@ -14,6 +14,7 @@ from typing import Any
 
 from config.params import REPO_ROOT
 from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
+from evaluation.g10_spec_compatibility import load as load_am94_spec_compatibility
 
 SCHEMA_VERSION = 1
 W6_ROOT = REPO_ROOT / "results/baseline/w6"
@@ -47,6 +48,10 @@ _W7C_CURRENT_NORMATIVE_SHA256 = {
 _W8_CURRENT_NORMATIVE_SHA256 = {
     "normative_spec": "b05a2f04d6b3fa0e8110d0544900c29f823c96c424a75090a092433bb72cc68b",
     "resolved_params": "c5f598e4e9292f831279bed5584cd399c42cc769b6550f8921a7bf94d7e20234",
+}
+_AM94_CURRENT_NORMATIVE_SHA256 = {
+    "normative_spec": "75af7748f17245cb7771fd8e7078b506ce557bf920c7986bd49bd034aab8b6ad",
+    "resolved_params": "48e5fee874fe4b6c72ee60be3b92e0cd9da51edab87e74bc5f3af964c6f9e534",
 }
 STATUSES = {
     "W6_REQUIRED_AND_SATISFIED",
@@ -160,6 +165,10 @@ def _binding(spec: tuple[Any, ...]) -> dict[str, Any]:
             # W6 index bytes; never accept a live hash by name alone.
             load_w8_spec_compatibility(REPO_ROOT)
             allowed.add(_W8_CURRENT_NORMATIVE_SHA256[name])
+        if file_sha256 == _AM94_CURRENT_NORMATIVE_SHA256[name]:
+            load_w8_spec_compatibility(REPO_ROOT)
+            load_am94_spec_compatibility(REPO_ROOT)
+            allowed.add(_AM94_CURRENT_NORMATIVE_SHA256[name])
         require(
             file_sha256 in allowed,
             f"{name} is neither the frozen W6 nor an authenticated successor normative byte image",

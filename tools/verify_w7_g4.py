@@ -25,6 +25,10 @@ if str(REPO / "tools") not in sys.path:
     sys.path.insert(0, str(REPO / "tools"))
 
 from config.params import get  # noqa: E402
+from evaluation.g10_spec_compatibility import (  # noqa: E402
+    PREDECESSOR_COMMIT as AM94_PREDECESSOR_COMMIT,
+    load as load_am94_spec_compatibility,
+)
 from gen_w7_g4_authorization import (  # noqa: E402
     ADJUDICATOR_BLOB,
     ADJUDICATOR_PATH,
@@ -473,9 +477,9 @@ def _terminal_spec_view_refs() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     params" behaviour is permitted.
     """
 
-    current_source = _terminal_ref("spec/SPEC.md")
-    current_generated = [_terminal_ref(item) for item in TERMINAL_GENERATED_SPEC_PATHS]
     if not SPEC_COMPATIBILITY_PATH.exists():
+        current_source = _terminal_ref("spec/SPEC.md")
+        current_generated = [_terminal_ref(item) for item in TERMINAL_GENERATED_SPEC_PATHS]
         return current_source, current_generated
     compatibility = _read_json(SPEC_COMPATIBILITY_PATH)
     expected_keys = {
@@ -507,8 +511,17 @@ def _terminal_spec_view_refs() -> tuple[dict[str, Any], list[dict[str, Any]]]:
         fail("historical W7 generated view order differs")
     current = compatibility["current_spec_views"]
     _expect_keys(current, {"source", "generated_views"}, "current W7 spec views")
-    if current != {"source": current_source, "generated_views": current_generated}:
-        fail("current W7 spec view bytes differ from the additive compatibility record")
+    expected_am93_source = _historical_spec_ref(current["source"], AM94_PREDECESSOR_COMMIT)
+    expected_am93_generated = [
+        _historical_spec_ref(ref, AM94_PREDECESSOR_COMMIT)
+        for ref in current["generated_views"]
+    ]
+    if [ref["path"] for ref in expected_am93_generated] != list(TERMINAL_GENERATED_SPEC_PATHS):
+        fail("AM-93 generated view order differs")
+    try:
+        load_am94_spec_compatibility(REPO)
+    except Exception as exc:
+        fail(f"AM-94 successor spec compatibility differs: {exc}")
     if compatibility["allowed_change"] != {
         "amendment": "AM-93",
         "parameter": "params.learned_system.checkpoint_selection_snr_db",

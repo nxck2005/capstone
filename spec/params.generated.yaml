@@ -921,6 +921,19 @@ evaluation:
   - 2
   seed_pairing: zipped_not_cross_product
   seed_cell_interpretation: compound_replicate
+  g10_ratio: r_1_6
+  g10_learned_cells: exactly_three_frozen_w8_headline_seed_cells
+  g10_learned_aggregation: arithmetic_mean_of_unrounded_correct_count_fractions
+  g10_gap_orientation: learned_minus_classical_adaptive
+  g10_classical_comparator: classical_adaptive
+  g10_fixed_profile_role: context_and_secondary_diagnostic_only
+  g10_exact_arithmetic: rational_correct_count_over_denominator_no_tolerance
+  g10_expected_direction: positive_to_negative_with_increasing_snr
+  g10_zero_rule: maximal_zero_run_is_crossover_only_when_bracketed_by_positive_then_negative
+  g10_interpolation: forbidden_for_decision_and_canonical_location
+  g10_headline_event: first_expected_direction_event_in_ascending_snr
+  g10_multiple_event_rule: retain_all_crossings_and_recrossings_in_ascending_snr
+  g10_seed_spread: population_standard_deviation_ddof_0_descriptive_only
   split_seed: 1337
   split_rule: val carved deterministically from the published train split by evaluation.split_seed;
     the test split is never used for any selection
