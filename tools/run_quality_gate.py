@@ -20,7 +20,8 @@ PYTHON = sys.executable
 CPU_TEST_SELECTION = (
     "not primary_runtime and not external_ldpc_fixture "
     "and not external_dataset and not frozen_checkpoint "
-    "and not external_codec_runtime and not historical_profile_artifact"
+    "and not external_codec_runtime and not historical_profile_artifact "
+    "and not historical_pre_g10"
 )
 G10_AUTHORIZATION_V2 = Path("results/learned/w9/g10_execution_authorization_v2.json")
 G10_COMPLETION = Path("results/learned/w9/w9a_completion.json")
@@ -219,7 +220,8 @@ def profile_commands(profile: str) -> tuple[list[str], ...]:
             selection = (
                 "not primary_runtime and not external_dataset "
                 "and not frozen_checkpoint and not external_codec_runtime "
-                "and not historical_profile_artifact"
+                "and not historical_profile_artifact "
+                "and not historical_pre_g10"
             )
         return (*_static_commands(), [PYTHON, "-m", "pytest", "-q", "-m", selection])
     if profile == "evidence":

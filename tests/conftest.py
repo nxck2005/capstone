@@ -15,6 +15,58 @@ from torchvision.datasets import CIFAR10, STL10, Imagenette
 import config.params as config_params
 
 
+REPO = Path(__file__).resolve().parents[1]
+G10_COMPLETION = Path("results/learned/w9/w9a_completion.json")
+G10_RECONCILIATION = Path("results/learned/w9/w9a_reconciliation.json")
+
+# These modules authenticate immutable pre-G-10 phase boundaries.  Their
+# strict AM-94 assertions remain valuable in an AM-94/pre-science checkout,
+# while the post-G-10 carrier runs the corresponding read-only checks through
+# tools/run_post_g10_historical_check.py.
+HISTORICAL_PRE_G10_TEST_MODULES = frozenset(
+    {
+        "tests/test_g8_d_contract.py",
+        "tests/test_g8_d_handoff.py",
+        "tests/test_g8_d_records.py",
+        "tests/test_g8_d_resume.py",
+        "tests/test_g8_d_smoke.py",
+        "tests/test_g8_e_e0.py",
+        "tests/test_g8_f_closeout.py",
+        "tests/test_g8_f_corpus_plan.py",
+        "tests/test_g8_f_f0.py",
+        "tests/test_g8_f_launch_authorization.py",
+        "tests/test_g8_historical_compatibility.py",
+        "tests/test_g8_pascal_closeout.py",
+        "tests/test_g8_pascal_portable.py",
+        "tests/test_g8_pascal_production.py",
+        "tests/test_g8_phase_open.py",
+        "tests/test_g8_preflight.py",
+        "tests/test_w6_classical_evidence.py",
+        "tests/test_w6_complete.py",
+        "tests/test_w7_g4_terminal.py",
+        "tests/test_w8_b_launch_authorization.py",
+    }
+)
+
+
+def _present(path: Path) -> bool:
+    return path.exists() or path.is_symlink()
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    del config
+    if not (
+        _present(REPO / G10_COMPLETION)
+        or _present(REPO / G10_RECONCILIATION)
+    ):
+        return
+    marker = pytest.mark.historical_pre_g10
+    for item in items:
+        relative = Path(item.fspath).resolve().relative_to(REPO).as_posix()
+        if relative in HISTORICAL_PRE_G10_TEST_MODULES:
+            item.add_marker(marker)
+
+
 def _record(width: int, token: int) -> bytes:
     values = (np.arange(width, dtype=np.uint32) + token) % 256
     return values.astype(np.uint8).tobytes()

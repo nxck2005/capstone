@@ -24,4 +24,5 @@ markers = [
     "frozen_checkpoint: requires the committed G-1 reference checkpoint",
     "external_codec_runtime: requires the exact system OpenJPEG runtime",
     "historical_profile_artifact: requires the archived G-7 profiling report",
+    "historical_pre_g10: asserts a pre-G-10 compatibility phase and is excluded after terminal W9",
 ]
