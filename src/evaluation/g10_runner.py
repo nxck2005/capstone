@@ -156,7 +156,7 @@ def _checkpoint_payload(path: Path, checkpoint: dict[str, Any]) -> dict[str, Any
     require(payload.get("run_id") == checkpoint["run_id"], "checkpoint run identity differs")
     lineage = payload.get("lineage")
     require(isinstance(lineage, dict), "W8 checkpoint lineage is missing")
-    require(lineage.get("ratio") == EXPECTED_RATIO, "checkpoint ratio is not r_1_6")
+    require(lineage.get("bw_ratio") == EXPECTED_RATIO, "checkpoint ratio is not r_1_6")
     require(lineage.get("train_seed") == checkpoint["train_seed"] and lineage.get("channel_seed") == checkpoint["channel_seed"], "checkpoint seed pairing differs")
     protected = payload.get("protected_counters")
     require(isinstance(protected, dict), "W8 checkpoint protected counters are missing")

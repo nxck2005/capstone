@@ -38,6 +38,14 @@ def _publish_once(path: Path, raw: bytes) -> None:
     path.write_bytes(raw)
 
 
+def _publish_or_reuse(path: Path, raw: bytes) -> None:
+    if path.exists() or path.is_symlink():
+        if path.read_bytes() != raw:
+            raise G10ProtocolHold(f"existing immutable artifact differs: {path}")
+        return
+    _publish_once(path, raw)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source-commit", required=True)
@@ -50,7 +58,7 @@ def main() -> int:
         authorization, source_manifest, classical = build_authorization(
             root=REPO, source_commit=source_commit, profile_id=str(args.profile_id)
         )
-        _publish_once(REPO / CLASSICAL_EXTRACT_PATH, rendered_json(classical))
+        _publish_or_reuse(REPO / CLASSICAL_EXTRACT_PATH, rendered_json(classical))
         _publish_once(REPO / SOURCE_MANIFEST_PATH, rendered_json(source_manifest))
         _publish_once(REPO / AUTHORIZATION_PATH, rendered_json(authorization))
         verified = verify_authorization(root=REPO)

@@ -23,6 +23,7 @@ from evaluation.g10_protocol import (  # noqa: E402
     G10ProtocolHold,
     HEADLINE_CURVE_PATH,
     OUTCOME_FILES,
+    PRE_EXECUTION_FILES,
     RECONCILIATION_PATH,
     RUNTIME_MANIFEST_PATH,
     canonical_sha256,
@@ -62,18 +63,13 @@ def _fraction(value: dict[str, Any]) -> tuple[int, int]:
 
 def verify(root: Path = REPO) -> dict[str, Any]:
     authorization = verify_authorization(root / AUTHORIZATION_PATH, root=root, allow_outcomes=True)
-    source_manifest, _ = load_json(root / "results/learned/w9/g10_source_manifest.json", "G-10 source manifest")
+    source_manifest_path = root / authorization["scientific_source"]["manifest"]["path"]
+    source_manifest, _ = load_json(source_manifest_path, "G-10 source manifest")
     verify_source_manifest(source_manifest, root)
     source_commit = authorization["scientific_source"]["commit"]
     _require(_is_ancestor(source_commit, _git_head()), "G-10 source epoch is not an ancestor of terminal evidence")
     current_files = frozenset(path.relative_to(root).as_posix() for path in (root / "results/learned/w9").glob("**/*") if path.is_file())
-    allowed = {
-        "results/learned/w9/am94_pre_science_freeze.json",
-        str(AUTHORIZATION_PATH),
-        "results/learned/w9/g10_source_manifest.json",
-        str(CLASSICAL_EXTRACT_PATH),
-        *OUTCOME_FILES,
-    }
+    allowed = set(PRE_EXECUTION_FILES) | set(OUTCOME_FILES)
     _require(current_files == allowed, f"terminal W9 artifact set differs: unexpected={sorted(current_files - allowed)} missing={sorted(allowed - current_files)}")
     classical, _ = load_json(root / CLASSICAL_EXTRACT_PATH, "G-10 classical extract")
     classical_by_snr = {int(row["snr_db"]): row for row in classical["points"]}

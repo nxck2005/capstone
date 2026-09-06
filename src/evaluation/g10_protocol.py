@@ -25,8 +25,13 @@ from evaluation import g10_spec_compatibility as am94
 
 
 SCHEMA_VERSION = 1
-AUTHORIZATION_PATH = Path("results/learned/w9/g10_execution_authorization.json")
-SOURCE_MANIFEST_PATH = Path("results/learned/w9/g10_source_manifest.json")
+# The first pre-data authority is preserved as superseded-before-data history.
+# The active paths below are additive repair successors; no historical W9 file
+# is replaced when a pre-outcome implementation defect is found.
+LEGACY_AUTHORIZATION_PATH = Path("results/learned/w9/g10_execution_authorization.json")
+LEGACY_SOURCE_MANIFEST_PATH = Path("results/learned/w9/g10_source_manifest.json")
+AUTHORIZATION_PATH = Path("results/learned/w9/g10_execution_authorization_v2.json")
+SOURCE_MANIFEST_PATH = Path("results/learned/w9/g10_source_manifest_v2.json")
 CLASSICAL_EXTRACT_PATH = Path(
     "results/learned/w9/g10_classical_adaptive_r1_6_extract.json"
 )
@@ -103,6 +108,8 @@ PROTECTED_ZERO = {
 PRE_EXECUTION_FILES = frozenset(
     {
         "results/learned/w9/am94_pre_science_freeze.json",
+        str(LEGACY_AUTHORIZATION_PATH),
+        str(LEGACY_SOURCE_MANIFEST_PATH),
         str(AUTHORIZATION_PATH),
         str(SOURCE_MANIFEST_PATH),
         str(CLASSICAL_EXTRACT_PATH),
@@ -542,6 +549,20 @@ def build_authorization(
     protocol = protocol_identity(root)
     completion, completion_raw = load_json(root / W8_COMPLETION_PATH, "W8 completion")
     reconciliation, reconciliation_raw = load_json(root / W8_RECONCILIATION_PATH, "W8-C reconciliation")
+    legacy_authorization, legacy_authorization_raw = load_json(
+        root / LEGACY_AUTHORIZATION_PATH, "superseded W9-A authority"
+    )
+    verify_identified(
+        legacy_authorization,
+        field="authorization_id",
+        prefix=AUTH_PREFIX,
+        label="superseded W9-A authority",
+    )
+    require(
+        legacy_authorization.get("status") == "AUTHORIZED_PRE_EXECUTION"
+        and legacy_authorization.get("pre_execution_counters") == PROTECTED_ZERO,
+        "superseded W9-A authority is not zero-coverage history",
+    )
     checkpoint_rows = _w8_selected_checkpoints(root)
     manifest_binding = {"path": str(SOURCE_MANIFEST_PATH), "manifest_id": source_manifest["manifest_id"], "file_sha256": sha256_bytes(rendered_json(source_manifest))}
     classical_binding = {"path": str(CLASSICAL_EXTRACT_PATH), "extract_id": classical["extract_id"], "file_sha256": sha256_bytes(rendered_json(classical))}
@@ -552,6 +573,14 @@ def build_authorization(
         "authorization_scope": "G10_EXACTLY_THREE_W8_R1_6_CHECKPOINTS_X_NORMATIVE_21_SNR_GRID",
         "authorized_by": "repository owner instruction for W9-A separate G-10 authority",
         "amendment": "AM-94",
+        "supersedes": {
+            "path": str(LEGACY_AUTHORIZATION_PATH),
+            "authorization_id": legacy_authorization["authorization_id"],
+            "file_sha256": sha256_bytes(legacy_authorization_raw),
+            "reason": "pre-outcome adapter hold: W8 checkpoint ratio is stored as bw_ratio",
+            "scientific_outcomes_observed": 0,
+            "successful_cells": 0,
+        },
         "scientific_source": {"commit": source_commit, "manifest": manifest_binding},
         "protocol": protocol,
         "scientific_scope": {
@@ -633,7 +662,7 @@ def build_authorization(
             "tolerance_epsilon_ci_bootstrap_seed_vote": False,
         },
         "runtime": {
-            "runtime_root": "/home/nick/w9-g10-am94-confessor-pascal-20260906",
+            "runtime_root": "/home/nick/w9-g10-am94-confessor-pascal-20260906-v2",
             "order": "train_seed_ascending_then_snr_grid_order",
             "successful_cell_rerun": False,
             "incomplete_cell_recovery": "fail_closed_if_started_without_success_record",
@@ -672,14 +701,16 @@ def verify_authorization(
     require(value.get("status") == "AUTHORIZED_PRE_EXECUTION", "G-10 authorization is not pre-execution")
     require(value.get("pre_execution_counters") == PROTECTED_ZERO, "G-10 authority counters are not zero")
     verify_am94_boundary(root, outcomes_allowed=allow_outcomes)
-    source_manifest, _ = load_json(root / SOURCE_MANIFEST_PATH, "G-10 source manifest")
+    manifest_relative = Path(value["scientific_source"]["manifest"]["path"])
+    source_manifest, _ = load_json(root / manifest_relative, "G-10 source manifest")
     verify_source_manifest(source_manifest, root)
     require(value["scientific_source"]["commit"] == source_manifest["source_commit"], "authority/source manifest commit differs")
     require(value["scientific_source"]["manifest"]["manifest_id"] == source_manifest["manifest_id"], "authority/source manifest ID differs")
-    require(value["scientific_source"]["manifest"]["file_sha256"] == sha256_file(root / SOURCE_MANIFEST_PATH), "authority/source manifest SHA differs")
-    classical, _ = load_json(root / CLASSICAL_EXTRACT_PATH, "G-10 classical extract")
+    require(value["scientific_source"]["manifest"]["file_sha256"] == sha256_file(root / manifest_relative), "authority/source manifest SHA differs")
+    classical_relative = Path(value["classical_headline"]["path"])
+    classical, _ = load_json(root / classical_relative, "G-10 classical extract")
     verify_classical_extract(classical, root)
-    require(value["classical_headline"]["extract_id"] == classical["extract_id"] and value["classical_headline"]["file_sha256"] == sha256_file(root / CLASSICAL_EXTRACT_PATH), "authority/classical extract binding differs")
+    require(value["classical_headline"]["extract_id"] == classical["extract_id"] and value["classical_headline"]["file_sha256"] == sha256_file(root / classical_relative), "authority/classical extract binding differs")
     require(value["protocol"] == protocol_identity(root), "G-10 protocol identity differs")
     require(value["snr_authority"]["resolved_ordered_values_db"] == list(EXPECTED_GRID), "authority grid differs")
     require(value["execution_profile_selection"]["execution_profile_id"] == EXPECTED_PROFILE_ID and value["execution_profile_selection"]["gpu_uuid"] == EXPECTED_GPU_UUID, "authority profile differs")
@@ -687,6 +718,18 @@ def verify_authorization(
     require(value["checkpoints"] == expected_checkpoints, "authority W8 checkpoint mappings differ")
     require(value["am94_semantics"]["freeze_id"] == am94.FREEZE_ID and value["am94_semantics"]["freeze_sha256"] == am94.FREEZE_SHA256, "authority AM-94 binding differs")
     require(value["am94_semantics"]["predicate_source_sha256"] == sha256_file(root / "src/evaluation/g10_crossover.py"), "authority predicate source differs")
+    if "supersedes" in value:
+        superseded = value["supersedes"]
+        legacy_path = root / superseded["path"]
+        legacy, legacy_raw = load_json(legacy_path, "superseded W9-A authority")
+        verify_identified(legacy, field="authorization_id", prefix=AUTH_PREFIX, label="superseded W9-A authority")
+        require(
+            superseded["authorization_id"] == legacy["authorization_id"]
+            and superseded["file_sha256"] == sha256_bytes(legacy_raw)
+            and superseded["scientific_outcomes_observed"] == 0
+            and superseded["successful_cells"] == 0,
+            "G-10 authority supersession binding differs",
+        )
     return value
 
 
