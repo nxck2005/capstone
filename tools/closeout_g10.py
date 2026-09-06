@@ -30,6 +30,7 @@ from evaluation.g10_protocol import (  # noqa: E402
     load_json,
     rendered_json,
     require,
+    sha256_bytes,
     sha256_file,
     verify_authorization,
     verify_identified,
