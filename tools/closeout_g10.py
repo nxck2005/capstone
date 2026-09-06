@@ -33,8 +33,8 @@ from evaluation.g10_protocol import (  # noqa: E402
     sha256_file,
     verify_authorization,
     verify_identified,
-    _verify_cell,
 )
+from evaluation.g10_runner import _verify_cell  # noqa: E402
 
 
 def _publish_once(path: Path, value: dict[str, Any]) -> None:
