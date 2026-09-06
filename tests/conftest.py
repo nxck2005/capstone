@@ -47,6 +47,12 @@ HISTORICAL_PRE_G10_TEST_MODULES = frozenset(
         "tests/test_w8_b_launch_authorization.py",
     }
 )
+HISTORICAL_PRE_G10_TESTS = frozenset(
+    {
+        "tests/test_g10_protocol.py::test_am94_boundary_remains_pre_science",
+        "tests/test_g10_protocol.py::test_no_outcome_files_exist_before_authority",
+    }
+)
 
 
 def _present(path: Path) -> bool:
@@ -63,7 +69,10 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     marker = pytest.mark.historical_pre_g10
     for item in items:
         relative = Path(item.fspath).resolve().relative_to(REPO).as_posix()
-        if relative in HISTORICAL_PRE_G10_TEST_MODULES:
+        if (
+            relative in HISTORICAL_PRE_G10_TEST_MODULES
+            or item.nodeid.split("[", 1)[0] in HISTORICAL_PRE_G10_TESTS
+        ):
             item.add_marker(marker)
 
 
