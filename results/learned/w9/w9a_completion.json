@@ -1,0 +1,69 @@
+{
+  "adjudication": {
+    "adjudication_id": "g10adjudication-4bb31d175361edfab62527d0307be4af8d8c328709b12f2ac92ae5de2270f6e7",
+    "path": "results/learned/w9/g10_adjudication.json"
+  },
+  "artifact_content_sha256": "6be0c6622b5a6797322f579fc75ab68b9ec9bae60c46d30e11c1d084cc513ccb",
+  "artifact_role": "W9A_G10_TERMINAL_COMPLETION",
+  "authority": {
+    "authorization_id": "g10auth-2698cd328a664a70ae33f41e7126fe8f3fef0f83fdf11dbcbadb329a6c87d233",
+    "file_sha256": "0c5fa8025c0e54af71a7c534f266bf24eb27244ff1dd7640afe1a6bea26da81f",
+    "path": "results/learned/w9/g10_execution_authorization_v2.json"
+  },
+  "cell_index": {
+    "index_id": "g10index-8c86f3e20e671df9584bde88916310426cd9ab9d3da41d84849e55ed41ad052f",
+    "path": "results/learned/w9/g10_cell_index.json"
+  },
+  "classification": "expected_crossover_observed",
+  "complete_learned_evaluations": 63,
+  "completion_id": "w9acompletion-533df59159a9748b7c33d92ee7b3a87d2bfc066cb30ba3cb931cdf17f302bfc8",
+  "downstream": {
+    "er9": 0,
+    "g11": 0,
+    "learned_test_inference": 0,
+    "model_facing_test_access": 0,
+    "randomized_er2_training": 0,
+    "test": "SEALED",
+    "w10": 0
+  },
+  "grid_db": [
+    -8,
+    -7,
+    -6,
+    -5,
+    -4,
+    -3,
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9,
+    11,
+    13,
+    15,
+    18
+  ],
+  "headline_comparator": "G8/F3 adaptive/oracle classical r_1_6",
+  "headline_curve": {
+    "curve_id": "g10curve-4de82196184ef5fa46ab69a3d722c439a3d305d54550ccadb3a56834dcc368c3",
+    "path": "results/learned/w9/g10_headline_curve.json"
+  },
+  "runtime_manifest": {
+    "path": "results/learned/w9/g10_runtime_manifest.json",
+    "runtime_manifest_id": "g10runtime-e1ac2ff8027f3527573fa7c658d3639f8734e55a2574aad67543a5765b6ec813"
+  },
+  "schema_version": 1,
+  "source": {
+    "commit": "9515c490aed4439f7ced2c163abef61557654ddf",
+    "manifest_id": "g10source-4842d921d221391e348d1a2542b30b1e1fd49a37b8cedec31f22c320780d0a21",
+    "manifest_path": "results/learned/w9/g10_source_manifest_v2.json"
+  },
+  "status": "W9A_G10_GREEN_TERMINAL_VALIDATION_ONLY",
+  "stop_boundary": "STOP_AFTER_W9A_G10_TERMINAL_RECONCILIATION"
+}

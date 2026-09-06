@@ -1,0 +1,1029 @@
+{
+  "aggregation": "arithmetic_mean_of_three_exact_correct_count_fractions",
+  "artifact_content_sha256": "361982e7294f1d156d9ae055c96d748d36dca1034a6317a9f1e8eb3b63cab407",
+  "artifact_role": "G10_LEARNED_AGGREGATE_HEADLINE_CURVE",
+  "authority_id": "g10auth-2698cd328a664a70ae33f41e7126fe8f3fef0f83fdf11dbcbadb329a6c87d233",
+  "cell_index_path": "results/learned/w9/g10_cell_index.json",
+  "curve_id": "g10curve-4de82196184ef5fa46ab69a3d722c439a3d305d54550ccadb3a56834dcc368c3",
+  "dataset": "imagenette160",
+  "points": [
+    {
+      "classical_adaptive": {
+        "accuracy": 0.1,
+        "correct_count": 1,
+        "denominator": 10,
+        "fraction": "1/10",
+        "source_measurement_clean_correct_count": 816,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 1000,
+        "fraction": "679/1000",
+        "numerator": 679
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-e93ff2bc0ec6c2eb774453daff6b637db70867cdb49a58d1c8529576a96993c8",
+          "cell_key": "train0_channel0_snr-08",
+          "correct_count": 733,
+          "denominator": 1000,
+          "top1_accuracy": 0.733
+        },
+        {
+          "artifact_id": "g10cell-e18b88eadc9b24e5983eff8c274a53c64e43ea09255a16fc9ca2b0d5b89d287f",
+          "cell_key": "train1_channel1_snr-08",
+          "correct_count": 798,
+          "denominator": 1000,
+          "top1_accuracy": 0.798
+        },
+        {
+          "artifact_id": "g10cell-50e735aee0400ff54af2e1f85e50efd0ddd3b12c756144f1cee3ff088da1624e",
+          "cell_key": "train2_channel2_snr-08",
+          "correct_count": 806,
+          "denominator": 1000,
+          "top1_accuracy": 0.806
+        }
+      ],
+      "learned_mean": {
+        "denominator": 1000,
+        "fraction": "779/1000",
+        "numerator": 779
+      },
+      "learned_mean_accuracy": 0.779,
+      "learned_population_sd": 0.0326904675198546,
+      "sign": 1,
+      "snr_db": -8
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.1,
+        "correct_count": 1,
+        "denominator": 10,
+        "fraction": "1/10",
+        "source_measurement_clean_correct_count": 816,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 3000,
+        "fraction": "2051/3000",
+        "numerator": 2051
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-3440ddc24223e1f2b69b018c5df7eabb22c02b0bac61b0a0bf1b7e2b47cb73b2",
+          "cell_key": "train0_channel0_snr-07",
+          "correct_count": 735,
+          "denominator": 1000,
+          "top1_accuracy": 0.735
+        },
+        {
+          "artifact_id": "g10cell-2d42f80d6f1c8bf029841795bdd3b6d0f3a53508d755b7dadb2781d3dfcea9c7",
+          "cell_key": "train1_channel1_snr-07",
+          "correct_count": 815,
+          "denominator": 1000,
+          "top1_accuracy": 0.815
+        },
+        {
+          "artifact_id": "g10cell-063d48eaae5cbea731e31f3e9c67067184afcc79cdac33e6885acfef744f8268",
+          "cell_key": "train2_channel2_snr-07",
+          "correct_count": 801,
+          "denominator": 1000,
+          "top1_accuracy": 0.801
+        }
+      ],
+      "learned_mean": {
+        "denominator": 3000,
+        "fraction": "2351/3000",
+        "numerator": 2351
+      },
+      "learned_mean_accuracy": 0.7836666666666666,
+      "learned_population_sd": 0.03488393453853634,
+      "sign": 1,
+      "snr_db": -7
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.1,
+        "correct_count": 1,
+        "denominator": 10,
+        "fraction": "1/10",
+        "source_measurement_clean_correct_count": 816,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 500,
+        "fraction": "351/500",
+        "numerator": 351
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-c6d121b08ec4180daa0d96197a74f1d718a74fc0c9de261ed1bd9eed15e42e8e",
+          "cell_key": "train0_channel0_snr-06",
+          "correct_count": 771,
+          "denominator": 1000,
+          "top1_accuracy": 0.771
+        },
+        {
+          "artifact_id": "g10cell-adc2aea2dff5ac63081beef5e3f0dd660f252812baa8b549aa8a318e63d6b142",
+          "cell_key": "train1_channel1_snr-06",
+          "correct_count": 815,
+          "denominator": 1000,
+          "top1_accuracy": 0.815
+        },
+        {
+          "artifact_id": "g10cell-25db6f7fb62569a71957c4cbc87226c2df7281ad5cb052d2d69c1bfe616886f6",
+          "cell_key": "train2_channel2_snr-06",
+          "correct_count": 820,
+          "denominator": 1000,
+          "top1_accuracy": 0.82
+        }
+      ],
+      "learned_mean": {
+        "denominator": 500,
+        "fraction": "401/500",
+        "numerator": 401
+      },
+      "learned_mean_accuracy": 0.802,
+      "learned_population_sd": 0.02201514630127779,
+      "sign": 1,
+      "snr_db": -6
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.1,
+        "correct_count": 1,
+        "denominator": 10,
+        "fraction": "1/10",
+        "source_measurement_clean_correct_count": 816,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 3000,
+        "fraction": "2129/3000",
+        "numerator": 2129
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-71d22ab504d4fe5c8c95fa6bfbc21cc51dbfe4f89461e7c543d61159419f04ba",
+          "cell_key": "train0_channel0_snr-05",
+          "correct_count": 779,
+          "denominator": 1000,
+          "top1_accuracy": 0.779
+        },
+        {
+          "artifact_id": "g10cell-025dc18c79fa75761264a614d340684fae55bf5539dddb7d62fb4782839e8833",
+          "cell_key": "train1_channel1_snr-05",
+          "correct_count": 821,
+          "denominator": 1000,
+          "top1_accuracy": 0.821
+        },
+        {
+          "artifact_id": "g10cell-0646cc4bb86a2772c0fa79c3378ec79bb1c6153c06edcb6c8db207aa42144d30",
+          "cell_key": "train2_channel2_snr-05",
+          "correct_count": 829,
+          "denominator": 1000,
+          "top1_accuracy": 0.829
+        }
+      ],
+      "learned_mean": {
+        "denominator": 3000,
+        "fraction": "2429/3000",
+        "numerator": 2429
+      },
+      "learned_mean_accuracy": 0.8096666666666666,
+      "learned_population_sd": 0.021929178937864672,
+      "sign": 1,
+      "snr_db": -5
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.834,
+        "correct_count": 417,
+        "denominator": 500,
+        "fraction": "417/500",
+        "source_measurement_clean_correct_count": 834,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 500,
+        "fraction": "-9/500",
+        "numerator": -9
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-0192a23a69a23641cbcc4abfe8b39043a87049a00e61227b146098d3297d7632",
+          "cell_key": "train0_channel0_snr-04",
+          "correct_count": 802,
+          "denominator": 1000,
+          "top1_accuracy": 0.802
+        },
+        {
+          "artifact_id": "g10cell-8856a320ee594917f0b8d0d9b7220f21162a536fe46aa4f0a1aecfba5b6ccc78",
+          "cell_key": "train1_channel1_snr-04",
+          "correct_count": 811,
+          "denominator": 1000,
+          "top1_accuracy": 0.811
+        },
+        {
+          "artifact_id": "g10cell-7e08053b5f7bf0474e2668348f670b18677201129488dd7d4fd98d5b10a565c8",
+          "cell_key": "train2_channel2_snr-04",
+          "correct_count": 835,
+          "denominator": 1000,
+          "top1_accuracy": 0.835
+        }
+      ],
+      "learned_mean": {
+        "denominator": 125,
+        "fraction": "102/125",
+        "numerator": 102
+      },
+      "learned_mean_accuracy": 0.816,
+      "learned_population_sd": 0.013928388277184081,
+      "sign": -1,
+      "snr_db": -4
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.834,
+        "correct_count": 417,
+        "denominator": 500,
+        "fraction": "417/500",
+        "source_measurement_clean_correct_count": 834,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 1000,
+        "fraction": "-13/1000",
+        "numerator": -13
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-1d2af65dccec472825c5fd3378b61ee753ab7adc7177d76e635d6757f9da0f72",
+          "cell_key": "train0_channel0_snr-03",
+          "correct_count": 804,
+          "denominator": 1000,
+          "top1_accuracy": 0.804
+        },
+        {
+          "artifact_id": "g10cell-20f9ea7ee4c87ab6db7d34fb54a8e206ee89752772f9747522384d87175fad5e",
+          "cell_key": "train1_channel1_snr-03",
+          "correct_count": 826,
+          "denominator": 1000,
+          "top1_accuracy": 0.826
+        },
+        {
+          "artifact_id": "g10cell-6ae6cf318500a1fb1ea9db3bb991120a1f7fd4e9f07f0007f910365f50018670",
+          "cell_key": "train2_channel2_snr-03",
+          "correct_count": 833,
+          "denominator": 1000,
+          "top1_accuracy": 0.833
+        }
+      ],
+      "learned_mean": {
+        "denominator": 1000,
+        "fraction": "821/1000",
+        "numerator": 821
+      },
+      "learned_mean_accuracy": 0.821,
+      "learned_population_sd": 0.012355835328567053,
+      "sign": -1,
+      "snr_db": -3
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.839808,
+        "correct_count": 13122,
+        "denominator": 15625,
+        "fraction": "13122/15625",
+        "source_measurement_clean_correct_count": 858,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 375000,
+        "fraction": "-5053/375000",
+        "numerator": -5053
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-88b0ebeb4590f1aabfc9d30c62eff6960c2655fc915b986489a612f122c5491a",
+          "cell_key": "train0_channel0_snr-02",
+          "correct_count": 799,
+          "denominator": 1000,
+          "top1_accuracy": 0.799
+        },
+        {
+          "artifact_id": "g10cell-52a7c55be430d2c21ab6eb321ae3566c88be7b50ca5e51bf36f27e65853bf71c",
+          "cell_key": "train1_channel1_snr-02",
+          "correct_count": 838,
+          "denominator": 1000,
+          "top1_accuracy": 0.838
+        },
+        {
+          "artifact_id": "g10cell-2e9a5829405e35b178852d5aad52c417f4a68ddc62ce577f8bb2aca54ae3853f",
+          "cell_key": "train2_channel2_snr-02",
+          "correct_count": 842,
+          "denominator": 1000,
+          "top1_accuracy": 0.842
+        }
+      ],
+      "learned_mean": {
+        "denominator": 3000,
+        "fraction": "2479/3000",
+        "numerator": 2479
+      },
+      "learned_mean_accuracy": 0.8263333333333334,
+      "learned_population_sd": 0.019396448701301507,
+      "sign": -1,
+      "snr_db": -2
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.87269083092,
+        "correct_count": 21817270773,
+        "denominator": 25000000000,
+        "fraction": "21817270773/25000000000",
+        "source_measurement_clean_correct_count": 873,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 75000000000,
+        "fraction": "-3301812319/75000000000",
+        "numerator": -3301812319
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-472dc86100098918457d9a12063930a5dda667d7a8913fe3a51911d13739b322",
+          "cell_key": "train0_channel0_snr-01",
+          "correct_count": 804,
+          "denominator": 1000,
+          "top1_accuracy": 0.804
+        },
+        {
+          "artifact_id": "g10cell-34577ea9089c39eaba1efac07357d7ccba3b59504fd0bfa80b3baa74867ef2c6",
+          "cell_key": "train1_channel1_snr-01",
+          "correct_count": 842,
+          "denominator": 1000,
+          "top1_accuracy": 0.842
+        },
+        {
+          "artifact_id": "g10cell-204eb4b466420fb231dd8bed6379e4eb49218fd18359a93224e1cd65c158e8f6",
+          "cell_key": "train2_channel2_snr-01",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        }
+      ],
+      "learned_mean": {
+        "denominator": 1500,
+        "fraction": "1243/1500",
+        "numerator": 1243
+      },
+      "learned_mean_accuracy": 0.8286666666666667,
+      "learned_population_sd": 0.017461067804945024,
+      "sign": -1,
+      "snr_db": -1
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.873,
+        "correct_count": 873,
+        "denominator": 1000,
+        "fraction": "873/1000",
+        "source_measurement_clean_correct_count": 873,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 500,
+        "fraction": "-21/500",
+        "numerator": -21
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-a5a7c7e5a247f0085805b9f3ec675db0a63cb465d9d5ac23293b7581feb8b7c4",
+          "cell_key": "train0_channel0_snr+00",
+          "correct_count": 821,
+          "denominator": 1000,
+          "top1_accuracy": 0.821
+        },
+        {
+          "artifact_id": "g10cell-5d083c7e8d0693b34e74278d7718dcd5b7119fbc8f84acb5e9f46e65dc90922c",
+          "cell_key": "train1_channel1_snr+00",
+          "correct_count": 828,
+          "denominator": 1000,
+          "top1_accuracy": 0.828
+        },
+        {
+          "artifact_id": "g10cell-2c7b05fe1992f525698faa73834be29250484d10bdee84eca824e269e7de6388",
+          "cell_key": "train2_channel2_snr+00",
+          "correct_count": 844,
+          "denominator": 1000,
+          "top1_accuracy": 0.844
+        }
+      ],
+      "learned_mean": {
+        "denominator": 1000,
+        "fraction": "831/1000",
+        "numerator": 831
+      },
+      "learned_mean_accuracy": 0.831,
+      "learned_population_sd": 0.009626352718795776,
+      "sign": -1,
+      "snr_db": 0
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.873,
+        "correct_count": 873,
+        "denominator": 1000,
+        "fraction": "873/1000",
+        "source_measurement_clean_correct_count": 873,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 3000,
+        "fraction": "-113/3000",
+        "numerator": -113
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-0952e603334bcf7547a3e747126310a95387369d8bd2a91b58e7c87f861ae613",
+          "cell_key": "train0_channel0_snr+01",
+          "correct_count": 825,
+          "denominator": 1000,
+          "top1_accuracy": 0.825
+        },
+        {
+          "artifact_id": "g10cell-c22e8e494edb78b201835b6479e8d90bc8b2ad898bf9987e4ae36530e84e1865",
+          "cell_key": "train1_channel1_snr+01",
+          "correct_count": 838,
+          "denominator": 1000,
+          "top1_accuracy": 0.838
+        },
+        {
+          "artifact_id": "g10cell-cabcac454de6c366f53d1aeef0b46a61a115969127620f32deb7654c09f2504e",
+          "cell_key": "train2_channel2_snr+01",
+          "correct_count": 843,
+          "denominator": 1000,
+          "top1_accuracy": 0.843
+        }
+      ],
+      "learned_mean": {
+        "denominator": 1500,
+        "fraction": "1253/1500",
+        "numerator": 1253
+      },
+      "learned_mean_accuracy": 0.8353333333333334,
+      "learned_population_sd": 0.007586537784494035,
+      "sign": -1,
+      "snr_db": 1
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.878,
+        "correct_count": 439,
+        "denominator": 500,
+        "fraction": "439/500",
+        "source_measurement_clean_correct_count": 878,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 250,
+        "fraction": "-11/250",
+        "numerator": -11
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-6781b2a19889fa28f6b29ac1ba94157f79877156605ebc428e461f793d256159",
+          "cell_key": "train0_channel0_snr+02",
+          "correct_count": 822,
+          "denominator": 1000,
+          "top1_accuracy": 0.822
+        },
+        {
+          "artifact_id": "g10cell-d57fdf687a6bd6321db98fee44996ae21b93279f6e3c71112ae38bad832046af",
+          "cell_key": "train1_channel1_snr+02",
+          "correct_count": 837,
+          "denominator": 1000,
+          "top1_accuracy": 0.837
+        },
+        {
+          "artifact_id": "g10cell-0303a7fcd3b75c94b6f14d6e7e5fab2ab21fae92cfdc30e0af0a2e81f27cc001",
+          "cell_key": "train2_channel2_snr+02",
+          "correct_count": 843,
+          "denominator": 1000,
+          "top1_accuracy": 0.843
+        }
+      ],
+      "learned_mean": {
+        "denominator": 500,
+        "fraction": "417/500",
+        "numerator": 417
+      },
+      "learned_mean_accuracy": 0.834,
+      "learned_population_sd": 0.008831760866327854,
+      "sign": -1,
+      "snr_db": 2
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.878,
+        "correct_count": 439,
+        "denominator": 500,
+        "fraction": "439/500",
+        "source_measurement_clean_correct_count": 878,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 3000,
+        "fraction": "-137/3000",
+        "numerator": -137
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-8694fc1ea93af23546ad5cc7f7a4f4f6881996b646818037b710e48aaeb1aa57",
+          "cell_key": "train0_channel0_snr+03",
+          "correct_count": 823,
+          "denominator": 1000,
+          "top1_accuracy": 0.823
+        },
+        {
+          "artifact_id": "g10cell-837f73e394ccd11d8ff32293fdb97e08df4cdd159c4ee97863a836b6f27c815a",
+          "cell_key": "train1_channel1_snr+03",
+          "correct_count": 831,
+          "denominator": 1000,
+          "top1_accuracy": 0.831
+        },
+        {
+          "artifact_id": "g10cell-9e518707e074bb912e1152f3989ba42f585ab77bfa7f001a2485b850b3f58888",
+          "cell_key": "train2_channel2_snr+03",
+          "correct_count": 843,
+          "denominator": 1000,
+          "top1_accuracy": 0.843
+        }
+      ],
+      "learned_mean": {
+        "denominator": 3000,
+        "fraction": "2497/3000",
+        "numerator": 2497
+      },
+      "learned_mean_accuracy": 0.8323333333333334,
+      "learned_population_sd": 0.008219218670625309,
+      "sign": -1,
+      "snr_db": 3
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.878,
+        "correct_count": 439,
+        "denominator": 500,
+        "fraction": "439/500",
+        "source_measurement_clean_correct_count": 878,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 25,
+        "fraction": "-1/25",
+        "numerator": -1
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-000aa9f9a4c2a398c01d5723a74fa07e7bbb61c6a27190c0413d9888f1704e33",
+          "cell_key": "train0_channel0_snr+04",
+          "correct_count": 827,
+          "denominator": 1000,
+          "top1_accuracy": 0.827
+        },
+        {
+          "artifact_id": "g10cell-9c9e15ac34837ddf6dd6a2d5b5f364378c3ddbe84c8c20af1139b855ec08bce6",
+          "cell_key": "train1_channel1_snr+04",
+          "correct_count": 847,
+          "denominator": 1000,
+          "top1_accuracy": 0.847
+        },
+        {
+          "artifact_id": "g10cell-8990da6604b19a75b0adab2db8b65cf9c8f4e9491b89481572e2cf246d3e1734",
+          "cell_key": "train2_channel2_snr+04",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        }
+      ],
+      "learned_mean": {
+        "denominator": 500,
+        "fraction": "419/500",
+        "numerator": 419
+      },
+      "learned_mean_accuracy": 0.838,
+      "learned_population_sd": 0.008286535263104043,
+      "sign": -1,
+      "snr_db": 4
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.878,
+        "correct_count": 439,
+        "denominator": 500,
+        "fraction": "439/500",
+        "source_measurement_clean_correct_count": 878,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 1000,
+        "fraction": "-41/1000",
+        "numerator": -41
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-6a85773b1f79497edead83a9641d99ba840b47168a9e32dee1caa3735f3be23d",
+          "cell_key": "train0_channel0_snr+05",
+          "correct_count": 834,
+          "denominator": 1000,
+          "top1_accuracy": 0.834
+        },
+        {
+          "artifact_id": "g10cell-07d1fba7f10532b1f1308489cfd57e15cd1e26ac040ec55e8c17e85c3f76a2b4",
+          "cell_key": "train1_channel1_snr+05",
+          "correct_count": 838,
+          "denominator": 1000,
+          "top1_accuracy": 0.838
+        },
+        {
+          "artifact_id": "g10cell-d439423ff3b0d2abdc9e130a5d01cd98fa5e6f75b8fc2672683f705df3c4163a",
+          "cell_key": "train2_channel2_snr+05",
+          "correct_count": 839,
+          "denominator": 1000,
+          "top1_accuracy": 0.839
+        }
+      ],
+      "learned_mean": {
+        "denominator": 1000,
+        "fraction": "837/1000",
+        "numerator": 837
+      },
+      "learned_mean_accuracy": 0.837,
+      "learned_population_sd": 0.0021602468994692888,
+      "sign": -1,
+      "snr_db": 5
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.887,
+        "correct_count": 887,
+        "denominator": 1000,
+        "fraction": "887/1000",
+        "source_measurement_clean_correct_count": 887,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 75,
+        "fraction": "-4/75",
+        "numerator": -4
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-46e02ea61ed27e15cf1b107f3071c5b00c697ea9672dae51802cf219030be505",
+          "cell_key": "train0_channel0_snr+06",
+          "correct_count": 824,
+          "denominator": 1000,
+          "top1_accuracy": 0.824
+        },
+        {
+          "artifact_id": "g10cell-46190441f6b4584d2a2017fd44f72b853e5bf864cfd75cda1cebd76603ba10ab",
+          "cell_key": "train1_channel1_snr+06",
+          "correct_count": 837,
+          "denominator": 1000,
+          "top1_accuracy": 0.837
+        },
+        {
+          "artifact_id": "g10cell-3e3cfc9f733c913e050023abaac0a6a5cab07044f22157d83091ff86e5794224",
+          "cell_key": "train2_channel2_snr+06",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        }
+      ],
+      "learned_mean": {
+        "denominator": 3000,
+        "fraction": "2501/3000",
+        "numerator": 2501
+      },
+      "learned_mean_accuracy": 0.8336666666666667,
+      "learned_population_sd": 0.006944222218666559,
+      "sign": -1,
+      "snr_db": 6
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.89,
+        "correct_count": 89,
+        "denominator": 100,
+        "fraction": "89/100",
+        "source_measurement_clean_correct_count": 890,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 1500,
+        "fraction": "-77/1500",
+        "numerator": -77
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-edde1dd7aab269872ed6764d338be6d7058b2962c48ce75bc482bfa137b33d1c",
+          "cell_key": "train0_channel0_snr+07",
+          "correct_count": 832,
+          "denominator": 1000,
+          "top1_accuracy": 0.832
+        },
+        {
+          "artifact_id": "g10cell-14bf086f3bbdf6f8f7ef9789d015affbc8bba29d8e8311d93d9b514c1daa9efd",
+          "cell_key": "train1_channel1_snr+07",
+          "correct_count": 837,
+          "denominator": 1000,
+          "top1_accuracy": 0.837
+        },
+        {
+          "artifact_id": "g10cell-e076165918c2ee68aa1861a2fa8ddd512c6e2c338f1245c4c1646dfe59415275",
+          "cell_key": "train2_channel2_snr+07",
+          "correct_count": 847,
+          "denominator": 1000,
+          "top1_accuracy": 0.847
+        }
+      ],
+      "learned_mean": {
+        "denominator": 750,
+        "fraction": "629/750",
+        "numerator": 629
+      },
+      "learned_mean_accuracy": 0.8386666666666667,
+      "learned_population_sd": 0.006236095644623242,
+      "sign": -1,
+      "snr_db": 7
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.8914152682925818,
+        "correct_count": 8914152682925817419,
+        "denominator": 10000000000000000000,
+        "fraction": "8914152682925817419/10000000000000000000",
+        "source_measurement_clean_correct_count": 893,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 30000000000000000000,
+        "fraction": "-1622458048777452257/30000000000000000000",
+        "numerator": -1622458048777452257
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-b879be38cabe358569097c3bb508066f0e91af928f31d0e0f255efd9a16d10cb",
+          "cell_key": "train0_channel0_snr+09",
+          "correct_count": 834,
+          "denominator": 1000,
+          "top1_accuracy": 0.834
+        },
+        {
+          "artifact_id": "g10cell-4f41c8adbbe9ca45bcffbc72f56c2ca13dd33e08a52d5069f03bf1af1d3339da",
+          "cell_key": "train1_channel1_snr+09",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        },
+        {
+          "artifact_id": "g10cell-57c41e9d67c4e58065bc970d4a088ad160803448c074ea67b22a61772f96061f",
+          "cell_key": "train2_channel2_snr+09",
+          "correct_count": 838,
+          "denominator": 1000,
+          "top1_accuracy": 0.838
+        }
+      ],
+      "learned_mean": {
+        "denominator": 375,
+        "fraction": "314/375",
+        "numerator": 314
+      },
+      "learned_mean_accuracy": 0.8373333333333334,
+      "learned_population_sd": 0.0024944382578492965,
+      "sign": -1,
+      "snr_db": 9
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.893,
+        "correct_count": 893,
+        "denominator": 1000,
+        "fraction": "893/1000",
+        "source_measurement_clean_correct_count": 893,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 1500,
+        "fraction": "-83/1500",
+        "numerator": -83
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-f83750400ef19ce6ded8d3737d2d2ed5e3e8464829cf38a8ca8f9adbd152ff6a",
+          "cell_key": "train0_channel0_snr+11",
+          "correct_count": 834,
+          "denominator": 1000,
+          "top1_accuracy": 0.834
+        },
+        {
+          "artifact_id": "g10cell-ea8f58e935bb5a547e2958bd6cfae4137fe97610cf8b0f570a9e55ed9913f979",
+          "cell_key": "train1_channel1_snr+11",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        },
+        {
+          "artifact_id": "g10cell-42af2005b51059e7c56943a519d72ba3c263d4feb73e2f51a2f5eb0022ab675f",
+          "cell_key": "train2_channel2_snr+11",
+          "correct_count": 839,
+          "denominator": 1000,
+          "top1_accuracy": 0.839
+        }
+      ],
+      "learned_mean": {
+        "denominator": 3000,
+        "fraction": "2513/3000",
+        "numerator": 2513
+      },
+      "learned_mean_accuracy": 0.8376666666666667,
+      "learned_population_sd": 0.002624669291337273,
+      "sign": -1,
+      "snr_db": 11
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.893,
+        "correct_count": 893,
+        "denominator": 1000,
+        "fraction": "893/1000",
+        "source_measurement_clean_correct_count": 893,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 300,
+        "fraction": "-17/300",
+        "numerator": -17
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-3a81a71a981a99062f93d31ee12fc6c11d43cc957283922b33e191a5bcbcb493",
+          "cell_key": "train0_channel0_snr+13",
+          "correct_count": 831,
+          "denominator": 1000,
+          "top1_accuracy": 0.831
+        },
+        {
+          "artifact_id": "g10cell-3aa46d679a89344326c9656404be67ba1f2b502d5a9d5fc97d6f62ac70d7717d",
+          "cell_key": "train1_channel1_snr+13",
+          "correct_count": 838,
+          "denominator": 1000,
+          "top1_accuracy": 0.838
+        },
+        {
+          "artifact_id": "g10cell-def67605b65546a8db8ddbb32f78ec77cc99817d6d6dee374999215c3680bace",
+          "cell_key": "train2_channel2_snr+13",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        }
+      ],
+      "learned_mean": {
+        "denominator": 3000,
+        "fraction": "2509/3000",
+        "numerator": 2509
+      },
+      "learned_mean_accuracy": 0.8363333333333334,
+      "learned_population_sd": 0.0038586123009300786,
+      "sign": -1,
+      "snr_db": 13
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.893,
+        "correct_count": 893,
+        "denominator": 1000,
+        "fraction": "893/1000",
+        "source_measurement_clean_correct_count": 893,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 125,
+        "fraction": "-7/125",
+        "numerator": -7
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-564e007504f1ec1785a6f499da827166db45c3669664b9c145e9e545ccbab018",
+          "cell_key": "train0_channel0_snr+15",
+          "correct_count": 833,
+          "denominator": 1000,
+          "top1_accuracy": 0.833
+        },
+        {
+          "artifact_id": "g10cell-8674229ea29641c7592f158c54ee33460ebcfb22d12f21fba1b8846f45f51bde",
+          "cell_key": "train1_channel1_snr+15",
+          "correct_count": 838,
+          "denominator": 1000,
+          "top1_accuracy": 0.838
+        },
+        {
+          "artifact_id": "g10cell-ac8d55ffe4311c6854c8cf0786417549ef564482927f3d26cf06e5ce7ad08321",
+          "cell_key": "train2_channel2_snr+15",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        }
+      ],
+      "learned_mean": {
+        "denominator": 1000,
+        "fraction": "837/1000",
+        "numerator": 837
+      },
+      "learned_mean_accuracy": 0.837,
+      "learned_population_sd": 0.0029439202887759515,
+      "sign": -1,
+      "snr_db": 15
+    },
+    {
+      "classical_adaptive": {
+        "accuracy": 0.893,
+        "correct_count": 893,
+        "denominator": 1000,
+        "fraction": "893/1000",
+        "source_measurement_clean_correct_count": 893,
+        "source_measurement_clean_denominator": 1000
+      },
+      "gap": {
+        "denominator": 3000,
+        "fraction": "-167/3000",
+        "numerator": -167
+      },
+      "learned_cells": [
+        {
+          "artifact_id": "g10cell-3848d56fc276958dace97eed0a63b6df837bc7bf540b1da9556a29b1aaa26c50",
+          "cell_key": "train0_channel0_snr+18",
+          "correct_count": 837,
+          "denominator": 1000,
+          "top1_accuracy": 0.837
+        },
+        {
+          "artifact_id": "g10cell-7eadcb83fb42af294625130668bc115b2aeb90128e1e6d62355d1d6f1a6fdc65",
+          "cell_key": "train1_channel1_snr+18",
+          "correct_count": 835,
+          "denominator": 1000,
+          "top1_accuracy": 0.835
+        },
+        {
+          "artifact_id": "g10cell-3fb696f3386e86ef3227c993c8ea8d8424e8ef0845dbb35e6231a0e7fd6b6159",
+          "cell_key": "train2_channel2_snr+18",
+          "correct_count": 840,
+          "denominator": 1000,
+          "top1_accuracy": 0.84
+        }
+      ],
+      "learned_mean": {
+        "denominator": 375,
+        "fraction": "314/375",
+        "numerator": 314
+      },
+      "learned_mean_accuracy": 0.8373333333333334,
+      "learned_population_sd": 0.0020548046676563273,
+      "sign": -1,
+      "snr_db": 18
+    }
+  ],
+  "population_sd_ddof": 0,
+  "ratio": "r_1_6",
+  "schema_version": 1,
+  "scientific_source_commit": "9515c490aed4439f7ced2c163abef61557654ddf",
+  "sd_descriptive_only": true,
+  "snr_grid_db": [
+    -8,
+    -7,
+    -6,
+    -5,
+    -4,
+    -3,
+    -2,
+    -1,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9,
+    11,
+    13,
+    15,
+    18
+  ],
+  "snr_parameter": "params.channel.test_snr_grid_db",
+  "split": "val",
+  "status": "COMPLETE_21_POINT_EXACT_COUNT_CURVE"
+}
