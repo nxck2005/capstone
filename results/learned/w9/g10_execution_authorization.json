@@ -1,0 +1,344 @@
+{
+  "am94_semantics": {
+    "expected_direction": "positive_to_negative",
+    "freeze_id": "g10semantics-e55bacf7372135cb0b49500d1def4ee0037b67169e8aed775c0c51552e33f6ff",
+    "freeze_path": "results/learned/w9/am94_pre_science_freeze.json",
+    "freeze_sha256": "b3d7239d4887d100707633daf5c7ee769ee225c2a78bc97900031316c1a64563",
+    "gap": "learned_minus_classical_adaptive",
+    "headline_event": "first_expected_direction_event",
+    "learned_aggregate": "arithmetic_mean_of_three_exact_correct_count_fractions",
+    "location": "measured_bracket_or_exact_measured_point_or_measured_zero_plateau",
+    "population_sd_ddof": 0,
+    "predicate_source_path": "src/evaluation/g10_crossover.py",
+    "predicate_source_sha256": "e332478bcac3d873b482ac97525a89ad4bb8a60219835e2a4b3c1938c23e24f4",
+    "retain_all_events": true,
+    "sd_descriptive_only": true,
+    "sign": "exact_fraction_sign",
+    "tolerance_epsilon_ci_bootstrap_seed_vote": false,
+    "zero_run": "maximal_zero_run_bracketed_by_positive_then_negative"
+  },
+  "amendment": "AM-94",
+  "artifact_content_sha256": "5cb0a7b71d0cd91d4ac78d7ccfaef77271e410453ec12c9aa2d834b52e260e7b",
+  "artifact_role": "W9A_G10_VALIDATION_ONLY_EXECUTION_AUTHORIZATION",
+  "authorization_id": "g10auth-da904e2bc0afebda3641f1de8f718f64acd3e3ce23fe34f43160c5e6a5fdd7df",
+  "authorization_scope": "G10_EXACTLY_THREE_W8_R1_6_CHECKPOINTS_X_NORMATIVE_21_SNR_GRID",
+  "authorized_by": "repository owner instruction for W9-A separate G-10 authority",
+  "checkpoint_selection": {
+    "best_seed_selection": false,
+    "r_1_24": false,
+    "selection_performed_by_g10": false,
+    "w7_pilot_weights": false,
+    "w8_completion_id": "w8completion-c1ffa6f9894d2ce014595a7bb2126f7adf3fb38ae23d8f3815eb025c4c826e28",
+    "w8_completion_sha256": "c0801f5a7d76319e58b18c4804f2179569892e4efb2d17721e024463d1188798",
+    "w8_reconciliation_id": "w8creconcile-95215c9d5b426357009758bd0bcac7178c6db35a241801c3a6dc7129b81bb976",
+    "w8_reconciliation_sha256": "01d72b6b9ea4b4d77dcdbfb1e7fa4c6aa6e064d694b2dab16fa15c3720851257",
+    "weight_averaging": false
+  },
+  "checkpoints": [
+    {
+      "channel_seed": 0,
+      "checkpoint_id": "b0f72a3e16c537984b6afd3dc93bdf3ea87a0cae8a5b49f3565c803750a8826a",
+      "checkpoint_path": "/home/nick/w8-final-pascal-20260901-r1/run-01-r_1_6-train0-channel0/checkpoints/epoch-0092.pt",
+      "checkpoint_sha256": "b0f72a3e16c537984b6afd3dc93bdf3ea87a0cae8a5b49f3565c803750a8826a",
+      "epoch": 92,
+      "ratio": "r_1_6",
+      "run_directory": "run-01-r_1_6-train0-channel0",
+      "run_id": "w8-r_1_6-train0-channel0",
+      "train_seed": 0,
+      "validation_selection_correct": 832,
+      "validation_selection_total": 1000,
+      "w8_result_file_sha256": "25c7fb88cab52813741e7709a5b589d8422ae19e2e70d1950606c9c18b6bc790",
+      "w8_result_id": "8837304f1fec107a2694e1ee1c7e8744ebbb2000acf223b3aaa4abd0f72eb372",
+      "w8_validation_noise_id_digest": "e251ab8ea01be9e1e6c1612e2b9fd411f36b1b68e5942a81029d73195a1033a2"
+    },
+    {
+      "channel_seed": 1,
+      "checkpoint_id": "5d7e692c723ee9657be9fc45bfdae5dc54adf137ee9e92a04de2b2e5a7bbdcda",
+      "checkpoint_path": "/home/nick/w8-final-pascal-20260901-r1/run-03-r_1_6-train1-channel1/checkpoints/epoch-0077.pt",
+      "checkpoint_sha256": "5d7e692c723ee9657be9fc45bfdae5dc54adf137ee9e92a04de2b2e5a7bbdcda",
+      "epoch": 77,
+      "ratio": "r_1_6",
+      "run_directory": "run-03-r_1_6-train1-channel1",
+      "run_id": "w8-r_1_6-train1-channel1",
+      "train_seed": 1,
+      "validation_selection_correct": 837,
+      "validation_selection_total": 1000,
+      "w8_result_file_sha256": "18189da2673effda01096ee804d4bc2bd86087b61ef3a066076acd09f680ddac",
+      "w8_result_id": "4a6e64c32959ef8d325d96ad8196fe8ef26a65b763d942709773ca4b01136453",
+      "w8_validation_noise_id_digest": "fd0de3f68d106b52c5eff86565e243825f75b51efe3644f35a232f6e8628f632"
+    },
+    {
+      "channel_seed": 2,
+      "checkpoint_id": "d5595f0931b010805f59ded64b3cda88b35730d200c5578aecf5962c8d058f41",
+      "checkpoint_path": "/home/nick/w8-final-pascal-20260901-r1/run-05-r_1_6-train2-channel2/checkpoints/epoch-0078.pt",
+      "checkpoint_sha256": "d5595f0931b010805f59ded64b3cda88b35730d200c5578aecf5962c8d058f41",
+      "epoch": 78,
+      "ratio": "r_1_6",
+      "run_directory": "run-05-r_1_6-train2-channel2",
+      "run_id": "w8-r_1_6-train2-channel2",
+      "train_seed": 2,
+      "validation_selection_correct": 847,
+      "validation_selection_total": 1000,
+      "w8_result_file_sha256": "95e5a23e24b6867e437f762ab516271afcb4bb1ec8e87422cbc162585dd291d6",
+      "w8_result_id": "7dc06d97452425a29a6c3b283fcaa12e9ece502e8c4e81dbdaf5bfee9112d9ad",
+      "w8_validation_noise_id_digest": "f6ddb431164a2c6a95cc04ae70b773e084d84eff2cdb43ea28165afa01273a6c"
+    }
+  ],
+  "classical_headline": {
+    "comparator": "G8/F3 adaptive/oracle classical r_1_6 validation curve only",
+    "exact_comparator_count_denominator_values": [
+      {
+        "correct_count": 1,
+        "denominator": 10,
+        "snr_db": -8
+      },
+      {
+        "correct_count": 1,
+        "denominator": 10,
+        "snr_db": -7
+      },
+      {
+        "correct_count": 1,
+        "denominator": 10,
+        "snr_db": -6
+      },
+      {
+        "correct_count": 1,
+        "denominator": 10,
+        "snr_db": -5
+      },
+      {
+        "correct_count": 417,
+        "denominator": 500,
+        "snr_db": -4
+      },
+      {
+        "correct_count": 417,
+        "denominator": 500,
+        "snr_db": -3
+      },
+      {
+        "correct_count": 13122,
+        "denominator": 15625,
+        "snr_db": -2
+      },
+      {
+        "correct_count": 21817270773,
+        "denominator": 25000000000,
+        "snr_db": -1
+      },
+      {
+        "correct_count": 873,
+        "denominator": 1000,
+        "snr_db": 0
+      },
+      {
+        "correct_count": 873,
+        "denominator": 1000,
+        "snr_db": 1
+      },
+      {
+        "correct_count": 439,
+        "denominator": 500,
+        "snr_db": 2
+      },
+      {
+        "correct_count": 439,
+        "denominator": 500,
+        "snr_db": 3
+      },
+      {
+        "correct_count": 439,
+        "denominator": 500,
+        "snr_db": 4
+      },
+      {
+        "correct_count": 439,
+        "denominator": 500,
+        "snr_db": 5
+      },
+      {
+        "correct_count": 887,
+        "denominator": 1000,
+        "snr_db": 6
+      },
+      {
+        "correct_count": 89,
+        "denominator": 100,
+        "snr_db": 7
+      },
+      {
+        "correct_count": 8914152682925817419,
+        "denominator": 10000000000000000000,
+        "snr_db": 9
+      },
+      {
+        "correct_count": 893,
+        "denominator": 1000,
+        "snr_db": 11
+      },
+      {
+        "correct_count": 893,
+        "denominator": 1000,
+        "snr_db": 13
+      },
+      {
+        "correct_count": 893,
+        "denominator": 1000,
+        "snr_db": 15
+      },
+      {
+        "correct_count": 893,
+        "denominator": 1000,
+        "snr_db": 18
+      }
+    ],
+    "extract_id": "g10classical-68c9c99864689f62b7fa9de650df42bb2297bf4e251bb3c30fe00779f8ac2392",
+    "file_sha256": "b674fd1d981cd237f337f5173e5a877ab53dcc48055138af3eea0580b3b321d2",
+    "fixed_profile_curve": "secondary_context_only_not_in_predicate",
+    "path": "results/learned/w9/g10_classical_adaptive_r1_6_extract.json",
+    "point_count": 21
+  },
+  "execution_profile_selection": {
+    "cuda_visible_devices": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "device": "cuda:0",
+    "execution_profile_id": "confessor_pascal_cu126",
+    "gpu_name": "NVIDIA TITAN Xp",
+    "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "lock_file": "requirements-pascal.lock",
+    "lock_file_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+    "selection_time": "before_first_scientific_measurement",
+    "sole_writer": true,
+    "writer_host": "confessor"
+  },
+  "forbidden_scope": [
+    "learned_r_1_24",
+    "w7_pilot_checkpoints",
+    "other_lambda",
+    "learned_training",
+    "er9",
+    "randomized_er2_training",
+    "g11",
+    "w10",
+    "test_inference",
+    "test_access",
+    "classical_rerun",
+    "classical_interpolation",
+    "extra_snr",
+    "posthoc_tolerance_or_significance_rule"
+  ],
+  "pre_execution_counters": {
+    "er2_randomized_training": 0,
+    "er9_training": 0,
+    "g10_model_facing_evaluations": 0,
+    "g10_outcomes_observed": 0,
+    "g11": 0,
+    "learned_test_inference": 0,
+    "model_facing_test_access": 0,
+    "w10": 0
+  },
+  "protocol": {
+    "dataset": "imagenette160",
+    "lambda": 3.0,
+    "learned_cell_count": 3,
+    "matrix_cell_count": 63,
+    "noise_rng_purpose": "channel_noise",
+    "noise_rule": "validation_noise_id(stable_sample_id,dataset_version,split_manifest_hash,channel_seed,channel,ratio,k,snr_db)",
+    "protocol_sha256": "5e5e66a290078cae683e1d722acd880226b0caa24ec11a306798557b03c30453",
+    "ratio": "r_1_6",
+    "snr_grid_db": [
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      9,
+      11,
+      13,
+      15,
+      18
+    ],
+    "snr_parameter": "params.channel.test_snr_grid_db",
+    "split": "val",
+    "test": "SEALED",
+    "top1_rule": "torch.Tensor.argmax(dim=1)_first_index",
+    "validation_denominator": 1000,
+    "validation_order": "stable_manifest_order"
+  },
+  "runtime": {
+    "incomplete_cell_recovery": "fail_closed_if_started_without_success_record",
+    "order": "train_seed_ascending_then_snr_grid_order",
+    "runtime_root": "/home/nick/w9-g10-am94-confessor-pascal-20260906",
+    "successful_cell_rerun": false
+  },
+  "schema_version": 1,
+  "scientific_scope": {
+    "complete_learned_evaluations": 63,
+    "dataset": "imagenette160",
+    "frozen_w8_final_headline_seed_cells": 3,
+    "learned_lambda": 3.0,
+    "ratio": "r_1_6",
+    "snr_count": 21,
+    "split": "val",
+    "test": "SEALED",
+    "validation_denominator_per_cell": 1000
+  },
+  "scientific_source": {
+    "commit": "66572713dfbdffb89888e0881d66ac938c379a38",
+    "manifest": {
+      "file_sha256": "66e46455bc0896320b713dcb7ba883570f3e6203fceaf3abad956fb2e9276365",
+      "manifest_id": "g10source-3bba7ded4c7649c1ecbf451c7303366e3bf8f0be5195efbbd491a27269ee9768",
+      "path": "results/learned/w9/g10_source_manifest.json"
+    }
+  },
+  "snr_authority": {
+    "classical_one_to_one_coverage": true,
+    "grid_created_by_g10": false,
+    "interpolation": false,
+    "parameter": "params.channel.test_snr_grid_db",
+    "resolved_ordered_values_db": [
+      -8,
+      -7,
+      -6,
+      -5,
+      -4,
+      -3,
+      -2,
+      -1,
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      9,
+      11,
+      13,
+      15,
+      18
+    ]
+  },
+  "source_contains_no_learned_g10_results": true,
+  "status": "AUTHORIZED_PRE_EXECUTION",
+  "validation_noise": {
+    "ambient_sequential_rng": false,
+    "channel_seed_pairing": "w8_zipped_train_seed_equals_channel_seed",
+    "identity_function": "data.djscc_validation.validation_noise_id",
+    "policy": "keyed_per_image_fixed_snr_run_channel_seed_same_across_epochs",
+    "rng_purpose": "channel_noise",
+    "schedule_audit": "ordered stable validation IDs plus per-cell noise_id_digest and row digest"
+  }
+}
