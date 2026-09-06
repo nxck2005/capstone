@@ -1,0 +1,97 @@
+{
+  "artifact_content_sha256": "a1bdc7dc241e54e3b6d39c59d3b266718f7c4b1ab6b15e471dc5aa387d7472db",
+  "artifact_role": "G10_SCIENTIFIC_SOURCE_MANIFEST",
+  "entries": [
+    {
+      "bytes": 8255,
+      "path": "src/evaluation/g10_crossover.py",
+      "sha256": "e332478bcac3d873b482ac97525a89ad4bb8a60219835e2a4b3c1938c23e24f4"
+    },
+    {
+      "bytes": 14595,
+      "path": "src/evaluation/g10_spec_compatibility.py",
+      "sha256": "375683bacda7d2c96e975c755bcd558c39dad0782f65e52550553357ade206a0"
+    },
+    {
+      "bytes": 38129,
+      "path": "src/evaluation/g10_protocol.py",
+      "sha256": "6cff641a6d1e22a2fa9093587ec6207c11fafd9a04536400b541862af3018760"
+    },
+    {
+      "bytes": 24243,
+      "path": "src/evaluation/g10_runner.py",
+      "sha256": "c1d7349af4053868d70b696b381ce940043753fa3a39dd07f05e7627c4fbbd33"
+    },
+    {
+      "bytes": 2435,
+      "path": "src/data/djscc_validation.py",
+      "sha256": "57bdbdcd53d8b79538ada00b1eac0dfaff4c12f839a65e057ea390b5e86b255e"
+    },
+    {
+      "bytes": 5011,
+      "path": "src/channels/awgn.py",
+      "sha256": "ac8c356484cd6a99a705a3fef6036ca97871ddc6f562be0ae80f06721200a59c"
+    },
+    {
+      "bytes": 15829,
+      "path": "src/models/djscc.py",
+      "sha256": "f788aef53e583cdcbeba5ad22f222f91f39568c8b9632e69c1ead43936d6d5c8"
+    },
+    {
+      "bytes": 1550,
+      "path": "src/config/params.py",
+      "sha256": "4f9c464469cb00c99c5f1b60f48dd388c695b752cf63215bd34c670defb9d7dc"
+    },
+    {
+      "bytes": 16293,
+      "path": "src/config/run_config.py",
+      "sha256": "e18af6b2930cf0a1d2208860edc208cf0af7c24c63b87119e5e737efc350e505"
+    },
+    {
+      "bytes": 16379,
+      "path": "src/config/execution_profiles.py",
+      "sha256": "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+    },
+    {
+      "bytes": 664,
+      "path": "configs/learned-w8-final.yaml",
+      "sha256": "33cddf9f6351559e38d1344edf3abe3f3d088399c779e245f9fbe54a8d82b29f"
+    },
+    {
+      "bytes": 46590,
+      "path": "spec/params.generated.yaml",
+      "sha256": "48e5fee874fe4b6c72ee60be3b92e0cd9da51edab87e74bc5f3af964c6f9e534"
+    },
+    {
+      "bytes": 2754,
+      "path": "tools/freeze_g10_authority.py",
+      "sha256": "7e18b1978fdfadf317d8767903745b1ad0c70457c6abcec04c05b1650944c386"
+    },
+    {
+      "bytes": 1305,
+      "path": "tools/run_g10_campaign.py",
+      "sha256": "7c120ace6e6b7efcdd9ecb0fbefbc31d0ea67e7736f0636a4d29e70aea6f0256"
+    },
+    {
+      "bytes": 14662,
+      "path": "tools/closeout_g10.py",
+      "sha256": "720c2697f73d456f10450c7ec9fd5d8c7c696d8354f6630351f14fda158d004c"
+    },
+    {
+      "bytes": 10324,
+      "path": "tools/verify_g10_w9.py",
+      "sha256": "34fbb399fee68e5d243852d08cb71a0bc3922b11086a2458b4801abcddad4fd3"
+    },
+    {
+      "bytes": 3058,
+      "path": "tools/reconcile_g10.py",
+      "sha256": "13df57ec94ce6dd37771debe8b6c05d8a9374cd7ba3ee01732283811aa2a78fc"
+    }
+  ],
+  "entry_count": 17,
+  "manifest_id": "g10source-4842d921d221391e348d1a2542b30b1e1fd49a37b8cedec31f22c320780d0a21",
+  "schema_version": 1,
+  "scientific_source_scope": "G-10 validation-only execution machinery and AM-94 predicate consumer; no learned result bytes",
+  "source_commit": "9515c490aed4439f7ced2c163abef61557654ddf",
+  "status": "FROZEN_BEFORE_FIRST_LEARNED_OUTCOME"
+}
