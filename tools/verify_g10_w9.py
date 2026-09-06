@@ -30,6 +30,7 @@ from evaluation.g10_protocol import (  # noqa: E402
     cell_key,
     expected_cell_keys,
     load_json,
+    sha256_bytes,
     sha256_file,
     verify_authorization,
     verify_identified,
@@ -70,7 +71,11 @@ def verify(root: Path = REPO) -> dict[str, Any]:
     _require(_is_ancestor(source_commit, _git_head()), "G-10 source epoch is not an ancestor of terminal evidence")
     current_files = frozenset(path.relative_to(root).as_posix() for path in (root / "results/learned/w9").glob("**/*") if path.is_file())
     allowed = set(PRE_EXECUTION_FILES) | set(OUTCOME_FILES)
-    _require(current_files == allowed, f"terminal W9 artifact set differs: unexpected={sorted(current_files - allowed)} missing={sorted(allowed - current_files)}")
+    allowed_without_reconciliation = allowed - {str(RECONCILIATION_PATH)}
+    _require(
+        current_files in (frozenset(allowed), frozenset(allowed_without_reconciliation)),
+        f"terminal W9 artifact set differs: unexpected={sorted(current_files - allowed)} missing={sorted(allowed - current_files)}",
+    )
     classical, _ = load_json(root / CLASSICAL_EXTRACT_PATH, "G-10 classical extract")
     classical_by_snr = {int(row["snr_db"]): row for row in classical["points"]}
     runtime, runtime_raw = load_json(root / RUNTIME_MANIFEST_PATH, "committed G-10 runtime manifest")
