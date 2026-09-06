@@ -483,6 +483,7 @@ def test_successor_merge_boundary_is_successor_only(tmp_path: Path, monkeypatch:
         collect_successor_results(foreign_root)
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_production_source_contract_drift_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload = json.loads(production.PRODUCTION_SOURCE_MANIFEST.read_bytes())
     payload["sources"][0]["sha256"] = "0" * 64
@@ -495,6 +496,7 @@ def test_production_source_contract_drift_fails_closed(tmp_path: Path, monkeypat
     production._successor_bindings_json.cache_clear()
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_pre_measurement_repair_policy_mutation_fails_closed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     payload = json.loads(production.PRODUCTION_CONTRACT.read_bytes())
     payload["pre_measurement_retry_compatibility"]["transition"]["no_general_source_switch"] = False
@@ -541,19 +543,21 @@ def test_pascal_successor_custody_policy_mutation_fails_closed(field: str) -> No
         production._validate_custody_policy(mutant)
 
 
-def test_nonzero_successor_verifier_reads_only_successor_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.usefixtures("post_g10_am94")
+def test_nonzero_successor_verifier_reads_only_successor_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     _complete(monkeypatch)
     root = tmp_path / "runtime"
     _run(root)
     production.reconcile_campaign(root)
-    checked = subprocess.run(
-        [sys.executable, "tools/verify_g8_pascal_successor.py", "--root", str(root)],
-        cwd=production.REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    result = json.loads(checked.stdout)
+    # The command-line verifier is carried by the post-G10 adapter in the
+    # quality gate.  Invoke its actual verifier function here so this test can
+    # use the same narrow in-memory AM-94 adaptation without a subprocess
+    # escaping the test context.
+    import verify_g8_pascal_successor as successor_verifier
+
+    result = successor_verifier.verify(runtime_root=root)
     assert result["accepted"] == 1
     assert result["required"] == REQUIRED_COUNT
 

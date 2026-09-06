@@ -297,7 +297,8 @@ def test_execute_refuses_a_pre_existing_completion_record(tmp_path, monkeypatch)
 
 
 @pytest.fixture
-def chain_context():
+def chain_context(post_g10_am94):
+    del post_g10_am94
     context = pass_one.authenticate_frozen_chain()
     assert context["chain"]["e3_id"] == E3_ID
     assert context["chain"]["e4_id"] == E4_ID

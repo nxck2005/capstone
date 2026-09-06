@@ -11,6 +11,9 @@ from baseline import g8_campaign
 from config import execution_profiles
 
 
+pytestmark = pytest.mark.usefixtures("post_g10_am94_module")
+
+
 def _manifest() -> dict[str, object]:
     return json.loads((g8_campaign.REPO_ROOT / "results/baseline/g8/campaign_manifest.json").read_bytes())
 

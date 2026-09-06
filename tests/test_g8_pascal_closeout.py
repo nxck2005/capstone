@@ -50,7 +50,8 @@ def _assert_mutation_rejected(artifacts, mutant_merge=None, mutant_table=None) -
         )
 
 
-def test_full_successor_closeout_payload_passes(artifacts) -> None:
+def test_full_successor_closeout_payload_passes(artifacts, post_g10_am94) -> None:
+    del post_g10_am94
     merge, table, provenance, merge_raw, table_raw = artifacts
     independent.validate_payloads(
         merge,
@@ -238,7 +239,8 @@ def test_partial_successor_merge_cannot_create_table(artifacts) -> None:
         build_successor_bler_table(partial)
 
 
-def test_every_frozen_successor_point_is_exactly_lookupable(artifacts) -> None:
+def test_every_frozen_successor_point_is_exactly_lookupable(artifacts, post_g10_am94) -> None:
+    del post_g10_am94
     """Exercise every frozen point through the final strict runtime loader."""
 
     _merge, table_payload, _provenance, _merge_raw, _table_raw = artifacts

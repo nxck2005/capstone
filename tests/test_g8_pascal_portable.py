@@ -18,6 +18,9 @@ from baseline.g8_pascal_portable import (
 from baseline.g8_pascal_production import SUCCESSOR_ROOT, unit_digest
 
 
+pytestmark = pytest.mark.usefixtures("post_g10_am94_module")
+
+
 RUNTIME = SUCCESSOR_ROOT / "runtime"
 
 

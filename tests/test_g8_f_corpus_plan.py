@@ -219,15 +219,20 @@ def test_changed_e7_pass_one_or_spec_binding_is_rejected(
     _reject(mutated, committed_plan)
 
 
-def test_am87_post_campaign_compatibility_preserves_frozen_g8c_verification() -> None:
+def test_am87_post_campaign_compatibility_preserves_frozen_g8c_verification(post_g10_am94) -> None:
+    del post_g10_am94
     verified = production.validate_production_contracts()
     assert verified["campaign_id"].startswith("g8p-")
 
 
 @pytest.mark.parametrize("mutation", ["foreign_parameter_path", "current_sha", "protected_counter"])
 def test_am87_post_campaign_compatibility_mutations_fail_closed(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    post_g10_am94,
 ) -> None:
+    del post_g10_am94
     value = json.loads(production.POST_CAMPAIGN_SOURCE_COMPATIBILITY.read_bytes())
     if mutation == "foreign_parameter_path":
         value["allowed_parameter_paths"].append("baseline.ldpc_max_iters")
@@ -252,6 +257,7 @@ def test_am87_post_campaign_compatibility_mutations_fail_closed(
         path.unlink(missing_ok=True)
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_am87_g8e_source_compatibility_mutations_fail_closed(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

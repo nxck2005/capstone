@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 
 import pytest
@@ -16,14 +16,15 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture(scope="module")
-def live_report() -> dict:
-    proc = subprocess.run(
-        [sys.executable, str(REPO / "tools/verify_g8_e_complete.py")],
-        capture_output=True,
-        text=True,
-    )
-    assert proc.returncode == 0, proc.stdout + proc.stderr
-    return json.loads(proc.stdout)
+def live_report(post_g10_am94_module) -> dict:
+    del post_g10_am94_module
+    import verify_g8_e_complete as verifier
+
+    output = StringIO()
+    with redirect_stdout(output):
+        status = verifier.main([])
+    assert status == 0, output.getvalue()
+    return json.loads(output.getvalue())
 
 
 @pytest.mark.external_dataset

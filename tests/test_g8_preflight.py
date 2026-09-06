@@ -46,6 +46,7 @@ def _mutated(
     return path
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_committed_campaign_contract_verifies(monkeypatch: pytest.MonkeyPatch) -> None:
     # The live cursor advances to G8_B exactly once during B0. Keep this
     # G8_A contract test independent of that cursor so the frozen verifier
@@ -78,6 +79,7 @@ def test_committed_campaign_contract_verifies(monkeypatch: pytest.MonkeyPatch) -
         (lambda p: p["contract_sources"].pop(), "contract_sources"),
     ],
 )
+@pytest.mark.usefixtures("post_g10_am94")
 def test_manifest_mutations_fail_closed(
     tmp_path: Path,
     mutate: Callable[[dict[str, Any]], None],

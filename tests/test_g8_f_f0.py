@@ -28,7 +28,8 @@ from baseline.g8_f_f0 import (
 
 
 @pytest.fixture(scope="module")
-def committed() -> dict:
+def committed(post_g10_am94_module) -> dict:
+    del post_g10_am94_module
     return verify_f0_authorization(require_zero_prefix=False)
 
 

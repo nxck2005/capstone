@@ -74,7 +74,8 @@ def _record() -> g8_d.CleanClassifierMeasurementRecord:
     )
 
 
-def test_clean_classifier_record_derives_accuracy_from_counts() -> None:
+def test_clean_classifier_record_derives_accuracy_from_counts(post_g10_am94) -> None:
+    del post_g10_am94
     record = _record()
     assert (record.correct_count, record.total_count) == (3, 5)
     assert record.accuracy == 3 / 5
@@ -88,7 +89,8 @@ def test_clean_classifier_record_derives_accuracy_from_counts() -> None:
     assert record.as_dict()["merge_eligible"] is False
 
 
-def test_clean_classifier_record_round_trips_and_rejects_accuracy_mutations() -> None:
+def test_clean_classifier_record_round_trips_and_rejects_accuracy_mutations(post_g10_am94) -> None:
+    del post_g10_am94
     record = _record()
     restored = g8_d.CleanClassifierMeasurementRecord.from_mapping(record.as_dict())
     assert restored.record_id == record.record_id
@@ -108,7 +110,8 @@ def test_clean_classifier_record_round_trips_and_rejects_accuracy_mutations() ->
         g8_d.CleanClassifierMeasurementRecord(**_fixture(), outcomes=0.6, source="bad")  # type: ignore[call-arg]
 
 
-def test_clean_classifier_record_rejects_non_validation_or_changed_provenance() -> None:
+def test_clean_classifier_record_rejects_non_validation_or_changed_provenance(post_g10_am94) -> None:
+    del post_g10_am94
     record = _record()
     wrong_split = record.as_dict()
     wrong_split["validation_split"]["split"] = "test"
@@ -131,7 +134,8 @@ def test_clean_classifier_record_rejects_non_validation_or_changed_provenance() 
         g8_d.CleanClassifierMeasurementRecord.from_mapping(wrong_cache)
 
 
-def test_clean_classifier_record_rejects_identity_aliases_and_schema_mutation() -> None:
+def test_clean_classifier_record_rejects_identity_aliases_and_schema_mutation(post_g10_am94) -> None:
+    del post_g10_am94
     record = _record()
     wrong_image = record.as_dict()
     wrong_image["image"]["source_bytes_sha256"] = "d" * 64
@@ -149,7 +153,8 @@ def test_clean_classifier_record_rejects_identity_aliases_and_schema_mutation() 
         g8_d.CleanClassifierMeasurementRecord.from_mapping(extra)
 
 
-def test_outcomes_must_be_nonempty_bools_and_counts_must_be_valid() -> None:
+def test_outcomes_must_be_nonempty_bools_and_counts_must_be_valid(post_g10_am94) -> None:
+    del post_g10_am94
     fixture = _fixture()
     with pytest.raises(g8_d.G8DContractError, match="empty"):
         g8_d.CleanClassifierMeasurementRecord.from_outcomes(**fixture, outcomes=[], source="fixture")

@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
+from types import SimpleNamespace
 
 import run_quality_gate as gate
+
+
+_CONFTEST_SPEC = importlib.util.spec_from_file_location(
+    "capstone_test_conftest", Path(__file__).with_name("conftest.py")
+)
+assert _CONFTEST_SPEC is not None and _CONFTEST_SPEC.loader is not None
+test_conftest = importlib.util.module_from_spec(_CONFTEST_SPEC)
+_CONFTEST_SPEC.loader.exec_module(test_conftest)
 
 
 def _joined(profile: str) -> str:
@@ -144,3 +154,83 @@ def test_affected_historical_check_uses_adapter_after_terminal_g10(tmp_path, mon
     selected = gate._historical_command("w5_training_system", direct)
     assert Path(selected[1]).name == Path(gate.POST_G10_HISTORICAL_ADAPTER).name
     assert selected[2] == "w5_training_system"
+
+
+def test_terminal_collection_marks_only_exact_pre_science_g10_tests(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(test_conftest, "REPO", tmp_path)
+    terminal = tmp_path / test_conftest.G10_COMPLETION
+    terminal.parent.mkdir(parents=True, exist_ok=True)
+    terminal.write_bytes(b"terminal sentinel")
+
+    ordinary = SimpleNamespace(
+        fspath=tmp_path / "tests/test_g8_d_contract.py",
+        nodeid="tests/test_g8_d_contract.py::test_table_identity_round_trips_wrapped_schema",
+        markers=[],
+    )
+    pre_science = SimpleNamespace(
+        fspath=tmp_path / "tests/test_g10_protocol.py",
+        nodeid="tests/test_g10_protocol.py::test_am94_boundary_remains_pre_science",
+        markers=[],
+    )
+    ordinary.add_marker = ordinary.markers.append
+    pre_science.add_marker = pre_science.markers.append
+
+    test_conftest.pytest_collection_modifyitems(None, [ordinary, pre_science])
+
+    assert ordinary.markers == []
+    assert len(pre_science.markers) == 1
+
+
+def test_pre_science_tests_are_not_marked_before_terminal_g10(tmp_path, monkeypatch):
+    monkeypatch.setattr(test_conftest, "REPO", tmp_path)
+    item = SimpleNamespace(
+        fspath=tmp_path / "tests/test_g10_protocol.py",
+        nodeid="tests/test_g10_protocol.py::test_no_outcome_files_exist_before_authority",
+        markers=[],
+    )
+    item.add_marker = item.markers.append
+
+    test_conftest.pytest_collection_modifyitems(None, [item])
+
+    assert item.markers == []
+
+
+def test_unsafe_terminal_symlink_still_activates_terminal_phase(tmp_path, monkeypatch):
+    monkeypatch.setattr(test_conftest, "REPO", tmp_path)
+    terminal = tmp_path / test_conftest.G10_RECONCILIATION
+    terminal.parent.mkdir(parents=True, exist_ok=True)
+    terminal.symlink_to(tmp_path / "missing-reconciliation.json")
+    item = SimpleNamespace(
+        fspath=tmp_path / "tests/test_g10_protocol.py",
+        nodeid="tests/test_g10_protocol.py::test_am94_boundary_remains_pre_science",
+        markers=[],
+    )
+    item.add_marker = item.markers.append
+
+    test_conftest.pytest_collection_modifyitems(None, [item])
+
+    assert len(item.markers) == 1
+
+
+def test_full_local_excludes_exact_phase_marker_only_at_terminal_boundary(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(gate, "REPO", tmp_path)
+    before = "\n".join(" ".join(command) for command in gate.profile_commands("full-local"))
+    assert "-m not historical_pre_g10" not in before
+
+    completion = tmp_path / gate.G10_COMPLETION
+    completion.parent.mkdir(parents=True, exist_ok=True)
+    completion.symlink_to(tmp_path / "missing-completion.json")
+    after = "\n".join(" ".join(command) for command in gate.profile_commands("full-local"))
+    assert "-m not historical_pre_g10" in after
+    assert "not primary_runtime" not in after
+
+
+def test_post_g10_test_context_restores_strict_compatibility_loader():
+    original = test_conftest.g10_spec_compatibility.load
+    with test_conftest._post_g10_am94_context():
+        assert test_conftest.g10_spec_compatibility.load is not original
+    assert test_conftest.g10_spec_compatibility.load is original

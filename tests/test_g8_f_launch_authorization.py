@@ -23,7 +23,8 @@ def _rewrite_identity(value: dict) -> dict:
 
 
 @pytest.fixture(scope="module")
-def committed() -> tuple[dict, dict]:
+def committed(post_g10_am94_module) -> tuple[dict, dict]:
+    del post_g10_am94_module
     f0 = verify_f0_authorization(require_zero_prefix=False)
     launch = verify_separate_f1_launch(LAUNCH_PATH, AUTHORIZATION_PATH, f0)
     return f0, launch

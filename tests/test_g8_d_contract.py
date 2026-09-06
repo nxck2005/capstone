@@ -58,7 +58,8 @@ def _bler_identity() -> dict[str, object]:
     }
 
 
-def test_contract_artifact_and_independent_verifier_pass() -> None:
+def test_contract_artifact_and_independent_verifier_pass(post_g10_am94) -> None:
+    del post_g10_am94
     contract = g8_d.build_g8_d_contract()
     assert contract["checkpoint"] == "D7"
     assert contract["status"] == "handoff_ready"
@@ -142,7 +143,8 @@ def test_emitted_and_reconstruction_identities_reconcile_bytes() -> None:
         g8_d.EmittedFileIdentity(key.identity_id, HEX_A, 71, 80, 10)
 
 
-def test_table_identity_round_trips_wrapped_schema() -> None:
+def test_table_identity_round_trips_wrapped_schema(post_g10_am94) -> None:
+    del post_g10_am94
     contract = g8_d.build_g8_d_contract()
     identity = g8_d.G8CTableIdentity.from_mapping(contract["g8_c_binding"])
     assert identity.table_id == "g8pblertable-69ecc729f3b7dc3d67c0a3a5d8cf071cab927ad0a1e0cd5b18a6bbe674b9126f"

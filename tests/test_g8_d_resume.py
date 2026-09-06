@@ -105,7 +105,8 @@ class _CrashOnce:
             raise RuntimeError(f"injected crash at {event} for {work_unit.identity_id}")
 
 
-def test_atomic_campaign_commits_exact_prefix_and_reuses_complete_output(tmp_path) -> None:
+def test_atomic_campaign_commits_exact_prefix_and_reuses_complete_output(tmp_path, post_g10_am94) -> None:
+    del post_g10_am94
     _contract, work_units, _records, calls, make_campaign = _campaign_fixture(tmp_path)
     campaign = make_campaign()
     campaign.initialize()
@@ -136,7 +137,8 @@ def test_atomic_campaign_commits_exact_prefix_and_reuses_complete_output(tmp_pat
         "before_state_publication",
     ],
 )
-def test_atomic_campaign_recovers_each_publication_boundary(tmp_path, event) -> None:
+def test_atomic_campaign_recovers_each_publication_boundary(tmp_path, event, post_g10_am94) -> None:
+    del post_g10_am94
     _contract, work_units, _records, _calls, make_campaign = _campaign_fixture(tmp_path)
     crashing = make_campaign(_CrashOnce(event))
     crashing.initialize()
@@ -149,7 +151,8 @@ def test_atomic_campaign_recovers_each_publication_boundary(tmp_path, event) -> 
     assert resumed.read_state()["completed_work_unit_ids"] == [work_unit.identity_id for work_unit in work_units]
 
 
-def test_changed_contract_and_semantically_stale_state_fail_closed(tmp_path) -> None:
+def test_changed_contract_and_semantically_stale_state_fail_closed(tmp_path, post_g10_am94) -> None:
+    del post_g10_am94
     contract, _work_units, _records, _calls, make_campaign = _campaign_fixture(tmp_path, count=1)
     campaign = make_campaign()
     campaign.initialize()
@@ -169,7 +172,8 @@ def test_changed_contract_and_semantically_stale_state_fail_closed(tmp_path) -> 
         )
 
 
-def test_duplicate_or_missing_order_is_rejected_before_any_work(tmp_path) -> None:
+def test_duplicate_or_missing_order_is_rejected_before_any_work(tmp_path, post_g10_am94) -> None:
+    del post_g10_am94
     contract, work_units, records, _calls, _make_campaign = _campaign_fixture(tmp_path)
     with pytest.raises(g8_d.G8DContractError, match="duplicate"):
         g8_d.AtomicMeasurementCampaign(
@@ -189,7 +193,8 @@ def test_duplicate_or_missing_order_is_rejected_before_any_work(tmp_path) -> Non
         )
 
 
-def test_corrupted_record_or_cache_is_not_reused(tmp_path) -> None:
+def test_corrupted_record_or_cache_is_not_reused(tmp_path, post_g10_am94) -> None:
+    del post_g10_am94
     _contract, work_units, _records, _calls, make_campaign = _campaign_fixture(tmp_path, count=1)
     campaign = make_campaign()
     campaign.run_next()
@@ -199,7 +204,8 @@ def test_corrupted_record_or_cache_is_not_reused(tmp_path) -> None:
         campaign.read_state()
 
 
-def test_stale_aggregate_ahead_of_durable_evidence_is_rejected(tmp_path) -> None:
+def test_stale_aggregate_ahead_of_durable_evidence_is_rejected(tmp_path, post_g10_am94) -> None:
+    del post_g10_am94
     _contract, work_units, records, _calls, make_campaign = _campaign_fixture(tmp_path, count=2)
     campaign = make_campaign()
     campaign.run_next()

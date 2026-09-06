@@ -175,6 +175,7 @@ def test_dirty_tracked_state_is_refused(monkeypatch: pytest.MonkeyPatch, tmp_pat
         opener.open_phase("G8_B", B1_RESTART, state_path=path)
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_current_phase_verifier_accepts_valid_g8b_state(tmp_path: Path) -> None:
     path, _ = _g8b_state(tmp_path)
     state = phase_verifier.verify(
@@ -183,6 +184,7 @@ def test_current_phase_verifier_accepts_valid_g8b_state(tmp_path: Path) -> None:
     assert state["identity"]["phase"] == "G8_B"
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_current_phase_verifier_rejects_wrong_expected_phase(tmp_path: Path) -> None:
     path, _ = _g8b_state(tmp_path)
     with pytest.raises(phase_verifier.G8PhaseStateError, match="current phase"):
@@ -191,6 +193,7 @@ def test_current_phase_verifier_rejects_wrong_expected_phase(tmp_path: Path) -> 
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_current_phase_verifier_rejects_wrong_expected_stage(tmp_path: Path) -> None:
     path, _ = _g8b_state(tmp_path)
     with pytest.raises(phase_verifier.G8PhaseStateError, match="current stage"):
@@ -199,6 +202,7 @@ def test_current_phase_verifier_rejects_wrong_expected_stage(tmp_path: Path) -> 
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_current_phase_verifier_rejects_nonzero_science_state(tmp_path: Path) -> None:
     path, state = _g8b_state(tmp_path)
     state["identity"]["counters"]["training"] = 1
@@ -228,6 +232,7 @@ def test_verifier_rejects_unknown_phase_and_stage(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_verifier_rejects_changed_produced_artifact_binding(tmp_path: Path) -> None:
     path, state = _g8b_state(tmp_path)
     state["identity"]["produced_artifacts"][0]["sha256"] = "0" * 64
@@ -273,6 +278,7 @@ def _g8b_state_with_contract(tmp_path: Path) -> tuple[Path, dict]:
     return path, state
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_original_g8a_artifact_bindings_remain_required(tmp_path: Path) -> None:
     path, state = _g8b_state_with_contract(tmp_path)
     state["identity"]["produced_artifacts"] = [
@@ -299,6 +305,7 @@ def test_altered_original_binding_is_rejected(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_additional_valid_artifact_binding_is_accepted(tmp_path: Path) -> None:
     path, _ = _g8b_state_with_contract(tmp_path)
     state = phase_verifier.verify(
@@ -309,6 +316,7 @@ def test_additional_valid_artifact_binding_is_accepted(tmp_path: Path) -> None:
     assert len(paths) == 3
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_duplicate_added_path_is_rejected(tmp_path: Path) -> None:
     path, state = _g8b_state_with_contract(tmp_path)
     state["identity"]["produced_artifacts"].append(_artifact_binding(B1_CONTRACT_ARTIFACT))
@@ -320,6 +328,7 @@ def test_duplicate_added_path_is_rejected(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_unsorted_bindings_are_rejected(tmp_path: Path) -> None:
     path, state = _g8b_state_with_contract(tmp_path)
     state["identity"]["produced_artifacts"].reverse()
@@ -330,6 +339,7 @@ def test_unsorted_bindings_are_rejected(tmp_path: Path) -> None:
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_required_artifact_check_accepts_the_registered_contract(tmp_path: Path) -> None:
     path, _ = _g8b_state_with_contract(tmp_path)
     state = phase_verifier.verify(
@@ -342,6 +352,7 @@ def test_required_artifact_check_accepts_the_registered_contract(tmp_path: Path)
     assert state["identity"]["phase"] == "G8_B"
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_required_artifact_check_rejects_an_absent_path(tmp_path: Path) -> None:
     path, _ = _g8b_state(tmp_path)
     with pytest.raises(phase_verifier.G8PhaseStateError, match="required produced-artifact binding is absent"):
@@ -371,6 +382,7 @@ def _append_artifact_path(state: dict, path: str) -> None:
         ("results/baseline/w4/integration_adjudication.json", "outside"),
     ],
 )
+@pytest.mark.usefixtures("post_g10_am94")
 def test_phase_verifier_rejects_unsafe_additional_artifact_paths(
     tmp_path: Path, bad_path: str, message: str
 ) -> None:
@@ -384,6 +396,7 @@ def test_phase_verifier_rejects_unsafe_additional_artifact_paths(
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_phase_verifier_rejects_normalized_artifact_alias(tmp_path: Path) -> None:
     path, state = _g8b_state_with_contract(tmp_path)
     state = copy.deepcopy(state)
@@ -395,6 +408,7 @@ def test_phase_verifier_rejects_normalized_artifact_alias(tmp_path: Path) -> Non
         )
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_phase_verifier_binds_live_seed_identity_to_required_tooling_contract(
     tmp_path: Path,
 ) -> None:
@@ -507,6 +521,7 @@ def test_registration_refuses_a_wrong_phase_or_stage(tmp_path: Path) -> None:
 # --------------------------------------------------------------------------
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_frozen_g8a_verifier_rejects_the_real_live_later_phase_cursor() -> None:
     live = load_campaign_state()
     assert live["identity"]["phase"] == "G8_C"
@@ -514,6 +529,7 @@ def test_frozen_g8a_verifier_rejects_the_real_live_later_phase_cursor() -> None:
         preflight.verify()
 
 
+@pytest.mark.usefixtures("post_g10_am94")
 def test_live_manifest_named_completeness_checks_are_enforced() -> None:
     # The B0 gap: these manifest clauses were bound but never named by a verifier.
     manifest, _required = phase_verifier._verify_manifest_and_required_artifact()

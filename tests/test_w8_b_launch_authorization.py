@@ -6,7 +6,10 @@ from pathlib import Path
 from gen_w8_b_launch_authorization import OUTPUT_PATH, _verify
 
 
-def test_committed_w8_b_launch_authorization_authenticates_exactly() -> None:
+def test_committed_w8_b_launch_authorization_authenticates_exactly(
+    post_g10_am94,
+) -> None:
+    del post_g10_am94
     repo = Path(__file__).resolve().parents[1]
     value = _verify(
         OUTPUT_PATH,

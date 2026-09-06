@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import hashlib
 import pickle
+import sys
+from contextlib import ExitStack, contextmanager
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -13,46 +16,33 @@ from PIL import Image
 from torchvision.datasets import CIFAR10, STL10, Imagenette
 
 import config.params as config_params
+from baseline import g8_campaign, w8_spec_compatibility
+from evaluation import g10_spec_compatibility
+from evaluation.g10_protocol import verify_am94_boundary
 
 
 REPO = Path(__file__).resolve().parents[1]
 G10_COMPLETION = Path("results/learned/w9/w9a_completion.json")
 G10_RECONCILIATION = Path("results/learned/w9/w9a_reconciliation.json")
 
-# These modules authenticate immutable pre-G-10 phase boundaries.  Their
-# strict AM-94 assertions remain valuable in an AM-94/pre-science checkout,
-# while the post-G-10 carrier runs the corresponding read-only checks through
-# tools/run_post_g10_historical_check.py.
-HISTORICAL_PRE_G10_TEST_MODULES = frozenset(
-    {
-        "tests/test_g8_d_contract.py",
-        "tests/test_g8_d_handoff.py",
-        "tests/test_g8_d_records.py",
-        "tests/test_g8_d_resume.py",
-        "tests/test_g8_d_smoke.py",
-        "tests/test_g8_e_e0.py",
-        "tests/test_g8_f_closeout.py",
-        "tests/test_g8_f_corpus_plan.py",
-        "tests/test_g8_f_f0.py",
-        "tests/test_g8_f_launch_authorization.py",
-        "tests/test_g8_historical_compatibility.py",
-        "tests/test_g8_pascal_closeout.py",
-        "tests/test_g8_pascal_portable.py",
-        "tests/test_g8_pascal_production.py",
-        "tests/test_g8_phase_open.py",
-        "tests/test_g8_preflight.py",
-        "tests/test_w6_classical_evidence.py",
-        "tests/test_w6_complete.py",
-        "tests/test_w7_g4_terminal.py",
-        "tests/test_w8_b_launch_authorization.py",
-    }
-)
+# Keep this compatibility name empty for callers that imported the old
+# inventory. Phase routing is deliberately node-specific now: a module is
+# never excluded merely because one of its tests describes an older phase.
+HISTORICAL_PRE_G10_TEST_MODULES = frozenset()
 HISTORICAL_PRE_G10_TESTS = frozenset(
     {
         "tests/test_g10_protocol.py::test_am94_boundary_remains_pre_science",
         "tests/test_g10_protocol.py::test_no_outcome_files_exist_before_authority",
     }
 )
+POST_G10_CONTEXT_TESTS = frozenset(
+    {
+        "tests/test_w6_classical_evidence.py::test_resigned_malicious_index_fails_inner_or_reproduction",
+        "tests/test_w6_classical_evidence.py::test_false_future_classification_is_rejected_even_when_resigned",
+        "tests/test_w6_classical_evidence.py::test_current_index_and_matrix_are_deterministic",
+    }
+)
+_POST_G10_CONTEXTS: dict[str, object] = {}
 
 
 def _present(path: Path) -> bool:
@@ -74,6 +64,89 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             or item.nodeid.split("[", 1)[0] in HISTORICAL_PRE_G10_TESTS
         ):
             item.add_marker(marker)
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """Open the additive adapter only around exact historical test calls."""
+
+    base_nodeid = item.nodeid.split("[", 1)[0]
+    if base_nodeid not in POST_G10_CONTEXT_TESTS:
+        return
+    context = _post_g10_am94_context()
+    context.__enter__()
+    _POST_G10_CONTEXTS[item.nodeid] = context
+
+
+def pytest_runtest_teardown(item: pytest.Item, nextitem: pytest.Item | None) -> None:
+    del nextitem
+    context = _POST_G10_CONTEXTS.pop(item.nodeid, None)
+    if context is not None:
+        context.__exit__(None, None, None)
+
+
+@contextmanager
+def _post_g10_am94_context():
+    """Adapt one historical test call to terminal AM-94 in memory only.
+
+    Historical G8/W5/W6/W7/W8 verifiers intentionally authenticate their
+    source image as pre-G-10. The command-line carrier adapts those calls in
+    the same narrow way. Tests opt into this context explicitly; the strict
+    ``g10_spec_compatibility.load`` implementation and all scientific files
+    remain untouched, and every patch is restored on exit.
+    """
+
+    if not (
+        _present(REPO / G10_COMPLETION)
+        or _present(REPO / G10_RECONCILIATION)
+    ):
+        yield
+        return
+
+    verify_am94_boundary(REPO, outcomes_allowed=True)
+
+    def additive_load(root: Path = REPO):
+        return verify_am94_boundary(Path(root), outcomes_allowed=True)
+
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(g10_spec_compatibility, "load", additive_load))
+        stack.enter_context(
+            patch.object(g8_campaign, "load_am94_spec_compatibility", additive_load)
+        )
+        stack.enter_context(
+            patch.object(w8_spec_compatibility, "load_am94_spec_compatibility", additive_load)
+        )
+        # A few historical verifiers import the strict loader directly rather
+        # than through one of the two package modules above.  Patch only those
+        # already-loaded verifier aliases for the duration of an opted-in test;
+        # never change the production compatibility implementation.
+        for module_name in (
+            "baseline.w6_evidence",
+            "verify_w7_g4",
+            "gen_w8_execution_authorization",
+            "verify_w8_a",
+        ):
+            module = sys.modules.get(module_name)
+            if module is not None and hasattr(module, "load_am94_spec_compatibility"):
+                stack.enter_context(
+                    patch.object(module, "load_am94_spec_compatibility", additive_load)
+                )
+        yield
+
+
+@pytest.fixture
+def post_g10_am94():
+    """Opt-in, function-scoped AM-94 compatibility for one historical test."""
+
+    with _post_g10_am94_context():
+        yield
+
+
+@pytest.fixture(scope="module")
+def post_g10_am94_module():
+    """Module-scoped form for module-scoped historical artifact fixtures."""
+
+    with _post_g10_am94_context():
+        yield
 
 
 def _record(width: int, token: int) -> bytes:

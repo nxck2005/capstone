@@ -75,7 +75,10 @@ class _CrashBeforeRecord:
 
 
 @pytest.mark.parametrize("case", MUTATION_CASES, ids=MUTATION_CASES)
-def test_d6_required_mutation_matrix_rejects_or_preserves_boundary(tmp_path: Path, case: str) -> None:
+def test_d6_required_mutation_matrix_rejects_or_preserves_boundary(
+    tmp_path: Path, case: str, post_g10_am94
+) -> None:
+    del post_g10_am94
     fixture = _fixture(tmp_path)
     contract = fixture["contract"]
     context = fixture["context"]
@@ -292,7 +295,10 @@ def test_d6_required_mutation_matrix_rejects_or_preserves_boundary(tmp_path: Pat
         raise AssertionError(f"unhandled mutation case {case}")
 
 
-def test_bounded_smoke_artifact_and_independent_verifier_pass(tmp_path: Path) -> None:
+def test_bounded_smoke_artifact_and_independent_verifier_pass(
+    tmp_path: Path, post_g10_am94
+) -> None:
+    del post_g10_am94
     output = tmp_path / "bounded_smoke.json"
     artifact = run_smoke(output)
     verified = verify(output)

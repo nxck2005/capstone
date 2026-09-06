@@ -188,7 +188,8 @@ def _mutated_completion(tmp_path: Path, mutate: object) -> Path:
     return path
 
 
-def test_committed_f1_closeout_verifies_offline_without_worker_corpus() -> None:
+def test_committed_f1_closeout_verifies_offline_without_worker_corpus(post_g10_am94) -> None:
+    del post_g10_am94
     value = verify_closeout()
     assert value["coverage"]["authenticated_prefix"] == 50_814  # literal-ok: frozen AM-88 assignment count
     assert value["outcomes"]["unexpected_or_other"] == 0
@@ -210,7 +211,10 @@ def test_committed_f1_closeout_verifies_offline_without_worker_corpus() -> None:
         (lambda value: value["outcomes"].__setitem__("unexpected_or_other", 1), "outcome counts|unexpected outcomes"),
     ],
 )
-def test_offline_closeout_mutations_fail_closed(tmp_path: Path, mutation: object, match: str) -> None:
+def test_offline_closeout_mutations_fail_closed(
+    tmp_path: Path, mutation: object, match: str, post_g10_am94
+) -> None:
+    del post_g10_am94
     path = _mutated_completion(tmp_path, mutation)
     with pytest.raises(G8FF1CloseoutHold, match=match):
         verify_closeout(path, MANIFEST_PATH)

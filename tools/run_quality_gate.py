@@ -27,6 +27,7 @@ G10_AUTHORIZATION_V2 = Path("results/learned/w9/g10_execution_authorization_v2.j
 G10_COMPLETION = Path("results/learned/w9/w9a_completion.json")
 G10_RECONCILIATION = Path("results/learned/w9/w9a_reconciliation.json")
 POST_G10_HISTORICAL_ADAPTER = "tools/run_post_g10_historical_check.py"
+FULL_LOCAL_TEST_MARKER = "not historical_pre_g10"
 
 
 def _python_tool(path: str, *args: str) -> list[str]:
@@ -57,6 +58,15 @@ def _historical_command(target: str, direct: list[str]) -> list[str]:
     if _g10_terminal():
         return _python_tool(POST_G10_HISTORICAL_ADAPTER, target)
     return direct
+
+
+def _full_local_test_command() -> list[str]:
+    """Keep full-local broad while omitting only impossible terminal tests."""
+
+    command = [PYTHON, "-m", "pytest", "-q"]
+    if _g10_terminal():
+        command.extend(["-m", FULL_LOCAL_TEST_MARKER])
+    return command
 
 
 def _w8_a_commands() -> tuple[list[str], ...]:
@@ -231,7 +241,7 @@ def profile_commands(profile: str) -> tuple[list[str], ...]:
             ["git", "diff", "--check"],
         )
     if profile == "full-local":
-        return (*_static_commands(), [PYTHON, "-m", "pytest", "-q"])
+        return (*_static_commands(), _full_local_test_command())
     raise ValueError(f"unknown quality-gate profile: {profile}")
 
 

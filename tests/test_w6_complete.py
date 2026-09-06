@@ -66,14 +66,21 @@ def _mutated_completion(tmp_path: Path, mutate: Callable[[dict[str, Any]], None]
     ],
 )
 def test_resigned_terminal_completion_mutations_fail(
-    tmp_path: Path, name: str, mutate: Callable[[dict[str, Any]], None]
+    tmp_path: Path,
+    name: str,
+    mutate: Callable[[dict[str, Any]], None],
+    post_g10_am94,
 ) -> None:
+    del post_g10_am94
     path = _mutated_completion(tmp_path, mutate)
     with pytest.raises(terminal.W6CompleteHold):
         terminal.verify_completion(path, reauthenticate=False)
 
 
-def test_current_terminal_completion_reproduces_without_upstream_rerun() -> None:
+def test_current_terminal_completion_reproduces_without_upstream_rerun(
+    post_g10_am94,
+) -> None:
+    del post_g10_am94
     value = terminal.verify_completion(COMPLETION, reauthenticate=False)
     assert value["status"] == "W6_GREEN_CLOSED_CLASSICAL_PRE_TEST_IMPLEMENTATION_AND_EVIDENCE_BOUNDARY_AUTHENTICATED"
     assert value["completion_id"].startswith("w6completion-")

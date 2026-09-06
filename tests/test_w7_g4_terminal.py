@@ -60,7 +60,8 @@ def _fails_terminal(tmp_path: Path, mutate: Mutation) -> None:
         verifier.verify_terminal_completion(path)
 
 
-def test_authenticated_g4_and_terminal_closeout_pass():
+def test_authenticated_g4_and_terminal_closeout_pass(post_g10_am94):
+    del post_g10_am94
     g4 = verifier.verify_adjudication(G4_PATH)
     terminal = verifier.verify_terminal_completion(TERMINAL_PATH, g4=g4)
     assert g4["candidate_lambdas"] == [0.0, 0.1, 0.3, 1.0, 3.0]

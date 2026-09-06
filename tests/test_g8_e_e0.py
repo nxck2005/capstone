@@ -11,7 +11,8 @@ import pytest
 from baseline.g8_e import E0_PATH, G8EContractError, rendered_json, validate_e0_opening, verify_e0_file
 
 
-def test_committed_e0_is_open_and_zero_coverage() -> None:
+def test_committed_e0_is_open_and_zero_coverage(post_g10_am94) -> None:
+    del post_g10_am94
     value = verify_e0_file(E0_PATH)
     assert value["status"] == "OPEN"
     assert value["safety"]["g8_e_measurement_coverage"] == 0
@@ -19,7 +20,8 @@ def test_committed_e0_is_open_and_zero_coverage() -> None:
     assert value["declarations"]["validation_image_decoding_required_to_open"] is False
 
 
-def test_e0_binds_portable_epoch_and_current_d7() -> None:
+def test_e0_binds_portable_epoch_and_current_d7(post_g10_am94) -> None:
+    del post_g10_am94
     value = verify_e0_file(E0_PATH)
     assert value["g8_c"]["portable_verification_epoch"]["epoch"] == "g8-c-portable-scientific-runtime-v1"
     assert value["g8_c"]["portable_verification_epoch"]["legacy_tree_digest_is_historical_only"] is True
@@ -39,13 +41,15 @@ def test_e0_binds_portable_epoch_and_current_d7() -> None:
     ],
     ids=lambda item: item[0],
 )
-def test_e0_mutations_fail_closed(mutation) -> None:
+def test_e0_mutations_fail_closed(mutation, post_g10_am94) -> None:
+    del post_g10_am94
     value = copy.deepcopy(verify_e0_file(E0_PATH))
     mutation[1](value)
     with pytest.raises(G8EContractError):
         validate_e0_opening(value)
 
 
-def test_e0_file_is_canonical() -> None:
+def test_e0_file_is_canonical(post_g10_am94) -> None:
+    del post_g10_am94
     raw = E0_PATH.read_bytes()
     assert raw == rendered_json(json.loads(raw))
