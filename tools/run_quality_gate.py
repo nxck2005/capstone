@@ -22,10 +22,40 @@ CPU_TEST_SELECTION = (
     "and not external_dataset and not frozen_checkpoint "
     "and not external_codec_runtime and not historical_profile_artifact"
 )
+G10_AUTHORIZATION_V2 = Path("results/learned/w9/g10_execution_authorization_v2.json")
+G10_COMPLETION = Path("results/learned/w9/w9a_completion.json")
+G10_RECONCILIATION = Path("results/learned/w9/w9a_reconciliation.json")
+POST_G10_HISTORICAL_ADAPTER = "tools/run_post_g10_historical_check.py"
 
 
 def _python_tool(path: str, *args: str) -> list[str]:
     return [PYTHON, str(REPO / path), *args]
+
+
+def _present(path: Path) -> bool:
+    """Treat symlinks as present so unsafe sentinels cannot weaken routing."""
+
+    return path.exists() or path.is_symlink()
+
+
+def _g10_commands() -> tuple[list[str], ...]:
+    """Select the strict verifier for the repository's G-10 lifecycle phase."""
+
+    if _present(REPO / G10_COMPLETION) or _present(REPO / G10_RECONCILIATION):
+        return (_python_tool("tools/verify_g10_w9.py"),)
+    if _present(REPO / G10_AUTHORIZATION_V2):
+        return (_python_tool("tools/verify_g10_authority.py"),)
+    return (_python_tool("tools/verify_g10_semantics_freeze.py"),)
+
+
+def _g10_terminal() -> bool:
+    return _present(REPO / G10_COMPLETION) or _present(REPO / G10_RECONCILIATION)
+
+
+def _historical_command(target: str, direct: list[str]) -> list[str]:
+    if _g10_terminal():
+        return _python_tool(POST_G10_HISTORICAL_ADAPTER, target)
+    return direct
 
 
 def _w8_a_commands() -> tuple[list[str], ...]:
@@ -47,7 +77,12 @@ def _w8_a_commands() -> tuple[list[str], ...]:
         authority_root / "w8_a_completion.json",
     )
     if all(path.is_file() and not path.is_symlink() for path in required):
-        return (_python_tool("tools/verify_w8_a.py", "--skip-data"),)
+        return (
+            _historical_command(
+                "w8_a",
+                _python_tool("tools/verify_w8_a.py", "--skip-data"),
+            ),
+        )
     return ()
 
 
@@ -102,25 +137,40 @@ def _w8_c_commands() -> tuple[list[str], ...]:
 def _static_commands() -> tuple[list[str], ...]:
     return (
         _python_tool("tools/gen_spec_views.py", "--check"),
-        _python_tool("tools/verify_g10_semantics_freeze.py"),
+        *_g10_commands(),
         _python_tool("tools/check_doc_consistency.py", "-v"),
         _python_tool("tools/check_literals.py", "-v"),
         _python_tool("tools/gen_g8_f_corpus_plan.py", "--check"),
         _python_tool("tools/verify_g8_f_corpus_plan.py"),
-        _python_tool("tools/gen_g8_f_sampler_plan.py", "--check"),
+        _historical_command(
+            "g8_f_sampler_plan_check",
+            _python_tool("tools/gen_g8_f_sampler_plan.py", "--check"),
+        ),
         _python_tool("tools/verify_g8_f_sampler_plan.py"),
-        [
-            PYTHON,
-            "-c",
-            "from baseline.g8_f_f0 import verify_f0_authorization; "
-            "value = verify_f0_authorization(require_zero_prefix=False); "
-            "print('G8_F F0 offline authentication PASS:', value['authorization_id'])",
-        ],
-        _python_tool("tools/closeout_g8_f_f1.py", "verify"),
+        _historical_command(
+            "g8_f0_authorization",
+            [
+                PYTHON,
+                "-c",
+                "from baseline.g8_f_f0 import verify_f0_authorization; "
+                "value = verify_f0_authorization(require_zero_prefix=False); "
+                "print('G8_F F0 offline authentication PASS:', value['authorization_id'])",
+            ],
+        ),
+        _historical_command(
+            "g8_f1_closeout",
+            _python_tool("tools/closeout_g8_f_f1.py", "verify"),
+        ),
         _python_tool("tools/closeout_g8_f_f2.py", "verify"),
         _python_tool("tools/closeout_g8.py", "verify"),
-        _python_tool("tools/verify_w5_training_system.py"),
-        _python_tool("tools/gen_g8_campaign_manifest.py", "--check"),
+        _historical_command(
+            "w5_training_system",
+            _python_tool("tools/verify_w5_training_system.py"),
+        ),
+        _historical_command(
+            "g8_campaign_manifest_check",
+            _python_tool("tools/gen_g8_campaign_manifest.py", "--check"),
+        ),
         _python_tool("tools/gen_g8_bler_tooling_contract.py", "--check"),
         _python_tool("tools/verify_g8_bler_tooling_contract.py"),
         _python_tool("tools/gen_g8_bler_state_contract.py", "--check"),
@@ -128,17 +178,32 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/verify_g8_bler_resume_contract.py"),
         _python_tool("tools/verify_g8_bler_runner_contract_offline.py"),
         _python_tool("tools/verify_g8_bler_characterization_manifest_v2.py"),
-        _python_tool("tools/verify_w4_baseline_integration.py"),
+        _historical_command(
+            "w4_baseline_integration",
+            _python_tool("tools/verify_w4_baseline_integration.py"),
+        ),
         _python_tool("tools/verify_g2_adjudication.py"),
-        _python_tool("tools/build_w6_classical_evidence.py", "--check"),
-        _python_tool("tools/verify_w6_classical_evidence.py", "--no-upstream"),
-        _python_tool("tools/verify_w6_complete.py"),
+        _historical_command(
+            "w6_classical_build_check",
+            _python_tool("tools/build_w6_classical_evidence.py", "--check"),
+        ),
+        _historical_command(
+            "w6_classical_verify",
+            _python_tool("tools/verify_w6_classical_evidence.py", "--no-upstream"),
+        ),
+        _historical_command(
+            "w6_complete",
+            _python_tool("tools/verify_w6_complete.py"),
+        ),
         _python_tool("tools/verify_w7_b1.py", "verify"),
         # W5/W6/B1 are authenticated immediately above; retain the standalone
         # B2R and terminal G-4 checks so every software lane sees the exact
         # upstream boundary that W8 preflight invokes.
         _python_tool("tools/verify_w7_b2r.py", "verify", "--skip-upstream"),
-        _python_tool("tools/verify_w7_g4.py", "verify"),
+        _historical_command(
+            "w7_g4",
+            _python_tool("tools/verify_w7_g4.py", "verify"),
+        ),
         *_w8_a_commands(),
         *_w8_c_commands(),
         ["git", "diff", "--check"],
