@@ -69,6 +69,17 @@ W8_CARRIER_SOURCE_HASHES: tuple[tuple[str, int, str, int, str], ...] = (
     ("tools/verify_w6_complete.py", 52840, "4a9ba3025d2f4040ac13fa98ce2b56d8c07516c980240307bd62dbbaf02b3f6d", 53091, "e90a2677a6bc7f903c065639adaae1c75e6be0c1ed56049126266f740425b057"),
 )
 
+# AM-95's historical adapter edits are also exact and verifier-only.  The
+# immutable W8 manifest remains the base, while these three current images are
+# admitted only for the post-G-10 read-only compatibility route.
+AM95_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
+    "spec/SPEC.md": (410328, "d3bc33b591b48bf387650017eda45643085a5b49140879b408e423aa3167cc9c"),
+    "spec/params.generated.yaml": (46914, "6f44c7e981dcb179984c5737d844c1b8fc0ac39c0fa29fb84b1a6c67c35cbeb1"),
+    "src/baseline/w8_spec_compatibility.py": (10980, "2e03fc0049b142a53303facd8b6da989adbf6a7f940ed8cc9b974f6232352afd"),
+    "src/baseline/w7c_source_compatibility.py": (17334, "2876fa9fc5d32bafd14ecb9c3fbe16508653f1ecdb4acd5dbacbf3fcb130341e"),
+    "src/baseline/g8_campaign.py": (59265, "b9ed20864f7bab66bd7d47e4ebe6807362f7725d86ddfe016e6ccc142bbaa9e7"),
+}
+
 
 class G10SemanticsFreezeError(RuntimeError):
     """The exact AM-94 transition or its zero-science boundary differs."""
@@ -259,9 +270,15 @@ def verify_w8_carrier_source_transition(
             f"W8 frozen source-manifest base differs: {path}",
         )
         raw = (root / path).read_bytes()
+        if len(raw) == current_bytes and sha256_bytes(raw) == current_sha:
+            compatible.add(path)
+            continue
+        successor = AM95_W8_CARRIER_SOURCE_HASHES.get(path)
         _require(
-            len(raw) == current_bytes and sha256_bytes(raw) == current_sha,
-            f"W8 AM-94 carrier source differs: {path}",
+            successor is not None
+            and len(raw) == successor[0]
+            and sha256_bytes(raw) == successor[1],
+            f"W8 AM-94/AM-95 carrier source differs: {path}",
         )
         compatible.add(path)
     return frozenset(compatible)

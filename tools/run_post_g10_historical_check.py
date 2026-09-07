@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import runpy
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tools"))
 
-from evaluation import g10_spec_compatibility  # noqa: E402
+from evaluation import am95_spec_compatibility, g10_spec_compatibility  # noqa: E402
 from evaluation.g10_protocol import (  # noqa: E402
     G10ProtocolHold,
     RECONCILIATION_PATH,
@@ -73,6 +74,12 @@ def _run_w6_complete(root: Path) -> None:
     namespace = runpy.run_path(str(script_path), run_name="_post_g10_w6_complete")
     target_globals = namespace["main"].__globals__
     original_run_tool = target_globals["_run_tool"]
+    w6_module = target_globals["w6"]
+    original_w8_normative_hashes = dict(w6_module._W8_CURRENT_NORMATIVE_SHA256)
+    w6_module._W8_CURRENT_NORMATIVE_SHA256 = {
+        "normative_spec": am95_spec_compatibility.VIEW_HASHES[0][4],
+        "resolved_params": am95_spec_compatibility.VIEW_HASHES[1][4],
+    }
 
     def run_tool(path: Path, *arguments: str) -> str:
         if path.resolve() == (root / "tools/verify_w4_baseline_integration.py").resolve():
@@ -85,6 +92,28 @@ def _run_w6_complete(root: Path) -> None:
         result = namespace["main"]()
     finally:
         target_globals["_run_tool"] = original_run_tool
+        w6_module._W8_CURRENT_NORMATIVE_SHA256 = original_w8_normative_hashes
+    if isinstance(result, int) and result != 0:
+        raise SystemExit(result)
+
+
+def _run_w6_evidence_tool(target: str, root: Path) -> None:
+    """Run a W6-A reader with an in-memory AM-95 normative projection."""
+
+    script, *arguments = TARGETS[target]
+    script_path = root / script
+    sys.argv = [str(script_path), *arguments]
+    namespace = runpy.run_path(str(script_path), run_name=f"_post_g10_{target}")
+    w6_module = sys.modules["baseline.w6_evidence"]
+    original_hashes = dict(w6_module._W8_CURRENT_NORMATIVE_SHA256)
+    w6_module._W8_CURRENT_NORMATIVE_SHA256 = {
+        "normative_spec": am95_spec_compatibility.VIEW_HASHES[0][4],
+        "resolved_params": am95_spec_compatibility.VIEW_HASHES[1][4],
+    }
+    try:
+        result = namespace["main"]()
+    finally:
+        w6_module._W8_CURRENT_NORMATIVE_SHA256 = original_hashes
     if isinstance(result, int) and result != 0:
         raise SystemExit(result)
 
@@ -97,6 +126,66 @@ def _run_w8_a(root: Path) -> None:
     namespace = runpy.run_path(str(script_path), run_name="_post_g10_w8_a")
     target_globals = namespace["main"].__globals__
     original_w7_verifier = target_globals["_run_w7_g4_verifier"]
+    authorization_module = sys.modules["gen_w8_execution_authorization"]
+    original_authorization_predecessor = authorization_module._am94_predecessor_config_bindings
+
+    def predecessor_config_bindings(*, role: str = authorization_module.W8_CORE_ROLE) -> list[dict[str, Any]]:
+        """Project current W8 configs back through AM-94 and AM-95 in memory."""
+
+        names = []
+        for path in authorization_module.AM94_ALLOWED_PARAMETER_PATHS:
+            prefix = "evaluation."
+            if not path.startswith(prefix) or "." in path[len(prefix):]:
+                raise ValueError("AM-94 compatibility contains a non-evaluation leaf")
+            names.append(path[len(prefix):])
+        values: list[dict[str, Any]] = []
+        for cell in authorization_module.run_cells():
+            config = authorization_module.load_w8_config(
+                cell.ratio, cell.train_seed, cell.channel_seed, role=role
+            )
+            historical = config.to_dict()
+            evaluation = historical["parameters"]["evaluation"]
+            for name in names:
+                if name not in evaluation:
+                    raise ValueError(f"AM-94 parameter is absent from W8 config: {name}")
+                del evaluation[name]
+            channel = historical["parameters"]["channel"]
+            for name in (
+                "train_snr_randomisation_distribution",
+                "train_snr_randomisation_rng_purpose",
+                "train_snr_randomisation_unit",
+            ):
+                channel.pop(name, None)
+            artifacts = historical["parameters"]["artifacts"]
+            artifacts["rng_purposes"] = [
+                purpose for purpose in artifacts["rng_purposes"]
+                if purpose != "er2_snr_randomised_v1"
+            ]
+            artifacts["rng_identity_fields"].pop("er2_snr_randomised_v1", None)
+            values.append(
+                {
+                    "run_index": cell.run_index,
+                    "config_hash": authorization_module.run_config_canonical_sha256(
+                        {
+                            "fingerprint_schema_version": historical["fingerprint_schema_version"],
+                            "resolved": historical["resolved"],
+                            "parameters": historical["parameters"],
+                        }
+                    ),
+                    "protocol_config_hash": authorization_module.run_config_canonical_sha256(
+                        {"protocol": authorization_module.protocol_descriptor(), "config": historical}
+                    ),
+                }
+            )
+        return values
+
+    authorization_module._am94_predecessor_config_bindings = predecessor_config_bindings
+    target_globals["_am94_predecessor_config_bindings"] = predecessor_config_bindings
+    run_w8_module = sys.modules.get("run_w8_campaign")
+    original_run_w8_predecessor = None
+    if run_w8_module is not None and hasattr(run_w8_module, "_am94_predecessor_config_bindings"):
+        original_run_w8_predecessor = run_w8_module._am94_predecessor_config_bindings
+        run_w8_module._am94_predecessor_config_bindings = predecessor_config_bindings
 
     def run_w7_verifier(repo: Path) -> None:
         _execute_target("w7_g4", root)
@@ -106,6 +195,9 @@ def _run_w8_a(root: Path) -> None:
         result = namespace["main"]()
     finally:
         target_globals["_run_w7_g4_verifier"] = original_w7_verifier
+        authorization_module._am94_predecessor_config_bindings = original_authorization_predecessor
+        if run_w8_module is not None and original_run_w8_predecessor is not None:
+            run_w8_module._am94_predecessor_config_bindings = original_run_w8_predecessor
     if isinstance(result, int) and result != 0:
         raise SystemExit(result)
 
@@ -116,6 +208,9 @@ def _execute_target(target: str, root: Path = REPO) -> None:
         return
     if target == "w6_complete":
         _run_w6_complete(root)
+        return
+    if target in {"w6_classical_build_check", "w6_classical_verify"}:
+        _run_w6_evidence_tool(target, root)
         return
     if target == "w8_a":
         _run_w8_a(root)
@@ -135,9 +230,17 @@ def run(target: str, root: Path = REPO) -> None:
     _verify_terminal(root)
     _verify_additive_am94(root)
     original_load = g10_spec_compatibility.load
-    additive_load = lambda load_root=root: verify_am94_boundary(  # noqa: E731
-        Path(load_root), outcomes_allowed=True
-    )
+    def additive_load(load_root: Path = root) -> dict[str, Any]:
+        load_root = Path(load_root)
+        historical = verify_am94_boundary(load_root, outcomes_allowed=True)
+        am95 = am95_spec_compatibility.load(load_root)
+        successor_entries = {entry["path"]: entry for entry in am95["entries"]}
+        projection = json.loads(json.dumps(historical))
+        for entry in projection["entries"]:
+            successor = successor_entries[entry["path"]]
+            entry["current_bytes"] = successor["current_bytes"]
+            entry["current_sha256"] = successor["current_sha256"]
+        return projection
     try:
         g10_spec_compatibility.load = additive_load
         _execute_target(target, root)

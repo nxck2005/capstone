@@ -17,8 +17,12 @@ from pathlib import Path
 from typing import Any
 
 from config.params import REPO_ROOT
+from evaluation.am95_spec_compatibility import (
+    load as load_am95_spec_compatibility,
+)
 from evaluation.g10_spec_compatibility import (
     PREDECESSOR_COMMIT as AM94_PREDECESSOR_COMMIT,
+    VIEW_HASHES as AM94_VIEW_HASHES,
     load as load_am94_spec_compatibility,
 )
 
@@ -160,11 +164,42 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         am93 = _git_bytes(root, AM94_PREDECESSOR_COMMIT, path_text)
         _require(len(am93) == current_bytes and sha256_bytes(am93) == current_sha256, f"AM-93 historical current bytes differ: {path_text}")
 
+    successor_is_am95 = False
     try:
         successor = load_am94_spec_compatibility(root)
-    except Exception as exc:
-        raise W8SpecCompatibilityError(f"AM-94 successor differs: {exc}") from None
+    except Exception as am94_exc:
+        # AM-94 is immutable historical evidence.  Once the terminal G-10
+        # result exists, AM-95 is the one additive successor that can advance
+        # this read-only projection without rewriting the AM-94 record.
+        try:
+            successor = load_am95_spec_compatibility(root)
+            successor_is_am95 = True
+        except Exception as am95_exc:
+            raise W8SpecCompatibilityError(
+                f"AM-94/AM-95 successor differs: AM-94={am94_exc}; AM-95={am95_exc}"
+            ) from None
     successor_entries = {entry["path"]: entry for entry in successor["entries"]}
+    if successor_is_am95:
+        # AM-95 starts at AM-94's current bytes, while this historical W8
+        # projection starts at AM-93.  Compose the two authenticated links so
+        # callers receive one exact AM-93 -> AM-95 frontier.
+        composed: dict[str, dict[str, Any]] = {}
+        am94_entries = {entry[0]: entry for entry in AM94_VIEW_HASHES}
+        for path_text, later in successor_entries.items():
+            am94_entry = am94_entries[path_text]
+            _require(
+                later["base_bytes"] == am94_entry[3]  # literal-ok: authenticated view tuple field
+                and later["base_sha256"] == am94_entry[4],  # literal-ok: authenticated view tuple field
+                f"AM-95 successor is not chained from AM-94: {path_text}",
+            )
+            composed[path_text] = {
+                "path": path_text,
+                "base_bytes": am94_entry[1],
+                "base_sha256": am94_entry[2],
+                "current_bytes": later["current_bytes"],
+                "current_sha256": later["current_sha256"],
+            }
+        successor_entries = composed
     projection = dict(value)
     projection["entries"] = []
     for entry in value["entries"]:
@@ -172,7 +207,7 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         _require(
             later["base_bytes"] == entry["current_bytes"]
             and later["base_sha256"] == entry["current_sha256"],
-            f"AM-94 successor is not chained from AM-93: {entry['path']}",
+            f"AM-94/AM-95 successor is not chained from AM-93: {entry['path']}",
         )
         projected = dict(entry)
         projected["current_bytes"] = later["current_bytes"]

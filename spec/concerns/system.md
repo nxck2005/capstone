@@ -44,7 +44,7 @@ Requirements extracted from [`SPEC.md`](../SPEC.md). This view is for focused re
 | `artifacts.per_image_dir` | results/per_image/ |
 | `artifacts.per_image_schema` | run_id, pair_id, noise_id, analysis_cell_id, dataset, dataset_version, split, stable_sample_id, bw_ratio, test_snr_db, true_label, pred_label, correct, outage, outage_reason, source_bytes |
 | `artifacts.results_dir` | results/ |
-| `artifacts.rng_purposes` | channel_noise, training_channel_noise, outage_label, augmentation, init, batch_order |
+| `artifacts.rng_purposes` | channel_noise, training_channel_noise, outage_label, augmentation, init, batch_order, er2_snr_randomised_v1 |
 | `artifacts.rng_stream` | counter_based_keyed_not_sequential |
 | `artifacts.run_id_form` | content_addressed_sha256_over_sorted_key_value_pairs |
 | `artifacts.run_id_key` | system, dataset, dataset_version, split, split_manifest_hash, bw_ratio, test_snr_db, train_seed, channel_seed, config_hash, checkpoint_id, classifier_variant, ldpc_rate, modulation, quantiser_bits, transmit_dim, lambda, analysis_version |

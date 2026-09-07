@@ -1,0 +1,158 @@
+{
+  "allowed_parameter_paths": [
+    "artifacts.rng_identity_fields.er2_snr_randomised_v1",
+    "artifacts.rng_purposes",
+    "channel.train_snr_randomisation_distribution",
+    "channel.train_snr_randomisation_rng_purpose",
+    "channel.train_snr_randomisation_unit"
+  ],
+  "amendment": "AM-95",
+  "artifact_role": "ER2_RANDOMISED_SNR_PRE_SCIENCE_SEMANTICS_FREEZE",
+  "entries": [
+    {
+      "base_bytes": 407696,
+      "base_sha256": "75af7748f17245cb7771fd8e7078b506ce557bf920c7986bd49bd034aab8b6ad",
+      "current_bytes": 410328,
+      "current_sha256": "d3bc33b591b48bf387650017eda45643085a5b49140879b408e423aa3167cc9c",
+      "path": "spec/SPEC.md"
+    },
+    {
+      "base_bytes": 46590,
+      "base_sha256": "48e5fee874fe4b6c72ee60be3b92e0cd9da51edab87e74bc5f3af964c6f9e534",
+      "current_bytes": 46914,
+      "current_sha256": "6f44c7e981dcb179984c5737d844c1b8fc0ac39c0fa29fb84b1a6c67c35cbeb1",
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "base_bytes": 87382,
+      "base_sha256": "1e8cdef23ce80598af806d53ffc95e1b7b1b3057982feb3ce4133c7c0af38617",
+      "current_bytes": 87808,
+      "current_sha256": "7933ef979817d8def28bdc4d094da2b0f21a53272a461adbc7b2c69e0f43433c",
+      "path": "spec/DATASHEET.md"
+    },
+    {
+      "base_bytes": 146618,
+      "base_sha256": "8920d40befd8140e7671570dffc6f3af5680482e7370826c3045d6453faaa8b1",
+      "current_bytes": 148178,
+      "current_sha256": "bf53321198e854996cbfc3e1270c5256352e8039d7884182ce9be8b09c8d005e",
+      "path": "spec/concerns/amendments.md"
+    },
+    {
+      "base_bytes": 56342,
+      "base_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "current_bytes": 56342,
+      "current_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "path": "spec/concerns/baseline.md"
+    },
+    {
+      "base_bytes": 1803,
+      "base_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "current_bytes": 1803,
+      "current_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "path": "spec/concerns/demo.md"
+    },
+    {
+      "base_bytes": 34282,
+      "base_sha256": "a9bda259769d9fba3ef581610ef3c00ee3d9684358f31f2d55e732b1f95b31ff",
+      "current_bytes": 35073,
+      "current_sha256": "4893dedf63493443ae82f1c0aa694c1daba5cce3c2effb424200fe1cc68f2d50",
+      "path": "spec/concerns/experiments.md"
+    },
+    {
+      "base_bytes": 3051,
+      "base_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "current_bytes": 3051,
+      "current_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "path": "spec/concerns/hardware.md"
+    },
+    {
+      "base_bytes": 11927,
+      "base_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "current_bytes": 11927,
+      "current_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "path": "spec/concerns/programme.md"
+    },
+    {
+      "base_bytes": 43452,
+      "base_sha256": "bc8c8c40a307d6f9c16de854a33b5804c13026c7357b9b7c02fa67a049170b91",
+      "current_bytes": 43452,
+      "current_sha256": "bc8c8c40a307d6f9c16de854a33b5804c13026c7357b9b7c02fa67a049170b91",
+      "path": "spec/concerns/roadmap.md"
+    },
+    {
+      "base_bytes": 37315,
+      "base_sha256": "7db78c26ff492d54b4bd434f5007b94dc2aa88ae79c5c4c7f789dc501461208d",
+      "current_bytes": 37338,
+      "current_sha256": "aecc3b1806cc163543212d7970d0f9bb2bbb68e939309c597706401e72bcbde5",
+      "path": "spec/concerns/system.md"
+    }
+  ],
+  "freeze_id": "er2snrsemantics-2a3ca648c52fc318ec05ad5c4fe58c9530762dfd45d26ebfb4d68aea3d9715bd",
+  "g10_terminal_evidence": {
+    "classification": "expected_crossover_observed",
+    "completion_id": "w9acompletion-533df59159a9748b7c33d92ee7b3a87d2bfc066cb30ba3cb931cdf17f302bfc8",
+    "completion_path": "results/learned/w9/w9a_completion.json",
+    "completion_sha256": "ceeb790c5d910fb107e3b1081194abf97b0d9cb7182404b3b59a801e5effebd5",
+    "evaluations": 63,
+    "g10_source_sha256": "e332478bcac3d873b482ac97525a89ad4bb8a60219835e2a4b3c1938c23e24f4",
+    "headline_bracket_db": [
+      -5,
+      -4
+    ],
+    "reconciliation_id": "w9areconcile-fef8473e3ce676813d8b3212182d89171abe8ae75ee38e8a9957347d0bc92d1a",
+    "reconciliation_path": "results/learned/w9/w9a_reconciliation.json",
+    "reconciliation_sha256": "c6b805a0631df0e37a2fcd35e24026af8885772c44ad28a25a1dec73582fbae8",
+    "reruns": 0,
+    "scientific_source_commit": "9515c490aed4439f7ced2c163abef61557654ddf"
+  },
+  "predecessor": {
+    "freeze_id": "g10semantics-e55bacf7372135cb0b49500d1def4ee0037b67169e8aed775c0c51552e33f6ff",
+    "path": "results/learned/w9/am94_pre_science_freeze.json",
+    "sha256": "b3d7239d4887d100707633daf5c7ee769ee225c2a78bc97900031316c1a64563"
+  },
+  "predecessor_commit": "342b85b653dbd3f237ea732a57f29e53528171b2",
+  "sampling_contract": {
+    "batch_order_invariant": true,
+    "batch_size_invariant": true,
+    "channel_noise_is_separate_keyed_stream": true,
+    "continuous_interpolation": false,
+    "curriculum": false,
+    "distribution": "discrete_uniform",
+    "domain_db": [
+      1,
+      4,
+      7,
+      13,
+      19
+    ],
+    "domain_parameter": "params.channel.train_snr_db_set",
+    "fixed_training_snr_unchanged": true,
+    "gradient_accumulation_invariant": true,
+    "resume_segmentation_invariant": true,
+    "rng_identity_fields": [
+      "dataset_version",
+      "split_manifest_hash",
+      "stable_sample_id",
+      "train_seed",
+      "epoch"
+    ],
+    "rng_purpose": "er2_snr_randomised_v1",
+    "unit": "per_sample_per_epoch",
+    "weighting": false,
+    "worker_count_invariant": true
+  },
+  "schema_version": 1,
+  "scientific_boundary": {
+    "er2_randomized_training": 0,
+    "er9_training": 0,
+    "g10_model_facing_evaluations": 63,
+    "g10_reruns": 0,
+    "g11": 0,
+    "learned_test_inference": 0,
+    "model_facing_test_access": 0,
+    "test_split": "SEALED",
+    "w10": 0
+  },
+  "status": "SEMANTICS_ONLY_FROZEN",
+  "timing": "post_g10_pre_er9_er2_training"
+}

@@ -21,6 +21,7 @@ from typing import Any
 
 from config.execution_profiles import profile_definition
 from config.params import REPO_ROOT, get
+from evaluation import am95_spec_compatibility as am95
 from evaluation import g10_spec_compatibility as am94
 
 
@@ -108,6 +109,7 @@ PROTECTED_ZERO = {
 PRE_EXECUTION_FILES = frozenset(
     {
         "results/learned/w9/am94_pre_science_freeze.json",
+        "results/learned/w9/am95_pre_science_freeze.json",
         str(LEGACY_AUTHORIZATION_PATH),
         str(LEGACY_SOURCE_MANIFEST_PATH),
         str(AUTHORIZATION_PATH),
@@ -149,6 +151,15 @@ SOURCE_PATHS = (
     "tools/verify_g10_w9.py",
     "tools/reconcile_g10.py",
 )
+
+# AM-95 is an additive post-G-10 semantic amendment.  These are the exact
+# generated source-view bytes admitted after the AM-94 terminal evidence was
+# frozen; the G-10 predicate inputs themselves remain protected by the
+# predecessor comparison and by the terminal evidence checks below.
+AM95_VIEW_HASHES = {
+    relative: (current_bytes, current_sha)
+    for relative, _, _, current_bytes, current_sha in am95.VIEW_HASHES
+}
 
 
 class G10ProtocolHold(RuntimeError):
@@ -362,11 +373,16 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
     require(sha256_bytes(prior_raw) == am94.PRIOR_COMPATIBILITY_SHA256 and prior.get("compatibility_id") == am94.PRIOR_COMPATIBILITY_ID, "AM-93 compatibility differs")
     require(value["prior_compatibility"] == {"path": am94.PRIOR_COMPATIBILITY_PATH, "compatibility_id": am94.PRIOR_COMPATIBILITY_ID, "sha256": am94.PRIOR_COMPATIBILITY_SHA256}, "AM-94 compatibility binding differs")
     require(value["entries"] == am94.expected_entries(), "AM-94 source-view entries differ")
-    for relative, base_bytes, base_sha, current_bytes, current_sha in am94.VIEW_HASHES:
+    require(
+        set(AM95_VIEW_HASHES) == {entry[0] for entry in am94.VIEW_HASHES},
+        "AM-95 post-G-10 view allowlist differs",
+    )
+    for relative, base_bytes, base_sha, _, _ in am94.VIEW_HASHES:
         predecessor = _git_bytes(root, am94.PREDECESSOR_COMMIT, relative)
         current = _read_current(relative, root)
         require(len(predecessor) == base_bytes and sha256_bytes(predecessor) == base_sha, f"AM-94 predecessor bytes differ: {relative}")
-        require(len(current) == current_bytes and sha256_bytes(current) == current_sha, f"AM-94 current bytes differ: {relative}")
+        current_bytes, current_sha = AM95_VIEW_HASHES[relative]
+        require(len(current) == current_bytes and sha256_bytes(current) == current_sha, f"AM-95 post-G-10 current bytes differ: {relative}")
     require(get("channel.test_snr_grid_db") == list(EXPECTED_GRID), "normative G-10 grid moved")
     require(value["scientific_boundary"] == {
         "er2_randomized_training": 0,

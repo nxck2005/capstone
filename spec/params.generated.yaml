@@ -207,6 +207,9 @@ channel:
   - 7
   - 13
   - 19
+  train_snr_randomisation_distribution: discrete_uniform
+  train_snr_randomisation_unit: per_sample_per_epoch
+  train_snr_randomisation_rng_purpose: er2_snr_randomised_v1
   test_snr_grid_db:
   - -8
   - -7
@@ -1168,6 +1171,7 @@ artifacts:
   - augmentation
   - init
   - batch_order
+  - er2_snr_randomised_v1
   rng_identity_fields:
     channel_noise:
     - noise_id
@@ -1194,6 +1198,12 @@ artifacts:
     - train_seed
     - component_path
     batch_order:
+    - train_seed
+    - epoch
+    er2_snr_randomised_v1:
+    - dataset_version
+    - split_manifest_hash
+    - stable_sample_id
     - train_seed
     - epoch
   init_component_path_rule: stable_model_qualified_name
