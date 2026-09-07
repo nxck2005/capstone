@@ -147,6 +147,7 @@ def test_selector_does_not_touch_test_split_or_freeze_manifest():
 
 
 def test_fixed_snr_w8_and_g10_contract_is_unchanged():
+    assert get("channel.train_snr_db_set") == [1, 4, 7, 13, 19]
     assert get("channel.train_snr_db_fixed") == 7
     assert get("learned_system.train_snr_protocol") == "one_model_per_ratio_at_fixed_snr"
     assert get("learned_system.checkpoint_selection_snr_db") == "train_snr_db_fixed"
