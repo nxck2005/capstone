@@ -46,6 +46,7 @@ from training.deterministic_core import (
 from training.djscc_loss import DJSCCObjective
 from training.w8_protocol import (
     W8_ACCUMULATION_FACTOR,
+    W8_CHECKPOINT_SIDECAR_ROLE,
     W8_CHECKPOINT_ROLE,
     W8_CHECKPOINT_SELECTION_CHANNEL_SEED_RULE,
     W8_COMPONENT_PATH,
