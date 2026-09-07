@@ -665,7 +665,7 @@ class ER9Trainer:
             "checkpoint_path": sidecar["checkpoint_path"],
             "checkpoint_id": checkpoint_id,
             "checkpoint_bytes": sidecar["checkpoint_bytes"],
-            "sidecar_path": sidecar["sidecar_path"],
+            "sidecar_path": str(sidecar_path.relative_to(self.runtime_root)),
         }
 
     def run(self) -> dict[str, Any]:

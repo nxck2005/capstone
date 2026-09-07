@@ -19,13 +19,15 @@ from training.deterministic_core import canonical_bytes, canonical_sha256  # noq
 
 MANIFEST_ROLE = "ER9_ER2_PRE_SCIENCE_SOURCE_MANIFEST"
 PREFIX = "ersource-"
-DEFAULT_OUTPUT = REPO / "results/learned/er9/er_execution_source_manifest_v2.json"
+DEFAULT_OUTPUT = REPO / "results/learned/er9/er_execution_source_manifest_v3.json"
 
 PRE_SCIENCE_RESULT_FILES = {
     "results/learned/er9/er_execution_source_manifest.json",
     "results/learned/er9/er9_stage1_execution_authorization.json",
     "results/learned/er9/er_execution_source_manifest_v2.json",
     "results/learned/er9/er9_stage1_execution_authorization_v2.json",
+    "results/learned/er9/er_execution_source_manifest_v3.json",
+    "results/learned/er9/er9_stage1_execution_authorization_v3.json",
 }
 
 CRITICAL_SOURCES: tuple[tuple[str, str], ...] = (

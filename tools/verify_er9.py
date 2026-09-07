@@ -22,8 +22,8 @@ from training.deterministic_core import canonical_bytes, canonical_sha256  # noq
 from gen_er9_source_manifest import CRITICAL_SOURCES  # noqa: E402
 
 
-SOURCE_DEFAULT = REPO / "results/learned/er9/er_execution_source_manifest_v2.json"
-STAGE1_DEFAULT = REPO / "results/learned/er9/er9_stage1_execution_authorization_v2.json"
+SOURCE_DEFAULT = REPO / "results/learned/er9/er_execution_source_manifest_v3.json"
+STAGE1_DEFAULT = REPO / "results/learned/er9/er9_stage1_execution_authorization_v3.json"
 STAGE1_SELECTION_DEFAULT = REPO / "results/learned/er9/er9_stage1_selection.json"
 STAGE2_DEFAULT = REPO / "results/learned/er9/er9_stage2_execution_authorization.json"
 STAGE2_SELECTION_DEFAULT = REPO / "results/learned/er9/er9_stage2_selection.json"
@@ -87,6 +87,8 @@ def verify_source_manifest(path: Path) -> dict[str, Any]:
         "results/learned/er9/er9_stage1_execution_authorization.json",
         "results/learned/er9/er_execution_source_manifest_v2.json",
         "results/learned/er9/er9_stage1_execution_authorization_v2.json",
+        "results/learned/er9/er_execution_source_manifest_v3.json",
+        "results/learned/er9/er9_stage1_execution_authorization_v3.json",
     }
     result_files = {
         line for line in listing.splitlines()

@@ -417,6 +417,8 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
             "er9_stage1_execution_authorization.json",
             "er_execution_source_manifest_v2.json",
             "er9_stage1_execution_authorization_v2.json",
+            "er_execution_source_manifest_v3.json",
+            "er9_stage1_execution_authorization_v3.json",
         }
         actual_er9 = {
             path.relative_to(er9_root).as_posix()

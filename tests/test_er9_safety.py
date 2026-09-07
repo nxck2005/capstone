@@ -4,7 +4,7 @@ import ast
 import json
 from pathlib import Path
 
-from training.er9 import _publish_json_immutable
+from training.er9 import ER9Trainer, _publish_json_immutable
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -48,3 +48,26 @@ def test_er9_checkpoint_json_publication_serializes_sidecar_bytes(tmp_path: Path
     path = tmp_path / "checkpoint.sidecar.json"
     _publish_json_immutable(path, {"z": 1, "a": [2, 3]})
     assert json.loads(path.read_bytes()) == {"a": [2, 3], "z": 1}
+
+
+def test_er9_checkpoint_publication_returns_the_published_sidecar_path(tmp_path: Path) -> None:
+    trainer = object.__new__(ER9Trainer)
+    trainer.runtime_root = tmp_path / "runtime"
+    trainer.campaign_id = "test-campaign"
+    trainer.run_id = "test-run"
+    trainer.config_hash = "config"
+    trainer.recipe_sha256 = "recipe"
+    trainer.transmit_dim = 64
+    trainer.quantiser_bits = 2
+    trainer.global_optimizer_step = 1
+    trainer.predecessor_checkpoint_id = None
+    trainer._checkpoint_payload = lambda record, checkpoint_id: {  # type: ignore[attr-defined]
+        "record": dict(record),
+        "checkpoint_id": checkpoint_id,
+    }
+    result = trainer.save_checkpoint(
+        {"epoch": 0, "global_optimizer_step": 1},
+        {"n_correct": 1, "n_total": 1},
+    )
+    assert result["sidecar_path"] == "checkpoints/epoch-0000.sidecar.json"
+    assert (trainer.runtime_root / result["sidecar_path"]).is_file()
