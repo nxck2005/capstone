@@ -34,13 +34,16 @@ class PacketFloor:
     metadata: Mapping[str, Any]
 
     def as_dict(self) -> dict[str, Any]:
+        metadata = dict(self.metadata)
+        if isinstance(metadata.get("e_r"), tuple):
+            metadata["e_r"] = list(metadata["e_r"])
         return {
             "k_symbols": self.k_symbols,
             "modulation": self.modulation,
             "nominal_rate": self.nominal_rate,
             "payload_bits": self.payload_bits,
             "source_bytes": self.source_bytes,
-            "metadata": dict(self.metadata),
+            "metadata": metadata,
         }
 
 
