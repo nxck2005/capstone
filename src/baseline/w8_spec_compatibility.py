@@ -184,6 +184,10 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         # projection starts at AM-93.  Compose the two authenticated links so
         # callers receive one exact AM-93 -> AM-95 frontier.
         composed: dict[str, dict[str, Any]] = {}
+        # Keep the original AM-93 base frontier.  AM-94's tuple supplies the
+        # intermediate bytes that AM-95 must start from, but its base fields
+        # are one epoch later than this AM-93 compatibility record.
+        w8_entries = {entry[0]: entry for entry in VIEW_HASHES}
         am94_entries = {entry[0]: entry for entry in AM94_VIEW_HASHES}
         for path_text, later in successor_entries.items():
             am94_entry = am94_entries[path_text]
@@ -194,8 +198,8 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
             )
             composed[path_text] = {
                 "path": path_text,
-                "base_bytes": am94_entry[1],
-                "base_sha256": am94_entry[2],
+                "base_bytes": w8_entries[path_text][1],
+                "base_sha256": w8_entries[path_text][2],
                 "current_bytes": later["current_bytes"],
                 "current_sha256": later["current_sha256"],
             }
@@ -204,11 +208,22 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
     projection["entries"] = []
     for entry in value["entries"]:
         later = successor_entries[entry["path"]]
-        _require(
-            later["base_bytes"] == entry["current_bytes"]
-            and later["base_sha256"] == entry["current_sha256"],
-            f"AM-94/AM-95 successor is not chained from AM-93: {entry['path']}",
-        )
+        if successor_is_am95:
+            # The composed projection retains the W7 -> AM-93 base, so the
+            # intermediate AM-94 link is checked against the original W8
+            # current image here rather than against the composed base.
+            am94_entry = next(item for item in AM94_VIEW_HASHES if item[0] == entry["path"])
+            _require(
+                am94_entry[1] == entry["current_bytes"]
+                and am94_entry[2] == entry["current_sha256"],
+                f"AM-94 predecessor is not chained from AM-93: {entry['path']}",
+            )
+        else:
+            _require(
+                later["base_bytes"] == entry["current_bytes"]
+                and later["base_sha256"] == entry["current_sha256"],
+                f"AM-94/AM-95 successor is not chained from AM-93: {entry['path']}",
+            )
         projected = dict(entry)
         projected["current_bytes"] = later["current_bytes"]
         projected["current_sha256"] = later["current_sha256"]

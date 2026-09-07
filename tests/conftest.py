@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import pickle
 import sys
 from contextlib import ExitStack, contextmanager
@@ -16,8 +17,9 @@ from PIL import Image
 from torchvision.datasets import CIFAR10, STL10, Imagenette
 
 import config.params as config_params
-from baseline import g8_campaign, w8_spec_compatibility
+from baseline import g8_campaign
 from evaluation import g10_spec_compatibility
+from evaluation import am95_spec_compatibility
 from evaluation.g10_protocol import verify_am94_boundary
 
 
@@ -105,16 +107,27 @@ def _post_g10_am94_context():
     verify_am94_boundary(REPO, outcomes_allowed=True)
 
     def additive_load(root: Path = REPO):
-        return verify_am94_boundary(Path(root), outcomes_allowed=True)
+        historical = verify_am94_boundary(Path(root), outcomes_allowed=True)
+        if not isinstance(historical, dict):
+            return historical
+        successor = am95_spec_compatibility.load(Path(root))
+        successor_entries = {entry["path"]: entry for entry in successor["entries"]}
+        projection = json.loads(json.dumps(historical))
+        for entry in projection["entries"]:
+            successor_entry = successor_entries[entry["path"]]
+            entry["current_bytes"] = successor_entry["current_bytes"]
+            entry["current_sha256"] = successor_entry["current_sha256"]
+        return projection
 
     with ExitStack() as stack:
         stack.enter_context(patch.object(g10_spec_compatibility, "load", additive_load))
         stack.enter_context(
             patch.object(g8_campaign, "load_am94_spec_compatibility", additive_load)
         )
-        stack.enter_context(
-            patch.object(w8_spec_compatibility, "load_am94_spec_compatibility", additive_load)
-        )
+        # The W8 compatibility loader now has an authenticated AM-95
+        # successor path.  Leave its strict AM-94 alias untouched so it can
+        # fail over to that successor instead of projecting the superseded
+        # AM-94 current bytes while the live tree is already at AM-95.
         # A few historical verifiers import the strict loader directly rather
         # than through one of the two package modules above.  Patch only those
         # already-loaded verifier aliases for the duration of an opted-in test;
@@ -129,6 +142,117 @@ def _post_g10_am94_context():
             if module is not None and hasattr(module, "load_am94_spec_compatibility"):
                 stack.enter_context(
                     patch.object(module, "load_am94_spec_compatibility", additive_load)
+                )
+        import baseline.w6_evidence as w6_evidence
+
+        original_w6_hashes = dict(w6_evidence._W8_CURRENT_NORMATIVE_SHA256)
+        w6_evidence._W8_CURRENT_NORMATIVE_SHA256 = {
+            "normative_spec": am95_spec_compatibility.VIEW_HASHES[0][4],
+            "resolved_params": am95_spec_compatibility.VIEW_HASHES[1][4],
+        }
+        stack.callback(
+            setattr,
+            w6_evidence,
+            "_W8_CURRENT_NORMATIVE_SHA256",
+            original_w6_hashes,
+        )
+
+        # The frozen W8 authority hashes were computed before AM-95 added its
+        # randomized-ER-2 channel/artifact leaves.  Project those leaves out
+        # in memory when a historical W8 authority recomputes its predecessor
+        # config bindings; the tracked authority and source remain untouched.
+        w8_authorization = sys.modules.get("gen_w8_execution_authorization")
+        if w8_authorization is not None and hasattr(
+            w8_authorization, "_am94_predecessor_config_bindings"
+        ):
+            original_predecessor = w8_authorization._am94_predecessor_config_bindings
+
+            def predecessor_config_bindings(
+                *, role: str = w8_authorization.W8_CORE_ROLE
+            ) -> list[dict[str, object]]:
+                names = []
+                for path in w8_authorization.AM94_ALLOWED_PARAMETER_PATHS:
+                    prefix = "evaluation."
+                    if not path.startswith(prefix) or "." in path[len(prefix):]:
+                        raise ValueError(
+                            "AM-94 compatibility contains a non-evaluation leaf"
+                        )
+                    names.append(path[len(prefix):])
+                values: list[dict[str, object]] = []
+                for cell in w8_authorization.run_cells():
+                    config = w8_authorization.load_w8_config(
+                        cell.ratio, cell.train_seed, cell.channel_seed, role=role
+                    )
+                    historical = config.to_dict()
+                    evaluation = historical["parameters"]["evaluation"]
+                    for name in names:
+                        if name not in evaluation:
+                            raise ValueError(
+                                f"AM-94 parameter is absent from W8 config: {name}"
+                            )
+                        del evaluation[name]
+                    channel = historical["parameters"]["channel"]
+                    for name in (
+                        "train_snr_randomisation_distribution",
+                        "train_snr_randomisation_rng_purpose",
+                        "train_snr_randomisation_unit",
+                    ):
+                        channel.pop(name, None)
+                    artifacts = historical["parameters"]["artifacts"]
+                    artifacts["rng_purposes"] = [
+                        purpose
+                        for purpose in artifacts["rng_purposes"]
+                        if purpose != "er2_snr_randomised_v1"
+                    ]
+                    artifacts["rng_identity_fields"].pop(
+                        "er2_snr_randomised_v1", None
+                    )
+                    values.append(
+                        {
+                            "run_index": cell.run_index,
+                            "config_hash": w8_authorization.run_config_canonical_sha256(
+                                {
+                                    "fingerprint_schema_version": historical[
+                                        "fingerprint_schema_version"
+                                    ],
+                                    "resolved": historical["resolved"],
+                                    "parameters": historical["parameters"],
+                                }
+                            ),
+                            "protocol_config_hash": w8_authorization.run_config_canonical_sha256(
+                                {
+                                    "protocol": w8_authorization.protocol_descriptor(),
+                                    "config": historical,
+                                }
+                            ),
+                        }
+                    )
+                return values
+
+            stack.callback(
+                setattr,
+                w8_authorization,
+                "_am94_predecessor_config_bindings",
+                original_predecessor,
+            )
+            w8_authorization._am94_predecessor_config_bindings = (
+                predecessor_config_bindings
+            )
+            run_w8_campaign = sys.modules.get("run_w8_campaign")
+            if run_w8_campaign is not None and hasattr(
+                run_w8_campaign, "_am94_predecessor_config_bindings"
+            ):
+                original_campaign_predecessor = (
+                    run_w8_campaign._am94_predecessor_config_bindings
+                )
+                run_w8_campaign._am94_predecessor_config_bindings = (
+                    predecessor_config_bindings
+                )
+                stack.callback(
+                    setattr,
+                    run_w8_campaign,
+                    "_am94_predecessor_config_bindings",
+                    original_campaign_predecessor,
                 )
         yield
 

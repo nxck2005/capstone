@@ -42,6 +42,13 @@ def _identity(purpose: str) -> dict[str, object]:
             "component_path": "encoder.stem.weight",
         },
         "batch_order": {"train_seed": 17, "epoch": 4},
+        "er2_snr_randomised_v1": {
+            "dataset_version": "dataset-sha256",
+            "split_manifest_hash": "split-sha256",
+            "stable_sample_id": "sample-a",
+            "train_seed": 17,
+            "epoch": 4,
+        },
     }
     return identities[purpose]
 

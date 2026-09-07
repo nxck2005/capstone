@@ -233,6 +233,11 @@ def run(target: str, root: Path = REPO) -> None:
     def additive_load(load_root: Path = root) -> dict[str, Any]:
         load_root = Path(load_root)
         historical = verify_am94_boundary(load_root, outcomes_allowed=True)
+        # Keep the test seam's sentinel/stand-in behavior intact.  The normal
+        # repository path returns the AM-94 mapping and is then projected to
+        # the authenticated AM-95 current bytes below.
+        if not isinstance(historical, dict):
+            return historical
         am95 = am95_spec_compatibility.load(load_root)
         successor_entries = {entry["path"]: entry for entry in am95["entries"]}
         projection = json.loads(json.dumps(historical))

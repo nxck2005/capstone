@@ -75,7 +75,7 @@ W8_CARRIER_SOURCE_HASHES: tuple[tuple[str, int, str, int, str], ...] = (
 AM95_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
     "spec/SPEC.md": (410328, "d3bc33b591b48bf387650017eda45643085a5b49140879b408e423aa3167cc9c"),
     "spec/params.generated.yaml": (46914, "6f44c7e981dcb179984c5737d844c1b8fc0ac39c0fa29fb84b1a6c67c35cbeb1"),
-    "src/baseline/w8_spec_compatibility.py": (10980, "2e03fc0049b142a53303facd8b6da989adbf6a7f940ed8cc9b974f6232352afd"),
+    "src/baseline/w8_spec_compatibility.py": (11900, "8b8d69d80a13f767c3d3c20b8d64ca8ac4d2f35b1b0e3c84ed018edddb2c0953"),
     "src/baseline/w7c_source_compatibility.py": (17334, "2876fa9fc5d32bafd14ecb9c3fbe16508653f1ecdb4acd5dbacbf3fcb130341e"),
     "src/baseline/g8_campaign.py": (59265, "b9ed20864f7bab66bd7d47e4ebe6807362f7725d86ddfe016e6ccc142bbaa9e7"),
 }
