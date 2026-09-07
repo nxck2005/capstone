@@ -893,9 +893,30 @@ digital_semantic_control:
   - 8192
   transmit_dim_units: real_values
   transmit_dim_realised_by: output_channel_count_and_adaptive_pooling
+  pre_interface_tap: encoder_residual_trunk_output_before_complex_projection
+  post_interface_task_path: dequantized_feature_tensor_to_image_classification_head
+  reconstruction_head: none
+  training_loss: cross_entropy
+  training_lambda: not_applicable
+  factorisation: output_channels_d_div_64_pool_8x8
+  factorisation_channel_rule: transmit_dim_div_64
+  factorisation_pool_height: 8
+  factorisation_pool_width: 8
+  factorisation_flatten_order: channel_major_row_major_column_major_nchw_contiguous
+  dimension_scope: one_global_pair_per_bandwidth_ratio_frozen_across_snr
   width_selection: joint_with_quantiser_bits_on_validation_split
   selection_search: two_stage_coarse_width_then_bits
   selection_search_is_cross_product: false
+  search_seed_cell: first_zipped_seed_pair
+  stage1_quantiser_bits: 2
+  stage1_dimension_order: ascending_numeric
+  stage1_selection_metric: exact_validation_n_correct_at_fixed_training_snr_real_digital_chain
+  stage1_tie_break: smallest_transmit_dim
+  stage2_bits_order: ascending_numeric
+  stage2_reuse_rule: reuse_stage1_selected_dimension_at_stage1_bits
+  stage2_selection_metric: exact_validation_n_correct_at_fixed_training_snr_real_digital_chain
+  stage2_tie_break: smallest_quantiser_bits
+  training_transport: ste_quantise_dequantise_task_path_without_digital_channel_backpropagation
   quantiser: uniform_scalar
   quantiser_bits_grid:
   - 2
@@ -903,14 +924,25 @@ digital_semantic_control:
   - 6
   - 8
   quantiser_training: straight_through_estimator
+  quantiser_range: tanh_to_minus_one_plus_one
+  quantiser_levels: 2_to_b_reconstruction_levels_including_endpoints
+  quantiser_scale: fixed_protocol_no_image_adaptive_scale
+  quantiser_clipping: tanh_to_protocol_range
+  quantiser_scale_side_information_bits: 0
   entropy_coder: static_range_coder
   entropy_model: fitted_offline_on_train_split
   entropy_model_learned_permitted: false
   entropy_table_bytes_counted: false
   framing_selector_bits: 1
+  entropy_stream_length_field: none_decode_exact_transmit_dim_symbols
+  entropy_padding_rule: ignored_after_exact_symbol_count
+  raw_bit_order: most_significant_bit_first
   raw_escape_required: true
   raw_escape_rule: transmit_min_of_range_coded_and_fixed_width_raw_selected_by_the_counted_selector_bit
   budget_sized_against: raw_escape_length_not_expected_compressed_length
+  admissibility_budget_floor: exact_bpsk_rate_1_3_packetisation_payload_at_matched_k
+  admissibility_metadata_bits: framing_selector_bits_plus_am96_required_metadata
+  final_seed_scope: all_three_existing_zipped_seed_cells
   transport_tuning: best_feasible_config_per_snr_on_validation_split
   scored_by: own_task_head
 evaluation:

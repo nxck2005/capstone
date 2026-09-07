@@ -19,7 +19,7 @@ from torchvision.datasets import CIFAR10, STL10, Imagenette
 import config.params as config_params
 from baseline import g8_campaign
 from evaluation import g10_spec_compatibility
-from evaluation import am95_spec_compatibility
+from evaluation import am96_spec_compatibility
 from evaluation.g10_protocol import verify_am94_boundary
 
 
@@ -110,7 +110,7 @@ def _post_g10_am94_context():
         historical = verify_am94_boundary(Path(root), outcomes_allowed=True)
         if not isinstance(historical, dict):
             return historical
-        successor = am95_spec_compatibility.load(Path(root))
+        successor = am96_spec_compatibility.load(Path(root))
         successor_entries = {entry["path"]: entry for entry in successor["entries"]}
         projection = json.loads(json.dumps(historical))
         for entry in projection["entries"]:
@@ -124,10 +124,10 @@ def _post_g10_am94_context():
         stack.enter_context(
             patch.object(g8_campaign, "load_am94_spec_compatibility", additive_load)
         )
-        # The W8 compatibility loader now has an authenticated AM-95
+        # The W8 compatibility loader now has an authenticated AM-96
         # successor path.  Leave its strict AM-94 alias untouched so it can
         # fail over to that successor instead of projecting the superseded
-        # AM-94 current bytes while the live tree is already at AM-95.
+        # AM-94 current bytes while the live tree is already at AM-96.
         # A few historical verifiers import the strict loader directly rather
         # than through one of the two package modules above.  Patch only those
         # already-loaded verifier aliases for the duration of an opted-in test;
@@ -147,8 +147,8 @@ def _post_g10_am94_context():
 
         original_w6_hashes = dict(w6_evidence._W8_CURRENT_NORMATIVE_SHA256)
         w6_evidence._W8_CURRENT_NORMATIVE_SHA256 = {
-            "normative_spec": am95_spec_compatibility.VIEW_HASHES[0][4],
-            "resolved_params": am95_spec_compatibility.VIEW_HASHES[1][4],
+            "normative_spec": am96_spec_compatibility.VIEW_HASHES[0][4],
+            "resolved_params": am96_spec_compatibility.VIEW_HASHES[1][4],
         }
         stack.callback(
             setattr,
@@ -198,6 +198,11 @@ def _post_g10_am94_context():
                         "train_snr_randomisation_unit",
                     ):
                         channel.pop(name, None)
+                    digital = historical["parameters"]["digital_semantic_control"]
+                    for name in am96_spec_compatibility.ALLOWED_PARAMETER_PATHS:
+                        prefix = "digital_semantic_control."
+                        if name.startswith(prefix):
+                            digital.pop(name[len(prefix):], None)
                     artifacts = historical["parameters"]["artifacts"]
                     artifacts["rng_purposes"] = [
                         purpose

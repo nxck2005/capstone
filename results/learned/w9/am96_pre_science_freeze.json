@@ -1,0 +1,238 @@
+{
+  "allowed_parameter_paths": [
+    "digital_semantic_control.admissibility_budget_floor",
+    "digital_semantic_control.admissibility_metadata_bits",
+    "digital_semantic_control.dimension_scope",
+    "digital_semantic_control.entropy_padding_rule",
+    "digital_semantic_control.entropy_stream_length_field",
+    "digital_semantic_control.factorisation",
+    "digital_semantic_control.factorisation_channel_rule",
+    "digital_semantic_control.factorisation_flatten_order",
+    "digital_semantic_control.factorisation_pool_height",
+    "digital_semantic_control.factorisation_pool_width",
+    "digital_semantic_control.final_seed_scope",
+    "digital_semantic_control.post_interface_task_path",
+    "digital_semantic_control.pre_interface_tap",
+    "digital_semantic_control.quantiser_clipping",
+    "digital_semantic_control.quantiser_levels",
+    "digital_semantic_control.quantiser_range",
+    "digital_semantic_control.quantiser_scale",
+    "digital_semantic_control.quantiser_scale_side_information_bits",
+    "digital_semantic_control.raw_bit_order",
+    "digital_semantic_control.reconstruction_head",
+    "digital_semantic_control.search_seed_cell",
+    "digital_semantic_control.stage1_dimension_order",
+    "digital_semantic_control.stage1_quantiser_bits",
+    "digital_semantic_control.stage1_selection_metric",
+    "digital_semantic_control.stage1_tie_break",
+    "digital_semantic_control.stage2_bits_order",
+    "digital_semantic_control.stage2_reuse_rule",
+    "digital_semantic_control.stage2_selection_metric",
+    "digital_semantic_control.stage2_tie_break",
+    "digital_semantic_control.training_lambda",
+    "digital_semantic_control.training_loss",
+    "digital_semantic_control.training_transport"
+  ],
+  "amendment": "AM-96",
+  "artifact_role": "ER9_EXECUTABLE_SEMANTICS_PRE_SCIENCE_FREEZE",
+  "audit": {
+    "closed_items": 16,
+    "path": "audit/er9-p1-7-am96.md",
+    "sha256": "40d1b73e2ff23f58cf1fc04b939601c0202119d5a3e0bf1cc44037bcc5fb30ae"
+  },
+  "entries": [
+    {
+      "base_bytes": 410328,
+      "base_sha256": "d3bc33b591b48bf387650017eda45643085a5b49140879b408e423aa3167cc9c",
+      "current_bytes": 417758,
+      "current_sha256": "5be83f36265947999db5e73b3cf40b55d6ee92922da251918a09af483bc67fa5",
+      "path": "spec/SPEC.md"
+    },
+    {
+      "base_bytes": 46914,
+      "base_sha256": "6f44c7e981dcb179984c5737d844c1b8fc0ac39c0fa29fb84b1a6c67c35cbeb1",
+      "current_bytes": 48735,
+      "current_sha256": "0faee4aa473a2c3ac1ea9bfaa7f25216ac643878756efb8a81e1d8d281810ae8",
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "base_bytes": 87808,
+      "base_sha256": "7933ef979817d8def28bdc4d094da2b0f21a53272a461adbc7b2c69e0f43433c",
+      "current_bytes": 90717,
+      "current_sha256": "5f0f22aefc6f04d934c9f96662486ebff717b10fb56933f45d70902471a9c0a4",
+      "path": "spec/DATASHEET.md"
+    },
+    {
+      "base_bytes": 148178,
+      "base_sha256": "bf53321198e854996cbfc3e1270c5256352e8039d7884182ce9be8b09c8d005e",
+      "current_bytes": 150297,
+      "current_sha256": "ed7ee05d2159bff4044de9fa4fd376aee6b69743a410420193d89d3f0906bb40",
+      "path": "spec/concerns/amendments.md"
+    },
+    {
+      "base_bytes": 56342,
+      "base_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "current_bytes": 56342,
+      "current_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "path": "spec/concerns/baseline.md"
+    },
+    {
+      "base_bytes": 1803,
+      "base_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "current_bytes": 1803,
+      "current_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "path": "spec/concerns/demo.md"
+    },
+    {
+      "base_bytes": 35073,
+      "base_sha256": "4893dedf63493443ae82f1c0aa694c1daba5cce3c2effb424200fe1cc68f2d50",
+      "current_bytes": 35073,
+      "current_sha256": "4893dedf63493443ae82f1c0aa694c1daba5cce3c2effb424200fe1cc68f2d50",
+      "path": "spec/concerns/experiments.md"
+    },
+    {
+      "base_bytes": 3051,
+      "base_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "current_bytes": 3051,
+      "current_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "path": "spec/concerns/hardware.md"
+    },
+    {
+      "base_bytes": 11927,
+      "base_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "current_bytes": 11927,
+      "current_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "path": "spec/concerns/programme.md"
+    },
+    {
+      "base_bytes": 43452,
+      "base_sha256": "bc8c8c40a307d6f9c16de854a33b5804c13026c7357b9b7c02fa67a049170b91",
+      "current_bytes": 43452,
+      "current_sha256": "bc8c8c40a307d6f9c16de854a33b5804c13026c7357b9b7c02fa67a049170b91",
+      "path": "spec/concerns/roadmap.md"
+    },
+    {
+      "base_bytes": 37338,
+      "base_sha256": "aecc3b1806cc163543212d7970d0f9bb2bbb68e939309c597706401e72bcbde5",
+      "current_bytes": 37338,
+      "current_sha256": "aecc3b1806cc163543212d7970d0f9bb2bbb68e939309c597706401e72bcbde5",
+      "path": "spec/concerns/system.md"
+    }
+  ],
+  "freeze_id": "er9control-5572ebb2670ab3434afbf068156e3553cc1a04076bd7be2b8ff14d482d1d4f4d",
+  "g10_terminal_evidence": {
+    "classification": "expected_crossover_observed",
+    "completion_id": "w9acompletion-533df59159a9748b7c33d92ee7b3a87d2bfc066cb30ba3cb931cdf17f302bfc8",
+    "completion_path": "results/learned/w9/w9a_completion.json",
+    "completion_sha256": "ceeb790c5d910fb107e3b1081194abf97b0d9cb7182404b3b59a801e5effebd5",
+    "evaluations": 63,
+    "g10_source_sha256": "e332478bcac3d873b482ac97525a89ad4bb8a60219835e2a4b3c1938c23e24f4",
+    "headline_bracket_db": [
+      -5,
+      -4
+    ],
+    "reconciliation_id": "w9areconcile-fef8473e3ce676813d8b3212182d89171abe8ae75ee38e8a9957347d0bc92d1a",
+    "reconciliation_path": "results/learned/w9/w9a_reconciliation.json",
+    "reconciliation_sha256": "c6b805a0631df0e37a2fcd35e24026af8885772c44ad28a25a1dec73582fbae8",
+    "reruns": 0,
+    "scientific_source_commit": "9515c490aed4439f7ced2c163abef61557654ddf"
+  },
+  "predecessor": {
+    "freeze_id": "er2snrsemantics-2a3ca648c52fc318ec05ad5c4fe58c9530762dfd45d26ebfb4d68aea3d9715bd",
+    "path": "results/learned/w9/am95_pre_science_freeze.json",
+    "sha256": "b1b4702f1101dedb62a58e1a4e5827e41e7d235a9f8de8608410d208c21f79fd"
+  },
+  "predecessor_commit": "2096b1f7e1572448dca26ca2d9f4c8ba9d2bec32",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "er2_randomized_training": 0,
+    "er9_training": 0,
+    "g10_model_facing_evaluations": 63,
+    "g10_reruns": 0,
+    "g11": 0,
+    "learned_test_inference": 0,
+    "model_facing_test_access": 0,
+    "test_split": "SEALED",
+    "w10": 0
+  },
+  "semantic_contract": {
+    "dimension_scope": "one_global_pair_per_bandwidth_ratio_frozen_across_snr",
+    "entropy_and_framing": {
+      "all_per_message_metadata_counted": true,
+      "branch": "shorter_of_range_coded_and_fixed_width_raw",
+      "coder": "static_range_coder",
+      "learned_model_permitted": false,
+      "model": "fitted_offline_on_train_split",
+      "padding": "ignored_after_exact_symbol_count",
+      "raw_bit_order": "most_significant_bit_first",
+      "raw_escape_required": true,
+      "selector_bits": 1,
+      "stream_length_field": "none_decode_exact_D_symbols",
+      "table_bytes_counted": false
+    },
+    "factorisation": {
+      "channel_rule": "D_div_64",
+      "exact_for_configured_grid": true,
+      "flatten_order": "channel_major_row_major_column_major_nchw_contiguous",
+      "inverse_reshape": "C_x_8_x_8_contiguous_nchw",
+      "mechanism": "output_channel_count_and_adaptive_pooling",
+      "pool_height": 8,
+      "pool_width": 8,
+      "trunk_channel_capacity": 128
+    },
+    "post_interface_task_path": "dequantized_feature_tensor_to_image_classification_head",
+    "pre_interface_tap": "encoder_residual_trunk_output_before_complex_projection",
+    "production": {
+      "ratio": "r_1_6",
+      "search_run_promotion": "exact_source_config_seed_epoch_checkpoint_identity_only",
+      "seed_scope": "all_three_existing_zipped_seed_cells"
+    },
+    "quantiser": {
+      "clipping": "tanh_to_protocol_range",
+      "family": "uniform_scalar",
+      "levels": "2_to_b_inclusive_endpoint_uniform",
+      "range": [
+        -1,
+        1
+      ],
+      "range_operation": "tanh",
+      "scale": "fixed_protocol_no_image_adaptive_scale",
+      "scale_side_information_bits": 0,
+      "training": "straight_through_estimator_identity_rounding_true_tanh_derivative"
+    },
+    "reconstruction_head": "none",
+    "search": {
+      "admissibility": {
+        "metadata_bits": "framing_selector_bits_plus_am96_required_metadata",
+        "payload_floor": "exact_bpsk_rate_1_3_packetisation_payload_at_matched_k"
+      },
+      "checkpoint_selection": {
+        "metric": "top1_accuracy",
+        "mode": "max",
+        "split": "validation",
+        "tie_break": "earliest_epoch"
+      },
+      "counts": "stage1_authorized_before_training_stage2_authorized_after_stage1_selection",
+      "cross_product": false,
+      "seed_cell": "first_zipped_seed_pair",
+      "stage1": {
+        "bits": 2,
+        "candidate_order": "ascending_numeric_dimension",
+        "metric": "exact_full_validation_n_correct_at_fixed_7_db_real_digital_chain",
+        "tie_break": "smallest_transmit_dim"
+      },
+      "stage2": {
+        "candidate_order": "ascending_numeric_bits",
+        "metric": "exact_full_validation_n_correct_at_fixed_7_db_real_digital_chain",
+        "new_training_count": "feasible_width_count_minus_one",
+        "reuse": "stage1_selected_dimension_at_stage1_bits",
+        "tie_break": "smallest_quantiser_bits"
+      }
+    },
+    "training_lambda": "not_applicable",
+    "training_loss": "cross_entropy",
+    "training_transport": "ste_quantise_dequantise_task_path_without_digital_channel_backpropagation"
+  },
+  "status": "SEMANTICS_ONLY_FROZEN",
+  "timing": "post_am95_pre_er9_er2_training"
+}

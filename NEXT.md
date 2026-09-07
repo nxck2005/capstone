@@ -7,7 +7,7 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-09-07 · **Phase:** **W9 / AM-95 semantic freeze before ER-9 and randomized ER-2.** The separate owner-authorized validation-only campaign previously executed exactly 63 cells (3 frozen W8 final `r_1_6` checkpoints × the exact 21-point `params.channel.test_snr_grid_db`), each with denominator 1000, under the Pascal `confessor_pascal_cu126` profile. AM-94's exact rational predicate classified the result as `expected_crossover_observed`: one measured positive→negative bracket from −5 dB to −4 dB, no zero-run contacts and no additional recrossings. The headline comparator was only the frozen G8/F3 adaptive/oracle classical `r_1_6` curve; no interpolation or classical rerun was used. AM-95 now freezes the randomized ER-2 per-sample/per-epoch SNR assignment before its first optimizer step. ER-2 randomized training, ER-9, G-11, W10, learned test inference and model-facing test access remain zero; **test is SEALED**. Terminal artifacts: authorization `g10auth-2698cd328…`, source epoch `9515c490aed4439f7ced2c163abef61557654ddf`, runtime `g10runtime-e1ac2ff8…`, adjudication `g10adjudication-4bb31d17…`, completion `w9acompletion-533df591…`; fresh-process reconciliation remains immutable history. The earlier v1 authorization is preserved as superseded-before-data history after its pre-outcome checkpoint-adapter hold; it contributed zero scientific cells.
+**Last updated:** 2026-09-08 · **Phase:** **W9 / AM-96 executable ER-9 semantics frozen before ER-9 and randomized ER-2.** The separate owner-authorized validation-only campaign previously executed exactly 63 cells (3 frozen W8 final `r_1_6` checkpoints × the exact 21-point `params.channel.test_snr_grid_db`), each with denominator 1000, under the Pascal `confessor_pascal_cu126` profile. AM-94's exact rational predicate classified the result as `expected_crossover_observed`: one measured positive→negative bracket from −5 dB to −4 dB, no zero-run contacts and no additional recrossings. The headline comparator was only the frozen G8/F3 adaptive/oracle classical `r_1_6` curve; no interpolation or classical rerun was used. AM-95 froze the randomized ER-2 per-sample/per-epoch SNR assignment, and AM-96 now freezes the complete executable ER-9 digital-control recipe before its first optimizer step. ER-2 randomized training, ER-9, G-11, W10, learned test inference and model-facing test access remain zero; **test is SEALED**. Terminal artifacts: authorization `g10auth-2698cd328…`, source epoch `9515c490aed4439f7ced2c163abef61557654ddf`, runtime `g10runtime-e1ac2ff8…`, adjudication `g10adjudication-4bb31d17…`, completion `w9acompletion-533df591…`; fresh-process reconciliation remains immutable history. The earlier v1 authorization is preserved as superseded-before-data history after its pre-outcome checkpoint-adapter hold; it contributed zero scientific cells.
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -289,13 +289,14 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Current task:** W9 AM-95 is a semantics-only pre-science freeze.
-It closes the randomized ER-2 SNR-assignment rule without changing G-10 or
-moving any affected scientific counter. W8-C and G-10 remain GREEN/CLOSED;
-all six selected checkpoints and the terminal 63-cell G-10 result remain frozen.
-**Exact next action: implement and source-freeze ER-9 plus randomized ER-2,
-then execute only the owner-authorized ER-9 → ER-2 → G-11 validation sequence;
-do not start W10, rerun G-10, open test, or alter W8/G-10 evidence.**
+**Current task:** W9 AM-96 is a semantics-only pre-science freeze.
+It closes the complete known P1-7 ER-9 reproducibility inventory without
+changing G-10 or moving any affected scientific counter. W8-C and G-10 remain
+GREEN/CLOSED; all six selected checkpoints and the terminal 63-cell G-10
+result remain frozen. **Exact next action: implement and source-freeze ER-9
+plus randomized ER-2, then execute only the owner-authorized ER-9 → ER-2 →
+G-11 validation sequence; do not start W10, rerun G-10, open test, or alter
+W8/G-10 evidence.**
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -334,6 +335,8 @@ does not, it is wrong and this block is right.**
 | W8-C terminal reconciliation | **GREEN/CLOSED — complete root custody, transaction, accounting, validation-noise, selection and predecessor-exclusion checks passed** |
 | W9-A / G10 semantics | **AM-94 frozen and terminally reconciled — exact count/rational predicate; 63 evaluations; source/outcomes immutable** |
 | W9 / AM-95 ER-2 semantics | **frozen pre-science — keyed per-sample/per-epoch discrete-uniform assignment; randomized ER-2 training remains 0** |
+| W9 / AM-96 ER-9 semantics | **frozen pre-science — all 16 known P1-7 reproducibility items closed; ER-9 training remains 0** |
+| W9 / AM-96 ER-9 semantics | **frozen pre-science — all 16 known P1-7 reproducibility items closed; ER-9 training remains 0** |
 | W9 / G10 validation-only execution | **NEXT only under separate owner authority — 63 outcomes remain absent; test sealed** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
@@ -901,7 +904,7 @@ srsRAN vectors remain locally available and ignored as designed.
 Confirm nothing drifted before starting the G-8 work:
 
 ```bash
-.venv/bin/python tools/gen_spec_views.py --check           # expect: 205 requirements (2 retired)
+.venv/bin/python tools/gen_spec_views.py --check           # expect: 206 requirements (2 retired)
 .venv/bin/python tools/check_doc_consistency.py            # expect: exit 0; the current-document count is whatever the checker reports
 .venv/bin/python tools/check_literals.py                   # expect: 0 findings
 .venv/bin/python spec/evidence/check_packetisation.py      # expect: 215 feasible, 144 obligation, 0 failures

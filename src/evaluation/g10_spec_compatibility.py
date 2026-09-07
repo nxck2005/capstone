@@ -79,6 +79,13 @@ AM95_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
     "src/baseline/w7c_source_compatibility.py": (17334, "2876fa9fc5d32bafd14ecb9c3fbe16508653f1ecdb4acd5dbacbf3fcb130341e"),
     "src/baseline/g8_campaign.py": (59265, "b9ed20864f7bab66bd7d47e4ebe6807362f7725d86ddfe016e6ccc142bbaa9e7"),
 }
+AM96_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
+    "spec/SPEC.md": (417758, "5be83f36265947999db5e73b3cf40b55d6ee92922da251918a09af483bc67fa5"),
+    "spec/params.generated.yaml": (48735, "0faee4aa473a2c3ac1ea9bfaa7f25216ac643878756efb8a81e1d8d281810ae8"),
+    "src/baseline/w8_spec_compatibility.py": (12995, "e4ceedbfe12adbd8e18d32e9c7799814d70de151ae0f4113203ad87193293f77"),
+    "src/baseline/w7c_source_compatibility.py": (17820, "0d63bedfe6e9dac9895fa3d10b8e9bffa288153f43c4956c13a0fb4db6cb4318"),
+    "src/baseline/g8_campaign.py": (60506, "ce1f493d053301a90daf6e2ae678d4d3fd590cb9b9e437e12b60508b9d35e14a"),
+}
 
 
 class G10SemanticsFreezeError(RuntimeError):
@@ -273,12 +280,14 @@ def verify_w8_carrier_source_transition(
         if len(raw) == current_bytes and sha256_bytes(raw) == current_sha:
             compatible.add(path)
             continue
-        successor = AM95_W8_CARRIER_SOURCE_HASHES.get(path)
+        successor = AM96_W8_CARRIER_SOURCE_HASHES.get(path)
+        if successor is None:
+            successor = AM95_W8_CARRIER_SOURCE_HASHES.get(path)
         _require(
             successor is not None
             and len(raw) == successor[0]
             and sha256_bytes(raw) == successor[1],
-            f"W8 AM-94/AM-95 carrier source differs: {path}",
+            f"W8 AM-94/AM-95/AM-96 carrier source differs: {path}",
         )
         compatible.add(path)
     return frozenset(compatible)

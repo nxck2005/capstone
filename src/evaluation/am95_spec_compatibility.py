@@ -177,8 +177,12 @@ def _verify_am94_predecessor(root: Path) -> None:
     _require(value.get("entries") == am94.expected_entries(), "AM-94 predecessor entries differ")
 
 
-def load(root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Verify the exact AM-95 freeze and its no-affected-science boundary."""
+def load(root: Path = REPO_ROOT, *, current_commit: str | None = None) -> dict[str, Any]:
+    """Verify AM-95, optionally against its historical current source image.
+
+    The optional commit is used only by the immutable AM-95 verifier after a
+    later additive semantic successor has advanced the live source views.
+    """
 
     root = Path(root).resolve()
     value, raw = _read_json(root / FREEZE_RELATIVE_PATH, "AM-95 pre-science freeze")
@@ -232,8 +236,11 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
     for relative, base_bytes, base_sha, current_bytes, current_sha in VIEW_HASHES:
         predecessor = _git_bytes(root, PREDECESSOR_COMMIT, relative)
         current_path = root / relative
-        _require(current_path.is_file() and not current_path.is_symlink(), f"AM-95 current view is missing: {relative}")
-        current = current_path.read_bytes()
+        if current_commit is None:
+            _require(current_path.is_file() and not current_path.is_symlink(), f"AM-95 current view is missing: {relative}")
+            current = current_path.read_bytes()
+        else:
+            current = _git_bytes(root, current_commit, relative)
         _require(
             len(predecessor) == base_bytes and sha256_bytes(predecessor) == base_sha,
             f"AM-95 predecessor view differs: {relative}",
@@ -243,7 +250,12 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
             f"AM-95 current view differs: {relative}",
         )
     old_params = yaml.safe_load(_git_bytes(root, PREDECESSOR_COMMIT, "spec/params.generated.yaml"))
-    new_params = yaml.safe_load((root / "spec/params.generated.yaml").read_bytes())
+    new_params_raw = (
+        _git_bytes(root, current_commit, "spec/params.generated.yaml")
+        if current_commit is not None
+        else (root / "spec/params.generated.yaml").read_bytes()
+    )
+    new_params = yaml.safe_load(new_params_raw)
     _require(
         _leaf_differences(old_params, new_params) == set(ALLOWED_PARAMETER_PATHS),
         "AM-95 parameter drift exceeds the five named semantic leaves",

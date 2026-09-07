@@ -15,7 +15,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tools"))
 
-from evaluation import am95_spec_compatibility, g10_spec_compatibility  # noqa: E402
+from evaluation import am96_spec_compatibility, g10_spec_compatibility  # noqa: E402
 from evaluation.g10_protocol import (  # noqa: E402
     G10ProtocolHold,
     RECONCILIATION_PATH,
@@ -77,8 +77,8 @@ def _run_w6_complete(root: Path) -> None:
     w6_module = target_globals["w6"]
     original_w8_normative_hashes = dict(w6_module._W8_CURRENT_NORMATIVE_SHA256)
     w6_module._W8_CURRENT_NORMATIVE_SHA256 = {
-        "normative_spec": am95_spec_compatibility.VIEW_HASHES[0][4],
-        "resolved_params": am95_spec_compatibility.VIEW_HASHES[1][4],
+        "normative_spec": am96_spec_compatibility.VIEW_HASHES[0][4],
+        "resolved_params": am96_spec_compatibility.VIEW_HASHES[1][4],
     }
 
     def run_tool(path: Path, *arguments: str) -> str:
@@ -98,7 +98,7 @@ def _run_w6_complete(root: Path) -> None:
 
 
 def _run_w6_evidence_tool(target: str, root: Path) -> None:
-    """Run a W6-A reader with an in-memory AM-95 normative projection."""
+    """Run a W6-A reader with an in-memory AM-96 normative projection."""
 
     script, *arguments = TARGETS[target]
     script_path = root / script
@@ -107,8 +107,8 @@ def _run_w6_evidence_tool(target: str, root: Path) -> None:
     w6_module = sys.modules["baseline.w6_evidence"]
     original_hashes = dict(w6_module._W8_CURRENT_NORMATIVE_SHA256)
     w6_module._W8_CURRENT_NORMATIVE_SHA256 = {
-        "normative_spec": am95_spec_compatibility.VIEW_HASHES[0][4],
-        "resolved_params": am95_spec_compatibility.VIEW_HASHES[1][4],
+        "normative_spec": am96_spec_compatibility.VIEW_HASHES[0][4],
+        "resolved_params": am96_spec_compatibility.VIEW_HASHES[1][4],
     }
     try:
         result = namespace["main"]()
@@ -130,7 +130,7 @@ def _run_w8_a(root: Path) -> None:
     original_authorization_predecessor = authorization_module._am94_predecessor_config_bindings
 
     def predecessor_config_bindings(*, role: str = authorization_module.W8_CORE_ROLE) -> list[dict[str, Any]]:
-        """Project current W8 configs back through AM-94 and AM-95 in memory."""
+        """Project current W8 configs back through AM-94, AM-95 and AM-96 in memory."""
 
         names = []
         for path in authorization_module.AM94_ALLOWED_PARAMETER_PATHS:
@@ -156,6 +156,12 @@ def _run_w8_a(root: Path) -> None:
                 "train_snr_randomisation_unit",
             ):
                 channel.pop(name, None)
+            digital = historical["parameters"]["digital_semantic_control"]
+            for name in am96_spec_compatibility.ALLOWED_PARAMETER_PATHS:
+                prefix = "digital_semantic_control."
+                if not name.startswith(prefix):
+                    continue
+                digital.pop(name[len(prefix):], None)
             artifacts = historical["parameters"]["artifacts"]
             artifacts["rng_purposes"] = [
                 purpose for purpose in artifacts["rng_purposes"]
@@ -235,11 +241,11 @@ def run(target: str, root: Path = REPO) -> None:
         historical = verify_am94_boundary(load_root, outcomes_allowed=True)
         # Keep the test seam's sentinel/stand-in behavior intact.  The normal
         # repository path returns the AM-94 mapping and is then projected to
-        # the authenticated AM-95 current bytes below.
+        # the authenticated AM-96 current bytes below.
         if not isinstance(historical, dict):
             return historical
-        am95 = am95_spec_compatibility.load(load_root)
-        successor_entries = {entry["path"]: entry for entry in am95["entries"]}
+        successor = am96_spec_compatibility.load(load_root)
+        successor_entries = {entry["path"]: entry for entry in successor["entries"]}
         projection = json.loads(json.dumps(historical))
         for entry in projection["entries"]:
             successor = successor_entries[entry["path"]]

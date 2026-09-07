@@ -20,7 +20,7 @@ from verify_g10_w9 import verify as verify_g10_terminal  # noqa: E402
 
 def main() -> int:
     try:
-        value = load(REPO)
+        value = load(REPO, current_commit="2096b1f7e1572448dca26ca2d9f4c8ba9d2bec32")
         terminal = verify_g10_terminal(REPO)
         if terminal["adjudication"]["classification"] != value["g10_terminal_evidence"]["classification"]:
             raise AM95SpecCompatibilityError("AM-95/G-10 classification binding differs")

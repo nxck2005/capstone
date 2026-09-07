@@ -605,20 +605,52 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `digital_semantic_control.transmit_dim_grid` | 64, 128, 256, 512, 1024, 2048, 4096, 8192 | ER-9 |
 | `digital_semantic_control.transmit_dim_units` | real_values | ER-9 |
 | `digital_semantic_control.transmit_dim_realised_by` | output_channel_count_and_adaptive_pooling | AM-56, ER-9, G-11 |
+| `digital_semantic_control.pre_interface_tap` | encoder_residual_trunk_output_before_complex_projection | - |
+| `digital_semantic_control.post_interface_task_path` | dequantized_feature_tensor_to_image_classification_head | - |
+| `digital_semantic_control.reconstruction_head` | none | - |
+| `digital_semantic_control.training_loss` | cross_entropy | - |
+| `digital_semantic_control.training_lambda` | not_applicable | - |
+| `digital_semantic_control.factorisation` | output_channels_d_div_64_pool_8x8 | - |
+| `digital_semantic_control.factorisation_channel_rule` | transmit_dim_div_64 | - |
+| `digital_semantic_control.factorisation_pool_height` | 8 | - |
+| `digital_semantic_control.factorisation_pool_width` | 8 | - |
+| `digital_semantic_control.factorisation_flatten_order` | channel_major_row_major_column_major_nchw_contiguous | - |
+| `digital_semantic_control.dimension_scope` | one_global_pair_per_bandwidth_ratio_frozen_across_snr | - |
 | `digital_semantic_control.width_selection` | joint_with_quantiser_bits_on_validation_split | ER-9 |
 | `digital_semantic_control.selection_search` | two_stage_coarse_width_then_bits | ER-9 |
 | `digital_semantic_control.selection_search_is_cross_product` | false | ER-9 |
+| `digital_semantic_control.search_seed_cell` | first_zipped_seed_pair | - |
+| `digital_semantic_control.stage1_quantiser_bits` | 2 | - |
+| `digital_semantic_control.stage1_dimension_order` | ascending_numeric | - |
+| `digital_semantic_control.stage1_selection_metric` | exact_validation_n_correct_at_fixed_training_snr_real_digital_chain | - |
+| `digital_semantic_control.stage1_tie_break` | smallest_transmit_dim | - |
+| `digital_semantic_control.stage2_bits_order` | ascending_numeric | - |
+| `digital_semantic_control.stage2_reuse_rule` | reuse_stage1_selected_dimension_at_stage1_bits | - |
+| `digital_semantic_control.stage2_selection_metric` | exact_validation_n_correct_at_fixed_training_snr_real_digital_chain | - |
+| `digital_semantic_control.stage2_tie_break` | smallest_quantiser_bits | - |
+| `digital_semantic_control.training_transport` | ste_quantise_dequantise_task_path_without_digital_channel_backpropagation | - |
 | `digital_semantic_control.quantiser` | uniform_scalar | ER-9 |
 | `digital_semantic_control.quantiser_bits_grid` | 2, 4, 6, 8 | ER-9 |
 | `digital_semantic_control.quantiser_training` | straight_through_estimator | - |
+| `digital_semantic_control.quantiser_range` | tanh_to_minus_one_plus_one | - |
+| `digital_semantic_control.quantiser_levels` | 2_to_b_reconstruction_levels_including_endpoints | - |
+| `digital_semantic_control.quantiser_scale` | fixed_protocol_no_image_adaptive_scale | - |
+| `digital_semantic_control.quantiser_clipping` | tanh_to_protocol_range | - |
+| `digital_semantic_control.quantiser_scale_side_information_bits` | 0 | - |
 | `digital_semantic_control.entropy_coder` | static_range_coder | ER-9 |
 | `digital_semantic_control.entropy_model` | fitted_offline_on_train_split | - |
 | `digital_semantic_control.entropy_model_learned_permitted` | false | - |
 | `digital_semantic_control.entropy_table_bytes_counted` | false | ER-9 |
 | `digital_semantic_control.framing_selector_bits` | 1 | AM-58, ER-9 |
+| `digital_semantic_control.entropy_stream_length_field` | none_decode_exact_transmit_dim_symbols | - |
+| `digital_semantic_control.entropy_padding_rule` | ignored_after_exact_symbol_count | - |
+| `digital_semantic_control.raw_bit_order` | most_significant_bit_first | - |
 | `digital_semantic_control.raw_escape_required` | true | ER-9 |
 | `digital_semantic_control.raw_escape_rule` | transmit_min_of_range_coded_and_fixed_width_raw_selected_by_the_counted_selector_bit | ER-9 |
 | `digital_semantic_control.budget_sized_against` | raw_escape_length_not_expected_compressed_length | ER-9, G-11 |
+| `digital_semantic_control.admissibility_budget_floor` | exact_bpsk_rate_1_3_packetisation_payload_at_matched_k | - |
+| `digital_semantic_control.admissibility_metadata_bits` | framing_selector_bits_plus_am96_required_metadata | - |
+| `digital_semantic_control.final_seed_scope` | all_three_existing_zipped_seed_cells | - |
 | `digital_semantic_control.transport_tuning` | best_feasible_config_per_snr_on_validation_split | BR-9, ER-9 |
 | `digital_semantic_control.scored_by` | own_task_head | ER-9 |
 

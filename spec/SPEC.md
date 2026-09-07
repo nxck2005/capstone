@@ -641,20 +641,53 @@ digital_semantic_control:
   transmit_dim_grid: [64, 128, 256, 512, 1024, 2048, 4096, 8192]
   transmit_dim_units: real_values
   transmit_dim_realised_by: output_channel_count_and_adaptive_pooling
+  # AM-96: executable ER-9 feature interface and fixed factorisation.
+  pre_interface_tap: encoder_residual_trunk_output_before_complex_projection
+  post_interface_task_path: dequantized_feature_tensor_to_image_classification_head
+  reconstruction_head: none
+  training_loss: cross_entropy
+  training_lambda: not_applicable
+  factorisation: output_channels_d_div_64_pool_8x8
+  factorisation_channel_rule: transmit_dim_div_64
+  factorisation_pool_height: 8
+  factorisation_pool_width: 8
+  factorisation_flatten_order: channel_major_row_major_column_major_nchw_contiguous
+  dimension_scope: one_global_pair_per_bandwidth_ratio_frozen_across_snr
   width_selection: joint_with_quantiser_bits_on_validation_split
   selection_search: two_stage_coarse_width_then_bits
   selection_search_is_cross_product: false
+  search_seed_cell: first_zipped_seed_pair
+  stage1_quantiser_bits: 2
+  stage1_dimension_order: ascending_numeric
+  stage1_selection_metric: exact_validation_n_correct_at_fixed_training_snr_real_digital_chain
+  stage1_tie_break: smallest_transmit_dim
+  stage2_bits_order: ascending_numeric
+  stage2_reuse_rule: reuse_stage1_selected_dimension_at_stage1_bits
+  stage2_selection_metric: exact_validation_n_correct_at_fixed_training_snr_real_digital_chain
+  stage2_tie_break: smallest_quantiser_bits
+  training_transport: ste_quantise_dequantise_task_path_without_digital_channel_backpropagation
   quantiser: uniform_scalar
   quantiser_bits_grid: [2, 4, 6, 8]
   quantiser_training: straight_through_estimator
+  quantiser_range: tanh_to_minus_one_plus_one
+  quantiser_levels: 2_to_b_reconstruction_levels_including_endpoints
+  quantiser_scale: fixed_protocol_no_image_adaptive_scale
+  quantiser_clipping: tanh_to_protocol_range
+  quantiser_scale_side_information_bits: 0
   entropy_coder: static_range_coder
   entropy_model: fitted_offline_on_train_split
   entropy_model_learned_permitted: false
   entropy_table_bytes_counted: false
   framing_selector_bits: 1
+  entropy_stream_length_field: none_decode_exact_transmit_dim_symbols
+  entropy_padding_rule: ignored_after_exact_symbol_count
+  raw_bit_order: most_significant_bit_first
   raw_escape_required: true
   raw_escape_rule: transmit_min_of_range_coded_and_fixed_width_raw_selected_by_the_counted_selector_bit
   budget_sized_against: raw_escape_length_not_expected_compressed_length
+  admissibility_budget_floor: exact_bpsk_rate_1_3_packetisation_payload_at_matched_k
+  admissibility_metadata_bits: framing_selector_bits_plus_am96_required_metadata
+  final_seed_scope: all_three_existing_zipped_seed_cells
   transport_tuning: best_feasible_config_per_snr_on_validation_split
   scored_by: own_task_head
 
@@ -1208,6 +1241,10 @@ Explicitly out of scope. Listed so that scope creep is a visible spec change.
 
 Working state, not normative: what is still provisional, what is pending, and what risk is knowingly being carried. This section shrinks as gates pass. It exists so that a reader — or the author after a gap — can tell at a glance which numbers in §4 are measurements and which are estimates.
 
+**AM-96 executable ER-9 closure (normative for the first ER-9 run).** The task-aware digital control taps the shared `params.digital_semantic_control.pre_interface_tap`: the output of the `djscc_residual_v1` residual trunk immediately before the learned complex projection. Its only post-interface path is `params.digital_semantic_control.post_interface_task_path`; after dequantisation the feature tensor goes to the same `params.digital_semantic_control.scored_by` task-head family, with no reconstruction head, MSE term or lambda (`params.digital_semantic_control.reconstruction_head`, `training_loss`, `training_lambda`). The interface projection has `C = D / 64` output channels and `8 × 8` adaptive pooling for every `D` in `params.digital_semantic_control.transmit_dim_grid`; it is therefore exact and capacity-safe for the configured 128-channel trunk. Flattening and reconstruction are channel-major, row-major, column-major contiguous NCHW order. One `(D,b)` pair is selected per bandwidth ratio and held fixed across SNR; current W9 executes only the resolved headline `r_1_6`. The quantiser applies `tanh`, uses `2**b` equally spaced endpoint-inclusive levels in `[-1,+1]`, uses the configured straight-through estimator during training, has no adaptive scale or clipping side information, and counts zero scale bits. The real digital chain is not backpropagated: training is the shared trunk plus STE quantise/dequantise plus the task head with cross-entropy only; the real LDPC/PHY chain is used for validation and evaluation. The first zipped seed cell is `params.digital_semantic_control.search_seed_cell`; checkpoint selection is validation top-1, maximum, earliest epoch, reusing the final learned-system epoch/checkpoint rules.
+
+The staged search is the complete bounded protocol. Stage 1 fixes `params.digital_semantic_control.stage1_quantiser_bits = 2`, admits only dimensions satisfying the exact conservative `params.digital_semantic_control.admissibility_budget_floor` packet payload at matched `k`, orders them numerically, trains one full candidate per admitted dimension, and selects at fixed 7 dB through the real digital chain by exact validation `n_correct`, breaking ties by the smallest dimension. Stage 2 keeps that selected dimension, admits configured bit widths satisfying the same bound, orders them numerically, reuses the Stage-1 `(D,2)` run, trains each remaining width once, and selects by exact validation `n_correct`, breaking ties by the smallest width. The selector is global per ratio, never per SNR; only the transport configuration may adapt per SNR. Stage-1 and Stage-2 counts are frozen by their exact admitted lists, with zero new Stage-2 runs valid when only 2 bits fit. The range-coded branch decodes exactly `D` symbols and has no stream-length field; padding after those symbols is ignored. The one selector bit and every other metadata bit are included in the raw-bound inequality, with raw bits most-significant-bit first. After the pair is frozen, the search-cell model is promoted only if every identity and recipe hash matches; otherwise the three existing zipped seed cells each receive one fresh selected-pair run. The complete earlier P1-7 inventory is committed in `audit/er9-p1-7-am96.md`.
+
 **Pending before W1 (all inside G-9).** ~~Pending.~~ **All three closed as of 2026-07-27; G-9 has passed and W1 is open.** Retained struck through rather than deleted, because what was uncertain before W0 is part of the record.
 
 - ~~§2's rewrite needs **supervisor ratification**.~~ **Closed 2026-07-25.** Every part of §2 now has a disposition (AM-19, AM-21). The **completion criterion** — Tier 1 is complete when the protocol has been run properly, regardless of which way the result falls — is **approved directly**, with the added instruction to pursue a crossover as hard as the rules allow and an explicit statement that an unfavourable outcome is acceptable. That was the only part of §2 that originated in the approved proposal and therefore the only part its author could not redefine alone, so this is the item closing rather than shrinking. The **four hypotheses, the paired-inference procedure, the no-weakening rule and the learned-blind operating-point rule** are **explicitly delegated** as methodology. That is an answer, not a gap — but see AM-21 for what it makes load-bearing.
@@ -1237,6 +1274,10 @@ Working state, not normative: what is still provisional, what is pending, and wh
 - **The W14 stretch row assumes hardware ordered after G-5 arrives in time.** DEC-14 already makes this upside rather than plan, so the risk is to the stretch goal only, never to Tier 1 (HR-5).
 
 ## 17. Amendment record
+
+**Amendment round 26 — 2026-09-08, before any ER-9 or randomized ER-2 scientific training.** Source: the owner-authorized one-pass ER-9 reproducibility audit.
+
+- **AM-96** — **Freeze the executable ER-9 digital-control recipe before its first scientific run.** The task-aware control taps the shared residual trunk immediately before the learned complex projection; its post-interface path is dequantized features to the shared ImageClassificationHead task-head family, with no reconstruction head, reconstruction loss, MSE term or lambda. For every configured dimension D, the interface uses C = D / 64 output channels and 8 x 8 adaptive pooling, with contiguous NCHW channel-major, row-major, column-major serialization and exact inverse reshape. One (D,b) pair is selected per bandwidth ratio and held fixed across SNR. Quantization is tanh followed by 2**b equally spaced endpoint-inclusive levels in [-1,+1], with the configured STE, no image-adaptive scale and zero scale side-information bits. Training is cross-entropy only through the STE quantise/dequantise task path; the real LDPC/PHY chain is used for validation/evaluation and is not backpropagated. Search uses the first zipped seed pair and the final learned checkpoint rule. Stage 1 fixes b=2, admits only dimensions satisfying the exact conservative matched-k BPSK nominal-rate-1/3 payload floor, orders them numerically, trains each exactly once, and selects by exact full-validation n_correct at fixed 7 dB through the real digital chain, breaking ties by smallest dimension. Stage 2 orders feasible configured widths numerically, reuses the Stage-1 b=2 run, trains only remaining widths exactly once, and selects by the same exact metric with smallest-width tie-break. The staged authorizations make both counts exact and prohibit Cartesian search. The range-coded branch decodes exactly D symbols without a stream-length field; padding after those symbols is ignored. Static entropy state is fitted on train only and raw escape sends the shorter range-coded or fixed-width raw representation with the existing selector bit and all required metadata counted. This closes every item in the committed P1-7 inventory prospectively; no ER-9 or randomized ER-2 training, G-10 rerun or test access had occurred.
 
 What changed in this document after it first said something else, and why. Permanent and normative as history: `AM` IDs are retired in place, never renumbered or deleted (§8). Each entry names the items it touched, the defect that motivated the change, and who raised it — so a later reader can tell what an external review caught from what an internal audit caught, and so no settled question is re-litigated from scratch.
 
