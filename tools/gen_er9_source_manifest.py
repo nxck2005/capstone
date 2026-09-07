@@ -19,7 +19,14 @@ from training.deterministic_core import canonical_bytes, canonical_sha256  # noq
 
 MANIFEST_ROLE = "ER9_ER2_PRE_SCIENCE_SOURCE_MANIFEST"
 PREFIX = "ersource-"
-DEFAULT_OUTPUT = REPO / "results/learned/er9/er_execution_source_manifest.json"
+DEFAULT_OUTPUT = REPO / "results/learned/er9/er_execution_source_manifest_v2.json"
+
+PRE_SCIENCE_RESULT_FILES = {
+    "results/learned/er9/er_execution_source_manifest.json",
+    "results/learned/er9/er9_stage1_execution_authorization.json",
+    "results/learned/er9/er_execution_source_manifest_v2.json",
+    "results/learned/er9/er9_stage1_execution_authorization_v2.json",
+}
 
 CRITICAL_SOURCES: tuple[tuple[str, str], ...] = (
     ("src/evaluation/er9_protocol.py", "am96_er9_interface_and_range_coder"),
@@ -104,7 +111,11 @@ def _source(commit: str, path: str, role: str) -> dict[str, Any]:
 def build_manifest(source_commit: str) -> dict[str, Any]:
     commit = _commit(source_commit)
     listing = _git("ls-tree", "-r", "--name-only", commit, "--", "results/learned/er9").decode()
-    if any(line == "results/learned/er9" or line.startswith("results/learned/er9/") for line in listing.splitlines()):
+    result_files = {
+        line for line in listing.splitlines()
+        if line.startswith("results/learned/er9/")
+    }
+    if result_files - PRE_SCIENCE_RESULT_FILES:
         raise ValueError("ER-9 scientific results exist in the implementation source epoch")
     entries = [_source(commit, path, role) for path, role in CRITICAL_SOURCES]
     body: dict[str, Any] = {

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import ast
+import json
 from pathlib import Path
+
+from training.er9 import _publish_json_immutable
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -39,3 +42,9 @@ def test_er9_source_does_not_name_a_model_facing_test_split() -> None:
         text = path.read_text()
         assert "load_dataset(\"test\"" not in text
         assert "ValidationDJSCCDataset(\"test\"" not in text
+
+
+def test_er9_checkpoint_json_publication_serializes_sidecar_bytes(tmp_path: Path) -> None:
+    path = tmp_path / "checkpoint.sidecar.json"
+    _publish_json_immutable(path, {"z": 1, "a": [2, 3]})
+    assert json.loads(path.read_bytes()) == {"a": [2, 3], "z": 1}

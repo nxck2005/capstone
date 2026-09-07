@@ -260,7 +260,7 @@ def _verify_am95_predecessor(root: Path) -> dict[str, Any]:
 def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str, Any]:
     """Verify AM-96 and its pre-science boundary.
 
-    The two immutable source-preparation records are allowed to appear below
+    The immutable source-preparation records are allowed to appear below
     ``results/learned/er9`` before the first optimizer step.  Once scientific
     records exist, callers that are explicitly verifying the post-freeze
     project state pass ``allow_downstream=True``; the AM-96 bytes and its
@@ -415,6 +415,8 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         allowed_pre_science = {
             "er_execution_source_manifest.json",
             "er9_stage1_execution_authorization.json",
+            "er_execution_source_manifest_v2.json",
+            "er9_stage1_execution_authorization_v2.json",
         }
         actual_er9 = {
             path.relative_to(er9_root).as_posix()

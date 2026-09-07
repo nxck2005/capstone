@@ -20,8 +20,8 @@ from evaluation.er9_search import all_configured_pairs, feasible_pairs, packetis
 from training.deterministic_core import canonical_bytes, canonical_sha256  # noqa: E402
 
 
-DEFAULT_OUTPUT = REPO / "results/learned/er9/er9_stage1_execution_authorization.json"
-DEFAULT_MANIFEST = REPO / "results/learned/er9/er_execution_source_manifest.json"
+DEFAULT_OUTPUT = REPO / "results/learned/er9/er9_stage1_execution_authorization_v2.json"
+DEFAULT_MANIFEST = REPO / "results/learned/er9/er_execution_source_manifest_v2.json"
 
 
 def _git(*args: str) -> str:

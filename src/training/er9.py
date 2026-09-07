@@ -85,6 +85,12 @@ def _publish_immutable(path: Path, raw: bytes) -> None:
         raise
 
 
+def _publish_json_immutable(path: Path, value: Mapping[str, Any]) -> None:
+    """Publish one canonical immutable JSON artifact."""
+
+    _publish_immutable(path, canonical_bytes(dict(value)))
+
+
 def _replace_pointer(path: Path, value: Mapping[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     if path.is_symlink() or (path.exists() and not path.is_file()):
@@ -640,7 +646,7 @@ class ER9Trainer:
             "test_access": 0,
         }
         sidecar_path = checkpoint_path.with_suffix(".sidecar.json")
-        _publish_immutable(sidecar_path, sidecar)
+        _publish_json_immutable(sidecar_path, sidecar)
         _replace_pointer(
             self.runtime_root / "latest.json",
             {

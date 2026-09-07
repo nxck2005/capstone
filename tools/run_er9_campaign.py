@@ -37,9 +37,10 @@ from verify_er9 import verify_source_manifest, verify_stage1_authorization  # no
 
 
 RESULT_ROOT = REPO / "results/learned/er9"
-CHECKPOINT_ROOT = REPO / "checkpoints/er9"
-SOURCE_MANIFEST = RESULT_ROOT / "er_execution_source_manifest.json"
-STAGE1_AUTH = RESULT_ROOT / "er9_stage1_execution_authorization.json"
+# Successor namespace after the preserved first-checkpoint publication incident.
+CHECKPOINT_ROOT = REPO / "checkpoints/er9_successor"
+SOURCE_MANIFEST = RESULT_ROOT / "er_execution_source_manifest_v2.json"
+STAGE1_AUTH = RESULT_ROOT / "er9_stage1_execution_authorization_v2.json"
 STAGE1_SELECTION = RESULT_ROOT / "er9_stage1_selection.json"
 STAGE2_AUTH = RESULT_ROOT / "er9_stage2_execution_authorization.json"
 STAGE2_SELECTION = RESULT_ROOT / "er9_stage2_selection.json"

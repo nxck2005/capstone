@@ -22,8 +22,8 @@ from training.deterministic_core import canonical_bytes, canonical_sha256  # noq
 from gen_er9_source_manifest import CRITICAL_SOURCES  # noqa: E402
 
 
-SOURCE_DEFAULT = REPO / "results/learned/er9/er_execution_source_manifest.json"
-STAGE1_DEFAULT = REPO / "results/learned/er9/er9_stage1_execution_authorization.json"
+SOURCE_DEFAULT = REPO / "results/learned/er9/er_execution_source_manifest_v2.json"
+STAGE1_DEFAULT = REPO / "results/learned/er9/er9_stage1_execution_authorization_v2.json"
 STAGE1_SELECTION_DEFAULT = REPO / "results/learned/er9/er9_stage1_selection.json"
 STAGE2_DEFAULT = REPO / "results/learned/er9/er9_stage2_execution_authorization.json"
 STAGE2_SELECTION_DEFAULT = REPO / "results/learned/er9/er9_stage2_selection.json"
@@ -82,7 +82,17 @@ def verify_source_manifest(path: Path) -> dict[str, Any]:
     if entries != expected or value["entry_count"] != len(expected):
         raise ValueError("ER source manifest source bytes differ")
     listing = _git("ls-tree", "-r", "--name-only", commit, "--", "results/learned/er9")
-    if any(line == "results/learned/er9" or line.startswith("results/learned/er9/") for line in listing.splitlines()):
+    allowed_pre_science = {
+        "results/learned/er9/er_execution_source_manifest.json",
+        "results/learned/er9/er9_stage1_execution_authorization.json",
+        "results/learned/er9/er_execution_source_manifest_v2.json",
+        "results/learned/er9/er9_stage1_execution_authorization_v2.json",
+    }
+    result_files = {
+        line for line in listing.splitlines()
+        if line.startswith("results/learned/er9/")
+    }
+    if result_files - allowed_pre_science:
         raise ValueError("ER source epoch contains scientific results")
     if value["scientific_results_included"] is not False or value["er9_training"] != 0 or value["randomized_er2_training"] != 0 or value["g11"] != 0 or value["test_access"] != 0 or value["test"] != "SEALED":
         raise ValueError("ER source manifest pre-science counters differ")
