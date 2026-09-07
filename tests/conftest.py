@@ -110,7 +110,7 @@ def _post_g10_am94_context():
         historical = verify_am94_boundary(Path(root), outcomes_allowed=True)
         if not isinstance(historical, dict):
             return historical
-        successor = am96_spec_compatibility.load(Path(root))
+        successor = am96_spec_compatibility.load(Path(root), allow_downstream=True)
         successor_entries = {entry["path"]: entry for entry in successor["entries"]}
         projection = json.loads(json.dumps(historical))
         for entry in projection["entries"]:

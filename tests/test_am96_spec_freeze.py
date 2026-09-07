@@ -15,7 +15,7 @@ REPO = Path(__file__).resolve().parents[1]
 
 
 def test_am96_freeze_closes_all_known_p1_7_items() -> None:
-    value = load(REPO)
+    value = load(REPO, allow_downstream=True)
     assert value["freeze_id"] == FREEZE_ID
     assert value["audit"]["closed_items"] == 16
     assert len(ALLOWED_PARAMETER_PATHS) == 32
@@ -33,7 +33,7 @@ def test_am96_freeze_closes_all_known_p1_7_items() -> None:
 
 
 def test_am96_contract_is_fixed_before_science() -> None:
-    contract = load(REPO)["semantic_contract"]
+    contract = load(REPO, allow_downstream=True)["semantic_contract"]
     assert contract["factorisation"]["channel_rule"] == "D_div_64"
     assert contract["factorisation"]["pool_height"] == 8
     assert contract["factorisation"]["pool_width"] == 8

@@ -939,6 +939,8 @@ def run_g11() -> None:
         "randomized_er2": {
             "completion": str(ER2_COMPLETION.relative_to(REPO)),
             "completion_sha256": _file_sha(ER2_COMPLETION),
+            "assignment_audit": str(ER2_AUDIT.relative_to(REPO)),
+            "assignment_audit_sha256": _file_sha(ER2_AUDIT),
             "validation": str(ER2_VALIDATION.relative_to(REPO)),
             "validation_sha256": _file_sha(ER2_VALIDATION),
             "scientific_training_run_count": 1,

@@ -398,7 +398,10 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
         )
         all_am96 = all_am96 and len(current) == am96_bytes and current_digest == am96_sha
     if all_am96:
-        am96.load(root)
+        # G-10 remains terminal; this call authenticates the additive AM-96
+        # semantic carrier while allowing its separately-scoped downstream
+        # ER-9/ER-2/G-11 evidence to exist after the freeze.
+        am96.load(root, allow_downstream=True)
     require(get("channel.test_snr_grid_db") == list(EXPECTED_GRID), "normative G-10 grid moved")
     require(value["scientific_boundary"] == {
         "er2_randomized_training": 0,

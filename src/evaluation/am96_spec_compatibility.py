@@ -257,8 +257,15 @@ def _verify_am95_predecessor(root: Path) -> dict[str, Any]:
     return am95.load(root, current_commit=PREDECESSOR_COMMIT)
 
 
-def load(root: Path = REPO_ROOT) -> dict[str, Any]:
-    """Verify AM-96 and its zero-science boundary."""
+def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str, Any]:
+    """Verify AM-96 and its pre-science boundary.
+
+    The two immutable source-preparation records are allowed to appear below
+    ``results/learned/er9`` before the first optimizer step.  Once scientific
+    records exist, callers that are explicitly verifying the post-freeze
+    project state pass ``allow_downstream=True``; the AM-96 bytes and its
+    protected counters remain unchanged either way.
+    """
 
     root = Path(root).resolve()
     value, raw = _read_json(root / FREEZE_RELATIVE_PATH, "AM-96 pre-science freeze")
@@ -403,6 +410,20 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         if path.is_file()
     }
     _require(actual_w9 <= allowed_w9, f"ER-9/G-11 artifact exists before AM-96: {sorted(actual_w9 - allowed_w9)}")
-    _require(not (root / "results/learned/er9").exists(), "ER-9 result directory exists at AM-96")
+    er9_root = root / "results/learned/er9"
+    if er9_root.exists():
+        allowed_pre_science = {
+            "er_execution_source_manifest.json",
+            "er9_stage1_execution_authorization.json",
+        }
+        actual_er9 = {
+            path.relative_to(er9_root).as_posix()
+            for path in er9_root.glob("**/*")
+            if path.is_file()
+        }
+        _require(
+            allow_downstream or actual_er9 <= allowed_pre_science,
+            "scientific ER-9 result directory exists at AM-96 pre-science boundary",
+        )
     _require(not (root / "results/learned/er2_randomized").exists(), "randomized ER-2 result directory exists at AM-96")
     return value

@@ -134,7 +134,8 @@ def verify_terminal(path: Path) -> dict[str, Any]:
     for section in (value.get("er9", {}), value.get("randomized_er2", {})):
         for field in (
             "production_manifest", "stage1_selection", "stage2_selection",
-            "validation_train0_channel0", "architecture_difference", "completion", "validation",
+            "validation_train0_channel0", "architecture_difference", "completion",
+            "assignment_audit", "validation",
         ):
             if field in section:
                 artifact = _artifact(str(section[field]))

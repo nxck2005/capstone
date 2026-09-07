@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sys
+import argparse
 from pathlib import Path
 
 
@@ -19,8 +20,15 @@ from verify_g10_w9 import verify as verify_g10_terminal  # noqa: E402
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--allow-downstream",
+        action="store_true",
+        help="also authenticate the frozen contract after downstream evidence exists",
+    )
+    args = parser.parse_args()
     try:
-        value = load(REPO)
+        value = load(REPO, allow_downstream=args.allow_downstream)
         terminal = verify_g10_terminal(REPO)
         evidence = value["g10_terminal_evidence"]
         adjudication = terminal["adjudication"]
