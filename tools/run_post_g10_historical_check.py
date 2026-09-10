@@ -15,7 +15,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tools"))
 
-from evaluation import am96_spec_compatibility, g10_spec_compatibility  # noqa: E402
+from evaluation import am96_spec_compatibility, am97_spec_compatibility, g10_spec_compatibility  # noqa: E402
 from evaluation.g10_protocol import (  # noqa: E402
     G10ProtocolHold,
     RECONCILIATION_PATH,
@@ -77,8 +77,8 @@ def _run_w6_complete(root: Path) -> None:
     w6_module = target_globals["w6"]
     original_w8_normative_hashes = dict(w6_module._W8_CURRENT_NORMATIVE_SHA256)
     w6_module._W8_CURRENT_NORMATIVE_SHA256 = {
-        "normative_spec": am96_spec_compatibility.VIEW_HASHES[0][4],
-        "resolved_params": am96_spec_compatibility.VIEW_HASHES[1][4],
+        "normative_spec": am97_spec_compatibility.VIEW_HASHES[0][4],
+        "resolved_params": am97_spec_compatibility.VIEW_HASHES[1][4],
     }
 
     def run_tool(path: Path, *arguments: str) -> str:
@@ -107,8 +107,8 @@ def _run_w6_evidence_tool(target: str, root: Path) -> None:
     w6_module = sys.modules["baseline.w6_evidence"]
     original_hashes = dict(w6_module._W8_CURRENT_NORMATIVE_SHA256)
     w6_module._W8_CURRENT_NORMATIVE_SHA256 = {
-        "normative_spec": am96_spec_compatibility.VIEW_HASHES[0][4],
-        "resolved_params": am96_spec_compatibility.VIEW_HASHES[1][4],
+        "normative_spec": am97_spec_compatibility.VIEW_HASHES[0][4],
+        "resolved_params": am97_spec_compatibility.VIEW_HASHES[1][4],
     }
     try:
         result = namespace["main"]()

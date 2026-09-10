@@ -255,6 +255,7 @@ class ER2RandomizedTrainer:
         campaign_id: str,
         run_id: str,
         num_workers: int | None = None,
+        resume: bool = False,
     ) -> None:
         if config.resolved.get("system") != "learned_snr_randomised":
             raise ER2RandomizedHold("randomized ER-2 trainer requires learned_snr_randomised")
@@ -266,9 +267,13 @@ class ER2RandomizedTrainer:
         self.config_hash = run_config_hash(config)
         self.device = torch.device(device)
         self.runtime_root = Path(runtime_root)
-        if self.runtime_root.exists() or self.runtime_root.is_symlink():
+        runtime_exists = self.runtime_root.exists() or self.runtime_root.is_symlink()
+        if runtime_exists and not resume:
             raise ER2RandomizedHold(f"randomized ER-2 runtime already exists: {self.runtime_root}")
-        self.runtime_root.mkdir(parents=True, exist_ok=False)
+        if runtime_exists and self.runtime_root.is_symlink():
+            raise ER2RandomizedHold(f"randomized ER-2 runtime is a symlink: {self.runtime_root}")
+        self.runtime_root.mkdir(parents=True, exist_ok=resume)
+        _require(self.runtime_root.is_dir(), "randomized ER-2 runtime is not a directory")
         self.source_binding = dict(source_binding)
         self.campaign_id = campaign_id
         self.run_id = run_id
@@ -305,6 +310,69 @@ class ER2RandomizedTrainer:
         self.completed_epoch = -1
         self.global_optimizer_step = 0
         self.best_validation: dict[str, Any] | None = None
+        self.resumed_incomplete = False
+        self.existing_complete_reused = False
+        if resume:
+            self._resume_existing()
+
+    def _resume_existing(self) -> None:
+        """Restore one authenticated completed epoch without replaying it."""
+
+        completion_path = self.runtime_root / "run_completion.json"
+        if completion_path.exists() or completion_path.is_symlink():
+            try:
+                completion = json.loads(completion_path.read_bytes())
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                raise ER2RandomizedHold("randomized ER-2 completion is corrupt") from None
+            _require(isinstance(completion, Mapping), "randomized ER-2 completion is not an object")
+            _require(completion.get("run_id") == self.run_id and completion.get("recipe_sha256") == self.recipe_sha256 and completion.get("test_access") == 0, "randomized ER-2 completed identity differs")
+            self.existing_complete_reused = True
+            return
+        pointer_path = self.runtime_root / "latest.json"
+        _require(pointer_path.is_file() and not pointer_path.is_symlink(), "randomized ER-2 resume pointer is missing")
+        try:
+            pointer = json.loads(pointer_path.read_bytes())
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            raise ER2RandomizedHold("randomized ER-2 resume pointer is corrupt") from None
+        _require(isinstance(pointer, Mapping) and pointer.get("test_access") == 0, "randomized ER-2 resume pointer schema differs")
+        checkpoint_path = self.runtime_root / str(pointer.get("checkpoint_path", ""))
+        sidecar_path = checkpoint_path.with_suffix(".sidecar.json")
+        _require(checkpoint_path.is_file() and sidecar_path.is_file(), "randomized ER-2 resume checkpoint is missing")
+        _require(_sha256_file(checkpoint_path) == pointer.get("checkpoint_id"), "randomized ER-2 resume checkpoint hash differs")
+        try:
+            sidecar = json.loads(sidecar_path.read_bytes())
+            payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, RuntimeError, TypeError, ValueError, EOFError):
+            raise ER2RandomizedHold("randomized ER-2 resume checkpoint is corrupt") from None
+        _require(isinstance(sidecar, Mapping) and isinstance(payload, Mapping), "randomized ER-2 resume state is not an object")
+        for key, expected in {"campaign_id": self.campaign_id, "run_id": self.run_id, "config_hash": self.config_hash, "recipe_sha256": self.recipe_sha256, "test_access": 0}.items():
+            _require(payload.get(key) == expected, f"randomized ER-2 resume {key} differs")
+        _require(sidecar.get("checkpoint_id") == pointer.get("checkpoint_id") and sidecar.get("epoch") == pointer.get("completed_epoch"), "randomized ER-2 resume pointer/sidecar differs")
+        try:
+            self.model.load_state_dict(payload["model_state"], strict=True)
+            self.optimizer.load_state_dict(payload["optimizer_state"])
+            if self.scaler is None:
+                _require(payload.get("scaler_state") is None, "randomized ER-2 CPU resume carries a scaler")
+            else:
+                _require(isinstance(payload.get("scaler_state"), Mapping), "randomized ER-2 CUDA resume lacks scaler state")
+                self.scaler.load_state_dict(payload["scaler_state"])
+        except (KeyError, RuntimeError, TypeError, ValueError) as exc:
+            raise ER2RandomizedHold(f"randomized ER-2 optimizer/model resume failed: {exc}") from None
+        self.completed_epoch = int(pointer["completed_epoch"])
+        self.global_optimizer_step = int(payload.get("global_optimizer_step", 0))
+        self.resumed_incomplete = True
+        best: dict[str, Any] | None = None
+        for epoch in range(self.completed_epoch + 1):
+            record_path = self.runtime_root / "epochs" / f"epoch-{epoch:04d}.json"
+            _require(record_path.is_file(), "randomized ER-2 resume epoch prefix is incomplete")
+            try:
+                record = json.loads(record_path.read_bytes())
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                raise ER2RandomizedHold("randomized ER-2 resume epoch record is corrupt") from None
+            candidate = {**dict(record.get("validation", {})), "epoch": epoch, "checkpoint_path": str(record_path)}
+            if best is None or int(candidate.get("n_correct", -1)) > int(best.get("n_correct", -1)):
+                best = candidate
+        self.best_validation = best
 
     def train_epoch(self, epoch: int) -> dict[str, Any]:
         _require(epoch == self.completed_epoch + 1, "randomized ER-2 epoch is not the exact next epoch")
@@ -393,9 +461,11 @@ class ER2RandomizedTrainer:
                 weighted.backward()
             else:
                 self.scaler.scale(weighted).backward()
+            # The gradients are still scaled here when AMP is active.  Do not
+            # classify them before the shared update primitive unscales them;
+            # a legitimate GradScaler overflow is a recorded skip, not a
+            # fatal training defect.
             last_status = gradient_status(optimizer_parameters(self.optimizer))
-            if not last_status["finite"]:
-                raise ER2RandomizedHold("randomized ER-2 optimizer gradient is non-finite")
             group_samples += count
             samples += count
             microbatches += 1
@@ -404,6 +474,7 @@ class ER2RandomizedTrainer:
             weighted_mse += values["reconstruction_mse"] * count
             if group_samples >= target_batch or microbatch + 1 == len(loader):
                 update = apply_optimizer_update(self.optimizer, self.scaler, denominator=group_samples)
+                last_status = update.optimizer_gradients
                 opportunities += 1
                 if update.applied:
                     optimizer_steps += 1
@@ -586,8 +657,18 @@ class ER2RandomizedTrainer:
     def run(self) -> dict[str, Any]:
         total_epochs = int(self.config.parameters["learned_system"]["epochs"][self.config.resolved["dataset"]])
         assignment = snr_assignment_audit(self.config)
-        _publish_immutable(self.runtime_root / "snr_assignment_audit.json", canonical_bytes(assignment))
-        for epoch in range(total_epochs):
+        assignment_path = self.runtime_root / "snr_assignment_audit.json"
+        if assignment_path.exists() or assignment_path.is_symlink():
+            try:
+                existing_assignment = json.loads(assignment_path.read_bytes())
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+                raise ER2RandomizedHold("randomized ER-2 assignment audit is corrupt") from None
+            _require(existing_assignment == assignment, "randomized ER-2 assignment audit differs on resume")
+        else:
+            _publish_immutable(assignment_path, canonical_bytes(assignment))
+        if self.existing_complete_reused:
+            return json.loads((self.runtime_root / "run_completion.json").read_bytes())
+        for epoch in range(self.completed_epoch + 1, total_epochs):
             record = self.train_epoch(epoch)
             validation = self.validate_checkpoint_path(epoch)
             checkpoint = self.save_checkpoint(record, validation)

@@ -21,6 +21,7 @@ import yaml
 from config.params import REPO_ROOT
 from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
 from evaluation.am96_spec_compatibility import ALLOWED_PARAMETER_PATHS as AM96_ALLOWED_PARAMETER_PATHS
+from evaluation.am97_spec_compatibility import ALLOWED_PARAMETER_PATHS as AM97_ALLOWED_PARAMETER_PATHS
 from evaluation.am95_spec_compatibility import ALLOWED_PARAMETER_PATHS as AM95_ALLOWED_PARAMETER_PATHS
 from evaluation.g10_spec_compatibility import ALLOWED_PARAMETER_PATHS as AM94_ALLOWED_PARAMETER_PATHS
 
@@ -49,6 +50,8 @@ AM95_G8_CURRENT_BYTES = 59265
 AM95_G8_CURRENT_SHA256 = "b9ed20864f7bab66bd7d47e4ebe6807362f7725d86ddfe016e6ccc142bbaa9e7"
 AM96_G8_CURRENT_BYTES = 60506
 AM96_G8_CURRENT_SHA256 = "ce1f493d053301a90daf6e2ae678d4d3fd590cb9b9e437e12b60508b9d35e14a"
+AM97_G8_CURRENT_BYTES = 61171
+AM97_G8_CURRENT_SHA256 = "33efac7b5b4be71fa66add3a2fe030f5e72d1df6e080a8fb8ad37a955c4d42cf"
 
 W7C_ALLOWED_PARAMETER_PATHS = (
     "learned_system.lambda_core",
@@ -223,8 +226,10 @@ def load_w8_g8_campaign_source_compatibility(root: Path = REPO_ROOT) -> dict[str
         current_bytes, current_sha256 = AM95_G8_CURRENT_BYTES, AM95_G8_CURRENT_SHA256
     elif len(current) == AM96_G8_CURRENT_BYTES and sha256_bytes(current) == AM96_G8_CURRENT_SHA256:
         current_bytes, current_sha256 = AM96_G8_CURRENT_BYTES, AM96_G8_CURRENT_SHA256
+    elif len(current) == AM97_G8_CURRENT_BYTES and sha256_bytes(current) == AM97_G8_CURRENT_SHA256:
+        current_bytes, current_sha256 = AM97_G8_CURRENT_BYTES, AM97_G8_CURRENT_SHA256
     else:
-        _require(False, "AM-94/AM-95/AM-96 G8-campaign verifier source bytes differ")
+        _require(False, "AM-94/AM-95/AM-96/AM-97 G8-campaign verifier source bytes differ")
     projection = json.loads(json.dumps(value))
     projection["entries"][0]["current_bytes"] = current_bytes
     projection["entries"][0]["current_sha256"] = current_sha256
@@ -372,6 +377,7 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         allowed_parameter_paths.update(AM94_ALLOWED_PARAMETER_PATHS)
         allowed_parameter_paths.update(AM95_ALLOWED_PARAMETER_PATHS)
         allowed_parameter_paths.update(AM96_ALLOWED_PARAMETER_PATHS)
+        allowed_parameter_paths.update(AM97_ALLOWED_PARAMETER_PATHS)
     _require(
         _leaf_difference_paths(old_yaml, current_yaml) == allowed_parameter_paths,
         "W7-C generated-parameter drift exceeds the authenticated successor leaves",

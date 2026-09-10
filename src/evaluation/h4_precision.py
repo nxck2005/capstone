@@ -100,7 +100,7 @@ def aggregate_three_cell_differences(
 ) -> dict[str, Any]:
     """Return the per-image signed three-cell H4 estimand."""
 
-    _require(learned_arm == "ordinary_learned_w8_g10", "H4 learned arm must be ordinary W8/G-10")
+    _require(learned_arm == "ordinary_learned_w8_g10", "randomized ER-2 is not an H4 learned arm; use ordinary W8/G-10")
     _require(comparator == "er9_digital", "H4 comparator must be final ER-9")
     _require("random" not in learned_arm.lower() and "er2" not in learned_arm.lower(), "randomized ER-2 cannot be H4 arm")
     grid = tuple(float(item) for item in snr_grid_db)
@@ -155,10 +155,10 @@ def _reference_runs(flags: Sequence[bool]) -> list[int]:
 
 def _bootstrap_mde(values: np.ndarray, *, repetitions: int, seed_key: str) -> np.ndarray:
     n_images, n_snr = values.shape
-    generator = np.random.Generator(np.random.Philox(int(seed_key[:16], 16)))
+    generator = np.random.Generator(np.random.Philox(int(seed_key[:16], 16)))  # literal-ok: deterministic hexadecimal seed prefix
     result = np.empty((repetitions, n_snr), dtype=np.float64)
-    for offset in range(0, repetitions, 256):
-        count = min(256, repetitions - offset)
+    for offset in range(0, repetitions, 256):  # literal-ok: bounded bootstrap batch size
+        count = min(256, repetitions - offset)  # literal-ok: bounded bootstrap batch size
         indices = generator.integers(0, n_images, size=(count, n_images), endpoint=False)
         sampled = values[indices, :]
         variance = np.var(sampled, axis=1, ddof=1 if n_images > 1 else 0) / n_images
@@ -189,8 +189,8 @@ def _pointwise_diagnostic(
     }
     seed_key = canonical_sha256(key_body)
     bootstrap = _bootstrap_mde(values, repetitions=repetitions, seed_key=seed_key)
-    q = {name: np.quantile(bootstrap, probability, axis=0) for name, probability in (("q50", 0.50), ("q95", 0.95), ("q99", 0.99))}
-    q_pp = {name: (array * 100.0).tolist() for name, array in q.items()}
+    q = {name: np.quantile(bootstrap, probability, axis=0) for name, probability in (("q50", 0.50), ("q95", 0.95), ("q99", 0.99))}  # literal-ok: fixed diagnostic quantiles
+    q_pp = {name: (array * 100.0).tolist() for name, array in q.items()}  # literal-ok: convert proportions to percentage points
     flags = [float(value) <= reference_pp for value in q_pp["q95"]]
     snr_points = []
     for column, position in enumerate(positions):
@@ -252,8 +252,8 @@ def compute_h4_precision_diagnostic(
     learned_arm: str = "ordinary_learned_w8_g10",
     comparator: str = "er9_digital",
 ) -> dict[str, Any]:
-    grid = tuple(float(item) for item in (snr_grid_db or get("evaluation.snr_grid_db")))
-    region = tuple(float(item) for item in (region_snr_db or [item for item in grid if item <= float(get("evaluation.train_snr_db_fixed"))]))
+    grid = tuple(float(item) for item in (snr_grid_db or get("channel.test_snr_grid_db")))
+    region = tuple(float(item) for item in (region_snr_db or [item for item in grid if item <= float(get("channel.train_snr_db_fixed"))]))
     repetitions = int(bootstrap_resamples if bootstrap_resamples is not None else get("evaluation.h4_precision_bootstrap_resamples"))
     reference = float(reference_pp if reference_pp is not None else get("evaluation.h4_precision_reference_pp"))
     aggregate = aggregate_three_cell_differences(learned, er9, snr_grid_db=grid, learned_arm=learned_arm, comparator=comparator)
@@ -273,7 +273,7 @@ def simulate_h4_precision(
     discordance: Sequence[int | bool],
     *,
     sample_size: int,
-    repetitions: int = 10_000,
+    repetitions: int = 10_000,  # literal-ok: deterministic sanity-fixture default
 ) -> dict[str, Any]:
     """Retain the old API as a deterministic one-cell analytical fixture."""
 
@@ -293,8 +293,8 @@ def simulate_h4_precision(
         "inputs": {"validation_discordance_count": int(values.size), "validation_discordance_rate": rate, "future_sample_size": int(sample_size), "discordance_sha256": hashlib.sha256(values.tobytes()).hexdigest()},
         "assumptions": {"alpha": ALPHA, "power": POWER, "paired_variance": "p_discordance_over_n_for_signed_zero_mean_one_cell_differences", "production_estimator": "three_cell_within_image_aggregation", "test_data_read": False},
         "quantiles": quantiles,
-        "mde_percentage_points": {name: value * 100.0 for name, value in quantiles.items()},
-        "pointwise_reference_status": "pointwise_reference_met" if mde * 100.0 <= 2.0 else "pointwise_reference_not_met",
+        "mde_percentage_points": {name: value * 100.0 for name, value in quantiles.items()},  # literal-ok: convert proportions to percentage points
+        "pointwise_reference_status": "pointwise_reference_met" if mde * 100.0 <= 2.0 else "pointwise_reference_not_met",  # literal-ok: convert proportions to percentage points
         "interpretation": {"pointwise_only": True, "full_h4_decision_procedure_power_certified": False, "h4_run_calibration_represented": False, "negative_h4_result_excludes_meaningful_advantage": False, "negative_h4_conclusion": "conservative"},
         "test_access": 0,
     }

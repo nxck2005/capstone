@@ -24,6 +24,8 @@ from evaluation.er9_campaign import (  # noqa: E402
     evaluate_candidate_at_snr,
     fit_entropy_model,
 )
+from evaluation.h4_precision import compute_h4_precision_diagnostic  # noqa: E402
+from evaluation.architecture_audit import compare_architectures  # noqa: E402
 from evaluation.er9_protocol import factorisation_for_dimension  # noqa: E402
 from evaluation.er9_search import select_stage1, select_stage2, stage2_candidates  # noqa: E402
 from models.djscc import build_djscc  # noqa: E402
@@ -629,7 +631,33 @@ def run_final_production() -> None:
         "am96_semantics": "task_only_er9_interface_difference_is_the_declared_channel_interface",
         "test_access": 0,
     }
-    architecture_difference["audit_id"] = "er9archdiff-" + canonical_sha256(architecture_difference)
+    computed_architecture = compare_architectures(
+        {
+            "encoder_arch": str(get("learned_system.encoder_arch")),
+            "encoder_trunk": "djscc_residual_v1_input_normalisation_stem_body_entry_residual_stack",
+            "preprocessing": "configured_imagenette160_preprocessing",
+            "task_head_arch": "ImageClassificationHead_adaptive_global_average_pooling_plus_linear",
+            "train_split": "train",
+            "augmentation": list(get("learned_system.augmentation")),
+            "optimizer": str(get("learned_system.optimizer_implementation")),
+            "epochs": int(get("learned_system.epochs.imagenette160")),
+            "interface": {"channel_interface": "learned_awgn"},
+        },
+        {
+            "encoder_arch": str(get("learned_system.encoder_arch")),
+            "encoder_trunk": "djscc_residual_v1_input_normalisation_stem_body_entry_residual_stack",
+            "preprocessing": "configured_imagenette160_preprocessing",
+            "task_head_arch": "ImageClassificationHead_adaptive_global_average_pooling_plus_linear",
+            "train_split": "train",
+            "augmentation": list(get("learned_system.augmentation")),
+            "optimizer": str(get("learned_system.optimizer_implementation")),
+            "epochs": int(get("learned_system.epochs.imagenette160")),
+            "interface": {"channel_interface": "er9_digital_packet_ldpc_modulation_awgn"},
+        },
+    )
+    architecture_difference.update(computed_architecture)
+    architecture_difference.pop("audit_id", None)
+    architecture_difference["audit_id"] = "er9archdiffv2-" + canonical_sha256(architecture_difference)
     _write_immutable(architecture_difference, ARCHITECTURE_DIFF)
     entries = []
     new_training = 0
@@ -887,30 +915,38 @@ def run_g11() -> None:
     _require_committed(ER2_COMPLETION)
     _require_committed(ER2_AUDIT)
     _require_committed(ER2_VALIDATION)
-    from evaluation.h4_precision import simulate_h4_precision
-
     production = _read(PRODUCTION)
-    er2 = _read(ER2_VALIDATION)
-    er9_path = er9_paths[0]
-    er9 = _read(er9_path)
-    er9_curve = next(curve for curve in er9["curves"] if curve["snr_db"] == 7)
-    er2_curve = next(curve for curve in er2["curves"] if curve["snr_db"] == 7)
-    er9_rows = {row["stable_sample_id"]: bool(row["correct"]) for row in er9_curve["per_image"]}
-    er2_rows = {row["stable_sample_id"]: bool(row["correct"]) for row in er2_curve["outcomes"]}
-    if set(er9_rows) != set(er2_rows):
-        raise RuntimeError("G-11 validation pairing IDs differ")
-    discordance = [int(er9_rows[key] != er2_rows[key]) for key in sorted(er9_rows)]
-    h4 = simulate_h4_precision(
-        discordance,
-        sample_size=int(get("datasets.imagenette160.test_images")),
-    )
+    # H4 is ordinary learned W8/G-10 versus final ER-9.  The randomized ER-2
+    # validation artifact is a separate robustness result and is intentionally
+    # not read for this comparator.
+    ordinary_path = REPO / "results/learned/w9/g10_h4_ordinary_trajectories.json"
+    _require_committed(ordinary_path)
+    ordinary = _read(ordinary_path)
+    if ordinary.get("artifact_role") != "G10_ORDINARY_LEARNED_H4_TRAJECTORIES" or ordinary.get("randomized_er2_as_h4_arm") is not False:
+        raise RuntimeError("G-11 ordinary learned trajectory artifact is not an H4 comparator")
+    learned = ordinary["trajectories"]
+    er9_cells: dict[str, dict[str, dict[str, int]]] = {}
+    for cell_index, er9_path in enumerate(er9_paths):
+        er9 = _read(er9_path)
+        cell_key = f"{cell_index}/{cell_index}"
+        cell_rows: dict[str, dict[str, int]] = {}
+        for curve in er9["curves"]:
+            cell_rows[str(curve["snr_db"])] = {
+                str(row["stable_sample_id"]): int(bool(row["correct"]))
+                for row in curve["per_image"]
+            }
+        er9_cells[cell_key] = {
+            stable_id: {snr: value for snr, rows in cell_rows.items() for value in [rows[stable_id]]}
+            for stable_id in next(iter(cell_rows.values()))
+        }
+    h4 = compute_h4_precision_diagnostic(learned, er9_cells)
     h4_path = G11_ROOT / "h4_precision_simulation.json"
     h4["input_artifacts"] = {
-        "er9_validation": str(er9_path.relative_to(REPO)),
-        "er9_validation_sha256": _file_sha(er9_path),
-        "er2_validation": str(ER2_VALIDATION.relative_to(REPO)),
-        "er2_validation_sha256": _file_sha(ER2_VALIDATION),
-        "snr_db": 7,  # literal-ok: fixed training SNR validation pairing
+        "ordinary_learned_trajectories": str(ordinary_path.relative_to(REPO)),
+        "ordinary_learned_trajectories_sha256": _file_sha(ordinary_path),
+        "er9_validation_cells": [
+            {"path": str(path.relative_to(REPO)), "sha256": _file_sha(path)} for path in er9_paths
+        ],
     }
     h4["evidence_id"] = "g11h4-" + canonical_sha256(h4)
     _write_immutable(h4, h4_path)

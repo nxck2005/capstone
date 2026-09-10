@@ -22,6 +22,7 @@ from typing import Any
 from config.execution_profiles import profile_definition
 from config.params import REPO_ROOT, get
 from evaluation import am96_spec_compatibility as am96
+from evaluation import am97_spec_compatibility as am97
 from evaluation import am95_spec_compatibility as am95
 from evaluation import g10_spec_compatibility as am94
 
@@ -165,6 +166,10 @@ AM95_VIEW_HASHES = {
 AM96_VIEW_HASHES = {
     relative: (current_bytes, current_sha)
     for relative, _, _, current_bytes, current_sha in am96.VIEW_HASHES
+}
+AM97_VIEW_HASHES = {
+    relative: (current_bytes, current_sha)
+    for relative, _, _, current_bytes, current_sha in am97.VIEW_HASHES
 }
 
 
@@ -384,6 +389,7 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
         "AM-95 post-G-10 view allowlist differs",
     )
     all_am96 = True
+    all_am97 = True
     for relative, base_bytes, base_sha, _, _ in am94.VIEW_HASHES:
         predecessor = _git_bytes(root, am94.PREDECESSOR_COMMIT, relative)
         current = _read_current(relative, root)
@@ -391,17 +397,22 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
         current_digest = sha256_bytes(current)
         am95_bytes, am95_sha = AM95_VIEW_HASHES[relative]
         am96_bytes, am96_sha = AM96_VIEW_HASHES[relative]
+        am97_bytes, am97_sha = AM97_VIEW_HASHES[relative]
         require(
             (len(current) == am95_bytes and current_digest == am95_sha)
-            or (len(current) == am96_bytes and current_digest == am96_sha),
-            f"AM-95/AM-96 post-G-10 current bytes differ: {relative}",
+            or (len(current) == am96_bytes and current_digest == am96_sha)
+            or (len(current) == am97_bytes and current_digest == am97_sha),
+            f"AM-95/AM-96/AM-97 post-G-10 current bytes differ: {relative}",
         )
         all_am96 = all_am96 and len(current) == am96_bytes and current_digest == am96_sha
+        all_am97 = all_am97 and len(current) == am97_bytes and current_digest == am97_sha
     if all_am96:
         # G-10 remains terminal; this call authenticates the additive AM-96
         # semantic carrier while allowing its separately-scoped downstream
         # ER-9/ER-2/G-11 evidence to exist after the freeze.
         am96.load(root, allow_downstream=True)
+    if all_am97:
+        am97.load(root, allow_downstream=True)
     require(get("channel.test_snr_grid_db") == list(EXPECTED_GRID), "normative G-10 grid moved")
     require(value["scientific_boundary"] == {
         "er2_randomized_training": 0,
@@ -424,6 +435,8 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
     require(not (root / "results/freeze_manifest.json").exists(), "test freeze manifest exists before G-12")
     actual = frozenset(path.relative_to(root).as_posix() for path in (root / "results/learned/w9").glob("**/*") if path.is_file())
     allowed = set(PRE_EXECUTION_FILES) if not outcomes_allowed else set(PRE_EXECUTION_FILES) | set(OUTCOME_FILES)
+    allowed.add("results/learned/w9/am97_pre_science_freeze.json")
+    allowed.add("results/learned/w9/w9_pascal_v4_lifecycle_smoke.json")
     require(actual <= allowed, f"unexpected W9/G-10 artifact exists: {sorted(actual - allowed)}")
     require(not (root / "results/learned/g10").exists(), "legacy G-10 outcome directory exists")
     require(get("evaluation.test_access_gate") == "G-12", "test access gate moved")

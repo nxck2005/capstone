@@ -421,6 +421,7 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         allowed_w9.discard("am97_pre_science_freeze.json")
     elif downstream_successor_present:
         allowed_w9.add("am97_pre_science_freeze.json")
+        allowed_w9.add("w9_pascal_v4_lifecycle_smoke.json")
     actual_w9 = {
         path.relative_to(w9_root).as_posix()
         for path in w9_root.glob("**/*")

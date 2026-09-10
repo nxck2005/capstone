@@ -43,6 +43,25 @@ def _artifact(relative: str) -> Path:
 
 def verify_h4(path: Path) -> dict[str, Any]:
     value = _read(path)
+    if value.get("artifact_role") == "G11_H4_POINTWISE_PRECISION_DIAGNOSTIC":
+        _require(value.get("schema_version") == 2, "AM-97 H4 schema differs")
+        _require(value.get("diagnostic_role") == "pointwise_precision_diagnostic_only", "H4 diagnostic role differs")
+        _require(value.get("status") == "pointwise_precision_diagnostic_complete", "H4 pointwise status differs")
+        _require(value.get("learned_arm") == "ordinary_learned_w8_g10", "H4 learned arm is not ordinary W8/G-10")
+        _require(value.get("comparator") == "er9_digital", "H4 comparator differs")
+        _require(value.get("randomized_er2_as_h4_arm") is False, "randomized ER-2 was used as H4 arm")
+        _require(value.get("cells") == [[0, 0], [1, 1], [2, 2]], "H4 seed cells differ")
+        _require(value.get("bootstrap_unit") == "stable_image_complete_three_cell_trajectory", "H4 bootstrap unit differs")
+        _require(int(value.get("bootstrap_resamples", 0)) == 10000, "H4 bootstrap count differs")
+        interpretation = value.get("interpretation", {})
+        _require(interpretation.get("pointwise_only") is True, "H4 is not marked pointwise-only")
+        _require(interpretation.get("full_h4_decision_procedure_power_certified") is False, "H4 incorrectly certifies full power")
+        _require(interpretation.get("h4_run_calibration_represented") is False, "H4 run calibration was incorrectly represented")
+        _require(interpretation.get("correlated_snr_pointwise_probabilities_may_be_multiplied") is False, "H4 SNR correlation rule differs")
+        _require(interpretation.get("negative_h4_result_excludes_meaningful_advantage") is False, "H4 negative interpretation is too strong")
+        _require(value.get("test_access") == 0 and value.get("test_data_read") is False, "H4 records test access")
+        _require(isinstance(value.get("points"), list) and value["points"], "H4 pointwise rows are missing")
+        return value
     _require(value.get("artifact_role") == "G11_H4_VALIDATION_PRECISION_SIMULATION", "H4 artifact role differs")
     _require(value.get("method") == "prospective_paired_precision_on_validation_discordance", "H4 method differs")
     _require(value.get("gate") == "G-11", "H4 gate differs")
@@ -68,6 +87,17 @@ def verify_h4(path: Path) -> dict[str, Any]:
 
 def verify_architecture_difference(path: Path) -> dict[str, Any]:
     value = _read(path)
+    if value.get("schema_version") == 2:
+        body = dict(value)
+        audit_id = body.pop("audit_id", None)
+        _require(audit_id == "er9archdiffv2-" + canonical_sha256(body), "computed architecture audit ID differs")
+        _require(value.get("artifact_role") == "ER9_ARCHITECTURE_DIFFERENCE_AUDIT", "ER-9 architecture-difference role differs")
+        _require(value.get("comparison_method") == "fieldwise_shared-contract-and-interface-comparison", "architecture comparison method differs")
+        _require(value.get("only_declared_difference") is True, "computed architecture audit is not closed")
+        _require(value.get("unexpected_difference_paths") == [], "architecture audit found an undeclared difference")
+        _require(value.get("observed_interface_differences"), "architecture audit observed no interface difference")
+        _require(value.get("test_access") == 0, "ER-9 architecture audit records test access")
+        return value
     _require(value.get("artifact_role") == "ER9_ARCHITECTURE_DIFFERENCE_AUDIT", "ER-9 architecture-difference role differs")
     _require(value.get("declared_difference") == "channel_interface", "ER-9 declared difference differs")
     _require(value.get("architecture_difference_paths") == ["channel_interface"], "ER-9 observed difference paths differ")

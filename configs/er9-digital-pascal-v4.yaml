@@ -1,0 +1,18 @@
+experiment: er9_digital_pascal_v4
+choices:
+  system: er9_digital
+  dataset: imagenette160
+  split: train
+  bw_ratio: r_1_6
+  channel: awgn
+  train_snr_db: train_snr_db_fixed
+  classifier_variant: own_task_head
+  architecture: djscc_residual_v1
+  execution_profile_id: confessor_pascal_cu126
+  physical_batch_size: 32
+  accumulation_factor: 1
+  effective_batch_size: 32
+  validation_batch_size: 32
+sweep_axes:
+  train_seed: train_seeds
+  channel_seed: channel_seeds

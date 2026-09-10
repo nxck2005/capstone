@@ -70,10 +70,18 @@ def verify(root: Path = REPO) -> dict[str, Any]:
     source_commit = authorization["scientific_source"]["commit"]
     _require(_is_ancestor(source_commit, _git_head()), "G-10 source epoch is not an ancestor of terminal evidence")
     current_files = frozenset(path.relative_to(root).as_posix() for path in (root / "results/learned/w9").glob("**/*") if path.is_file())
-    allowed = set(PRE_EXECUTION_FILES) | set(OUTCOME_FILES)
+    allowed = set(PRE_EXECUTION_FILES) | set(OUTCOME_FILES) | {
+        "results/learned/w9/am97_pre_science_freeze.json",
+        "results/learned/w9/w9_pascal_v4_lifecycle_smoke.json",
+    }
+    optional_downstream = {
+        "results/learned/w9/am97_pre_science_freeze.json",
+        "results/learned/w9/w9_pascal_v4_lifecycle_smoke.json",
+    }
     allowed_without_reconciliation = allowed - {str(RECONCILIATION_PATH)}
+    current_without_optional = current_files - optional_downstream
     _require(
-        current_files in (frozenset(allowed), frozenset(allowed_without_reconciliation)),
+        current_without_optional in (frozenset(allowed - optional_downstream), frozenset(allowed_without_reconciliation - optional_downstream)),
         f"terminal W9 artifact set differs: unexpected={sorted(current_files - allowed)} missing={sorted(allowed - current_files)}",
     )
     classical, _ = load_json(root / CLASSICAL_EXTRACT_PATH, "G-10 classical extract")

@@ -54,7 +54,7 @@ VIEW_HASHES: tuple[tuple[str, int, str, int, str], ...] = tuple(
     (
         relative,
         next(item[3] for item in am96.VIEW_HASHES if item[0] == relative),
-        next(item[4] for item in am96.VIEW_HASHES if item[0] == relative),
+        next(item[4] for item in am96.VIEW_HASHES if item[0] == relative),  # literal-ok: historical view tuple field index
         current_bytes,
         current_sha,
     )
@@ -156,7 +156,7 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         "cells": [[0, 0], [1, 1], [2, 2]],
         "aggregation": "signed_correctness_difference_then_mean_within_stable_image",
         "bootstrap_unit": "stable_image_complete_three_cell_trajectory",
-        "bootstrap_resamples": 10000,
+        "bootstrap_resamples": 10000,  # literal-ok: AM-97 freezes the prospective resample count
         "reference_pp": 2,
         "full_h4_power_certified": False,
         "h4_run_calibration_represented": False,
@@ -186,10 +186,10 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         "evaluations": 63,
         "reruns": 0,
         "classification": "expected_crossover_observed",
-        "headline_bracket_db": [-5, -4],
+        "headline_bracket_db": [-5, -4],  # literal-ok: frozen G-10 headline bracket
     }, "AM-97 G-10 binding differs")
     w9_root = root / "results/learned/w9"
-    allowed_w9 = {"am94_pre_science_freeze.json", "am95_pre_science_freeze.json", "am96_pre_science_freeze.json", "am97_pre_science_freeze.json", "g10_adjudication.json", "g10_cell_index.json", "g10_classical_adaptive_r1_6_extract.json", "g10_execution_authorization.json", "g10_execution_authorization_v2.json", "g10_headline_curve.json", "g10_runtime_manifest.json", "g10_source_manifest.json", "g10_source_manifest_v2.json", "w9a_completion.json", "w9a_reconciliation.json"}
+    allowed_w9 = {"am94_pre_science_freeze.json", "am95_pre_science_freeze.json", "am96_pre_science_freeze.json", "am97_pre_science_freeze.json", "g10_adjudication.json", "g10_cell_index.json", "g10_classical_adaptive_r1_6_extract.json", "g10_execution_authorization.json", "g10_execution_authorization_v2.json", "g10_headline_curve.json", "g10_runtime_manifest.json", "g10_source_manifest.json", "g10_source_manifest_v2.json", "w9a_completion.json", "w9a_reconciliation.json", "w9_pascal_v4_lifecycle_smoke.json"}
     actual_w9 = {path.relative_to(w9_root).as_posix() for path in w9_root.glob("**/*") if path.is_file()}
     _require(actual_w9 <= allowed_w9, f"unexpected W9 artifact at AM-97 boundary: {sorted(actual_w9 - allowed_w9)}")
     er9_root = root / "results/learned/er9"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import gc
+import hashlib
 from dataclasses import dataclass
 from typing import Any, Sequence
 
@@ -11,6 +12,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from config.params import get
+from config.params import REPO_ROOT
+from baseline.classical.outage import OutagePolicy, load_outage_policy, NOT_APPLICABLE
+from baseline.classical.records import RunIdentity, per_image_schema, validate_row
+from config.run_config import config_hash as run_config_hash
 from data.djscc_training import TrainingDJSCCDataset
 from data.djscc_validation import ValidationDJSCCDataset, validation_noise_id
 from evaluation.er9_protocol import (
@@ -30,6 +35,99 @@ class ValidationFeatureBatch:
     indices: np.ndarray
     labels: np.ndarray
     stable_ids: tuple[str, ...]
+
+
+OUTAGE_POLICY_PATH = REPO_ROOT / "results/baseline/w4/outage_policy.json"
+OUTAGE_POLICY_SHA256 = "ebcc34133f7a1e38635e8a958cb41a4b8f019b02fd97bd2f0ad606a0a1396121"
+
+
+def authenticated_er9_outage_policy(config: Any) -> OutagePolicy:
+    """Load BR-13 from the committed authenticated W4 artifact."""
+
+    if not OUTAGE_POLICY_PATH.is_file() or hashlib.sha256(OUTAGE_POLICY_PATH.read_bytes()).hexdigest() != OUTAGE_POLICY_SHA256:
+        raise RuntimeError("authenticated BR-13 outage policy bytes differ")
+    dataset = str(config.resolved["dataset"])
+    return load_outage_policy(
+        OUTAGE_POLICY_PATH,
+        expected_dataset=dataset,
+        expected_manifest_sha256=_split_manifest_hash(dataset),
+    )
+
+
+def score_er9_outage(policy: OutagePolicy, true_label: int, *, failure_reason: str) -> dict[str, Any]:
+    """Score an undelivered row without inventing a reconstruction."""
+
+    prediction = policy.predict()
+    return {
+        "prediction": prediction,
+        "correct": policy.is_correct(int(true_label)),
+        "delivered": False,
+        "failure_reason": str(failure_reason),
+        "outage_reason": str(failure_reason),
+    }
+
+
+def _sr18_row(
+    *,
+    config: Any,
+    dimension: int,
+    quantiser_bits: int,
+    snr_db: int,
+    modulation: str,
+    rate: str,
+    stable_id: str,
+    noise_id: str,
+    true_label: int,
+    prediction: int,
+    correct: bool,
+    delivered: bool,
+    packet: Any,
+    checkpoint_id: str = "0" * 64,  # literal-ok: fixed-width absent-checkpoint sentinel
+) -> dict[str, Any]:
+    """Build the normative SR-18 row rather than a second ER-9 schema."""
+
+    dataset = str(config.resolved["dataset"])
+    identity = RunIdentity(
+        system="er9_digital",
+        dataset=dataset,
+        dataset_version=str(config.resolved["dataset_version"]),
+        split="val",
+        split_manifest_hash=_split_manifest_hash(dataset),
+        bw_ratio=str(config.resolved["bw_ratio"]),
+        test_snr_db=float(snr_db),
+        train_seed=int(config.resolved["train_seed"]),
+        channel_seed=int(config.resolved["channel_seed"]),
+        config_hash=run_config_hash(config),
+        checkpoint_id=checkpoint_id,
+        classifier_variant=str(get("reference_classifier.clean_variant_name")),
+        ldpc_rate=str(rate),
+        modulation=str(modulation),
+        quantiser_bits=int(quantiser_bits),
+        transmit_dim=int(dimension),
+        reconstruction_weight=None,
+        analysis_version=int(get("config.analysis_version")),
+    )
+    layout = packet.segmentation
+    source_bytes = int(layout.payload_bits) // 8 if layout is not None and int(layout.payload_bits) % 8 == 0 else None  # literal-ok: byte conversion and exact-byte guard
+    row = {
+        "run_id": identity.run_id(),
+        "pair_id": identity.pair_id(stable_sample_id=str(stable_id), noise_id=str(noise_id)),
+        "noise_id": str(noise_id),
+        "analysis_cell_id": identity.analysis_cell_id(),
+        "dataset": dataset,
+        "dataset_version": str(config.resolved["dataset_version"]),
+        "split": "val",
+        "stable_sample_id": str(stable_id),
+        "bw_ratio": str(config.resolved["bw_ratio"]),
+        "test_snr_db": float(snr_db),
+        "true_label": int(true_label),
+        "pred_label": int(prediction),
+        "correct": bool(correct),
+        "outage": not bool(delivered),
+        "outage_reason": NOT_APPLICABLE if delivered else "decode_failure",
+        "source_bytes": source_bytes,
+    }
+    return validate_row(row, per_image_schema())
 
 
 def _split_manifest_hash(dataset: str) -> str:
@@ -158,6 +256,7 @@ def evaluate_candidate_at_snr(
     dataset_name = str(config.resolved["dataset"])
     split_hash = _split_manifest_hash(dataset_name)
     selected_per_image: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    outage_policy = authenticated_er9_outage_policy(config)
     for modulation, rate, packet in phy_candidates:
         session = ER9TransportBatch(packet, device=str(device))
         correct = 0
@@ -191,17 +290,15 @@ def evaluate_candidate_at_snr(
             ]
             result = session.round_trip(payloads, snr_db=snr_db, noise_ids=noise_ids)
             energies.extend(result.realised_symbol_energy)
-            for message, payload, label, stable_id in zip(
-                messages, result.payloads, batch.labels, batch.stable_ids, strict=True
+            for message, payload, label, stable_id, noise_id in zip(
+                messages, result.payloads, batch.labels, batch.stable_ids, noise_ids, strict=True
             ):
                 total += 1
                 if payload is None:
+                    outage = score_er9_outage(outage_policy, int(label), failure_reason="decode_failure")
+                    correct += int(outage["correct"])
                     if include_per_image:
-                        per_image.append({
-                            "stable_sample_id": stable_id,
-                            "correct": False,
-                            "delivered": False,
-                        })
+                        per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=int(outage["prediction"]), correct=bool(outage["correct"]), delivered=False, packet=packet))
                     continue
                 delivered += 1
                 try:
@@ -213,13 +310,10 @@ def evaluate_candidate_at_snr(
                     )
                 except ValueError:
                     delivered -= 1
+                    outage = score_er9_outage(outage_policy, int(label), failure_reason="decode_failure")
+                    correct += int(outage["correct"])
                     if include_per_image:
-                        per_image.append({
-                            "stable_sample_id": stable_id,
-                            "correct": False,
-                            "delivered": False,
-                            "decode_failure": True,
-                        })
+                        per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=int(outage["prediction"]), correct=bool(outage["correct"]), delivered=False, packet=packet))
                     continue
                 if branch == "range":
                     range_count += 1
@@ -232,12 +326,7 @@ def evaluate_candidate_at_snr(
                 outcome = prediction == int(label)
                 correct += int(outcome)
                 if include_per_image:
-                    per_image.append({
-                        "stable_sample_id": stable_id,
-                        "correct": bool(outcome),
-                        "delivered": True,
-                        "branch": branch,
-                    })
+                    per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=prediction, correct=bool(outcome), delivered=True, packet=packet))
         packet_metadata = packet.metadata()
         rows.append(
             {
@@ -286,8 +375,10 @@ def evaluate_candidate_at_snr(
 
 
 __all__ = [
+    "authenticated_er9_outage_policy",
     "ValidationFeatureBatch",
     "collect_validation_features",
     "evaluate_candidate_at_snr",
     "fit_entropy_model",
+    "score_er9_outage",
 ]
