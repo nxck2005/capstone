@@ -94,6 +94,9 @@ AM97_W8_CARRIER_SOURCE_HASHES.update({
     "src/baseline/w7c_source_compatibility.py": (18306, "930a25a42f99ef047d316c94d2f91500e15b6673f45484e709fdcb68715e4020"),
     "src/baseline/g8_campaign.py": (61171, "33efac7b5b4be71fa66add3a2fe030f5e72d1df6e080a8fb8ad37a955c4d42cf"),
     "tools/verify_w7_g4.py": (36909, "15f8107546eb98ad12b9ca3af620ff1b5071c0f1fe3ced9065d19ebfe791cc69"),
+    "tools/gen_w8_execution_authorization.py": (30550, "7a178b658f983191962f06b63490a9c3f74e67bbdbba697370ed9840a9ad0a61"),
+    "src/baseline/w6_evidence.py": (31431, "49661e91ec026ed0af2b704bfe436a4b07ff3c319bdd78ebf219e1c2e5d21111"),
+    "tools/verify_w6_complete.py": (53303, "cc954cebefa10e2fa8c9d2c3df7526140af6527caa4ba5b0f6084d530bcaef33"),
 })
 
 
