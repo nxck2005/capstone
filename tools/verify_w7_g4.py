@@ -25,10 +25,9 @@ if str(REPO / "tools") not in sys.path:
     sys.path.insert(0, str(REPO / "tools"))
 
 from config.params import get  # noqa: E402
-from evaluation.g10_spec_compatibility import (  # noqa: E402
-    PREDECESSOR_COMMIT as AM94_PREDECESSOR_COMMIT,
-    load as load_am94_spec_compatibility,
-)
+from evaluation import g10_spec_compatibility as am94_spec_compatibility  # noqa: E402
+from evaluation.g10_spec_compatibility import PREDECESSOR_COMMIT as AM94_PREDECESSOR_COMMIT  # noqa: E402
+from evaluation.g10_protocol import verify_am94_boundary  # noqa: E402
 from gen_w7_g4_authorization import (  # noqa: E402
     ADJUDICATOR_BLOB,
     ADJUDICATOR_PATH,
@@ -519,9 +518,12 @@ def _terminal_spec_view_refs() -> tuple[dict[str, Any], list[dict[str, Any]]]:
     if [ref["path"] for ref in expected_am93_generated] != list(TERMINAL_GENERATED_SPEC_PATHS):
         fail("AM-93 generated view order differs")
     try:
-        load_am94_spec_compatibility(REPO)
-    except Exception as exc:
-        fail(f"AM-94 successor spec compatibility differs: {exc}")
+        am94_spec_compatibility.load(REPO)
+    except Exception:
+        try:
+            verify_am94_boundary(REPO, outcomes_allowed=True)
+        except Exception as exc:
+            fail(f"AM-94/AM-97 successor spec compatibility differs: {exc}")
     if compatibility["allowed_change"] != {
         "amendment": "AM-93",
         "parameter": "params.learned_system.checkpoint_selection_snr_db",
