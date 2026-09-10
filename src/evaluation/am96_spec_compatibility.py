@@ -317,6 +317,7 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     )
     predecessor = _verify_am95_predecessor(root)
     _require(value.get("entries") == expected_entries(), "AM-96 source-view entries differ")
+    downstream_successor_present = (root / "results/learned/w9/am97_pre_science_freeze.json").is_file()
     for relative, base_bytes, base_sha, current_bytes, current_sha in VIEW_HASHES:
         predecessor_bytes = _git_bytes(root, PREDECESSOR_COMMIT, relative)
         _require(
@@ -326,14 +327,26 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         current_path = root / relative
         _require(current_path.is_file() and not current_path.is_symlink(), f"AM-96 current view is missing: {relative}")
         current = current_path.read_bytes()
-        _require(
-            len(current) == current_bytes and sha256_bytes(current) == current_sha,
-            f"AM-96 current view differs: {relative}",
-        )
+        if not (len(current) == current_bytes and sha256_bytes(current) == current_sha):
+            _require(
+                allow_downstream and downstream_successor_present,
+                f"AM-96 current view differs: {relative}",
+            )
     old_params = yaml.safe_load(_git_bytes(root, PREDECESSOR_COMMIT, "spec/params.generated.yaml"))
     new_params = yaml.safe_load((root / "spec/params.generated.yaml").read_bytes())
+    parameter_differences = _leaf_differences(old_params, new_params)
+    downstream_parameter_paths = {
+        "evaluation.h4_precision_diagnostic_role",
+        "evaluation.h4_precision_seed_aggregation",
+        "evaluation.h4_precision_bootstrap_unit",
+        "evaluation.h4_precision_evaluation_region",
+        "evaluation.h4_precision_bootstrap_resamples",
+        "evaluation.h4_precision_reference_pp",
+        "evaluation.h4_precision_interpretation",
+    }
     _require(
-        _leaf_differences(old_params, new_params) == set(ALLOWED_PARAMETER_PATHS),
+        parameter_differences
+        == set(ALLOWED_PARAMETER_PATHS) | (downstream_parameter_paths if allow_downstream and downstream_successor_present else set()),
         "AM-96 parameter drift exceeds the named ER-9 semantic leaves",
     )
     audit_path = root / AUDIT_RELATIVE_PATH
@@ -404,6 +417,10 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         "w9a_completion.json",
         "w9a_reconciliation.json",
     }
+    if not allow_downstream:
+        allowed_w9.discard("am97_pre_science_freeze.json")
+    elif downstream_successor_present:
+        allowed_w9.add("am97_pre_science_freeze.json")
     actual_w9 = {
         path.relative_to(w9_root).as_posix()
         for path in w9_root.glob("**/*")
@@ -429,5 +446,6 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
             allow_downstream or actual_er9 <= allowed_pre_science,
             "scientific ER-9 result directory exists at AM-96 pre-science boundary",
         )
-    _require(not (root / "results/learned/er2_randomized").exists(), "randomized ER-2 result directory exists at AM-96")
+    if not allow_downstream:
+        _require(not (root / "results/learned/er2_randomized").exists(), "randomized ER-2 result directory exists at AM-96")
     return value

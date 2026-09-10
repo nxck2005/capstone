@@ -699,6 +699,13 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `evaluation.h4_comparator` | er9_digital | ER-10 |
 | `evaluation.h4_mde_gate` | G-11 | AM-70, ER-10, G-11 |
 | `evaluation.h4_mde_simulation` | prospective_paired_precision_on_validation_discordance | ER-10, G-11 |
+| `evaluation.h4_precision_diagnostic_role` | pointwise_precision_diagnostic_only | - |
+| `evaluation.h4_precision_seed_aggregation` | mean_signed_difference_over_three_zipped_cells_within_stable_image | - |
+| `evaluation.h4_precision_bootstrap_unit` | stable_image_complete_three_cell_trajectory | - |
+| `evaluation.h4_precision_evaluation_region` | h1_h4_validation_region_at_or_below_fixed_train_snr | - |
+| `evaluation.h4_precision_bootstrap_resamples` | 10000 | - |
+| `evaluation.h4_precision_reference_pp` | 2 | - |
+| `evaluation.h4_precision_interpretation` | pointwise_descriptive_precision_does_not_certify_full_h4_power_or_negative_h4_exclusion | - |
 | `evaluation.gap_trend_test` | wls_slope_of_paired_gap_vs_snr | ER-10 |
 | `evaluation.gap_trend_bootstrap_unit` | per_image_seed_trajectory | ER-10 |
 | `evaluation.h3_requires_positive_low_snr_gap` | true | AM-39 |

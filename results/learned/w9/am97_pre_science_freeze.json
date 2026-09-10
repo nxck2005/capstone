@@ -1,0 +1,157 @@
+{
+  "allowed_parameter_paths": [
+    "evaluation.h4_precision_diagnostic_role",
+    "evaluation.h4_precision_seed_aggregation",
+    "evaluation.h4_precision_bootstrap_unit",
+    "evaluation.h4_precision_evaluation_region",
+    "evaluation.h4_precision_bootstrap_resamples",
+    "evaluation.h4_precision_reference_pp",
+    "evaluation.h4_precision_interpretation"
+  ],
+  "amendment": "AM-97",
+  "artifact_role": "ER9_AM97_H4_POINTWISE_PRECISION_PRE_SCIENCE_FREEZE",
+  "audit": {
+    "path": "audit/er9-am97-h4-precision-diagnostic.md",
+    "sha256": "5723786c0a1aa5d5c51d4485dbd6dc9bf86a0ea842d632e0911162b740e27007"
+  },
+  "entries": [
+    {
+      "base_bytes": 417758,
+      "base_sha256": "5be83f36265947999db5e73b3cf40b55d6ee92922da251918a09af483bc67fa5",
+      "current_bytes": 422329,
+      "current_sha256": "0b13ec55d8bcd2e74350d8e9992c3c480a543328f55e9be4a6b65a895aeb53a8",
+      "path": "spec/SPEC.md"
+    },
+    {
+      "base_bytes": 48735,
+      "base_sha256": "0faee4aa473a2c3ac1ea9bfaa7f25216ac643878756efb8a81e1d8d281810ae8",
+      "current_bytes": 49256,
+      "current_sha256": "229b16889d18f1341d6a724b2f87454d99e32badb2b9079d7030334bd398ba90",
+      "path": "spec/params.generated.yaml"
+    },
+    {
+      "base_bytes": 90717,
+      "base_sha256": "5f0f22aefc6f04d934c9f96662486ebff717b10fb56933f45d70902471a9c0a4",
+      "current_bytes": 91378,
+      "current_sha256": "739726a1d506e82fdfc8b624518d2330fd511620470e42e2c0a7d3b65dbc6238",
+      "path": "spec/DATASHEET.md"
+    },
+    {
+      "base_bytes": 150297,
+      "base_sha256": "ed7ee05d2159bff4044de9fa4fd376aee6b69743a410420193d89d3f0906bb40",
+      "current_bytes": 152253,
+      "current_sha256": "220bba39e562444dee4abbad9e6e4d03e7de1de9c63eaef7590ec1d7d1dcb00f",
+      "path": "spec/concerns/amendments.md"
+    },
+    {
+      "base_bytes": 56342,
+      "base_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "current_bytes": 56342,
+      "current_sha256": "4c8d63c900a5dbf7b7adfee0fc3d9b67218fb555897bff03f73f37474b8d827f",
+      "path": "spec/concerns/baseline.md"
+    },
+    {
+      "base_bytes": 1803,
+      "base_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "current_bytes": 1803,
+      "current_sha256": "5c1cd9e80f6d5e8d1334169f64c5b1f84593a3a002fec4def40d687855128be3",
+      "path": "spec/concerns/demo.md"
+    },
+    {
+      "base_bytes": 35073,
+      "base_sha256": "4893dedf63493443ae82f1c0aa694c1daba5cce3c2effb424200fe1cc68f2d50",
+      "current_bytes": 35073,
+      "current_sha256": "4893dedf63493443ae82f1c0aa694c1daba5cce3c2effb424200fe1cc68f2d50",
+      "path": "spec/concerns/experiments.md"
+    },
+    {
+      "base_bytes": 3051,
+      "base_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "current_bytes": 3051,
+      "current_sha256": "5092f014751415746029bbb66fe94aa6c396ffa6a4b7e1b5dd02a0eceb5b7f43",
+      "path": "spec/concerns/hardware.md"
+    },
+    {
+      "base_bytes": 11927,
+      "base_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "current_bytes": 11927,
+      "current_sha256": "0cca702a96b541540b5ba23d24e10adfd39e04329424dd967a9135254be6ac16",
+      "path": "spec/concerns/programme.md"
+    },
+    {
+      "base_bytes": 43452,
+      "base_sha256": "bc8c8c40a307d6f9c16de854a33b5804c13026c7357b9b7c02fa67a049170b91",
+      "current_bytes": 43452,
+      "current_sha256": "bc8c8c40a307d6f9c16de854a33b5804c13026c7357b9b7c02fa67a049170b91",
+      "path": "spec/concerns/roadmap.md"
+    },
+    {
+      "base_bytes": 37338,
+      "base_sha256": "aecc3b1806cc163543212d7970d0f9bb2bbb68e939309c597706401e72bcbde5",
+      "current_bytes": 37338,
+      "current_sha256": "aecc3b1806cc163543212d7970d0f9bb2bbb68e939309c597706401e72bcbde5",
+      "path": "spec/concerns/system.md"
+    }
+  ],
+  "freeze_id": "er9precision-39571805cdb22377cf4f29edf000b36e202b9c474b386d79b8dc63fe5634f34e",
+  "g10_terminal_evidence": {
+    "classification": "expected_crossover_observed",
+    "evaluations": 63,
+    "headline_bracket_db": [
+      -5,
+      -4
+    ],
+    "reruns": 0,
+    "source": "9515c490aed4439f7ced2c163abef61557654ddf"
+  },
+  "predecessor": {
+    "freeze_id": "er9control-5572ebb2670ab3434afbf068156e3553cc1a04076bd7be2b8ff14d482d1d4f4d",
+    "path": "results/learned/w9/am96_pre_science_freeze.json",
+    "sha256": "7f8a8ab929120b24d6e5a1658ebadf962467a4f299217a96d0ebebe95dcb8699"
+  },
+  "predecessor_commit": "62762fe",
+  "schema_version": 1,
+  "scientific_boundary": {
+    "er2_randomized_training": 0,
+    "er9_training": 0,
+    "g10_model_facing_evaluations": 63,
+    "g10_reruns": 0,
+    "g11": 0,
+    "learned_test_inference": 0,
+    "model_facing_test_access": 0,
+    "new_er9_v4_training": 0,
+    "test_split": "SEALED",
+    "w10": 0
+  },
+  "semantic_contract": {
+    "aggregation": "signed_correctness_difference_then_mean_within_stable_image",
+    "bootstrap_resamples": 10000,
+    "bootstrap_unit": "stable_image_complete_three_cell_trajectory",
+    "cells": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        1
+      ],
+      [
+        2,
+        2
+      ]
+    ],
+    "comparator": "er9_digital",
+    "correlated_snr_probabilities_may_be_multiplied": false,
+    "full_h4_power_certified": false,
+    "h4_run_calibration_represented": false,
+    "learned_arm": "ordinary_learned_w8_g10",
+    "negative_h4_exclusion": false,
+    "randomized_er2_comparator": false,
+    "reference_pp": 2,
+    "role": "pointwise_precision_diagnostic_only",
+    "test_access": 0
+  },
+  "status": "SEMANTICS_ONLY_FROZEN",
+  "timing": "post_am96_pre_er9_real_chain_observation"
+}
