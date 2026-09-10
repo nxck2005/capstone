@@ -1,0 +1,135 @@
+{
+  "artifact_role": "ER9_V3_LOCAL_PROFILE_CUSTODY_AND_SUPERSESSION",
+  "schema_version": 1,
+  "custody_id": "er9v3custody-20260910-local-profile-supersession-v1",
+  "status": "PRESERVED_SUPERSEDED_BEFORE_PASCAL_V4",
+  "inspection": {
+    "inspected_at": "2026-09-10",
+    "repository_head": "5be9769a560407250c7ce3826e2af3e785949510",
+    "source_of_truth": "actual_files_under_repository_checkpoints_and_results",
+    "validation_method": "every_epoch_record_sidecar_checkpoint_hash_pointer_and_terminal_record_checked",
+    "staging_artifacts_found": false
+  },
+  "profile_binding": {
+    "path": "checkpoints/er9_successor_v2/execution_profile_binding.json",
+    "sha256": "ff3552f595c4d4f090d673b77bce783629d30d54b154c15b586605ddc0c89c57",
+    "authentication_status": "PASSED",
+    "execution_profile_id": "local_4060_cu130",
+    "device": "cuda:0",
+    "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "gpu_uuid": "GPU-607a5795-c53b-eab2-8c04-71164b173a32",
+    "git_commit": "5be9769a560407250c7ce3826e2af3e785949510",
+    "git_dirty": false,
+    "config_hash": "8ede86fb6b0b0cb77e4496934f4c556cba3b92335acba07f70d88de0a4a5ee03",
+    "lock_file": "requirements.lock",
+    "lock_file_sha256": "ee68e2323a50b81967558e76da69894176a26e8d0d2dce444b5eb8c5cc7eb5cd"
+  },
+  "runtime_namespaces": [
+    {
+      "path": "checkpoints/er9",
+      "classification": "preserved_predecessor_attempt",
+      "file_count": 3,
+      "byte_count": 9748543,
+      "ordered_file_hash_sha256": "ab8f4e063430bf8008238ac6bbde39dd25c6c2fce3f539ae9c2706f808de1",
+      "profile_binding_sha256": "388d34d633ef3f5db0babd9d916f71f7f260ecb05058fc24ac987560be6b340d",
+      "present_epoch_records": [0],
+      "authenticated_completed_epochs": 0,
+      "terminal_status": "NO_TERMINAL_RECORD; NO_SIDECAR"
+    },
+    {
+      "path": "checkpoints/er9_successor",
+      "classification": "preserved_predecessor_attempt",
+      "file_count": 5,
+      "byte_count": 9749568,
+      "ordered_file_hash_sha256": "00c3aff7e2b84477a51bc2f0182a63ee35d3a04b4ace29e9df14e0695e673d0e",
+      "profile_binding_sha256": "fb25216d198cee40750733519fff6bd2b4f76dfb6c8e132456a7d24e01634b0f",
+      "present_epoch_records": [0],
+      "authenticated_completed_epochs": 1,
+      "terminal_status": "INCOMPLETE; LATEST_POINTER_PRESENT; NO_TERMINAL_RECORD"
+    },
+    {
+      "path": "checkpoints/er9_successor_v2",
+      "classification": "v3_local_profile_runtime",
+      "file_count": 506,
+      "byte_count": 1628922139,
+      "ordered_file_hash_sha256": "c440a17a71916ad0697e44bcd92468e6b25beefc703157679467353ee7ee5813",
+      "profile_binding_sha256": "ff3552f595c4d4f090d673b77bce783629d30d54b154c15b586605ddc0c89c57",
+      "runs": [
+        {
+          "run_id": "er9-stage1-D64_b2-train0-channel0",
+          "candidate": {"transmit_dim": 64, "quantiser_bits": 2},
+          "epoch_prefix": "0..99",
+          "authenticated_completed_epochs": 100,
+          "completion": "complete",
+          "terminal_artifacts": {
+            "run_completion": {
+              "path": "checkpoints/er9_successor_v2/stage1/D64_b2/run_completion.json",
+              "sha256": "5d5dde0fc24382f626964031bb6c09fe184e7647f6f29ff3cf12b102db86308"
+            },
+            "selected_checkpoint": {
+              "path": "checkpoints/er9_successor_v2/stage1/D64_b2/selected_checkpoint.json",
+              "sha256": "527376889096f36e1aed7d0078bec8575a70b6605400d419f87586a70caeea3a"
+            },
+            "latest": {
+              "path": "checkpoints/er9_successor_v2/stage1/D64_b2/latest.json",
+              "sha256": "975317141fdd0039be738d6c0e8ddc1783ee4e299c8b9ed9b7322de2ded25709"
+            }
+          },
+          "optimizer": {
+            "opportunities": 26500,
+            "applied_steps": 26485,
+            "grad_scaler_skips": 15
+          },
+          "best_validation_record": {"epoch": 88, "n_correct": 272, "n_total": 1000},
+          "test_access": 0
+        },
+        {
+          "run_id": "er9-stage1-D128_b2-train0-channel0",
+          "candidate": {"transmit_dim": 128, "quantiser_bits": 2},
+          "epoch_prefix": "0..66",
+          "authenticated_completed_epochs": 67,
+          "completion": "incomplete",
+          "terminal_artifacts": {
+            "latest": {
+              "path": "checkpoints/er9_successor_v2/stage1/D128_b2/latest.json",
+              "sha256": "ad89357c4efb854d9635660763114318dd97946b8aecccca86b34ae4fec44a2a"
+            },
+            "run_completion": null,
+            "selected_checkpoint": null
+          },
+          "optimizer": {
+            "opportunities": 17755,
+            "applied_steps": 17743,
+            "grad_scaler_skips": 12
+          },
+          "best_validation_record": {"epoch": 65, "n_correct": 544, "n_total": 1000},
+          "test_access": 0
+        }
+      ]
+    }
+  ],
+  "scientific_evidence_boundary": {
+    "real_chain_candidate_evaluation_directory_present": false,
+    "stage1_selection_present": false,
+    "stage2_evaluation_directory_present": false,
+    "stage2_selection_present": false,
+    "accepted_real_chain_candidate_evaluations": 0,
+    "stage1_selections": 0,
+    "source_of_decision": "absence_and_authenticated_inventory_of_results/learned/er9",
+    "training_is_not_real_chain_evaluation": true,
+    "new_accepted_er9_training": 0,
+    "randomized_er2_training": 0,
+    "g11": 0,
+    "w10": 0,
+    "learned_test_inference": 0,
+    "model_facing_test_access": 0,
+    "test": "SEALED"
+  },
+  "owner_decision": {
+    "local_profile_attempts_scientifically_eligible_for_pascal_v4": false,
+    "v3_checkpoints_may_be_promoted_into_v4": false,
+    "v3_checkpoints_may_initialize_v4": false,
+    "v3_runtime_must_be_preserved_without_deletion_or_rewrite": true,
+    "supersession_reason": "new_W9_science_must_be_fresh_and_Pascal_bound_to_one_exact_GPU"
+  }
+}
