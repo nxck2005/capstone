@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
 import torch
 
 from evaluation.h4_precision import H4PrecisionError, aggregate_three_cell_differences, simulate_h4_precision
-from runtime.source_guard import working_tree_source_differences
+import runtime.transactional_epochs as transactional_epochs
+import runtime.w9_authority as w9_authority
+from runtime.source_guard import committed_source_differences, working_tree_source_differences
 from runtime.transactional_epochs import TransactionalEpochStore, TransactionalRuntimeHold, canonical_bytes
 from runtime.run_identity import RunDisposition, classify_run_identity, terminal_run_counts
-from runtime.w9_authority import W9AuthorityHold, resolve_authority_pair, resolve_runtime_root
+from runtime.w9_authority import W9AuthorityHold, authenticate_live_w9_pascal, resolve_authority_pair, resolve_runtime_root
 from training.deterministic_core import apply_optimizer_update
 from training.w9_v4 import W9V4TrainingRuntime
 
@@ -45,11 +48,34 @@ def _publish(store: TransactionalEpochStore, epoch: int, *, selected: int = 0) -
 
 def test_successful_transaction_and_staging_is_not_committed(tmp_path: Path) -> None:
     store = _store(tmp_path)
-    (store.epochs_root / ".epoch-0000-interrupted.staging").mkdir()
+    staging = store.epochs_root / ".epoch-0000-interrupted.staging"
+    staging.mkdir()
+    assert os.stat(staging).st_dev == os.stat(store.epochs_root).st_dev
     assert store.inspect() == []
     committed = _store(tmp_path / "other").publish_epoch(0, b"abc", {"optimizer_opportunities": 0, "applied_optimizer_steps": 0, "grad_scaler_skips": 0})
     assert committed.epoch == 0
     assert committed.checkpoint_path.is_file()
+
+
+def test_epoch_rename_is_followed_by_parent_directory_fsync(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    events: list[tuple[str, Path]] = []
+    original_rename = transactional_epochs.os.rename
+    original_fsync_directory = transactional_epochs._fsync_directory
+
+    def rename(source: Path, destination: Path) -> None:
+        original_rename(source, destination)
+        events.append(("rename", Path(destination)))
+
+    def fsync_directory(path: Path) -> None:
+        original_fsync_directory(path)
+        events.append(("fsync", Path(path)))
+
+    monkeypatch.setattr(transactional_epochs.os, "rename", rename)
+    monkeypatch.setattr(transactional_epochs, "_fsync_directory", fsync_directory)
+    store = _store(tmp_path)
+    _publish(store, 0)
+    rename_index = next(index for index, event in enumerate(events) if event == ("rename", store.epochs_root / "epoch-0000"))
+    assert events[rename_index + 1] == ("fsync", store.epochs_root)
 
 
 def test_two_epochs_resume_exact_next_epoch(tmp_path: Path) -> None:
@@ -143,6 +169,82 @@ def test_source_drift_fixture_is_classified_without_touching_repo(tmp_path: Path
     # The real guard uses Git.  This fixture ensures its live-tree shape is
     # stable and does not mistake ordinary output namespaces for source.
     assert set(working_tree_source_differences(Path.cwd())) <= {"unstaged", "staged", "untracked"}
+
+
+def _git_fixture(tmp_path: Path) -> tuple[Path, str]:
+    root = tmp_path / "git-fixture"
+    for directory in ("src", "tools", "configs", "spec", "tests", "results/learned/er9"):
+        (root / directory).mkdir(parents=True, exist_ok=True)
+    (root / "src/protected.py").write_text("value = 1\n", encoding="utf-8")
+    (root / "requirements-pascal.lock").write_text("fixture-lock\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.email", "fixture@example.invalid"], cwd=root, check=True)
+    subprocess.run(["git", "config", "user.name", "W9 fixture"], cwd=root, check=True)
+    subprocess.run(["git", "add", "."], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "fixture"], cwd=root, check=True)
+    commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    return root, commit
+
+
+def test_source_guard_rejects_unstaged_staged_untracked_and_accepts_outputs(tmp_path: Path) -> None:
+    root, _ = _git_fixture(tmp_path)
+    protected = root / "src/protected.py"
+    protected.write_text("value = 2\n", encoding="utf-8")
+    assert working_tree_source_differences(root) == {"unstaged": ["src/protected.py"], "staged": [], "untracked": []}
+    subprocess.run(["git", "add", "src/protected.py"], cwd=root, check=True)
+    assert working_tree_source_differences(root) == {"unstaged": [], "staged": ["src/protected.py"], "untracked": []}
+    subprocess.run(["git", "restore", "--staged", "src/protected.py"], cwd=root, check=True)
+    protected.write_text("value = 1\n", encoding="utf-8")
+    (root / "src/untracked.py").write_text("value = 3\n", encoding="utf-8")
+    (root / "results/learned/er9/runtime.json").write_text("{}\n", encoding="utf-8")
+    differences = working_tree_source_differences(root)
+    assert differences == {"unstaged": [], "staged": [], "untracked": ["src/untracked.py"]}
+
+
+def test_source_guard_reports_committed_protected_drift(tmp_path: Path) -> None:
+    root, source_commit = _git_fixture(tmp_path)
+    (root / "src/protected.py").write_text("value = 2\n", encoding="utf-8")
+    subprocess.run(["git", "add", "src/protected.py"], cwd=root, check=True)
+    subprocess.run(["git", "commit", "-q", "-m", "drift"], cwd=root, check=True)
+    assert committed_source_differences(root, source_commit) == ["src/protected.py"]
+
+
+def _pascal_authority() -> dict[str, object]:
+    return {
+        "execution_profile_id": "confessor_pascal_cu126",
+        "host": "confessor",
+        "gpu_uuid": "GPU-expected",
+        "gpu_name": "TITAN Xp",
+        "compute_capability": "6.1",
+        "device": "cuda:0",
+        "source_binding": {"source_commit": "a" * 40},
+    }
+
+
+def test_live_pascal_authentication_rejects_wrong_host(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(w9_authority.socket, "gethostname", lambda: "laptop")
+    monkeypatch.setattr(w9_authority.platform, "node", lambda: "laptop")
+    with pytest.raises(W9AuthorityHold, match="live host is not Confessor"):
+        authenticate_live_w9_pascal(tmp_path, _pascal_authority(), config_hash="c" * 64)
+
+
+def test_live_pascal_authentication_rejects_wrong_gpu(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(w9_authority.socket, "gethostname", lambda: "confessor")
+    monkeypatch.setattr(w9_authority.platform, "node", lambda: "confessor")
+    monkeypatch.setattr(w9_authority, "assert_clean_source_closure", lambda *_args: {})
+    monkeypatch.setattr(
+        w9_authority,
+        "authenticate_execution_profile",
+        lambda *_args, **_kwargs: {
+            "gpu_uuid": "GPU-wrong",
+            "gpu_name": "TITAN Xp",
+            "gpu_compute_capability": "6.1",
+            "gpu_index": 0,
+            "git_dirty": False,
+        },
+    )
+    with pytest.raises(W9AuthorityHold, match="GPU UUID differs"):
+        authenticate_live_w9_pascal(tmp_path, _pascal_authority(), config_hash="c" * 64)
 
 
 def test_run_counts_are_model_identities_not_process_starts() -> None:
