@@ -130,10 +130,10 @@ def _run_w8_a(root: Path) -> None:
     original_authorization_predecessor = authorization_module._am94_predecessor_config_bindings
 
     def predecessor_config_bindings(*, role: str = authorization_module.W8_CORE_ROLE) -> list[dict[str, Any]]:
-        """Project current W8 configs back through AM-94, AM-95 and AM-96 in memory."""
+        """Project current W8 configs back through AM-94..AM-97 in memory."""
 
         names = []
-        for path in authorization_module.AM94_ALLOWED_PARAMETER_PATHS:
+        for path in (*authorization_module.AM94_ALLOWED_PARAMETER_PATHS, *am97_spec_compatibility.ALLOWED_PARAMETER_PATHS):
             prefix = "evaluation."
             if not path.startswith(prefix) or "." in path[len(prefix):]:
                 raise ValueError("AM-94 compatibility contains a non-evaluation leaf")

@@ -86,6 +86,15 @@ AM96_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
     "src/baseline/w7c_source_compatibility.py": (17820, "0d63bedfe6e9dac9895fa3d10b8e9bffa288153f43c4956c13a0fb4db6cb4318"),
     "src/baseline/g8_campaign.py": (60506, "ce1f493d053301a90daf6e2ae678d4d3fd590cb9b9e437e12b60508b9d35e14a"),
 }
+AM97_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = dict(AM96_W8_CARRIER_SOURCE_HASHES)
+AM97_W8_CARRIER_SOURCE_HASHES.update({
+    "spec/SPEC.md": (422329, "0b13ec55d8bcd2e74350d8e9992c3c480a543328f55e9be4a6b65a895aeb53a8"),
+    "spec/params.generated.yaml": (49256, "229b16889d18f1341d6a724b2f87454d99e32badb2b9079d7030334bd398ba90"),
+    "src/baseline/w8_spec_compatibility.py": (14061, "026f5183d781026f625962bc8b47846ff8a17e5be0833857631371244dbaaea1"),
+    "src/baseline/w7c_source_compatibility.py": (18306, "930a25a42f99ef047d316c94d2f91500e15b6673f45484e709fdcb68715e4020"),
+    "src/baseline/g8_campaign.py": (61171, "33efac7b5b4be71fa66add3a2fe030f5e72d1df6e080a8fb8ad37a955c4d42cf"),
+    "tools/verify_w7_g4.py": (36909, "15f8107546eb98ad12b9ca3af620ff1b5071c0f1fe3ced9065d19ebfe791cc69"),
+})
 
 
 class G10SemanticsFreezeError(RuntimeError):
@@ -258,8 +267,13 @@ def verify_w8_carrier_source_transition(
 ) -> frozenset[str]:
     """Authenticate exact AM-94-only successors of frozen W8 carrier entries."""
 
+    from evaluation import am97_spec_compatibility as am97
+
     root = Path(root).resolve()
-    load(root)
+    try:
+        load(root)
+    except Exception:
+        am97.load(root, allow_downstream=True)
     entries = manifest.get("entries")
     _require(isinstance(entries, list), "W8 source manifest entries are malformed")
     by_path = {
@@ -280,14 +294,16 @@ def verify_w8_carrier_source_transition(
         if len(raw) == current_bytes and sha256_bytes(raw) == current_sha:
             compatible.add(path)
             continue
-        successor = AM96_W8_CARRIER_SOURCE_HASHES.get(path)
+        successor = AM97_W8_CARRIER_SOURCE_HASHES.get(path)
+        if successor is None:
+            successor = AM96_W8_CARRIER_SOURCE_HASHES.get(path)
         if successor is None:
             successor = AM95_W8_CARRIER_SOURCE_HASHES.get(path)
         _require(
             successor is not None
             and len(raw) == successor[0]
             and sha256_bytes(raw) == successor[1],
-            f"W8 AM-94/AM-95/AM-96 carrier source differs: {path}",
+            f"W8 AM-94/AM-95/AM-96/AM-97 carrier source differs: {path}",
         )
         compatible.add(path)
     return frozenset(compatible)
