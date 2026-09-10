@@ -34,6 +34,16 @@ from evaluation.g10_spec_compatibility import (  # noqa: E402
     ALLOWED_PARAMETER_PATHS as AM94_ALLOWED_PARAMETER_PATHS,
     load as load_am94_spec_compatibility,
 )
+from evaluation.am95_spec_compatibility import (  # noqa: E402
+    ALLOWED_PARAMETER_PATHS as AM95_ALLOWED_PARAMETER_PATHS,
+)
+from evaluation.am96_spec_compatibility import (  # noqa: E402
+    ALLOWED_PARAMETER_PATHS as AM96_ALLOWED_PARAMETER_PATHS,
+)
+from evaluation.am97_spec_compatibility import (  # noqa: E402
+    ALLOWED_PARAMETER_PATHS as AM97_ALLOWED_PARAMETER_PATHS,
+    load as load_am97_spec_compatibility,
+)
 from gen_w8_source_manifest import CRITICAL_SOURCES, verify_manifest  # noqa: E402
 from training.deterministic_core import canonical_bytes, canonical_sha256  # noqa: E402
 from training.w8_protocol import (  # noqa: E402
@@ -130,26 +140,51 @@ def _config_bindings() -> list[dict[str, Any]]:
 
 
 def _am94_predecessor_config_bindings(*, role: str = W8_CORE_ROLE) -> list[dict[str, Any]]:
-    """Reconstruct the exact pre-AM-94 hashes for frozen W8 authority."""
+    """Reconstruct the exact pre-AM-94 hashes for frozen W8 authority.
 
-    load_am94_spec_compatibility(REPO)
-    names = []
-    for path in AM94_ALLOWED_PARAMETER_PATHS:
-        prefix = "evaluation."
-        if not path.startswith(prefix) or "." in path[len(prefix):]:
-            raise ValueError("AM-94 compatibility contains a non-evaluation leaf")
-        names.append(path[len(prefix):])
+    W8 predates AM-95, AM-96 and AM-97.  The live configuration therefore
+    contains later semantic leaves that must be projected out in memory when
+    a historical W8 authority is reauthenticated.  The immutable W8 bytes
+    are never regenerated or rewritten.
+    """
+
+    # AM-97 authenticates the complete additive chain through AM-96/AM-95/
+    # AM-94.  Keep a narrow fallback for repositories stopped at an earlier
+    # historical successor so this reader remains useful at those boundaries.
+    try:
+        load_am97_spec_compatibility(REPO, allow_downstream=True)
+    except Exception:
+        load_am94_spec_compatibility(REPO)
+
+    def remove_path(parameters: dict[str, Any], path: str) -> None:
+        parts = path.split(".")
+        cursor: Any = parameters
+        for part in parts[:-1]:
+            if not isinstance(cursor, dict) or part not in cursor:
+                raise ValueError(f"historical W8 parameter path is absent: {path}")
+            cursor = cursor[part]
+        leaf = parts[-1]
+        if not isinstance(cursor, dict) or leaf not in cursor:
+            raise ValueError(f"historical W8 parameter path is absent: {path}")
+        if path == "artifacts.rng_purposes":
+            cursor[leaf] = [item for item in cursor[leaf] if item != "er2_snr_randomised_v1"]
+        else:
+            cursor.pop(leaf)
+
+    successor_paths = (
+        *AM94_ALLOWED_PARAMETER_PATHS,
+        *AM95_ALLOWED_PARAMETER_PATHS,
+        *AM96_ALLOWED_PARAMETER_PATHS,
+        *AM97_ALLOWED_PARAMETER_PATHS,
+    )
     values: list[dict[str, Any]] = []
     for cell in run_cells():
         config = load_w8_config(
             cell.ratio, cell.train_seed, cell.channel_seed, role=role
         )
         historical = config.to_dict()
-        evaluation = historical["parameters"]["evaluation"]
-        for name in names:
-            if name not in evaluation:
-                raise ValueError(f"AM-94 parameter is absent from W8 config: {name}")
-            del evaluation[name]
+        for path in successor_paths:
+            remove_path(historical["parameters"], path)
         values.append(
             {
                 "run_index": cell.run_index,

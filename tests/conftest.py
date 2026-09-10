@@ -20,6 +20,7 @@ import config.params as config_params
 from baseline import g8_campaign
 from evaluation import g10_spec_compatibility
 from evaluation import am96_spec_compatibility
+from evaluation import am97_spec_compatibility
 from evaluation.g10_protocol import verify_am94_boundary
 
 
@@ -203,6 +204,10 @@ def _post_g10_am94_context():
                         prefix = "digital_semantic_control."
                         if name.startswith(prefix):
                             digital.pop(name[len(prefix):], None)
+                    for name in am97_spec_compatibility.ALLOWED_PARAMETER_PATHS:
+                        prefix = "evaluation."
+                        if name.startswith(prefix):
+                            evaluation.pop(name[len(prefix):], None)
                     artifacts = historical["parameters"]["artifacts"]
                     artifacts["rng_purposes"] = [
                         purpose

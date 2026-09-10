@@ -14,6 +14,7 @@ from typing import Any
 
 from config.params import REPO_ROOT
 from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
+from evaluation.am97_spec_compatibility import load as load_am97_spec_compatibility
 from evaluation.g10_spec_compatibility import load as load_am94_spec_compatibility
 
 SCHEMA_VERSION = 1
@@ -52,6 +53,10 @@ _W8_CURRENT_NORMATIVE_SHA256 = {
 _AM94_CURRENT_NORMATIVE_SHA256 = {
     "normative_spec": "75af7748f17245cb7771fd8e7078b506ce557bf920c7986bd49bd034aab8b6ad",
     "resolved_params": "48e5fee874fe4b6c72ee60be3b92e0cd9da51edab87e74bc5f3af964c6f9e534",
+}
+_AM97_CURRENT_NORMATIVE_SHA256 = {
+    "normative_spec": "0b13ec55d8bcd2e74350d8e9992c3c480a543328f55e9be4a6b65a895aeb53a8",
+    "resolved_params": "229b16889d18f1341d6a724b2f87454d99e32badb2b9079d7030334bd398ba90",
 }
 STATUSES = {
     "W6_REQUIRED_AND_SATISFIED",
@@ -169,6 +174,13 @@ def _binding(spec: tuple[Any, ...]) -> dict[str, Any]:
             load_w8_spec_compatibility(REPO_ROOT)
             load_am94_spec_compatibility(REPO_ROOT)
             allowed.add(_AM94_CURRENT_NORMATIVE_SHA256[name])
+        if file_sha256 == _AM97_CURRENT_NORMATIVE_SHA256[name]:
+            # AM-97 is a prospective downstream semantic successor.  Its
+            # exact compatibility record authenticates the current bytes and
+            # permits this immutable pre-test W6 reader to project them back
+            # to the historical W6 index without changing that index.
+            load_am97_spec_compatibility(REPO_ROOT, allow_downstream=True)
+            allowed.add(_AM97_CURRENT_NORMATIVE_SHA256[name])
         require(
             file_sha256 in allowed,
             f"{name} is neither the frozen W6 nor an authenticated successor normative byte image",
