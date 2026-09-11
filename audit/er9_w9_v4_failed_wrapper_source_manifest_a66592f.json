@@ -8,7 +8,7 @@
     "checkpoints/er2_randomized_pascal_v4/",
     "checkpoints/smoke/"
   ],
-  "manifest_id": "er9sourcev4-5378a841e375ff27ebdc0217b245ec9f5e66fe4fd947e3a45eed57071343590b",
+  "manifest_id": "er9sourcev4-3fb77f1dffeb12ee50b769b6dbd7e3efe76cfce292ecf95a2dca2816fed42083",
   "manifest_kind": "W9_V4_FULL_SCIENTIFIC_SOURCE_CLOSURE",
   "protected_source_prefixes": [
     "src/",
@@ -25,15 +25,15 @@
   },
   "requirements_pascal_lock_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
   "schema_version": 2,
-  "source_commit": "a66592f7e53f8bffa1c5747e2ae9af71673ae67e",
+  "source_commit": "74c83e1ec9e282eaf8e79a697b5df6184b4cc1d2",
   "source_commit_comparison": "exact_clean_HEAD_at_freeze",
   "tree_hashes": {
     "configs": "6d826323fdcfd238a619c788895bbbcb81661fe5",
-    "repository": "84d6e69a914ff30a4ac018259623071fe453db10",
+    "repository": "114ac238ef57f624f882225b5cb15275b922ce3f",
     "spec": "d5a64e41727c943a0155cfd1885d29c7247495aa",
     "src": "c763ee101d85d987cc6e7112a2a304970fec533d",
     "tests": "6f8bdae0b2248c7107867d3c1fc3c0db1e3703a7",
-    "tools": "72d8b9de638d6570da66a22b0ef8056a339bfa78"
+    "tools": "b6a7e6a0febc2357e97dd3507f6a26f965c9f5e2"
   },
   "working_tree_guard": {
     "checks_committed_source_commit_to_head": true,
