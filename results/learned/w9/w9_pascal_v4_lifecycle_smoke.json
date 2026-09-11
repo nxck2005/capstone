@@ -1,0 +1,130 @@
+{
+  "artifact_role": "W9_PASCAL_V4_SYNTHETIC_LIFECYCLE_SMOKE",
+  "committed_epoch_count": 2,
+  "cuda_device": "cuda:0",
+  "cuda_mapping": {
+    "cuda0_compute_capability": "6.1",
+    "cuda0_gpu_name": "NVIDIA TITAN Xp",
+    "cuda0_gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "cuda_visible_devices": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "device_count": 1,
+    "logical_device": "cuda:0"
+  },
+  "cuda_visible_devices": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+  "eligibility": {
+    "INELIGIBLE_FOR_ER2_RESULT": true,
+    "INELIGIBLE_FOR_ER9_SEARCH": true,
+    "INELIGIBLE_FOR_SELECTION": true,
+    "NON_SCIENTIFIC": true,
+    "SYNTHETIC_ONLY": true,
+    "TEST_NOT_ACCESSED": true
+  },
+  "evidence_id": "w9pascalv4smoke-1fc4d46d85bc77e5f57d8d7e0473a36add69571ec0f8e3e90fa9c881b644b317",
+  "execution_profile": "confessor_pascal_cu126",
+  "fixture_id": "w9_pascal_v4_lifecycle_smoke_v1",
+  "fixture_identity": {
+    "campaign_id": "w9_pascal_v4_lifecycle_smoke_v1",
+    "candidate": {
+      "quantiser_bits": 2,
+      "transmit_dim": 64
+    },
+    "config_hash": "79df0fdcbebbb87638d4e2ab1745785bdee89ae0f6f2abea7f404ff2d441a761",
+    "eligibility": {
+      "INELIGIBLE_FOR_ER2_RESULT": true,
+      "INELIGIBLE_FOR_ER9_SEARCH": true,
+      "INELIGIBLE_FOR_SELECTION": true,
+      "NON_SCIENTIFIC": true,
+      "SYNTHETIC_ONLY": true,
+      "TEST_NOT_ACCESSED": true
+    },
+    "fixture_id": "w9_pascal_v4_lifecycle_smoke_v1",
+    "recipe_sha256": "190dd39abd7b6a661429d9ab0768ee690cf9667020b02ebcb3a968fbd6e787fa",
+    "run_id": "w9_pascal_v4_lifecycle_smoke_v1",
+    "schema_version": 1,
+    "source_binding": {
+      "allowed_evidence_runtime_prefixes": [
+        "results/learned/er9/",
+        "results/learned/er2_randomized/",
+        "results/learned/g11/",
+        "results/learned/w9/",
+        "checkpoints/er9_pascal_v4/",
+        "checkpoints/er2_randomized_pascal_v4/",
+        "checkpoints/smoke/"
+      ],
+      "manifest_id": "er9sourcev4-2366f6ea09fa8acb1bb0f380260821494c9bc3b3cd5c0b8e4392c91dbcd578d1",
+      "manifest_kind": "W9_V4_FULL_SCIENTIFIC_SOURCE_CLOSURE",
+      "protected_source_prefixes": [
+        "src/",
+        "tools/",
+        "configs/",
+        "spec/",
+        "tests/",
+        "requirements-pascal.lock"
+      ],
+      "relevant_config_sha256": {
+        "configs/er9-digital-pascal-v4.yaml": "3194acc755129f369c4d7ebf3f239ff6383c0cbf27ae96892217a495df7073ec",
+        "configs/learned-er2-randomized-pascal-v4.yaml": "0be3982d0953ea84c28bbc565b128dc81374c1f008fccfe223d7adc3ea107e74",
+        "spec/params.generated.yaml": "229b16889d18f1341d6a724b2f87454d99e32badb2b9079d7030334bd398ba90"
+      },
+      "requirements_pascal_lock_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+      "schema_version": 2,
+      "source_commit": "bf1ef61b70e4dee86da58ab3fd3568d555069df4",
+      "source_commit_comparison": "exact_clean_HEAD_at_freeze",
+      "tree_hashes": {
+        "configs": "6d826323fdcfd238a619c788895bbbcb81661fe5",
+        "repository": "e4ab6192c45b3982b40cfcc4ce28da12cc4a9c2d",
+        "spec": "d5a64e41727c943a0155cfd1885d29c7247495aa",
+        "src": "29a931e9f7fe9cc793945260ea3a839d8a8a446b",
+        "tests": "103664e4f45c53b77917a3800f6f9988db77adff",
+        "tools": "3f37cb9abe70ed5237d81e5de0603f3d91b8555c"
+      },
+      "working_tree_guard": {
+        "checks_committed_source_commit_to_head": true,
+        "checks_staged_protected_source": true,
+        "checks_unstaged_protected_source": true,
+        "checks_untracked_protected_source": true,
+        "runtime_and_evidence_only_after_freeze": true
+      }
+    },
+    "test": "SEALED",
+    "test_access": 0
+  },
+  "gpu": {
+    "driver_version": "580.178.04",
+    "gpu_name": "NVIDIA TITAN Xp",
+    "gpu_uuid": "GPU-46acd0f2-2ff5-1a43-cac9-2ae20e56dc9a",
+    "gpu_vram_mib": "12288",
+    "index": "1"
+  },
+  "host": "confessor",
+  "pascal_lock_sha256": "d3561c8e930797d328cf45df1bdc5085842833665f9b5c9e5617d4c891e31a82",
+  "platform_node": "confessor",
+  "restart_resume": {
+    "epoch_one_committed_once": true,
+    "exact_model_optimizer_scaler_restore": true,
+    "fresh_adapter_reconstruction": true,
+    "restored_epoch": 0,
+    "state_after_epoch_zero_sha256": "b4f7c264861e8e7c6eaa0231ee44c2a76b776819ea41d3c086da15e1aa41dfda",
+    "state_after_restart_sha256": "b4f7c264861e8e7c6eaa0231ee44c2a76b776819ea41d3c086da15e1aa41dfda"
+  },
+  "runtime_root": "checkpoints/smoke/w9_pascal_v4_fixture",
+  "schema_version": 1,
+  "scientific_data_accesses": 0,
+  "source_commit": "bf1ef61b70e4dee86da58ab3fd3568d555069df4",
+  "source_manifest_id": "er9sourcev4-2366f6ea09fa8acb1bb0f380260821494c9bc3b3cd5c0b8e4392c91dbcd578d1",
+  "source_tree_hashes": {
+    "configs": "6d826323fdcfd238a619c788895bbbcb81661fe5",
+    "repository": "e4ab6192c45b3982b40cfcc4ce28da12cc4a9c2d",
+    "spec": "d5a64e41727c943a0155cfd1885d29c7247495aa",
+    "src": "29a931e9f7fe9cc793945260ea3a839d8a8a446b",
+    "tests": "103664e4f45c53b77917a3800f6f9988db77adff",
+    "tools": "3f37cb9abe70ed5237d81e5de0603f3d91b8555c"
+  },
+  "stale_pointer_repair": true,
+  "status": "NON_SCIENTIFIC",
+  "terminal_id": "w9terminal-ef4d0360fca9599cc45ebc83a0adc47feac66f544b93cf427e0669a0f376ae12",
+  "terminal_idempotent": true,
+  "terminal_sha256": "1dcdc81259d58d5d50abea7370405679087e63b7d4351ac05c36a7d07dbea391",
+  "test": "SEALED",
+  "test_access": 0
+}
