@@ -47,6 +47,21 @@ POST_G10_CONTEXT_TESTS = frozenset(
 )
 _POST_G10_CONTEXTS: dict[str, object] = {}
 
+# Historical G8 validators keep their own frozen source closures.  W9 v4
+# adds an exact process-visible CUDA UUID contract to this shared module, so
+# tests that exercise those historical readers need the same narrowly scoped
+# in-memory compatibility view as the post-G10 command-line adapter.  The
+# current image is pinned here deliberately; this is not a general source
+# drift bypass.
+W9_V4_EXECUTION_PROFILE_BYTES = 19572
+W9_V4_EXECUTION_PROFILE_SHA256 = "310dbdbeb817b0a9ed5c5353b9879a866afa9a01d60e3655fc3682ec23789dd9"
+W9_V4_HISTORICAL_EXECUTION_PROFILE_BYTES = 16379
+W9_V4_HISTORICAL_EXECUTION_PROFILE_SHA256 = "4cde66962dcc228d0a5231d7c3ff1d84274d65d6734d021b5cccff3988175061"
+W9_V4_HISTORICAL_V2_BYTES = 129255
+W9_V4_HISTORICAL_V2_SHA256 = "ee08a42e2db0056a2e1dc8ad6a4be8c9792b392234b77b3440f7beb4a635459a"
+W9_V4_CURRENT_V2_BYTES = 130551
+W9_V4_CURRENT_V2_SHA256 = "491ce32a176fb1518e2061b017d2ec77594e2ba0fd8a9b2e1c972bac4efa5239"
+
 
 def _present(path: Path) -> bool:
     return path.exists() or path.is_symlink()
@@ -121,6 +136,143 @@ def _post_g10_am94_context():
         return projection
 
     with ExitStack() as stack:
+        import baseline.g8_f_f0 as f0
+
+        original_f0_loader = f0._load_am89_compatibility
+
+        def load_am89_with_w9_addition():
+            compatibility = original_f0_loader()
+            current = (REPO / "src/config/execution_profiles.py").read_bytes()
+            if (
+                len(current) != W9_V4_EXECUTION_PROFILE_BYTES
+                or hashlib.sha256(current).hexdigest() != W9_V4_EXECUTION_PROFILE_SHA256
+            ):
+                raise RuntimeError("W9 v4 execution-profile source image differs")
+            authorization = json.loads(
+                (REPO / "results/baseline/g8_f/f0_v3_execution_authorization.json").read_bytes()
+            )
+            archived = next(
+                entry
+                for entry in authorization["source"]["closure"]
+                if entry["path"] == "src/config/execution_profiles.py"
+            )
+            entries = list(compatibility["entries"])
+            entries.append(
+                {
+                    "path": "src/config/execution_profiles.py",
+                    "archived_bytes": archived["bytes"],
+                    "archived_sha256": archived["sha256"],
+                    "current_bytes": len(current),
+                    "current_sha256": W9_V4_EXECUTION_PROFILE_SHA256,
+                }
+            )
+            return {**compatibility, "entries": entries}
+
+        stack.enter_context(
+            patch.object(f0, "_load_am89_compatibility", load_am89_with_w9_addition)
+        )
+
+        import baseline.g8_pascal_portable as portable
+        import baseline.g8_pascal_production as production
+        import baseline.g8_e_corrected_v3s as v3s
+
+        original_production_loader = production._load_am88_post_campaign_source_compatibility
+
+        def load_am88_with_w9_addition(source_entries):
+            compatibility = original_production_loader(source_entries)
+            profile_entry = next(
+                (
+                    entry
+                    for entry in source_entries
+                    if entry.get("path") == "src/config/execution_profiles.py"
+                ),
+                None,
+            )
+            if profile_entry is None:
+                return compatibility
+            current = (REPO / "src/config/execution_profiles.py").read_bytes()
+            if (
+                profile_entry.get("bytes") != W9_V4_HISTORICAL_EXECUTION_PROFILE_BYTES
+                or profile_entry.get("sha256") != W9_V4_HISTORICAL_EXECUTION_PROFILE_SHA256
+                or len(current) != W9_V4_EXECUTION_PROFILE_BYTES
+                or hashlib.sha256(current).hexdigest() != W9_V4_EXECUTION_PROFILE_SHA256
+            ):
+                raise RuntimeError("W9 v4 historical execution-profile binding differs")
+            return {
+                **compatibility,
+                "src/config/execution_profiles.py": {
+                    "path": "src/config/execution_profiles.py",
+                    "archived_bytes": W9_V4_HISTORICAL_EXECUTION_PROFILE_BYTES,
+                    "archived_sha256": W9_V4_HISTORICAL_EXECUTION_PROFILE_SHA256,
+                    "current_bytes": W9_V4_EXECUTION_PROFILE_BYTES,
+                    "current_sha256": W9_V4_EXECUTION_PROFILE_SHA256,
+                },
+            }
+
+        stack.enter_context(
+            patch.object(
+                production,
+                "_load_am88_post_campaign_source_compatibility",
+                load_am88_with_w9_addition,
+            )
+        )
+
+        original_v3s_source_loader = v3s._load_am88_source_compatibility
+
+        def load_v3s_source_with_w9_addition(source_entries):
+            admitted = original_v3s_source_loader(source_entries)
+            entries = {
+                str(entry.get("path")): entry
+                for entry in source_entries
+                if isinstance(entry, dict)
+            }
+            current_v2 = (REPO / "src/baseline/g8_e_corrected_v2.py").read_bytes()
+            current_profile = (REPO / "src/config/execution_profiles.py").read_bytes()
+            if (
+                entries.get("src/baseline/g8_e_corrected_v2.py", {}).get("bytes")
+                != W9_V4_HISTORICAL_V2_BYTES
+                or entries.get("src/baseline/g8_e_corrected_v2.py", {}).get("sha256")
+                != W9_V4_HISTORICAL_V2_SHA256
+                or len(current_v2) != W9_V4_CURRENT_V2_BYTES
+                or hashlib.sha256(current_v2).hexdigest() != W9_V4_CURRENT_V2_SHA256
+                or entries.get("src/config/execution_profiles.py", {}).get("bytes")
+                != W9_V4_HISTORICAL_EXECUTION_PROFILE_BYTES
+                or entries.get("src/config/execution_profiles.py", {}).get("sha256")
+                != W9_V4_HISTORICAL_EXECUTION_PROFILE_SHA256
+                or len(current_profile) != W9_V4_EXECUTION_PROFILE_BYTES
+                or hashlib.sha256(current_profile).hexdigest() != W9_V4_EXECUTION_PROFILE_SHA256
+            ):
+                raise RuntimeError("W9 v4 historical G8_E source binding differs")
+            return admitted | {
+                "src/baseline/g8_e_corrected_v2.py",
+                "src/config/execution_profiles.py",
+            }
+
+        stack.enter_context(
+            patch.object(
+                v3s,
+                "_load_am88_source_compatibility",
+                load_v3s_source_with_w9_addition,
+            )
+        )
+        historical_production_validate = production.validate_production_contracts
+        for module_name in (
+            "baseline.g8_pascal_portable",
+            "verify_g8_pascal_successor",
+            "verify_g8_pascal_closeout",
+            "closeout_g8_pascal_successor",
+            "run_g8_pascal_dual_gpu",
+        ):
+            module = sys.modules.get(module_name)
+            if module is not None and hasattr(module, "validate_production_contracts"):
+                stack.enter_context(
+                    patch.object(
+                        module,
+                        "validate_production_contracts",
+                        historical_production_validate,
+                    )
+                )
+
         stack.enter_context(patch.object(g10_spec_compatibility, "load", additive_load))
         stack.enter_context(
             patch.object(g8_campaign, "load_am94_spec_compatibility", additive_load)
