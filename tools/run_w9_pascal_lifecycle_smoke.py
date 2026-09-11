@@ -34,6 +34,7 @@ from verify_er9_pascal_v4 import assert_synthetic_smoke_ineligible, verify_stage
 FIXTURE_ID = "w9_pascal_v4_lifecycle_smoke_v1"
 RUNTIME_ROOT = REPO / "checkpoints/smoke/w9_pascal_v4_fixture"
 EVIDENCE_PATH = REPO / "results/learned/w9/w9_pascal_v4_lifecycle_smoke.json"
+PROFILE_ID = "confessor_pascal_cu126"
 
 
 def _nvidia_inventory() -> list[dict[str, str]]:
