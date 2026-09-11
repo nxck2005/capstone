@@ -214,6 +214,9 @@ def test_smoke_script_has_only_synthetic_model_path() -> None:
     assert "DataLoader" not in text
     assert "TrainingDJSCCDataset" not in text
     assert "ValidationDJSCCDataset" not in text
+    assert "verify_stage1_authority" in text
+    assert "build_manifest" not in text
+    assert "W9_PASCAL_SYNTHETIC_SMOKE_AUTHORITY_V4" not in text
 
 
 def test_prospective_er9_trainer_accepts_only_injected_synthetic_fixture(tmp_path: Path) -> None:

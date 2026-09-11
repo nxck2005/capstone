@@ -25,19 +25,15 @@ import torch
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from config.run_config import config_hash, load_experiment  # noqa: E402
-from config.params import get  # noqa: E402
-from runtime.source_guard import SourceGuardHold, V4_RELEVANT_CONFIG_PATHS, build_manifest  # noqa: E402
-from runtime.w9_authority import W9AuthorityHold, authenticate_live_w9_pascal  # noqa: E402
-from training.deterministic_core import canonical_bytes, canonical_sha256, state_tree_sha256  # noqa: E402
 from training.er9_v4 import ER9V4CandidateTrainer  # noqa: E402
-from verify_er9_pascal_v4 import assert_synthetic_smoke_ineligible  # noqa: E402
+from training.deterministic_core import canonical_bytes, canonical_sha256, state_tree_sha256  # noqa: E402
+from runtime.w9_authority import W9AuthorityHold, authenticate_live_w9_pascal, resolve_runtime_root  # noqa: E402
+from verify_er9_pascal_v4 import assert_synthetic_smoke_ineligible, verify_stage1_authority  # noqa: E402
 
 
 FIXTURE_ID = "w9_pascal_v4_lifecycle_smoke_v1"
 RUNTIME_ROOT = REPO / "checkpoints/smoke/w9_pascal_v4_fixture"
 EVIDENCE_PATH = REPO / "results/learned/w9/w9_pascal_v4_lifecycle_smoke.json"
-PROFILE_ID = "confessor_pascal_cu126"
 
 
 def _nvidia_inventory() -> list[dict[str, str]]:
@@ -74,12 +70,6 @@ def _nvidia_inventory() -> list[dict[str, str]]:
     return result
 
 
-def _git(*args: str) -> str:
-    return subprocess.run(
-        ["git", *args], cwd=REPO, capture_output=True, text=True, check=True
-    ).stdout.strip()
-
-
 def _write_immutable(path: Path, value: dict[str, Any]) -> None:
     raw = json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True, allow_nan=False).encode("ascii") + b"\n"
     if path.exists() or path.is_symlink():
@@ -99,23 +89,6 @@ def _write_immutable(path: Path, value: dict[str, Any]) -> None:
         os.fsync(directory)
     finally:
         os.close(directory)
-
-
-def _provisional_authority(manifest: dict[str, Any], config: Any, gpu: dict[str, str]) -> dict[str, Any]:
-    profile = get(f"environment.execution_profiles.{PROFILE_ID}")
-    return {
-        "authority_kind": "W9_PASCAL_SYNTHETIC_SMOKE_AUTHORITY_V4",
-        "source_binding": manifest,
-        "source_commit": manifest["source_commit"],
-        "execution_profile_id": PROFILE_ID,
-        "host": "confessor",
-        "gpu_name": gpu["gpu_name"],
-        "gpu_uuid": gpu["gpu_uuid"],
-        "compute_capability": str(profile["compute_capability"]),
-        "device": "cuda:0",
-        "cuda_visible_devices": gpu["gpu_uuid"],
-        "config_hash": config_hash(config),
-    }
 
 
 def _identity_overrides() -> dict[str, Any]:
@@ -177,16 +150,15 @@ def run(
             f"synthetic smoke runtime already exists; preserve it and choose a new fixture root: {runtime_root}"
         )
 
-    config = load_experiment("configs/er9-digital-pascal-v4.yaml", train_seed=0, channel_seed=0)
     try:
-        manifest = build_manifest(
-            REPO,
-            source_commit=_git("rev-parse", "HEAD"),
-            relevant_config_paths=V4_RELEVANT_CONFIG_PATHS,
-        )
-    except SourceGuardHold as exc:
-        raise RuntimeError(f"synthetic smoke source freeze is not coherent: {exc}") from None
-    authority = _provisional_authority(manifest, config, gpu)
+        manifest, authority, config, _solver = verify_stage1_authority()
+    except (W9AuthorityHold, OSError, RuntimeError, ValueError) as exc:
+        raise RuntimeError(f"synthetic smoke active v4 authority is not authenticated: {exc}") from None
+    if authority["gpu_uuid"] != gpu["gpu_uuid"] or authority["gpu_name"] != gpu["gpu_name"]:
+        raise RuntimeError("synthetic smoke GPU differs from the active v4 Stage-1 authority")
+    scientific_runtime = resolve_runtime_root(REPO, authority)
+    if runtime_root.resolve() == scientific_runtime:
+        raise RuntimeError("synthetic smoke cannot use the scientific Stage-1 runtime root")
     if require_pascal:
         # The caller launches this process with CUDA_VISIBLE_DEVICES set to the
         # exact UUID.  The authenticator proves it is logical cuda:0 before the
