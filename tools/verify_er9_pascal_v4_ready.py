@@ -13,6 +13,8 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from config.run_config import config_hash, load_experiment  # noqa: E402
+from evaluation.er9_search import all_configured_pairs, feasible_pairs, packetisation_floor, stage1_candidates  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure  # noqa: E402
 from runtime.w9_authority import W9AuthorityHold, authenticate_live_w9_pascal, load_authority, resolve_runtime_root  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 
@@ -40,15 +42,38 @@ def main(argv: list[str] | None = None) -> int:
     _require(authority_id == "w9er9stage1v4auth-" + canonical_sha256(body), "Stage-1 authority ID differs")
     _require(MANIFEST.is_file() and _sha(MANIFEST) == authority["source_manifest"]["sha256"], "Stage-1 source manifest binding differs")
     manifest = json.loads(MANIFEST.read_bytes())
+    manifest_body = dict(manifest)
+    manifest_id = manifest_body.pop("manifest_id", None)
+    _require(manifest_id == "er9sourcev4-" + canonical_sha256(manifest_body), "Stage-1 source manifest ID differs")
     _require(manifest.get("manifest_id") == authority["source_manifest"]["manifest_id"], "Stage-1 source manifest ID differs")
+    try:
+        assert_clean_source_closure(REPO, manifest)
+    except SourceGuardHold as exc:
+        raise W9AuthorityHold(f"Stage-1 source closure differs: {exc}") from None
+    _require(authority.get("source_binding") == manifest, "Stage-1 full source binding differs")
+    _require(authority.get("authorization_scope") == "W9_ER9_STAGE1_ONLY", "Stage-1 authority scope differs")
     config = load_experiment(str(REPO / authority["config_path"]), train_seed=0, channel_seed=0)
     _require(config_hash(config) == authority["config_hash"], "Stage-1 config hash differs")
+    _require(authority.get("config_source_blob_sha256") == manifest["relevant_config_sha256"][authority["config_path"]], "Stage-1 config source blob differs")
     _require(authority["execution_profile_id"] == "confessor_pascal_cu126" and authority["host"] == "confessor", "Stage-1 is not Pascal/Confessor bound")
     _require(authority["runtime_root"] == "checkpoints/er9_pascal_v4", "Stage-1 runtime root differs")
-    _require(len(authority["stage1_candidates"]) == authority["stage1_candidate_count"] == authority["stage1_training_count"] == 6, "Stage-1 candidate count differs")
+    _require(authority.get("device") == "cuda:0" and authority.get("cuda_visible_devices") == authority.get("gpu_uuid"), "Stage-1 CUDA mapping authority differs")
+    mapping = authority.get("cuda_mapping")
+    _require(isinstance(mapping, dict) and mapping.get("logical_device") == "cuda:0" and mapping.get("cuda0_gpu_uuid") == authority.get("gpu_uuid"), "Stage-1 CUDA mapping record differs")
+    _require(mapping.get("cuda_visible_devices") == authority.get("cuda_visible_devices") and mapping.get("cuda0_gpu_name") == authority.get("gpu_name") and mapping.get("cuda0_compute_capability") == authority.get("compute_capability"), "Stage-1 CUDA identity record differs")
     _require(authority["stage2_authorized"] is False and authority["production_authorized"] is False and authority["randomized_er2_authorized"] is False, "authority scope is wider than Stage-1")
     _require(authority["fresh_initialization_required"] is True, "Stage-1 does not require fresh initialization")
     _require(authority["test"] == "SEALED" and authority["test_access"] == 0, "Stage-1 test boundary differs")
+    floor = packetisation_floor(int(config.resolved["k"]))
+    configured = all_configured_pairs()
+    admissible = feasible_pairs(floor.payload_bits)
+    candidates = stage1_candidates(floor.payload_bits)
+    _require(authority.get("k_symbols") == int(config.resolved["k"]) and authority.get("metadata_bits") == 1, "Stage-1 packet inputs differ")
+    _require(authority.get("packet_floor") == floor.as_dict(), "Stage-1 packet floor differs")
+    _require(authority.get("configured_pair_count") == len(configured) and authority.get("admissible_pair_count") == len(admissible), "Stage-1 solver counts differ")
+    _require(authority.get("admissible_pairs") == [item.as_dict() for item in admissible], "Stage-1 admissible pair set differs")
+    _require(authority.get("stage1_candidates") == [item.as_dict() for item in candidates] and authority.get("stage1_candidate_count") == len(candidates) and authority.get("stage1_training_count") == len(candidates), "Stage-1 solver candidates differ")
+    _require(authority.get("checkpoint_selection_rule") == {"metric": "validation_n_correct", "mode": "max", "tie_break": "earliest_epoch"}, "Stage-1 checkpoint selection rule differs")
     runtime = resolve_runtime_root(REPO, authority)
     _require(not runtime.exists() and not runtime.is_symlink(), "Stage-1 runtime already exists; fresh initialization is not safe")
     if not args.skip_live:

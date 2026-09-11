@@ -14,6 +14,8 @@ sys.path.insert(0, str(REPO / "src"))
 
 from config.params import get  # noqa: E402
 from config.run_config import config_hash, load_experiment  # noqa: E402
+from evaluation.er9_search import all_configured_pairs, feasible_pairs, packetisation_floor, stage1_candidates  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 
 
@@ -46,20 +48,46 @@ def main(argv: list[str] | None = None) -> int:
     manifest = json.loads(MANIFEST.read_bytes())
     if manifest.get("schema_version") != 2 or not str(manifest.get("manifest_id", "")).startswith("er9sourcev4-"):
         raise SystemExit("v4 source manifest schema differs")
+    try:
+        assert_clean_source_closure(REPO, manifest)
+    except SourceGuardHold as exc:
+        raise SystemExit(f"v4 source closure is not authenticated: {exc}") from None
     profile = get("environment.execution_profiles.confessor_pascal_cu126")
     if args.gpu_name not in profile["allowed_gpu_names"] or args.gpu_uuid not in profile["allowed_gpu_uuids"]:
         raise SystemExit("GPU is not registered in confessor_pascal_cu126")
     if args.device != "cuda:0":
         raise SystemExit("W9 v4 Stage-1 requires cuda:0")
     config = load_experiment("configs/er9-digital-pascal-v4.yaml", train_seed=0, channel_seed=0)
-    candidates = [
-        {"transmit_dim": int(value), "quantiser_bits": 2}
-        for value in (64, 128, 256, 512, 1024, 2048)
+    floor = packetisation_floor(int(config.resolved["k"]))
+    configured = all_configured_pairs()
+    admissible = feasible_pairs(floor.payload_bits)
+    candidates = stage1_candidates(floor.payload_bits)
+    if (
+        int(config.resolved["k"]) != 12800
+        or floor.payload_bits != 4248
+        or len(configured) != 32
+        or len(admissible) != 19
+        or tuple(item.transmit_dim for item in candidates) != (64, 128, 256, 512, 1024, 2048)
+        or any(item.quantiser_bits != 2 for item in candidates)
+    ):
+        raise SystemExit("v4 Stage-1 solver result differs from the frozen AM-96 expectation; HOLD")
+    candidate_dicts = [item.as_dict() for item in candidates]
+    configured_dicts = [item.as_dict() for item in configured]
+    admissible_dicts = [item.as_dict() for item in admissible]
+    rejected_dicts = [
+        {**item.as_dict(), "reason": "raw_bound_exceeds_A_floor"}
+        for item in configured
+        if item not in admissible
     ]
+    config_relative = "configs/er9-digital-pascal-v4.yaml"
+    config_hash_from_manifest = manifest.get("relevant_config_sha256", {}).get(config_relative)
+    if config_hash_from_manifest is None:
+        raise SystemExit("v4 source manifest does not bind the Pascal Stage-1 config")
     body = {
         "schema_version": 1,
         "authority_kind": "W9_ER9_STAGE1_EXECUTION_AUTHORITY_V4",
         "status": "FROZEN_STAGE1_ONLY_PRE_SCIENCE",
+        "authorization_scope": "W9_ER9_STAGE1_ONLY",
         "source_manifest": {
             "path": str(MANIFEST.relative_to(REPO)),
             "manifest_id": manifest["manifest_id"],
@@ -69,6 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         "source_binding": manifest,
         "config_path": "configs/er9-digital-pascal-v4.yaml",
         "config_hash": config_hash(config),
+        "config_source_blob_sha256": config_hash_from_manifest,
         "runtime_root": "checkpoints/er9_pascal_v4",
         "execution_profile_id": "confessor_pascal_cu126",
         "host": "confessor",
@@ -77,17 +106,32 @@ def main(argv: list[str] | None = None) -> int:
         "compute_capability": str(profile["compute_capability"]),
         "device": args.device,
         "cuda_visible_devices": args.gpu_uuid,
+        "cuda_mapping": {
+            "cuda_visible_devices": args.gpu_uuid,
+            "logical_device": "cuda:0",
+            "cuda0_gpu_uuid": args.gpu_uuid,
+            "cuda0_gpu_name": args.gpu_name,
+            "cuda0_compute_capability": str(profile["compute_capability"]),
+            "device_count": 1,
+        },
         "sole_writer": True,
         "live_authentication_required_immediately_before_model_and_data": True,
         "source_working_tree_guard_required": True,
         "dataset": "imagenette160",
         "split": "train_then_validation_only",
         "ratio": "r_1_6",
+        "k_symbols": int(config.resolved["k"]),
+        "metadata_bits": 1,
+        "packet_floor": floor.as_dict(),
+        "configured_pair_count": len(configured_dicts),
+        "admissible_pair_count": len(admissible_dicts),
+        "admissible_pairs": admissible_dicts,
+        "rejected_pairs": rejected_dicts,
         "search_seed_cell": {"train_seed": 0, "channel_seed": 0},
         "evaluation_snr_db": 7,
-        "stage1_candidates": candidates,
-        "stage1_candidate_count": len(candidates),
-        "stage1_training_count": len(candidates),
+        "stage1_candidates": candidate_dicts,
+        "stage1_candidate_count": len(candidate_dicts),
+        "stage1_training_count": len(candidate_dicts),
         "stage1_rule": {
             "candidate_order": "ascending_numeric_transmit_dim",
             "cross_product": False,
@@ -95,13 +139,21 @@ def main(argv: list[str] | None = None) -> int:
             "selection_metric": "exact_validation_n_correct_at_7db_real_digital_chain",
             "tie_break": "smallest_transmit_dim",
         },
+        "checkpoint_selection_rule": {
+            "metric": "validation_n_correct",
+            "mode": "max",
+            "tie_break": "earliest_epoch",
+        },
         "packet_budget_admissibility_proof": {
             "k_symbols": int(get("bandwidth.k_symbols.imagenette160.r_1_6")),
             "metadata_bits": 1,
-            "packet_floor": "exact_bpsk_rate_1_3_packetisation_payload_at_matched_k",
-            "configured_transmit_dim_grid": list(get("digital_semantic_control.transmit_dim_grid")),
-            "admissible_stage1_candidates": candidates,
-            "rejected_stage1_dimensions": [4096, 8192],
+            "packet_floor": floor.as_dict(),
+            "configured_pairs": configured_dicts,
+            "admissible_pairs": admissible_dicts,
+            "rejected_pairs": rejected_dicts,
+            "stage1_candidates": candidate_dicts,
+            "configured_pair_count": len(configured_dicts),
+            "admissible_pair_count": len(admissible_dicts),
         },
         "fresh_initialization_required": True,
         "v1_v2_v3_checkpoints_ineligible": True,

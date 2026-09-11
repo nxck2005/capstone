@@ -44,6 +44,12 @@ def _git(root: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def _git_bytes(root: Path, *args: str) -> bytes:
+    result = subprocess.run(["git", *args], cwd=root, capture_output=True, check=False)
+    _require(result.returncode == 0, f"git byte query failed: git {' '.join(args)}")
+    return result.stdout
+
+
 def _git_names(root: Path, *args: str) -> list[str]:
     result = subprocess.run(["git", *args, "-z"], cwd=root, capture_output=True, check=False)
     _require(result.returncode == 0, f"git path query failed: git {' '.join(args)}")
@@ -56,6 +62,16 @@ def _protected(path: str) -> bool:
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def git_blob_bytes(root: Path, commit: str, relative: str) -> bytes:
+    """Read one exact tracked file from a Git commit, never from the worktree."""
+
+    return _git_bytes(root, "show", f"{commit}:{relative}")
+
+
+def git_blob_sha256(root: Path, commit: str, relative: str) -> str:
+    return hashlib.sha256(git_blob_bytes(root, commit, relative)).hexdigest()
 
 
 def git_tree_hashes(root: Path, commit: str) -> dict[str, str]:
@@ -92,9 +108,25 @@ def assert_clean_source_closure(root: Path, authority: Mapping[str, Any]) -> dic
     _require(isinstance(expected, Mapping), "source authority tree hashes are missing")
     actual = git_tree_hashes(root, source_commit)
     _require(dict(expected) == actual, "source authority Git tree closure differs")
+    expected_configs = authority.get("relevant_config_sha256", {})
+    if expected_configs:
+        _require(isinstance(expected_configs, Mapping), "source authority config hashes are malformed")
+        actual_configs = {
+            str(relative): git_blob_sha256(root, source_commit, str(relative))
+            for relative in sorted(expected_configs)
+        }
+        _require(dict(expected_configs) == actual_configs, "source authority config closure differs")
     lock_path = root / "requirements-pascal.lock"
     _require(lock_path.is_file(), "Pascal lock is missing")
-    _require(_sha256_file(lock_path) == authority.get("requirements_pascal_lock_sha256"), "Pascal lock SHA-256 differs")
+    _require(
+        git_blob_sha256(root, source_commit, "requirements-pascal.lock")
+        == authority.get("requirements_pascal_lock_sha256"),
+        "Pascal lock SHA-256 differs from the source commit",
+    )
+    _require(
+        _sha256_file(lock_path) == authority.get("requirements_pascal_lock_sha256"),
+        "Pascal lock SHA-256 differs from the live worktree",
+    )
     return {"committed": committed, **working, "tree_hashes": actual}
 
 
@@ -106,19 +138,26 @@ def _tracked_paths_at_commit(root: Path, commit: str, prefix: str) -> list[str]:
 def build_manifest(root: Path, *, source_commit: str, relevant_config_paths: Iterable[str]) -> dict[str, Any]:
     root = Path(root).resolve()
     _require(len(source_commit) == 40, "source manifest requires a full source commit")  # literal-ok: SHA-1 commit length
+    head = _git(root, "rev-parse", "HEAD")
+    _require(source_commit == head, "source manifest source_commit must equal HEAD at freeze time")
+    working = working_tree_source_differences(root)
+    _require(not any(working.values()), f"source manifest freeze requires a clean protected worktree: {working}")
     config_hashes: dict[str, str] = {}
     for relative in sorted(set(relevant_config_paths)):
-        path = root / relative
-        _require(path.is_file() and not path.is_symlink(), f"relevant config is missing: {relative}")
-        config_hashes[relative] = _sha256_file(path)
+        _require(
+            _git(root, "cat-file", "-e", f"{source_commit}:{relative}") == "",
+            f"relevant config is missing from source commit: {relative}",
+        )
+        config_hashes[relative] = git_blob_sha256(root, source_commit, relative)
     lock_path = root / "requirements-pascal.lock"
-    _require(lock_path.is_file(), "Pascal lock is missing")
+    _require(lock_path.is_file() and not lock_path.is_symlink(), "Pascal lock is missing")
     manifest = {
         "schema_version": 2,
         "manifest_kind": "W9_V4_FULL_SCIENTIFIC_SOURCE_CLOSURE",
         "source_commit": source_commit,
+        "source_commit_comparison": "exact_clean_HEAD_at_freeze",
         "tree_hashes": git_tree_hashes(root, source_commit),
-        "requirements_pascal_lock_sha256": _sha256_file(lock_path),
+        "requirements_pascal_lock_sha256": git_blob_sha256(root, source_commit, "requirements-pascal.lock"),
         "relevant_config_sha256": config_hashes,
         "protected_source_prefixes": list(PROTECTED_PREFIXES),
         "allowed_evidence_runtime_prefixes": list(ALLOWED_EVIDENCE_PREFIXES),
@@ -144,5 +183,7 @@ __all__ = [
     "build_manifest",
     "committed_source_differences",
     "git_tree_hashes",
+    "git_blob_bytes",
+    "git_blob_sha256",
     "working_tree_source_differences",
 ]

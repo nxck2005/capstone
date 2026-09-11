@@ -1,88 +1,98 @@
 #!/usr/bin/env python3
-"""Run the staged, validation-only ER-9/ER-2/G-11 campaign."""
+"""Execute the prospective W9 v4 ER-9/ER-2 lifecycle.
+
+Only the explicitly authorized future commands are exposed here.  The
+historical campaign implementations and their evidence readers live in their
+own custody modules; this active entry point has one v4 source, authority,
+live-authentication, model, and transactional-runtime path.
+"""
 
 from __future__ import annotations
 
 import argparse
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
 
-import torch
-
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from config.execution_profiles import authenticate_execution_profile  # noqa: E402
-from config.params import get  # noqa: E402
 from config.run_config import config_hash, load_experiment  # noqa: E402
-from evaluation.er9_campaign import (  # noqa: E402
-    collect_validation_features,
-    evaluate_candidate_at_snr,
-    fit_entropy_model,
+from evaluation.er9_search import (  # noqa: E402
+    all_configured_pairs,
+    feasible_pairs,
+    packetisation_floor,
+    select_stage1,
+    stage1_candidates,
 )
-from evaluation.h4_precision import compute_h4_precision_diagnostic  # noqa: E402
-from evaluation.architecture_audit import compare_architectures  # noqa: E402
-from evaluation.er9_protocol import factorisation_for_dimension  # noqa: E402
-from evaluation.er9_search import select_stage1, select_stage2, stage2_candidates  # noqa: E402
-from models.djscc import build_djscc  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure  # noqa: E402
+from runtime.w9_authority import (  # noqa: E402
+    authenticate_live_w9_pascal,
+    load_authority,
+    resolve_runtime_root,
+)
 from training.deterministic_core import canonical_bytes, canonical_sha256  # noqa: E402
-from training.er2_randomized import (  # noqa: E402
-    ER2RandomizedTrainer,
-    evaluate_er2_at_snr,
-)
-from training.er9 import ER9Trainer, load_er9_checkpoint, _publish_immutable, _sha256_file  # noqa: E402
-from verify_er9 import verify_source_manifest, verify_stage1_authorization  # noqa: E402
+from training.er2_v4 import ER2V4RandomizedTrainer  # noqa: E402
+from training.er9_v4 import ER9V4CandidateTrainer  # noqa: E402
 
 
 RESULT_ROOT = REPO / "results/learned/er9"
-# Successor namespace after the preserved first-checkpoint publication incident.
-CHECKPOINT_ROOT = REPO / "checkpoints/er9_successor_v2"
-SOURCE_MANIFEST = RESULT_ROOT / "er_execution_source_manifest_v3.json"
-STAGE1_AUTH = RESULT_ROOT / "er9_stage1_execution_authorization_v3.json"
-STAGE1_SELECTION = RESULT_ROOT / "er9_stage1_selection.json"
-STAGE2_AUTH = RESULT_ROOT / "er9_stage2_execution_authorization.json"
-STAGE2_SELECTION = RESULT_ROOT / "er9_stage2_selection.json"
-PRODUCTION = RESULT_ROOT / "er9_final_production_manifest.json"
-ARCHITECTURE_DIFF = RESULT_ROOT / "er9_architecture_difference.json"
-ER2_RESULT_ROOT = REPO / "results/learned/er2_randomized"
-ER2_COMPLETION = ER2_RESULT_ROOT / "er2_randomized_completion.json"
-ER2_AUDIT = ER2_RESULT_ROOT / "er2_snr_assignment_audit.json"
-ER2_VALIDATION = ER2_RESULT_ROOT / "er2_randomized_validation.json"
-G11_ROOT = REPO / "results/learned/g11"
+SOURCE_MANIFEST = RESULT_ROOT / "er_execution_source_manifest_v4.json"
+STAGE1_AUTHORITY = RESULT_ROOT / "er9_stage1_execution_authorization_v4.json"
+STAGE1_INDEX = RESULT_ROOT / "stage1_v4_terminal_index.json"
+STAGE1_EVALUATION_ROOT = RESULT_ROOT / "stage1_v4_evaluations"
+STAGE1_SELECTION = RESULT_ROOT / "er9_stage1_selection_v4.json"
+ER2_AUTHORITY = REPO / "results/learned/er2_randomized/er2_execution_authorization_v4.json"
 
 
 def _git(*args: str) -> str:
-    return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
+    return subprocess.run(
+        ["git", *args], cwd=REPO, capture_output=True, text=True, check=True
+    ).stdout.strip()
 
 
 def _read(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_bytes())
+    if not path.is_file() or path.is_symlink():
+        raise RuntimeError(f"v4 artifact is missing or unsafe: {path}")
+    try:
+        value = json.loads(path.read_bytes())
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"v4 artifact is corrupt: {path}: {exc}") from None
     if not isinstance(value, dict):
-        raise ValueError(f"expected JSON object: {path}")
+        raise RuntimeError(f"v4 artifact is not an object: {path}")
     return value
 
 
-def _file_sha(path: Path) -> str:
+def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _write_immutable(value: dict[str, Any], path: Path) -> None:
+def _write_immutable(path: Path, value: dict[str, Any]) -> None:
+    raw = canonical_bytes(value)
     if path.exists() or path.is_symlink():
-        existing = _read(path)
-        if existing != value:
-            raise RuntimeError(f"immutable ER artifact differs: {path}")
+        if path.is_symlink() or path.read_bytes() != raw:
+            raise RuntimeError(f"immutable v4 artifact differs: {path}")
         return
-    _publish_immutable(path, canonical_bytes(value))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = path.open("xb")
+    try:
+        descriptor.write(raw)
+        descriptor.flush()
+        os.fsync(descriptor.fileno())
+    finally:
+        descriptor.close()
+    directory = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
 
 
-def _assert_clean_parity() -> str:
-    status = _git("status", "--short", "--untracked-files=all")
-    if status:
-        raise RuntimeError(f"scientific source must be clean before this phase:\n{status}")
+def _assert_parity() -> str:
     head = _git("rev-parse", "HEAD")
     origin = _git("rev-parse", "origin/main")
     if head != origin:
@@ -90,951 +100,354 @@ def _assert_clean_parity() -> str:
     return head
 
 
-def _config(path: str, train_seed: int, channel_seed: int):
-    return load_experiment(path, train_seed=train_seed, channel_seed=channel_seed)
-
-
-def _profile_binding(cfg: Any) -> dict[str, Any]:
-    profile_id = str(cfg.resolved["execution_profile_id"])
-    if profile_id != "local_4060_cu130":
-        raise RuntimeError("ER-9/ER-2 execution is bound to local_4060_cu130")
-    environment = authenticate_execution_profile(
-        profile_id,
-        device="cuda:0",
-        config_hash=config_hash(cfg),
-    )
-    if environment.get("git_dirty") is not False:
-        raise RuntimeError("authenticated ER execution checkout is dirty")
-    body = {
-        "schema_version": 1,  # literal-ok: ER execution binding schema
-        "authentication_status": "PASSED",
-        "execution_profile_id": profile_id,
-        "device": "cuda:0",
-        "gpu_uuid": environment["gpu_uuid"],
-        "gpu_name": environment["gpu_name"],
-        "gpu_compute_capability": environment["gpu_compute_capability"],
-        "lock_file": environment["lock_file"],
-        "lock_file_sha256": environment["lock_file_sha256"],
-        "git_commit": environment["git_commit"],
-        "git_dirty": False,
-        "config_hash": config_hash(cfg),
-        "profile_environment": environment,
-    }
-    body["binding_sha256"] = canonical_sha256(body)
-    return body
-
-
-def _source_binding(cfg: Any) -> dict[str, Any]:
-    manifest = verify_source_manifest(SOURCE_MANIFEST)
-    verify_stage1_authorization(STAGE1_AUTH, SOURCE_MANIFEST)
-    profile_path = CHECKPOINT_ROOT / "execution_profile_binding.json"
-    if profile_path.exists():
-        profile = _read(profile_path)
-    else:
-        profile = _profile_binding(cfg)
-        _write_immutable(profile, profile_path)
-    if profile["config_hash"] != config_hash(cfg):
-        raise RuntimeError("execution profile binding config differs")
-    execution_commit = _git("rev-parse", "HEAD")
-    return {
-        "schema_version": 1,  # literal-ok: ER source binding schema
-        "implementation_commit": manifest["source_commit"],
-        "source_manifest_id": manifest["manifest_id"],
-        "source_manifest_sha256": _file_sha(SOURCE_MANIFEST),
-        "execution_source_commit": execution_commit,
-        "execution_profile_binding": profile,
-        "test": "SEALED",
-        "test_access": 0,
-    }
-
-
-def _candidate_slug(dimension: int, bits: int) -> str:
-    return f"D{int(dimension)}_b{int(bits)}"
-
-
-def _stage1_runtime(candidate: dict[str, Any]) -> Path:
-    return CHECKPOINT_ROOT / "stage1" / _candidate_slug(candidate["transmit_dim"], candidate["quantiser_bits"])
-
-
-def _stage2_runtime(candidate: dict[str, Any]) -> Path:
-    return CHECKPOINT_ROOT / "stage2" / _candidate_slug(candidate["transmit_dim"], candidate["quantiser_bits"])
-
-
-def _runtime_completion(runtime: Path) -> dict[str, Any] | None:
-    path = runtime / "run_completion.json"
-    return _read(path) if path.is_file() and not path.is_symlink() else None
-
-
-def _validate_runtime_completion(runtime: Path, candidate: dict[str, Any]) -> dict[str, Any]:
-    """Authenticate the immutable terminal record before reusing a run."""
-
-    completion = _runtime_completion(runtime)
-    if completion is None:
-        raise RuntimeError(f"ER-9 runtime is not complete: {runtime}")
-    if (
-        completion.get("artifact_role") != "ER9_CANDIDATE_COMPLETION"
-        or completion.get("training_run_count") != 1
-        or completion.get("transmit_dim") != candidate["transmit_dim"]
-        or completion.get("quantiser_bits") != candidate["quantiser_bits"]
-        or completion.get("test_access") != 0
-    ):
-        raise RuntimeError(f"ER-9 runtime completion differs from candidate: {runtime}")
-    selected_path = runtime / "selected_checkpoint.json"
-    if not selected_path.is_file() or selected_path.is_symlink():
-        raise RuntimeError(f"ER-9 selected-checkpoint record is missing or unsafe: {runtime}")
-    selected = _read(selected_path)
-    if (
-        selected.get("transmit_dim") != candidate["transmit_dim"]
-        or selected.get("quantiser_bits") != candidate["quantiser_bits"]
-        or selected.get("metric") != "validation_n_correct"
-        or selected.get("mode") != "max"
-        or selected.get("tie_break") != "earliest_epoch"
-        or completion.get("selected_checkpoint") != selected.get("selection")
-    ):
-        raise RuntimeError(f"ER-9 selected-checkpoint record differs: {runtime}")
-    checkpoint = (runtime / str(selected["selection"]["checkpoint_path"])).resolve()
-    if runtime.resolve() not in checkpoint.parents or not checkpoint.is_file() or checkpoint.is_symlink():
-        raise RuntimeError(f"ER-9 selected checkpoint is missing or unsafe: {checkpoint}")
-    if selected["selection"].get("checkpoint_id") != _file_sha(checkpoint):
-        raise RuntimeError(f"ER-9 selected checkpoint hash differs: {checkpoint}")
-    return completion
-
-
-def _read_existing_evaluation(path: Path, prefix: str, candidate: dict[str, Any]) -> dict[str, Any] | None:
-    """Reuse an authenticated completed validation evaluation after interruption."""
-
-    if not path.exists() and not path.is_symlink():
-        return None
-    if path.is_symlink():
-        raise RuntimeError(f"ER-9 evaluation is an unsafe symlink: {path}")
-    body = _read(path)
-    identifier = body.get("evaluation_id")
-    without_id = dict(body)
-    without_id.pop("evaluation_id", None)
-    if identifier != prefix + canonical_sha256(without_id):
-        raise RuntimeError(f"ER-9 evaluation ID differs: {path}")
-    if body.get("candidate") != candidate or body.get("test_access") != 0:
-        raise RuntimeError(f"ER-9 evaluation candidate/scope differs: {path}")
-    return body
-
-
-def _train_er9_candidate(cfg: Any, candidate: dict[str, Any], runtime: Path, source: dict[str, Any], campaign: str) -> dict[str, Any]:
-    completion = _runtime_completion(runtime)
-    if completion is not None:
-        completion = _validate_runtime_completion(runtime, candidate)
-        return {
-            "candidate": dict(candidate),
-            "runtime_root": str(runtime.relative_to(REPO)),
-            "completion": completion,
-            "completion_sha256": _file_sha(runtime / "run_completion.json"),
-            "reused_existing_attempt": True,
-        }
-    resume = runtime.exists() or runtime.is_symlink()
-    trainer = ER9Trainer(
-        cfg,
-        transmit_dim=int(candidate["transmit_dim"]),
-        quantiser_bits=int(candidate["quantiser_bits"]),
-        device="cuda:0",
-        runtime_root=runtime,
-        source_binding=source,
-        campaign_id=campaign,
-        run_id=f"er9-{campaign}-{_candidate_slug(candidate['transmit_dim'], candidate['quantiser_bits'])}-train{cfg.resolved['train_seed']}-channel{cfg.resolved['channel_seed']}",
-        resume=resume,
-    )
-    result = trainer.run()
-    return {
-        "candidate": dict(candidate),
-        "runtime_root": str(runtime.relative_to(REPO)),
-        "completion": result,
-        "completion_sha256": _file_sha(runtime / "run_completion.json"),
-        "reused_existing_attempt": resume,
-    }
-
-
-def run_stage1_train() -> None:
-    _assert_clean_parity()
-    auth = verify_stage1_authorization(STAGE1_AUTH, SOURCE_MANIFEST)
-    if STAGE1_SELECTION.exists():
-        raise RuntimeError("Stage-1 selection already exists; refusing a second Stage-1 campaign")
-    cfg = _config("configs/er9-digital.yaml", 0, 0)  # literal-ok: authorized Stage-1 seed cell
-    source = _source_binding(cfg)
-    CHECKPOINT_ROOT.mkdir(parents=True, exist_ok=True)
-    candidates = list(auth["stage1_candidates"])
-    runs = []
-    for candidate in candidates:
-        runs.append(_train_er9_candidate(cfg, candidate, _stage1_runtime(candidate), source, "stage1"))
-    index = {
-        "schema_version": 1,  # literal-ok: Stage-1 runtime index schema
-        "artifact_role": "ER9_STAGE1_TRAINING_INDEX",
-        "authorization_id": auth["authorization_id"],
-        "source_binding": source,
-        "candidate_order": candidates,
-        "training_run_count": len(runs),
-        "runs": runs,
-        "test_access": 0,
-    }
-    _write_immutable(index, CHECKPOINT_ROOT / "stage1_training_index.json")
-    print(f"ER-9 Stage-1 training complete: {len(runs)} authorized runs")
-
-
-def _evaluate_one_er9_candidate(cfg: Any, candidate: dict[str, Any], runtime_root: Path, source: dict[str, Any]) -> dict[str, Any]:
-    selected = _read(runtime_root / "selected_checkpoint.json")
-    selection = selected["selection"]
-    checkpoint_path = runtime_root / str(selection["checkpoint_path"])
-    model = load_er9_checkpoint(
-        cfg,
-        transmit_dim=int(candidate["transmit_dim"]),
-        quantiser_bits=int(candidate["quantiser_bits"]),
-        checkpoint_path=checkpoint_path,
-        device="cuda:0",
-    )
-    entropy, entropy_record = fit_entropy_model(model, cfg, device="cuda:0", num_workers=4)
-    features = collect_validation_features(model, cfg, device="cuda:0", num_workers=4)
-    real_chain = evaluate_candidate_at_snr(
-        model,
-        cfg,
-        entropy=entropy,
-        dimension=int(candidate["transmit_dim"]),
-        quantiser_bits=int(candidate["quantiser_bits"]),
-        snr_db=int(cfg.resolved["train_snr_db"]),
-        device="cuda:0",
-        num_workers=4,
-        validation_features=features,
-    )
-    return {
-        "schema_version": 1,  # literal-ok: ER-9 candidate evaluation schema
-        "artifact_role": "ER9_STAGE_SEARCH_CANDIDATE_EVALUATION",
-        "candidate": dict(candidate),
-        "source_binding": source,
-        "runtime_root": str(runtime_root.relative_to(REPO)),
-        "training_selected_checkpoint": selection,
-        "checkpoint_sha256": _file_sha(checkpoint_path),
-        "entropy_model": entropy_record,
-        "real_chain_validation": real_chain,
-        "test_access": 0,
-    }
-
-
-def run_stage1_evaluate() -> None:
-    _assert_clean_parity()
-    if STAGE1_SELECTION.exists() or STAGE1_SELECTION.is_symlink():
-        raise RuntimeError("Stage-1 selection already exists; refusing a second selection pass")
-    auth = verify_stage1_authorization(STAGE1_AUTH, SOURCE_MANIFEST)
-    index_path = CHECKPOINT_ROOT / "stage1_training_index.json"
-    index = _read(index_path)
-    if (
-        index.get("artifact_role") != "ER9_STAGE1_TRAINING_INDEX"
-        or index.get("authorization_id") != auth["authorization_id"]
-        or index.get("candidate_order") != auth["stage1_candidates"]
-        or index.get("training_run_count") != auth["stage1_training_count"]
-        or index.get("test_access") != 0
-    ):
-        raise RuntimeError("Stage-1 training count differs from authorization")
-    if len(index.get("runs", [])) != auth["stage1_training_count"]:
-        raise RuntimeError("Stage-1 runtime index length differs from authorization")
-    for candidate, run in zip(auth["stage1_candidates"], index["runs"], strict=True):
-        if run.get("candidate") != candidate or run.get("runtime_root") != str(_stage1_runtime(candidate).relative_to(REPO)):
-            raise RuntimeError("Stage-1 runtime candidate order differs from authorization")
-        _validate_runtime_completion(_stage1_runtime(candidate), candidate)
-    cfg = _config("configs/er9-digital.yaml", 0, 0)  # literal-ok: authorized Stage-1 seed cell
-    source = index["source_binding"]
-    evaluations = []
-    eval_root = RESULT_ROOT / "stage1_evaluations"
-    for candidate in auth["stage1_candidates"]:
-        runtime = _stage1_runtime(candidate)
-        path = eval_root / f"{_candidate_slug(candidate['transmit_dim'], candidate['quantiser_bits'])}.json"
-        body = _read_existing_evaluation(path, "er9stage1eval-", candidate)
-        if body is None:
-            body = _evaluate_one_er9_candidate(cfg, candidate, runtime, source)
-            body["evaluation_id"] = "er9stage1eval-" + canonical_sha256(body)
-            _write_immutable(body, path)
-        evaluations.append(body)
-    rows = [
-        {
-            "transmit_dim": body["candidate"]["transmit_dim"],
-            "quantiser_bits": body["candidate"]["quantiser_bits"],
-            "n_correct": body["real_chain_validation"]["validation_n_correct"],
-            "n_total": body["real_chain_validation"]["validation_total"],
-            "selected_phy": body["real_chain_validation"]["selected"],
-            "evaluation_id": body["evaluation_id"],
-            "runtime_root": body["runtime_root"],
-        }
-        for body in evaluations
-    ]
-    selected = dict(select_stage1(rows))
-    body = {
-        "schema_version": 1,  # literal-ok: Stage-1 selection schema
-        "artifact_role": "ER9_STAGE1_TERMINAL_SELECTION",
-        "status": "STAGE1_COMPLETE_STAGE2_NOT_AUTHORIZED_IN_THIS_ARTIFACT",
-        "authorization_id": auth["authorization_id"],
-        "source_binding": source,
-        "candidate_order": auth["stage1_candidates"],
-        "training_run_count": len(evaluations),
-        "selection_metric": "exact_validation_n_correct_at_7db_real_digital_chain",
-        "tie_break": "smallest_transmit_dim",
-        "rows": rows,
-        "selected": selected,
-        "candidate_evaluation_files": [
-            str((RESULT_ROOT / "stage1_evaluations" / f"{_candidate_slug(candidate['transmit_dim'], candidate['quantiser_bits'])}.json").relative_to(REPO))
-            for candidate in auth["stage1_candidates"]
-        ],
-        "test_access": 0,
-    }
-    body["selection_id"] = "er9stage1selection-" + canonical_sha256(body)
-    _write_immutable(body, STAGE1_SELECTION)
-    print(f"ER-9 Stage-1 selected D={selected['transmit_dim']} with n_correct={selected['n_correct']}")
-
-
-def build_stage2_authorization() -> None:
-    _assert_clean_parity()
-    if not STAGE1_SELECTION.is_file():
-        raise RuntimeError("Stage-1 selection is missing")
-    if STAGE2_AUTH.exists():
-        raise RuntimeError("Stage-2 authorization already exists")
-    auth = verify_stage1_authorization(STAGE1_AUTH, SOURCE_MANIFEST)
-    selection = _read(STAGE1_SELECTION)
-    floor = auth["packet_floor"]
-    selected_dimension = int(selection["selected"]["transmit_dim"])
-    candidates = [candidate.as_dict() for candidate in stage2_candidates(int(floor["payload_bits"]), selected_dimension)]
-    body: dict[str, Any] = {
-        "schema_version": 1,  # literal-ok: Stage-2 authorization schema
-        "artifact_role": "ER9_STAGE2_EXECUTION_AUTHORIZATION",
-        "status": "FROZEN_BEFORE_STAGE2_OPTIMIZER_STEP",
-        "authorization_scope": "ER9_STAGE2_ONLY",
-        "source_commit": _git("rev-parse", "HEAD"),
-        "implementation_commit": auth["source_commit"],
-        "source_manifest_id": auth["source_manifest_id"],
-        "source_manifest_sha256": auth["source_manifest_sha256"],
-        "config_path": auth["config_path"],
-        "config_hash": auth["config_hash"],
-        "stage1_authorization_id": auth["authorization_id"],
-        "stage1_selection_id": selection["selection_id"],
-        "stage1_selection_sha256": _file_sha(STAGE1_SELECTION),
-        "selected_transmit_dim": selected_dimension,
-        "stage1_reused_candidate": {"transmit_dim": selected_dimension, "quantiser_bits": 2},  # literal-ok: AM-96 Stage-2 reuse
-        "stage2_candidate_order": candidates,
-        "stage2_bits_order": "ascending_numeric",
-        "stage2_selection_metric": "exact_validation_n_correct_at_7db_real_digital_chain",
-        "stage2_tie_break": "smallest_quantiser_bits",
-        "cross_product": False,
-        "stage2_training_count": max(len(candidates) - 1, 0),
-        "execution_profile_id": "local_4060_cu130",
-        "pre_execution_counters": {
-            "er9_training": auth["stage1_training_count"],
-            "randomized_er2_training": 0,
-            "g11": 0,
-            "w10": 0,
-            "learned_test_inference": 0,
-            "model_facing_test_access": 0,
-        },
-        "test": "SEALED",
-    }
-    body["authorization_id"] = "er9stage2auth-" + canonical_sha256(body)
-    _write_immutable(body, STAGE2_AUTH)
-    print(f"ER-9 Stage-2 authorization written: {body['authorization_id']} ({body['stage2_training_count']} new runs)")
-
-
-def _require_committed(path: Path) -> None:
-    relative = str(path.relative_to(REPO))
+def _load_manifest() -> dict[str, Any]:
+    manifest = _read(SOURCE_MANIFEST)
+    body = dict(manifest)
+    identifier = body.pop("manifest_id", None)
+    if identifier != "er9sourcev4-" + canonical_sha256(body):
+        raise RuntimeError("v4 source manifest ID differs")
+    if manifest.get("source_commit_comparison") != "exact_clean_HEAD_at_freeze":
+        raise RuntimeError("v4 source manifest freeze rule differs")
     try:
-        _git("cat-file", "-e", f"HEAD:{relative}")
-    except subprocess.CalledProcessError:
-        raise RuntimeError(f"required authorization/evidence is not committed: {relative}") from None
-    _assert_clean_parity()
+        assert_clean_source_closure(REPO, manifest)
+    except SourceGuardHold as exc:
+        raise RuntimeError(f"v4 source closure is not authenticated: {exc}") from None
+    return manifest
 
 
-def _verify_stage2_authorization() -> dict[str, Any]:
-    value = _read(STAGE2_AUTH)
-    if value["cross_product"] is not False or value["status"] != "FROZEN_BEFORE_STAGE2_OPTIMIZER_STEP":
-        raise RuntimeError("Stage-2 authorization is not the exact AM-96 staged rule")
-    if value["source_manifest_id"] != verify_source_manifest(SOURCE_MANIFEST)["manifest_id"]:
-        raise RuntimeError("Stage-2 source manifest differs")
-    selection = _read(STAGE1_SELECTION)
-    if value["stage1_selection_id"] != selection["selection_id"]:
-        raise RuntimeError("Stage-2 selection binding differs")
-    return value
-
-
-def run_stage2_train() -> None:
-    _require_committed(STAGE2_AUTH)
-    auth = _verify_stage2_authorization()
-    cfg = _config("configs/er9-digital.yaml", 0, 0)  # literal-ok: authorized search seed cell
-    source = _read(CHECKPOINT_ROOT / "execution_profile_binding.json")
-    source_binding = {
-        "schema_version": 1,  # literal-ok: ER source binding schema
-        "implementation_commit": auth["implementation_commit"],
-        "source_manifest_id": auth["source_manifest_id"],
-        "source_manifest_sha256": auth["source_manifest_sha256"],
-        "execution_source_commit": auth["source_commit"],
-        "execution_profile_binding": source,
-        "test": "SEALED",
-        "test_access": 0,
+def _solver_binding(config: Any) -> dict[str, Any]:
+    floor = packetisation_floor(int(config.resolved["k"]))
+    configured = all_configured_pairs()
+    admissible = feasible_pairs(floor.payload_bits)
+    candidates = stage1_candidates(floor.payload_bits)
+    return {
+        "k_symbols": int(config.resolved["k"]),
+        "metadata_bits": 1,
+        "packet_floor": floor.as_dict(),
+        "configured_pairs": [item.as_dict() for item in configured],
+        "admissible_pairs": [item.as_dict() for item in admissible],
+        "rejected_pairs": [
+            {**item.as_dict(), "reason": "raw_bound_exceeds_A_floor"}
+            for item in configured
+            if item not in admissible
+        ],
+        "stage1_candidates": [item.as_dict() for item in candidates],
     }
-    runs = []
-    for candidate in auth["stage2_candidate_order"]:
-        if candidate == auth["stage1_reused_candidate"]:
-            continue
-        runs.append(_train_er9_candidate(cfg, candidate, _stage2_runtime(candidate), source_binding, "stage2"))
-    if len(runs) != auth["stage2_training_count"]:
-        raise RuntimeError("Stage-2 training count does not reconcile")
-    _write_immutable(
-        {
-            "schema_version": 1,  # literal-ok: Stage-2 runtime index schema
-            "artifact_role": "ER9_STAGE2_TRAINING_INDEX",
-            "authorization_id": auth["authorization_id"],
-            "source_binding": source_binding,
-            "candidate_order": [
-                candidate for candidate in auth["stage2_candidate_order"]
-                if candidate != auth["stage1_reused_candidate"]
-            ],
-            "runs": runs,
-            "training_run_count": len(runs),
-            "test_access": 0,
-        },
-        CHECKPOINT_ROOT / "stage2_training_index.json",
+
+
+def _load_stage1() -> tuple[dict[str, Any], dict[str, Any], Any, dict[str, Any]]:
+    manifest = _load_manifest()
+    authority = load_authority(STAGE1_AUTHORITY, kind="W9_ER9_STAGE1_EXECUTION_AUTHORITY_V4")
+    authority_body = dict(authority)
+    authority_id = authority_body.pop("authority_id", None)
+    if authority_id != "w9er9stage1v4auth-" + canonical_sha256(authority_body):
+        raise RuntimeError("v4 Stage-1 authority ID differs")
+    source_record = authority.get("source_manifest")
+    if not isinstance(source_record, dict):
+        raise RuntimeError("v4 Stage-1 source record is missing")
+    if (
+        source_record.get("manifest_id") != manifest.get("manifest_id")
+        or source_record.get("sha256") != _sha(SOURCE_MANIFEST)
+        or authority.get("source_commit") != manifest.get("source_commit")
+        or authority.get("source_binding") != manifest
+    ):
+        raise RuntimeError("v4 Stage-1 source binding differs")
+    if authority.get("config_path") != "configs/er9-digital-pascal-v4.yaml":
+        raise RuntimeError("v4 Stage-1 config path differs")
+    config = load_experiment(authority["config_path"], train_seed=0, channel_seed=0)
+    if authority.get("config_hash") != config_hash(config):
+        raise RuntimeError("v4 Stage-1 config hash differs")
+    solver = _solver_binding(config)
+    proof = authority.get("packet_budget_admissibility_proof")
+    if not isinstance(proof, dict):
+        raise RuntimeError("v4 Stage-1 solver proof is missing")
+    if (
+        proof.get("k_symbols") != solver["k_symbols"]
+        or proof.get("metadata_bits") != solver["metadata_bits"]
+        or proof.get("packet_floor") != solver["packet_floor"]
+        or proof.get("configured_pairs") != solver["configured_pairs"]
+        or proof.get("admissible_pairs") != solver["admissible_pairs"]
+        or proof.get("rejected_pairs") != solver["rejected_pairs"]
+        or proof.get("stage1_candidates") != solver["stage1_candidates"]
+    ):
+        raise RuntimeError("v4 Stage-1 authority arithmetic differs from the solver")
+    if authority.get("stage1_candidates") != solver["stage1_candidates"]:
+        raise RuntimeError("v4 Stage-1 candidate order differs from the solver")
+    return manifest, authority, config, solver
+
+
+def _source_binding(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    return dict(manifest)
+
+
+def _candidate_slug(candidate: Mapping[str, Any]) -> str:
+    return f"D{int(candidate['transmit_dim'])}_b{int(candidate['quantiser_bits'])}"
+
+
+def _candidate_runtime(authority: Mapping[str, Any], candidate: Mapping[str, Any]) -> Path:
+    return resolve_runtime_root(REPO, authority) / "stage1" / _candidate_slug(candidate)
+
+
+def _live_pascal(authority: Mapping[str, Any], config: Any) -> dict[str, Any]:
+    """Authenticate the source and exact process-visible Pascal immediately."""
+
+    return authenticate_live_w9_pascal(
+        REPO,
+        authority,
+        config_hash=config_hash(config),
     )
-    print(f"ER-9 Stage-2 training complete: {len(runs)} new runs")
 
 
-def run_stage2_evaluate() -> None:
-    _assert_clean_parity()
-    if STAGE2_SELECTION.exists() or STAGE2_SELECTION.is_symlink():
-        raise RuntimeError("Stage-2 selection already exists; refusing a second selection pass")
-    auth = _verify_stage2_authorization()
-    _require_committed(STAGE2_AUTH)
-    selection1 = _read(STAGE1_SELECTION)
-    cfg = _config("configs/er9-digital.yaml", 0, 0)  # literal-ok: authorized search seed cell
-    source = selection1["source_binding"]
-    evaluations = []
-    eval_root = RESULT_ROOT / "stage2_evaluations"
-    for candidate in auth["stage2_candidate_order"]:
-        if candidate == auth["stage1_reused_candidate"]:
-            stage1_row = next(
-                row for row in selection1["rows"]
-                if row["transmit_dim"] == candidate["transmit_dim"] and row["quantiser_bits"] == candidate["quantiser_bits"]
-            )
-            evaluations.append({
-                "schema_version": 1,  # literal-ok: Stage-2 reused evaluation schema
-                "artifact_role": "ER9_STAGE2_REUSED_STAGE1_EVALUATION",
+def _candidate_identity_fields(candidate: Mapping[str, Any]) -> dict[str, int]:
+    return {
+        "transmit_dim": int(candidate["transmit_dim"]),
+        "quantiser_bits": int(candidate["quantiser_bits"]),
+    }
+
+
+def run_stage1_train(*, resume: bool = False) -> None:
+    _assert_parity()
+    manifest, authority, config, _solver = _load_stage1()
+    if authority.get("fresh_initialization_required") is not True:
+        raise RuntimeError("v4 Stage-1 is not fresh-initialization bound")
+    authority_root = resolve_runtime_root(REPO, authority)
+    if not resume and (authority_root.exists() or authority_root.is_symlink()):
+        raise RuntimeError("v4 Stage-1 runtime root already exists; fresh initialization is not safe")
+    entries: list[dict[str, Any]] = []
+    for candidate in authority["stage1_candidates"]:
+        candidate = _candidate_identity_fields(candidate)
+        runtime = _candidate_runtime(authority, candidate)
+        # Live authentication is deliberately the last operation before the
+        # trainer constructs the model, optimizer, scaler, or any dataset.
+        live = _live_pascal(authority, config)
+        trainer = ER9V4CandidateTrainer(
+            config,
+            transmit_dim=candidate["transmit_dim"],
+            quantiser_bits=candidate["quantiser_bits"],
+            device=str(authority["device"]),
+            runtime_root=runtime,
+            source_binding=_source_binding(manifest),
+            campaign_id="er9_stage1_v4",
+            run_id=f"er9-stage1-v4-{_candidate_slug(candidate)}",
+            live_authentication=live,
+            resume=resume,
+        )
+        terminal = trainer.run()
+        if terminal is None:
+            raise RuntimeError(f"ER-9 v4 candidate did not terminalize: {runtime}")
+        entries.append(
+            {
                 "candidate": candidate,
-                "reused_stage1": True,
-                "stage1_evaluation_id": stage1_row["evaluation_id"],
-                "runtime_root": str(_stage1_runtime(candidate).relative_to(REPO)),
-                "real_chain_validation": {
-                    "validation_n_correct": stage1_row["n_correct"],
-                    "validation_total": stage1_row["n_total"],
-                    "selected": stage1_row["selected_phy"],
-                },
-                "evaluation_id": stage1_row["evaluation_id"],
-                "source_binding": source,
-                "test_access": 0,
-            })
-        else:
-            path = eval_root / f"{_candidate_slug(candidate['transmit_dim'], candidate['quantiser_bits'])}.json"
-            body = _read_existing_evaluation(path, "er9stage2eval-", candidate)
-            if body is None:
-                body = _evaluate_one_er9_candidate(cfg, candidate, _stage2_runtime(candidate), source)
-                body["reused_stage1"] = False
-                body["evaluation_id"] = "er9stage2eval-" + canonical_sha256(body)
-                _write_immutable(body, path)
-            evaluations.append(body)
-    rows = [
-        {
-            "transmit_dim": body["candidate"]["transmit_dim"],
-            "quantiser_bits": body["candidate"]["quantiser_bits"],
-            "n_correct": body["real_chain_validation"]["validation_n_correct"],
-            "n_total": body["real_chain_validation"]["validation_total"],
-            "selected_phy": body["real_chain_validation"]["selected"],
-            "evaluation_id": body.get("evaluation_id", body.get("stage1_evaluation_id")),
-            "reused_stage1": bool(body["reused_stage1"]),
-            "runtime_root": body["runtime_root"],
-        }
-        for body in evaluations
-    ]
-    selected = dict(select_stage2(rows))
-    body = {
-        "schema_version": 1,  # literal-ok: Stage-2 selection schema
-        "artifact_role": "ER9_STAGE2_TERMINAL_SELECTION",
-        "status": "SELECTED_PAIR_FROZEN",
-        "authorization_id": auth["authorization_id"],
-        "stage1_selection_id": selection1["selection_id"],
-        "source_binding": source,
-        "candidate_order": auth["stage2_candidate_order"],
-        "training_run_count_new": auth["stage2_training_count"],
-        "selection_metric": auth["stage2_selection_metric"],
-        "tie_break": auth["stage2_tie_break"],
-        "rows": rows,
-        "selected": selected,
-        "selected_factorisation": factorisation_for_dimension(int(selected["transmit_dim"])).as_dict(),
-        "test_access": 0,
-    }
-    body["selection_id"] = "er9stage2selection-" + canonical_sha256(body)
-    _write_immutable(body, STAGE2_SELECTION)
-    print(f"ER-9 Stage-2 selected (D,b)=({selected['transmit_dim']},{selected['quantiser_bits']}) with n_correct={selected['n_correct']}")
-
-
-def run_final_production() -> None:
-    _require_committed(STAGE2_SELECTION)
-    if PRODUCTION.exists() or PRODUCTION.is_symlink():
-        raise RuntimeError("ER-9 final production manifest already exists; refusing a second production set")
-    selection = _read(STAGE2_SELECTION)
-    if selection["status"] != "SELECTED_PAIR_FROZEN":
-        raise RuntimeError("ER-9 selected pair is not frozen")
-    selected = selection["selected"]
-    dimension = int(selected["transmit_dim"])
-    bits = int(selected["quantiser_bits"])
-    pairs = tuple(zip(get("evaluation.train_seeds"), get("evaluation.channel_seeds"), strict=True))
-    if pairs != ((0, 0), (1, 1), (2, 2)):
-        raise RuntimeError(f"unexpected zipped production seed cells: {pairs}")
-    search_profile = selection["source_binding"]["execution_profile_binding"]
-    production_profiles: dict[tuple[int, int], dict[str, Any]] = {}
-    for train_seed, channel_seed in pairs:
-        if (int(train_seed), int(channel_seed)) == (0, 0):
-            production_profiles[(0, 0)] = dict(search_profile)
-        else:
-            cfg = _config("configs/er9-digital.yaml", int(train_seed), int(channel_seed))
-            production_profiles[(int(train_seed), int(channel_seed))] = _profile_binding(cfg)
-    stage1_auth = _read(STAGE1_AUTH)
-    architecture_difference = {
-        "schema_version": 1,  # literal-ok: ER-9 architecture-difference schema
-        "artifact_role": "ER9_ARCHITECTURE_DIFFERENCE_AUDIT",
-        "source_binding": selection["source_binding"],
-        "declared_shared_components": list(get("digital_semantic_control.shared_with_learned")),
-        "declared_difference": str(get("digital_semantic_control.differs_only_in")),
-        "observed_shared_components": {
-            "encoder_arch": str(get("learned_system.encoder_arch")),
-            "encoder_trunk": "djscc_residual_v1_input_normalisation_stem_body_entry_residual_stack",
-            "task_head_arch": "ImageClassificationHead_adaptive_global_average_pooling_plus_linear",
-            "train_split": "train",
-            "augmentation": list(get("learned_system.augmentation")),
-            "optimizer": str(get("learned_system.optimizer_implementation")),
-            "epochs": int(get("learned_system.epochs.imagenette160")),
-        },
-        "learned_interface": {
-            "representation": "encoder_projection_complex_symbols",
-            "transport": "learned_awgn_channel",
-            "post_interface": "learned_decoder_residual_then_reconstruction_and_task_heads",
-        },
-        "er9_interface": {
-            "representation": str(get("digital_semantic_control.pre_interface_tap")),
-            "projection": "trainable_body_channels_to_selected_output_channels",
-            "pooling": "AdaptiveAvgPool2d_8x8",
-            "quantiser": str(get("digital_semantic_control.quantiser")),
-            "transport": "existing_digital_packet_ldpc_modulation_awgn_chain",
-            "post_interface": str(get("digital_semantic_control.post_interface_task_path")),
-            "reconstruction_head": str(get("digital_semantic_control.reconstruction_head")),
-            "loss": str(get("digital_semantic_control.training_loss")),
-            "lambda": str(get("digital_semantic_control.training_lambda")),
-        },
-        "architecture_difference_paths": ["channel_interface"],
-        "only_declared_difference": True,
-        "am96_semantics": "task_only_er9_interface_difference_is_the_declared_channel_interface",
-        "test_access": 0,
-    }
-    computed_architecture = compare_architectures(
-        {
-            "encoder_arch": str(get("learned_system.encoder_arch")),
-            "encoder_trunk": "djscc_residual_v1_input_normalisation_stem_body_entry_residual_stack",
-            "preprocessing": "configured_imagenette160_preprocessing",
-            "task_head_arch": "ImageClassificationHead_adaptive_global_average_pooling_plus_linear",
-            "train_split": "train",
-            "augmentation": list(get("learned_system.augmentation")),
-            "optimizer": str(get("learned_system.optimizer_implementation")),
-            "epochs": int(get("learned_system.epochs.imagenette160")),
-            "interface": {"channel_interface": "learned_awgn"},
-        },
-        {
-            "encoder_arch": str(get("learned_system.encoder_arch")),
-            "encoder_trunk": "djscc_residual_v1_input_normalisation_stem_body_entry_residual_stack",
-            "preprocessing": "configured_imagenette160_preprocessing",
-            "task_head_arch": "ImageClassificationHead_adaptive_global_average_pooling_plus_linear",
-            "train_split": "train",
-            "augmentation": list(get("learned_system.augmentation")),
-            "optimizer": str(get("learned_system.optimizer_implementation")),
-            "epochs": int(get("learned_system.epochs.imagenette160")),
-            "interface": {"channel_interface": "er9_digital_packet_ldpc_modulation_awgn"},
-        },
-    )
-    architecture_difference.update(computed_architecture)
-    architecture_difference.pop("audit_id", None)
-    architecture_difference["audit_id"] = "er9archdiffv2-" + canonical_sha256(architecture_difference)
-    _write_immutable(architecture_difference, ARCHITECTURE_DIFF)
-    entries = []
-    new_training = 0
-    search_runtime = Path(REPO / str(next(row for row in selection["rows"] if row["transmit_dim"] == dimension and row["quantiser_bits"] == bits).get("runtime_root", "")))
-    for train_seed, channel_seed in pairs:
-        cfg = _config("configs/er9-digital.yaml", int(train_seed), int(channel_seed))
-        if train_seed == 0:
-            runtime = search_runtime
-            completion = _validate_runtime_completion(runtime, {"transmit_dim": dimension, "quantiser_bits": bits})
-            source_binding = selection["source_binding"]
-            promoted = True
-        else:
-            candidate = {"transmit_dim": dimension, "quantiser_bits": bits}
-            runtime = CHECKPOINT_ROOT / "production" / f"train{train_seed}_channel{channel_seed}"
-            profile = production_profiles[(int(train_seed), int(channel_seed))]
-            source_binding = {
-                "schema_version": 1,  # literal-ok: ER source binding schema
-                "implementation_commit": selection["source_binding"]["implementation_commit"],
-                "source_manifest_id": selection["source_binding"]["source_manifest_id"],
-                "source_manifest_sha256": selection["source_binding"]["source_manifest_sha256"],
-                "execution_source_commit": _git("rev-parse", "HEAD"),
-                "execution_profile_binding": profile,
+                "runtime_root": str(runtime.relative_to(REPO)),
+                "terminal": terminal,
+                "terminal_sha256": _sha(runtime / "run_terminal.json"),
+                "selected_epoch": terminal["selected_epoch"],
+                "selected_checkpoint_sha256": terminal["selected_checkpoint_sha256"],
                 "test": "SEALED",
                 "test_access": 0,
             }
-            run = _train_er9_candidate(cfg, candidate, runtime, {
-                **source_binding,
-            }, "production")
-            completion = run["completion"]
-            new_training += 0 if run["reused_existing_attempt"] else 1
-            promoted = False
-        entries.append({
-            "train_seed": int(train_seed),
-            "channel_seed": int(channel_seed),
-            "candidate": {"transmit_dim": dimension, "quantiser_bits": bits},
-            "runtime_root": str(runtime.relative_to(REPO)),
-            "completion": completion,
-            "completion_sha256": _file_sha(runtime / "run_completion.json"),
-            "execution_profile_binding": source_binding["execution_profile_binding"],
-            "promoted_search_run": promoted,
-            "config_hash": config_hash(cfg),
-            "test_access": 0,
-        })
-    body = {
-        "schema_version": 1,  # literal-ok: ER-9 production manifest schema
-        "artifact_role": "ER9_FINAL_PRODUCTION_MANIFEST",
-        "status": "THREE_ZIPPED_SEED_CELLS_AVAILABLE",
-        "source_binding": selection["source_binding"],
-        "selection_id": selection["selection_id"],
-        "selected_pair": {"transmit_dim": dimension, "quantiser_bits": bits},
-        "selected_factorisation": factorisation_for_dimension(dimension).as_dict(),
-        "architecture_difference": str(ARCHITECTURE_DIFF.relative_to(REPO)),
-        "architecture_difference_sha256": _file_sha(ARCHITECTURE_DIFF),
-        "packet_floor": stage1_auth["packet_floor"],
-        "budget_proof": {
-            "rule": "D_times_bits_plus_metadata_bits_at_most_A_floor_bits",
-            "metadata_bits": stage1_auth["metadata_bits"],
-            "selected_raw_bound_bits": dimension * bits + int(stage1_auth["metadata_bits"]),
-            "A_floor_bits": stage1_auth["packet_floor"]["payload_bits"],
-            "selected_pair_feasible": dimension * bits + int(stage1_auth["metadata_bits"]) <= int(stage1_auth["packet_floor"]["payload_bits"]),
-            "all_admissible_pairs": stage1_auth["admissible_pairs"],
-            "rejected_pairs": stage1_auth["rejected_pairs"],
-        },
-        "seed_pairing": "zipped_not_cross_product",
-        "seed_cells": entries,
-        "search_training_count": int(_read(STAGE1_AUTH)["stage1_training_count"] + _read(STAGE2_AUTH)["stage2_training_count"]),
-        "final_production_training_count": new_training,
-        "full_configured_pair_count": int(_read(STAGE1_AUTH)["configured_pair_count"]),
-        "admissible_pair_count": int(_read(STAGE1_AUTH)["admissible_pair_count"]),
-        "test_access": 0,
-        "test": "SEALED",
-    }
-    _write_immutable(body, PRODUCTION)
-    print(f"ER-9 final production set complete: {new_training} new runs; selected (D,b)=({dimension},{bits})")
-
-
-def run_er9_validation() -> None:
-    _require_committed(PRODUCTION)
-    manifest = _read(PRODUCTION)
-    result_root = RESULT_ROOT / "final_validation"
-    snrs = tuple(int(value) for value in get("channel.test_snr_grid_db"))
-    for entry in manifest["seed_cells"]:
-        path = result_root / f"train{entry['train_seed']}_channel{entry['channel_seed']}.json"
-        if path.exists() or path.is_symlink():
-            if path.is_symlink():
-                raise RuntimeError(f"ER-9 validation artifact is an unsafe symlink: {path}")
-            existing = _read(path)
-            identifier = existing.get("evidence_id")
-            without_id = dict(existing)
-            without_id.pop("evidence_id", None)
-            if (
-                identifier != "er9validation-" + canonical_sha256(without_id)
-                or existing.get("seed_cell") != {
-                    "train_seed": entry["train_seed"],
-                    "channel_seed": entry["channel_seed"],
-                }
-                or existing.get("selected_pair") != manifest["selected_pair"]
-                or existing.get("test_access") != 0
-                or existing.get("test") != "SEALED"
-            ):
-                raise RuntimeError(f"ER-9 validation artifact differs: {path}")
-            print(f"ER-9 validation cell already authenticated; reusing {path.name}")
-            continue
-        cfg = _config("configs/er9-digital.yaml", int(entry["train_seed"]), int(entry["channel_seed"]))
-        runtime = REPO / str(entry["runtime_root"])
-        selected = _read(runtime / "selected_checkpoint.json")["selection"]
-        checkpoint = runtime / str(selected["checkpoint_path"])
-        model = load_er9_checkpoint(
-            cfg,
-            transmit_dim=int(manifest["selected_pair"]["transmit_dim"]),
-            quantiser_bits=int(manifest["selected_pair"]["quantiser_bits"]),
-            checkpoint_path=checkpoint,
-            device="cuda:0",
         )
-        entropy, entropy_record = fit_entropy_model(model, cfg, device="cuda:0", num_workers=4)
-        features = collect_validation_features(model, cfg, device="cuda:0", num_workers=4)
-        curves = []
-        for snr in snrs:
-            curves.append(evaluate_candidate_at_snr(
-                model,
-                cfg,
-                entropy=entropy,
-                dimension=int(manifest["selected_pair"]["transmit_dim"]),
-                quantiser_bits=int(manifest["selected_pair"]["quantiser_bits"]),
-                snr_db=snr,
-                device="cuda:0",
-                num_workers=4,
-                validation_features=features,
-                include_per_image=True,
-            ))
-        body = {
-            "schema_version": 1,  # literal-ok: ER-9 final validation schema
-            "artifact_role": "ER9_FINAL_VALIDATION_ONLY_EVIDENCE",
-            "source_binding": manifest["source_binding"],
-            "seed_cell": {"train_seed": entry["train_seed"], "channel_seed": entry["channel_seed"]},
-            "selected_pair": manifest["selected_pair"],
-            "checkpoint": {"path": str(checkpoint.relative_to(REPO)), "sha256": _file_sha(checkpoint), "selection": selected},
-            "entropy_model": entropy_record,
-            "snr_grid_db": list(snrs),
-            "curves": curves,
-            "validation_only": True,
-            "test_access": 0,
-            "test": "SEALED",
-        }
-        body["evidence_id"] = "er9validation-" + canonical_sha256(body)
-        _write_immutable(body, path)
-        print(f"ER-9 validation cell complete: train{entry['train_seed']}/channel{entry['channel_seed']}")
-
-
-def run_er2_train() -> None:
-    _require_committed(PRODUCTION)
-    _assert_clean_parity()
-    if ER2_COMPLETION.exists():
-        raise RuntimeError("randomized ER-2 completion already exists; refusing a second run")
-    cfg = _config("configs/learned-er2-randomized.yaml", 0, 0)  # literal-ok: first ER-2 zipped seed cell
-    binding = _profile_binding(cfg)
-    source = {
-        "schema_version": 1,  # literal-ok: ER source binding schema
-        "implementation_commit": _read(PRODUCTION)["source_binding"]["implementation_commit"],
-        "source_manifest_id": _read(PRODUCTION)["source_binding"]["source_manifest_id"],
-        "source_manifest_sha256": _read(PRODUCTION)["source_binding"]["source_manifest_sha256"],
-        "execution_source_commit": binding["git_commit"],
-        "execution_profile_binding": binding,
-        "test": "SEALED",
-        "test_access": 0,
-    }
-    runtime = CHECKPOINT_ROOT / "er2_randomized" / "train0_channel0"
-    trainer = ER2RandomizedTrainer(
-        cfg,
-        device="cuda:0",
-        runtime_root=runtime,
-        source_binding=source,
-        campaign_id="er2_randomized_single_run",
-        run_id="er2-randomized-r_1_6-train0-channel0",
-    )
-    completion = trainer.run()
-    runtime_completion = _read(runtime / "run_completion.json")
-    audit = _read(runtime / "snr_assignment_audit.json")
-    _write_immutable({
-        **completion,
-        "source_binding": source,
-        "runtime_root": str(runtime.relative_to(REPO)),
-        "completion_sha256": _file_sha(runtime / "run_completion.json"),
-        "scientific_training_run_count": 1,
-        "test_access": 0,
-    }, ER2_COMPLETION)
-    _write_immutable({
-        **audit,
-        "source_binding": source,
-        "runtime_root": str(runtime.relative_to(REPO)),
-        "audit_sha256": _file_sha(runtime / "snr_assignment_audit.json"),
-        "test_access": 0,
-    }, ER2_AUDIT)
-    if runtime_completion.get("training_run_count") != 1:
-        raise RuntimeError("randomized ER-2 completion does not record exactly one run")
-    print("randomized ER-2 training complete: exactly one scientific run")
-
-
-def run_er2_validation() -> None:
-    _require_committed(ER2_COMPLETION)
-    _assert_clean_parity()
-    if ER2_VALIDATION.exists() or ER2_VALIDATION.is_symlink():
-        if ER2_VALIDATION.is_symlink():
-            raise RuntimeError("randomized ER-2 validation artifact is an unsafe symlink")
-        existing = _read(ER2_VALIDATION)
-        identifier = existing.get("evidence_id")
-        without_id = dict(existing)
-        without_id.pop("evidence_id", None)
-        if identifier != "er2validation-" + canonical_sha256(without_id) or existing.get("test") != "SEALED" or existing.get("test_access") != 0:
-            raise RuntimeError("randomized ER-2 validation artifact differs")
-        print("randomized ER-2 validation already authenticated; refusing a second evaluation")
-        return
-    completion = _read(ER2_COMPLETION)
-    cfg = _config("configs/learned-er2-randomized.yaml", 0, 0)  # literal-ok: first ER-2 zipped seed cell
-    runtime = REPO / str(completion["runtime_root"])
-    selected = _read(runtime / "selected_checkpoint.json")["selection"]
-    model = build_djscc(cfg, device="cuda:0")
-    checkpoint = runtime / str(selected["checkpoint_path"])
-    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
-    if payload.get("config_hash") != config_hash(cfg):
-        raise RuntimeError("randomized ER-2 checkpoint config differs")
-    model.load_state_dict(payload["model_state"], strict=True)
-    model.eval()
-    curves = [
-        evaluate_er2_at_snr(model, cfg, snr_db=snr, device="cuda:0", num_workers=4)
-        for snr in (int(value) for value in get("channel.test_snr_grid_db"))
-    ]
     body = {
-        "schema_version": 1,  # literal-ok: randomized ER-2 validation schema
-        "artifact_role": "ER2_RANDOMIZED_VALIDATION_ONLY_EVIDENCE",
-        "source_binding": completion["source_binding"],
-        "run_identity": "er2-randomized-r_1_6-train0-channel0",
-        "selected_checkpoint": {"path": str(checkpoint.relative_to(REPO)), "sha256": _file_sha(checkpoint), "selection": selected},
-        "snr_grid_db": [int(value) for value in get("channel.test_snr_grid_db")],
-        "curves": curves,
-        "scientific_training_run_count": 1,
-        "validation_only": True,
-        "test_access": 0,
+        "schema_version": 1,
+        "artifact_role": "ER9_STAGE1_V4_TERMINAL_INDEX",
+        "source_commit": manifest["source_commit"],
+        "source_manifest_id": manifest["manifest_id"],
+        "authority_id": authority["authority_id"],
+        "runtime_root": authority["runtime_root"],
+        "candidate_order": entries,
+        "training_count": len(entries),
+        "selection_performed": False,
         "test": "SEALED",
+        "test_access": 0,
     }
-    body["evidence_id"] = "er2validation-" + canonical_sha256(body)
-    _write_immutable(body, ER2_VALIDATION)
-    print("randomized ER-2 validation evidence complete")
+    body["index_id"] = "er9stage1v4index-" + canonical_sha256(body)
+    _write_immutable(STAGE1_INDEX, body)
+    print(f"ER-9 v4 Stage-1 training complete: {len(entries)} terminal candidates")
 
 
-def run_g11() -> None:
-    _require_committed(PRODUCTION)
-    er9_paths = [
-        RESULT_ROOT / "final_validation" / "train0_channel0.json",
-        RESULT_ROOT / "final_validation" / "train1_channel1.json",
-        RESULT_ROOT / "final_validation" / "train2_channel2.json",
-    ]
-    for er9_path in er9_paths:
-        _require_committed(er9_path)
-    _require_committed(ER2_COMPLETION)
-    _require_committed(ER2_AUDIT)
-    _require_committed(ER2_VALIDATION)
-    production = _read(PRODUCTION)
-    # H4 is ordinary learned W8/G-10 versus final ER-9.  The randomized ER-2
-    # validation artifact is a separate robustness result and is intentionally
-    # not read for this comparator.
-    ordinary_path = REPO / "results/learned/w9/g10_h4_ordinary_trajectories.json"
-    _require_committed(ordinary_path)
-    ordinary = _read(ordinary_path)
-    if ordinary.get("artifact_role") != "G10_ORDINARY_LEARNED_H4_TRAJECTORIES" or ordinary.get("randomized_er2_as_h4_arm") is not False:
-        raise RuntimeError("G-11 ordinary learned trajectory artifact is not an H4 comparator")
-    learned = ordinary["trajectories"]
-    er9_cells: dict[str, dict[str, dict[str, int]]] = {}
-    for cell_index, er9_path in enumerate(er9_paths):
-        er9 = _read(er9_path)
-        cell_key = f"{cell_index}/{cell_index}"
-        cell_rows: dict[str, dict[str, int]] = {}
-        for curve in er9["curves"]:
-            cell_rows[str(curve["snr_db"])] = {
-                str(row["stable_sample_id"]): int(bool(row["correct"]))
-                for row in curve["per_image"]
-            }
-        er9_cells[cell_key] = {
-            stable_id: {snr: value for snr, rows in cell_rows.items() for value in [rows[stable_id]]}
-            for stable_id in next(iter(cell_rows.values()))
+def _load_terminal(runtime: Path) -> dict[str, Any]:
+    terminal = _read(runtime / "run_terminal.json")
+    if terminal.get("test") != "SEALED" or terminal.get("test_access") != 0:
+        raise RuntimeError(f"v4 terminal test boundary differs: {runtime}")
+    return terminal
+
+
+def run_stage1_evaluate() -> None:
+    """Evaluate selected v4 checkpoints only after a complete Stage-1 run."""
+
+    _assert_parity()
+    manifest, authority, config, _solver = _load_stage1()
+    index = _read(STAGE1_INDEX)
+    if index.get("selection_performed") is not False or index.get("authority_id") != authority["authority_id"]:
+        raise RuntimeError("v4 Stage-1 terminal index is not an unselected complete index")
+    from evaluation.er9_campaign import (  # noqa: PLC0415
+        collect_validation_features,
+        evaluate_candidate_at_snr,
+        fit_entropy_model,
+    )
+
+    for item in index["candidate_order"]:
+        candidate = _candidate_identity_fields(item["candidate"])
+        runtime = REPO / str(item["runtime_root"])
+        terminal = _load_terminal(runtime)
+        live = _live_pascal(authority, config)
+        # Trainer construction is the canonical v4 model/optimizer/scaler
+        # construction.  It also authenticates the transactional prefix.
+        trainer = ER9V4CandidateTrainer(
+            config,
+            transmit_dim=candidate["transmit_dim"],
+            quantiser_bits=candidate["quantiser_bits"],
+            device=str(authority["device"]),
+            runtime_root=runtime,
+            source_binding=_source_binding(manifest),
+            campaign_id="er9_stage1_v4",
+            run_id=f"er9-stage1-v4-{_candidate_slug(candidate)}",
+            live_authentication=live,
+            resume=True,
+        )
+        selected_epoch = int(terminal["selected_epoch"])
+        trainer.runtime.restore_epoch(selected_epoch, trainer.model, trainer.optimizer, trainer.scaler)
+        model = trainer.model
+        entropy, entropy_record = fit_entropy_model(model, config, device=authority["device"], num_workers=trainer.num_workers)
+        features = collect_validation_features(model, config, device=authority["device"], num_workers=trainer.num_workers)
+        result = evaluate_candidate_at_snr(
+            model,
+            config,
+            entropy=entropy,
+            dimension=candidate["transmit_dim"],
+            quantiser_bits=candidate["quantiser_bits"],
+            snr_db=int(authority["evaluation_snr_db"]),
+            device=authority["device"],
+            num_workers=trainer.num_workers,
+            validation_features=features,
+            include_per_image=False,
+        )
+        body = {
+            "schema_version": 1,
+            "artifact_role": "ER9_STAGE1_V4_CANDIDATE_EVALUATION",
+            "source_commit": manifest["source_commit"],
+            "source_manifest_id": manifest["manifest_id"],
+            "authority_id": authority["authority_id"],
+            "candidate": candidate,
+            "runtime_root": str(runtime.relative_to(REPO)),
+            "terminal_sha256": _sha(runtime / "run_terminal.json"),
+            "selected_epoch": selected_epoch,
+            "entropy_model": entropy_record,
+            "real_chain_validation": result,
+            "test": "SEALED",
+            "test_access": 0,
         }
-    h4 = compute_h4_precision_diagnostic(learned, er9_cells)
-    h4_path = G11_ROOT / "h4_precision_simulation.json"
-    h4["input_artifacts"] = {
-        "ordinary_learned_trajectories": str(ordinary_path.relative_to(REPO)),
-        "ordinary_learned_trajectories_sha256": _file_sha(ordinary_path),
-        "er9_validation_cells": [
-            {"path": str(path.relative_to(REPO)), "sha256": _file_sha(path)} for path in er9_paths
+        body["evaluation_id"] = "er9stage1v4eval-" + canonical_sha256(body)
+        _write_immutable(STAGE1_EVALUATION_ROOT / f"{_candidate_slug(candidate)}.json", body)
+    print("ER-9 v4 Stage-1 validation evaluations complete")
+
+
+def run_stage1_select() -> None:
+    _assert_parity()
+    manifest, authority, _config, _solver = _load_stage1()
+    rows: list[dict[str, Any]] = []
+    files: list[str] = []
+    for candidate in authority["stage1_candidates"]:
+        candidate = _candidate_identity_fields(candidate)
+        path = STAGE1_EVALUATION_ROOT / f"{_candidate_slug(candidate)}.json"
+        value = _read(path)
+        if value.get("authority_id") != authority["authority_id"] or value.get("candidate") != candidate:
+            raise RuntimeError("v4 Stage-1 evaluation binding differs")
+        result = value.get("real_chain_validation")
+        if not isinstance(result, dict):
+            raise RuntimeError("v4 Stage-1 real-chain result is missing")
+        selected_phy = result.get("selected")
+        if not isinstance(selected_phy, dict) or not isinstance(result.get("validation_n_correct"), int):
+            raise RuntimeError("v4 Stage-1 evaluation count is not exact")
+        rows.append(
+            {
+                **candidate,
+                "n_correct": int(result["validation_n_correct"]),
+                "n_total": int(result["validation_total"]),
+                "selected_phy": selected_phy,
+                "evaluation_id": value["evaluation_id"],
+                "runtime_root": value["runtime_root"],
+                "selected_epoch": value["selected_epoch"],
+                "test": "SEALED",
+                "test_access": 0,
+            }
+        )
+        files.append(str(path.relative_to(REPO)))
+    selected = dict(select_stage1(rows))
+    body = {
+        "schema_version": 1,
+        "artifact_role": "ER9_STAGE1_V4_SELECTION",
+        "source_commit": manifest["source_commit"],
+        "source_manifest_id": manifest["manifest_id"],
+        "authority_id": authority["authority_id"],
+        "candidate_order": [
+            _candidate_identity_fields(candidate) for candidate in authority["stage1_candidates"]
         ],
-    }
-    h4["evidence_id"] = "g11h4-" + canonical_sha256(h4)
-    _write_immutable(h4, h4_path)
-    terminal = {
-        "schema_version": 1,  # literal-ok: G-11 terminal schema
-        "artifact_role": "G11_TERMINAL_VALIDATION_ONLY_CLOSEOUT",
-        "status": "G11_GREEN_NO_TEST_ACCESS",
-        "decision": "GREEN",
-        "source_binding": production["source_binding"],
-        "er9": {
-            "production_manifest": str(PRODUCTION.relative_to(REPO)),
-            "production_manifest_sha256": _file_sha(PRODUCTION),
-            "stage1_selection": str(STAGE1_SELECTION.relative_to(REPO)),
-            "stage1_selection_sha256": _file_sha(STAGE1_SELECTION),
-            "stage2_selection": str(STAGE2_SELECTION.relative_to(REPO)),
-            "stage2_selection_sha256": _file_sha(STAGE2_SELECTION),
-            "architecture_difference": str(ARCHITECTURE_DIFF.relative_to(REPO)),
-            "architecture_difference_sha256": _file_sha(ARCHITECTURE_DIFF),
-            "validation_cells": [
-                {
-                    "path": str(path.relative_to(REPO)),
-                    "sha256": _file_sha(path),
-                }
-                for path in er9_paths
-            ],
-        },
-        "randomized_er2": {
-            "completion": str(ER2_COMPLETION.relative_to(REPO)),
-            "completion_sha256": _file_sha(ER2_COMPLETION),
-            "assignment_audit": str(ER2_AUDIT.relative_to(REPO)),
-            "assignment_audit_sha256": _file_sha(ER2_AUDIT),
-            "validation": str(ER2_VALIDATION.relative_to(REPO)),
-            "validation_sha256": _file_sha(ER2_VALIDATION),
-            "scientific_training_run_count": 1,
-        },
-        "h4": {
-            "artifact": str(h4_path.relative_to(REPO)),
-            "artifact_sha256": _file_sha(h4_path),
-            "gate_decision": h4["gate_decision"],
-            "mde_percentage_points": h4["mde_percentage_points"],
-        },
-        "g10_terminal": {
-            "source": "9515c490aed4439f7ced2c163abef61557654ddf",
-            "evaluations": 63,  # literal-ok: immutable G-10 terminal count
-            "reruns": 0,  # literal-ok: immutable G-10 rerun count
-            "classification": "expected_crossover_observed",
-            "headline_bracket": "-5 -> -4 dB",
-        },
-        "protected_counters": {
-            "g10_evaluations": 63,
-            "g10_reruns": 0,
-            "er9_training": int(production["search_training_count"] + production["final_production_training_count"]),
-            "randomized_er2_training": 1,
-            "g11": 1,
-            "w10": 0,
-            "learned_test_inference": 0,
-            "model_facing_test_access": 0,
-        },
-        "g10_terminal_immutable": True,
+        "candidate_evaluation_files": files,
+        "rows": rows,
+        "selected": selected,
+        "selection_metric": "validation_n_correct",
+        "tie_break": "smallest_transmit_dim",
         "test": "SEALED",
         "test_access": 0,
     }
-    terminal["terminal_id"] = "g11terminal-" + canonical_sha256(terminal)
-    _write_immutable(terminal, G11_ROOT / "g11_terminal_closeout.json")
-    print(f"G-11 terminal closeout complete: H4={h4['gate_decision']}")
+    body["selection_id"] = "er9stage1v4selection-" + canonical_sha256(body)
+    _write_immutable(STAGE1_SELECTION, body)
+    print(f"ER-9 v4 Stage-1 selection complete: D{selected['transmit_dim']}_b{selected['quantiser_bits']}")
+
+
+def _load_er2_authority(path: Path) -> tuple[dict[str, Any], dict[str, Any], Any]:
+    manifest = _load_manifest()
+    authority = load_authority(path, kind="W9_ER2_RANDOMIZED_EXECUTION_AUTHORITY_V4")
+    body = dict(authority)
+    identifier = body.pop("authority_id", None)
+    if identifier != "w9er2randomizedv4auth-" + canonical_sha256(body):
+        raise RuntimeError("v4 ER-2 authority ID differs")
+    if authority.get("source_binding") != manifest:
+        raise RuntimeError("v4 ER-2 source binding differs")
+    config = load_experiment(authority["config_path"], train_seed=0, channel_seed=0)
+    if authority.get("config_hash") != config_hash(config):
+        raise RuntimeError("v4 ER-2 config hash differs")
+    return manifest, authority, config
+
+
+def run_er2_train(authority_path: Path = ER2_AUTHORITY, *, resume: bool = False) -> None:
+    _assert_parity()
+    manifest, authority, config = _load_er2_authority(authority_path)
+    if authority.get("randomized_er2_authorized") is not True:
+        raise RuntimeError("v4 ER-2 authority is not scoped for ER-2")
+    runtime = resolve_runtime_root(REPO, authority)
+    live = _live_pascal(authority, config)
+    trainer = ER2V4RandomizedTrainer(
+        config,
+        device=str(authority["device"]),
+        runtime_root=runtime,
+        source_binding=_source_binding(manifest),
+        campaign_id="er2_randomized_v4",
+        run_id="er2-randomized-v4-train0-channel0",
+        live_authentication=live,
+        resume=resume,
+    )
+    terminal = trainer.run()
+    if terminal is None:
+        raise RuntimeError("v4 ER-2 run did not terminalize")
+    print("randomized ER-2 v4 training complete")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=(
-        "stage1-train", "stage1-evaluate", "stage2-authorize", "stage2-train",
-        "stage2-evaluate", "final-production", "validate-er9", "er2-train",
-        "validate-er2", "g11",
-    ))
+    parser.add_argument("action", choices=("stage1-train", "stage1-evaluate", "stage1-select", "er2-train"))
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--er2-authority", type=Path, default=ER2_AUTHORITY)
     args = parser.parse_args(argv)
-    actions = {
-        "stage1-train": run_stage1_train,
-        "stage1-evaluate": run_stage1_evaluate,
-        "stage2-authorize": build_stage2_authorization,
-        "stage2-train": run_stage2_train,
-        "stage2-evaluate": run_stage2_evaluate,
-        "final-production": run_final_production,
-        "validate-er9": run_er9_validation,
-        "er2-train": run_er2_train,
-        "validate-er2": run_er2_validation,
-        "g11": run_g11,
-    }
-    actions[args.action]()
+    if args.action == "stage1-train":
+        run_stage1_train(resume=args.resume)
+    elif args.action == "stage1-evaluate":
+        run_stage1_evaluate()
+    elif args.action == "stage1-select":
+        run_stage1_select()
+    else:
+        run_er2_train(args.er2_authority, resume=args.resume)
     return 0
 
 

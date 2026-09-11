@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import platform
 import subprocess
 from collections.abc import Mapping
@@ -182,6 +183,70 @@ def _git_value(*args: str) -> str:
     ).stdout.strip()
 
 
+def _normalise_torch_uuid(value: Any) -> str:
+    text = str(value)
+    return text if text.startswith("GPU-") else f"GPU-{text}"
+
+
+def authenticate_cuda_visible_mapping(
+    *,
+    expected_gpu_uuid: str,
+    device: str = "cuda:0",
+    expected_gpu_name: str | None = None,
+    expected_compute_capability: str | None = None,
+) -> dict[str, Any]:
+    """Prove that the frozen physical UUID is the process's logical cuda:0.
+
+    ``nvidia-smi`` enumerates physical devices, while PyTorch enumerates the
+    devices after ``CUDA_VISIBLE_DEVICES`` remapping.  A profile check that
+    only inspected the former could therefore authenticate one GPU and train
+    on another.  This helper is deliberately small and independently
+    testable; it reads the mapping from inside the process that will build the
+    model.
+    """
+
+    import torch
+
+    if device != "cuda:0":
+        raise ProfileAuthenticationError("exact Pascal mapping requires logical cuda:0")
+    visible = os.environ.get("CUDA_VISIBLE_DEVICES")
+    if visible != expected_gpu_uuid:
+        raise ProfileAuthenticationError(
+            "CUDA_VISIBLE_DEVICES does not expose exactly the frozen GPU UUID"
+        )
+    if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
+        raise ProfileAuthenticationError(
+            "exact Pascal mapping requires one visible CUDA device"
+        )
+    properties = torch.cuda.get_device_properties(0)
+    actual_uuid = _normalise_torch_uuid(getattr(properties, "uuid", ""))
+    if actual_uuid != expected_gpu_uuid:
+        raise ProfileAuthenticationError(
+            f"CUDA cuda:0 UUID differs: {actual_uuid!r} != {expected_gpu_uuid!r}"
+        )
+    actual_name = str(properties.name)
+    if expected_gpu_name is not None and actual_name != expected_gpu_name:
+        raise ProfileAuthenticationError(
+            f"CUDA cuda:0 GPU name differs: {actual_name!r} != {expected_gpu_name!r}"
+        )
+    actual_compute = f"{properties.major}.{properties.minor}"
+    if (
+        expected_compute_capability is not None
+        and actual_compute != str(expected_compute_capability)
+    ):
+        raise ProfileAuthenticationError(
+            "CUDA cuda:0 compute capability differs from the frozen authority"
+        )
+    return {
+        "cuda_visible_devices": visible,
+        "logical_device": "cuda:0",
+        "cuda0_gpu_uuid": actual_uuid,
+        "cuda0_gpu_name": actual_name,
+        "cuda0_compute_capability": actual_compute,
+        "device_count": 1,
+    }
+
+
 def authenticate_execution_profile(
     profile_id: str,
     *,
@@ -189,6 +254,8 @@ def authenticate_execution_profile(
     config_hash: str,
     require_openjpeg: bool = False,
     allow_pending_qualification: bool = False,
+    expected_gpu_uuid: str | None = None,
+    require_cuda_visible_mapping: bool = False,
 ) -> dict[str, Any]:
     """Authenticate exact software, lock, device and source identity."""
 
@@ -208,6 +275,17 @@ def authenticate_execution_profile(
     gpu_index = int(device[5:])
     if not torch.cuda.is_available() or gpu_index >= torch.cuda.device_count():
         raise ProfileAuthenticationError(f"CUDA device is unavailable: {device}")
+
+    cuda_mapping: dict[str, Any] | None = None
+    if require_cuda_visible_mapping:
+        if expected_gpu_uuid is None:
+            raise ProfileAuthenticationError(
+                "exact CUDA mapping requires an expected GPU UUID"
+            )
+        cuda_mapping = authenticate_cuda_visible_mapping(
+            expected_gpu_uuid=expected_gpu_uuid,
+            device=device,
+        )
 
     expected_versions = {
         key: str(profile[key])
@@ -238,13 +316,14 @@ def authenticate_execution_profile(
     if gpu_index not in inventory:
         raise ProfileAuthenticationError(f"nvidia-smi did not enumerate GPU {gpu_index}")
     properties = torch.cuda.get_device_properties(gpu_index)
-    torch_uuid = str(properties.uuid)
-    torch_uuid = torch_uuid if torch_uuid.startswith("GPU-") else f"GPU-{torch_uuid}"
+    torch_uuid = _normalise_torch_uuid(properties.uuid)
     gpu = next((item for item in inventory.values() if item["gpu_uuid"] == torch_uuid), None)
     if gpu is None:
         raise ProfileAuthenticationError("Torch UUID is absent from nvidia-smi inventory")
     if gpu["gpu_uuid"] not in profile["allowed_gpu_uuids"]:
         raise ProfileAuthenticationError("GPU UUID is not allowed by the profile")
+    if expected_gpu_uuid is not None and gpu["gpu_uuid"] != expected_gpu_uuid:
+        raise ProfileAuthenticationError("GPU UUID differs from the requested authority")
     if gpu["gpu_name"] not in profile["allowed_gpu_names"]:
         raise ProfileAuthenticationError("GPU name is not allowed by the profile")
     compute_capability = f"{properties.major}.{properties.minor}"
@@ -265,7 +344,7 @@ def authenticate_execution_profile(
     git_dirty = bool(_git_value("status", "--porcelain", "--untracked-files=all"))
     if len(config_hash) != 64:
         raise ProfileAuthenticationError("config hash must be a full SHA-256")
-    return {
+    result = {
         "execution_profile_id": profile_id,
         "lock_file": str(profile["lock_file"]),
         "lock_file_sha256": lock_sha,
@@ -281,6 +360,9 @@ def authenticate_execution_profile(
         "git_dirty": git_dirty,
         "config_hash": config_hash,
     }
+    if cuda_mapping is not None:
+        result["cuda_mapping"] = cuda_mapping
+    return result
 
 
 _ADDITIVE_COMPUTE_KEYS = {"primary_device_scope", "execution_profile_policy"}

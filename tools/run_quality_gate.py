@@ -145,6 +145,19 @@ def _w8_c_commands() -> tuple[list[str], ...]:
     return ()
 
 
+def _w9_v4_commands() -> tuple[list[str], ...]:
+    """Authenticate published W9 v4 source/authority artifacts when present."""
+
+    source = REPO / "results/learned/er9/er_execution_source_manifest_v4.json"
+    authority = REPO / "results/learned/er9/er9_stage1_execution_authorization_v4.json"
+    commands: list[list[str]] = []
+    if _present(source):
+        commands.append(_python_tool("tools/verify_er9_source_manifest_v4.py"))
+    if _present(authority):
+        commands.append(_python_tool("tools/verify_er9_pascal_v4.py"))
+    return tuple(commands)
+
+
 def _static_commands() -> tuple[list[str], ...]:
     return (
         _python_tool("tools/gen_spec_views.py", "--check"),
@@ -218,6 +231,7 @@ def _static_commands() -> tuple[list[str], ...]:
         ),
         *_w8_a_commands(),
         *_w8_c_commands(),
+        *_w9_v4_commands(),
         ["git", "diff", "--check"],
     )
 

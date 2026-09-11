@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Run the synthetic-only CUDA lifecycle smoke for the W9 v4 custody layer.
+"""Run the real W9 v4 trainer lifecycle with deterministic synthetic tensors.
 
-This script deliberately does not import a dataset or instantiate a data
-loader.  It initializes the actual ER-9 model and optimizer with deterministic
-synthetic tensors, then exercises transaction publication, process restart,
-stale-pointer repair, resume, terminalization and terminal idempotence.
+The only tensors made by this script are the two-sample fixture tensors inside
+``W9V4SyntheticFixtureTrainer``.  The script does not import a dataset or a
+loader, and its runtime namespace and evidence are permanently ineligible for
+scientific selection.
 """
 
 from __future__ import annotations
 
 import argparse
-import io
+import hashlib
 import json
+import os
 import platform
 import socket
 import subprocess
@@ -20,25 +21,33 @@ from pathlib import Path
 from typing import Any
 
 import torch
-from torch.nn import functional as F
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from config.run_config import config_hash, load_experiment  # noqa: E402
-from models.er9_digital import build_er9_model  # noqa: E402
-from runtime.transactional_epochs import TransactionalEpochStore, canonical_bytes, sha256_bytes  # noqa: E402
+from config.params import get  # noqa: E402
+from runtime.source_guard import SourceGuardHold, build_manifest  # noqa: E402
+from runtime.w9_authority import W9AuthorityHold, authenticate_live_w9_pascal  # noqa: E402
+from training.deterministic_core import canonical_bytes, canonical_sha256, state_tree_sha256  # noqa: E402
+from training.w9_v4 import W9V4SyntheticFixtureTrainer  # noqa: E402
+from verify_er9_pascal_v4 import assert_synthetic_smoke_ineligible  # noqa: E402
 
 
 FIXTURE_ID = "w9_pascal_v4_lifecycle_smoke_v1"
 RUNTIME_ROOT = REPO / "checkpoints/smoke/w9_pascal_v4_fixture"
 EVIDENCE_PATH = REPO / "results/learned/w9/w9_pascal_v4_lifecycle_smoke.json"
+PROFILE_ID = "confessor_pascal_cu126"
 
 
 def _nvidia_inventory() -> list[dict[str, str]]:
     try:
         output = subprocess.run(
-            ["nvidia-smi", "--query-gpu=index,uuid,name,driver_version", "--format=csv,noheader,nounits"],
+            [
+                "nvidia-smi",
+                "--query-gpu=index,uuid,name,driver_version,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
             capture_output=True,
             text=True,
             check=True,
@@ -46,167 +55,268 @@ def _nvidia_inventory() -> list[dict[str, str]]:
         ).stdout
     except (OSError, subprocess.SubprocessError) as exc:
         raise RuntimeError(f"synthetic Pascal smoke cannot authenticate GPU inventory: {exc}") from None
-    result = []
+    result: list[dict[str, str]] = []
     for line in output.splitlines():
         fields = [field.strip() for field in line.split(",")]
-        if len(fields) == 4:
-            result.append({"index": fields[0], "gpu_uuid": fields[1], "gpu_name": fields[2], "driver_version": fields[3]})
+        if len(fields) != 5:
+            raise RuntimeError("synthetic Pascal smoke found malformed GPU inventory")
+        result.append(
+            {
+                "index": fields[0],
+                "gpu_uuid": fields[1],
+                "gpu_name": fields[2],
+                "driver_version": fields[3],
+                "gpu_vram_mib": fields[4],
+            }
+        )
     if not result:
         raise RuntimeError("synthetic Pascal smoke found no GPU")
     return result
 
 
-def _save_model_state(model: torch.nn.Module, optimizer: torch.optim.Optimizer, scaler: Any, epoch: int) -> bytes:
-    buffer = io.BytesIO()
-    torch.save({"epoch": epoch, "model_state": model.state_dict(), "optimizer_state": optimizer.state_dict(), "scaler_state": None if scaler is None else scaler.state_dict(), "test_access": 0}, buffer)
-    return buffer.getvalue()
+def _git(*args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=REPO, capture_output=True, text=True, check=True
+    ).stdout.strip()
 
 
-def _restore_model_state(model: torch.nn.Module, optimizer: torch.optim.Optimizer, scaler: Any, path: Path) -> dict[str, Any]:
-    payload = torch.load(io.BytesIO(path.read_bytes()), map_location="cpu", weights_only=False)
-    if not isinstance(payload, dict) or payload.get("test_access") != 0:
-        raise RuntimeError("synthetic smoke checkpoint is not authenticated")
-    model.load_state_dict(payload["model_state"], strict=True)
-    optimizer.load_state_dict(payload["optimizer_state"])
-    if scaler is not None:
-        scaler.load_state_dict(payload["scaler_state"])
-    return payload
+def _write_immutable(path: Path, value: dict[str, Any]) -> None:
+    raw = json.dumps(value, indent=2, sort_keys=True, ensure_ascii=True, allow_nan=False).encode("ascii") + b"\n"
+    if path.exists() or path.is_symlink():
+        if path.is_symlink() or path.read_bytes() != raw:
+            raise RuntimeError(f"synthetic smoke evidence already differs: {path}")
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor = path.open("xb")
+    try:
+        descriptor.write(raw)
+        descriptor.flush()
+        os.fsync(descriptor.fileno())
+    finally:
+        descriptor.close()
+    directory = os.open(path.parent, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
 
 
-def _train_one(model: torch.nn.Module, optimizer: torch.optim.Optimizer, scaler: Any, device: torch.device, epoch: int) -> tuple[bytes, dict[str, Any]]:
-    generator = torch.Generator(device="cpu").manual_seed(9400 + epoch)
-    inputs = torch.rand((2, 3, 160, 160), generator=generator, dtype=torch.float32).to(device)
-    labels = torch.tensor([epoch % 10, (epoch + 1) % 10], dtype=torch.long, device=device)
-    optimizer.zero_grad(set_to_none=True)
-    with torch.autocast(device_type="cuda", dtype=torch.float16, enabled=True):
-        output = model(inputs)
-        loss = F.cross_entropy(output.logits, labels)
-    if not torch.isfinite(loss).item():
-        raise RuntimeError("synthetic smoke loss is non-finite")
-    scaler.scale(loss).backward()
-    scaler.unscale_(optimizer)
-    gradients_finite = all(parameter.grad is None or torch.isfinite(parameter.grad).all().item() for parameter in model.parameters())
-    if not gradients_finite:
-        raise RuntimeError("synthetic smoke post-unscale gradients are non-finite")
-    scaler.step(optimizer)
-    scaler.update()
-    correct = int((output.logits.argmax(dim=1) == labels).sum().item())
-    checkpoint = _save_model_state(model, optimizer, scaler, epoch)
-    return checkpoint, {
-        "optimizer_opportunities": 1,
-        "applied_optimizer_steps": 1,
-        "grad_scaler_skips": 0,
-        "validation_n_correct": correct,
-        "synthetic_loss": float(loss.detach().float().item()),
-        "fixture_epoch": epoch,
-        "test_access": 0,
+def _provisional_authority(manifest: dict[str, Any], config: Any, gpu: dict[str, str]) -> dict[str, Any]:
+    profile = get(f"environment.execution_profiles.{PROFILE_ID}")
+    return {
+        "authority_kind": "W9_PASCAL_SYNTHETIC_SMOKE_AUTHORITY_V4",
+        "source_binding": manifest,
+        "source_commit": manifest["source_commit"],
+        "execution_profile_id": PROFILE_ID,
+        "host": "confessor",
+        "gpu_name": gpu["gpu_name"],
+        "gpu_uuid": gpu["gpu_uuid"],
+        "compute_capability": str(profile["compute_capability"]),
+        "device": "cuda:0",
+        "cuda_visible_devices": gpu["gpu_uuid"],
+        "config_hash": config_hash(config),
     }
 
 
-def run(*, require_pascal: bool, expected_gpu_uuid: str | None = None, runtime_root: Path = RUNTIME_ROOT, evidence_path: Path = EVIDENCE_PATH) -> dict[str, Any]:
-    if not torch.cuda.is_available():
-        raise RuntimeError("synthetic Pascal smoke requires actual CUDA")
-    inventory = _nvidia_inventory()
-    host = socket.gethostname()
-    node = platform.node()
-    if expected_gpu_uuid is not None:
-        matching = [item for item in inventory if item["gpu_uuid"] == expected_gpu_uuid]
-        if len(matching) != 1:
-            raise RuntimeError(f"synthetic Pascal smoke exact GPU UUID is unavailable: {expected_gpu_uuid}")
-        gpu = matching[0]
-    else:
-        gpu = inventory[0]
-    if require_pascal:
-        if expected_gpu_uuid is None:
-            raise RuntimeError("synthetic Pascal smoke requires a prospectively frozen exact GPU UUID")
-        if not (host == "confessor" or node == "confessor" or host.startswith("confessor") or node.startswith("confessor")):
-            raise RuntimeError(f"synthetic Pascal smoke host is not Confessor: {host}/{node}")
-        if gpu["gpu_name"] not in {"NVIDIA GeForce GTX 1080 Ti", "NVIDIA TITAN Xp"}:
-            raise RuntimeError(f"synthetic Pascal smoke GPU is not registered Pascal: {gpu['gpu_name']}")
-    device = torch.device("cuda:0")
-    config = load_experiment("configs/er9-digital-pascal-v4.yaml", train_seed=0, channel_seed=0)
-    model = build_er9_model(config, transmit_dim=64, quantiser_bits=2, device=device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    scaler = torch.amp.GradScaler("cuda", enabled=True)
-    identity = {"fixture_id": FIXTURE_ID, "run_id": FIXTURE_ID, "source_binding": "synthetic-only", "config_hash": config_hash(config)}
-    store = TransactionalEpochStore(runtime_root, identity=identity, total_epochs=2, role="W9_SYNTHETIC_ONLY_ER9")
-    if runtime_root.exists():
-        raise RuntimeError(f"synthetic smoke runtime already exists; preserve it and choose a new fixture root: {runtime_root}")
-    store.initialise()
-    checkpoint, record = _train_one(model, optimizer, scaler, device, 0)
-    store.publish_epoch(0, checkpoint, record)
-    # A new process reconstructs the model/optimizer/scaler from the committed
-    # checkpoint. No data loader or scientific dataset is involved.
-    model = build_er9_model(config, transmit_dim=64, quantiser_bits=2, device=device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
-    scaler = torch.amp.GradScaler("cuda", enabled=True)
-    first = store.inspect()[-1]
-    _restore_model_state(model, optimizer, scaler, first.checkpoint_path)
-    checkpoint, record = _train_one(model, optimizer, scaler, device, 1)
-    store.publish_epoch(1, checkpoint, record)
-    second = store.inspect()[-1]
-    stale_pointer = {
-        "schema_version": 1,
-        "artifact_role": "W9_SYNTHETIC_ONLY_ER9",
-        "identity": identity,
-        "epoch": 0,
-        "next_epoch": 1,
-        "epoch_path": "epochs/epoch-0000",
-        "chain_sha256": store.inspect()[0].chain_sha256,
-    }
-    (runtime_root / "latest.json").write_bytes(canonical_bytes(stale_pointer))
-    repaired = store.inspect()[-1]
-    if repaired.epoch != 1 or json.loads((runtime_root / "latest.json").read_bytes())["epoch"] != 1:
-        raise RuntimeError("synthetic smoke did not repair stale pointer")
-    terminal, reused = store.terminalize(selected_epoch=1, selection_metric={"validation_n_correct": record["validation_n_correct"]}, tie_break="earliest_epoch")
-    terminal_again, reused_again = store.terminalize(selected_epoch=1, selection_metric={"validation_n_correct": record["validation_n_correct"]}, tie_break="earliest_epoch")
-    if reused or not reused_again or terminal_again != terminal:
-        raise RuntimeError("synthetic smoke terminalization is not idempotent")
-    evidence = {
-        "schema_version": 1,
-        "artifact_role": "W9_PASCAL_V4_SYNTHETIC_LIFECYCLE_SMOKE",
-        "status": "NON_SCIENTIFIC",
-        "fixture_identity": FIXTURE_ID,
+def _identity(manifest: dict[str, Any], config: Any) -> dict[str, Any]:
+    return {
+        "fixture_id": FIXTURE_ID,
+        "run_id": FIXTURE_ID,
+        "source_binding": {
+            "source_commit": manifest["source_commit"],
+            "manifest_id": manifest["manifest_id"],
+        },
+        "config_hash": config_hash(config),
         "eligibility": {
+            "NON_SCIENTIFIC": True,
             "SYNTHETIC_ONLY": True,
             "INELIGIBLE_FOR_SELECTION": True,
             "INELIGIBLE_FOR_ER9_SEARCH": True,
             "INELIGIBLE_FOR_ER2_RESULT": True,
             "TEST_NOT_ACCESSED": True,
         },
-        "source_commit": __import__("subprocess").run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip(),
+        "test": "SEALED",
+        "test_access": 0,
+    }
+
+
+def run(
+    *,
+    require_pascal: bool,
+    expected_gpu_uuid: str | None = None,
+    runtime_root: Path = RUNTIME_ROOT,
+    evidence_path: Path = EVIDENCE_PATH,
+) -> dict[str, Any]:
+    if not torch.cuda.is_available():
+        raise RuntimeError("synthetic Pascal smoke requires actual CUDA")
+    inventory = _nvidia_inventory()
+    host = socket.gethostname()
+    node = platform.node()
+    if expected_gpu_uuid is None:
+        raise RuntimeError("synthetic Pascal smoke requires an exact frozen GPU UUID")
+    matching = [item for item in inventory if item["gpu_uuid"] == expected_gpu_uuid]
+    if len(matching) != 1:
+        raise RuntimeError(f"synthetic Pascal smoke exact GPU UUID is unavailable: {expected_gpu_uuid}")
+    gpu = matching[0]
+    if require_pascal and not (
+        host == "confessor"
+        or node == "confessor"
+        or host.startswith("confessor")
+        or node.startswith("confessor")
+    ):
+        raise RuntimeError(f"synthetic Pascal smoke host is not Confessor: {host}/{node}")
+    if require_pascal and gpu["gpu_name"] not in {
+        "NVIDIA GeForce GTX 1080 Ti",
+        "NVIDIA TITAN Xp",
+    }:
+        raise RuntimeError(f"synthetic Pascal smoke GPU is not registered Pascal: {gpu['gpu_name']}")
+    if not runtime_root.is_absolute():
+        runtime_root = REPO / runtime_root
+    if runtime_root.exists() or runtime_root.is_symlink():
+        raise RuntimeError(
+            f"synthetic smoke runtime already exists; preserve it and choose a new fixture root: {runtime_root}"
+        )
+
+    config = load_experiment("configs/er9-digital-pascal-v4.yaml", train_seed=0, channel_seed=0)
+    try:
+        manifest = build_manifest(
+            REPO,
+            source_commit=_git("rev-parse", "HEAD"),
+            relevant_config_paths=(
+                "configs/er9-digital-pascal-v4.yaml",
+                "configs/learned-er2-randomized-pascal-v4.yaml",
+                "spec/params.generated.yaml",
+            ),
+        )
+    except SourceGuardHold as exc:
+        raise RuntimeError(f"synthetic smoke source freeze is not coherent: {exc}") from None
+    authority = _provisional_authority(manifest, config, gpu)
+    if require_pascal:
+        # The caller launches this process with CUDA_VISIBLE_DEVICES set to the
+        # exact UUID.  The authenticator proves it is logical cuda:0 before the
+        # shared trainer can construct a model, optimizer, scaler, or dataset.
+        live = authenticate_live_w9_pascal(REPO, authority, config_hash=authority["config_hash"])
+    else:
+        live = {"authority": authority, "environment": {"git_dirty": False}}
+    identity = _identity(manifest, config)
+    device = torch.device("cuda:0")
+
+    first = W9V4SyntheticFixtureTrainer(
+        config,
+        runtime_root=runtime_root,
+        identity=identity,
+        device=device,
+        resume=False,
+    )
+    first.loop.run(max_epochs=1)
+    committed_epoch_zero = first.runtime.inspect()[-1]
+    state_after_epoch_zero = state_tree_sha256(
+        {
+            "model": first.model.state_dict(),
+            "optimizer": first.optimizer.state_dict(),
+            "scaler": first.scaler.state_dict(),
+        }
+    )
+
+    # A fresh adapter instance represents the process/restart boundary.  Its
+    # constructor authenticates the committed prefix and restores the exact
+    # latest model/optimizer/scaler state before epoch 1 is eligible.
+    second = W9V4SyntheticFixtureTrainer(
+        config,
+        runtime_root=runtime_root,
+        identity=identity,
+        device=device,
+        resume=True,
+    )
+    state_after_restart = state_tree_sha256(
+        {
+            "model": second.model.state_dict(),
+            "optimizer": second.optimizer.state_dict(),
+            "scaler": second.scaler.state_dict(),
+        }
+    )
+    if second.loop.completed_epoch != 0 or state_after_restart != state_after_epoch_zero:
+        raise RuntimeError("synthetic smoke did not restore the exact epoch-0 state")
+    terminal = second.loop.run(max_epochs=1)
+    if terminal is None:
+        raise RuntimeError("synthetic smoke did not complete epoch 1")
+    committed = second.runtime.inspect()
+    if [item.epoch for item in committed] != [0, 1]:
+        raise RuntimeError("synthetic smoke committed an unexpected epoch prefix")
+
+    stale_pointer = second.runtime.store._pointer_body(committed_epoch_zero)
+    (runtime_root / "latest.json").write_bytes(canonical_bytes(stale_pointer))
+    repaired = second.runtime.inspect()
+    repaired_pointer = json.loads((runtime_root / "latest.json").read_bytes())
+    if repaired[-1].epoch != 1 or repaired_pointer.get("epoch") != 1:
+        raise RuntimeError("synthetic smoke did not repair the stale pointer")
+
+    terminal_again, reused_again = second.runtime.terminalize(
+        selected_epoch=int(terminal["selected_epoch"]),
+        selection_metric=terminal["selection_metric"],
+        tie_break=terminal["tie_break"],
+    )
+    if not reused_again or terminal_again != terminal:
+        raise RuntimeError("synthetic smoke terminalization is not idempotent")
+
+    evidence = {
+        "schema_version": 1,
+        "artifact_role": "W9_PASCAL_V4_SYNTHETIC_LIFECYCLE_SMOKE",
+        "status": "NON_SCIENTIFIC",
+        "fixture_id": FIXTURE_ID,
+        "fixture_identity": identity,
+        "eligibility": identity["eligibility"],
+        "source_commit": manifest["source_commit"],
+        "source_manifest_id": manifest["manifest_id"],
+        "source_tree_hashes": manifest["tree_hashes"],
+        "pascal_lock_sha256": manifest["requirements_pascal_lock_sha256"],
         "host": host,
         "platform_node": node,
-        "execution_profile": "confessor_pascal_cu126" if require_pascal else "synthetic_cuda_development_only",
+        "execution_profile": PROFILE_ID if require_pascal else "synthetic_cuda_development_only",
         "gpu": gpu,
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
         "cuda_device": "cuda:0",
+        "cuda_mapping": live.get("environment", {}).get("cuda_mapping"),
         "runtime_root": str(runtime_root.relative_to(REPO)) if REPO in runtime_root.resolve().parents else str(runtime_root.resolve()),
         "committed_epoch_count": 2,
-        "restart_resume": "new-process model/optimizer/scaler restored from epoch-0000; epoch-0001 committed exactly once",
+        "restart_resume": {
+            "fresh_adapter_reconstruction": True,
+            "restored_epoch": 0,
+            "exact_model_optimizer_scaler_restore": True,
+            "state_after_epoch_zero_sha256": state_after_epoch_zero,
+            "state_after_restart_sha256": state_after_restart,
+            "epoch_one_committed_once": True,
+        },
         "stale_pointer_repair": True,
         "terminal_id": terminal["terminal_id"],
-        "terminal_sha256": sha256_bytes(canonical_bytes(terminal)),
+        "terminal_sha256": hashlib.sha256(canonical_bytes(terminal)).hexdigest(),
         "terminal_idempotent": True,
         "scientific_data_accesses": 0,
         "test_access": 0,
         "test": "SEALED",
     }
-    evidence_path.parent.mkdir(parents=True, exist_ok=True)
-    if evidence_path.exists():
-        if json.loads(evidence_path.read_bytes()) != evidence:
-            raise RuntimeError("synthetic smoke evidence already exists with different bytes")
-    else:
-        evidence_path.write_bytes((json.dumps(evidence, indent=2, sort_keys=True) + "\n").encode("ascii"))
+    evidence_body = dict(evidence)
+    evidence["evidence_id"] = "w9pascalv4smoke-" + canonical_sha256(evidence_body)
+    assert_synthetic_smoke_ineligible(evidence)
+    _write_immutable(evidence_path, evidence)
+    evidence["evidence_sha256"] = hashlib.sha256(evidence_path.read_bytes()).hexdigest()
     return evidence
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--allow-nonconfessor-development", action="store_true", help="permit local CUDA mechanism testing; output remains ineligible")
-    parser.add_argument("--gpu-uuid", default=None, help="exact registered GPU UUID selected for the Pascal smoke")
+    parser.add_argument("--gpu-uuid", required=True, help="exact registered GPU UUID selected for the Pascal smoke")
+    parser.add_argument("--runtime-root", type=Path, default=RUNTIME_ROOT)
+    parser.add_argument("--evidence-path", type=Path, default=EVIDENCE_PATH)
     args = parser.parse_args(argv)
-    evidence = run(require_pascal=not args.allow_nonconfessor_development, expected_gpu_uuid=args.gpu_uuid)
-    print(f"synthetic W9 v4 lifecycle smoke PASS: {evidence['terminal_id']}")
+    evidence = run(
+        require_pascal=not args.allow_nonconfessor_development,
+        expected_gpu_uuid=args.gpu_uuid,
+        runtime_root=args.runtime_root,
+        evidence_path=args.evidence_path,
+    )
+    print(f"synthetic W9 v4 lifecycle smoke PASS: {evidence['evidence_id']}")
     return 0
 
 

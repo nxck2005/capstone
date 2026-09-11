@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 import re
+import stat
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -87,6 +88,7 @@ class TransactionalEpochStore:
     EPOCH_RE = re.compile(r"^epoch-(\d{4})$")
     STAGING_PREFIX = ".epoch-"
     SCHEMA_VERSION = 1
+    GENESIS_CHAIN = "0" * 64  # literal-ok: fixed-width genesis chain sentinel
 
     def __init__(self, runtime_root: Path, *, identity: Mapping[str, Any], total_epochs: int, role: str) -> None:
         self.runtime_root = Path(runtime_root)
@@ -98,6 +100,9 @@ class TransactionalEpochStore:
         self.role = str(role)
         _require(self.role, "runtime role is empty")
         self.epochs_root = self.runtime_root / "epochs"
+        self._authenticated: list[CommittedEpoch] | None = None
+        self._authenticated_signatures: dict[int, tuple[tuple[int, ...], ...]] = {}
+        self.last_inspect_authenticated_count = 0
 
     def initialise(self) -> None:
         if self.runtime_root.exists():
@@ -105,7 +110,10 @@ class TransactionalEpochStore:
         else:
             self.runtime_root.mkdir(parents=True, exist_ok=False)
         _require(not self.runtime_root.is_symlink(), "runtime root is a symlink")
-        self.epochs_root.mkdir(exist_ok=True)
+        if self.epochs_root.exists() or self.epochs_root.is_symlink():
+            _require(self.epochs_root.is_dir() and not self.epochs_root.is_symlink(), "epochs root is not a directory")
+        else:
+            self.epochs_root.mkdir(exist_ok=False)
         _fsync_directory(self.epochs_root)
 
     def _identity(self, value: Mapping[str, Any], label: str) -> None:
@@ -122,7 +130,45 @@ class TransactionalEpochStore:
         _require(raw == canonical_bytes(value), f"{label} is not canonical")
         return value, raw
 
-    def _authenticate_epoch(self, epoch: int) -> CommittedEpoch:
+    @staticmethod
+    def _signature(path: Path, label: str) -> tuple[int, ...]:
+        try:
+            metadata = path.lstat()
+        except OSError as exc:
+            raise TransactionalRuntimeHold(f"{label} cannot be inspected: {exc}") from None
+        _require(not os.path.islink(path), f"{label} is a symlink")
+        _require(stat.S_ISREG(metadata.st_mode), f"{label} is not a regular file")
+        # ctime catches same-size in-place replacement in the active process;
+        # inode/device also catches replacement by a different file.  This is
+        # a safe cache invalidation check and does not reread old checkpoints.
+        return (
+            int(metadata.st_dev),
+            int(metadata.st_ino),
+            int(metadata.st_size),
+            int(metadata.st_mtime_ns),
+            int(metadata.st_ctime_ns),
+            int(metadata.st_mode),
+        )
+
+    def _epoch_signature(self, epoch: int) -> tuple[tuple[int, ...], ...]:
+        final = self.epochs_root / f"epoch-{epoch:04d}"
+        return tuple(
+            self._signature(final / name, f"epoch {epoch} {name}")
+            for name in ("checkpoint.pt", "record.json", "sidecar.json")
+        )
+
+    def _cache_signatures(self, epochs: list[CommittedEpoch]) -> None:
+        self._authenticated_signatures = {
+            item.epoch: self._epoch_signature(item.epoch) for item in epochs
+        }
+
+    def _authenticate_epoch(
+        self,
+        epoch: int,
+        *,
+        predecessor_chain: str | None = None,
+    ) -> CommittedEpoch:
+        self.last_inspect_authenticated_count += 1
         final = self.epochs_root / f"epoch-{epoch:04d}"
         _require(final.is_dir() and not final.is_symlink(), f"committed epoch directory is missing: {epoch}")
         checkpoint = final / "checkpoint.pt"
@@ -131,7 +177,10 @@ class TransactionalEpochStore:
         _require(checkpoint.is_file() and not checkpoint.is_symlink(), f"epoch {epoch} checkpoint is missing")
         record, record_raw = self._read_json(record_path, f"epoch {epoch} record")
         sidecar, _ = self._read_json(sidecar_path, f"epoch {epoch} sidecar")
-        checkpoint_raw = checkpoint.read_bytes()
+        try:
+            checkpoint_raw = checkpoint.read_bytes()
+        except OSError as exc:
+            raise TransactionalRuntimeHold(f"epoch {epoch} checkpoint cannot be read: {exc}") from None
         checkpoint_sha = sha256_bytes(checkpoint_raw)
         _require(record.get("schema_version") == self.SCHEMA_VERSION, f"epoch {epoch} record schema differs")
         _require(record.get("artifact_role") == self.role, f"epoch {epoch} role differs")
@@ -143,7 +192,10 @@ class TransactionalEpochStore:
         _require(sidecar.get("checkpoint_sha256") == checkpoint_sha, f"epoch {epoch} checkpoint hash differs")
         _require(sidecar.get("record_sha256") == sha256_bytes(record_raw), f"epoch {epoch} record hash differs")
         _require(record.get("checkpoint_sha256") == checkpoint_sha, f"epoch {epoch} record checkpoint hash differs")
-        predecessor = "0" * 64 if epoch == 0 else self._authenticate_epoch(epoch - 1).chain_sha256  # literal-ok: fixed-width genesis chain sentinel
+        if predecessor_chain is None:
+            _require(epoch == 0, "non-genesis epoch authentication requires its predecessor chain")
+            predecessor_chain = self.GENESIS_CHAIN
+        predecessor = predecessor_chain
         _require(sidecar.get("predecessor_chain_sha256") == predecessor, f"epoch {epoch} predecessor chain differs")
         chain_body = {
             "artifact_role": self.role,
@@ -170,13 +222,16 @@ class TransactionalEpochStore:
 
     def _publish_pointer(self, committed: CommittedEpoch) -> None:
         pointer = self._pointer_body(committed)
+        target = self.runtime_root / "latest.json"
+        _require(not target.is_symlink() and (not target.exists() or target.is_file()), "latest pointer is unsafe")
         staging = self.runtime_root / f".latest-{uuid.uuid4().hex}.staging"
         _write_new(staging, canonical_bytes(pointer))
-        os.replace(staging, self.runtime_root / "latest.json")
+        os.replace(staging, target)
         _fsync_directory(self.runtime_root)
 
     def inspect(self, *, repair_pointer: bool = True) -> list[CommittedEpoch]:
         self.initialise()
+        self.last_inspect_authenticated_count = 0
         epochs: list[int] = []
         for child in self.epochs_root.iterdir():
             match = self.EPOCH_RE.fullmatch(child.name)
@@ -189,19 +244,46 @@ class TransactionalEpochStore:
                 continue
         epochs.sort()
         _require(epochs == list(range(len(epochs))), "committed epochs do not form an unbroken prefix")
-        committed = [self._authenticate_epoch(epoch) for epoch in epochs]
+
+        committed: list[CommittedEpoch]
+        cached = self._authenticated
+        cache_usable = cached is not None and len(epochs) >= len(cached)
+        if cache_usable:
+            for item in cached:
+                try:
+                    signature = self._epoch_signature(item.epoch)
+                except TransactionalRuntimeHold:
+                    cache_usable = False
+                    break
+                if signature != self._authenticated_signatures.get(item.epoch):
+                    cache_usable = False
+                    break
+        if cache_usable:
+            committed = list(cached)
+            predecessor = committed[-1].chain_sha256 if committed else self.GENESIS_CHAIN
+            for epoch in range(len(committed), len(epochs)):
+                item = self._authenticate_epoch(epoch, predecessor_chain=predecessor)
+                committed.append(item)
+                predecessor = item.chain_sha256
+        else:
+            committed = []
+            predecessor = self.GENESIS_CHAIN
+            for epoch in epochs:
+                item = self._authenticate_epoch(epoch, predecessor_chain=predecessor)
+                committed.append(item)
+                predecessor = item.chain_sha256
+        self._authenticated = committed
+        self._cache_signatures(committed)
         pointer_path = self.runtime_root / "latest.json"
         if committed:
-            expected = self._pointer_body(committed[-1])
             if pointer_path.exists() or pointer_path.is_symlink():
                 pointer, _ = self._read_json(pointer_path, "latest pointer")
                 _require(pointer.get("schema_version") == self.SCHEMA_VERSION and pointer.get("artifact_role") == self.role, "latest pointer schema differs")
                 self._identity(pointer.get("identity", {}), "latest pointer")
                 pointer_epoch = pointer.get("epoch")
                 _require(isinstance(pointer_epoch, int) and 0 <= pointer_epoch <= committed[-1].epoch, "latest pointer names an impossible epoch")
-                _require(pointer.get("chain_sha256") == committed[pointer_epoch].chain_sha256, "latest pointer chain differs")
-                _require(pointer.get("epoch_path") == str(committed[pointer_epoch].checkpoint_path.parent.relative_to(self.runtime_root)), "latest pointer path differs")
-            if repair_pointer and (not pointer_path.exists() or json.loads(pointer_path.read_bytes()).get("epoch") != committed[-1].epoch):
+                _require(pointer == self._pointer_body(committed[pointer_epoch]), "latest pointer differs from its committed epoch")
+            if repair_pointer and (not pointer_path.exists() or pointer.get("epoch") != committed[-1].epoch):
                 self._publish_pointer(committed[-1])
         elif pointer_path.exists() or pointer_path.is_symlink():
             raise TransactionalRuntimeHold("latest pointer exists without a committed epoch")
@@ -210,6 +292,7 @@ class TransactionalEpochStore:
     def publish_epoch(self, epoch: int, checkpoint_bytes: bytes, record: Mapping[str, Any]) -> CommittedEpoch:
         committed = self.inspect()
         expected_epoch = len(committed)
+        _require(0 <= epoch < self.total_epochs, f"epoch {epoch} is outside the configured run")
         _require(epoch == expected_epoch, f"epoch {epoch} is not the exact next epoch {expected_epoch}")
         final = self.epochs_root / f"epoch-{epoch:04d}"
         _require(not final.exists() and not final.is_symlink(), f"committed epoch {epoch} already exists and cannot be replaced")
@@ -222,7 +305,7 @@ class TransactionalEpochStore:
             "next_epoch": epoch + 1,
             "checkpoint_sha256": sha256_bytes(checkpoint_bytes),
         })
-        predecessor = "0" * 64 if epoch == 0 else committed[-1].chain_sha256  # literal-ok: fixed-width genesis chain sentinel
+        predecessor = self.GENESIS_CHAIN if epoch == 0 else committed[-1].chain_sha256
         record_raw = canonical_bytes(body)
         chain_body = {
             "artifact_role": self.role,
@@ -259,7 +342,9 @@ class TransactionalEpochStore:
             # The staging directory is deliberately left for forensic custody
             # if publication failed after bytes were written.
             raise
-        published = self._authenticate_epoch(epoch)
+        published = self._authenticate_epoch(epoch, predecessor_chain=predecessor)
+        self._authenticated = [*committed, published]
+        self._cache_signatures(self._authenticated)
         self._publish_pointer(published)
         return published
 
