@@ -66,13 +66,7 @@ def _verify_additive_am94(root: Path = REPO) -> dict[str, Any]:
     return verify_am94_boundary(root, outcomes_allowed=True)
 
 
-def _run_f0_authorization() -> None:
-    from baseline.g8_f_f0 import verify_f0_authorization
-
-    import baseline.g8_f_f0 as f0
-
-    original_loader = f0._load_am89_compatibility
-
+def _w9_f0_compatibility_loader(original_loader):
     def load_am89_with_w9_addition() -> dict[str, Any]:
         compatibility = original_loader()
         current = (REPO / "src/config/execution_profiles.py").read_bytes()
@@ -96,12 +90,37 @@ def _run_f0_authorization() -> None:
         )
         return {**compatibility, "entries": entries}
 
-    f0._load_am89_compatibility = load_am89_with_w9_addition
+    return load_am89_with_w9_addition
+
+
+def _run_f0_authorization() -> None:
+    from baseline.g8_f_f0 import verify_f0_authorization
+
+    import baseline.g8_f_f0 as f0
+
+    original_loader = f0._load_am89_compatibility
+    f0._load_am89_compatibility = _w9_f0_compatibility_loader(original_loader)
     try:
         value = verify_f0_authorization(require_zero_prefix=False)
     finally:
         f0._load_am89_compatibility = original_loader
     print("G8_F F0 offline authentication PASS:", value["authorization_id"])
+
+
+def _run_f1_closeout(root: Path) -> None:
+    """Run F1's read-only closeout against the same additive F0 view."""
+
+    import baseline.g8_f_f0 as f0
+
+    original_loader = f0._load_am89_compatibility
+    f0._load_am89_compatibility = _w9_f0_compatibility_loader(original_loader)
+    try:
+        script, *arguments = TARGETS["g8_f1_closeout"]
+        script_path = root / script
+        sys.argv = [str(script_path), *arguments]
+        runpy.run_path(str(script_path), run_name="__main__")
+    finally:
+        f0._load_am89_compatibility = original_loader
 
 
 def _run_w6_complete(root: Path) -> None:
@@ -249,6 +268,9 @@ def _run_w8_a(root: Path) -> None:
 def _execute_target(target: str, root: Path = REPO) -> None:
     if target == "g8_f0_authorization":
         _run_f0_authorization()
+        return
+    if target == "g8_f1_closeout":
+        _run_f1_closeout(root)
         return
     if target == "w6_complete":
         _run_w6_complete(root)
