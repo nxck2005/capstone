@@ -11,10 +11,19 @@ import torch
 
 import config.execution_profiles as execution_profiles
 import runtime.transactional_epochs as transactional_epochs
-from config.run_config import load_experiment
+from config.run_config import config_hash, load_experiment
 from evaluation.er9_search import all_configured_pairs, feasible_pairs, packetisation_floor, stage1_candidates
-from runtime.source_guard import SourceGuardHold, build_manifest
+from runtime.source_guard import (
+    ALLOWED_EVIDENCE_PREFIXES,
+    PROTECTED_PREFIXES,
+    SourceGuardHold,
+    V4_RELEVANT_CONFIG_PATHS,
+    V4_WORKING_TREE_GUARD,
+    assert_v4_manifest_contract,
+    build_manifest,
+)
 from runtime.transactional_epochs import TransactionalEpochStore
+from training.er9_v4 import ER9V4CandidateTrainer
 
 
 REPO = Path(__file__).resolve().parents[1]
@@ -51,6 +60,15 @@ def test_active_stage1_entrypoint_is_v4_only() -> None:
         "selected_checkpoint.json",
         "checkpoint.sidecar",
     ):
+        assert forbidden not in text
+
+
+def test_active_randomized_er2_entrypoint_is_authority_bound_v4_only() -> None:
+    text = (REPO / "tools/run_er9_campaign.py").read_text(encoding="utf-8")
+    assert 'ER2_AUTHORITY = REPO / "results/learned/er2_randomized/er2_execution_authorization_v4.json"' in text
+    assert '"checkpoints/er2_randomized_pascal_v4"' in text
+    assert "ER2V4RandomizedTrainer" in text
+    for forbidden in ("ER2RandomizedTrainer", "latest.json", "checkpoint.sidecar", "selected_checkpoint.json"):
         assert forbidden not in text
 
 
@@ -150,6 +168,25 @@ def test_source_manifest_rejects_hybrid_or_dirty_source_images(tmp_path: Path) -
         build_manifest(root, source_commit=commit, relevant_config_paths=("configs/pascal.yaml",))
 
 
+def test_v4_manifest_contract_has_one_exact_protected_source_image() -> None:
+    manifest = {
+        "schema_version": 2,
+        "manifest_kind": "W9_V4_FULL_SCIENTIFIC_SOURCE_CLOSURE",
+        "source_commit": "a" * 40,
+        "source_commit_comparison": "exact_clean_HEAD_at_freeze",
+        "tree_hashes": {name: "b" * 40 for name in ("repository", "src", "tools", "configs", "spec", "tests")},
+        "requirements_pascal_lock_sha256": "c" * 64,
+        "relevant_config_sha256": {path: "d" * 64 for path in V4_RELEVANT_CONFIG_PATHS},
+        "protected_source_prefixes": list(PROTECTED_PREFIXES),
+        "allowed_evidence_runtime_prefixes": list(ALLOWED_EVIDENCE_PREFIXES),
+        "working_tree_guard": V4_WORKING_TREE_GUARD,
+    }
+    assert_v4_manifest_contract(manifest)
+    manifest["relevant_config_sha256"].pop(V4_RELEVANT_CONFIG_PATHS[-1])
+    with pytest.raises(SourceGuardHold, match="relevant config closure"):
+        assert_v4_manifest_contract(manifest)
+
+
 def test_stage1_arithmetic_is_solver_derived_exactly() -> None:
     config = load_experiment("configs/er9-digital-pascal-v4.yaml", train_seed=0, channel_seed=0)
     floor = packetisation_floor(int(config.resolved["k"]))
@@ -168,10 +205,60 @@ def test_stage1_arithmetic_is_solver_derived_exactly() -> None:
 
 def test_smoke_script_has_only_synthetic_model_path() -> None:
     text = (REPO / "tools/run_w9_pascal_lifecycle_smoke.py").read_text(encoding="utf-8")
-    assert "W9V4SyntheticFixtureTrainer" in text
+    assert "ER9V4CandidateTrainer" in text
+    assert "synthetic_provider" in text
+    assert "W9V4SyntheticFixtureTrainer" not in text
     assert "authenticate_live_w9_pascal" in text
     assert "checkpoints/smoke/" in text
     assert "NON_SCIENTIFIC" in text and "TEST_NOT_ACCESSED" in text
     assert "DataLoader" not in text
     assert "TrainingDJSCCDataset" not in text
     assert "ValidationDJSCCDataset" not in text
+
+
+def test_prospective_er9_trainer_accepts_only_injected_synthetic_fixture(tmp_path: Path) -> None:
+    config = load_experiment("configs/er9-digital-pascal-v4.yaml", train_seed=0, channel_seed=0)
+
+    def provider(epoch: int, _device: torch.device):
+        generator = torch.Generator(device="cpu").manual_seed(9400 + epoch)
+        return (
+            torch.rand((2, 3, 160, 160), generator=generator),
+            torch.tensor([epoch % 10, (epoch + 1) % 10], dtype=torch.long),
+            ("fixture-0", "fixture-1"),
+        )
+
+    kwargs = {
+        "config": config,
+        "transmit_dim": 64,
+        "quantiser_bits": 2,
+        "device": "cpu",
+        "runtime_root": tmp_path / "runtime",
+        "source_binding": {"source_commit": "a" * 40},
+        "campaign_id": "synthetic-er9-v4",
+        "run_id": "synthetic-er9-v4",
+        "live_authentication": {
+            "authority": {
+                "source_binding": {"source_commit": "a" * 40},
+                "config_hash": "placeholder",
+                "execution_profile_id": "confessor_pascal_cu126",
+                "host": "confessor",
+                "device": "cuda:0",
+            },
+            "environment": {"git_dirty": False},
+        },
+        "synthetic_provider": provider,
+        "identity_overrides": {
+            "fixture_id": "synthetic-er9-v4",
+            "eligibility": {"SYNTHETIC_ONLY": True},
+        },
+        "total_epochs": 2,
+        "runtime_role": "W9_SYNTHETIC_ONLY_ER9",
+    }
+    kwargs["live_authentication"]["authority"]["config_hash"] = config_hash(config)
+    first = ER9V4CandidateTrainer(**kwargs, resume=False)
+    assert first.run(max_epochs=1) is None
+    second = ER9V4CandidateTrainer(**kwargs, resume=True)
+    terminal = second.run(max_epochs=1)
+    assert terminal is not None
+    assert terminal["applied_optimizer_steps"] == 2
+    assert [item.epoch for item in second.runtime.inspect()] == [0, 1]

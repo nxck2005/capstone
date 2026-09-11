@@ -15,7 +15,8 @@ sys.path.insert(0, str(REPO / "src"))
 from config.params import get  # noqa: E402
 from config.run_config import config_hash, load_experiment  # noqa: E402
 from evaluation.er9_search import all_configured_pairs, feasible_pairs, packetisation_floor, stage1_candidates  # noqa: E402
-from runtime.source_guard import SourceGuardHold, assert_clean_source_closure  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure, assert_v4_manifest_contract  # noqa: E402
+from runtime.w9_authority import W9AuthorityHold, authenticate_live_w9_pascal  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 
 
@@ -48,6 +49,10 @@ def main(argv: list[str] | None = None) -> int:
     manifest = json.loads(MANIFEST.read_bytes())
     if manifest.get("schema_version") != 2 or not str(manifest.get("manifest_id", "")).startswith("er9sourcev4-"):
         raise SystemExit("v4 source manifest schema differs")
+    try:
+        assert_v4_manifest_contract(manifest)
+    except SourceGuardHold as exc:
+        raise SystemExit(f"v4 source manifest contract differs: {exc}") from None
     try:
         assert_clean_source_closure(REPO, manifest)
     except SourceGuardHold as exc:
@@ -172,6 +177,20 @@ def main(argv: list[str] | None = None) -> int:
         "test": "SEALED",
         "test_access": 0,
     }
+    try:
+        live = authenticate_live_w9_pascal(REPO, body, config_hash=config_hash(config))
+    except (W9AuthorityHold, OSError, RuntimeError, ValueError) as exc:
+        raise SystemExit(f"live Pascal authority authentication failed: {exc}") from None
+    environment = live.get("environment", {})
+    mapping = environment.get("cuda_mapping") if isinstance(environment, dict) else None
+    if (
+        not isinstance(mapping, dict)
+        or environment.get("gpu_uuid") != args.gpu_uuid
+        or environment.get("gpu_name") != args.gpu_name
+        or environment.get("gpu_compute_capability") != str(profile["compute_capability"])
+    ):
+        raise SystemExit("live Pascal authority mapping differs from the selected GPU")
+    body["cuda_mapping"] = mapping
     body["authority_id"] = "w9er9stage1v4auth-" + canonical_sha256(body)
     _write_immutable(TARGET, body)
     print(f"W9 v4 Stage-1 authority: {body['authority_id']}")

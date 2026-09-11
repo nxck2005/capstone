@@ -31,6 +31,18 @@ ALLOWED_EVIDENCE_PREFIXES = (
     "checkpoints/er2_randomized_pascal_v4/",
     "checkpoints/smoke/",
 )
+V4_RELEVANT_CONFIG_PATHS = (
+    "configs/er9-digital-pascal-v4.yaml",
+    "configs/learned-er2-randomized-pascal-v4.yaml",
+    "spec/params.generated.yaml",
+)
+V4_WORKING_TREE_GUARD = {
+    "checks_committed_source_commit_to_head": True,
+    "checks_unstaged_protected_source": True,
+    "checks_staged_protected_source": True,
+    "checks_untracked_protected_source": True,
+    "runtime_and_evidence_only_after_freeze": True,
+}
 
 
 def _require(condition: bool, message: str) -> None:
@@ -62,6 +74,62 @@ def _protected(path: str) -> bool:
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def assert_v4_manifest_contract(manifest: Mapping[str, Any]) -> None:
+    """Authenticate the structural meaning of a W9 v4 source manifest.
+
+    The manifest digest authenticates bytes, but it does not by itself say
+    that those bytes describe the intended closure.  Keep this contract next
+    to the source guard so producers, active executables and verifiers share
+    the same protected/allowed boundary and exact config set.
+    """
+
+    _require(manifest.get("schema_version") == 2, "W9 v4 source manifest schema differs")
+    _require(
+        manifest.get("manifest_kind") == "W9_V4_FULL_SCIENTIFIC_SOURCE_CLOSURE",
+        "W9 v4 source manifest kind differs",
+    )
+    source_commit = manifest.get("source_commit")
+    _require(
+        isinstance(source_commit, str) and len(source_commit) == 40,  # literal-ok: full Git SHA-1 length
+        "W9 v4 source manifest commit is not a full SHA-1",
+    )
+    _require(
+        manifest.get("source_commit_comparison") == "exact_clean_HEAD_at_freeze",
+        "W9 v4 source manifest freeze rule differs",
+    )
+    _require(
+        manifest.get("protected_source_prefixes") == list(PROTECTED_PREFIXES),
+        "W9 v4 protected source boundary differs",
+    )
+    _require(
+        manifest.get("allowed_evidence_runtime_prefixes") == list(ALLOWED_EVIDENCE_PREFIXES),
+        "W9 v4 evidence/runtime boundary differs",
+    )
+    _require(
+        manifest.get("working_tree_guard") == V4_WORKING_TREE_GUARD,
+        "W9 v4 working-tree guard differs",
+    )
+    tree_hashes = manifest.get("tree_hashes")
+    _require(
+        isinstance(tree_hashes, Mapping)
+        and set(tree_hashes) == {"repository", "src", "tools", "configs", "spec", "tests"}
+        and all(isinstance(value, str) and len(value) == 40 for value in tree_hashes.values()),  # literal-ok: Git tree SHA-1 length
+        "W9 v4 source tree hashes are malformed",
+    )
+    relevant = manifest.get("relevant_config_sha256")
+    _require(
+        isinstance(relevant, Mapping)
+        and tuple(sorted(relevant)) == V4_RELEVANT_CONFIG_PATHS
+        and all(isinstance(value, str) and len(value) == 64 for value in relevant.values()),  # literal-ok: SHA-256 length
+        "W9 v4 relevant config closure differs",
+    )
+    lock_sha = manifest.get("requirements_pascal_lock_sha256")
+    _require(
+        isinstance(lock_sha, str) and len(lock_sha) == 64,  # literal-ok: SHA-256 length
+        "W9 v4 Pascal lock identity is malformed",
+    )
 
 
 def git_blob_bytes(root: Path, commit: str, relative: str) -> bytes:
@@ -177,8 +245,11 @@ def build_manifest(root: Path, *, source_commit: str, relevant_config_paths: Ite
 
 __all__ = [
     "ALLOWED_EVIDENCE_PREFIXES",
+    "V4_RELEVANT_CONFIG_PATHS",
+    "V4_WORKING_TREE_GUARD",
     "PROTECTED_PREFIXES",
     "SourceGuardHold",
+    "assert_v4_manifest_contract",
     "assert_clean_source_closure",
     "build_manifest",
     "committed_source_differences",

@@ -121,6 +121,17 @@ def test_gap_and_identity_mismatch_hold(tmp_path: Path) -> None:
     with pytest.raises(TransactionalRuntimeHold, match="identity differs"):
         store.inspect()
 
+    store = _store(tmp_path / "unexpected")
+    (store.epochs_root / "foreign").mkdir()
+    with pytest.raises(TransactionalRuntimeHold, match="unexpected path"):
+        store.inspect()
+
+    store = _store(tmp_path / "epoch-unexpected")
+    _publish(store, 0)
+    (store.epochs_root / "epoch-0000" / "foreign").write_bytes(b"foreign")
+    with pytest.raises(TransactionalRuntimeHold, match="unexpected path"):
+        store.inspect()
+
 
 def test_crash_after_commit_before_pointer_and_terminal_idempotence(tmp_path: Path) -> None:
     store = _store(tmp_path, total=1)

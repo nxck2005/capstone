@@ -12,7 +12,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from runtime.source_guard import SourceGuardHold, assert_clean_source_closure  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure, assert_v4_manifest_contract  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,6 +26,10 @@ def main(argv: list[str] | None = None) -> int:
     digest = hashlib.sha256((json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")).hexdigest()
     if manifest_id != "er9sourcev4-" + digest:
         raise SystemExit("v4 source manifest ID differs")
+    try:
+        assert_v4_manifest_contract(value)
+    except SourceGuardHold as exc:
+        raise SystemExit(f"v4 source manifest contract differs: {exc}") from None
     report = assert_clean_source_closure(REPO, value)
     print(f"W9 v4 source manifest PASS: {manifest_id}; protected drift=none")
     return 0

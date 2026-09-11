@@ -11,7 +11,7 @@ from __future__ import annotations
 import hashlib
 import math
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from contextlib import nullcontext
 from pathlib import Path
 from typing import Any
@@ -19,13 +19,8 @@ from typing import Any
 import torch
 from torch.nn import functional as F
 from torch.optim import Adam
-from torch.utils.data import DataLoader, Dataset
 
-from config.params import get
 from config.run_config import RunConfig, config_hash as run_config_hash
-from data.classifier import EpochPermutationSampler
-from data.djscc_training import TrainingDJSCCDataset
-from data.djscc_validation import ValidationDJSCCDataset
 from models.er9_digital import build_er9_model
 from training.deterministic_core import apply_optimizer_update, canonical_sha256
 from training.w9_v4 import (
@@ -44,6 +39,11 @@ class ER9V4TrainingHold(W9V4TrainingHold):
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise ER9V4TrainingHold(message)
+
+
+SyntheticEpochProvider = Callable[
+    [int, torch.device], tuple[torch.Tensor, torch.Tensor, Sequence[str]]
+]
 
 
 def er9_v4_recipe(config: RunConfig) -> dict[str, Any]:
@@ -128,6 +128,10 @@ class ER9V4CandidateTrainer:
         live_authentication: Mapping[str, Any],
         num_workers: int | None = None,
         resume: bool = False,
+        synthetic_provider: SyntheticEpochProvider | None = None,
+        identity_overrides: Mapping[str, Any] | None = None,
+        total_epochs: int | None = None,
+        runtime_role: str | None = None,
     ) -> None:
         if config.resolved.get("system") != "er9_digital":
             raise ER9V4TrainingHold("ER-9 v4 trainer requires er9_digital")
@@ -135,11 +139,17 @@ class ER9V4CandidateTrainer:
             raise ER9V4TrainingHold("ER-9 v4 source binding is missing")
         if not isinstance(live_authentication, Mapping):
             raise ER9V4TrainingHold("ER-9 v4 live Pascal authentication is missing")
+        authority = live_authentication.get("authority")
+        _require(isinstance(authority, Mapping), "ER-9 v4 live authority proof is missing")
         environment = live_authentication.get("environment")
         if not isinstance(environment, Mapping) or environment.get("git_dirty") is not False:
             raise ER9V4TrainingHold("ER-9 v4 live Pascal authentication is not clean")
         self.config = config
         self.config_hash = run_config_hash(config)
+        _require(authority.get("source_binding") == dict(source_binding), "ER-9 v4 live source authority differs")
+        _require(authority.get("config_hash") == self.config_hash, "ER-9 v4 live config authority differs")
+        _require(authority.get("execution_profile_id") == "confessor_pascal_cu126", "ER-9 v4 live profile differs")
+        _require(authority.get("host") == "confessor" and authority.get("device") == "cuda:0", "ER-9 v4 live device authority differs")
         self.transmit_dim = int(transmit_dim)
         self.quantiser_bits = int(quantiser_bits)
         _require(self.transmit_dim > 0 and self.quantiser_bits > 0, "ER-9 v4 candidate identity is invalid")
@@ -153,10 +163,26 @@ class ER9V4CandidateTrainer:
         self.campaign_id = str(campaign_id)
         self.run_id = str(run_id)
         self.source_binding = dict(source_binding)
+        self.synthetic_provider = synthetic_provider
+        self.runtime_role = self.ROLE if runtime_role is None else str(runtime_role)
+        if self.synthetic_provider is None:
+            _require(self.runtime_role == self.ROLE, "ER-9 v4 scientific runtime role differs")
+            _require(total_epochs is None, "ER-9 v4 scientific epoch authority cannot be overridden")
+        else:
+            _require(
+                self.runtime_role == "W9_SYNTHETIC_ONLY_ER9",
+                "ER-9 v4 synthetic runtime role differs",
+            )
+            _require(total_epochs is not None, "ER-9 v4 synthetic epoch authority is missing")
         self.recipe = er9_v4_recipe(config)
         self.recipe_sha256 = canonical_sha256(self.recipe)
         self.num_workers = int(self.recipe["dataloader_workers"] if num_workers is None else num_workers)
         _require(self.num_workers >= 0, "ER-9 v4 worker count is negative")
+        configured_total_epochs = int(
+            self.config.parameters["learned_system"]["epochs"][self.config.resolved["dataset"]]
+        )
+        self.total_epochs = configured_total_epochs if total_epochs is None else int(total_epochs)
+        _require(self.total_epochs > 0, "ER-9 v4 total epoch authority is not positive")
 
         # The caller has authenticated the live Pascal process immediately
         # before reaching this constructor.  These are the first model and
@@ -193,7 +219,6 @@ class ER9V4CandidateTrainer:
             if self.amp_enabled
             else None
         )
-        total_epochs = int(self.config.parameters["learned_system"]["epochs"][self.config.resolved["dataset"]])
         self.identity = {
             "schema_version": 1,
             "campaign_id": self.campaign_id,
@@ -208,18 +233,25 @@ class ER9V4CandidateTrainer:
             "test": "SEALED",
             "test_access": 0,
         }
+        if identity_overrides is not None:
+            _require(self.synthetic_provider is not None, "ER-9 v4 identity overrides are synthetic-only")
+            _require(
+                set(identity_overrides) <= {"fixture_id", "eligibility"},
+                "ER-9 v4 synthetic identity override is not allowlisted",
+            )
+            self.identity.update(dict(identity_overrides))
         self.runtime = W9V4TrainingRuntime(
             self.runtime_root,
             identity=self.identity,
-            total_epochs=total_epochs,
-            role=self.ROLE,
+            total_epochs=self.total_epochs,
+            role=self.runtime_role,
         )
         self.loop = W9V4TrainingLoop(
             self.runtime,
             model=self.model,
             optimizer=self.optimizer,
             scaler=self.scaler,
-            total_epochs=total_epochs,
+            total_epochs=self.total_epochs,
             train_epoch=self._train_and_validate_epoch,
             selection_metric="validation_n_correct",
             tie_break="earliest_epoch",
@@ -232,7 +264,9 @@ class ER9V4CandidateTrainer:
     def _id_digest(ids: Sequence[str]) -> str:
         return hashlib.sha256("\n".join(ids).encode("ascii")).hexdigest()
 
-    def _expected_ids(self, dataset: Dataset[Any], epoch: int) -> list[str]:
+    def _expected_ids(self, dataset: Any, epoch: int) -> list[str]:
+        from data.classifier import EpochPermutationSampler
+
         source = getattr(dataset, "_source", None)
         source_sample = getattr(source, "source_sample", None)
         _require(callable(source_sample), "ER-9 v4 dataset lacks source-bound IDs")
@@ -246,8 +280,89 @@ class ER9V4CandidateTrainer:
             group["lr"] = value
         return value
 
+    def _train_synthetic_epoch(self, epoch: int) -> dict[str, Any]:
+        provider = self.synthetic_provider
+        if provider is None:
+            raise ER9V4TrainingHold("ER-9 v4 synthetic provider is missing")
+        inputs, labels, stable_ids = provider(epoch, self.device)
+        _require(isinstance(inputs, torch.Tensor), "ER-9 v4 synthetic inputs are not a tensor")
+        _require(isinstance(labels, torch.Tensor), "ER-9 v4 synthetic labels are not a tensor")
+        _require(inputs.ndim == 4 and labels.ndim == 1, "ER-9 v4 synthetic tensor ranks differ")  # literal-ok: image batch and label vector ranks
+        ids = [str(value) for value in stable_ids]
+        count = int(labels.numel())
+        _require(count > 0 and len(ids) == count, "ER-9 v4 synthetic batch identity differs")
+        inputs = inputs.to(self.device, non_blocking=self.device.type == "cuda")
+        labels = labels.to(self.device, non_blocking=self.device.type == "cuda")
+        self.model.train()
+        lr = self._set_lr(epoch)
+        started = time.monotonic()
+        self.optimizer.zero_grad(set_to_none=True)
+        step: V4TrainingStep = v4_training_step(
+            forward=lambda: self.model(inputs),
+            loss_fn=lambda output: F.cross_entropy(output.logits, labels) * count,
+            optimizer=self.optimizer,
+            scaler=self.scaler,
+            device=self.device,
+            amp_enabled=self.amp_enabled,
+            denominator=count,
+        )
+        update = step.optimizer_update
+        if update is None:
+            raise ER9V4TrainingHold("ER-9 v4 synthetic step did not update")
+        if update.applied:
+            self.global_optimizer_step += 1
+        self.optimizer.zero_grad(set_to_none=True)
+        correct = int((step.output.logits.argmax(dim=1) == labels).sum().item())
+        optimizer_steps = int(update.applied)
+        validation = {
+            "epoch": epoch,
+            "path": "synthetic_tensor_fixture_not_validation_data",
+            "n_correct": correct,
+            "n_total": count,
+            "stable_id_order_sha256": self._id_digest(ids),
+            "test_access": 0,
+        }
+        return {
+            "epoch": epoch,
+            "candidate": {"transmit_dim": self.transmit_dim, "quantiser_bits": self.quantiser_bits},
+            "samples": count,
+            "stable_id_count": count,
+            "stable_id_order_sha256": self._id_digest(ids),
+            "stable_id_set_sha256": self._id_digest(sorted(ids)),
+            "microbatches": 1,
+            "optimizer_opportunities": 1,
+            "applied_optimizer_steps": optimizer_steps,
+            "grad_scaler_skips": int(not update.applied),
+            "global_optimizer_step": self.global_optimizer_step,
+            "lr": lr,
+            "loss": step.loss_value / count,
+            "cross_entropy": step.loss_value / count,
+            "reconstruction_mse": None,
+            "lambda": None,
+            "loss_contract": "cross_entropy_only_no_reconstruction_no_lambda",
+            "duration_seconds": time.monotonic() - started,
+            "gradient_checks": {
+                "optimizer_parameter_count": int(update.optimizer_gradients["parameter_count"]),
+                "optimizer_gradient_count_min": int(update.optimizer_gradients["gradient_count"]),
+                "optimizer_gradient_count_max": int(update.optimizer_gradients["gradient_count"]),
+                "last_optimizer": update.optimizer_gradients,
+            },
+            "validation": validation,
+            "validation_n_correct": correct,
+            "validation_n_total": count,
+            "validation_stable_id_order_sha256": validation["stable_id_order_sha256"],
+            "synthetic_only": True,
+            "test_access": 0,
+        }
+
     def train_epoch(self, epoch: int) -> dict[str, Any]:
         _require(epoch == self.loop.completed_epoch + 1, "ER-9 v4 epoch is not the exact next epoch")
+        if self.synthetic_provider is not None:
+            return self._train_synthetic_epoch(epoch)
+        from data.classifier import EpochPermutationSampler
+        from data.djscc_training import TrainingDJSCCDataset
+        from torch.utils.data import DataLoader
+
         dataset = TrainingDJSCCDataset(
             str(self.config.resolved["dataset"]),
             int(self.config.resolved["train_seed"]),
@@ -362,6 +477,9 @@ class ER9V4CandidateTrainer:
 
     @torch.no_grad()
     def validate_training_path(self, epoch: int) -> dict[str, Any]:
+        from data.djscc_validation import ValidationDJSCCDataset
+        from torch.utils.data import DataLoader
+
         dataset = ValidationDJSCCDataset(str(self.config.resolved["dataset"]))
         loader = DataLoader(
             dataset,
@@ -401,6 +519,8 @@ class ER9V4CandidateTrainer:
 
     def _train_and_validate_epoch(self, epoch: int) -> dict[str, Any]:
         record = self.train_epoch(epoch)
+        if self.synthetic_provider is not None:
+            return record
         validation = self.validate_training_path(epoch)
         record["validation"] = validation
         record["validation_n_correct"] = int(validation["n_correct"])

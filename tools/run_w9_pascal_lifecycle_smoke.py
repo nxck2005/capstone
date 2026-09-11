@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Run the real W9 v4 trainer lifecycle with deterministic synthetic tensors.
 
-The only tensors made by this script are the two-sample fixture tensors inside
-``W9V4SyntheticFixtureTrainer``.  The script does not import a dataset or a
-loader, and its runtime namespace and evidence are permanently ineligible for
-scientific selection.
+The only tensors made by this script are the two-sample fixture tensors passed
+to ``ER9V4CandidateTrainer`` through its synthetic provider.  The script does
+not import a dataset or a loader, and its runtime namespace and evidence are
+permanently ineligible for scientific selection.
 """
 
 from __future__ import annotations
@@ -27,10 +27,10 @@ sys.path.insert(0, str(REPO / "src"))
 
 from config.run_config import config_hash, load_experiment  # noqa: E402
 from config.params import get  # noqa: E402
-from runtime.source_guard import SourceGuardHold, build_manifest  # noqa: E402
+from runtime.source_guard import SourceGuardHold, V4_RELEVANT_CONFIG_PATHS, build_manifest  # noqa: E402
 from runtime.w9_authority import W9AuthorityHold, authenticate_live_w9_pascal  # noqa: E402
 from training.deterministic_core import canonical_bytes, canonical_sha256, state_tree_sha256  # noqa: E402
-from training.w9_v4 import W9V4SyntheticFixtureTrainer  # noqa: E402
+from training.er9_v4 import ER9V4CandidateTrainer  # noqa: E402
 from verify_er9_pascal_v4 import assert_synthetic_smoke_ineligible  # noqa: E402
 
 
@@ -118,15 +118,9 @@ def _provisional_authority(manifest: dict[str, Any], config: Any, gpu: dict[str,
     }
 
 
-def _identity(manifest: dict[str, Any], config: Any) -> dict[str, Any]:
+def _identity_overrides() -> dict[str, Any]:
     return {
         "fixture_id": FIXTURE_ID,
-        "run_id": FIXTURE_ID,
-        "source_binding": {
-            "source_commit": manifest["source_commit"],
-            "manifest_id": manifest["manifest_id"],
-        },
-        "config_hash": config_hash(config),
         "eligibility": {
             "NON_SCIENTIFIC": True,
             "SYNTHETIC_ONLY": True,
@@ -135,9 +129,15 @@ def _identity(manifest: dict[str, Any], config: Any) -> dict[str, Any]:
             "INELIGIBLE_FOR_ER2_RESULT": True,
             "TEST_NOT_ACCESSED": True,
         },
-        "test": "SEALED",
-        "test_access": 0,
     }
+
+
+def _synthetic_epoch(epoch: int, _device: torch.device) -> tuple[torch.Tensor, torch.Tensor, tuple[str, str]]:
+    generator = torch.Generator(device="cpu").manual_seed(9400 + epoch)
+    inputs = torch.rand((2, 3, 160, 160), generator=generator, dtype=torch.float32)  # literal-ok: fixed synthetic Imagenette-shaped fixture tensor
+    labels = torch.tensor([epoch % 10, (epoch + 1) % 10], dtype=torch.long)  # literal-ok: fixed synthetic ten-class fixture labels
+    ids = (f"{FIXTURE_ID}-epoch-{epoch}-sample-0", f"{FIXTURE_ID}-epoch-{epoch}-sample-1")
+    return inputs, labels, ids
 
 
 def run(
@@ -182,11 +182,7 @@ def run(
         manifest = build_manifest(
             REPO,
             source_commit=_git("rev-parse", "HEAD"),
-            relevant_config_paths=(
-                "configs/er9-digital-pascal-v4.yaml",
-                "configs/learned-er2-randomized-pascal-v4.yaml",
-                "spec/params.generated.yaml",
-            ),
+            relevant_config_paths=V4_RELEVANT_CONFIG_PATHS,
         )
     except SourceGuardHold as exc:
         raise RuntimeError(f"synthetic smoke source freeze is not coherent: {exc}") from None
@@ -198,14 +194,22 @@ def run(
         live = authenticate_live_w9_pascal(REPO, authority, config_hash=authority["config_hash"])
     else:
         live = {"authority": authority, "environment": {"git_dirty": False}}
-    identity = _identity(manifest, config)
     device = torch.device("cuda:0")
 
-    first = W9V4SyntheticFixtureTrainer(
+    first = ER9V4CandidateTrainer(
         config,
+        transmit_dim=64,
+        quantiser_bits=2,
         runtime_root=runtime_root,
-        identity=identity,
+        source_binding=manifest,
+        campaign_id=FIXTURE_ID,
+        run_id=FIXTURE_ID,
+        live_authentication=live,
         device=device,
+        synthetic_provider=_synthetic_epoch,
+        identity_overrides=_identity_overrides(),
+        total_epochs=2,
+        runtime_role="W9_SYNTHETIC_ONLY_ER9",
         resume=False,
     )
     first.loop.run(max_epochs=1)
@@ -221,11 +225,20 @@ def run(
     # A fresh adapter instance represents the process/restart boundary.  Its
     # constructor authenticates the committed prefix and restores the exact
     # latest model/optimizer/scaler state before epoch 1 is eligible.
-    second = W9V4SyntheticFixtureTrainer(
+    second = ER9V4CandidateTrainer(
         config,
+        transmit_dim=64,
+        quantiser_bits=2,
         runtime_root=runtime_root,
-        identity=identity,
+        source_binding=manifest,
+        campaign_id=FIXTURE_ID,
+        run_id=FIXTURE_ID,
+        live_authentication=live,
         device=device,
+        synthetic_provider=_synthetic_epoch,
+        identity_overrides=_identity_overrides(),
+        total_epochs=2,
+        runtime_role="W9_SYNTHETIC_ONLY_ER9",
         resume=True,
     )
     state_after_restart = state_tree_sha256(
@@ -264,8 +277,8 @@ def run(
         "artifact_role": "W9_PASCAL_V4_SYNTHETIC_LIFECYCLE_SMOKE",
         "status": "NON_SCIENTIFIC",
         "fixture_id": FIXTURE_ID,
-        "fixture_identity": identity,
-        "eligibility": identity["eligibility"],
+        "fixture_identity": first.runtime.identity,
+        "eligibility": first.runtime.identity["eligibility"],
         "source_commit": manifest["source_commit"],
         "source_manifest_id": manifest["manifest_id"],
         "source_tree_hashes": manifest["tree_hashes"],

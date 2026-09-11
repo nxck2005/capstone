@@ -8,8 +8,8 @@ the historical v1-v3 trainers retain their original evidence contracts.
 from __future__ import annotations
 
 import io
-import math
 import os
+import math
 from collections.abc import Callable, Mapping
 from contextlib import nullcontext
 from dataclasses import dataclass
@@ -18,7 +18,6 @@ from typing import Any
 
 import torch
 
-from models.er9_digital import build_er9_model
 from runtime.transactional_epochs import (
     CommittedEpoch,
     TransactionalEpochStore,
@@ -339,72 +338,8 @@ class W9V4TrainingLoop:
         return terminal
 
 
-class W9V4SyntheticFixtureTrainer:
-    """The smoke fixture using the same model, step and lifecycle as W9."""
-
-    def __init__(
-        self,
-        config: Any,
-        *,
-        runtime_root: Path,
-        identity: Mapping[str, Any],
-        device: torch.device,
-        resume: bool,
-    ) -> None:
-        self.device = torch.device(device)
-        self.model = build_er9_model(config, transmit_dim=64, quantiser_bits=2, device=self.device)  # literal-ok: fixed synthetic D64/b2 fixture
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-4)
-        self.scaler = torch.amp.GradScaler("cuda", enabled=self.device.type == "cuda")
-        self.runtime = W9V4TrainingRuntime(
-            runtime_root,
-            identity=identity,
-            total_epochs=2,
-            role="W9_SYNTHETIC_ONLY_ER9",
-        )
-        self.loop = W9V4TrainingLoop(
-            self.runtime,
-            model=self.model,
-            optimizer=self.optimizer,
-            scaler=self.scaler,
-            total_epochs=2,
-            train_epoch=self.train_epoch,
-            resume=resume,
-        )
-
-    def train_epoch(self, epoch: int) -> dict[str, Any]:
-        generator = torch.Generator(device="cpu").manual_seed(9400 + epoch)
-        inputs = torch.rand((2, 3, 160, 160), generator=generator, dtype=torch.float32).to(self.device)  # literal-ok: fixed synthetic Imagenette-shaped fixture tensor
-        labels = torch.tensor([epoch % 10, (epoch + 1) % 10], dtype=torch.long, device=self.device)  # literal-ok: fixed synthetic ten-class fixture labels
-        self.optimizer.zero_grad(set_to_none=True)
-        step = v4_training_step(
-            forward=lambda: self.model(inputs),
-            loss_fn=lambda output: torch.nn.functional.cross_entropy(output.logits, labels),
-            optimizer=self.optimizer,
-            scaler=self.scaler,
-            device=self.device,
-            amp_enabled=self.device.type == "cuda",
-            denominator=2,
-        )
-        if step.optimizer_update is None:
-            raise W9V4TrainingHold("synthetic v4 step did not update")
-        correct = int((step.output.logits.argmax(dim=1) == labels).sum().item())
-        self.optimizer.zero_grad(set_to_none=True)
-        return {
-            "epoch": epoch,
-            "samples": 2,
-            "optimizer_opportunities": 1,
-            "applied_optimizer_steps": int(step.optimizer_update.applied),
-            "grad_scaler_skips": int(not step.optimizer_update.applied),
-            "validation_n_correct": correct,
-            "validation_n_total": 2,
-            "synthetic_loss": step.loss_value,
-            "test_access": 0,
-        }
-
-
 __all__ = [
     "V4TrainingStep",
-    "W9V4SyntheticFixtureTrainer",
     "W9V4TrainingHold",
     "W9V4TrainingLoop",
     "W9V4TrainingRuntime",

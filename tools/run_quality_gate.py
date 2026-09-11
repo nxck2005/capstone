@@ -163,6 +163,8 @@ def _static_commands() -> tuple[list[str], ...]:
         _python_tool("tools/gen_spec_views.py", "--check"),
         *_g10_commands(),
         _python_tool("tools/verify_am95.py"),
+        _python_tool("tools/verify_am96.py", "--allow-downstream"),
+        _python_tool("tools/verify_am97.py", "--downstream"),
         _python_tool("tools/check_doc_consistency.py", "-v"),
         _python_tool("tools/check_literals.py", "-v"),
         _python_tool("tools/gen_g8_f_corpus_plan.py", "--check"),

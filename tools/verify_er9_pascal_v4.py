@@ -16,7 +16,7 @@ sys.path.insert(0, str(REPO / "src"))
 
 from config.run_config import config_hash, load_experiment  # noqa: E402
 from evaluation.er9_search import all_configured_pairs, feasible_pairs, packetisation_floor, stage1_candidates  # noqa: E402
-from runtime.source_guard import SourceGuardHold, assert_clean_source_closure  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure, assert_v4_manifest_contract  # noqa: E402
 from runtime.transactional_epochs import TransactionalEpochStore, TransactionalRuntimeHold  # noqa: E402
 from runtime.w9_authority import W9AuthorityHold, load_authority, resolve_runtime_root  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
@@ -52,6 +52,10 @@ def verify_source_manifest(path: Path = SOURCE) -> dict[str, Any]:
     _require(identifier == "er9sourcev4-" + canonical_sha256(body), "v4 source manifest ID differs")
     _require(value.get("schema_version") == 2, "v4 source manifest schema differs")
     _require(value.get("source_commit_comparison") == "exact_clean_HEAD_at_freeze", "v4 source freeze rule differs")
+    try:
+        assert_v4_manifest_contract(value)
+    except SourceGuardHold as exc:
+        raise W9AuthorityHold(f"v4 source manifest contract differs: {exc}") from None
     try:
         assert_clean_source_closure(REPO, value)
     except SourceGuardHold as exc:
@@ -114,6 +118,8 @@ def verify_stage1_authority(
     _require(source.get("sha256") == _sha(manifest_path), "v4 Stage-1 manifest SHA differs")
     _require(authority.get("source_commit") == manifest["source_commit"], "v4 Stage-1 source commit differs")
     _require(authority.get("source_binding") == manifest, "v4 Stage-1 full source binding differs")
+    _require(authority.get("schema_version") == 1, "v4 Stage-1 authority schema differs")
+    _require(authority.get("status") == "FROZEN_STAGE1_ONLY_PRE_SCIENCE", "v4 Stage-1 authority status differs")
     _require(authority.get("authorization_scope") == "W9_ER9_STAGE1_ONLY", "v4 Stage-1 authority scope differs")
     _require(authority.get("config_path") == "configs/er9-digital-pascal-v4.yaml", "v4 Stage-1 config path differs")
     config = load_experiment(authority["config_path"], train_seed=0, channel_seed=0)
@@ -123,19 +129,38 @@ def verify_stage1_authority(
     _require(authority.get("execution_profile_id") == "confessor_pascal_cu126", "v4 Stage-1 profile differs")
     _require(authority.get("host") == "confessor", "v4 Stage-1 host differs")
     _require(authority.get("device") == "cuda:0", "v4 Stage-1 logical device differs")
-    _require(authority.get("cuda_visible_devices") == authority.get("gpu_uuid"), "v4 Stage-1 visible UUID differs")
+    gpu_uuid = authority.get("gpu_uuid")
+    _require(isinstance(gpu_uuid, str) and gpu_uuid.startswith("GPU-"), "v4 Stage-1 GPU UUID differs")
+    _require(authority.get("cuda_visible_devices") == gpu_uuid, "v4 Stage-1 visible UUID differs")
     mapping = authority.get("cuda_mapping")
-    _require(isinstance(mapping, dict), "v4 Stage-1 CUDA mapping is missing")
-    _require(mapping.get("logical_device") == "cuda:0" and mapping.get("cuda0_gpu_uuid") == authority.get("gpu_uuid"), "v4 Stage-1 CUDA mapping differs")
-    _require(mapping.get("cuda_visible_devices") == authority.get("cuda_visible_devices"), "v4 Stage-1 CUDA_VISIBLE_DEVICES differs")
-    _require(mapping.get("cuda0_gpu_name") == authority.get("gpu_name") and mapping.get("cuda0_compute_capability") == authority.get("compute_capability"), "v4 Stage-1 CUDA identity differs")
+    _require(
+        mapping == {
+            "cuda_visible_devices": gpu_uuid,
+            "logical_device": "cuda:0",
+            "cuda0_gpu_uuid": gpu_uuid,
+            "cuda0_gpu_name": authority.get("gpu_name"),
+            "cuda0_compute_capability": authority.get("compute_capability"),
+            "device_count": 1,
+        },
+        "v4 Stage-1 CUDA mapping differs",
+    )
     _require(authority.get("sole_writer") is True and authority.get("live_authentication_required_immediately_before_model_and_data") is True, "v4 Stage-1 writer/authentication policy differs")
     _require(authority.get("source_working_tree_guard_required") is True, "v4 Stage-1 source guard is not required")
     _require(authority.get("fresh_initialization_required") is True, "v4 Stage-1 fresh initialization is not required")
     _require(authority.get("stage2_authorized") is False and authority.get("production_authorized") is False and authority.get("randomized_er2_authorized") is False, "v4 Stage-1 scope is wider than Stage-1")
     _require(authority.get("test") == "SEALED" and authority.get("test_access") == 0, "v4 Stage-1 test boundary differs")
     counters = authority.get("pre_execution_counters")
-    _require(isinstance(counters, dict) and all(int(value) == 0 for value in counters.values()), "v4 Stage-1 pre-execution counters differ")
+    _require(
+        counters == {
+            "new_er9_v4_training": 0,
+            "randomized_er2_scientific_training": 0,
+            "g11": 0,
+            "w10": 0,
+            "learned_test_inference": 0,
+            "model_facing_test_access": 0,
+        },
+        "v4 Stage-1 pre-execution counters differ",
+    )
     solver = _solver(config)
     proof = authority.get("packet_budget_admissibility_proof")
     _require(isinstance(proof, dict), "v4 Stage-1 solver proof is missing")
@@ -150,6 +175,16 @@ def verify_stage1_authority(
     _require(authority.get("packet_floor") == solver["packet_floor"], "v4 top-level packet floor differs")
     _require(authority.get("configured_pair_count") == len(solver["configured_pairs"]) and authority.get("admissible_pair_count") == len(solver["admissible_pairs"]), "v4 top-level pair counts differ")
     _require(authority.get("admissible_pairs") == solver["admissible_pairs"] and authority.get("rejected_pairs") == solver["rejected_pairs"], "v4 top-level pair lists differ")
+    _require(
+        authority.get("stage1_rule") == {
+            "candidate_order": "ascending_numeric_transmit_dim",
+            "cross_product": False,
+            "quantiser_bits": 2,
+            "selection_metric": "exact_validation_n_correct_at_7db_real_digital_chain",
+            "tie_break": "smallest_transmit_dim",
+        },
+        "v4 Stage-1 candidate rule differs",
+    )
     return manifest, authority, config, solver
 
 
@@ -224,10 +259,18 @@ def verify_stage1_terminals(
             raise W9AuthorityHold("v4 Stage-1 runtime is absent")
         return []
     _require(not root.is_symlink() and root.is_dir(), "v4 Stage-1 runtime root is unsafe")
+    stage1_root = root / "stage1"
+    _require(stage1_root.is_dir() and not stage1_root.is_symlink(), "v4 Stage-1 candidate root is unsafe")
+    expected_names = {
+        f"D{int(candidate['transmit_dim'])}_b{int(candidate['quantiser_bits'])}"
+        for candidate in authority["stage1_candidates"]
+    }
+    actual_names = {child.name for child in stage1_root.iterdir()}
+    _require(actual_names == expected_names, "v4 Stage-1 runtime contains an unexpected candidate or missing candidate")
     reports = []
     for candidate in authority["stage1_candidates"]:
         candidate = {"transmit_dim": int(candidate["transmit_dim"]), "quantiser_bits": int(candidate["quantiser_bits"])}
-        runtime = root / "stage1" / f"D{candidate['transmit_dim']}_b{candidate['quantiser_bits']}"
+        runtime = stage1_root / f"D{candidate['transmit_dim']}_b{candidate['quantiser_bits']}"
         reports.append(_verify_terminal(runtime=runtime, candidate=candidate, manifest=manifest, authority=authority, config=config))
     if require_terminals and len(reports) != int(authority["stage1_training_count"]):
         raise W9AuthorityHold("v4 Stage-1 terminal count differs")

@@ -135,10 +135,16 @@ class ER2V4RandomizedTrainer:
         _require(int(config.resolved["train_seed"]) == 0 and int(config.resolved["channel_seed"]) == 0, "ER-2 v4 requires the first seed cell")
         _require(float(config.resolved["lambda"]) == 3.0, "ER-2 v4 lambda is not the frozen 3.0")
         _require(isinstance(source_binding, Mapping) and source_binding.get("source_commit"), "ER-2 v4 source binding is missing")
+        authority = live_authentication.get("authority") if isinstance(live_authentication, Mapping) else None
+        _require(isinstance(authority, Mapping), "ER-2 v4 live authority proof is missing")
         environment = live_authentication.get("environment") if isinstance(live_authentication, Mapping) else None
         _require(isinstance(environment, Mapping) and environment.get("git_dirty") is False, "ER-2 v4 live Pascal authentication is not clean")
         self.config = config
         self.config_hash = run_config_hash(config)
+        _require(authority.get("source_binding") == dict(source_binding), "ER-2 v4 live source authority differs")
+        _require(authority.get("config_hash") == self.config_hash, "ER-2 v4 live config authority differs")
+        _require(authority.get("execution_profile_id") == "confessor_pascal_cu126", "ER-2 v4 live profile differs")
+        _require(authority.get("host") == "confessor" and authority.get("device") == "cuda:0", "ER-2 v4 live device authority differs")
         self.device = torch.device(device)
         self.runtime_root = Path(runtime_root)
         runtime_exists = self.runtime_root.exists() or self.runtime_root.is_symlink()

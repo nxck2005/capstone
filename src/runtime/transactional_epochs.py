@@ -101,7 +101,7 @@ class TransactionalEpochStore:
         _require(self.role, "runtime role is empty")
         self.epochs_root = self.runtime_root / "epochs"
         self._authenticated: list[CommittedEpoch] | None = None
-        self._authenticated_signatures: dict[int, tuple[tuple[int, ...], ...]] = {}
+        self._authenticated_signatures: dict[int, tuple[Any, ...]] = {}
         self.last_inspect_authenticated_count = 0
 
     def initialise(self) -> None:
@@ -150,11 +150,15 @@ class TransactionalEpochStore:
             int(metadata.st_mode),
         )
 
-    def _epoch_signature(self, epoch: int) -> tuple[tuple[int, ...], ...]:
+    def _epoch_signature(self, epoch: int) -> tuple[Any, ...]:
         final = self.epochs_root / f"epoch-{epoch:04d}"
-        return tuple(
-            self._signature(final / name, f"epoch {epoch} {name}")
-            for name in ("checkpoint.pt", "record.json", "sidecar.json")
+        try:
+            children = tuple(sorted(child.name for child in final.iterdir()))
+        except OSError as exc:
+            raise TransactionalRuntimeHold(f"epoch {epoch} directory cannot be inspected: {exc}") from None
+        return (
+            children,
+            *(self._signature(final / name, f"epoch {epoch} {name}") for name in ("checkpoint.pt", "record.json", "sidecar.json")),
         )
 
     def _cache_signatures(self, epochs: list[CommittedEpoch]) -> None:
@@ -171,6 +175,14 @@ class TransactionalEpochStore:
         self.last_inspect_authenticated_count += 1
         final = self.epochs_root / f"epoch-{epoch:04d}"
         _require(final.is_dir() and not final.is_symlink(), f"committed epoch directory is missing: {epoch}")
+        try:
+            children = {child.name for child in final.iterdir()}
+        except OSError as exc:
+            raise TransactionalRuntimeHold(f"epoch {epoch} directory cannot be inspected: {exc}") from None
+        _require(
+            children == {"checkpoint.pt", "record.json", "sidecar.json"},
+            f"epoch {epoch} contains an unexpected path",
+        )
         checkpoint = final / "checkpoint.pt"
         record_path = final / "record.json"
         sidecar_path = final / "sidecar.json"
@@ -242,6 +254,10 @@ class TransactionalEpochStore:
                 # Unpublished staging is intentionally not accepted as a
                 # committed epoch; it may safely remain for custody review.
                 continue
+            else:
+                raise TransactionalRuntimeHold(
+                    f"unexpected path in committed epochs root: {child.name}"
+                )
         epochs.sort()
         _require(epochs == list(range(len(epochs))), "committed epochs do not form an unbroken prefix")
 

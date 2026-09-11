@@ -12,7 +12,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from runtime.source_guard import build_manifest  # noqa: E402
+from runtime.source_guard import V4_RELEVANT_CONFIG_PATHS, build_manifest  # noqa: E402
 
 
 TARGET = REPO / "results/learned/er9/er_execution_source_manifest_v4.json"
@@ -33,11 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     manifest = build_manifest(
         REPO,
         source_commit=source_commit,
-        relevant_config_paths=(
-            "configs/er9-digital-pascal-v4.yaml",
-            "configs/learned-er2-randomized-pascal-v4.yaml",
-            "spec/params.generated.yaml",
-        ),
+        relevant_config_paths=V4_RELEVANT_CONFIG_PATHS,
     )
     body = json.dumps(manifest, indent=2, sort_keys=True, ensure_ascii=True, allow_nan=False) + "\n"
     if TARGET.exists():
