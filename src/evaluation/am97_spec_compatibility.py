@@ -66,6 +66,11 @@ class AM97SpecCompatibilityError(RuntimeError):
     """The AM-97 semantic freeze or its lifecycle boundary differs."""
 
 
+V4_SOURCE_MANIFEST_RELATIVE_PATH = "er_execution_source_manifest_v4.json"
+V4_STAGE1_AUTHORITY_RELATIVE_PATH = "er9_stage1_execution_authorization_v4.json"
+V4_PRE_SCIENCE_AUTHORITY_STATUS = "FROZEN_STAGE1_ONLY_PRE_SCIENCE"
+
+
 def canonical(value: Any) -> bytes:
     return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False) + "\n").encode("ascii")
 
@@ -92,6 +97,116 @@ def _read_json(path: Path, label: str) -> tuple[dict[str, Any], bytes]:
         raise AM97SpecCompatibilityError(f"cannot read {label}: {exc}") from None
     _require(isinstance(value, dict), f"{label} is not a JSON object")
     return value, raw
+
+
+def _authenticate_v4_pre_science_custody(root: Path) -> None:
+    """Classify v4 preparation records without counting planned work as work.
+
+    The Stage-1 authority records the six *authorized future* candidates.  It
+    is not evidence that those candidates have trained.  AM-97's strict mode
+    therefore admits the pair only when both records authenticate as the
+    frozen pre-science contract, all execution counters are zero, and the
+    authority-derived scientific runtime is absent.  Actual epoch terminals
+    remain outside this boundary and are rejected by the surrounding path
+    allow-list.
+    """
+
+    er9_root = root / "results/learned/er9"
+    source_path = er9_root / V4_SOURCE_MANIFEST_RELATIVE_PATH
+    authority_path = er9_root / V4_STAGE1_AUTHORITY_RELATIVE_PATH
+    source_present = source_path.exists() or source_path.is_symlink()
+    authority_present = authority_path.exists() or authority_path.is_symlink()
+    if not source_present and not authority_present:
+        return
+    _require(source_present and authority_present, "incomplete W9 v4 pre-science custody")
+
+    source, source_raw = _read_json(source_path, "W9 v4 source manifest")
+    _require(not source_path.is_symlink(), "W9 v4 source manifest is unsafe")
+    source_body = dict(source)
+    source_id = source_body.pop("manifest_id", None)
+    _require(
+        source_id == "er9sourcev4-" + sha256_bytes(canonical(source_body)),
+        "W9 v4 source manifest identity differs",
+    )
+    _require(
+        source.get("schema_version") == 2
+        and source.get("manifest_kind") == "W9_V4_FULL_SCIENTIFIC_SOURCE_CLOSURE"
+        and source.get("source_commit_comparison") == "exact_clean_HEAD_at_freeze",
+        "W9 v4 source manifest is not a pre-science closure",
+    )
+    _require(source_raw == rendered(source), "W9 v4 source manifest is not canonical rendered JSON")
+
+    authority, authority_raw = _read_json(authority_path, "W9 v4 Stage-1 authority")
+    _require(not authority_path.is_symlink(), "W9 v4 Stage-1 authority is unsafe")
+    authority_body = dict(authority)
+    authority_id = authority_body.pop("authority_id", None)
+    _require(
+        authority_id == "w9er9stage1v4auth-" + sha256_bytes(canonical(authority_body)),
+        "W9 v4 Stage-1 authority identity differs",
+    )
+    _require(authority_raw == rendered(authority), "W9 v4 Stage-1 authority is not canonical rendered JSON")
+    _require(
+        authority.get("schema_version") == 1
+        and authority.get("authority_kind") == "W9_ER9_STAGE1_EXECUTION_AUTHORITY_V4"
+        and authority.get("status") == V4_PRE_SCIENCE_AUTHORITY_STATUS
+        and authority.get("authorization_scope") == "W9_ER9_STAGE1_ONLY",
+        "W9 v4 Stage-1 authority is not a pre-science authority",
+    )
+    _require(
+        authority.get("source_manifest")
+        == {
+            "path": "results/learned/er9/er_execution_source_manifest_v4.json",
+            "manifest_id": source_id,
+            "sha256": sha256_bytes(source_raw),
+        },
+        "W9 v4 Stage-1 source manifest binding differs",
+    )
+    _require(
+        authority.get("source_commit") == source.get("source_commit")
+        and authority.get("source_binding") == source,
+        "W9 v4 Stage-1 source closure binding differs",
+    )
+    _require(
+        authority.get("runtime_root") == "checkpoints/er9_pascal_v4"
+        and authority.get("execution_profile_id") == "confessor_pascal_cu126"
+        and authority.get("host") == "confessor"
+        and authority.get("device") == "cuda:0"
+        and authority.get("sole_writer") is True
+        and authority.get("fresh_initialization_required") is True,
+        "W9 v4 Stage-1 execution boundary differs",
+    )
+    _require(
+        isinstance(authority.get("stage1_candidates"), list)
+        and isinstance(authority.get("stage1_candidate_count"), int)
+        and authority.get("stage1_candidate_count") > 0
+        and authority.get("stage1_training_count") == authority.get("stage1_candidate_count")
+        and len(authority["stage1_candidates"]) == authority["stage1_candidate_count"],
+        "W9 v4 Stage-1 planned candidate count differs",
+    )
+    _require(
+        authority.get("stage2_authorized") is False
+        and authority.get("production_authorized") is False
+        and authority.get("randomized_er2_authorized") is False,
+        "W9 v4 authority scope is wider than Stage-1",
+    )
+    _require(
+        authority.get("test") == "SEALED" and authority.get("test_access") == 0,
+        "W9 v4 Stage-1 test boundary differs",
+    )
+    _require(
+        authority.get("pre_execution_counters")
+        == {
+            "new_er9_v4_training": 0,
+            "randomized_er2_scientific_training": 0,
+            "g11": 0,
+            "w10": 0,
+            "learned_test_inference": 0,
+            "model_facing_test_access": 0,
+        },
+        "W9 v4 pre-execution counters are not zero",
+    )
+    runtime = root / str(authority["runtime_root"])
+    _require(not runtime.exists() and not runtime.is_symlink(), "W9 v4 Stage-1 runtime exists at the AM-97 boundary")
 
 
 def _git_bytes(root: Path, commit: str, relative: str) -> bytes:
@@ -193,8 +308,20 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     actual_w9 = {path.relative_to(w9_root).as_posix() for path in w9_root.glob("**/*") if path.is_file()}
     _require(actual_w9 <= allowed_w9, f"unexpected W9 artifact at AM-97 boundary: {sorted(actual_w9 - allowed_w9)}")
     er9_root = root / "results/learned/er9"
-    allowed_pre = {"er_execution_source_manifest.json", "er9_stage1_execution_authorization.json", "er_execution_source_manifest_v2.json", "er9_stage1_execution_authorization_v2.json", "er_execution_source_manifest_v3.json", "er9_stage1_execution_authorization_v3.json", "incidents/v3_local_profile_owner_supersession.json"}
+    allowed_pre = {
+        "er_execution_source_manifest.json",
+        "er9_stage1_execution_authorization.json",
+        "er_execution_source_manifest_v2.json",
+        "er9_stage1_execution_authorization_v2.json",
+        "er_execution_source_manifest_v3.json",
+        "er9_stage1_execution_authorization_v3.json",
+        V4_SOURCE_MANIFEST_RELATIVE_PATH,
+        V4_STAGE1_AUTHORITY_RELATIVE_PATH,
+        "incidents/v3_local_profile_owner_supersession.json",
+    }
     actual_er9 = {path.relative_to(er9_root).as_posix() for path in er9_root.glob("**/*") if path.is_file()} if er9_root.exists() else set()
+    if not allow_downstream:
+        _authenticate_v4_pre_science_custody(root)
     _require(allow_downstream or actual_er9 <= allowed_pre, "downstream ER-9 result exists at strict AM-97 boundary")
     if not allow_downstream:
         _require(not (root / "results/learned/er2_randomized").exists(), "randomized ER-2 exists at strict AM-97 boundary")
