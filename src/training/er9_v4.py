@@ -104,7 +104,7 @@ def er9_v4_learning_rate(config: RunConfig, epoch: int) -> float:
     _require(0 <= epoch < total, "ER-9 v4 epoch is outside the configured schedule")
     base = float(learned["lr"])
     minimum = float(learned["lr_min"])
-    return minimum + (base - minimum) * 0.5 * (
+    return minimum + (base - minimum) * 0.5 * (  # literal-ok: exact cosine schedule coefficient
         1 + math.cos(math.pi * epoch / max(total - 1, 1))
     )
 

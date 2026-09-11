@@ -352,7 +352,7 @@ class W9V4SyntheticFixtureTrainer:
         resume: bool,
     ) -> None:
         self.device = torch.device(device)
-        self.model = build_er9_model(config, transmit_dim=64, quantiser_bits=2, device=self.device)
+        self.model = build_er9_model(config, transmit_dim=64, quantiser_bits=2, device=self.device)  # literal-ok: fixed synthetic D64/b2 fixture
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-4)
         self.scaler = torch.amp.GradScaler("cuda", enabled=self.device.type == "cuda")
         self.runtime = W9V4TrainingRuntime(
@@ -373,8 +373,8 @@ class W9V4SyntheticFixtureTrainer:
 
     def train_epoch(self, epoch: int) -> dict[str, Any]:
         generator = torch.Generator(device="cpu").manual_seed(9400 + epoch)
-        inputs = torch.rand((2, 3, 160, 160), generator=generator, dtype=torch.float32).to(self.device)
-        labels = torch.tensor([epoch % 10, (epoch + 1) % 10], dtype=torch.long, device=self.device)
+        inputs = torch.rand((2, 3, 160, 160), generator=generator, dtype=torch.float32).to(self.device)  # literal-ok: fixed synthetic Imagenette-shaped fixture tensor
+        labels = torch.tensor([epoch % 10, (epoch + 1) % 10], dtype=torch.long, device=self.device)  # literal-ok: fixed synthetic ten-class fixture labels
         self.optimizer.zero_grad(set_to_none=True)
         step = v4_training_step(
             forward=lambda: self.model(inputs),
