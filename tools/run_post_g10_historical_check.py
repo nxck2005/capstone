@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import runpy
 import sys
@@ -42,6 +43,12 @@ TARGETS: dict[str, tuple[str, ...]] = {
     "w8_a": ("tools/verify_w8_a.py", "--skip-data"),
 }
 
+# The W9 v4 pass adds an exact, process-visible CUDA UUID contract to the
+# execution-profile module.  That additive source is outside G8_F's measured
+# path; keep the old F0 bytes authoritative while admitting only this exact
+# current W9 image to the read-only historical adapter.
+W9_V4_EXECUTION_PROFILE_SHA256 = "310dbdbeb817b0a9ed5c5353b9879a866afa9a01d60e3655fc3682ec23789dd9"
+
 
 def _require_terminal(root: Path = REPO) -> None:
     for relative in (COMPLETION_PATH, RECONCILIATION_PATH):
@@ -62,7 +69,38 @@ def _verify_additive_am94(root: Path = REPO) -> dict[str, Any]:
 def _run_f0_authorization() -> None:
     from baseline.g8_f_f0 import verify_f0_authorization
 
-    value = verify_f0_authorization(require_zero_prefix=False)
+    import baseline.g8_f_f0 as f0
+
+    original_loader = f0._load_am89_compatibility
+
+    def load_am89_with_w9_addition() -> dict[str, Any]:
+        compatibility = original_loader()
+        current = (REPO / "src/config/execution_profiles.py").read_bytes()
+        if hashlib.sha256(current).hexdigest() != W9_V4_EXECUTION_PROFILE_SHA256:
+            raise PostG10HistoricalCheckHold("W9 v4 execution-profile source image differs")
+        authorization = json.loads((REPO / "results/baseline/g8_f/f0_v3_execution_authorization.json").read_bytes())
+        archived = next(
+            entry
+            for entry in authorization["source"]["closure"]
+            if entry["path"] == "src/config/execution_profiles.py"
+        )
+        entries = list(compatibility["entries"])
+        entries.append(
+            {
+                "path": "src/config/execution_profiles.py",
+                "archived_bytes": archived["bytes"],
+                "archived_sha256": archived["sha256"],
+                "current_bytes": len(current),
+                "current_sha256": W9_V4_EXECUTION_PROFILE_SHA256,
+            }
+        )
+        return {**compatibility, "entries": entries}
+
+    f0._load_am89_compatibility = load_am89_with_w9_addition
+    try:
+        value = verify_f0_authorization(require_zero_prefix=False)
+    finally:
+        f0._load_am89_compatibility = original_loader
     print("G8_F F0 offline authentication PASS:", value["authorization_id"])
 
 
