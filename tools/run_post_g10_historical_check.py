@@ -183,6 +183,11 @@ def _run_w8_a(root: Path) -> None:
     namespace = runpy.run_path(str(script_path), run_name="_post_g10_w8_a")
     target_globals = namespace["main"].__globals__
     original_w7_verifier = target_globals["_run_w7_g4_verifier"]
+    original_w8_transition = target_globals["verify_w8_carrier_source_transition"]
+    compatibility_module = sys.modules["evaluation.g10_spec_compatibility"]
+    original_w8_successor = compatibility_module.AM97_W8_CARRIER_SOURCE_HASHES.get(
+        "src/config/execution_profiles.py"
+    )
     authorization_module = sys.modules["gen_w8_execution_authorization"]
     original_authorization_predecessor = authorization_module._am94_predecessor_config_bindings
 
@@ -253,11 +258,34 @@ def _run_w8_a(root: Path) -> None:
     def run_w7_verifier(repo: Path) -> None:
         _execute_target("w7_g4", root)
 
+    def verify_w8_transition(manifest, repo: Path = root):
+        current = (repo / "src/config/execution_profiles.py").read_bytes()
+        if hashlib.sha256(current).hexdigest() != W9_V4_EXECUTION_PROFILE_SHA256:
+            raise PostG10HistoricalCheckHold("W9 v4 execution-profile source image differs")
+        compatibility_module.AM97_W8_CARRIER_SOURCE_HASHES[
+            "src/config/execution_profiles.py"
+        ] = (len(current), W9_V4_EXECUTION_PROFILE_SHA256)
+        try:
+            compatible = set(original_w8_transition(manifest, repo))
+            compatible.add("src/config/execution_profiles.py")
+            return frozenset(compatible)
+        finally:
+            if original_w8_successor is None:
+                compatibility_module.AM97_W8_CARRIER_SOURCE_HASHES.pop(
+                    "src/config/execution_profiles.py", None
+                )
+            else:
+                compatibility_module.AM97_W8_CARRIER_SOURCE_HASHES[
+                    "src/config/execution_profiles.py"
+                ] = original_w8_successor
+
     target_globals["_run_w7_g4_verifier"] = run_w7_verifier
+    target_globals["verify_w8_carrier_source_transition"] = verify_w8_transition
     try:
         result = namespace["main"]()
     finally:
         target_globals["_run_w7_g4_verifier"] = original_w7_verifier
+        target_globals["verify_w8_carrier_source_transition"] = original_w8_transition
         authorization_module._am94_predecessor_config_bindings = original_authorization_predecessor
         if run_w8_module is not None and original_run_w8_predecessor is not None:
             run_w8_module._am94_predecessor_config_bindings = original_run_w8_predecessor
