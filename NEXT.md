@@ -7,9 +7,9 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-09-11 · **Phase:** **W9 v4 integration complete locally; exact-head hosted CI and live Confessor preflight are next.** AM-97 remains a pointwise H4 precision diagnostic only. The historical v3 local ER-9 runtime remains authenticated, preserved and scientifically ineligible. The active v4 Stage-1 entrypoint now binds the v4 config, v4 source-closure contract, authority-derived runtime root, live Pascal authentication, exact UUID-to-`cuda:0` mapping and the transactional v4 trainer; randomized ER-2 has the same v4 lifecycle wiring but remains unopened. Transactional recovery is iterative with an authenticated-prefix cache and linear restart scan. Historical source-closure adapters are explicit and fail closed; no historical artifact bytes changed. Local static and ci-cpu gates are green at the current unsigned integration commit. No Pascal smoke, final v4 source manifest, Stage-1 authority or prelaunch success claim has been issued yet. ER-9 v4 training, randomized ER-2 scientific training, G-11, W10, learned test inference and model-facing test access remain zero; **test is SEALED**.
+**Last updated:** 2026-09-13 · **Phase:** **W9 v4 ER-9 Stage 1 is CLOSED.** G10 is CLOSED after 63 validation-only evaluations with classification `expected_crossover_observed` and crossover bracket −5 → −4 dB. AM-95 and AM-96 are CLOSED; AM-97 remains a pointwise H4 precision diagnostic only and does not certify full H4 power. The six real-chain Stage-1 evaluations at 7 dB selected **D2048/b2 at 820/1000**. At D=2048, b=2 is the only admissible Stage-2 width, so Stage 2 collapses to a zero-work metadata closeout: no new training and no new evaluation. Production, randomized ER-2, G11, W10, learned test inference and model-facing test access remain unopened; **test is SEALED**. The exact-head hosted CI for the current evidence head has a protected AM-97 compatibility failure; do not bypass it or modify protected source to make it pass.
 
-**W9 next gate (2026-09-11):** first require exact-head hosted GitHub Actions GREEN, then perform read-only Confessor checkout/profile/GPU preflight. Freeze one live registered Pascal UUID, run only the synthetic v4 lifecycle smoke through the actual ER9 v4 trainer, publish its ineligible evidence, then freeze the coherent v4 source manifest and generate the exact Stage-1-only authority. Re-authenticate live on Confessor and emit `PASCAL EXEC READY`; do not run the Stage-1 train command. If Confessor is unreachable, has unknown source changes, fails exact GPU mapping, or the smoke touches scientific data, HOLD. Do not substitute the local RTX4060 or reopen any closed G8/W8/G10 work.
+**Immediate W9 next action (2026-09-13):** close Stage 2 as a zero-work metadata closeout, then create the final downstream implementation successor containing only the production-training orchestration, frozen-grid ER-9 validation, randomized ER-2 completion/validation, G11/H4 production and the lifecycle-aware post-science CI/test handling that is genuinely needed. Train the three fresh production seed cells `(0,0)`, `(1,1)` and `(2,2)` at D2048/b2, run exactly one randomized ER-2 scientific training run, finish G11, perform W10, and only then approach the single guarded final test campaign. Do not reopen Stage 1, retrain or reevaluate D2048/b2, start Stage 2 optimizer work, or open test.
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -291,14 +291,14 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Current task:** W9 AM-96 is a semantics-only pre-science freeze.
-It closes the complete known P1-7 ER-9 reproducibility inventory without
-changing G-10 or moving any affected scientific counter. W8-C and G-10 remain
-GREEN/CLOSED; all six selected checkpoints and the terminal 63-cell G-10
-result remain frozen. **Exact next action: implement and source-freeze ER-9
-plus randomized ER-2, then execute only the owner-authorized ER-9 → ER-2 →
-G-11 validation sequence; do not start W10, rerun G-10, open test, or alter
-W8/G-10 evidence.**
+**Current task:** W9 post-Stage-1 closeout. G10, AM-95, AM-96 and AM-97 are
+closed; AM-97 remains a pointwise H4 precision diagnostic only. ER-9 v4 Stage 1
+is closed with six trained candidates, six real-chain validation evaluations at
+7 dB, and the frozen selection D2048/b2 at 820/1000. **Exact next action:**
+close Stage 2 as a zero-work metadata closeout, then create the final downstream
+implementation successor for production, randomized ER-2, G11/H4, W10 and the
+post-science lifecycle gates. Production and all later scientific work remain
+unopened; test remains SEALED.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -336,15 +336,17 @@ does not, it is wrong and this block is right.**
 | W8 final learned training | **W8-B2 complete — exact six fresh runs, 600 epochs and six selected checkpoints reconciled; W7 pilot initialization forbidden** |
 | W8-C terminal reconciliation | **GREEN/CLOSED — complete root custody, transaction, accounting, validation-noise, selection and predecessor-exclusion checks passed** |
 | W9-A / G10 semantics | **AM-94 frozen and terminally reconciled — exact count/rational predicate; 63 evaluations; source/outcomes immutable** |
-| W9 / AM-95 ER-2 semantics | **frozen pre-science — keyed per-sample/per-epoch discrete-uniform assignment; randomized ER-2 training remains 0** |
-| W9 / AM-96 ER-9 semantics | **frozen pre-science — all 16 known P1-7 reproducibility items closed; ER-9 training remains 0** |
-| W9 / AM-96 ER-9 semantics | **frozen pre-science — all 16 known P1-7 reproducibility items closed; ER-9 training remains 0** |
-| W9 / G10 validation-only execution | **NEXT only under separate owner authority — 63 outcomes remain absent; test sealed** |
+| W9 / AM-95 ER-2 semantics | **CLOSED — keyed per-sample/per-epoch discrete-uniform assignment; randomized ER-2 training remains 0** |
+| W9 / AM-96 ER-9 semantics | **CLOSED — executable ER-9 digital-control recipe frozen; Stage 1 is complete** |
+| W9 / AM-97 H4 diagnostic | **CLOSED — pointwise precision diagnostic only; no full H4 power certification** |
+| W9 / G10 validation-only execution | **complete — 63 evaluations; expected_crossover_observed; bracket −5 → −4 dB; test sealed** |
+| W9 / ER-9 v4 Stage 1 | **complete — six trained candidates and six real-chain validation evaluations; D2048/b2 selected at 820/1000** |
+| W9 / ER-9 v4 Stage 2 | **next — zero-work metadata closeout; no new training or evaluation** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
 
-**G8_B is complete and G8_C is green:** the Pascal successor execution is
+**G8 remains GREEN/CLOSED:** the Pascal successor execution is
 complete at 3213/3213, exact authority coverage is proven, and the successor
 BLER table is frozen from measured points only. The merge report, table and
 source/provenance closure are hash-bound under
@@ -354,11 +356,13 @@ The test split and every later scientific phase remain closed. G8_D D0–D7 are
 complete and GREEN; earlier G8_E E1 epochs are immutable superseded-before-data
 history, corrected-v3 E1 is frozen pre-data
 with zero validation coverage at freeze time, the owner relocated execution to the qualified worker (additive worker-successor epoch, commit `493d656`), production E2 completed at exactly 288000/288000 on `confessor_pascal_cu126`/`cuda:0` with E3 and E4 verified, and the full validation
-campaign remains scoped exactly to that authorization.
-Everything else stays behind its own gate — do not calibrate λ, train learned
-models, implement ER-9, or access the test split until theirs.
+campaign remains scoped exactly to that authorization. G8 is not reopened. The
+live W9 handoff is the Stage-2 zero-work closeout and downstream completion plan
+above; no new scientific protocol is being introduced.
 
-⚠️ **It does not begin by constructing a `G8Authorization` and calling `select_operating_points()`.**
+### ~~Historical G8 planning note~~
+
+⚠️ **It did not begin by constructing a `G8Authorization` and calling `select_operating_points()`.**
 That was the previous hand-off's framing and it was wrong, in a way that would have wasted a
 session: it implies the only missing piece is permission. The missing piece is the **science**. See
 **"What G-8 actually has to build"** below — twelve steps, of which the sweep is step eight.
@@ -448,7 +452,7 @@ and the spec defines no BR-4 selection tie-break to contradict.
 
 The full campaign is frozen under `instructions/G8.txt`: G8_A contract, policy binding, structural enumeration, state and preflight (**complete**); G8_B characterization tooling plus bounded smoke (**complete through B6**); G8_C Pascal successor execution and C3-C7 table closeout (**complete at 3213/3213**); G8_D validation-measurement tooling plus bounded smoke; G8_E full validation measurement and pass one; G8_F training-only artifact corpus, classifier fine-tune and the single pass two; G8_G adjudication. Later phases may not silently reinterpret earlier artifacts.
 
-### What G-8 actually has to build — read this before starting it
+### ~~What G-8 actually had to build — historical record~~
 
 The committed G-2 BLER evidence characterises **exactly one** physical-layer identity (`K=128,
 N=256, BG2, Z=22, rate 1/2, offset-min-sum 0.5, 50 iterations`) at four SNR points per modulation.
@@ -809,7 +813,7 @@ requires. Confirms zero slack across 215 feasible configs, **the same six BG1 cl
 stands), BR-10's canonical case exact, and **ER-9 feasible at all 72 live configs** (7 options even
 at the tightest, 94 bytes).
 
-## In flight — nothing
+## ~~In flight — nothing~~ Historical pre-W9 planning record
 
 **G-9 is closed. The LDPC spike passed all seven checks** (AM-24, AM-25). The environment lives in
 `~/capstone-w0-spike/` and is reusable: `./run_spike.sh run` re-runs in seconds and regenerates
@@ -853,6 +857,14 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
+**Current W9 handoff:** Stage 1 is closed and D2048/b2 is frozen at 820/1000.
+The only admissible Stage-2 width at D=2048 is b=2, so Stage 2 needs no new
+training or evaluation and is next as a metadata-only closeout. After that,
+create the final downstream implementation successor for the three fresh
+production seed cells, one randomized ER-2 training run, G11/H4, W10 and the
+post-science lifecycle gates. Do not reopen Stage 1 or open the test split;
+test remains SEALED.
+
 ### ⏰ First Review delivery contract (check this every session)
 
 The readiness trigger (`PR-1` committed · `PR-2` committed · `G-1` passed) has fired. It authorises package preparation; it does not mean the package is complete. The user-fixed acceptance checklist is [`deliverables/review-1/first-review-package.md`](deliverables/review-1/first-review-package.md) and MUST NOT be re-elicited from the user.
@@ -875,23 +887,18 @@ The slot is **15 minutes**. The rubric scores six criteria × 5 sub-marks = 30, 
 
 ### Cold-start: the first thing to do in a fresh session
 
-**W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only
-transparency-bitrate probe.** Do not reopen the reference-classifier recipe, start its fallback
-ladder, implement the G-7 width fallback, select an operating point from the probe's forecasts, or
-open another full-spec audit round without new evidence. **The owner-opened Pascal successor has
-completed its full 3213/3213 authenticated production campaign and G8_C C3-C7 closeout.** Its
-153-curve successor table is frozen from measured points only; the predecessor-bound table tools
-cannot be substituted. `src/baseline/classical/composition.py` remains later selection machinery;
-G8_D D0–D7 are complete and GREEN; corrected-v3 G8_E E2–E4 completed on the worker successor, E5 pass one executed exactly once with 378/378 cells selected, and E6/E7 are complete; G8_F F1/F2/F3 and pass two are complete, and G8_G is GREEN/CLOSED. Do not
-rerun or widen any of those closed scopes. The historical C3–C7 contract remains in
-`instructions/RESUME.md`; its predecessor commands do not apply to the Pascal runtime. The
-committed G-2 table covers one physical-layer identity at four SNR points per modulation and must
-not be extrapolated. Read "What G-8 actually has to build" above before starting, and
-`instructions/RESUME.md` for the facts that work needs. G8 is now GREEN/CLOSED after F3, exactly-once pass two and frozen adjudication;
-the sweep entry point is permanently closed and pass three does not exist.
-**W7 is GREEN/CLOSED after W7-C. The exact five-candidate adjudication and λ `3.0` selection remain immutable; W7 pilot weights are not eligible for W8 initialization. W8-C is now GREEN/CLOSED after independent read-only authentication of the six-run successor: all 600 epoch/checkpoint/sidecar/validation transactions, per-run accounting, fixed validation noise, selections and failed-predecessor exclusion passed. The next safe action is owner audit, then W9 / G10 validation-only work; test remains sealed.**
-Registration remains confirmed (AM-63). PR-9's author-owned hardware-alternative acknowledgement
-does not gate G8, but it is required to complete the user-fixed First Review package.
+**Current W9 cold-start:** read the top handoff and the `## Single next task`
+table first. G10, AM-95, AM-96, AM-97 and ER-9 v4 Stage 1 are closed;
+D2048/b2 is selected at 820/1000. Close Stage 2 as a zero-work metadata
+closeout, then create the final downstream implementation successor. It must
+cover only the three fresh production seeds `(0,0)`, `(1,1)` and `(2,2)` at
+D2048/b2, one randomized ER-2 scientific training run, G11/H4, W10 and the
+post-science lifecycle gates. Do not reopen Stage 1, add optimizer work to
+Stage 2, rerun G10, or access test; **test is SEALED**. The current e8 hosted
+CI compatibility failure is not a reason to edit protected source or bypass a
+gate.
+
+### ~~Historical pre-Stage-1 cold-start record~~
 
 **State on 2026-07-29, verified:** the W1 implementation culminates in `89a3af4`; G-1 evidence was
 produced from that exact clean commit. `results/reference_classifier/` holds the four original
@@ -1167,10 +1174,16 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-W1, W2, W3 and W4 are complete, as are G-1, G-2, G-7 and the validation-only transparency-bitrate
-probe — W4 including PA, PB_1 (with PB_1C), PB_2 (with PB_2C) and PB_3. The Pascal successor
-production campaign and G8_C C3-C7 closeout are complete at 3213/3213, with 153 measured curves
-frozen; G8_D D0–D7, G8_E E2–E7, F1/F2/F3, both BR-4 passes and G8_G are complete and GREEN. AM-90 freezes efficiency `r_1_24`, crossover/headline `r_1_6` and low ratio `r_1_24`; pass three and test remain sealed. **W7-C is GREEN/CLOSED and W8-C is GREEN/CLOSED: W7’s primary-tier λ `3.0` remains frozen, and the repaired W8 successor is reconciled across six fresh runs and 600 authenticated transactions. All six selected checkpoints remain in the final set without cross-seed filtering. The next safe action after owner audit is W9 / G10 validation-only work; test remains sealed.**
+**Current W9 short version:** G10 is closed after 63 validation-only
+evaluations (`expected_crossover_observed`, bracket −5 → −4 dB); AM-95,
+AM-96 and AM-97 are closed; and ER-9 v4 Stage 1 is closed after six real-chain
+7 dB validation evaluations. The frozen winner is D2048/b2 at 820/1000. Stage
+2 is a zero-work metadata closeout because b=2 is the only admissible width at
+D2048. Then create the final downstream implementation successor for fresh
+production, randomized ER-2, G11/H4, W10 and the final guarded test campaign.
+Production and test remain unopened; test is SEALED.
+
+### ~~Historical pre-Stage-1 short version~~
 W4 also includes **PB_3C**, the corrective
 phase that fixed the fixed-modulation reference and resumed-campaign validation and froze the
 selection policy. The PR-1 literature review and corrected PR-2 Gantt are complete. The user-fixed

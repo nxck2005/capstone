@@ -1,5 +1,19 @@
 # Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C / G8
 
+## Current W9 handoff
+
+The live project cursor is [`NEXT.md`](../NEXT.md). G10, AM-95, AM-96, AM-97
+and ER-9 v4 Stage 1 are closed; D2048/b2 is selected at 820/1000. Stage 2 is
+next as a zero-work metadata closeout because b=2 is the only admissible width
+at D=2048, so no new training or evaluation is needed. After that, the final
+downstream implementation successor covers the three fresh production seeds,
+one randomized ER-2 training run, G11/H4, W10 and the post-science lifecycle
+gates. Do not reopen Stage 1 or open test; **test is SEALED**.
+
+The rest of this file preserves the completed G8 custody and recovery ledger.
+Its machine-checked Pascal cursor records the G8 execution state; it is not the
+live W9 next-step declaration.
+
 ## Current execution-profile handoff (AM-83–AM-86)
 
 Two eligible production profiles exist: `local_4060_cu130` and
@@ -85,7 +99,7 @@ remains under `/home/nick/projects/capstone/results/baseline/g8_f/runtime` on
 per epoch; the frozen rule selected zero-based epoch 17 at 0.890 validation
 top-1. Completion `g8ff2completion-659cf7d…`, classifier freeze
 `g8fclassifierfreeze-fb8a410f…` and checkpoint `468710ba…` authenticate the
-second scorer identity without altering G1. The owner authorized only validation-side F3 cached rescoring, F4 pass two exactly once, and F5 deterministic G8 adjudication/closeout. **G8 is now GREEN/CLOSED:** F3 exact 288,000-row accounting (264,000 delivered inferences + 24,000 frozen outage), pass two exactly once (18 calls, 8,190 evaluations, 378 cells, 95 ties, 162 changes), AM-90 ratios frozen, and terminal closeout `g8closeout-07526958…`. The durable boundary is `instructions/G8_F3_F5.txt`. Pass three, F1/F2/F3 replay, fallback training, learned training and test remain closed. Next requires separate owner authorization for post-G8 learned training.
+second scorer identity without altering G1. The owner authorized only validation-side F3 cached rescoring, F4 pass two exactly once, and F5 deterministic G8 adjudication/closeout. **G8 is now GREEN/CLOSED:** F3 exact 288,000-row accounting (264,000 delivered inferences + 24,000 frozen outage), pass two exactly once (18 calls, 8,190 evaluations, 378 cells, 95 ties, 162 changes), AM-90 ratios frozen, and terminal closeout `g8closeout-07526958…`. The durable boundary is `instructions/G8_F3_F5.txt`. Pass three, F1/F2/F3 replay, fallback training, learned training and test remain closed. Post-G8 work follows the live W9 handoff in `NEXT.md`; no G8 rerun or widening is permitted.
 
 **2026-08-18 corrective provenance epoch (complete):** a real fresh Git
 checkout reproduced the old failure with identical scientific bytes: production
@@ -105,10 +119,10 @@ and rebound only in non-scientific contract/smoke/handoff metadata under
 validation measurement, training or test access occurred. G8_E/E0 is the next
 gate and remains unopened.
 
-**This file is the single source of truth for where the four-phase sequence stands.**
-It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is a hand-off summary;
-this file is the operational cursor. If they disagree, this file is right about progress and
-`NEXT.md` needs updating.
+**This file is the custody and operational ledger for the completed four-phase G8 sequence.**
+It is committed, so it survives a session dying mid-step. Prose in `NEXT.md` is the live project
+hand-off; this file remains the operational cursor for G8 custody. If the general handoffs disagree,
+`NEXT.md` is authoritative for the current W9 next step.
 
 Read this before anything else. Update it in the same commit as the work it describes.
 
@@ -150,9 +164,9 @@ Then:
 
 ---
 
-## Status
+## Completed G8 status ledger
 
-**Current phase:** **Pascal G8_C successor execution and C3-C7 closeout are
+**G8 completion record:** **Pascal G8_C successor execution and C3-C7 closeout are
 complete at 3213/3213 and published; no G8_C worker may run. G8_C remains green
 and closed; G8_D D0, D1, D2, D3, D4, D5, D6 and D7 are complete and GREEN.
 The partial local_4060_cu130 corrected-v3 E2 campaign was owner-aborted at exact

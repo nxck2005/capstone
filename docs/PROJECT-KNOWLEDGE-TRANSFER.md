@@ -392,7 +392,9 @@ The project does not need to prove that the learned system is always better.
 
 ## 13. What has already been completed?
 
-The repository has completed the foundation needed before the final comparison.
+The repository has completed the foundation, the classical-baseline campaign,
+G10, and ER-9 v4 Stage 1. The live scientific choice is now frozen at
+D2048/b2 with 820 correct validation predictions out of 1,000.
 
 ### Environment and data foundation
 
@@ -439,64 +441,70 @@ preflight rules.
 G8_B built the authenticated runner, crash-safe evidence publication, resume machinery, independent
 verifiers, and a bounded non-scientific smoke test.
 
-### G8_C: current scientific phase
+### G8: classical baseline and validation campaign
 
-G8_C is measuring the full physical-layer BLER table needed by the adaptive classical baseline.
-The campaign is paused at a durable checkpoint. No worker is currently running.
+G8 is GREEN/CLOSED. Its Pascal successor campaign, C3–C7 closeout, validation
+campaign, pass-one/pass-two selection and final adjudication are complete. The
+measured classical outputs and the 153-curve successor table are frozen. No G8
+worker may be restarted or widened.
 
-Exact coverage, the next legal attempt, and the permitted restart sequence change as the campaign
-progresses. They are intentionally recorded only in [`instructions/RESUME.md`](../instructions/RESUME.md)
-and the authenticated campaign state. Do not copy those counts into another status document.
+### G10 and ER-9 v4 Stage 1
+
+G10 is CLOSED after 63 validation-only evaluations, with classification
+`expected_crossover_observed` and crossover bracket −5 → −4 dB. AM-95 and
+AM-96 are CLOSED. AM-97 is CLOSED as a pointwise H4 precision diagnostic only;
+it does not certify full H4 power.
+
+ER-9 v4 Stage 1 trained six candidates, evaluated each on the real digital chain
+at 7 dB, and selected D2048/b2 under the exact validation `n_correct` rule:
+
+| Candidate | Validation result |
+|---|---:|
+| D64/b2 | 284/1000 |
+| D128/b2 | 552/1000 |
+| D256/b2 | 759/1000 |
+| D512/b2 | 793/1000 |
+| D1024/b2 | 818/1000 |
+| D2048/b2 | **820/1000** |
+
+The Stage-1 selection ID is
+`er9stage1v4selection-92191e4543b1493b9b56d5086ec08d96a7a3236249eb045af05ddbf8817bd263`.
 
 ## 14. What has not happened yet?
 
 As of the current handoff:
 
-- The final G8 BLER table has not been frozen.
-- Classical operating points have not been selected.
-- Full validation measurement has not run.
-- Final DJSCC training has not run.
-- The task-aware digital feature system has not been evaluated.
-- The artifact-finetuned classifier has not been released.
-- No learned-versus-classical headline result exists.
-- The test split has not been opened.
-- No SDR or Raspberry Pi experiment has run.
+- Stage 2 has not yet been formally closed or published; it is a zero-work
+  metadata closeout because b=2 is the only admissible width at D=2048.
+- The final downstream implementation successor has not yet been created.
+- The three fresh production ER-9 seed cells `(0,0)`, `(1,1)` and `(2,2)` have
+  not been trained.
+- The single randomized ER-2 scientific training run has not been run.
+- G11/H4 production and W10 have not been performed.
+- Learned test inference and model-facing test access have not occurred.
+- The test split remains sealed.
 
-Do not describe bounded smoke rows, validation probes, or G-2 conformance curves as final comparison
-results.
+Do not describe bounded smoke rows, validation probes, G-2 conformance curves,
+or Stage-1 validation scores as a final learned-versus-classical result.
 
 ## 15. What happens next?
 
 The high-level order is:
 
 ```text
-G8_C
-  complete full BLER characterization
-  freeze the measured BLER table
+Stage 2
+  close the D2048/b2 zero-work metadata stage
 
-G8_D
-  build validation-measurement tooling
-  run bounded smoke tests
+final downstream successor
+  add only the production orchestration, frozen-grid ER-9 validation,
+  randomized ER-2 completion/validation, G11/H4 production and the
+  post-science lifecycle-aware CI/test handling genuinely needed to finish
 
-G8_E
-  run full validation measurement
-  select classical operating points in pass one
-
-G8_F
-  build a training-only artifact corpus
-  fine-tune the artifact classifier
-  run the one permitted second selection pass
-
-G8_G
-  adjudicate and freeze the G-8 outputs
-
-later work
-  calibrate the learned loss
-  train final learned systems
-  build and evaluate the digital feature control
-  freeze everything at G-12
-  run one test campaign
-  report results and build the demo
+production and final evaluation
+  train fresh seeds (0,0), (1,1), (2,2) at D2048/b2
+  run exactly one randomized ER-2 scientific training run
+  finish G11 and perform W10
+  then run the single guarded final test campaign
 ```
 
 The live next action is always defined by [`NEXT.md`](../NEXT.md). For G8 work, the exact operational
@@ -958,4 +966,3 @@ If two documents disagree, use this priority:
 3. `NEXT.md` for the current general handoff.
 4. This document for explanation.
 5. Historical worklogs for background only.
-
