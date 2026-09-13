@@ -7,9 +7,9 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-09-13 · **Phase:** **W9 v4 ER-9 Stage 1 is CLOSED.** G10 is CLOSED after 63 validation-only evaluations with classification `expected_crossover_observed` and crossover bracket −5 → −4 dB. AM-95 and AM-96 are CLOSED; AM-97 remains a pointwise H4 precision diagnostic only and does not certify full H4 power. The six real-chain Stage-1 evaluations at 7 dB selected **D2048/b2 at 820/1000**. At D=2048, b=2 is the only admissible Stage-2 width, so Stage 2 collapses to a zero-work metadata closeout: no new training and no new evaluation. Production, randomized ER-2, G11, W10, learned test inference and model-facing test access remain unopened; **test is SEALED**. The exact-head hosted CI for the current evidence head has a protected AM-97 compatibility failure; do not bypass it or modify protected source to make it pass.
+**Last updated:** 2026-09-13 · **Phase:** **W9 v4 ER-9 Stage 1 CLOSED; Stage 2 CLOSED.** G10 is CLOSED after 63 validation-only evaluations with classification `expected_crossover_observed` and crossover bracket −5 → −4 dB. AM-95 and AM-96 are CLOSED; AM-97 remains a pointwise H4 precision diagnostic only and does not certify full H4 power. The six real-chain Stage-1 evaluations at 7 dB selected **D2048/b2 at 820/1000**. Stage 2 is formally closed as a zero-work metadata closeout because b=2 is the only admissible width at D=2048; no new training and no new evaluation occurred. The ER-9 search phase is complete and the final selected pair is **D2048/b2**. Production, randomized ER-2, G11, W10, learned test inference and model-facing test access remain unopened; **test is SEALED**. The exact-head hosted CI for the current evidence head has a protected AM-97 compatibility failure; do not bypass it or modify protected source to make it pass.
 
-**Immediate W9 next action (2026-09-13):** close Stage 2 as a zero-work metadata closeout, then create the final downstream implementation successor containing only the production-training orchestration, frozen-grid ER-9 validation, randomized ER-2 completion/validation, G11/H4 production and the lifecycle-aware post-science CI/test handling that is genuinely needed. Train the three fresh production seed cells `(0,0)`, `(1,1)` and `(2,2)` at D2048/b2, run exactly one randomized ER-2 scientific training run, finish G11, perform W10, and only then approach the single guarded final test campaign. Do not reopen Stage 1, retrain or reevaluate D2048/b2, start Stage 2 optimizer work, or open test.
+**Immediate W9 next action (2026-09-13):** create the final downstream implementation successor containing only the production-training orchestration, frozen-grid ER-9 validation, randomized ER-2 completion/validation, G11/H4 production and the lifecycle-aware post-science CI/test handling that is genuinely needed. The ER-9 search phase is complete and the final selected pair is D2048/b2. Train the three fresh production seed cells `(0,0)`, `(1,1)` and `(2,2)` at D2048/b2, run exactly one randomized ER-2 scientific training run, finish G11, perform W10, and only then approach the single guarded final test campaign. Do not reopen Stage 1, retrain or reevaluate D2048/b2, start Stage 2 optimizer work, or open test.
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
 authorization issued `d6b0ac7e15299d3b08d9baff63e5361b2fac90aa9166ee0a93672a76c1b1bc33`
 (pre-execution marker `c27100431317cc2dc4fffc434705361215157d9805b3a5217574843ed0387fb4`,
@@ -291,14 +291,15 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Current task:** W9 post-Stage-1 closeout. G10, AM-95, AM-96 and AM-97 are
+**Current task:** W9 post-Stage-2 closeout is complete. G10, AM-95, AM-96 and AM-97 are
 closed; AM-97 remains a pointwise H4 precision diagnostic only. ER-9 v4 Stage 1
 is closed with six trained candidates, six real-chain validation evaluations at
-7 dB, and the frozen selection D2048/b2 at 820/1000. **Exact next action:**
-close Stage 2 as a zero-work metadata closeout, then create the final downstream
-implementation successor for production, randomized ER-2, G11/H4, W10 and the
-post-science lifecycle gates. Production and all later scientific work remain
-unopened; test remains SEALED.
+7 dB, and the frozen selection D2048/b2 at 820/1000. Stage 2 is closed as a
+zero-work metadata closeout with no new training or evaluation. The ER-9 search
+phase is complete and the final selected pair is D2048/b2. **Exact next action:**
+create the final downstream implementation successor for production, randomized
+ER-2, G11/H4, W10 and the post-science lifecycle gates. Production and all later
+scientific work remain unopened; test remains SEALED.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -341,7 +342,8 @@ does not, it is wrong and this block is right.**
 | W9 / AM-97 H4 diagnostic | **CLOSED — pointwise precision diagnostic only; no full H4 power certification** |
 | W9 / G10 validation-only execution | **complete — 63 evaluations; expected_crossover_observed; bracket −5 → −4 dB; test sealed** |
 | W9 / ER-9 v4 Stage 1 | **complete — six trained candidates and six real-chain validation evaluations; D2048/b2 selected at 820/1000** |
-| W9 / ER-9 v4 Stage 2 | **next — zero-work metadata closeout; no new training or evaluation** |
+| W9 / ER-9 v4 Stage 2 | **complete — zero-work metadata closeout; no new training or evaluation** |
+| W9 / final downstream implementation successor | **next — production, randomized ER-2, G11/H4, W10 and post-science lifecycle gates** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
@@ -357,8 +359,9 @@ complete and GREEN; earlier G8_E E1 epochs are immutable superseded-before-data
 history, corrected-v3 E1 is frozen pre-data
 with zero validation coverage at freeze time, the owner relocated execution to the qualified worker (additive worker-successor epoch, commit `493d656`), production E2 completed at exactly 288000/288000 on `confessor_pascal_cu126`/`cuda:0` with E3 and E4 verified, and the full validation
 campaign remains scoped exactly to that authorization. G8 is not reopened. The
-live W9 handoff is the Stage-2 zero-work closeout and downstream completion plan
-above; no new scientific protocol is being introduced.
+The live W9 handoff is the final downstream implementation successor and
+downstream completion plan above; the ER-9 search phase is complete and no new
+scientific protocol is being introduced.
 
 ### ~~Historical G8 planning note~~
 
@@ -857,10 +860,10 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
-**Current W9 handoff:** Stage 1 is closed and D2048/b2 is frozen at 820/1000.
-The only admissible Stage-2 width at D=2048 is b=2, so Stage 2 needs no new
-training or evaluation and is next as a metadata-only closeout. After that,
-create the final downstream implementation successor for the three fresh
+**Current W9 handoff:** Stage 1 and Stage 2 are closed; D2048/b2 is frozen at
+820/1000. The only admissible Stage-2 width at D=2048 was b=2, so the ER-9
+search phase is complete with no new Stage-2 training or evaluation. The
+immediate next task is the final downstream implementation successor for the three fresh
 production seed cells, one randomized ER-2 training run, G11/H4, W10 and the
 post-science lifecycle gates. Do not reopen Stage 1 or open the test split;
 test remains SEALED.
@@ -888,9 +891,9 @@ The slot is **15 minutes**. The rubric scores six criteria × 5 sub-marks = 30, 
 ### Cold-start: the first thing to do in a fresh session
 
 **Current W9 cold-start:** read the top handoff and the `## Single next task`
-table first. G10, AM-95, AM-96, AM-97 and ER-9 v4 Stage 1 are closed;
-D2048/b2 is selected at 820/1000. Close Stage 2 as a zero-work metadata
-closeout, then create the final downstream implementation successor. It must
+table first. G10, AM-95, AM-96, AM-97 and ER-9 v4 Stages 1 and 2 are closed;
+D2048/b2 is selected at 820/1000 and the ER-9 search phase is complete. Create
+the final downstream implementation successor. It must
 cover only the three fresh production seeds `(0,0)`, `(1,1)` and `(2,2)` at
 D2048/b2, one randomized ER-2 scientific training run, G11/H4, W10 and the
 post-science lifecycle gates. Do not reopen Stage 1, add optimizer work to

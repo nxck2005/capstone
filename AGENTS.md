@@ -10,15 +10,16 @@ bracket −5 → −4 dB. AM-95 and AM-96 are CLOSED. AM-97 is CLOSED as a
 pointwise H4 precision diagnostic only and does not certify full H4 power.
 ER-9 v4 Stage 1 is CLOSED: six candidates were trained, six real-chain
 validation evaluations ran at 7 dB, and the frozen selection is D2048/b2 at
-820/1000. Stage 2 requires zero optimizer work and zero new evaluation because
-b=2 is the only admissible width at D2048; its zero-work metadata closeout is
-next. Production, randomized ER-2, G11, W10 and learned test inference remain
+820/1000. Stage 2 is CLOSED as a zero-work metadata closeout with zero optimizer
+work and zero new evaluation because b=2 is the only admissible width at D2048.
+The ER-9 search phase is complete and the final selected pair is D2048/b2.
+Production, randomized ER-2, G11, W10 and learned test inference remain
 unopened; **test is SEALED**.
 
 **Agent handoff warning:** do not reopen Stage 1 or retrain/reevaluate D2048/b2.
-Close Stage 2 as metadata only, then create the final downstream implementation
-successor for the three fresh production seeds `(0,0)`, `(1,1)` and `(2,2)`, one
-randomized ER-2 training run, G11/H4, W10 and the post-science lifecycle gates.
+Stage 2 is formally closed as metadata only. Create the final downstream
+implementation successor for the three fresh production seeds `(0,0)`, `(1,1)` and
+`(2,2)`, one randomized ER-2 training run, G11/H4, W10 and the post-science lifecycle gates.
 This is downstream completion work, not another protocol audit. The current
 e8 hosted CI compatibility failure does not authorize editing protected source
 or bypassing a gate.

@@ -61,10 +61,11 @@ evaluations (`expected_crossover_observed`, crossover bracket −5 → −4 dB),
 AM-95 and AM-96 are CLOSED, and AM-97 is CLOSED as a pointwise H4 precision
 diagnostic only—it does not certify full H4 power. ER-9 v4 Stage 1 is CLOSED:
 six candidates were trained and evaluated on the real chain at 7 dB, selecting
-**D2048/b2 at 820/1000**. Stage 2 is next as a zero-work metadata closeout
+**D2048/b2 at 820/1000**. Stage 2 is CLOSED as a zero-work metadata closeout
 because b=2 is the only admissible width at D2048; no new training or
-evaluation is needed. Production, randomized ER-2, G11, W10 and final test
-remain unopened; **test is SEALED**. The live handoff is [`NEXT.md`](NEXT.md).
+evaluation occurred. The ER-9 search phase is complete; the final selected
+pair is D2048/b2. Production, randomized ER-2, G11, W10 and final test remain
+unopened; **test is SEALED**. The live handoff is [`NEXT.md`](NEXT.md).
 
 Implementation is underway: W1 batch 1 established the locked environment and repository scaffold,
 batch 2 added the resolved run-configuration layer and SR-1 literal checker, batch 3 added the

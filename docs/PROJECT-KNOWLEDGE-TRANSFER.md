@@ -474,8 +474,8 @@ The Stage-1 selection ID is
 
 As of the current handoff:
 
-- Stage 2 has not yet been formally closed or published; it is a zero-work
-  metadata closeout because b=2 is the only admissible width at D=2048.
+- Stage 2 is formally closed and published as a zero-work metadata closeout;
+  b=2 was the only admissible width at D=2048, so no new training or evaluation occurred.
 - The final downstream implementation successor has not yet been created.
 - The three fresh production ER-9 seed cells `(0,0)`, `(1,1)` and `(2,2)` have
   not been trained.
@@ -493,7 +493,7 @@ The high-level order is:
 
 ```text
 Stage 2
-  close the D2048/b2 zero-work metadata stage
+  closed as the D2048/b2 zero-work metadata stage
 
 final downstream successor
   add only the production orchestration, frozen-grid ER-9 validation,
