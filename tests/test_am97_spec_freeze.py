@@ -22,9 +22,22 @@ def test_am97_downstream_mode_authenticates_successor() -> None:
     assert len(ALLOWED_PARAMETER_PATHS) == 7
 
 
-def test_am97_strict_mode_accepts_only_pre_science_custody() -> None:
-    value = load(REPO)
-    assert value["status"] == "SEMANTICS_ONLY_FROZEN"
+def test_am97_strict_mode_rejects_current_post_science_repository() -> None:
+    with pytest.raises(am97_spec_compatibility.AM97SpecCompatibilityError, match="strict AM-97|downstream ER-9"):
+        load(REPO)
+
+
+def test_am97_strict_mode_accepts_pre_science_reference_inventory() -> None:
+    allowed = {"er_execution_source_manifest_v4.json", "er9_stage1_execution_authorization_v4.json"}
+    am97_spec_compatibility.verify_science_inventory(
+        set(allowed), allowed_pre=allowed, er2_exists=False, g11_exists=False, allow_downstream=False
+    )
+
+
+def test_am97_history_mode_accepts_downstream_inventory() -> None:
+    am97_spec_compatibility.verify_science_inventory(
+        {"final_validation/train0_channel0.json"}, allowed_pre=set(), er2_exists=True, g11_exists=True, allow_downstream=True
+    )
 
 
 def test_am97_strict_mode_rejects_nonzero_v4_execution_counter(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -46,7 +59,7 @@ def test_am97_strict_mode_rejects_nonzero_v4_execution_counter(monkeypatch: pyte
 
     monkeypatch.setattr(am97_spec_compatibility, "_read_json", read_with_executed_work)
     with pytest.raises(am97_spec_compatibility.AM97SpecCompatibilityError, match="counters"):
-        load(REPO)
+        am97_spec_compatibility._authenticate_v4_pre_science_custody(REPO)
 
 
 def test_h4_sanity_is_not_full_strength() -> None:

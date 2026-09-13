@@ -42,6 +42,21 @@ from runtime.w9_authority import (  # noqa: E402
 )
 from training.deterministic_core import canonical_bytes, canonical_sha256  # noqa: E402
 from training.er9_v4 import ER9V4CandidateTrainer  # noqa: E402
+from evaluation.downstream_v4 import (  # noqa: E402
+    ER2_AUTHORITY_PATH as ER2_AUTHORITY_RELATIVE,
+    EXPECTED_SNR_GRID,
+    FINAL_PAIR,
+    PRODUCTION_AUTHORITY_PATH as PRODUCTION_AUTHORITY_RELATIVE,
+    PRODUCTION_CELLS,
+    immutable_write,
+    load_source as load_downstream_source,
+    read_json as read_downstream_json,
+    sha256_file,
+    task_head_identity,
+    validate_final_er9_cell,
+    verify_er2_authority,
+    verify_production_authority,
+)
 
 
 RESULT_ROOT = REPO / "results/learned/er9"
@@ -51,6 +66,10 @@ STAGE1_INDEX = RESULT_ROOT / "stage1_v4_terminal_index.json"
 STAGE1_EVALUATION_ROOT = RESULT_ROOT / "stage1_v4_evaluations"
 STAGE1_SELECTION = RESULT_ROOT / "er9_stage1_selection_v4.json"
 ER2_AUTHORITY = REPO / "results/learned/er2_randomized/er2_execution_authorization_v4.json"
+PRODUCTION_AUTHORITY = REPO / PRODUCTION_AUTHORITY_RELATIVE
+PRODUCTION_VALIDATION_ROOT = RESULT_ROOT / "final_validation"
+PRODUCTION_CLOSEOUT = RESULT_ROOT / "er9_production_closeout_v4.json"
+ER2_RESULT_ROOT = REPO / "results/learned/er2_randomized"
 
 
 def _git(*args: str) -> str:
@@ -614,7 +633,9 @@ def _load_er2_authority(path: Path) -> tuple[dict[str, Any], dict[str, Any], Any
 
 def run_er2_train(authority_path: Path = ER2_AUTHORITY, *, resume: bool = False) -> None:
     _assert_parity()
-    manifest, authority, config = _load_er2_authority(authority_path)
+    authority = verify_er2_authority(REPO, authority_path)
+    manifest = authority["source_binding"]
+    config = load_experiment(authority["config_path"], train_seed=0, channel_seed=0)
     if authority.get("randomized_er2_authorized") is not True:
         raise RuntimeError("v4 ER-2 authority is not scoped for ER-2")
     runtime = resolve_runtime_root(REPO, authority)
@@ -639,11 +660,261 @@ def run_er2_train(authority_path: Path = ER2_AUTHORITY, *, resume: bool = False)
     print("randomized ER-2 v4 training complete")
 
 
+def _er2_runtime_context(authority_path: Path):
+    authority = verify_er2_authority(REPO, authority_path)
+    config = load_experiment(authority["config_path"], train_seed=0, channel_seed=0)
+    return authority, authority["source_binding"], config, resolve_runtime_root(REPO, authority)
+
+
+def _restore_er2(authority_path: Path):
+    authority, source, config, runtime = _er2_runtime_context(authority_path)
+    terminal = read_downstream_json(runtime / "run_terminal.json", "ER-2 v4 terminal")
+    live = _live_pascal(authority, config)
+    from training.er2_v4 import ER2V4RandomizedTrainer
+    trainer = ER2V4RandomizedTrainer(config, device=authority["device"], runtime_root=runtime, source_binding=source, campaign_id="er2_randomized_v4", run_id="er2-randomized-v4-train0-channel0", live_authentication=live, resume=True)
+    trainer.runtime.restore_epoch(int(terminal["selected_epoch"]), trainer.model, trainer.optimizer, trainer.scaler)
+    checkpoint = runtime / str(terminal["selected_checkpoint_path"])
+    if sha256_file(checkpoint) != terminal["selected_checkpoint_sha256"]:
+        raise RuntimeError("ER-2 selected checkpoint bytes differ")
+    return authority, source, config, runtime, terminal, trainer, checkpoint
+
+
+def run_er2_closeout(authority_path: Path) -> None:
+    _assert_parity()
+    authority, source, config, runtime, terminal, trainer, checkpoint = _restore_er2(authority_path)
+    from training.er2_v4 import er2_v4_assignment_audit
+    selected = {
+        "schema_version": 1, "artifact_role": "ER2_RANDOMIZED_SELECTED_CHECKPOINT_V4",
+        "authority_id": authority["authority_id"], "source_commit": source["source_commit"],
+        "train_seed": 0, "channel_seed": 0, "selected_epoch": terminal["selected_epoch"],
+        "checkpoint_path": str(checkpoint.relative_to(REPO)), "checkpoint_sha256": sha256_file(checkpoint),
+        "selection_metric": terminal["selection_metric"], "tie_break": terminal["tie_break"],
+        "task_head_identity": task_head_identity(trainer.model), "test": "SEALED", "test_access": 0,
+    }
+    selected["selection_id"] = "er2selectedv4-" + canonical_sha256(selected)
+    audit = er2_v4_assignment_audit(config)
+    audit.update({"authority_id": authority["authority_id"], "source_commit": source["source_commit"], "runtime_root": str(runtime.relative_to(REPO))})
+    audit["audit_id"] = "er2assignmentv4-" + canonical_sha256(audit)
+    immutable_write(ER2_RESULT_ROOT / "er2_selected_checkpoint_v4.json", selected)
+    immutable_write(ER2_RESULT_ROOT / "er2_snr_assignment_audit_v4.json", audit)
+    print("randomized ER-2 selected checkpoint and AM-95 assignment audit published")
+
+
+def run_er2_validate(authority_path: Path) -> None:
+    _assert_parity()
+    authority, source, config, runtime, terminal, trainer, checkpoint = _restore_er2(authority_path)
+    selected_path = ER2_RESULT_ROOT / "er2_selected_checkpoint_v4.json"
+    selected = read_downstream_json(selected_path, "ER-2 selected checkpoint")
+    if selected.get("checkpoint_sha256") != sha256_file(checkpoint):
+        raise RuntimeError("ER-2 selected-checkpoint closeout differs")
+    from training.er2_v4 import evaluate_er2_v4_at_snr
+    curves = [evaluate_er2_v4_at_snr(trainer.model, config, snr_db=snr, checkpoint_id=selected["checkpoint_sha256"], task_head_identity=selected["task_head_identity"], device=authority["device"], num_workers=trainer.num_workers) for snr in EXPECTED_SNR_GRID]
+    body = {
+        "schema_version": 2, "artifact_role": "ER2_RANDOMIZED_VALIDATION_ONLY_EVIDENCE_V4",
+        "authority_id": authority["authority_id"], "source_commit": source["source_commit"],
+        "selected_checkpoint": {"path": str(selected_path.relative_to(REPO)), "sha256": sha256_file(selected_path), "checkpoint_sha256": selected["checkpoint_sha256"]},
+        "scientific_training_run_count": 1, "snr_grid_db": list(EXPECTED_SNR_GRID), "curves": curves,
+        "validation_only": True, "test": "SEALED", "test_access": 0,
+    }
+    body["validation_id"] = "er2validationv4-" + canonical_sha256(body)
+    immutable_write(ER2_RESULT_ROOT / "er2_randomized_validation_v4.json", body)
+    print("randomized ER-2 full-grid validation complete")
+
+
+def run_er2_complete(authority_path: Path) -> None:
+    _assert_parity()
+    authority, source, _config, runtime = _er2_runtime_context(authority_path)
+    terminal_path = runtime / "run_terminal.json"
+    selected_path = ER2_RESULT_ROOT / "er2_selected_checkpoint_v4.json"
+    audit_path = ER2_RESULT_ROOT / "er2_snr_assignment_audit_v4.json"
+    validation_path = ER2_RESULT_ROOT / "er2_randomized_validation_v4.json"
+    for path, label in ((terminal_path, "terminal"), (selected_path, "selection"), (audit_path, "audit"), (validation_path, "validation")):
+        read_downstream_json(path, f"ER-2 {label}")
+    body = {
+        "schema_version": 2, "artifact_role": "ER2_RANDOMIZED_V4_COMPLETION",
+        "status": "ONE_RANDOMIZED_RUN_COMPLETE_VALIDATION_ONLY", "authority_id": authority["authority_id"],
+        "source_commit": source["source_commit"], "runtime_root": str(runtime.relative_to(REPO)),
+        "scientific_training_run_count": 1,
+        "terminal": {"path": str(terminal_path.relative_to(REPO)), "sha256": sha256_file(terminal_path)},
+        "selected_checkpoint": {"path": str(selected_path.relative_to(REPO)), "sha256": sha256_file(selected_path)},
+        "assignment_audit": {"path": str(audit_path.relative_to(REPO)), "sha256": sha256_file(audit_path)},
+        "validation": {"path": str(validation_path.relative_to(REPO)), "sha256": sha256_file(validation_path)},
+        "test": "SEALED", "test_access": 0,
+    }
+    body["completion_id"] = "er2completionv4-" + canonical_sha256(body)
+    immutable_write(ER2_RESULT_ROOT / "er2_randomized_completion_v4.json", body)
+    print(f"randomized ER-2 completion: {body['completion_id']}")
+
+
+def _production_cell(value: str) -> tuple[int, int]:
+    try:
+        parts = value.replace("/", ",").split(",")
+        cell = (int(parts[0]), int(parts[1]))
+    except (IndexError, TypeError, ValueError):
+        raise RuntimeError("--cell must be one of 0,0; 1,1; 2,2") from None
+    if cell not in PRODUCTION_CELLS:
+        raise RuntimeError("--cell must be one of 0,0; 1,1; 2,2")
+    return cell
+
+
+def _production_context(authority_path: Path, cell: tuple[int, int]):
+    authority = verify_production_authority(REPO, authority_path)
+    source = authority["source_binding"]
+    record = next(item for item in authority["seed_cells"] if (item["train_seed"], item["channel_seed"]) == cell)
+    config = load_experiment(authority["config_path"], train_seed=cell[0], channel_seed=cell[1])
+    if config_hash(config) != record["config_hash"]:
+        raise RuntimeError("production cell config hash differs")
+    runtime = REPO / record["runtime_root"]
+    return authority, source, config, runtime
+
+
+def run_production_train(authority_path: Path, *, cell: tuple[int, int], resume: bool) -> None:
+    _assert_parity()
+    authority, source, config, runtime = _production_context(authority_path, cell)
+    if not resume and (runtime.exists() or runtime.is_symlink()):
+        raise RuntimeError("production runtime already exists; use --resume only for this exact cell")
+    live = _live_pascal(authority, config)
+    trainer = ER9V4CandidateTrainer(
+        config,
+        transmit_dim=FINAL_PAIR["transmit_dim"],
+        quantiser_bits=FINAL_PAIR["quantiser_bits"],
+        device=authority["device"],
+        runtime_root=runtime,
+        source_binding=source,
+        campaign_id="er9_production_v4",
+        run_id=f"er9-production-v4-train{cell[0]}-channel{cell[1]}",
+        live_authentication=live,
+        resume=resume,
+        runtime_role=ER9V4CandidateTrainer.PRODUCTION_ROLE,
+    )
+    terminal = trainer.run()
+    if terminal is None:
+        raise RuntimeError("production cell did not terminalize")
+    print(f"ER-9 production cell {cell[0]}/{cell[1]} complete; selected epoch {terminal['selected_epoch']}")
+
+
+def run_production_validate(authority_path: Path, *, cell: tuple[int, int]) -> None:
+    """Run the selected production checkpoint over the frozen validation grid."""
+
+    _assert_parity()
+    authority, source, config, runtime = _production_context(authority_path, cell)
+    terminal = read_downstream_json(runtime / "run_terminal.json", "production terminal")
+    live = _live_pascal(authority, config)
+    trainer = ER9V4CandidateTrainer(
+        config,
+        transmit_dim=FINAL_PAIR["transmit_dim"],
+        quantiser_bits=FINAL_PAIR["quantiser_bits"],
+        device=authority["device"],
+        runtime_root=runtime,
+        source_binding=source,
+        campaign_id="er9_production_v4",
+        run_id=f"er9-production-v4-train{cell[0]}-channel{cell[1]}",
+        live_authentication=live,
+        resume=True,
+        runtime_role=ER9V4CandidateTrainer.PRODUCTION_ROLE,
+    )
+    selected_epoch = int(terminal["selected_epoch"])
+    trainer.runtime.restore_epoch(selected_epoch, trainer.model, trainer.optimizer, trainer.scaler)
+    checkpoint_path = runtime / str(terminal["selected_checkpoint_path"])
+    checkpoint_id = sha256_file(checkpoint_path)
+    if checkpoint_id != terminal["selected_checkpoint_sha256"]:
+        raise RuntimeError("production selected checkpoint bytes differ")
+    from evaluation.er9_campaign import collect_validation_features, evaluate_candidate_at_snr, fit_entropy_model
+
+    head_id = task_head_identity(trainer.model)
+    entropy, entropy_record = fit_entropy_model(trainer.model, config, device=authority["device"], num_workers=trainer.num_workers)
+    features = collect_validation_features(trainer.model, config, device=authority["device"], num_workers=trainer.num_workers)
+    points = []
+    for snr_db in EXPECTED_SNR_GRID:
+        point = evaluate_candidate_at_snr(
+            trainer.model,
+            config,
+            entropy=entropy,
+            dimension=FINAL_PAIR["transmit_dim"],
+            quantiser_bits=FINAL_PAIR["quantiser_bits"],
+            snr_db=snr_db,
+            device=authority["device"],
+            num_workers=trainer.num_workers,
+            validation_features=features,
+            include_per_image=True,
+            checkpoint_id=checkpoint_id,
+            task_head_identity=head_id,
+        )
+        point["row_binding"] = {
+            "checkpoint_id": checkpoint_id,
+            "train_seed": cell[0],
+            "channel_seed": cell[1],
+            "transmit_dim": FINAL_PAIR["transmit_dim"],
+            "quantiser_bits": FINAL_PAIR["quantiser_bits"],
+            "task_head_identity": head_id,
+            "test_access": 0,
+        }
+        points.append(point)
+    body = {
+        "schema_version": 1,
+        "artifact_role": "ER9_FINAL_PRODUCTION_VALIDATION_CELL_V4",
+        "source_commit": source["source_commit"],
+        "source_manifest_id": source["manifest_id"],
+        "authority_id": authority["authority_id"],
+        "train_seed": cell[0],
+        "channel_seed": cell[1],
+        "selected_pair": FINAL_PAIR,
+        "runtime_root": str(runtime.relative_to(REPO)),
+        "checkpoint": {"epoch": selected_epoch, "path": str(checkpoint_path.relative_to(REPO)), "sha256": checkpoint_id},
+        "task_head": {"kind": "own_task_head", "identity": head_id, "reference_classifier_used": False},
+        "entropy_model": entropy_record,
+        "snr_grid_db": list(EXPECTED_SNR_GRID),
+        "points": points,
+        "validation_only": True,
+        "test": "SEALED",
+        "test_access": 0,
+    }
+    body["validation_id"] = "er9productionvalidation-" + canonical_sha256(body)
+    validate_final_er9_cell(body, cell=cell)
+    immutable_write(PRODUCTION_VALIDATION_ROOT / f"train{cell[0]}_channel{cell[1]}.json", body)
+    print(f"ER-9 production validation {cell[0]}/{cell[1]} complete: 21/21 points")
+
+
+def run_production_closeout(authority_path: Path) -> None:
+    _assert_parity()
+    authority = verify_production_authority(REPO, authority_path)
+    cells = []
+    for cell in PRODUCTION_CELLS:
+        _authority, _source, _config, runtime = _production_context(authority_path, cell)
+        terminal_path = runtime / "run_terminal.json"
+        terminal = read_downstream_json(terminal_path, f"production terminal {cell}")
+        validation_path = PRODUCTION_VALIDATION_ROOT / f"train{cell[0]}_channel{cell[1]}.json"
+        validation = read_downstream_json(validation_path, f"production validation {cell}")
+        validate_final_er9_cell(validation, cell=cell)
+        if validation.get("checkpoint", {}).get("sha256") != terminal.get("selected_checkpoint_sha256"):
+            raise RuntimeError(f"production validation does not use the selected checkpoint for cell {cell}")
+        cells.append({
+            "train_seed": cell[0], "channel_seed": cell[1], "candidate": FINAL_PAIR,
+            "runtime_root": str(runtime.relative_to(REPO)),
+            "terminal_path": str(terminal_path.relative_to(REPO)), "terminal_sha256": sha256_file(terminal_path),
+            "selected_epoch": terminal["selected_epoch"], "selected_checkpoint_sha256": terminal["selected_checkpoint_sha256"],
+            "validation_path": str(validation_path.relative_to(REPO)), "validation_sha256": sha256_file(validation_path),
+            "promoted_stage1": False, "test_access": 0,
+        })
+    body = {
+        "schema_version": 1, "artifact_role": "ER9_PRODUCTION_V4_CLOSEOUT",
+        "status": "THREE_REQUIRED_CELLS_COMPLETE_VALIDATION_ONLY", "authority_id": authority["authority_id"],
+        "source_commit": authority["source_commit"], "source_manifest_id": authority["source_binding"]["manifest_id"],
+        "selected_pair": FINAL_PAIR, "training_count": 3, "stage1_promotion_count": 0,
+        "best_seed_selection": False, "seed_cells": cells, "test": "SEALED", "test_access": 0,
+    }
+    body["closeout_id"] = "er9productionv4closeout-" + canonical_sha256(body)
+    immutable_write(PRODUCTION_CLOSEOUT, body)
+    print(f"ER-9 production closeout complete: {body['closeout_id']}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("stage1-train", "stage1-evaluate", "stage1-select", "er2-train"))
+    parser.add_argument("action", choices=("stage1-train", "stage1-evaluate", "stage1-select", "production-train", "production-validate", "production-closeout", "er2-train", "er2-closeout", "er2-validate", "er2-complete"))
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--er2-authority", type=Path, default=ER2_AUTHORITY)
+    parser.add_argument("--production-authority", type=Path, default=PRODUCTION_AUTHORITY)
+    parser.add_argument("--cell", help="exact production cell: 0,0; 1,1; or 2,2")
     args = parser.parse_args(argv)
     if args.action == "stage1-train":
         run_stage1_train(resume=args.resume)
@@ -651,8 +922,28 @@ def main(argv: list[str] | None = None) -> int:
         run_stage1_evaluate()
     elif args.action == "stage1-select":
         run_stage1_select()
-    else:
+    elif args.action == "production-train":
+        if args.cell is None:
+            raise SystemExit("production-train requires --cell; no implicit multi-cell or seed selection is permitted")
+        run_production_train(args.production_authority, cell=_production_cell(args.cell), resume=args.resume)
+    elif args.action == "production-validate":
+        if args.cell is None:
+            raise SystemExit("production-validate requires --cell")
+        if args.resume:
+            raise SystemExit("--resume applies only to training")
+        run_production_validate(args.production_authority, cell=_production_cell(args.cell))
+    elif args.action == "production-closeout":
+        if args.cell is not None or args.resume:
+            raise SystemExit("production-closeout accepts neither --cell nor --resume")
+        run_production_closeout(args.production_authority)
+    elif args.action == "er2-train":
         run_er2_train(args.er2_authority, resume=args.resume)
+    elif args.action == "er2-closeout":
+        run_er2_closeout(args.er2_authority)
+    elif args.action == "er2-validate":
+        run_er2_validate(args.er2_authority)
+    else:
+        run_er2_complete(args.er2_authority)
     return 0
 
 

@@ -139,6 +139,30 @@ def test_current_terminal_checkout_selects_only_terminal_g10_verifier():
     assert "tools/verify_g10_authority.py" not in selected
 
 
+def test_downstream_phase_selectors_are_lifecycle_aware(tmp_path, monkeypatch):
+    monkeypatch.setattr(gate, "REPO", tmp_path)
+    _mark(tmp_path, Path("results/learned/w9/downstream_source_manifest_v4.json"))
+    _mark(tmp_path, Path("results/learned/er9/er9_production_execution_authorization_v4.json"))
+    _mark(tmp_path, Path("results/learned/er2_randomized/er2_execution_authorization_v4.json"))
+    _mark(tmp_path, Path("results/learned/g11/g11_execution_authorization_v4.json"))
+    _mark(tmp_path, Path("results/learned/w10/w10_rehearsal_authorization.json"))
+    selected = "\n".join(" ".join(command) for command in gate._w9_v4_commands())
+    assert "verify_downstream_source.py" in selected
+    assert "verify_er9_production_v4.py" in selected and "verify_er2_randomized.py --authority-only" in selected
+    assert "verify_g11.py --authority-only" in selected
+    assert "verify_w10_rehearsal.py" in selected and "verify_w10_rehearsal.py --terminal" not in selected
+
+    _mark(tmp_path, Path("results/learned/er9/er9_production_closeout_v4.json"))
+    _mark(tmp_path, Path("results/learned/er2_randomized/er2_randomized_completion_v4.json"))
+    _mark(tmp_path, Path("results/learned/g11/g11_terminal_closeout.json"))
+    _mark(tmp_path, Path("results/learned/w10/w10_rehearsal_closeout.json"))
+    selected = "\n".join(" ".join(command) for command in gate._w9_v4_commands())
+    assert "verify_er9_production_v4.py --terminal" in selected
+    assert "verify_er2_randomized.py --authority-only" not in selected
+    assert "verify_g11.py --authority-only" not in selected
+    assert "verify_w10_rehearsal.py --terminal" in selected
+
+
 def test_affected_historical_check_is_direct_before_terminal_g10(tmp_path, monkeypatch):
     monkeypatch.setattr(gate, "REPO", tmp_path)
     direct = ["python", "tools/verify_w5_training_system.py"]

@@ -82,7 +82,8 @@ def _sr18_row(
     correct: bool,
     delivered: bool,
     packet: Any,
-    checkpoint_id: str = "0" * 64,  # literal-ok: fixed-width absent-checkpoint sentinel
+    checkpoint_id: str,
+    classifier_variant: str,
 ) -> dict[str, Any]:
     """Build the normative SR-18 row rather than a second ER-9 schema."""
 
@@ -99,7 +100,7 @@ def _sr18_row(
         channel_seed=int(config.resolved["channel_seed"]),
         config_hash=run_config_hash(config),
         checkpoint_id=checkpoint_id,
-        classifier_variant=str(get("reference_classifier.clean_variant_name")),
+        classifier_variant=classifier_variant,
         ldpc_rate=str(rate),
         modulation=str(modulation),
         quantiser_bits=int(quantiser_bits),
@@ -244,9 +245,16 @@ def evaluate_candidate_at_snr(
     num_workers: int,
     validation_features: tuple[ValidationFeatureBatch, ...] | None = None,
     include_per_image: bool = False,
+    checkpoint_id: str | None = None,
+    task_head_identity: str | None = None,
 ) -> dict[str, Any]:
     """Tune every feasible configured PHY candidate on the full validation set."""
 
+    if include_per_image:
+        if not isinstance(checkpoint_id, str) or len(checkpoint_id) != 64 or checkpoint_id == "0" * 64:  # literal-ok: SHA-256 width/sentinel
+            raise RuntimeError("ER-9 per-image rows require the real selected checkpoint identity")
+        if not isinstance(task_head_identity, str) or not task_head_identity.startswith("er9taskhead-"):
+            raise RuntimeError("ER-9 per-image rows require the own task-head identity")
     if validation_features is None:
         validation_features = collect_validation_features(
             model, config, device=device, num_workers=num_workers
@@ -298,7 +306,7 @@ def evaluate_candidate_at_snr(
                     outage = score_er9_outage(outage_policy, int(label), failure_reason="decode_failure")
                     correct += int(outage["correct"])
                     if include_per_image:
-                        per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=int(outage["prediction"]), correct=bool(outage["correct"]), delivered=False, packet=packet))
+                        per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=int(outage["prediction"]), correct=bool(outage["correct"]), delivered=False, packet=packet, checkpoint_id=checkpoint_id, classifier_variant=task_head_identity))
                     continue
                 delivered += 1
                 try:
@@ -313,7 +321,7 @@ def evaluate_candidate_at_snr(
                     outage = score_er9_outage(outage_policy, int(label), failure_reason="decode_failure")
                     correct += int(outage["correct"])
                     if include_per_image:
-                        per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=int(outage["prediction"]), correct=bool(outage["correct"]), delivered=False, packet=packet))
+                        per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=int(outage["prediction"]), correct=bool(outage["correct"]), delivered=False, packet=packet, checkpoint_id=checkpoint_id, classifier_variant=task_head_identity))
                     continue
                 if branch == "range":
                     range_count += 1
@@ -326,7 +334,7 @@ def evaluate_candidate_at_snr(
                 outcome = prediction == int(label)
                 correct += int(outcome)
                 if include_per_image:
-                    per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=prediction, correct=bool(outcome), delivered=True, packet=packet))
+                    per_image.append(_sr18_row(config=config, dimension=dimension, quantiser_bits=quantiser_bits, snr_db=snr_db, modulation=modulation, rate=rate, stable_id=stable_id, noise_id=noise_id, true_label=int(label), prediction=prediction, correct=bool(outcome), delivered=True, packet=packet, checkpoint_id=checkpoint_id, classifier_variant=task_head_identity))
         packet_metadata = packet.metadata()
         rows.append(
             {
@@ -359,6 +367,9 @@ def evaluate_candidate_at_snr(
     )
     if include_per_image and len(per_image) != int(selected["n_total"]):
         raise RuntimeError("ER-9 selected PHY per-image evidence does not cover validation")
+    run_ids = {str(row["run_id"]) for row in per_image}
+    if include_per_image and len(run_ids) != 1:
+        raise RuntimeError("ER-9 per-image rows do not share one selected run identity")
     return {
         "transmit_dim": dimension,
         "quantiser_bits": quantiser_bits,
@@ -370,6 +381,9 @@ def evaluate_candidate_at_snr(
         "validation_n_correct": int(selected["n_correct"]),
         "validation_delivered": int(selected["delivered"]),
         "per_image": per_image if include_per_image else None,
+        "run_id": next(iter(run_ids)) if include_per_image else None,
+        "checkpoint_id": checkpoint_id if include_per_image else None,
+        "task_head_identity": task_head_identity if include_per_image else None,
         "test_access": 0,
     }
 

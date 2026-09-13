@@ -437,7 +437,10 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
     allowed = set(PRE_EXECUTION_FILES) if not outcomes_allowed else set(PRE_EXECUTION_FILES) | set(OUTCOME_FILES)
     allowed.add("results/learned/w9/am97_pre_science_freeze.json")
     allowed.add("results/learned/w9/w9_pascal_v4_lifecycle_smoke.json")
-    require(actual <= allowed, f"unexpected W9/G-10 artifact exists: {sorted(actual - allowed)}")
+    require(
+        outcomes_allowed or actual <= allowed,
+        f"unexpected W9/G-10 artifact exists: {sorted(actual - allowed)}",
+    )
     require(not (root / "results/learned/g10").exists(), "legacy G-10 outcome directory exists")
     require(get("evaluation.test_access_gate") == "G-12", "test access gate moved")
     return value

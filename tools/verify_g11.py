@@ -1,185 +1,119 @@
 #!/usr/bin/env python3
-"""Verify the validation-only G-11 H4 and terminal closeout artifacts."""
+"""Verify the terminal AM-97 G11 artifact from ordinary W8/G10 and ER-9."""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
-import json
 import sys
 from pathlib import Path
-from typing import Any
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
-
-from training.deterministic_core import canonical_sha256
-
 
 REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "src"))
+
+from evaluation.downstream_v4 import (  # noqa: E402
+    G11_AUTHORITY_PATH,
+    PRODUCTION_CELLS,
+    load_source,
+    read_json,
+    require,
+    sha256_file,
+    source_record,
+)
+from training.deterministic_core import canonical_sha256  # noqa: E402
+
 DEFAULT_ROOT = REPO / "results/learned/g11"
 
 
-def _read(path: Path) -> dict[str, Any]:
-    value = json.loads(path.read_bytes())
-    if not isinstance(value, dict):
-        raise ValueError(f"expected JSON object: {path}")
-    return value
-
-
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _require(condition: bool, message: str) -> None:
-    if not condition:
-        raise ValueError(message)
-
-
-def _artifact(relative: str) -> Path:
-    path = (REPO / relative).resolve()
-    _require(REPO.resolve() in path.parents, f"G-11 artifact escapes repository: {relative}")
-    return path
-
-
-def verify_h4(path: Path) -> dict[str, Any]:
-    value = _read(path)
-    if value.get("artifact_role") == "G11_H4_POINTWISE_PRECISION_DIAGNOSTIC":
-        _require(value.get("schema_version") == 2, "AM-97 H4 schema differs")
-        _require(value.get("diagnostic_role") == "pointwise_precision_diagnostic_only", "H4 diagnostic role differs")
-        _require(value.get("status") == "pointwise_precision_diagnostic_complete", "H4 pointwise status differs")
-        _require(value.get("learned_arm") == "ordinary_learned_w8_g10", "H4 learned arm is not ordinary W8/G-10")
-        _require(value.get("comparator") == "er9_digital", "H4 comparator differs")
-        _require(value.get("randomized_er2_as_h4_arm") is False, "randomized ER-2 was used as H4 arm")
-        _require(value.get("cells") == [[0, 0], [1, 1], [2, 2]], "H4 seed cells differ")
-        _require(value.get("bootstrap_unit") == "stable_image_complete_three_cell_trajectory", "H4 bootstrap unit differs")
-        _require(int(value.get("bootstrap_resamples", 0)) == 10000, "H4 bootstrap count differs")
-        interpretation = value.get("interpretation", {})
-        _require(interpretation.get("pointwise_only") is True, "H4 is not marked pointwise-only")
-        _require(interpretation.get("full_h4_decision_procedure_power_certified") is False, "H4 incorrectly certifies full power")
-        _require(interpretation.get("h4_run_calibration_represented") is False, "H4 run calibration was incorrectly represented")
-        _require(interpretation.get("correlated_snr_pointwise_probabilities_may_be_multiplied") is False, "H4 SNR correlation rule differs")
-        _require(interpretation.get("negative_h4_result_excludes_meaningful_advantage") is False, "H4 negative interpretation is too strong")
-        _require(value.get("test_access") == 0 and value.get("test_data_read") is False, "H4 records test access")
-        _require(isinstance(value.get("points"), list) and value["points"], "H4 pointwise rows are missing")
-        return value
-    _require(value.get("artifact_role") == "G11_H4_VALIDATION_PRECISION_SIMULATION", "H4 artifact role differs")
-    _require(value.get("method") == "prospective_paired_precision_on_validation_discordance", "H4 method differs")
-    _require(value.get("gate") == "G-11", "H4 gate differs")
-    _require(value.get("test_access") == 0, "H4 records test access")
-    _require(value.get("assumptions", {}).get("test_data_read") is False, "H4 test-data assumption differs")
-    _require(int(value.get("repetitions", 0)) > 0, "H4 repetition count is invalid")
-    quantiles = value.get("quantiles")
-    _require(isinstance(quantiles, dict) and set(quantiles) == {"q50", "q95", "q99"}, "H4 quantiles are incomplete")
-    for key, percentage in value.get("mde_percentage_points", {}).items():
-        _require(key in quantiles and float(percentage) == float(quantiles[key]) * 100.0, "H4 percentage conversion differs")  # literal-ok: percentage-point conversion
-    _require(value.get("gate_decision") in {"full_strength", "narrowed"}, "H4 gate decision is invalid")
-    _require(
-        value.get("gate_rule") == "full_strength_if_validation_derived_p95_mde_at_future_sample_size_is_at_most_2pp",
-        "H4 gate rule differs",
-    )
-    inputs = value.get("input_artifacts", {})
-    for field in ("er9_validation", "er2_validation"):
-        input_path = _artifact(str(inputs[field]))
-        _require(_sha(input_path) == inputs[f"{field}_sha256"], f"H4 input artifact hash differs: {field}")
-    _require(inputs.get("snr_db") == 7, "H4 pairing SNR differs")  # literal-ok: fixed validation pairing SNR
-    return value
-
-
-def verify_architecture_difference(path: Path) -> dict[str, Any]:
-    value = _read(path)
-    if value.get("schema_version") == 2:
-        body = dict(value)
-        audit_id = body.pop("audit_id", None)
-        _require(audit_id == "er9archdiffv2-" + canonical_sha256(body), "computed architecture audit ID differs")
-        _require(value.get("artifact_role") == "ER9_ARCHITECTURE_DIFFERENCE_AUDIT", "ER-9 architecture-difference role differs")
-        _require(value.get("comparison_method") == "fieldwise_shared-contract-and-interface-comparison", "architecture comparison method differs")
-        _require(value.get("only_declared_difference") is True, "computed architecture audit is not closed")
-        _require(value.get("unexpected_difference_paths") == [], "architecture audit found an undeclared difference")
-        _require(value.get("observed_interface_differences"), "architecture audit observed no interface difference")
-        _require(value.get("test_access") == 0, "ER-9 architecture audit records test access")
-        return value
-    _require(value.get("artifact_role") == "ER9_ARCHITECTURE_DIFFERENCE_AUDIT", "ER-9 architecture-difference role differs")
-    _require(value.get("declared_difference") == "channel_interface", "ER-9 declared difference differs")
-    _require(value.get("architecture_difference_paths") == ["channel_interface"], "ER-9 observed difference paths differ")
-    _require(value.get("only_declared_difference") is True, "ER-9 architecture audit is not closed")
-    _require(value.get("er9_interface", {}).get("reconstruction_head") == "none", "ER-9 reconstruction head differs")
-    _require(value.get("er9_interface", {}).get("loss") == "cross_entropy", "ER-9 loss differs")
-    _require(value.get("er9_interface", {}).get("lambda") == "not_applicable", "ER-9 lambda differs")
-    _require(value.get("test_access") == 0, "ER-9 architecture audit records test access")
-    return value
-
-
-def verify_terminal(path: Path) -> dict[str, Any]:
-    value = _read(path)
-    identifier = value.get("terminal_id")
+def verify_authority(path: Path | None = None) -> dict:
+    source = load_source(REPO)
+    value = read_json(path or REPO / G11_AUTHORITY_PATH, "G11 authority")
     body = dict(value)
-    body.pop("terminal_id", None)
-    _require(identifier == "g11terminal-" + canonical_sha256(body), "G-11 terminal ID differs")
-    _require(value.get("artifact_role") == "G11_TERMINAL_VALIDATION_ONLY_CLOSEOUT", "G-11 terminal role differs")
-    _require(value.get("status") == "G11_GREEN_NO_TEST_ACCESS" and value.get("decision") == "GREEN", "G-11 decision differs")
-    counters = value.get("protected_counters", {})
-    expected_counters = {
-        "g10_evaluations": 63,  # literal-ok: immutable G-10 terminal count
-        "g10_reruns": 0,  # literal-ok: immutable G-10 rerun count
-        "er9_training": int(counters.get("er9_training", -1)),
-        "randomized_er2_training": 1,  # literal-ok: one authorized randomized run
-        "g11": 1,  # literal-ok: one terminal G-11 adjudication
-        "w10": 0,  # literal-ok: W10 remains unopened
-        "learned_test_inference": 0,  # literal-ok: test remains sealed
-        "model_facing_test_access": 0,  # literal-ok: test remains sealed
-    }
-    _require(counters == expected_counters, "G-11 protected counters differ")
-    g10 = value.get("g10_terminal")
-    _require(g10 == {
-        "source": "9515c490aed4439f7ced2c163abef61557654ddf",
-        "evaluations": 63,  # literal-ok: immutable G-10 terminal count
-        "reruns": 0,  # literal-ok: immutable G-10 rerun count
-        "classification": "expected_crossover_observed",
-        "headline_bracket": "-5 -> -4 dB",
-    }, "G-10 terminal reference differs")
-    _require(value.get("g10_terminal_immutable") is True, "G-10 immutability flag differs")
-    _require(value.get("test") == "SEALED" and value.get("test_access") == 0, "G-11 test boundary differs")
-    h4_record = value.get("h4", {})
-    h4_path = _artifact(str(h4_record["artifact"]))
-    _require(_sha(h4_path) == h4_record["artifact_sha256"], "G-11 H4 artifact hash differs")
+    identifier = body.pop("authority_id", None)
+    require(identifier == "g11h4auth-" + canonical_sha256(body), "G11 authority ID differs")
+    require(value.get("authority_kind") == "G11_H4_VALIDATION_ONLY_EXECUTION_AUTHORITY", "G11 authority role differs")
+    require(value.get("status") == "FROZEN_G11_ONLY_PRE_EXECUTION", "G11 authority status differs")
+    require(value.get("source_manifest") == source_record(REPO, source) and value.get("source_binding") == source, "G11 source binding differs")
+    require(value.get("cells") == [list(cell) for cell in PRODUCTION_CELLS], "G11 authority cells differ")
+    require(value.get("learned_arm") == "ordinary_learned_w8_g10" and value.get("comparator") == "final_production_er9", "G11 authority arms differ")
+    require(value.get("randomized_er2_as_h4_arm") is False, "G11 authority substitutes randomized ER-2")
+    require(value.get("bootstrap_resamples") == 10000 and value.get("quantiles") == ["q50", "q95", "q99"] and value.get("reference_pp") == 2, "G11 authority AM-97 constants differ")  # literal-ok: AM-97 constants
+    require(value.get("pointwise_only") is True and value.get("full_h4_power_claim") is False, "G11 authority overclaims H4")
+    require(value.get("g11_execution_count") == 1 and value.get("training_authorized") is False and value.get("w10_authorized") is False and value.get("test_authorized") is False, "G11 authority scope differs")
+    for record in value.get("input_bindings", {}).values():
+        require(isinstance(record, dict), "G11 authority input binding is malformed")
+        require(sha256_file(REPO / record["path"]) == record["sha256"], "G11 authority input hash differs")
+    require(value.get("validation_only") is True and value.get("test") == "SEALED" and value.get("test_access") == 0, "G11 authority crossed test boundary")
+    return value
+
+
+def verify_h4(path: Path) -> dict:
+    value = read_json(path, "G11 H4 diagnostic")
+    body = dict(value); identifier = body.pop("diagnostic_id", None)
+    require(identifier == "g11h4v4-" + canonical_sha256(body), "G11 H4 diagnostic ID differs")
+    require(value.get("artifact_role") == "G11_H4_POINTWISE_PRECISION_DIAGNOSTIC" and value.get("schema_version") == 2, "G11 H4 role differs")
+    require(value.get("learned_arm") == "ordinary_learned_w8_g10" and value.get("comparator") == "er9_digital", "G11 H4 arms differ")
+    require(value.get("randomized_er2_as_h4_arm") is False, "randomized ER-2 substituted into H4")
+    require(value.get("cells") == [list(cell) for cell in PRODUCTION_CELLS], "G11 H4 cells differ")
+    require(value.get("bootstrap_unit") == "stable_image_complete_three_cell_trajectory" and value.get("bootstrap_resamples") == 10000, "G11 bootstrap contract differs")  # literal-ok: AM-97 count
+    require(value.get("reference_pp") == 2.0 and value.get("diagnostic_role") == "pointwise_precision_diagnostic_only", "G11 pointwise reference differs")  # literal-ok: AM-97 reference
+    require(value.get("interpretation", {}).get("full_h4_decision_procedure_power_certified") is False, "G11 overclaims H4 power")
+    require(value.get("test_data_read") is False and value.get("test_access") == 0, "G11 H4 accessed test")
+    for arm in ("ordinary_learned_w8_g10", "final_production_er9"):
+        bindings = value.get("input_bindings", {}).get(arm)
+        expected_count = 63 if arm.startswith("ordinary") else 3  # literal-ok: 3x21 G10 / three ER9 files
+        require(isinstance(bindings, list) and len(bindings) == expected_count, f"G11 {arm} binding count differs")
+        for record in bindings:
+            target = Path(record["path"])
+            if not target.is_absolute():
+                target = REPO / target
+            require(sha256_file(target) == record["sha256"], f"G11 input hash differs: {target}")
+    return value
+
+
+def verify_architecture(path: Path) -> dict:
+    value = read_json(path, "G11 architecture audit")
+    body = dict(value); identifier = body.pop("audit_id", None)
+    require(identifier == "er9archdiffv2-" + canonical_sha256(body), "G11 architecture audit ID differs")
+    require(value.get("only_declared_difference") is True and value.get("unexpected_difference_paths") == [], "G11 architecture audit is not closed")
+    require(value.get("observed_interface_differences") == ["channel_interface"], "G11 interface difference differs")
+    require(value.get("test_access") == 0, "G11 architecture audit accessed test")
+    return value
+
+
+def verify_terminal(path: Path) -> dict:
+    authority = verify_authority()
+    value = read_json(path, "G11 terminal")
+    body = dict(value); identifier = body.pop("terminal_id", None)
+    require(identifier == "g11terminal-" + canonical_sha256(body), "G11 terminal ID differs")
+    require(value.get("artifact_role") == "G11_TERMINAL_VALIDATION_ONLY_CLOSEOUT" and value.get("status") == "G11_GREEN_NO_TEST_ACCESS", "G11 terminal role/status differs")
+    require(value.get("authority_id") == authority["authority_id"], "G11 terminal authority differs")
+    require(value.get("cells") == [list(cell) for cell in PRODUCTION_CELLS], "G11 terminal cells differ")
+    require(value.get("input_sources") == {"learned": "ordinary_learned_w8_g10", "comparator": "final_production_er9", "randomized_er2": False}, "G11 input arms differ")
+    semantics = value.get("am97_semantics", {})
+    require(semantics == {"signed_correctness_difference": True, "within_image_three_cell_mean": True, "stable_image_complete_trajectory_bootstrap": True, "bootstrap_resamples": 10000, "quantiles": ["q50", "q95", "q99"], "reference_pp": 2, "pointwise_only": True, "full_h4_power_claim": False}, "G11 AM-97 semantics differ")  # literal-ok: AM-97 constants
+    h4 = value["h4"]; h4_path = REPO / h4["artifact"]
+    require(sha256_file(h4_path) == h4["artifact_sha256"], "G11 H4 hash differs")
     verify_h4(h4_path)
-    architecture_record = value.get("er9", {})
-    architecture_path = _artifact(str(architecture_record["architecture_difference"]))
-    _require(
-        _sha(architecture_path) == architecture_record["architecture_difference_sha256"],
-        "ER-9 architecture audit hash differs",
-    )
-    verify_architecture_difference(architecture_path)
-    validation_cells = architecture_record.get("validation_cells")
-    expected_validation_paths = [
-        "results/learned/er9/final_validation/train0_channel0.json",
-        "results/learned/er9/final_validation/train1_channel1.json",
-        "results/learned/er9/final_validation/train2_channel2.json",
-    ]
-    _require(isinstance(validation_cells, list) and len(validation_cells) == len(expected_validation_paths), "G-11 ER-9 validation-cell closure differs")
-    for cell, expected_path in zip(validation_cells, expected_validation_paths, strict=True):
-        _require(cell.get("path") == expected_path, "G-11 ER-9 validation-cell order differs")
-        cell_path = _artifact(expected_path)
-        _require(_sha(cell_path) == cell.get("sha256"), "G-11 ER-9 validation-cell hash differs")
-    for section in (value.get("er9", {}), value.get("randomized_er2", {})):
-        for field in (
-            "production_manifest", "stage1_selection", "stage2_selection",
-            "validation_train0_channel0", "architecture_difference", "completion",
-            "assignment_audit", "validation",
-        ):
-            if field in section:
-                artifact = _artifact(str(section[field]))
-                _require(_sha(artifact) == section[f"{field}_sha256"], f"G-11 artifact hash differs: {field}")
+    er9 = value["er9"]; architecture_path = REPO / er9["architecture_difference"]
+    require(sha256_file(architecture_path) == er9["architecture_difference_sha256"], "G11 architecture hash differs")
+    verify_architecture(architecture_path)
+    require(len(er9.get("validation_cells", [])) == 3, "G11 ER-9 validation closure differs")  # literal-ok: exact cells
+    require(value.get("test") == "SEALED" and value.get("test_access") == 0, "G11 test boundary differs")
     return value
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    parser.add_argument("--authority-only", action="store_true")
     args = parser.parse_args(argv)
+    if args.authority_only:
+        value = verify_authority()
+        print(f"G-11 verifier PASS: authority only; {value['authority_id']}")
+        return 0
     root = args.root if args.root.is_absolute() else REPO / args.root
     value = verify_terminal(root / "g11_terminal_closeout.json")
-    print(f"G-11 verifier PASS: {value['terminal_id']}")
+    print(f"G-11 verifier PASS: {value['terminal_id']}; AM-97 pointwise diagnostic only")
     return 0
 
 

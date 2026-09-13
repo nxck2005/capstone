@@ -73,10 +73,14 @@ def verify(root: Path = REPO) -> dict[str, Any]:
     allowed = set(PRE_EXECUTION_FILES) | set(OUTCOME_FILES) | {
         "results/learned/w9/am97_pre_science_freeze.json",
         "results/learned/w9/w9_pascal_v4_lifecycle_smoke.json",
+        "results/learned/w9/downstream_source_manifest_v4.json",
+        "results/learned/w9/downstream_successor_synthetic_smoke.json",
     }
     optional_downstream = {
         "results/learned/w9/am97_pre_science_freeze.json",
         "results/learned/w9/w9_pascal_v4_lifecycle_smoke.json",
+        "results/learned/w9/downstream_source_manifest_v4.json",
+        "results/learned/w9/downstream_successor_synthetic_smoke.json",
     }
     allowed_without_reconciliation = allowed - {str(RECONCILIATION_PATH)}
     current_without_optional = current_files - optional_downstream

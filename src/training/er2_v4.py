@@ -112,6 +112,74 @@ def _training_noise(
     return torch.from_numpy(array).to(device), identities
 
 
+def er2_v4_assignment_audit(config: RunConfig) -> dict[str, Any]:
+    """Publish the complete AM-95 assignment without consulting batching."""
+
+    dataset = TrainingDJSCCDataset(str(config.resolved["dataset"]), int(config.resolved["train_seed"]), 0)
+    source = getattr(dataset, "_source", None)
+    _require(source is not None and callable(getattr(source, "source_sample", None)), "ER-2 v4 audit lacks stable source IDs")
+    stable_ids = [str(source.source_sample(index).stable_sample_id) for index in range(len(dataset))]
+    epochs = int(config.parameters["learned_system"]["epochs"][config.resolved["dataset"]])
+    domain = tuple(int(value) for value in get("channel.train_snr_db_set"))
+    global_counts = {str(value): 0 for value in domain}
+    digest = hashlib.sha256()
+    per_epoch = []
+    for epoch in range(epochs):
+        counts = {str(value): 0 for value in domain}
+        for stable_id in stable_ids:
+            snr = select_training_snr_db(str(config.resolved["dataset_version"]), str(get(f"datasets.{config.resolved['dataset']}.manifest_sha256")), stable_id, int(config.resolved["train_seed"]), epoch)
+            digest.update(f"{epoch}\0{stable_id}\0{snr}\n".encode("ascii"))
+            counts[str(snr)] += 1
+            global_counts[str(snr)] += 1
+        per_epoch.append({"epoch": epoch, "counts": counts})
+    return {
+        "schema_version": 2,
+        "artifact_role": "ER2_RANDOMIZED_SNR_ASSIGNMENT_AUDIT_V4",
+        "system": "learned_snr_randomised",
+        "rng_purpose": "er2_snr_randomised_v1",
+        "identity_fields": ["dataset_version", "split_manifest_hash", "stable_sample_id", "train_seed", "epoch"],
+        "config_hash": run_config_hash(config),
+        "dataset_version": str(config.resolved["dataset_version"]),
+        "split_manifest_hash": str(get(f"datasets.{config.resolved['dataset']}.manifest_sha256")),
+        "domain": list(domain), "distribution": "discrete_uniform", "unit": "per_sample_per_epoch",
+        "sample_count": len(stable_ids), "epoch_count": epochs, "assignment_count": len(stable_ids) * epochs,
+        "assignment_digest": digest.hexdigest(), "global_counts": global_counts, "per_epoch_counts": per_epoch,
+        "batching_independent": True, "channel_noise_separately_keyed": True, "test_access": 0,
+    }
+
+
+@torch.no_grad()
+def evaluate_er2_v4_at_snr(
+    model: Any,
+    config: RunConfig,
+    *,
+    snr_db: int,
+    checkpoint_id: str,
+    task_head_identity: str,
+    device: torch.device | str,
+    num_workers: int,
+) -> dict[str, Any]:
+    """Evaluate the selected v4 checkpoint on the complete validation split."""
+
+    _require(isinstance(checkpoint_id, str) and len(checkpoint_id) == 64, "ER-2 selected checkpoint identity is malformed")  # literal-ok: SHA-256 width
+    dataset = ValidationDJSCCDataset(str(config.resolved["dataset"]))
+    loader = DataLoader(dataset, batch_size=int(config.resolved["validation_batch_size"]), shuffle=False, num_workers=num_workers, drop_last=False, pin_memory=bool(config.parameters["learned_system"]["pin_memory"] and torch.device(device).type == "cuda"))
+    model.eval()
+    rows: list[dict[str, Any]] = []
+    split_hash = str(get(f"datasets.{config.resolved['dataset']}.manifest_sha256"))
+    for inputs, labels, stable_ids in loader:
+        ids = [str(value) for value in stable_ids]
+        noise_ids = [validation_noise_id(stable_sample_id=stable_id, dataset_version=str(config.resolved["dataset_version"]), split_manifest_hash=split_hash, channel_seed=int(config.resolved["channel_seed"]), channel=str(config.resolved["channel"]), ratio=str(config.resolved["bw_ratio"]), k=int(config.resolved["k"]), snr_db=snr_db) for stable_id in ids]
+        inputs = inputs.to(device, non_blocking=torch.device(device).type == "cuda")
+        labels = labels.to(device, non_blocking=torch.device(device).type == "cuda")
+        noise = keyed_complex_noise(tuple(noise_ids), int(config.resolved["k"]), dtype=torch.complex64, device=device)
+        predictions = model(inputs, snr_db, unit_noise=noise).logits.argmax(dim=1).detach().cpu().tolist()
+        for stable_id, noise_id, prediction, target in zip(ids, noise_ids, predictions, labels.detach().cpu().tolist(), strict=True):
+            rows.append({"stable_sample_id": stable_id, "noise_id": noise_id, "prediction": int(prediction), "true_label": int(target), "correct": int(prediction) == int(target), "checkpoint_id": checkpoint_id, "task_head_identity": task_head_identity, "test_access": 0})
+    _require(len(rows) == len(dataset) and [row["stable_sample_id"] for row in rows] == sorted(row["stable_sample_id"] for row in rows), "ER-2 v4 validation coverage/order differs")
+    return {"system": "learned_snr_randomised", "snr_db": int(snr_db), "n_correct": sum(int(row["correct"]) for row in rows), "n_total": len(rows), "outcomes": rows, "test_access": 0}
+
+
 class ER2V4RandomizedTrainer:
     """One future randomized ER-2 run using the same v4 epoch chain."""
 
@@ -457,4 +525,6 @@ __all__ = [
     "er2_v4_learning_rate",
     "er2_v4_recipe",
     "expected_er2_v4_identity",
+    "er2_v4_assignment_audit",
+    "evaluate_er2_v4_at_snr",
 ]

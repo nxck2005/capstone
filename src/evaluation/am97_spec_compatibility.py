@@ -306,7 +306,7 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     w9_root = root / "results/learned/w9"
     allowed_w9 = {"am94_pre_science_freeze.json", "am95_pre_science_freeze.json", "am96_pre_science_freeze.json", "am97_pre_science_freeze.json", "g10_adjudication.json", "g10_cell_index.json", "g10_classical_adaptive_r1_6_extract.json", "g10_execution_authorization.json", "g10_execution_authorization_v2.json", "g10_headline_curve.json", "g10_runtime_manifest.json", "g10_source_manifest.json", "g10_source_manifest_v2.json", "w9a_completion.json", "w9a_reconciliation.json", "w9_pascal_v4_lifecycle_smoke.json"}
     actual_w9 = {path.relative_to(w9_root).as_posix() for path in w9_root.glob("**/*") if path.is_file()}
-    _require(actual_w9 <= allowed_w9, f"unexpected W9 artifact at AM-97 boundary: {sorted(actual_w9 - allowed_w9)}")
+    _require(allow_downstream or actual_w9 <= allowed_w9, f"unexpected W9 artifact at strict AM-97 boundary: {sorted(actual_w9 - allowed_w9)}")
     er9_root = root / "results/learned/er9"
     allowed_pre = {
         "er_execution_source_manifest.json",
@@ -322,11 +322,30 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     actual_er9 = {path.relative_to(er9_root).as_posix() for path in er9_root.glob("**/*") if path.is_file()} if er9_root.exists() else set()
     if not allow_downstream:
         _authenticate_v4_pre_science_custody(root)
-    _require(allow_downstream or actual_er9 <= allowed_pre, "downstream ER-9 result exists at strict AM-97 boundary")
-    if not allow_downstream:
-        _require(not (root / "results/learned/er2_randomized").exists(), "randomized ER-2 exists at strict AM-97 boundary")
-        _require(not (root / "results/learned/g11").exists(), "G-11 exists at strict AM-97 boundary")
+    verify_science_inventory(
+        actual_er9,
+        allowed_pre=allowed_pre,
+        er2_exists=(root / "results/learned/er2_randomized").exists(),
+        g11_exists=(root / "results/learned/g11").exists(),
+        allow_downstream=allow_downstream,
+    )
     return value
 
 
-__all__ = ["ALLOWED_PARAMETER_PATHS", "FREEZE_RELATIVE_PATH", "load", "canonical", "rendered", "sha256_bytes"]
+def verify_science_inventory(
+    actual_er9: set[str],
+    *,
+    allowed_pre: set[str],
+    er2_exists: bool,
+    g11_exists: bool,
+    allow_downstream: bool,
+) -> None:
+    """Lifecycle-aware inventory check used by strict and history modes."""
+
+    _require(allow_downstream or actual_er9 <= allowed_pre, "downstream ER-9 result exists at strict AM-97 boundary")
+    if not allow_downstream:
+        _require(not er2_exists, "randomized ER-2 exists at strict AM-97 boundary")
+        _require(not g11_exists, "G-11 exists at strict AM-97 boundary")
+
+
+__all__ = ["ALLOWED_PARAMETER_PATHS", "FREEZE_RELATIVE_PATH", "load", "canonical", "rendered", "sha256_bytes", "verify_science_inventory"]

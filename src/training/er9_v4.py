@@ -113,6 +113,7 @@ class ER9V4CandidateTrainer:
     """One future ER-9 candidate using only the v4 runtime machinery."""
 
     ROLE = "W9_ER9_STAGE1_CANDIDATE"
+    PRODUCTION_ROLE = "W9_ER9_PRODUCTION_CELL"
 
     def __init__(
         self,
@@ -146,8 +147,16 @@ class ER9V4CandidateTrainer:
             raise ER9V4TrainingHold("ER-9 v4 live Pascal authentication is not clean")
         self.config = config
         self.config_hash = run_config_hash(config)
+        requested_runtime_role = self.ROLE if runtime_role is None else str(runtime_role)
         _require(authority.get("source_binding") == dict(source_binding), "ER-9 v4 live source authority differs")
-        _require(authority.get("config_hash") == self.config_hash, "ER-9 v4 live config authority differs")
+        if requested_runtime_role == self.PRODUCTION_ROLE:
+            cells = authority.get("seed_cells")
+            _require(isinstance(cells, Sequence), "ER-9 production cell authority is missing")
+            cell = (int(config.resolved["train_seed"]), int(config.resolved["channel_seed"]))
+            matches = [item for item in cells if isinstance(item, Mapping) and (item.get("train_seed"), item.get("channel_seed")) == cell]
+            _require(len(matches) == 1 and matches[0].get("config_hash") == self.config_hash, "ER-9 production cell config authority differs")
+        else:
+            _require(authority.get("config_hash") == self.config_hash, "ER-9 v4 live config authority differs")
         _require(authority.get("execution_profile_id") == "confessor_pascal_cu126", "ER-9 v4 live profile differs")
         _require(authority.get("host") == "confessor" and authority.get("device") == "cuda:0", "ER-9 v4 live device authority differs")
         self.transmit_dim = int(transmit_dim)
@@ -164,9 +173,9 @@ class ER9V4CandidateTrainer:
         self.run_id = str(run_id)
         self.source_binding = dict(source_binding)
         self.synthetic_provider = synthetic_provider
-        self.runtime_role = self.ROLE if runtime_role is None else str(runtime_role)
+        self.runtime_role = requested_runtime_role
         if self.synthetic_provider is None:
-            _require(self.runtime_role == self.ROLE, "ER-9 v4 scientific runtime role differs")
+            _require(self.runtime_role in {self.ROLE, self.PRODUCTION_ROLE}, "ER-9 v4 scientific runtime role differs")
             _require(total_epochs is None, "ER-9 v4 scientific epoch authority cannot be overridden")
         else:
             _require(
@@ -540,10 +549,12 @@ def expected_er9_v4_identity(
     source_binding: Mapping[str, Any],
     campaign_id: str,
     run_id: str,
+    runtime_role: str = ER9V4CandidateTrainer.ROLE,
 ) -> dict[str, Any]:
     """Build the identity a verifier must reconstruct before loading state."""
 
     recipe = er9_v4_recipe(config)
+    _require(runtime_role in {ER9V4CandidateTrainer.ROLE, ER9V4CandidateTrainer.PRODUCTION_ROLE}, "ER-9 v4 expected identity role differs")
     return {
         "schema_version": 1,
         "campaign_id": str(campaign_id),

@@ -36,6 +36,13 @@ V4_RELEVANT_CONFIG_PATHS = (
     "configs/learned-er2-randomized-pascal-v4.yaml",
     "spec/params.generated.yaml",
 )
+DOWNSTREAM_RELEVANT_CONFIG_PATHS = V4_RELEVANT_CONFIG_PATHS
+DOWNSTREAM_MANIFEST_KIND = "W9_V4_FINAL_DOWNSTREAM_SOURCE_SUCCESSOR"
+DOWNSTREAM_ALLOWED_EVIDENCE_PREFIXES = (
+    *ALLOWED_EVIDENCE_PREFIXES,
+    "results/learned/w10/",
+    "checkpoints/er9_production_pascal_v4/",
+)
 V4_WORKING_TREE_GUARD = {
     "checks_committed_source_commit_to_head": True,
     "checks_unstaged_protected_source": True,
@@ -130,6 +137,56 @@ def assert_v4_manifest_contract(manifest: Mapping[str, Any]) -> None:
         isinstance(lock_sha, str) and len(lock_sha) == 64,  # literal-ok: SHA-256 length
         "W9 v4 Pascal lock identity is malformed",
     )
+
+
+def assert_downstream_manifest_contract(manifest: Mapping[str, Any]) -> None:
+    """Authenticate the final post-search execution-source successor."""
+
+    _require(manifest.get("schema_version") == 2, "downstream source manifest schema differs")
+    _require(manifest.get("manifest_kind") == DOWNSTREAM_MANIFEST_KIND, "downstream source manifest kind differs")
+    _require(manifest.get("source_commit_comparison") == "exact_clean_HEAD_at_freeze", "downstream source freeze rule differs")
+    _require(manifest.get("historical_stage1_source_commit") == "a66592f7e53f8bffa1c5747e2ae9af71673ae67e", "historical Stage-1 source binding differs")
+    _require(manifest.get("protected_source_prefixes") == list(PROTECTED_PREFIXES), "downstream protected source boundary differs")
+    _require(manifest.get("allowed_evidence_runtime_prefixes") == list(DOWNSTREAM_ALLOWED_EVIDENCE_PREFIXES), "downstream output boundary differs")
+    _require(manifest.get("working_tree_guard") == V4_WORKING_TREE_GUARD, "downstream working-tree guard differs")
+    source_commit = manifest.get("source_commit")
+    _require(isinstance(source_commit, str) and len(source_commit) == 40, "downstream source commit is malformed")  # literal-ok: Git SHA-1 width
+    trees = manifest.get("tree_hashes")
+    _require(
+        isinstance(trees, Mapping)
+        and set(trees) == {"repository", "src", "tools", "configs", "spec", "tests"}
+        and all(isinstance(value, str) and len(value) == 40 for value in trees.values()),  # literal-ok: Git tree SHA-1 width
+        "downstream tree closure differs",
+    )
+    relevant = manifest.get("relevant_config_sha256")
+    _require(
+        isinstance(relevant, Mapping)
+        and tuple(sorted(relevant)) == DOWNSTREAM_RELEVANT_CONFIG_PATHS
+        and all(isinstance(value, str) and len(value) == 64 for value in relevant.values()),  # literal-ok: SHA-256 width
+        "downstream config closure differs",
+    )
+    _require(isinstance(manifest.get("requirements_pascal_lock_sha256"), str) and len(str(manifest["requirements_pascal_lock_sha256"])) == 64, "downstream Pascal lock identity differs")  # literal-ok: SHA-256 width
+    _require(manifest.get("governs") == [
+        "fresh_production_er9",
+        "randomized_er2",
+        "final_er9_validation",
+        "g11_h4",
+        "w10_validation_rehearsal",
+    ], "downstream governed lifecycle differs")
+    _require(manifest.get("test") == "SEALED" and manifest.get("test_access") == 0, "downstream source crossed test boundary")
+
+
+def assert_manifest_commit_bytes(root: Path, manifest: Mapping[str, Any]) -> None:
+    """Authenticate a historical manifest against its commit, not live HEAD."""
+
+    source_commit = str(manifest.get("source_commit", ""))
+    _require(len(source_commit) == 40, "historical source commit is malformed")  # literal-ok: Git SHA-1 width
+    _require(git_tree_hashes(root, source_commit) == dict(manifest.get("tree_hashes", {})), "historical Git tree closure differs")
+    configs = manifest.get("relevant_config_sha256", {})
+    _require(isinstance(configs, Mapping), "historical config closure is malformed")
+    for relative, digest in configs.items():
+        _require(git_blob_sha256(root, source_commit, str(relative)) == digest, f"historical config differs: {relative}")
+    _require(git_blob_sha256(root, source_commit, "requirements-pascal.lock") == manifest.get("requirements_pascal_lock_sha256"), "historical Pascal lock differs")
 
 
 def git_blob_bytes(root: Path, commit: str, relative: str) -> bytes:
@@ -243,6 +300,33 @@ def build_manifest(root: Path, *, source_commit: str, relevant_config_paths: Ite
     return manifest
 
 
+def build_downstream_manifest(root: Path, *, source_commit: str) -> dict[str, Any]:
+    """Build the one final source successor without rewriting Stage-1."""
+
+    base = build_manifest(
+        root,
+        source_commit=source_commit,
+        relevant_config_paths=DOWNSTREAM_RELEVANT_CONFIG_PATHS,
+    )
+    base.pop("manifest_id")
+    base["manifest_kind"] = DOWNSTREAM_MANIFEST_KIND
+    base["allowed_evidence_runtime_prefixes"] = list(DOWNSTREAM_ALLOWED_EVIDENCE_PREFIXES)
+    base["historical_stage1_source_commit"] = "a66592f7e53f8bffa1c5747e2ae9af71673ae67e"
+    base["governs"] = [
+        "fresh_production_er9",
+        "randomized_er2",
+        "final_er9_validation",
+        "g11_h4",
+        "w10_validation_rehearsal",
+    ]
+    base["test"] = "SEALED"
+    base["test_access"] = 0
+    base["manifest_id"] = "w9downstreamsource-" + hashlib.sha256(
+        (json.dumps(base, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
+    ).hexdigest()
+    return base
+
+
 __all__ = [
     "ALLOWED_EVIDENCE_PREFIXES",
     "V4_RELEVANT_CONFIG_PATHS",
@@ -250,8 +334,11 @@ __all__ = [
     "PROTECTED_PREFIXES",
     "SourceGuardHold",
     "assert_v4_manifest_contract",
+    "assert_downstream_manifest_contract",
+    "assert_manifest_commit_bytes",
     "assert_clean_source_closure",
     "build_manifest",
+    "build_downstream_manifest",
     "committed_source_differences",
     "git_tree_hashes",
     "git_blob_bytes",

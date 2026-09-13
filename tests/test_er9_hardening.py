@@ -36,4 +36,5 @@ def test_er9_rows_use_exact_sr18_schema() -> None:
         "stable_sample_id", "bw_ratio", "test_snr_db", "true_label", "pred_label", "correct",
         "outage", "outage_reason", "source_bytes",
     )
-    assert REPO_ROOT.name == "capstone"
+    assert (REPO_ROOT / "pyproject.toml").is_file()
+    assert (REPO_ROOT / "spec/SPEC.md").is_file()

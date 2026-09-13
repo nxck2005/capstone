@@ -155,6 +155,28 @@ def _w9_v4_commands() -> tuple[list[str], ...]:
         commands.append(_python_tool("tools/verify_er9_source_manifest_v4.py"))
     if _present(authority):
         commands.append(_python_tool("tools/verify_er9_pascal_v4.py"))
+    if _present(REPO / "results/learned/w9/downstream_source_manifest_v4.json"):
+        commands.append(_python_tool("tools/verify_downstream_source.py"))
+    if _present(REPO / "results/learned/er9/er9_production_execution_authorization_v4.json"):
+        command = _python_tool("tools/verify_er9_production_v4.py")
+        if _present(REPO / "results/learned/er9/er9_production_closeout_v4.json"):
+            command.append("--terminal")
+        commands.append(command)
+    if _present(REPO / "results/learned/er2_randomized/er2_execution_authorization_v4.json"):
+        command = _python_tool("tools/verify_er2_randomized.py")
+        if not _present(REPO / "results/learned/er2_randomized/er2_randomized_completion_v4.json"):
+            command.append("--authority-only")
+        commands.append(command)
+    if _present(REPO / "results/learned/g11/g11_execution_authorization_v4.json"):
+        command = _python_tool("tools/verify_g11.py")
+        if not _present(REPO / "results/learned/g11/g11_terminal_closeout.json"):
+            command.append("--authority-only")
+        commands.append(command)
+    if _present(REPO / "results/learned/w10/w10_rehearsal_authorization.json"):
+        command = _python_tool("tools/verify_w10_rehearsal.py")
+        if _present(REPO / "results/learned/w10/w10_rehearsal_closeout.json"):
+            command.append("--terminal")
+        commands.append(command)
     return tuple(commands)
 
 

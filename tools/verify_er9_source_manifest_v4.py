@@ -12,7 +12,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from runtime.source_guard import SourceGuardHold, assert_clean_source_closure, assert_v4_manifest_contract  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure, assert_manifest_commit_bytes, assert_v4_manifest_contract  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,8 +30,16 @@ def main(argv: list[str] | None = None) -> int:
         assert_v4_manifest_contract(value)
     except SourceGuardHold as exc:
         raise SystemExit(f"v4 source manifest contract differs: {exc}") from None
-    report = assert_clean_source_closure(REPO, value)
-    print(f"W9 v4 source manifest PASS: {manifest_id}; protected drift=none")
+    successor = REPO / "results/learned/w9/downstream_source_manifest_v4.json"
+    if successor.is_file() and not successor.is_symlink():
+        assert_manifest_commit_bytes(REPO, value)
+        from evaluation.downstream_v4 import load_source
+        load_source(REPO)
+        mode = "historical Stage-1 tree authenticated; live successor authenticated"
+    else:
+        assert_clean_source_closure(REPO, value)
+        mode = "protected drift=none"
+    print(f"W9 v4 source manifest PASS: {manifest_id}; {mode}")
     return 0
 
 

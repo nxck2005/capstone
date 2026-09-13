@@ -16,7 +16,7 @@ sys.path.insert(0, str(REPO / "src"))
 
 from config.run_config import config_hash, load_experiment  # noqa: E402
 from evaluation.er9_search import all_configured_pairs, feasible_pairs, packetisation_floor, stage1_candidates  # noqa: E402
-from runtime.source_guard import SourceGuardHold, assert_clean_source_closure, assert_v4_manifest_contract  # noqa: E402
+from runtime.source_guard import SourceGuardHold, assert_clean_source_closure, assert_manifest_commit_bytes, assert_v4_manifest_contract  # noqa: E402
 from runtime.transactional_epochs import TransactionalEpochStore, TransactionalRuntimeHold  # noqa: E402
 from runtime.w9_authority import W9AuthorityHold, load_authority, resolve_runtime_root  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
@@ -57,7 +57,15 @@ def verify_source_manifest(path: Path = SOURCE) -> dict[str, Any]:
     except SourceGuardHold as exc:
         raise W9AuthorityHold(f"v4 source manifest contract differs: {exc}") from None
     try:
-        assert_clean_source_closure(REPO, value)
+        successor = REPO / "results/learned/w9/downstream_source_manifest_v4.json"
+        if successor.is_file() and not successor.is_symlink():
+            # Stage-1 remains bound to its exact historical tree.  The final
+            # successor separately authenticates live protected source.
+            assert_manifest_commit_bytes(REPO, value)
+            from evaluation.downstream_v4 import load_source
+            load_source(REPO)
+        else:
+            assert_clean_source_closure(REPO, value)
     except SourceGuardHold as exc:
         raise W9AuthorityHold(f"v4 source closure differs: {exc}") from None
     return value

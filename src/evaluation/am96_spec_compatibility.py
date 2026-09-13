@@ -427,7 +427,10 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         for path in w9_root.glob("**/*")
         if path.is_file()
     }
-    _require(actual_w9 <= allowed_w9, f"ER-9/G-11 artifact exists before AM-96: {sorted(actual_w9 - allowed_w9)}")
+    _require(
+        allow_downstream or actual_w9 <= allowed_w9,
+        f"ER-9/G-11 artifact exists before AM-96: {sorted(actual_w9 - allowed_w9)}",
+    )
     er9_root = root / "results/learned/er9"
     if er9_root.exists():
         allowed_pre_science = {
