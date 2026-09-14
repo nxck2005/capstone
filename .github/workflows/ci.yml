@@ -65,7 +65,9 @@ jobs:
 
       - name: Run software lane
         if: steps.classify.outputs.lane == 'software'
-        run: python tools/run_quality_gate.py ci-cpu
+        run: |
+          python .github/hosted_quality_gate.py self-test
+          python .github/hosted_quality_gate.py ci-cpu
 
       - name: Run evidence-only lane
         if: steps.classify.outputs.lane == 'evidence'
