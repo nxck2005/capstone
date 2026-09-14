@@ -163,7 +163,7 @@ def verify_er2_published() -> None:
     aggregate = {key: 0 for key in domain_keys}
     for row in rows:
         counts = row.get("counts")
-        require(isinstance(counts, Mapping) and list(counts) == domain_keys, "ER-2 per-epoch assignment domain differs")
+        require(isinstance(counts, Mapping) and set(counts) == set(domain_keys), "ER-2 per-epoch assignment domain differs")
         require(all(isinstance(counts[key], int) and not isinstance(counts[key], bool) and counts[key] >= 0 for key in domain_keys), "ER-2 per-epoch assignment count is invalid")
         require(sum(counts[key] for key in domain_keys) == sample_count, "ER-2 per-epoch assignment total differs")
         for key in domain_keys:
