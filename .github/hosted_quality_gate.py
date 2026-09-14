@@ -141,7 +141,35 @@ def verify_er2_published() -> None:
     require(selected.get("selection_metric") == "validation_n_correct" and selected.get("tie_break") == "earliest_epoch", "ER-2 checkpoint-selection rule differs")
     require(str(selected.get("task_head_identity", "")).startswith("er9taskhead-") and len(str(selected["task_head_identity"])) == 76, "ER-2 task-head identity differs")
     require(selected.get("test") == "SEALED" and selected.get("test_access") == 0, "ER-2 selection crossed test boundary")
-    audit = verify_audit(audit_path, authority, recompute=True)
+    # Rebuilding the keyed assignment digest requires the worker-local
+    # Imagenette training corpus.  The unchanged terminal verifier performs
+    # that strong recomputation on Confessor; hosted CI authenticates the
+    # committed audit itself and all arithmetic that can be derived from it.
+    audit = verify_audit(audit_path, authority, recompute=False)
+    require(audit.get("schema_version") == 2, "ER-2 assignment-audit schema differs")
+    require(audit.get("system") == "learned_snr_randomised", "ER-2 assignment-audit system differs")
+    require(audit.get("rng_purpose") == "er2_snr_randomised_v1", "ER-2 assignment-audit RNG purpose differs")
+    require(audit.get("identity_fields") == [
+        "dataset_version", "split_manifest_hash", "stable_sample_id", "train_seed", "epoch",
+    ], "ER-2 assignment-audit identity fields differ")
+    require(audit.get("config_hash") == authority.get("config_hash"), "ER-2 assignment-audit config differs")
+    full_sha256(audit.get("assignment_digest"), "ER-2 assignment digest")
+    sample_count = audit.get("sample_count")
+    epoch_count = audit.get("epoch_count")
+    domain_keys = [str(value) for value in authority["randomized_snr_domain"]]
+    require(sample_count == 8469 and epoch_count == 100, "ER-2 assignment-audit dimensions differ")
+    rows = audit.get("per_epoch_counts")
+    require(isinstance(rows, list) and [row.get("epoch") for row in rows] == list(range(epoch_count)), "ER-2 per-epoch assignment order differs")
+    aggregate = {key: 0 for key in domain_keys}
+    for row in rows:
+        counts = row.get("counts")
+        require(isinstance(counts, Mapping) and list(counts) == domain_keys, "ER-2 per-epoch assignment domain differs")
+        require(all(isinstance(counts[key], int) and not isinstance(counts[key], bool) and counts[key] >= 0 for key in domain_keys), "ER-2 per-epoch assignment count is invalid")
+        require(sum(counts[key] for key in domain_keys) == sample_count, "ER-2 per-epoch assignment total differs")
+        for key in domain_keys:
+            aggregate[key] += counts[key]
+    require(audit.get("global_counts") == aggregate, "ER-2 global assignment counts differ")
+    require(sum(aggregate.values()) == audit.get("assignment_count"), "ER-2 global assignment total differs")
     require(audit.get("runtime_root") == ER2_RUNTIME_ROOT, "ER-2 assignment-audit runtime differs")
     validation = verify_validation(validation_path, authority, selected)
     require(all(row.get("checkpoint_id") == checkpoint_sha for curve in validation["curves"] for row in curve["outcomes"]), "ER-2 validation checkpoint binding differs")
