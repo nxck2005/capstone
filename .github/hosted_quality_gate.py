@@ -34,13 +34,19 @@ from evaluation.downstream_v4 import (  # noqa: E402
     verify_er2_authority,
     verify_production_authority,
 )
+from evaluation.g10_protocol import verify_identified  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 from verify_er2_randomized import verify_audit, verify_validation  # noqa: E402
+from verify_g11 import verify_authority as verify_g11_authority  # noqa: E402
 
 
 ER9_CLOSEOUT = REPO / "results/learned/er9/er9_production_closeout_v4.json"
 ER2_ROOT = REPO / "results/learned/er2_randomized"
 ER2_COMPLETION = ER2_ROOT / "er2_randomized_completion_v4.json"
+G11_ROOT = REPO / "results/learned/g11"
+G11_AUTHORITY = G11_ROOT / "g11_execution_authorization_v4.json"
+G11_TERMINAL = G11_ROOT / "g11_terminal_closeout.json"
+G10_MANIFEST = REPO / "results/learned/w9/g10_runtime_manifest.json"
 
 
 class HostedEvidenceHold(RuntimeError):
@@ -207,12 +213,105 @@ def verify_er2_published() -> None:
     print("randomized ER-2 v4 published-evidence verifier PASS: one run and full validation; worker runtime not inspected")
 
 
+def verify_g11_published() -> None:
+    """Authenticate committed G11/H4 evidence without worker checkpoint bytes.
+
+    Hosted CI authenticates the frozen G11 authority, the content-addressed
+    H4/architecture/terminal artifacts, the three committed ER-9 validation
+    bindings, and the 63 learned bindings against the committed G10 runtime
+    manifest.  It deliberately does NOT recompute H4 from the worker-local
+    per-image G10 cells under the Confessor campaign root; the unchanged
+    Confessor verifier remains the strong recomputation authority.
+    """
+
+    authority = verify_g11_authority()
+    h4_path = G11_ROOT / "h4_pointwise_precision_v4.json"
+    architecture_path = G11_ROOT / "er9_architecture_difference_v4.json"
+
+    h4 = read_json(h4_path, "G11 H4 diagnostic")
+    content_address(h4, "diagnostic_id", "g11h4v4-", "G11 H4 diagnostic")
+    require(h4.get("artifact_role") == "G11_H4_POINTWISE_PRECISION_DIAGNOSTIC" and h4.get("schema_version") == 2, "G11 H4 role differs")
+    require(h4.get("diagnostic_role") == "pointwise_precision_diagnostic_only", "G11 H4 diagnostic role differs")
+    require(h4.get("learned_arm") == "ordinary_learned_w8_g10" and h4.get("comparator") == "er9_digital", "G11 H4 arms differ")
+    require(h4.get("randomized_er2_as_h4_arm") is False, "randomized ER-2 substituted into H4")
+    require(h4.get("cells") == [list(cell) for cell in PRODUCTION_CELLS], "G11 H4 cells differ")
+    require(h4.get("bootstrap_unit") == "stable_image_complete_three_cell_trajectory" and h4.get("bootstrap_resamples") == 10000, "G11 bootstrap contract differs")  # literal-ok: AM-97 count
+    require(h4.get("reference_pp") == 2.0, "G11 reference differs")  # literal-ok: AM-97 reference
+    interpretation = h4.get("interpretation", {})
+    require(interpretation.get("pointwise_only") is True and interpretation.get("full_h4_decision_procedure_power_certified") is False, "G11 H4 overclaims power")
+    require(interpretation.get("correlated_snr_pointwise_probabilities_may_be_multiplied") is False and interpretation.get("negative_h4_result_excludes_meaningful_advantage") is False, "G11 H4 interpretation differs")
+    require(h4.get("test_data_read") is False and h4.get("test_access") == 0, "G11 H4 accessed test")
+
+    learned_bindings = h4.get("input_bindings", {}).get("ordinary_learned_w8_g10")
+    require(isinstance(learned_bindings, list) and len(learned_bindings) == 63, "G11 learned binding count differs")  # literal-ok: 3x21 G10 cells
+    runtime = read_json(G10_MANIFEST, "G10 runtime manifest")
+    verify_identified(runtime, field="runtime_manifest_id", prefix="g10runtime-", label="G10 runtime manifest")
+    require(runtime.get("status") == "COMPLETE_MATRIX_READY_FOR_AGGREGATION" and runtime.get("matrix_shape") == {"checkpoints": 3, "snr_points": 21, "cells": 63}, "G10 runtime manifest differs")  # literal-ok: frozen 3x21 matrix
+    cells = runtime.get("cells")
+    require(isinstance(cells, list) and len(cells) == 63, "G10 runtime manifest cell count differs")  # literal-ok: 3x21 G10 cells
+    seen_artifact_ids: set[str] = set()
+    for index, (binding, cell) in enumerate(zip(learned_bindings, cells, strict=True)):
+        require(isinstance(binding, Mapping) and isinstance(cell, Mapping), "G11 learned binding is malformed")
+        full_sha256(binding.get("sha256"), f"G11 learned binding {index}")
+        require(binding.get("path") == cell.get("file_path"), f"G11 learned binding path differs at {index}")
+        require(binding.get("sha256") == cell.get("file_sha256"), f"G11 learned binding hash differs at {index}")
+        require(binding.get("artifact_id") == cell.get("artifact_id"), f"G11 learned binding artifact differs at {index}")
+        require(cell.get("cell_index") == index, f"G10 manifest cell order differs at {index}")
+        artifact_id = str(cell.get("artifact_id"))
+        require(bool(artifact_id) and artifact_id not in seen_artifact_ids, f"G10 manifest cell repeats at {index}")
+        seen_artifact_ids.add(artifact_id)
+
+    er9_bindings = h4.get("input_bindings", {}).get("final_production_er9")
+    require(isinstance(er9_bindings, list) and len(er9_bindings) == len(PRODUCTION_CELLS), "G11 ER-9 binding count differs")
+    for cell, binding in zip(PRODUCTION_CELLS, er9_bindings, strict=True):
+        require(isinstance(binding, Mapping), "G11 ER-9 binding is malformed")
+        relative = f"results/learned/er9/final_validation/train{cell[0]}_channel{cell[1]}.json"
+        require(binding.get("path") == relative, f"G11 ER-9 binding path differs at {cell}")
+        full_sha256(binding.get("sha256"), f"G11 ER-9 binding {cell}")
+        require(sha256_file(REPO / relative) == binding["sha256"], f"G11 ER-9 binding hash differs at {cell}")
+        value = read_json(REPO / relative, f"ER-9 final validation {cell}")
+        validate_final_er9_cell(value, cell=cell)
+        content_address(value, "validation_id", "er9productionvalidation-", f"ER-9 validation {cell}")
+        require(value.get("validation_id") == binding.get("validation_id"), f"G11 ER-9 validation id differs at {cell}")
+
+    architecture = read_json(architecture_path, "G11 architecture audit")
+    content_address(architecture, "audit_id", "er9archdiffv2-", "G11 architecture audit")
+    require(architecture.get("only_declared_difference") is True and architecture.get("unexpected_difference_paths") == [], "G11 architecture audit is not closed")
+    require(architecture.get("observed_interface_differences") == ["channel_interface"], "G11 interface difference differs")
+    require(architecture.get("test_access") == 0, "G11 architecture audit accessed test")
+
+    terminal = read_json(G11_TERMINAL, "G11 terminal")
+    content_address(terminal, "terminal_id", "g11terminal-", "G11 terminal")
+    require(terminal.get("artifact_role") == "G11_TERMINAL_VALIDATION_ONLY_CLOSEOUT" and terminal.get("status") == "G11_GREEN_NO_TEST_ACCESS", "G11 terminal role/status differs")
+    require(terminal.get("decision") == "GREEN", "G11 terminal decision differs")
+    require(terminal.get("authority_id") == authority["authority_id"], "G11 terminal authority differs")
+    require(terminal.get("source_commit") == authority["source_commit"], "G11 terminal source commit differs")
+    require(terminal.get("source_manifest_id") == authority["source_manifest"]["manifest_id"], "G11 terminal source manifest differs")
+    require(terminal.get("cells") == [list(cell) for cell in PRODUCTION_CELLS], "G11 terminal cells differ")
+    require(terminal.get("input_sources") == {"learned": "ordinary_learned_w8_g10", "comparator": "final_production_er9", "randomized_er2": False}, "G11 input arms differ")
+    require(terminal.get("am97_semantics") == {"signed_correctness_difference": True, "within_image_three_cell_mean": True, "stable_image_complete_trajectory_bootstrap": True, "bootstrap_resamples": 10000, "quantiles": ["q50", "q95", "q99"], "reference_pp": 2, "pointwise_only": True, "full_h4_power_claim": False}, "G11 AM-97 semantics differ")  # literal-ok: AM-97 constants
+    h4_record = terminal.get("h4", {})
+    require(h4_record.get("artifact") == str(h4_path.relative_to(REPO)) and h4_record.get("artifact_sha256") == sha256_file(h4_path), "G11 terminal H4 binding differs")
+    er9_record = terminal.get("er9", {})
+    require(er9_record.get("production_closeout") == str(ER9_CLOSEOUT.relative_to(REPO)) and er9_record.get("production_closeout_sha256") == sha256_file(ER9_CLOSEOUT), "G11 terminal ER-9 closeout binding differs")
+    require(er9_record.get("architecture_difference") == str(architecture_path.relative_to(REPO)) and er9_record.get("architecture_difference_sha256") == sha256_file(architecture_path), "G11 terminal architecture binding differs")
+    validation_cells = er9_record.get("validation_cells")
+    require(isinstance(validation_cells, list) and len(validation_cells) == len(PRODUCTION_CELLS), "G11 terminal ER-9 cell count differs")
+    for cell, record in zip(PRODUCTION_CELLS, validation_cells, strict=True):
+        relative = f"results/learned/er9/final_validation/train{cell[0]}_channel{cell[1]}.json"
+        require(isinstance(record, Mapping) and record.get("path") == relative and sha256_file(REPO / relative) == record.get("sha256"), f"G11 terminal ER-9 cell binding differs at {cell}")
+    require(terminal.get("protected_counters") == {"production_er9_training": 3, "randomized_er2_training": 1, "g11": 1, "w10": 0, "learned_test_inference": 0, "model_facing_test_access": 0}, "G11 protected counters differ")
+    require(terminal.get("test") == "SEALED" and terminal.get("test_access") == 0, "G11 terminal crossed test boundary")
+    print("G11/H4 published-evidence verifier PASS: authority, H4, architecture, terminal, 3 ER-9 and 63 G10 manifest bindings; worker-local G10 per-image bytes not recomputed")
+
+
 def hosted_commands(profile: str) -> tuple[list[str], ...]:
     """Replace only exact worker-runtime terminal commands, failing closed."""
 
     commands = gate.profile_commands(profile)
     replaced_er9 = 0
     replaced_er2 = 0
+    replaced_g11 = 0
     result: list[list[str]] = []
     for command in commands:
         tool = Path(command[1]).name if len(command) >= 2 else ""
@@ -225,12 +324,25 @@ def hosted_commands(profile: str) -> tuple[list[str], ...]:
             require(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink(), "ER-2 terminal routing lacks a safe completion")
             result.append([sys.executable, str(Path(__file__).resolve()), "verify-er2-published"])
             replaced_er2 += 1
+        elif tool == "verify_g11.py" and not arguments:
+            require(
+                G11_AUTHORITY.is_file() and not G11_AUTHORITY.is_symlink()
+                and G11_TERMINAL.is_file() and not G11_TERMINAL.is_symlink(),
+                "G11 terminal routing lacks a safe authority/closeout",
+            )
+            result.append([sys.executable, str(Path(__file__).resolve()), "verify-g11-published"])
+            replaced_g11 += 1
         else:
             result.append(command)
     expected_er9 = int(ER9_CLOSEOUT.is_file() and not ER9_CLOSEOUT.is_symlink())
     expected_er2 = int(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink())
+    expected_g11 = int(
+        G11_AUTHORITY.is_file() and not G11_AUTHORITY.is_symlink()
+        and G11_TERMINAL.is_file() and not G11_TERMINAL.is_symlink()
+    )
     require(replaced_er9 == expected_er9, "hosted ER-9 runtime-command replacement count differs")
     require(replaced_er2 == expected_er2, "hosted ER-2 runtime-command replacement count differs")
+    require(replaced_g11 == expected_g11, "hosted G-11 runtime-command replacement count differs")
     return tuple(result)
 
 
@@ -239,14 +351,17 @@ def self_test() -> None:
     hosted = hosted_commands("ci-cpu")
     require(len(original) == len(hosted), "hosted routing changed command count")
     differences = [(before, after) for before, after in zip(original, hosted, strict=True) if before != after]
-    expected = 1 + int(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink())
+    g11_present = G11_AUTHORITY.is_file() and not G11_AUTHORITY.is_symlink() and G11_TERMINAL.is_file() and not G11_TERMINAL.is_symlink()
+    expected = 1 + int(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink()) + int(g11_present)
     require(len(differences) == expected, "hosted routing changed an unexpected command")
     for before, after in differences:
-        require(Path(before[1]).name in {"verify_er9_production_v4.py", "verify_er2_randomized.py"}, "hosted routing replaced a non-runtime command")
+        require(Path(before[1]).name in {"verify_er9_production_v4.py", "verify_er2_randomized.py", "verify_g11.py"}, "hosted routing replaced a non-runtime command")
         require(Path(after[1]).resolve() == Path(__file__).resolve(), "hosted routing replacement is not this audited adapter")
     verify_er9_published()
     if ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink():
         verify_er2_published()
+    if g11_present:
+        verify_g11_published()
     print(f"hosted quality-gate routing self-test PASS: replacements={len(differences)}")
 
 
@@ -264,7 +379,7 @@ def run(profile: str) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "static", "ci-cpu"))
+    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "verify-g11-published", "static", "ci-cpu"))
     args = parser.parse_args(argv)
     if args.action == "self-test":
         self_test()
@@ -272,6 +387,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         verify_er9_published()
     elif args.action == "verify-er2-published":
         verify_er2_published()
+    elif args.action == "verify-g11-published":
+        verify_g11_published()
     else:
         run(args.action)
     return 0
