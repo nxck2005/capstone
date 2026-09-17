@@ -23,6 +23,7 @@ sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tools"))
 
 import run_quality_gate as gate  # noqa: E402
+from config.params import get  # noqa: E402
 from evaluation.downstream_v4 import (  # noqa: E402
     ER2_RUNTIME_ROOT,
     FINAL_PAIR,
@@ -138,7 +139,18 @@ def verify_er2_published() -> None:
     require(isinstance(epoch, int) and not isinstance(epoch, bool) and 0 <= epoch < 100, "ER-2 selected epoch differs")
     checkpoint_sha = full_sha256(selected.get("checkpoint_sha256"), "ER-2 selected checkpoint")
     require(selected.get("checkpoint_path") == f"{ER2_RUNTIME_ROOT}/epochs/epoch-{epoch:04d}/checkpoint.pt", "ER-2 selected checkpoint path differs")
-    require(selected.get("selection_metric") == "validation_n_correct" and selected.get("tie_break") == "earliest_epoch", "ER-2 checkpoint-selection rule differs")
+    metric = selected.get("selection_metric")
+    metric_value = metric.get("value") if isinstance(metric, Mapping) else None
+    require(
+        isinstance(metric, Mapping)
+        and metric.get("metric") == "validation_n_correct"
+        and metric.get("mode") == "max"
+        and isinstance(metric_value, int)
+        and not isinstance(metric_value, bool)
+        and 0 <= metric_value <= int(get("datasets.imagenette160.val_images"))
+        and selected.get("tie_break") == "earliest_epoch",
+        "ER-2 checkpoint-selection rule differs",
+    )
     require(str(selected.get("task_head_identity", "")).startswith("er9taskhead-") and len(str(selected["task_head_identity"])) == 76, "ER-2 task-head identity differs")
     require(selected.get("test") == "SEALED" and selected.get("test_access") == 0, "ER-2 selection crossed test boundary")
     # Rebuilding the keyed assignment digest requires the worker-local
