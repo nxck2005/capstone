@@ -22,6 +22,7 @@ from evaluation.am96_spec_compatibility import (
     load as load_am96_spec_compatibility,
 )
 from evaluation.am97_spec_compatibility import load as load_am97_spec_compatibility
+from evaluation import am97_spec_compatibility as am97
 from evaluation import am98_spec_compatibility as am98
 from evaluation.am98_spec_compatibility import load as load_am98_spec_compatibility
 from evaluation.am95_spec_compatibility import (
