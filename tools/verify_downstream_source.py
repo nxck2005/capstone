@@ -12,7 +12,8 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
 from evaluation.downstream_v4 import PRODUCTION_CELLS, read_json, require  # noqa: E402
-from runtime.source_guard import assert_clean_source_closure, assert_downstream_manifest_contract  # noqa: E402
+from runtime.source_epochs import assert_active_epoch_closure  # noqa: E402
+from runtime.source_guard import assert_downstream_manifest_contract  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 
 TARGET = REPO / "results/learned/w9/downstream_source_manifest_v4.json"
@@ -48,7 +49,8 @@ def verify(path: Path = TARGET) -> dict:
     if identifier != "w9downstreamsource-" + canonical_sha256(body):
         raise ValueError("downstream source manifest ID differs")
     assert_downstream_manifest_contract(value)
-    assert_clean_source_closure(REPO, value)
+    # Closed v4 bytes stay historical; live closure moved to the AM-98 successor.
+    assert_active_epoch_closure(REPO, value)
     verify_smoke()
     return value
 
