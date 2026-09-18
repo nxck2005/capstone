@@ -16,7 +16,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "tools"))
 
-from evaluation import am96_spec_compatibility, am97_spec_compatibility, g10_spec_compatibility  # noqa: E402
+from evaluation import am96_spec_compatibility, am97_spec_compatibility, am98_spec_compatibility, g10_spec_compatibility  # noqa: E402
 from evaluation.g10_protocol import (  # noqa: E402
     G10ProtocolHold,
     RECONCILIATION_PATH,
@@ -195,7 +195,7 @@ def _run_w8_a(root: Path) -> None:
         """Project current W8 configs back through AM-94..AM-97 in memory."""
 
         names = []
-        for path in (*authorization_module.AM94_ALLOWED_PARAMETER_PATHS, *am97_spec_compatibility.ALLOWED_PARAMETER_PATHS):
+        for path in (*authorization_module.AM94_ALLOWED_PARAMETER_PATHS, *am97_spec_compatibility.ALLOWED_PARAMETER_PATHS, *am98_spec_compatibility.AM98_PARAMETER_PATHS):
             prefix = "evaluation."
             if not path.startswith(prefix) or "." in path[len(prefix):]:
                 raise ValueError("AM-94 compatibility contains a non-evaluation leaf")
