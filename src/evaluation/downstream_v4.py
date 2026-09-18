@@ -88,14 +88,21 @@ def source_record(root: Path, source: Mapping[str, Any]) -> dict[str, Any]:
     return {"path": SOURCE_PATH, "manifest_id": source["manifest_id"], "sha256": sha256_file(path)}
 
 
-def cell_config_records(source: Mapping[str, Any]) -> list[dict[str, Any]]:
+def cell_config_records(source: Mapping[str, Any], *, removed_parameter_paths: Sequence[str] = ()) -> list[dict[str, Any]]:
+    from runtime.params_history import projected_config_hash
+
     records = []
     for train_seed, channel_seed in PRODUCTION_CELLS:
         config = load_experiment(ER9_CONFIG, train_seed=train_seed, channel_seed=channel_seed)
+        digest = (
+            config_hash(config)
+            if not removed_parameter_paths
+            else projected_config_hash(config, removed_paths=removed_parameter_paths)
+        )
         records.append({
             "train_seed": train_seed,
             "channel_seed": channel_seed,
-            "config_hash": config_hash(config),
+            "config_hash": digest,
             "runtime_root": f"{PRODUCTION_RUNTIME_ROOT}/train{train_seed}_channel{channel_seed}",
         })
     return records
@@ -129,7 +136,15 @@ def verify_production_authority(root: Path, path: Path | None = None, *, live_so
     require(value.get("source_manifest") == source_record(root, source) and value.get("source_binding") == source and value.get("source_commit") == source["source_commit"], "production source binding differs")
     require(value.get("stage2_closeout") == {"path": STAGE2_PATH, "selection_id": STAGE2_ID, "sha256": STAGE2_SHA256}, "production Stage-2 binding differs")
     require(value.get("selected_pair") == FINAL_PAIR, "production pair differs")
-    require(value.get("seed_cells") == cell_config_records(source), "production cells/configs/runtime roots differ")
+    expected_cells = cell_config_records(source)
+    if value.get("seed_cells") != expected_cells:
+        # AM-98 added only named evaluation parameters, which changes every
+        # config fingerprint; the closed authority keeps verifying under the
+        # exact historical projection that removes exactly those leaves.
+        from runtime.params_history import AM98_ADDED_PARAMETER_PATHS
+
+        historical_cells = cell_config_records(source, removed_parameter_paths=AM98_ADDED_PARAMETER_PATHS)
+        require(value.get("seed_cells") == historical_cells, "production cells/configs/runtime roots differ")
     require(value.get("training_count") == 3 and value.get("no_best_seed_selection") is True, "production count/selection policy differs")
     require(value.get("stage1_promotion") is False and value.get("fresh_initialization_required") is True, "production fresh-start policy differs")
     require(value.get("runtime_root") == PRODUCTION_RUNTIME_ROOT and value.get("epochs") == 100, "production runtime/epoch scope differs")  # literal-ok: AM-96 frozen epoch count
