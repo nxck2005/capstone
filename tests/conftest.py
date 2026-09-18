@@ -360,6 +360,12 @@ def _post_g10_am94_context():
                         prefix = "evaluation."
                         if name.startswith(prefix):
                             evaluation.pop(name[len(prefix):], None)
+                    am98_module = sys.modules.get("evaluation.am98_spec_compatibility")
+                    if am98_module is not None:
+                        for name in am98_module.AM98_PARAMETER_PATHS:
+                            prefix = "evaluation."
+                            if name.startswith(prefix):
+                                evaluation.pop(name[len(prefix):], None)
                     artifacts = historical["parameters"]["artifacts"]
                     artifacts["rng_purposes"] = [
                         purpose
