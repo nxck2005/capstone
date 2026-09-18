@@ -433,8 +433,11 @@ class W8Trainer:
         _require(self.num_workers >= 0, "W8 dataloader worker count is invalid")
         # build_djscc uses the declared init identity and an isolated Torch RNG.
         # Supplying a model is retained only as a test seam; it never bypasses
-        # the explicit no-initial-checkpoint rule above.
-        self.model = model if model is not None else build_djscc(config, device=self.device)
+        # the explicit no-initial-checkpoint rule above.  The model factory is a
+        # narrow construction seam: the unconstrained default is byte-for-byte
+        # the historical call, and only the PAPR-constrained successor subclass
+        # (AM-98) changes it.
+        self.model = model if model is not None else self._build_model(config, self.device)
         self.model.to(self.device)
         self.objective = DJSCCObjective.from_config(config)
         self.optimizer = self._new_optimizer(self.model)
@@ -451,6 +454,12 @@ class W8Trainer:
         self.initialization["initial_model_state_sha256"] = state_tree_sha256(
             self.model.state_dict()
         )
+
+    @staticmethod
+    def _build_model(config: RunConfig, device: torch.device) -> DJSCC:
+        """Construct the keyed fresh model; the PAPR successor overrides only this."""
+
+        return build_djscc(config, device=device)
 
     @staticmethod
     def _default_run_id(config: RunConfig) -> str:

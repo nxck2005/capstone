@@ -157,6 +157,8 @@ def _w9_v4_commands() -> tuple[list[str], ...]:
         commands.append(_python_tool("tools/verify_er9_pascal_v4.py"))
     if _present(REPO / "results/learned/w9/downstream_source_manifest_v4.json"):
         commands.append(_python_tool("tools/verify_downstream_source.py"))
+    if _present(REPO / "results/learned/w10/w10_downstream_source_manifest.json"):
+        commands.append(_python_tool("tools/verify_w10_downstream_source.py"))
     if _present(REPO / "results/learned/er9/er9_production_execution_authorization_v4.json"):
         command = _python_tool("tools/verify_er9_production_v4.py")
         if _present(REPO / "results/learned/er9/er9_production_closeout_v4.json"):
@@ -175,6 +177,11 @@ def _w9_v4_commands() -> tuple[list[str], ...]:
     if _present(REPO / "results/learned/w10/w10_rehearsal_authorization.json"):
         command = _python_tool("tools/verify_w10_rehearsal.py")
         if _present(REPO / "results/learned/w10/w10_rehearsal_closeout.json"):
+            command.append("--terminal")
+        commands.append(command)
+    if _present(REPO / "results/learned/w10/papr_training_authorization.json"):
+        command = _python_tool("tools/verify_papr_training_authorization.py")
+        if _present(REPO / "results/learned/w10/papr_selected_checkpoint.json"):
             command.append("--terminal")
         commands.append(command)
     return tuple(commands)

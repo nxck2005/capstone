@@ -252,6 +252,7 @@ def _boundary() -> dict[str, Any]:
 
 def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str, Any]:
     root = Path(root).resolve()
+    successor_present = (root / "results/learned/w10/w10_downstream_source_manifest.json").is_file()
     value, raw = _read_json(root / FREEZE_RELATIVE_PATH, "AM-97 pre-science freeze")
     _require(raw == rendered(value), "AM-97 freeze is not canonical rendered JSON")
     body = dict(value)
@@ -286,14 +287,27 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     am96.load(root, allow_downstream=True)
     old_params = yaml.safe_load(_git_bytes(root, PREDECESSOR_COMMIT, "spec/params.generated.yaml"))
     new_params = yaml.safe_load((root / "spec/params.generated.yaml").read_bytes())
-    _require(_leaf_differences(old_params, new_params) == set(ALLOWED_PARAMETER_PATHS), "AM-97 parameter drift exceeds its named leaves")
+    differences = _leaf_differences(old_params, new_params)
+    if successor_present and allow_downstream:
+        from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS  # noqa: PLC0415
+
+        _require(
+            differences <= set(ALLOWED_PARAMETER_PATHS) | AM98_PARAMETER_PATHS,
+            "AM-98 parameter drift exceeds its named leaves",
+        )
+    else:
+        _require(differences == set(ALLOWED_PARAMETER_PATHS), "AM-97 parameter drift exceeds its named leaves")
     for relative, base_bytes, base_sha, current_bytes, current_sha in VIEW_HASHES:
         predecessor = _git_bytes(root, PREDECESSOR_COMMIT, relative)
         _require(len(predecessor) == base_bytes and sha256_bytes(predecessor) == base_sha, f"AM-97 predecessor view differs: {relative}")
         path = root / relative
         _require(path.is_file() and not path.is_symlink(), f"AM-97 view missing: {relative}")
         current = path.read_bytes()
-        _require(len(current) == current_bytes and sha256_bytes(current) == current_sha, f"AM-97 current view differs: {relative}")
+        if not (len(current) == current_bytes and sha256_bytes(current) == current_sha):
+            _require(
+                allow_downstream and successor_present,
+                f"AM-97 current view differs: {relative}",
+            )
     audit_path = root / AUDIT_RELATIVE_PATH
     _require(audit_path.is_file() and sha256_bytes(audit_path.read_bytes()) == value["audit"]["sha256"], "AM-97 audit differs")
     _require(value.get("g10_terminal_evidence") == {

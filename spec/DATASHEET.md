@@ -292,7 +292,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `learned_system.checkpoint_selection_metric` | top1_accuracy | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.checkpoint_selection_mode` | max | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.checkpoint_selection_tie_break` | earliest_epoch | AM-27, AM-48, AM-91, SR-10 |
-| `learned_system.checkpoint_selection_snr_db` | train_snr_db_fixed | AM-27, AM-48, AM-91, AM-93, SR-10 |
+| `learned_system.checkpoint_selection_snr_db` | train_snr_db_fixed | AM-27, AM-48, AM-91, AM-93, AM-98, SR-10 |
 | `learned_system.w5_checkpoint_selection` | prohibited_non_scientific_smoke_only | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.execution_profile_required` | true | AM-27, AM-48, AM-91, SR-10 |
 | `learned_system.papr_report_required` | true | AM-27, AM-48, AM-91, SR-10, SR-16 |
@@ -583,7 +583,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `reference_classifier.artifact_finetune_recipe.test_access` | prohibited | AM-27, AM-36, AM-78, AM-89, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.br4_selection_passes` | 2 | AM-27, AM-36, AM-54, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
 | `reference_classifier.br4_selection_terminates_after_pass` | 2 | AM-27, AM-36, AM-78, BR-4, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
-| `reference_classifier.headline_scorer` | artifact_finetuned | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14 |
+| `reference_classifier.headline_scorer` | artifact_finetuned | AM-27, AM-36, AM-78, AM-98, BR-8, BR-12, DEC-15, ER-4, ER-9, SR-14, SR-24 |
 | `reference_classifier.fallback_ladder` | extend_training_to_150_epochs, resnet34, resnet50 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
 | `reference_classifier.fallback_ladder_selection_split` | validation | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
 | `reference_classifier.fallback_ladder_max_epochs` | 150 | AM-27, AM-36, AM-78, BR-8, BR-12, DEC-15, ER-4, ER-9, G-1, SR-14 |
@@ -735,6 +735,18 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `evaluation.freeze_manifest_covers` | code_commit, resolved_config, split_manifest, checkpoints, classifier_variant, operating_points, h2_window, analysis_version | DEC-12, G-12, SR-22 |
 | `evaluation.full_test_split_required_for` | ER-1 | ER-6 |
 | `evaluation.metrics` | top1_acc, psnr_db, ssim, bytes_sent, header_bytes, payload_bytes, decode_failure_rate, infeasible_rate, coverage_rate, acc_given_delivery, papr_db | AM-38 |
+| `evaluation.w10_scope_version` | 1 | AM-98, SR-24 |
+| `evaluation.w10_validation_denominator` | 1000 | SR-24 |
+| `evaluation.w10_learned_ratios` | r_1_6, r_1_24 | SR-24 |
+| `evaluation.w10_per_image_required` | true | - |
+| `evaluation.w10_analysis_version_policy` | retain_1_no_estimand_or_definition_change | AM-98 |
+| `evaluation.w10_papr_protocol_version` | 1 | - |
+| `evaluation.w10_papr_cap_db` | 3.0 | - |
+| `evaluation.w10_papr_training_runs` | 1 | - |
+| `evaluation.w10_er12_protocol_version` | 1 | - |
+| `evaluation.w10_er12_label_bits` | 4 | AM-98 |
+| `evaluation.w10_er12_payload_frame` | one_byte_low_nibble_predicted_label_high_nibble_zero | AM-98 |
+| `evaluation.w10_er12_declared_role` | labelled_upper_bound_excluded_from_hypotheses | AM-98 |
 
 ## compute
 
@@ -796,7 +808,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `config.fingerprint_parameter_roots` | project, datasets, preprocessing, bandwidth, channel, learned_system, baseline, reference_classifier, digital_semantic_control, evaluation, compute, artifacts, environment | AM-68, SR-1, SR-18 |
 | `config.fingerprint_excluded_roots` | config, demo, hardware_tier23, deliverables | AM-68, SR-1, SR-18 |
 | `config.run_config_hash_form` | sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json | AM-68, SR-1, SR-18 |
-| `config.analysis_version` | 2 | AM-68, AM-69, AM-81, SR-1, SR-18 |
+| `config.analysis_version` | 2 | AM-68, AM-69, AM-81, AM-98, SR-1, SR-18 |
 | `config.analysis_version_bump_rule` | bump_on_inference_estimand_or_analysis_implementation_change | AM-68, AM-81, SR-1, SR-18 |
 | `config.dataset_version_rule` | archive_sha256 | AM-68, AM-69, SR-1, SR-18 |
 | `config.literal_lint_scope` | src/ | AM-68, SR-1, SR-18 |

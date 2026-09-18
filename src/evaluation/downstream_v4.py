@@ -76,7 +76,9 @@ def load_source(root: Path, *, live: bool = True) -> dict[str, Any]:
     require(identifier == "w9downstreamsource-" + canonical_sha256(body), "downstream source manifest ID differs")
     assert_downstream_manifest_contract(value)
     if live:
-        assert_clean_source_closure(root, value)
+        from runtime.source_epochs import assert_active_epoch_closure
+
+        assert_active_epoch_closure(root, value)
     load_stage2(root)
     return value
 

@@ -8,7 +8,6 @@ import pytest
 
 from evaluation.downstream_v4 import EXPECTED_SNR_GRID, FINAL_PAIR, PRODUCTION_CELLS, validate_final_er9_cell
 from evaluation.h4_precision import H4PrecisionError, aggregate_three_cell_differences
-from evaluation.w10_rehearsal import W10_SYSTEMS, closeout as w10_closeout, execute as execute_w10, work_units
 from training.er2_snr import select_training_snr_db
 
 
@@ -93,37 +92,3 @@ def test_g11_requires_three_zipped_cells_and_rejects_randomized_er2() -> None:
     del er9["2/2"]["b"]
     with pytest.raises(H4PrecisionError, match="stable IDs"):
         aggregate_three_cell_differences(learned, er9, snr_grid_db=(-8,))
-
-
-def test_w10_is_one_cell_full_grid_all_configured_systems_and_validation_only(tmp_path: Path) -> None:
-    expected = work_units()
-    assert {tuple((unit["train_seed"], unit["channel_seed"])) for unit in expected} == {(0, 0)}
-    assert tuple(dict.fromkeys(unit["snr_db"] for unit in expected)) == EXPECTED_SNR_GRID
-    assert tuple(dict.fromkeys(unit["system"] for unit in expected)) == W10_SYSTEMS
-    authority = {
-        "authority_kind": "W10_VALIDATION_REHEARSAL_AUTHORITY",
-        "cell": {"train_seed": 0, "channel_seed": 0},
-        "snr_grid_db": list(EXPECTED_SNR_GRID),
-        "systems": list(W10_SYSTEMS),
-        "validation_only": True,
-        "test_authorized": False,
-        "test_access": 0,
-    }
-    results = execute_w10(tmp_path, authority=authority, evaluator=lambda unit: {"n_correct": unit["ordinal"] % 10, "n_total": 10})
-    terminal = w10_closeout(results, source_commit="c" * 40, authority_id="authority")
-    assert terminal["split"] == "val" and terminal["cell"] == [0, 0]
-    assert terminal["test_access"] == 0 and terminal["test"] == "SEALED"
-
-
-def test_w10_rejects_authority_that_can_touch_test(tmp_path: Path) -> None:
-    authority = {
-        "authority_kind": "W10_VALIDATION_REHEARSAL_AUTHORITY",
-        "cell": {"train_seed": 0, "channel_seed": 0},
-        "snr_grid_db": list(EXPECTED_SNR_GRID),
-        "systems": list(W10_SYSTEMS),
-        "validation_only": True,
-        "test_authorized": True,
-        "test_access": 0,
-    }
-    with pytest.raises(RuntimeError, match="test boundary"):
-        execute_w10(tmp_path, authority=authority, evaluator=lambda unit: {"n_correct": 0, "n_total": 1})

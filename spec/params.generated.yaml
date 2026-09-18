@@ -1060,6 +1060,20 @@ evaluation:
   - coverage_rate
   - acc_given_delivery
   - papr_db
+  w10_scope_version: 1
+  w10_validation_denominator: 1000
+  w10_learned_ratios:
+  - r_1_6
+  - r_1_24
+  w10_per_image_required: true
+  w10_analysis_version_policy: retain_1_no_estimand_or_definition_change
+  w10_papr_protocol_version: 1
+  w10_papr_cap_db: 3.0
+  w10_papr_training_runs: 1
+  w10_er12_protocol_version: 1
+  w10_er12_label_bits: 4
+  w10_er12_payload_frame: one_byte_low_nibble_predicted_label_high_nibble_zero
+  w10_er12_declared_role: labelled_upper_bound_excluded_from_hypotheses
 compute:
   primary_device: rtx_4060_mobile_8gb
   primary_device_scope: historical_local_profile_and_G7_measurement_not_global_default

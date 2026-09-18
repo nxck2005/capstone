@@ -58,6 +58,10 @@ _AM97_CURRENT_NORMATIVE_SHA256 = {
     "normative_spec": "0b13ec55d8bcd2e74350d8e9992c3c480a543328f55e9be4a6b65a895aeb53a8",
     "resolved_params": "229b16889d18f1341d6a724b2f87454d99e32badb2b9079d7030334bd398ba90",
 }
+_AM98_CURRENT_NORMATIVE_SHA256 = {
+    "normative_spec": "51f428740e76125c58ea381b7c09c492ece7badd4e54d15424e1ca11b7e7e7f5",
+    "resolved_params": "37a5b93ea539cffb94ebcb9b28b79dae5811794cdd2c21c3a414fcc4f723efc0",
+}
 STATUSES = {
     "W6_REQUIRED_AND_SATISFIED",
     "W6_REQUIRED_AND_MISSING",
@@ -181,6 +185,11 @@ def _binding(spec: tuple[Any, ...]) -> dict[str, Any]:
             # to the historical W6 index without changing that index.
             load_am97_spec_compatibility(REPO_ROOT, allow_downstream=True)
             allowed.add(_AM97_CURRENT_NORMATIVE_SHA256[name])
+        if file_sha256 == _AM98_CURRENT_NORMATIVE_SHA256[name]:
+            # AM-98 is the live prospective W10/PAPR source epoch; its loader
+            # authenticates the current views and the W10 successor manifest.
+            load_am98_spec_compatibility(REPO_ROOT, allow_downstream=True)
+            allowed.add(_AM98_CURRENT_NORMATIVE_SHA256[name])
         require(
             file_sha256 in allowed,
             f"{name} is neither the frozen W6 nor an authenticated successor normative byte image",
