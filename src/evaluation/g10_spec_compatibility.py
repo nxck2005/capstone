@@ -98,6 +98,16 @@ AM97_W8_CARRIER_SOURCE_HASHES.update({
     "src/baseline/w6_evidence.py": (31431, "49661e91ec026ed0af2b704bfe436a4b07ff3c319bdd78ebf219e1c2e5d21111"),
     "tools/verify_w6_complete.py": (53303, "cc954cebefa10e2fa8c9d2c3df7526140af6527caa4ba5b0f6084d530bcaef33"),
 })
+AM98_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
+    "spec/SPEC.md": (431648, "51f428740e76125c58ea381b7c09c492ece7badd4e54d15424e1ca11b7e7e7f5"),
+    "spec/params.generated.yaml": (49750, "37a5b93ea539cffb94ebcb9b28b79dae5811794cdd2c21c3a414fcc4f723efc0"),
+    "src/baseline/w8_spec_compatibility.py": (15699, "4ea56b6fd6ee84c4946ac7f6099edbab0783195a30c5e04e1e5a7aa86ce66685"),
+    "src/baseline/w7c_source_compatibility.py": (18775, "e6535e1918f5e6cb4041ec82826d15deb2e451073e0e01e4a146149eb2fc9b69"),
+    "src/baseline/g8_campaign.py": (61772, "de0b82ec010f51dc503b463d30f1e40aab528b7f0f324c2b70338fd43f19ac70"),
+    "tools/gen_w8_execution_authorization.py": (30890, "a4c8be2b7feaff047bd6447a2b5276dc769eab1b7d26b1c9aa312b7e4d19cd9b"),
+    "src/baseline/w6_evidence.py": (32090, "03060337a1a8e0de8d325e08bd5a88f803c45af823dee8ebe17e158c75676978"),
+    "tools/verify_w6_complete.py": (53514, "17f794821a045f6caa5e2063b2584498307663811ba5761bce8806ec02b9edda"),
+}
 
 
 class G10SemanticsFreezeError(RuntimeError):
@@ -297,7 +307,9 @@ def verify_w8_carrier_source_transition(
         if len(raw) == current_bytes and sha256_bytes(raw) == current_sha:
             compatible.add(path)
             continue
-        successor = AM97_W8_CARRIER_SOURCE_HASHES.get(path)
+        successor = AM98_W8_CARRIER_SOURCE_HASHES.get(path)
+        if successor is None:
+            successor = AM97_W8_CARRIER_SOURCE_HASHES.get(path)
         if successor is None:
             successor = AM96_W8_CARRIER_SOURCE_HASHES.get(path)
         if successor is None:
@@ -306,7 +318,7 @@ def verify_w8_carrier_source_transition(
             successor is not None
             and len(raw) == successor[0]
             and sha256_bytes(raw) == successor[1],
-            f"W8 AM-94/AM-95/AM-96/AM-97 carrier source differs: {path}",
+            f"W8 AM-94/AM-95/AM-96/AM-97/AM-98 carrier source differs: {path}",
         )
         compatible.add(path)
     return frozenset(compatible)

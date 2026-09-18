@@ -151,10 +151,15 @@ def _am94_predecessor_config_bindings(*, role: str = W8_CORE_ROLE) -> list[dict[
     # AM-97 authenticates the complete additive chain through AM-96/AM-95/
     # AM-94.  Keep a narrow fallback for repositories stopped at an earlier
     # historical successor so this reader remains useful at those boundaries.
+    from evaluation.am98_spec_compatibility import load as load_am98_spec_compatibility  # noqa: PLC0415
+
     try:
-        load_am97_spec_compatibility(REPO, allow_downstream=True)
+        load_am98_spec_compatibility(REPO, allow_downstream=True)
     except Exception:
-        load_am94_spec_compatibility(REPO)
+        try:
+            load_am97_spec_compatibility(REPO, allow_downstream=True)
+        except Exception:
+            load_am94_spec_compatibility(REPO)
 
     def remove_path(parameters: dict[str, Any], path: str) -> None:
         parts = path.split(".")
@@ -171,11 +176,14 @@ def _am94_predecessor_config_bindings(*, role: str = W8_CORE_ROLE) -> list[dict[
         else:
             cursor.pop(leaf)
 
+    from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS  # noqa: PLC0415
+
     successor_paths = (
         *AM94_ALLOWED_PARAMETER_PATHS,
         *AM95_ALLOWED_PARAMETER_PATHS,
         *AM96_ALLOWED_PARAMETER_PATHS,
         *AM97_ALLOWED_PARAMETER_PATHS,
+        *AM98_PARAMETER_PATHS,
     )
     values: list[dict[str, Any]] = []
     for cell in run_cells():
