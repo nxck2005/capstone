@@ -257,6 +257,12 @@ def _verify_am95_predecessor(root: Path) -> dict[str, Any]:
     return am95.load(root, current_commit=PREDECESSOR_COMMIT)
 
 
+def _am98_parameter_paths(root: Path) -> set[str]:
+    from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS  # noqa: PLC0415
+
+    return set(AM98_PARAMETER_PATHS)
+
+
 def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str, Any]:
     """Verify AM-96 and its pre-science boundary.
 
@@ -346,7 +352,9 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     }
     _require(
         parameter_differences
-        == set(ALLOWED_PARAMETER_PATHS) | (downstream_parameter_paths if allow_downstream and downstream_successor_present else set()),
+        == set(ALLOWED_PARAMETER_PATHS)
+        | (downstream_parameter_paths if allow_downstream and downstream_successor_present else set())
+        | (_am98_parameter_paths(root) if allow_downstream and (root / "results/learned/w10/w10_downstream_source_manifest.json").is_file() else set()),
         "AM-96 parameter drift exceeds the named ER-9 semantic leaves",
     )
     audit_path = root / AUDIT_RELATIVE_PATH
