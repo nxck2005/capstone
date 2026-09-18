@@ -37,7 +37,7 @@ from evaluation.am97_spec_compatibility import (
     ALLOWED_PARAMETER_PATHS as AM97_ALLOWED_PARAMETER_PATHS,
     load as load_am97_spec_compatibility,
 )
-from evaluation.am98_spec_compatibility import load as load_am98_spec_compatibility
+from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS, load as load_am98_spec_compatibility
 from evaluation.am95_spec_compatibility import (
     ALLOWED_PARAMETER_PATHS as AM95_ALLOWED_PARAMETER_PATHS,
     load as load_am95_spec_compatibility,
@@ -574,6 +574,7 @@ def _verify_am87_generated_params(archived: bytes) -> None:
     allowed_current.update(AM95_ALLOWED_PARAMETER_PATHS)
     allowed_current.update(AM96_ALLOWED_PARAMETER_PATHS)
     allowed_current.update(AM97_ALLOWED_PARAMETER_PATHS)
+    allowed_current.update(AM98_PARAMETER_PATHS)
     if (
         entry.get("archived_sha256") != sha256_bytes(am88_current)
         or not isinstance(allowed_am89, list)
@@ -593,6 +594,7 @@ def _verify_am87_generated_params(archived: bytes) -> None:
             or path in AM95_ALLOWED_PARAMETER_PATHS
             or path in AM96_ALLOWED_PARAMETER_PATHS
             or path in AM97_ALLOWED_PARAMETER_PATHS
+            or path in AM98_PARAMETER_PATHS
             for path in allowed_am89
         )
     ):
