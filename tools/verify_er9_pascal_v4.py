@@ -131,7 +131,15 @@ def verify_stage1_authority(
     _require(authority.get("authorization_scope") == "W9_ER9_STAGE1_ONLY", "v4 Stage-1 authority scope differs")
     _require(authority.get("config_path") == "configs/er9-digital-pascal-v4.yaml", "v4 Stage-1 config path differs")
     config = load_experiment(authority["config_path"], train_seed=0, channel_seed=0)
-    _require(authority.get("config_hash") == config_hash(config), "v4 Stage-1 config hash differs")
+    if authority.get("config_hash") != config_hash(config):
+        # AM-98 added only named evaluation parameters; the frozen Stage-1
+        # authority keeps verifying under the exact historical projection.
+        from runtime.params_history import AM98_ADDED_PARAMETER_PATHS, projected_config_hash  # noqa: PLC0415
+
+        _require(
+            authority.get("config_hash") == projected_config_hash(config, removed_paths=AM98_ADDED_PARAMETER_PATHS),
+            "v4 Stage-1 config hash differs",
+        )
     _require(authority.get("config_source_blob_sha256") == manifest["relevant_config_sha256"][authority["config_path"]], "v4 Stage-1 config source blob differs")
     _require(authority.get("runtime_root") == "checkpoints/er9_pascal_v4", "v4 Stage-1 runtime root differs")
     _require(authority.get("execution_profile_id") == "confessor_pascal_cu126", "v4 Stage-1 profile differs")
