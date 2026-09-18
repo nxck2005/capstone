@@ -70,6 +70,8 @@ W8_W6_EVIDENCE_SHA256 = "eac17c4007f9b7c828caa4fdfc498ce01f5cf6f655855b773a9700e
 AM94_W6_EVIDENCE_SHA256 = "6ba1932d485dc1ebd2dc8454c453492c214c48f168b51e67605f028bfc67d4fc"
 # AM-97 adds only the downstream pointwise H4 diagnostic compatibility route.
 AM97_W6_EVIDENCE_SHA256 = "49661e91ec026ed0af2b704bfe436a4b07ff3c319bdd78ebf219e1c2e5d21111"
+# AM-98 adds only the prospective W10/PAPR source-epoch compatibility route.
+AM98_W6_EVIDENCE_SHA256 = "03060337a1a8e0de8d325e08bd5a88f803c45af823dee8ebe17e158c75676978"
 W7C_W4_VERIFIER_BYTES = 77281  # literal-ok: exact W7-C compatibility successor
 W7C_W4_VERIFIER_SHA256 = "475b78d1eb2ba65cb851ade3d0b4b6ea03ff6c404280e3f83ba55abc3ffd953a"
 W6_RECORDED_W4_VERIFIER_BYTES = 76398  # literal-ok: immutable W6 completion binding
@@ -451,6 +453,7 @@ def _verify_w6_a_epoch() -> dict[str, Any]:
                 W8_W6_EVIDENCE_SHA256,
                 AM94_W6_EVIDENCE_SHA256,
                 AM97_W6_EVIDENCE_SHA256,
+                AM98_W6_EVIDENCE_SHA256,
             }:
                 pass
             else:
