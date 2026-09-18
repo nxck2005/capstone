@@ -15,6 +15,7 @@ from typing import Any
 from config.params import REPO_ROOT
 from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
 from evaluation.am97_spec_compatibility import load as load_am97_spec_compatibility
+from evaluation.am98_spec_compatibility import load as load_am98_spec_compatibility
 from evaluation.g10_spec_compatibility import load as load_am94_spec_compatibility
 
 SCHEMA_VERSION = 1
