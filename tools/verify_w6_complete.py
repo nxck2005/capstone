@@ -77,6 +77,9 @@ W7C_W4_VERIFIER_SHA256 = "475b78d1eb2ba65cb851ade3d0b4b6ea03ff6c404280e3f83ba55a
 W6_RECORDED_W4_VERIFIER_BYTES = 76398  # literal-ok: immutable W6 completion binding
 W6_RECORDED_W4_VERIFIER_SHA256 = "f5301ab622a93cdcc906143e24870bf3804da2e07ad43692794afd4bf704f1d3"
 W7C_TERMINAL_VERIFIER_PROJECTION_SHA256 = "d05513fe99ddae40da22fc9657455cb4a36c3f5ad84b52b712efd24241620af0"
+# AM-98 admits the prospective W10/PAPR compatibility route; the projection
+# blanks its own binding so the embedded digest is not self-referential.
+AM98_TERMINAL_VERIFIER_PROJECTION_SHA256 = "7315da9a869c3fd37d746974290850f736590c4943c09877110f785482d249b2"
 W6_RECORDED_TERMINAL_VERIFIER_BYTES = 49979  # literal-ok: immutable W6 completion binding
 W6_RECORDED_TERMINAL_VERIFIER_SHA256 = "e8ea0146da63bbe4f37091e1e184ff5954787f98e91d7f687b27671a626341d7"
 W6_A_CI = {
@@ -316,6 +319,13 @@ def _w7c_terminal_verifier_projection(source: bytes) -> bytes:
         count=1,
     )
     require(count == 1, "W7-C terminal-verifier compatibility binding is missing")
+    projected, am98_count = re.subn(
+        rb'(?m)^AM98_TERMINAL_VERIFIER_PROJECTION_SHA256\s*=\s*["\'][0-9a-fPENDING]{7,64}["\']',
+        b'AM98_TERMINAL_VERIFIER_PROJECTION_SHA256 = "<exact-compatibility-binding>"',
+        projected,
+        count=1,
+    )
+    require(am98_count == 1, "AM-98 terminal-verifier compatibility binding is missing")
     return projected
 
 
@@ -334,9 +344,9 @@ def _tool_binding(path: Path) -> dict[str, Any]:
             "sha256": W6_RECORDED_W4_VERIFIER_SHA256,
         }
     if relative == "tools/verify_w6_complete.py":
+        digest = hashlib.sha256(_w7c_terminal_verifier_projection(path.read_bytes())).hexdigest()
         require(
-            hashlib.sha256(_w7c_terminal_verifier_projection(path.read_bytes())).hexdigest()
-            == W7C_TERMINAL_VERIFIER_PROJECTION_SHA256,
+            digest in {W7C_TERMINAL_VERIFIER_PROJECTION_SHA256, AM98_TERMINAL_VERIFIER_PROJECTION_SHA256},
             "W7-C terminal verifier compatibility successor differs",
         )
         return {

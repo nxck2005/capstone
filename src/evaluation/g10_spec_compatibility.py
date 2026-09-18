@@ -106,7 +106,7 @@ AM98_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
     "src/baseline/g8_campaign.py": (61772, "de0b82ec010f51dc503b463d30f1e40aab528b7f0f324c2b70338fd43f19ac70"),
     "tools/gen_w8_execution_authorization.py": (30890, "a4c8be2b7feaff047bd6447a2b5276dc769eab1b7d26b1c9aa312b7e4d19cd9b"),
     "src/baseline/w6_evidence.py": (32090, "03060337a1a8e0de8d325e08bd5a88f803c45af823dee8ebe17e158c75676978"),
-    "tools/verify_w6_complete.py": (53514, "17f794821a045f6caa5e2063b2584498307663811ba5761bce8806ec02b9edda"),
+    "tools/verify_w6_complete.py": (54181, "de8c9c1475a64142f94ccde78f26b126131072f55954432c8d36eec3b95c5b80"),
 }
 # AM-98 also changes one further frozen W8 source entry whose base image is
 # not part of the AM-94 carrier tuple: the model-construction seam in the W8
