@@ -10,8 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from config.run_config import RunConfig
-from training.deterministic_core import canonical_sha256
+from config.run_config import RunConfig, canonical_sha256
 
 AM98_ADDED_PARAMETER_PATHS: tuple[str, ...] = (
     "evaluation.w10_scope_version",
