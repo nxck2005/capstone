@@ -37,6 +37,7 @@ from evaluation.am97_spec_compatibility import (
     ALLOWED_PARAMETER_PATHS as AM97_ALLOWED_PARAMETER_PATHS,
     load as load_am97_spec_compatibility,
 )
+from evaluation.am98_spec_compatibility import load as load_am98_spec_compatibility
 from evaluation.am95_spec_compatibility import (
     ALLOWED_PARAMETER_PATHS as AM95_ALLOWED_PARAMETER_PATHS,
     load as load_am95_spec_compatibility,
