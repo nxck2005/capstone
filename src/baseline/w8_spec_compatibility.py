@@ -234,6 +234,7 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         am94_entries = {entry[0]: entry for entry in AM94_VIEW_HASHES}
         am95_entries = {entry[0]: entry for entry in AM95_VIEW_HASHES}
         am96_entries = {entry[0]: entry for entry in AM96_VIEW_HASHES}
+        am97_entries = {entry[0]: entry for entry in am97.VIEW_HASHES}
         for path_text, later in successor_entries.items():
             if successor_kind == "am95":
                 intermediate = am94_entries[path_text]
