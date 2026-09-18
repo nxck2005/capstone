@@ -108,6 +108,12 @@ AM98_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = {
     "src/baseline/w6_evidence.py": (32090, "03060337a1a8e0de8d325e08bd5a88f803c45af823dee8ebe17e158c75676978"),
     "tools/verify_w6_complete.py": (53514, "17f794821a045f6caa5e2063b2584498307663811ba5761bce8806ec02b9edda"),
 }
+# AM-98 also changes one further frozen W8 source entry whose base image is
+# not part of the AM-94 carrier tuple: the model-construction seam in the W8
+# trainer.  The seam is byte-equivalent for the unconstrained path.
+AM98_EXTRA_W8_CARRIER_SOURCES: dict[str, tuple[int, str]] = {
+    "src/training/w8_final.py": (74980, "3f5d2ab3d36f92cf06f3d4cebdbeac229b61984f2778b2dfea0fc079ba0cdc80"),
+}
 
 
 class G10SemanticsFreezeError(RuntimeError):
@@ -321,4 +327,10 @@ def verify_w8_carrier_source_transition(
             f"W8 AM-94/AM-95/AM-96/AM-97/AM-98 carrier source differs: {path}",
         )
         compatible.add(path)
+    for path, (extra_bytes, extra_sha) in AM98_EXTRA_W8_CARRIER_SOURCES.items():
+        if path not in by_path:
+            continue
+        raw = (root / path).read_bytes()
+        if len(raw) == extra_bytes and sha256_bytes(raw) == extra_sha:
+            compatible.add(path)
     return frozenset(compatible)
