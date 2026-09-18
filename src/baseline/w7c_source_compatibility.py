@@ -382,6 +382,9 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         allowed_parameter_paths.update(AM95_ALLOWED_PARAMETER_PATHS)
         allowed_parameter_paths.update(AM96_ALLOWED_PARAMETER_PATHS)
         allowed_parameter_paths.update(AM97_ALLOWED_PARAMETER_PATHS)
+        from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS  # noqa: PLC0415
+
+        allowed_parameter_paths.update(AM98_PARAMETER_PATHS)
     _require(
         _leaf_difference_paths(old_yaml, current_yaml) == allowed_parameter_paths,
         "W7-C generated-parameter drift exceeds the authenticated successor leaves",
