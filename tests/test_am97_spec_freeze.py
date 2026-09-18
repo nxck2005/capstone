@@ -23,7 +23,10 @@ def test_am97_downstream_mode_authenticates_successor() -> None:
 
 
 def test_am97_strict_mode_rejects_current_post_science_repository() -> None:
-    with pytest.raises(am97_spec_compatibility.AM97SpecCompatibilityError, match="strict AM-97|downstream ER-9"):
+    # Strict AM-97 must reject the live repository; the AM-98 successor epoch
+    # advances the parameter/current-view frontier, so the refusal may name
+    # either the historical boundary or the AM-98 drift.
+    with pytest.raises(am97_spec_compatibility.AM97SpecCompatibilityError, match="strict AM-97|downstream ER-9|AM-97 parameter drift"):
         load(REPO)
 
 
