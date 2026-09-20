@@ -196,11 +196,51 @@ def _papr_checkpoint(root: Path, *, verify_runtime: bool = True) -> dict[str, An
         )
     selected = read_json(path, "PAPR selected checkpoint")
     completion = read_json(completion_path, "PAPR training completion")
+    authority = read_json(authority_path, "PAPR training authority")
+    # This is deliberately the same result-independent authority boundary used
+    # by the PAPR launcher.  W10 binding resolution must not admit a malformed
+    # projected config/protocol and wait for a worker terminal chain to expose
+    # it later.  ``verify_papr_authority`` does not require the worker runtime.
+    from training.papr_lifecycle import verify_papr_authority
+
+    verify_papr_authority(root, authority_path=authority_path)
+    authority_body = dict(authority)
+    authority_id = authority_body.pop("authority_id", None)
     require(
-        completion.get("selection_id") == selected.get("selection_id")
+        authority_id == "paprtrainingauth-" + canonical_sha256(authority_body),
+        "PAPR authority ID differs",
+    )
+    selected_body = dict(selected)
+    selected_id = selected_body.pop("selection_id", None)
+    require(
+        selected_id == "paprselected-" + canonical_sha256(selected_body),
+        "PAPR selected checkpoint ID differs",
+    )
+    completion_body = dict(completion)
+    completion_id = completion_body.pop("completion_id", None)
+    require(
+        completion_id == "paprcompletion-" + canonical_sha256(completion_body),
+        "PAPR completion ID differs",
+    )
+    require(
+        selected.get("authority_id") == authority.get("authority_id")
+        and completion.get("authority_id") == authority.get("authority_id")
+        and completion.get("selection_id") == selected.get("selection_id")
         and completion.get("checkpoint_id") == selected.get("checkpoint_id")
         and completion.get("checkpoint_path") == selected.get("checkpoint_path"),
         "PAPR committed evidence cross-binding differs",
+    )
+    require(
+        selected.get("config_hash") == authority.get("config_hash")
+        and completion.get("config_hash") == authority.get("config_hash")
+        and selected.get("protocol_config_hash") == authority.get("protocol_config_hash")
+        and completion.get("protocol_config_hash") == authority.get("protocol_config_hash"),
+        "PAPR committed configuration binding differs",
+    )
+    require(
+        selected.get("authority_sha256") == file_sha256(root, PAPR_AUTHORITY, required=True)
+        and completion.get("authority_sha256") == file_sha256(root, PAPR_AUTHORITY, required=True),
+        "PAPR committed authority digest differs",
     )
     terminal = None
     if verify_runtime:
@@ -224,8 +264,11 @@ def _papr_checkpoint(root: Path, *, verify_runtime: bool = True) -> dict[str, An
         "selection": artifact_record(root, PAPR_SELECTED_CHECKPOINT),
         "completion": artifact_record(root, PAPR_COMPLETION),
         "authority_id": str(selected["authority_id"]),
+        "authority_sha256": file_sha256(root, PAPR_AUTHORITY, required=True),
         "selection_id": str(selected["selection_id"]),
         "completion_id": str(completion["completion_id"]),
+        "config_hash": str(selected["config_hash"]),
+        "protocol_config_hash": str(selected["protocol_config_hash"]),
         # One explicit schema: ``checkpoint_id`` is the SHA-256 of the checkpoint
         # bytes and ``checkpoint_path`` the repository-relative location, exactly
         # what the learned dispatch route consumes.
@@ -233,6 +276,7 @@ def _papr_checkpoint(root: Path, *, verify_runtime: bool = True) -> dict[str, An
         "checkpoint_path": str(selected["checkpoint_path"]),
         "checkpoint_bytes": int(selected["checkpoint_bytes"]),
         "epoch": int(selected["selected_epoch"]),
+        "selected_epoch": int(selected["selected_epoch"]),
         "papr_cap_db": float(selected["papr_cap_db"]),
         "papr_cap_compliant": True,
         "papr_max_observed_db": float(completion["papr_max_observed_db"]),

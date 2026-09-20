@@ -515,7 +515,108 @@ def _synthetic_chain(root: Path, authority: dict, *, initial_sha: str) -> dict:
         checkpoint_relative=f"{authority['runtime_root']}/checkpoints/epoch-{selected_epoch:04d}.pt",
         checkpoint_bytes=(runtime / f"checkpoints/epoch-{selected_epoch:04d}.pt").stat().st_size,
     )
-    return {"selection": selected, "completion": completion, "summaries": summaries}
+    return {
+        "selection": selected,
+        "completion": completion,
+        "summaries": summaries,
+        "chain": chain,
+        "selection_input": selection,
+        "selected_sidecar": sidecar,
+        "checkpoint_relative": f"{authority['runtime_root']}/checkpoints/epoch-{selected_epoch:04d}.pt",
+        "checkpoint_bytes": (runtime / f"checkpoints/epoch-{selected_epoch:04d}.pt").stat().st_size,
+        "execution_commit": "a" * 40,
+        "authority_path": root / "results/learned/w10/papr_training_authorization.json",
+    }
+
+
+def _republish_synthetic_terminal(root: Path, authority: dict, result: dict) -> tuple[dict, dict]:
+    return lifecycle.publish_selected_and_completion(
+        root,
+        authority=authority,
+        authority_path=result["authority_path"],
+        execution_commit=result["execution_commit"],
+        chain=result["chain"],
+        summaries=result["summaries"],
+        selection=result["selection_input"],
+        selected_sidecar=result["selected_sidecar"],
+        checkpoint_relative=result["checkpoint_relative"],
+        checkpoint_bytes=result["checkpoint_bytes"],
+    )
+
+
+def test_papr_selected_to_completion_crash_window_is_recoverable_and_idempotent(
+    tmp_path: Path, monkeypatch, _bounded_counts
+) -> None:
+    _bounded_lifecycle_constants(monkeypatch)
+    authority = _synthetic_authority(tmp_path, monkeypatch)
+    result = _synthetic_chain(tmp_path, authority, initial_sha="d" * 64)
+    completion_path = tmp_path / lifecycle.PAPR_COMPLETION_PATH
+    completion_path.unlink()
+
+    selected, completion = _republish_synthetic_terminal(tmp_path, authority, result)
+    assert selected == result["selection"]
+    assert completion == result["completion"]
+    assert completion_path.is_file()
+    assert _republish_synthetic_terminal(tmp_path, authority, result) == (selected, completion)
+    verified = lifecycle.verify_papr_terminal(
+        tmp_path,
+        authority_path=result["authority_path"],
+        expected_initial_state_sha256="d" * 64,
+    )
+    assert verified["completion_id"] == completion["completion_id"]
+
+
+def test_papr_terminal_publication_holds_on_completion_without_selected_or_mismatch(
+    tmp_path: Path, monkeypatch, _bounded_counts
+) -> None:
+    _bounded_lifecycle_constants(monkeypatch)
+    authority = _synthetic_authority(tmp_path, monkeypatch)
+    result = _synthetic_chain(tmp_path, authority, initial_sha="d" * 64)
+    selected_path = tmp_path / lifecycle.PAPR_SELECTED_CHECKPOINT_PATH
+    completion_path = tmp_path / lifecycle.PAPR_COMPLETION_PATH
+
+    selected_path.unlink()
+    with pytest.raises(lifecycle.PaprLifecycleHold, match="completion exists without"):
+        _republish_synthetic_terminal(tmp_path, authority, result)
+
+    # Recreate the valid selected record for the independent mismatch check.
+    publish_immutable_json(selected_path, result["selection"])
+    mutated = dict(result["selection"])
+    mutated["selected_epoch"] = int(mutated["selected_epoch"]) + 1
+    mutated["selection_id"] = lifecycle.PAPR_SELECTED_PREFIX + canonical_sha256(
+        {key: value for key, value in mutated.items() if key != "selection_id"}
+    )
+    selected_path.write_bytes(canonical_bytes(mutated))
+    with pytest.raises(lifecycle.PaprLifecycleHold, match="selected checkpoint differs"):
+        _republish_synthetic_terminal(tmp_path, authority, result)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ("config_hash", "protocol_config_hash", "protocol_cap", "protocol_recipe", "source_binding"),
+)
+def test_papr_authority_recomputes_projected_config_protocol_and_source(
+    tmp_path: Path, monkeypatch, mutation: str
+) -> None:
+    authority = _synthetic_authority(tmp_path, monkeypatch)
+    path = tmp_path / lifecycle.PAPR_AUTHORITY_PATH
+    value = json.loads(path.read_bytes())
+    if mutation == "config_hash":
+        value["config_hash"] = "0" * 64
+    elif mutation == "protocol_config_hash":
+        value["protocol_config_hash"] = "0" * 64
+    elif mutation == "protocol_cap":
+        value["protocol"]["papr_cap_db"] = 99.0
+    elif mutation == "protocol_recipe":
+        value["protocol"]["recipe"] = "unauthorized_recipe"
+    else:
+        value["source_binding"] = {**value["source_binding"], "source_commit": "0" * 40}
+    body = dict(value)
+    body.pop("authority_id", None)
+    value["authority_id"] = papr.PAPR_AUTHORITY_PREFIX + canonical_sha256(body)
+    path.write_bytes(canonical_bytes(value))
+    with pytest.raises(lifecycle.PaprLifecycleHold):
+        lifecycle.verify_papr_authority(tmp_path, authority_path=path)
 
 
 def test_papr_terminal_verifier_recomputes_and_rejects_mutations(

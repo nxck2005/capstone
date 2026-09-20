@@ -234,7 +234,16 @@ def _apply_papr(aggregate: dict[str, Any], values: Sequence[float], *, denominat
     aggregate.update(papr_record(values, denominator=denominator))
 
 
-def learned_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.Module, config: Any, checkpoint_id: str, papr_cap_db: float | None = None) -> dict[str, Any]:
+def learned_unit(
+    context: W10Execution,
+    unit: Mapping[str, Any],
+    *,
+    model: torch.nn.Module,
+    config: Any,
+    checkpoint_id: str,
+    papr_cap_db: float | None = None,
+    protocol_config_hash: str | None = None,
+) -> dict[str, Any]:
     rows, papr_values = _learned_rows(context, model=model, config=config, checkpoint_id=checkpoint_id, unit=unit, mode="learned")
     aggregate = _aggregate(rows, system=unit["system"])
     _apply_papr(aggregate, papr_values, denominator=len(rows))
@@ -250,6 +259,15 @@ def learned_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch
         "papr_cap_db": None if papr_cap_db is None else float(papr_cap_db),
         "papr_cap_compliance_required": papr_cap_db is not None,
     }
+    if papr_cap_db is not None:
+        if not isinstance(protocol_config_hash, str) or not protocol_config_hash:
+            raise RuntimeError("PAPR evaluation requires its protocol config hash")
+        aggregate["binding"].update(
+            {
+                "config_hash": run_config_hash(config),
+                "protocol_config_hash": protocol_config_hash,
+            }
+        )
     return aggregate
 
 
@@ -516,7 +534,7 @@ def label_bound_unit(context: W10Execution, unit: Mapping[str, Any], *, selectio
         [bool(row["correct"]) for row in rows]
     ) != str(point["per_image_correct_digest"]):
         raise RuntimeError("W10 ER-12 arm does not reproduce its frozen selection candidate digest")
-    aggregate = _aggregate(rows, system=unit["system"])
+    aggregate = _aggregate(rows, system=unit["system"], primary_classifier_variant="predicted_label")
     _apply_papr(aggregate, papr_values, denominator=len(rows))
     aggregate["binding"] = {
         "kind": "er12_label_transmission_upper_bound",
@@ -538,7 +556,12 @@ def _selection_point(selection: Mapping[str, Any], snr_db: float) -> dict[str, A
     raise RuntimeError(f"W10 selection has no point at {snr_db} dB")
 
 
-def _aggregate(rows: Sequence[Mapping[str, Any]], *, system: str) -> dict[str, Any]:
+def _aggregate(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    system: str,
+    primary_classifier_variant: str = "own_task_head",
+) -> dict[str, Any]:
     total = len(rows)
     correct = recompute_n_correct(rows)
     delivered = sum(1 for row in rows if not row["outage"])
@@ -555,7 +578,7 @@ def _aggregate(rows: Sequence[Mapping[str, Any]], *, system: str) -> dict[str, A
         "infeasible_count": infeasible,
         "per_image": list(rows),
         "per_image_sha256": rows_sha256(rows),
-        "primary_classifier_variant": "own_task_head",
+        "primary_classifier_variant": primary_classifier_variant,
     }
 
 

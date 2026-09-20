@@ -18,7 +18,7 @@ import yaml
 
 from config.params import REPO_ROOT
 from evaluation import am98_spec_compatibility as am98
-from runtime.source_epochs import W10_V2_MANIFEST_KIND, load_w10_manifest
+from runtime.source_epochs import W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND, active_manifest_path, load_w10_manifest
 
 AMENDMENT = "AM-99"
 TIMING = "post_am98_pre_papr_authority_corrective"
@@ -61,7 +61,10 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     root = Path(root).resolve()
     manifest = load_w10_manifest(root, live=True)
     if not allow_downstream:
-        _require(manifest.get("manifest_kind") == W10_V2_MANIFEST_KIND, "AM-99 requires the active successor-v2 source epoch")
+        _require(
+            manifest.get("manifest_kind") in {W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND},
+            "AM-99 requires the active successor-v2 or successor-v3 source epoch",
+        )
     _require("w10_validation_rehearsal" in manifest.get("governs", []), "AM-99 successor does not govern W10")
     for relative, (expected_bytes, expected_sha) in _CURRENT_VIEW_HASHES.items():
         path = root / relative
@@ -79,14 +82,15 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
 
     allowed = set(am98.AM98_PARAMETER_PATHS) | set(AM97_PARAMETER_PATHS)
     _require(differences <= allowed, "AM-99 parameter drift exceeds the AM-97/AM-98 named leaves")
+    active_path = active_manifest_path(root)
     return {
         "amendment": AMENDMENT,
         "timing": TIMING,
         "predecessor_commit": PREDECESSOR_COMMIT,
         "successor_manifest": {
-            "path": "results/learned/w10/w10_downstream_source_manifest_v2.json",
+            "path": str(active_path.relative_to(root)),
             "manifest_id": manifest["manifest_id"],
-            "sha256": sha256_bytes((root / "results/learned/w10/w10_downstream_source_manifest_v2.json").read_bytes()),
+            "sha256": sha256_bytes(active_path.read_bytes()),
             "source_commit": manifest["source_commit"],
             "kind": manifest["manifest_kind"],
         },

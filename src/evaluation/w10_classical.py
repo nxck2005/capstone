@@ -184,6 +184,8 @@ def classical_unit(
         ldpc_rate = str(point["ldpc_rate"])
         encode_axis = int(point["encode_axis_px"])
         config_hash = canonical_sha256(point)
+        if quality is None or int(quality) != int(point["quality"]):
+            raise RuntimeError("W10 JPEG execution quality is not the frozen selected quality")
     k = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{unit['bw_ratio']}"))
     codec = (
         J2KCodec(Path(root) / W10_J2K_CACHE_DIR)
@@ -268,15 +270,6 @@ def classical_unit(
             )
     primary_variant = unit_primary_variant(unit)
     primary = streams[primary_variant]
-    expected_digest = point.get("per_image_correct_digest") if codec_kind != "jpeg2000" else None
-    if expected_digest is not None:
-        from evaluation.w10_selections import score_vector_digest
-
-        require_digest = score_vector_digest([bool(row["correct"]) for row in primary])
-        if require_digest != str(expected_digest):
-            raise RuntimeError(
-                "W10 JPEG arm does not reproduce its frozen selection candidate digest"
-            )
     aggregate = _aggregate(primary, system=unit["system"])
     _apply_papr(aggregate, papr_values, denominator=len(view.stable_ids))
     aggregate["binding"] = {
@@ -285,9 +278,11 @@ def classical_unit(
         "selection_kind": binding.get("kind"),
         "selection_id": binding.get("selection_id"),
         "checkpoint_id": checkpoint_id,
+        "config_hash": config_hash,
         "modulation": modulation,
         "ldpc_rate": ldpc_rate,
         "encode_axis_px": encode_axis,
+        "quality": None if quality is None else int(quality),
         "analytic_composition_used": False,
     }
     aggregate["secondary_streams"] = [

@@ -36,6 +36,7 @@ from evaluation.w10_evidence import scheduled_noise_id
 from evaluation.w10_scope import HEADLINE_RATIO, W10_DATASET, entry_for
 from evaluation.w10_selections import (
     ER12_SELECTION_PATH,
+    bind_candidate_evidence,
     build_selection_artifact,
     er12_selection_contract,
     rank_candidates,
@@ -43,6 +44,7 @@ from evaluation.w10_selections import (
 )
 from runtime.source_epochs import load_w10_manifest, source_record
 from runtime.w9_authority import authenticate_live_w9_pascal
+from training.deterministic_core import canonical_sha256
 
 TARGET = REPO / ER12_SELECTION_PATH
 K = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{HEADLINE_RATIO}"))
@@ -84,6 +86,9 @@ def _score_candidate(
     packet,
     snr_db: int,
     device: str,
+    source_epoch: dict,
+    checkpoint_id: str,
+    selection_contract_sha256: str,
 ) -> tuple[dict, list[bool]]:
     layout = packet.segmentation
     if layout is None:
@@ -92,6 +97,7 @@ def _score_candidate(
     session = ER9TransportBatch(packet, device=device)
     correct: list[bool] = []
     delivered = 0
+    all_noise_ids: list[str] = []
     for start in range(0, len(view.stable_ids), 32):  # literal-ok: frozen W8 validation batch size
         chunk = view.stable_ids[start : start + 32]
         payloads = []
@@ -99,7 +105,7 @@ def _score_candidate(
             frame = np.zeros(payload_bytes, dtype=np.uint8)
             frame[:1] = label_payload(predicted[stable_id])[0]
             payloads.append(np.unpackbits(frame))
-        noise_ids = [
+        chunk_noise_ids = [
             scheduled_noise_id(
                 stable_sample_id=stable_id,
                 bw_ratio=HEADLINE_RATIO,
@@ -108,7 +114,8 @@ def _score_candidate(
             )
             for stable_id in chunk
         ]
-        result = session.round_trip(payloads=payloads, snr_db=float(snr_db), noise_ids=noise_ids)
+        all_noise_ids.extend(chunk_noise_ids)
+        result = session.round_trip(payloads=payloads, snr_db=float(snr_db), noise_ids=chunk_noise_ids)
         for stable_id, payload in zip(chunk, result.payloads, strict=True):
             true_label = view.label(stable_id)
             decoded = None if payload is None else decode_label_payload(payload, payload_bits=int(layout.payload_bits))
@@ -117,6 +124,28 @@ def _score_candidate(
             else:
                 delivered += 1
                 correct.append(decoded == true_label)
+    outcome_counts = {
+        "delivered": delivered,
+        "decode_failure": len(correct) - delivered,
+        "infeasible": 0,
+    }
+    worker_evidence = {
+        "artifact_role": "W10_ER12_CANDIDATE_WORKER_EVIDENCE",
+        "source_epoch": dict(source_epoch),
+        "execution_profile_id": "confessor_pascal_cu126",
+        "checkpoint_id": str(checkpoint_id),
+        "selection_contract_sha256": str(selection_contract_sha256),
+        "snr_db": int(snr_db),
+        "modulation": str(modulation),
+        "ldpc_rate": str(ldpc_rate),
+        "correct": int(sum(correct)),
+        "total": len(correct),
+        "correct_digest": score_vector_digest(correct),
+        "outcome_counts": outcome_counts,
+        "noise_ids_digest": canonical_sha256({"noise_ids": all_noise_ids}),
+        "test_access": 0,
+    }
+    worker_evidence["worker_evidence_id"] = "w10er12workerevidence-" + canonical_sha256(worker_evidence)
     entry = {
         "snr_db": int(snr_db),
         "modulation": str(modulation),
@@ -127,7 +156,26 @@ def _score_candidate(
         "n_infeasible": 0,
         "n_total": len(correct),
         "per_image_correct_digest": score_vector_digest(correct),
+        "status": "eligible",
     }
+    entry["candidate_evidence"] = bind_candidate_evidence({
+        "schema_version": 1,
+        "method": "er12_per_image_channel_simulation",
+        "snr_db": int(snr_db),
+        "modulation": str(modulation),
+        "ldpc_rate": str(ldpc_rate),
+        "protocol_version": int(get("evaluation.w10_er12_protocol_version")),
+        "label_bits": int(get("evaluation.w10_er12_label_bits")),
+        "payload_frame": str(get("evaluation.w10_er12_payload_frame")),
+        "true_label_in_payload": False,
+        "outcome_counts": outcome_counts,
+        "correct": int(sum(correct)),
+        "total": len(correct),
+        "correct_digest": score_vector_digest(correct),
+        "noise_convention": "w10_scheduled_noise_id_per_stable_image_snr_k_shared_across_candidates",
+        "noise_ids_digest": canonical_sha256({"noise_ids": all_noise_ids}),
+        "worker_evidence": worker_evidence,
+    })
     return entry, correct
 
 
@@ -163,6 +211,9 @@ def main(argv: list[str] | None = None) -> int:
     policy = authenticated_er9_outage_policy(assets["config"])
     predicted = _predicted_labels(assets["model"], view, args.device)
     candidates = {(str(item["modulation"]), str(item["ldpc_rate"])): item for item in assets["phy_candidates"]}
+    source_epoch = source_record(REPO, source)
+    selection_contract_sha256 = er12_selection_contract().sha256()
+    checkpoint_id = str(er9_binding["checkpoint"]["checkpoint_id"])
     selections = []
     candidate_scores = []
     for snr in contract["snr_grid_db"]:
@@ -177,6 +228,9 @@ def main(argv: list[str] | None = None) -> int:
                 packet=item["packet"],
                 snr_db=int(snr),
                 device=args.device,
+                source_epoch=source_epoch,
+                checkpoint_id=checkpoint_id,
+                selection_contract_sha256=selection_contract_sha256,
             )
             entries.append(entry)
         winner = rank_candidates("er12_label_bound", entries)

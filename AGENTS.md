@@ -178,7 +178,7 @@ test inference and model-facing test access remain zero/unopened, and test is
 sealed. The next action requires separate authority for G-10 validation-only
 evaluation; do not run it under the AM-94 task, rerun W8, or alter custody.
 
-<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=owner-authorize-one-papr-constrained-r1-6-training-lifecycle; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w10-papr-successor-v2-frozen-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+<!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=owner-create-one-papr-constrained-r1-6-training-authority; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w10-papr-successor-v3-frozen-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified

@@ -48,7 +48,22 @@ def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _g11_closure() -> dict:
+def _g11_closure(*, published: bool = False) -> dict:
+    if published:
+        from verify_g11_published import verify_published as verify_g11_published
+
+        published_value = verify_g11_published()
+        return {
+            "authority_id": str(published_value["authority_id"]),
+            "authority_path": str(G11_AUTHORITY.relative_to(REPO)),
+            "authority_sha256": _sha256_file(G11_AUTHORITY),
+            "terminal_id": str(published_value["terminal_id"]),
+            "terminal_path": str(G11_TERMINAL.relative_to(REPO)),
+            "terminal_sha256": _sha256_file(G11_TERMINAL),
+            "decision": "GREEN",
+            "test": "SEALED",
+            "test_access": 0,
+        }
     from verify_g11 import verify_authority as verify_g11_authority, verify_terminal as verify_g11_terminal
 
     authority = verify_g11_authority()
@@ -67,7 +82,12 @@ def _g11_closure() -> dict:
     }
 
 
-def verify_authority(path: Path = AUTHORITY, *, verify_bindings_runtime: bool = True) -> dict:
+def verify_authority(
+    path: Path = AUTHORITY,
+    *,
+    verify_bindings_runtime: bool = True,
+    verify_g11_runtime: bool = True,
+) -> dict:
     value = read_json(path, "W10 authority")
     body = dict(value)
     identifier = body.pop("authority_id", None)
@@ -89,7 +109,8 @@ def verify_authority(path: Path = AUTHORITY, *, verify_bindings_runtime: bool = 
     bindings = resolve_scope_bindings(REPO, verify_runtime=verify_bindings_runtime)
     require(value.get("bindings") == bindings, "W10 authority bindings differ from the live frozen artifacts")
     require(not pending_states(bindings), "W10 authority carries a pending binding")
-    require(value.get("g11_closure") == _g11_closure(), "W10 authority G11 closure differs")
+    expected_g11 = _g11_closure() if verify_g11_runtime else _g11_closure(published=True)
+    require(value.get("g11_closure") == expected_g11, "W10 authority G11 closure differs")
     require(value.get("validation_only") is True and value.get("test_authorized") is False and value.get("test_access") == 0 and value.get("test") == "SEALED", "W10 authority test boundary differs")
     require(value.get("papr_training_authorized") is False and value.get("papr_training_run_count") == 1 and value.get("papr_lifecycle_bound") is True, "W10 authority PAPR lifecycle binding differs")
     require(value.get("runtime_root") == W10_RUNTIME_ROOT, "W10 authority runtime root differs")
@@ -120,8 +141,34 @@ def _published_records() -> tuple[dict, dict, dict]:
         validate_unit(value, unit)
     unit_manifest = read_json(UNIT_MANIFEST, "W10 published unit manifest")
     images = read_json(PER_IMAGE_MANIFEST, "W10 published per-image manifest")
+    unit_manifest_body = dict(unit_manifest)
+    unit_manifest_id = unit_manifest_body.pop("unit_manifest_id", None)
+    require(unit_manifest_id == "w10unitmanifest-" + canonical_sha256(unit_manifest_body), "W10 unit manifest ID differs")
+    images_body = dict(images)
+    images_id = images_body.pop("per_image_manifest_id", None)
+    require(images_id == "w10imagemanifest-" + canonical_sha256(images_body), "W10 per-image manifest ID differs")
     require(unit_manifest.get("unit_count") == len(expected), "W10 unit manifest count differs")
-    require(images.get("stream_count") == len(expected), "W10 per-image manifest count differs")
+    expected_stream_count = sum(len(value.get("scorer_variants", ())) for value in units["units"])
+    require(images.get("stream_count") == expected_stream_count, "W10 per-image manifest count differs")
+    require(
+        unit_manifest.get("ordered_unit_ids_digest")
+        == canonical_sha256({"unit_ids": [value["unit_id"] for value in units["units"]]}),
+        "W10 unit manifest ordered digest differs",
+    )
+    manifest_units = unit_manifest.get("units")
+    require(isinstance(manifest_units, list) and len(manifest_units) == len(expected), "W10 unit manifest rows differ")
+    for published, manifest_row in zip(units["units"], manifest_units, strict=True):
+        require(manifest_row.get("unit_id") == published["unit_id"], "W10 unit manifest unit binding differs")
+        require(manifest_row.get("scorer_variants") == [
+            {
+                "classifier_variant": variant["classifier_variant"],
+                "path": variant["path"],
+                "sha256": variant["sha256"],
+                "n_correct": variant["n_correct"],
+                "n_total": variant["n_total"],
+            }
+            for variant in published["scorer_variants"]
+        ], "W10 unit manifest scorer custody differs")
     return units, unit_manifest, images
 
 
@@ -153,7 +200,17 @@ def verify_terminal() -> None:
 def verify_published(*, verify_bindings_runtime: bool = False) -> dict:
     """Hosted published-evidence authentication without worker runtime bytes."""
 
-    authority = verify_authority(verify_bindings_runtime=verify_bindings_runtime)
+    if not verify_bindings_runtime:
+        # W10's PAPR prerequisite has its own published-evidence verifier.  Run
+        # that explicit boundary before resolving W10 bindings so this hosted
+        # path never treats the worker terminal chain as a substitute.
+        from verify_papr_training_published import verify_published as verify_papr_published
+
+        verify_papr_published()
+    authority = verify_authority(
+        verify_bindings_runtime=verify_bindings_runtime,
+        verify_g11_runtime=False,
+    )
     units, unit_manifest, images = _published_records()
     require(units["authority_id"] == authority["authority_id"] and units["scope_sha256"] == authority["scope_sha256"], "W10 published units authority/scope differs")
     require(unit_manifest.get("ordered_unit_ids_digest") == canonical_sha256({"unit_ids": [value["unit_id"] for value in units["units"]]}), "W10 published unit digest differs")
@@ -179,7 +236,12 @@ def verify_published(*, verify_bindings_runtime: bool = False) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--terminal", action="store_true")
+    parser.add_argument("--published", action="store_true", help="use the clean-clone published-evidence path")
     args = parser.parse_args(argv)
+    if args.published:
+        value = verify_published()
+        print(f"W10 rehearsal published-evidence verifier PASS: {value['closeout_id']}")
+        return 0
     verify_authority()
     if args.terminal:
         verify_terminal()

@@ -187,7 +187,10 @@ def validate_per_image(
         raise ValueError("W10 per-image stable IDs are not unique")
     expected_columns = per_image_schema()
     for row in rows:
-        if tuple(row) != tuple(expected_columns):
+        # Published JSON is canonicalized with sorted object keys.  Validate
+        # the exact schema as a set of columns, while keeping row order
+        # separately bound by stable_sample_id above.
+        if set(row) != set(expected_columns):
             raise ValueError("W10 per-image row is not schema-exact")
         if row.get("split") != "val":
             raise ValueError("W10 per-image row is not the validation split")
@@ -213,6 +216,7 @@ def build_per_image_record(
     ordinal: int,
     unit_key: str,
     rows: Sequence[Mapping[str, Any]],
+    classifier_variant: str | None = None,
 ) -> dict[str, Any]:
     body = {
         "schema_version": 1,
@@ -222,6 +226,8 @@ def build_per_image_record(
         "n_total": len(rows),
         "rows": [dict(row) for row in rows],
     }
+    if classifier_variant is not None:
+        body["classifier_variant"] = str(classifier_variant)
     body["per_image_id"] = W10_PER_IMAGE_ROLE.lower() + "-" + canonical_sha256(body)
     return body
 

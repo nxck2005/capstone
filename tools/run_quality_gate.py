@@ -181,7 +181,10 @@ def _w9_v4_commands() -> tuple[list[str], ...]:
         commands.append(command)
     if _present(REPO / "results/learned/w10/papr_training_authorization.json"):
         command = _python_tool("tools/verify_papr_training_authorization.py")
-        if _present(REPO / "results/learned/w10/papr_selected_checkpoint.json"):
+        if (
+            _present(REPO / "results/learned/w10/papr_selected_checkpoint.json")
+            and _present(REPO / "results/learned/w10/papr_training_completion.json")
+        ):
             command.append("--terminal")
         commands.append(command)
     return tuple(commands)

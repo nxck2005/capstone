@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from config.params import get
+from config.run_config import config_hash as run_config_hash
 from training.deterministic_core import canonical_sha256
 from evaluation.w8_validation import (
     ValidationNamespace,
@@ -55,6 +56,8 @@ from training.papr_constrained import (
     PAPR_VALIDATION_ROLE,
     active_protected_counters,
     papr_cap_db,
+    load_papr_config,
+    papr_authority_protocol,
     papr_protocol_config_hash,
     papr_protocol_version,
     pre_execution_protected_counters,
@@ -258,7 +261,33 @@ def verify_papr_authority(
     _require(value.get("gpu_uuid") == "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b" and value.get("gpu_name") == "NVIDIA GeForce GTX 1080 Ti", "PAPR authority GPU differs")  # literal-ok: frozen profile identity
     _require(value.get("cuda_visible_devices") == value.get("gpu_uuid"), "PAPR authority CUDA binding differs")
     _require(value.get("config_path") == "configs/learned-papr-constrained-r1-6.yaml", "PAPR authority config path differs")
+    # The authority is result-independent, so its two configuration identities
+    # must be recomputed at this boundary.  Waiting for a worker sidecar or a
+    # terminal chain to expose drift would leave a malformed authority usable as
+    # a launch prerequisite.
+    config = load_papr_config()
+    _require(
+        value.get("config_hash") == run_config_hash(config),
+        "PAPR authority config hash differs from the frozen projected config",
+    )
+    _require(
+        value.get("protocol_config_hash") == papr_protocol_config_hash(config),
+        "PAPR authority protocol config hash differs from the frozen projected config",
+    )
+    expected_protocol = papr_authority_protocol(
+        config,
+        source_record_value=dict(value.get("source_manifest", {})),
+    )
+    _require(
+        value.get("protocol") == expected_protocol,
+        "PAPR authority protocol differs from the frozen projected recipe/source",
+    )
     if require_live_source:
+        manifest = load_w10_manifest(root, live=True)
+        _require(
+            value.get("source_binding") == manifest,
+            "PAPR authority source binding differs from the active frozen source epoch",
+        )
         execution_commit = execution_commit_for(root, path)
         assert_authority_source_closure(root, value, execution_commit)
     return value
@@ -850,7 +879,15 @@ def publish_selected_and_completion(
     checkpoint_relative: str,
     checkpoint_bytes: int,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Publish the selected checkpoint and terminal completion (idempotent)."""
+    """Publish the selected checkpoint and terminal completion (idempotent).
+
+    The two top-level records are intentionally immutable, but publication is
+    recoverable when the process dies after the selected record and before the
+    completion record.  Existing bytes are authenticated against the complete
+    recomputation before any missing record is published.  A completion without
+    its predecessor is never repaired by overwriting or silently recreating the
+    selected record.
+    """
 
     root = Path(root).resolve()
     authority_path = Path(authority_path)
@@ -878,11 +915,37 @@ def publish_selected_and_completion(
         validation_digest=validation_digest,
         selection_record=selected,
     )
-    publish_immutable_json(root / PAPR_SELECTED_CHECKPOINT_PATH, selected)
-    publish_immutable_json(root / PAPR_COMPLETION_PATH, completion)
+
+    selected_path = root / PAPR_SELECTED_CHECKPOINT_PATH
+    completion_path = root / PAPR_COMPLETION_PATH
+
+    def existing_or_missing(path: Path, expected: Mapping[str, Any], label: str) -> bool:
+        if path.is_symlink():
+            raise PaprLifecycleHold(f"{label} is an unsafe symlink")
+        if not path.exists():
+            return False
+        actual = _read_json(path, label)
+        _require(actual == dict(expected), f"{label} differs from the recomputed lifecycle")
+        return True
+
+    selected_exists = existing_or_missing(selected_path, selected, "PAPR selected checkpoint")
+    completion_exists = existing_or_missing(completion_path, completion, "PAPR training completion")
+    _require(
+        selected_exists or not completion_exists,
+        "PAPR completion exists without its immutable selected predecessor",
+    )
+    if not selected_exists:
+        publish_immutable_json(selected_path, selected)
+    if not completion_exists:
+        publish_immutable_json(completion_path, completion)
+
     runtime = root / str(authority["runtime_root"])
-    publish_immutable_json(runtime / "selected_checkpoint.json", selected)
-    publish_immutable_json(runtime / "run_completion.json", completion)
+    runtime_selected = runtime / "selected_checkpoint.json"
+    runtime_completion = runtime / "run_completion.json"
+    if not existing_or_missing(runtime_selected, selected, "PAPR runtime selected checkpoint"):
+        publish_immutable_json(runtime_selected, selected)
+    if not existing_or_missing(runtime_completion, completion, "PAPR runtime completion"):
+        publish_immutable_json(runtime_completion, completion)
     return selected, completion
 
 

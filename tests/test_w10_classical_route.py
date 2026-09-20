@@ -19,6 +19,7 @@ from baseline.j2k import J2KCodec
 from config.params import get
 from data.preprocessing import canonicalize_source
 from evaluation.w10_backends import W10Execution, learned_unit
+from training.papr_constrained import load_papr_config, papr_protocol_config_hash
 from training.w8_protocol import load_w8_config
 
 
@@ -337,18 +338,29 @@ def test_learned_papr_records_mean_max_and_cap_compliance() -> None:
         "train_seed": 0,
         "channel_seed": 0,
     }
+    papr_config = load_papr_config()
     compliant = learned_unit(
-        context, papr_unit, model=_PaprModel(2.0), config=config, checkpoint_id="a" * 64, papr_cap_db=3.0
+        context,
+        papr_unit,
+        model=_PaprModel(2.0),
+        config=papr_config,
+        checkpoint_id="a" * 64,
+        papr_cap_db=3.0,
+        protocol_config_hash=papr_protocol_config_hash(papr_config),
     )
     assert compliant["papr_cap_compliant"] is True
     excessive = learned_unit(
-        context, papr_unit, model=_PaprModel(3.5), config=config, checkpoint_id="a" * 64, papr_cap_db=3.0
+        context,
+        papr_unit,
+        model=_PaprModel(3.5),
+        config=papr_config,
+        checkpoint_id="a" * 64,
+        papr_cap_db=3.0,
+        protocol_config_hash=papr_protocol_config_hash(papr_config),
     )
     assert excessive["papr_cap_compliant"] is False
 
-def test_jpeg_execution_rejects_a_selection_digest_mismatch(monkeypatch, tmp_path: Path) -> None:
-    from evaluation.w10_backends import ValidationView
-
+def test_jpeg_execution_uses_frozen_quality_without_selection_digest_reuse(monkeypatch, tmp_path: Path) -> None:
     context = W10Execution(root=Path("."), device="cpu")
     context.view = _StubView(1)
     context.classifiers["artifact_finetuned"] = _StubClassifier().eval()
@@ -392,13 +404,14 @@ def test_jpeg_execution_rejects_a_selection_digest_mismatch(monkeypatch, tmp_pat
             }
         ],
     }
-    with pytest.raises(RuntimeError, match="frozen selection candidate digest"):
-        w10_classical.classical_unit(
-            context,
-            unit,
-            root=Path("."),
-            checkpoint_id="not_applicable_untrained_codec",
-            binding=binding,
-            codec_kind="jpeg",
-            quality=50,
-        )
+    aggregate = w10_classical.classical_unit(
+        context,
+        unit,
+        root=Path("."),
+        checkpoint_id="not_applicable_untrained_codec",
+        binding=binding,
+        codec_kind="jpeg",
+        quality=50,
+    )
+    assert aggregate["n_total"] == 1
+    assert aggregate["binding"]["quality"] == 50

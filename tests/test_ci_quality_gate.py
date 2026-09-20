@@ -14,6 +14,13 @@ assert _CONFTEST_SPEC is not None and _CONFTEST_SPEC.loader is not None
 test_conftest = importlib.util.module_from_spec(_CONFTEST_SPEC)
 _CONFTEST_SPEC.loader.exec_module(test_conftest)
 
+_HOSTED_SPEC = importlib.util.spec_from_file_location(
+    "capstone_hosted_quality_gate", Path(__file__).parents[1] / ".github/hosted_quality_gate.py"
+)
+assert _HOSTED_SPEC is not None and _HOSTED_SPEC.loader is not None
+hosted_gate = importlib.util.module_from_spec(_HOSTED_SPEC)
+_HOSTED_SPEC.loader.exec_module(hosted_gate)
+
 
 def _joined(profile: str) -> str:
     return "\n".join(" ".join(command) for command in gate.profile_commands(profile))
@@ -161,6 +168,70 @@ def test_downstream_phase_selectors_are_lifecycle_aware(tmp_path, monkeypatch):
     assert "verify_er2_randomized.py --authority-only" not in selected
     assert "verify_g11.py --authority-only" not in selected
     assert "verify_w10_rehearsal.py --terminal" in selected
+
+
+def test_hosted_routing_covers_every_papr_and_w10_lifecycle_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(hosted_gate, "REPO", tmp_path)
+    paths = {
+        "papr_authority": tmp_path / "papr-authority.json",
+        "papr_selected": tmp_path / "papr-selected.json",
+        "papr_completion": tmp_path / "papr-completion.json",
+        "w10_authority": tmp_path / "w10-authority.json",
+        "w10_closeout": tmp_path / "w10-closeout.json",
+    }
+    for name in ("ER9_CLOSEOUT", "ER2_COMPLETION", "G11_AUTHORITY", "G11_TERMINAL"):
+        monkeypatch.setattr(hosted_gate, name, tmp_path / f"absent-{name.lower()}.json")
+    for name, path in paths.items():
+        monkeypatch.setattr(hosted_gate, name.upper(), path)
+
+    def run(commands: tuple[list[str], ...]) -> tuple[list[list[str]], list[list[str]]]:
+        monkeypatch.setattr(hosted_gate.gate, "profile_commands", lambda _profile: commands)
+        original = [list(command) for command in commands]
+        return original, [list(command) for command in hosted_gate.hosted_commands("ci-cpu")]
+
+    cases = [
+        ("no PAPR authority", (), (), ()),
+        (
+            "PAPR authority only",
+            (["python", "tools/verify_papr_training_authorization.py"],),
+            ("papr_authority",),
+            ("verify-papr-authority-published",),
+        ),
+        (
+            "PAPR authority plus completion",
+            (["python", "tools/verify_papr_training_authorization.py", "--terminal"],),
+            ("papr_authority", "papr_selected", "papr_completion"),
+            ("verify-papr-published",),
+        ),
+        (
+            "W10 authority only",
+            (
+                ["python", "tools/verify_papr_training_authorization.py", "--terminal"],
+                ["python", "tools/verify_w10_rehearsal.py"],
+            ),
+            ("papr_authority", "papr_selected", "papr_completion", "w10_authority"),
+            ("verify-papr-published", "verify-w10-authority-published"),
+        ),
+        (
+            "W10 authority plus closeout",
+            (
+                ["python", "tools/verify_papr_training_authorization.py", "--terminal"],
+                ["python", "tools/verify_w10_rehearsal.py", "--terminal"],
+            ),
+            ("papr_authority", "papr_selected", "papr_completion", "w10_authority", "w10_closeout"),
+            ("verify-papr-published", "verify-w10-published"),
+        ),
+    ]
+    for _label, commands, present, replacements in cases:
+        for path in paths.values():
+            path.unlink(missing_ok=True)
+        for name in present:
+            paths[name].parent.mkdir(parents=True, exist_ok=True)
+            paths[name].write_bytes(b"sentinel")
+        before, after = run(commands)
+        changed = [command for command in after if command not in before]
+        assert [command[2] for command in changed] == list(replacements)
+        assert len(changed) == len(replacements)
 
 
 def test_affected_historical_check_is_direct_before_terminal_g10(tmp_path, monkeypatch):

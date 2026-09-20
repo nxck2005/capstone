@@ -16,7 +16,7 @@ import torch
 
 from channels.power import PeakPowerConstraint
 from config.params import get
-from config.run_config import load_experiment
+from config.run_config import config_hash as run_config_hash, load_experiment
 from evaluation.er9_search import configured_phy_candidates
 from evaluation.w10_backends import (
     W10Execution,
@@ -31,6 +31,11 @@ from evaluation.w10_classical import classical_unit
 from evaluation.w10_scope import entry_for
 from models.djscc import build_djscc
 from models.er9_digital import build_er9_model
+from training.papr_constrained import (
+    build_papr_model,
+    load_papr_config,
+    papr_protocol_config_hash,
+)
 from training.w8_protocol import load_w8_config
 
 ER2_CONFIG = "configs/learned-er2-randomized-pascal-v4.yaml"
@@ -65,6 +70,40 @@ def _load_w8_model(context: W10Execution, ratio: str, checkpoint: Mapping[str, A
     incompatible = model.load_state_dict(state, strict=True)
     if incompatible.missing_keys or incompatible.unexpected_keys:
         raise RuntimeError("W10 W8 checkpoint did not load strictly")
+    model.eval()
+    return model, config
+
+
+def _load_papr_model(context: W10Execution, checkpoint: Mapping[str, Any]) -> tuple[torch.nn.Module, Any]:
+    """Load W10's PAPR model from the projected PAPR config namespace.
+
+    The selected checkpoint is not allowed to borrow the ordinary W8 config
+    identity merely because the tensor shapes happen to match.  Its config and
+    protocol hashes are checked before model construction, and the projected
+    model builder installs the constrained encoder path used by training.
+    """
+
+    config = load_papr_config()
+    expected_config_hash = run_config_hash(config)
+    expected_protocol_hash = papr_protocol_config_hash(config)
+    if checkpoint.get("config_hash") != expected_config_hash:
+        raise RuntimeError("W10 PAPR checkpoint config hash differs from load_papr_config()")
+    if checkpoint.get("protocol_config_hash") != expected_protocol_hash:
+        raise RuntimeError("W10 PAPR checkpoint protocol config hash differs from load_papr_config()")
+    if checkpoint.get("papr_cap_db") != float(get("evaluation.w10_papr_cap_db")):
+        raise RuntimeError("W10 PAPR checkpoint cap differs from the frozen PAPR config")
+    if checkpoint.get("papr_cap_compliant") is not True:
+        raise RuntimeError("W10 PAPR checkpoint is not cap-compliant")
+    if not checkpoint.get("authority_id") or not checkpoint.get("selection_id") or not checkpoint.get("completion_id"):
+        raise RuntimeError("W10 PAPR checkpoint lacks the complete authority/selection/completion binding")
+    model = build_papr_model(config, context.device)
+    state = _load_checkpoint_state(
+        _checkpoint_path(context, checkpoint["checkpoint_path"]),
+        str(checkpoint["checkpoint_id"]),
+    )
+    incompatible = model.load_state_dict(state, strict=True)
+    if incompatible.missing_keys or incompatible.unexpected_keys:
+        raise RuntimeError("W10 PAPR checkpoint did not load strictly")
     model.eval()
     return model, config
 
@@ -131,10 +170,20 @@ def dispatch(root: Path, *, device: torch.device | str, authority: Mapping[str, 
             raise RuntimeError(f"W10 frozen binding drifted for {entry.role}")
         checkpoint = bound["checkpoint"]
         if entry.backend == "learned":
-            papr_cap = None if entry.system != "learned_papr_constrained" else float(get("evaluation.w10_papr_cap_db"))
             key = f"learned:{entry.bw_ratio}:{entry.system}"
-            model, config = context.model(key, lambda: _load_w8_model(context, entry.bw_ratio, checkpoint, papr_cap_db=papr_cap))
-            return learned_unit(context, unit, model=model, config=config, checkpoint_id=str(checkpoint["checkpoint_id"]), papr_cap_db=papr_cap)
+            if entry.system == "learned_papr_constrained":
+                model, config = context.model(key, lambda: _load_papr_model(context, checkpoint))
+                return learned_unit(
+                    context,
+                    unit,
+                    model=model,
+                    config=config,
+                    checkpoint_id=str(checkpoint["checkpoint_id"]),
+                    papr_cap_db=float(get("evaluation.w10_papr_cap_db")),
+                    protocol_config_hash=str(checkpoint["protocol_config_hash"]),
+                )
+            model, config = context.model(key, lambda: _load_w8_model(context, entry.bw_ratio, checkpoint, papr_cap_db=None))
+            return learned_unit(context, unit, model=model, config=config, checkpoint_id=str(checkpoint["checkpoint_id"]), papr_cap_db=None)
         if entry.backend == "recon_ablation":
             key = f"learned:{entry.bw_ratio}:recon"
             model, config = context.model(key, lambda: _load_w8_model(context, entry.bw_ratio, checkpoint, papr_cap_db=None))

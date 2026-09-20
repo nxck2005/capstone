@@ -221,7 +221,7 @@ PASCAL_COMPLETED_STATE = {
     "g8_d": "d7-complete",
     "g8_e_e2e4": "complete-verified",
     "g8_e_e5e7": "complete-green-pass-one-frozen",
-    "readiness_state": "w10-papr-successor-v2-frozen-test-sealed",
+    "readiness_state": "w10-papr-successor-v3-frozen-test-sealed",
     "runtime_state": "w5-attempt4-closed-prior-attempts-preserved",
     "rerun": "forbidden",
     "old_local": "immutable-zero-successor-coverage",

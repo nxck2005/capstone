@@ -17,6 +17,7 @@ from typing import Any
 from evaluation.downstream_v4 import immutable_write, read_json, require
 from evaluation.w10_evidence import (
     W10_PAPR_DOMAIN,
+    W10_PER_IMAGE_ROLE,
     W10_UNIT_PREFIX,
     W10_UNIT_ROLE,
     build_per_image_record,
@@ -126,10 +127,23 @@ def validate_unit(value: Mapping[str, Any], expected: Mapping[str, Any]) -> None
     variants = value.get("scorer_variants")
     require(isinstance(variants, list) and variants, "W10 unit scorer variants are missing")
     requirement = unit_evidence_requirement(expected)
+    require(all(isinstance(item, Mapping) for item in variants), "W10 scorer variant is malformed")
+    require(
+        [item.get("classifier_variant") for item in variants]
+        == requirement["classifier_variants"],
+        "W10 unit scorer-variant set/order differs",
+    )
+    require(isinstance(variants[0], Mapping), "W10 primary scorer variant is malformed")
     require(variants[0].get("classifier_variant") == requirement["primary_classifier_variant"], "W10 unit primary scorer variant differs")
-    for variant in variants:
+    require(
+        variants[0].get("path") == value.get("per_image_path")
+        and variants[0].get("sha256") == value.get("per_image_sha256"),
+        "W10 primary per-image binding differs",
+    )
+    for index, variant in enumerate(variants):
         require(isinstance(variant, Mapping) and variant.get("n_total") == W10_VALIDATION_DENOMINATOR, "W10 scorer variant denominator differs")
         require(isinstance(variant.get("sha256"), str) and len(variant["sha256"]) == 64, "W10 scorer variant digest is malformed")  # literal-ok: SHA-256 width
+        require(variant.get("path") == per_image_relative_path(expected, index), "W10 scorer variant path differs")
     require(variants[0].get("n_correct") == value.get("n_correct"), "W10 unit aggregate is not the primary stream aggregate")
     denominator = value.get("papr_denominator")
     measured = value.get("papr_measured_count")
@@ -165,7 +179,10 @@ def _write_per_image(
 ) -> dict[str, Any]:
     relative = per_image_relative_path(expected, variant_index)
     record = build_per_image_record(
-        ordinal=int(expected["ordinal"]), unit_key=relative, rows=rows
+        ordinal=int(expected["ordinal"]),
+        unit_key=relative,
+        rows=rows,
+        classifier_variant=classifier_variant,
     )
     path = runtime / relative
     immutable_write(path, record)
@@ -179,6 +196,55 @@ def _write_per_image(
         "_sha256": digest,
         "_rows": rows,
     }
+
+
+def _validate_persisted_streams(
+    runtime_root: Path,
+    expected: Mapping[str, Any],
+    value: Mapping[str, Any],
+    *,
+    expected_stable_ids: list[str] | None,
+) -> None:
+    """Authenticate every scorer stream, not only the primary stream."""
+
+    requirement = unit_evidence_requirement(expected)
+    variants = value.get("scorer_variants")
+    require(isinstance(variants, list), "W10 persisted scorer variants are missing")
+    require(
+        [item.get("classifier_variant") for item in variants]
+        == requirement["classifier_variants"],
+        "W10 persisted scorer-variant set/order differs",
+    )
+    for index, variant in enumerate(variants):
+        relative = per_image_relative_path(expected, index)
+        require(variant.get("path") == relative, "W10 persisted scorer path differs")
+        path = runtime_root / relative
+        require(path.is_file() and not path.is_symlink(), "W10 persisted scorer stream is missing or unsafe")
+        record = read_json(path, "W10 persisted scorer stream")
+        body = dict(record)
+        identifier = body.pop("per_image_id", None)
+        require(
+            identifier == W10_PER_IMAGE_ROLE.lower() + "-" + canonical_sha256(body),
+            "W10 persisted scorer stream ID differs",
+        )
+        require(record.get("ordinal") == expected["ordinal"] and record.get("unit_key") == relative, "W10 persisted scorer stream unit differs")
+        require(record.get("classifier_variant") == variant.get("classifier_variant"), "W10 persisted scorer classifier variant differs")
+        rows = record.get("rows")
+        require(isinstance(rows, list), "W10 persisted scorer rows are missing")
+        if expected_stable_ids is not None:
+            validate_per_image(
+                rows,
+                expected_stable_ids=expected_stable_ids,
+                system=str(expected["system"]),
+                bw_ratio=str(expected["bw_ratio"]),
+                snr_db=expected["snr_db"],
+            )
+        else:
+            require(len(rows) == W10_VALIDATION_DENOMINATOR, "W10 persisted scorer denominator differs")
+        digest = canonical_sha256(record)
+        require(digest == variant.get("sha256"), "W10 persisted scorer content digest differs")
+        require(recompute_n_correct(rows) == int(variant.get("n_correct")), "W10 persisted scorer correctness differs")
+        require(int(variant.get("n_total")) == len(rows), "W10 persisted scorer total differs")
 
 
 def execute(
@@ -214,7 +280,12 @@ def execute(
             value = read_json(path, f"W10 unit {expected['ordinal']}")
             validate_unit(value, expected)
             require(value["per_image_path"] == relative, "W10 resumed unit per-image path differs")
-            require(per_image_path.is_file() and not per_image_path.is_symlink(), "W10 resumed per-image evidence is missing")
+            _validate_persisted_streams(
+                runtime_root,
+                expected,
+                value,
+                expected_stable_ids=expected_stable_ids,
+            )
             require(canonical_sha256(read_json(per_image_path, "W10 per-image")) == value["per_image_sha256"], "W10 resumed per-image digest differs")
             results.append(value)
             continue
@@ -230,6 +301,11 @@ def execute(
             )
         require(recompute_n_correct(rows) == int(supplied["n_correct"]), "W10 aggregate does not recompute from per-image rows")
         require(len(rows) == W10_VALIDATION_DENOMINATOR, "W10 backend per-image denominator differs")
+        requirement = unit_evidence_requirement(expected)
+        require(
+            str(supplied["primary_classifier_variant"]) == requirement["primary_classifier_variant"],
+            "W10 backend primary scorer variant differs",
+        )
         primary = _write_per_image(
             runtime_root,
             expected,
@@ -248,6 +324,16 @@ def execute(
                     bw_ratio=str(expected["bw_ratio"]),
                     snr_db=expected["snr_db"],
                 )
+            require(index < len(requirement["classifier_variants"]), "W10 backend returned an unauthorized scorer stream")
+            require(
+                str(extra["classifier_variant"]) == requirement["classifier_variants"][index],
+                "W10 backend secondary scorer variant differs",
+            )
+            require(
+                recompute_n_correct(extra_rows) == int(extra.get("n_correct", recompute_n_correct(extra_rows)))
+                and len(extra_rows) == int(extra.get("n_total", len(extra_rows))),
+                "W10 backend secondary scorer counts do not recompute",
+            )
             variants.append(
                 _write_per_image(
                     runtime_root,
@@ -257,6 +343,10 @@ def execute(
                     rows=extra_rows,
                 )
             )
+        require(
+            [item["classifier_variant"] for item in variants] == requirement["classifier_variants"],
+            "W10 backend did not provide every required scorer stream",
+        )
         public_variants = [{key: value for key, value in variant.items() if not key.startswith("_")} for variant in variants]
         value = unit_body(
             expected=expected,
@@ -279,6 +369,36 @@ def unit_manifest(runtime_root: Path, results: list[dict[str, Any]]) -> dict[str
         unit_path = runtime_root / "units" / f"{expected['ordinal']:03d}-{expected['system']}-{expected['bw_ratio']}-snr{int(expected['snr_db']):+03d}.json"
         per_image_path = runtime_root / str(value["per_image_path"])
         require(unit_path.is_file() and per_image_path.is_file(), "W10 closeout evidence file is missing")
+        stream_records = []
+        for variant in value["scorer_variants"]:
+            stream_path = runtime_root / str(variant["path"])
+            require(stream_path.is_file() and not stream_path.is_symlink(), "W10 closeout scorer stream is missing")
+            stream = read_json(stream_path, "W10 closeout scorer stream")
+            stream_body = dict(stream)
+            stream_id = stream_body.pop("per_image_id", None)
+            require(
+                stream_id == W10_PER_IMAGE_ROLE.lower() + "-" + canonical_sha256(stream_body),
+                "W10 closeout scorer stream ID differs",
+            )
+            require(
+                stream.get("ordinal") == expected["ordinal"]
+                and stream.get("unit_key") == variant["path"]
+                and stream.get("classifier_variant") == variant["classifier_variant"],
+                "W10 closeout scorer stream identity differs",
+            )
+            stream_rows = stream.get("rows")
+            require(isinstance(stream_rows, list) and len(stream_rows) == W10_VALIDATION_DENOMINATOR, "W10 closeout scorer stream denominator differs")
+            stream_digest = canonical_sha256(stream)
+            require(stream_digest == variant["sha256"], "W10 closeout scorer stream digest differs")
+            require(recompute_n_correct(stream_rows) == int(variant["n_correct"]), "W10 closeout scorer stream correctness differs")
+            require(int(variant["n_total"]) == len(stream_rows), "W10 closeout scorer stream total differs")
+            stream_records.append({
+                "classifier_variant": variant["classifier_variant"],
+                "path": variant["path"],
+                "sha256": variant["sha256"],
+                "n_correct": int(variant["n_correct"]),
+                "n_total": int(variant["n_total"]),
+            })
         rows.append({
             "ordinal": int(value["ordinal"]),
             "unit_id": str(value["unit_id"]),
@@ -288,6 +408,7 @@ def unit_manifest(runtime_root: Path, results: list[dict[str, Any]]) -> dict[str
             "per_image_sha256": str(value["per_image_sha256"]),
             "n_correct": int(value["n_correct"]),
             "n_total": int(value["n_total"]),
+            "scorer_variants": stream_records,
         })
     body = {
         "schema_version": 1,
@@ -303,13 +424,17 @@ def unit_manifest(runtime_root: Path, results: list[dict[str, Any]]) -> dict[str
 def per_image_manifest(runtime_root: Path, manifest: Mapping[str, Any]) -> dict[str, Any]:
     streams = []
     for row in manifest["units"]:
-        path = runtime_root / str(row["per_image_path"])
-        streams.append({
-            "ordinal": row["ordinal"],
-            "per_image_path": row["per_image_path"],
-            "per_image_sha256": row["per_image_sha256"],
-            "n_total": row["n_total"],
-        })
+        for variant in row["scorer_variants"]:
+            path = runtime_root / str(variant["path"])
+            require(path.is_file() and not path.is_symlink(), "W10 closeout scorer stream is missing")
+            streams.append({
+                "ordinal": row["ordinal"],
+                "classifier_variant": variant["classifier_variant"],
+                "per_image_path": variant["path"],
+                "per_image_sha256": variant["sha256"],
+                "n_correct": variant["n_correct"],
+                "n_total": variant["n_total"],
+            })
     body = {
         "schema_version": 1,
         "artifact_role": "W10_VALIDATION_REHEARSAL_PER_IMAGE_MANIFEST",

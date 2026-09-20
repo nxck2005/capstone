@@ -18,7 +18,13 @@ import yaml
 
 from config.params import REPO_ROOT
 from evaluation import am97_spec_compatibility as am97
-from runtime.source_epochs import load_w10_manifest
+from runtime.source_epochs import (
+    W10_MANIFEST_KIND,
+    W10_V2_MANIFEST_KIND,
+    W10_V3_MANIFEST_KIND,
+    active_manifest_path,
+    load_w10_manifest,
+)
 
 SUCCESSOR_RELATIVE_PATH = "results/learned/w10/w10_downstream_source_manifest.json"
 AMENDMENT = "AM-98"
@@ -158,9 +164,9 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
 
     root = Path(root).resolve()
     successor_path = root / SUCCESSOR_RELATIVE_PATH
-    _require(successor_path.is_file() and not successor_path.is_symlink(), "AM-98 successor source manifest is missing")
+    _require(successor_path.is_file() and not successor_path.is_symlink(), "AM-98 historical successor source manifest is missing")
     manifest = load_w10_manifest(root, live=True)
-    _require(manifest.get("manifest_kind") in {"W10_PREPARATORY_SOURCE_SUCCESSOR_V1", "W10_PREPARATORY_SOURCE_SUCCESSOR_V2"}, "AM-98 successor manifest kind differs")
+    _require(manifest.get("manifest_kind") in {W10_MANIFEST_KIND, W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND}, "AM-98 successor manifest kind differs")
     _require("w10_validation_rehearsal" in manifest.get("governs", []), "AM-98 successor does not govern W10")
     for relative, (expected_bytes, expected_sha) in _CURRENT_VIEW_HASHES.items():
         path = root / relative
@@ -182,19 +188,14 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     )
     _require(AM98_PARAMETER_PATHS <= differences, "AM-98 parameters are not present in the current view")
     am97.load(root, allow_downstream=True)
+    active_path = active_manifest_path(root)
     return {
         "amendment": AMENDMENT,
         "timing": TIMING,
         "successor_manifest": {
-            "path": "results/learned/w10/w10_downstream_source_manifest_v2.json"
-            if manifest.get("manifest_kind") == "W10_PREPARATORY_SOURCE_SUCCESSOR_V2"
-            else SUCCESSOR_RELATIVE_PATH,
+            "path": str(active_path.relative_to(root)),
             "manifest_id": manifest["manifest_id"],
-            "sha256": sha256_bytes(
-                (root / "results/learned/w10/w10_downstream_source_manifest_v2.json").read_bytes()
-                if manifest.get("manifest_kind") == "W10_PREPARATORY_SOURCE_SUCCESSOR_V2"
-                else successor_path.read_bytes()
-            ),
+            "sha256": sha256_bytes(active_path.read_bytes()),
             "source_commit": manifest["source_commit"],
         },
         "view_hash_count": len(_CURRENT_VIEW_HASHES),

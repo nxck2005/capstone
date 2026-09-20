@@ -38,6 +38,11 @@ from evaluation.g10_protocol import verify_identified  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 from verify_er2_randomized import verify_audit, verify_validation  # noqa: E402
 from verify_g11 import verify_authority as verify_g11_authority  # noqa: E402
+from training.papr_constrained import (  # noqa: E402
+    PAPR_AUTHORITY_PATH,
+    PAPR_COMPLETION_PATH,
+    PAPR_SELECTED_CHECKPOINT_PATH,
+)
 
 
 ER9_CLOSEOUT = REPO / "results/learned/er9/er9_production_closeout_v4.json"
@@ -49,6 +54,9 @@ G11_TERMINAL = G11_ROOT / "g11_terminal_closeout.json"
 G10_MANIFEST = REPO / "results/learned/w9/g10_runtime_manifest.json"
 W10_AUTHORITY = REPO / "results/learned/w10/w10_rehearsal_authorization.json"
 W10_CLOSEOUT = REPO / "results/learned/w10/w10_rehearsal_closeout.json"
+PAPR_AUTHORITY = REPO / PAPR_AUTHORITY_PATH
+PAPR_SELECTED = REPO / PAPR_SELECTED_CHECKPOINT_PATH
+PAPR_COMPLETION = REPO / PAPR_COMPLETION_PATH
 
 
 class HostedEvidenceHold(RuntimeError):
@@ -215,7 +223,7 @@ def verify_er2_published() -> None:
     print("randomized ER-2 v4 published-evidence verifier PASS: one run and full validation; worker runtime not inspected")
 
 
-def verify_g11_published() -> None:
+def _verify_g11_published_legacy() -> None:
     """Authenticate committed G11/H4 evidence without worker checkpoint bytes.
 
     Hosted CI authenticates the frozen G11 authority, the content-addressed
@@ -307,6 +315,14 @@ def verify_g11_published() -> None:
     print("G11/H4 published-evidence verifier PASS: authority, H4, architecture, terminal, 3 ER-9 and 63 G10 manifest bindings; worker-local G10 per-image bytes not recomputed")
 
 
+def verify_g11_published() -> None:
+    """Use the explicit clean-clone G11 published-evidence verifier."""
+
+    from verify_g11_published import verify_published
+
+    verify_published()
+
+
 def verify_w10_published() -> None:
     from verify_w10_rehearsal import verify_published
 
@@ -318,6 +334,34 @@ def verify_w10_published() -> None:
     )
 
 
+def verify_papr_authority_published() -> None:
+    """Authenticate a PAPR authority without requiring its worker runtime."""
+
+    from training.papr_lifecycle import verify_papr_authority
+
+    value = verify_papr_authority(REPO, authority_path=PAPR_AUTHORITY, require_live_source=True)
+    print(f"PAPR published authority verifier PASS: {value['authority_id']}; worker runtime not inspected")
+
+
+def verify_papr_published() -> None:
+    """Authenticate completed PAPR evidence without recomputing worker facts."""
+
+    from verify_papr_training_published import verify_published
+
+    value = verify_published()
+    print(f"PAPR published-evidence verifier PASS: {value['completion_id']}; worker runtime not recomputed")
+
+
+def verify_w10_authority_published() -> None:
+    """Authenticate W10 authority bindings through hosted G11/PAPR paths."""
+
+    verify_papr_published()
+    from verify_w10_rehearsal import verify_authority
+
+    value = verify_authority(verify_bindings_runtime=False, verify_g11_runtime=False)
+    print(f"W10 published authority verifier PASS: {value['authority_id']}; worker runtime not inspected")
+
+
 def hosted_commands(profile: str) -> tuple[list[str], ...]:
     """Replace only exact worker-runtime terminal commands, failing closed."""
 
@@ -326,6 +370,9 @@ def hosted_commands(profile: str) -> tuple[list[str], ...]:
     replaced_er2 = 0
     replaced_g11 = 0
     replaced_w10 = 0
+    replaced_papr_authority = 0
+    replaced_papr_terminal = 0
+    replaced_w10_authority = 0
     result: list[list[str]] = []
     for command in commands:
         tool = Path(command[1]).name if len(command) >= 2 else ""
@@ -354,6 +401,29 @@ def hosted_commands(profile: str) -> tuple[list[str], ...]:
             )
             result.append([sys.executable, str(Path(__file__).resolve()), "verify-w10-published"])
             replaced_w10 += 1
+        elif tool == "verify_w10_rehearsal.py" and not arguments:
+            require(
+                W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink()
+                and PAPR_AUTHORITY.is_file() and not PAPR_AUTHORITY.is_symlink()
+                and PAPR_SELECTED.is_file() and not PAPR_SELECTED.is_symlink()
+                and PAPR_COMPLETION.is_file() and not PAPR_COMPLETION.is_symlink(),
+                "W10 authority routing lacks a completed PAPR binding",
+            )
+            result.append([sys.executable, str(Path(__file__).resolve()), "verify-w10-authority-published"])
+            replaced_w10_authority += 1
+        elif tool == "verify_papr_training_authorization.py" and arguments == ["--terminal"]:
+            require(
+                PAPR_AUTHORITY.is_file() and not PAPR_AUTHORITY.is_symlink()
+                and PAPR_SELECTED.is_file() and not PAPR_SELECTED.is_symlink()
+                and PAPR_COMPLETION.is_file() and not PAPR_COMPLETION.is_symlink(),
+                "PAPR terminal routing lacks a safe selected/completion pair",
+            )
+            result.append([sys.executable, str(Path(__file__).resolve()), "verify-papr-published"])
+            replaced_papr_terminal += 1
+        elif tool == "verify_papr_training_authorization.py" and not arguments:
+            require(PAPR_AUTHORITY.is_file() and not PAPR_AUTHORITY.is_symlink(), "PAPR authority routing lacks a safe authority")
+            result.append([sys.executable, str(Path(__file__).resolve()), "verify-papr-authority-published"])
+            replaced_papr_authority += 1
         else:
             result.append(command)
     expected_er9 = int(ER9_CLOSEOUT.is_file() and not ER9_CLOSEOUT.is_symlink())
@@ -366,10 +436,28 @@ def hosted_commands(profile: str) -> tuple[list[str], ...]:
         W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink()
         and W10_CLOSEOUT.is_file() and not W10_CLOSEOUT.is_symlink()
     )
+    papr_authority_present = PAPR_AUTHORITY.is_file() and not PAPR_AUTHORITY.is_symlink()
+    papr_terminal_present = int(
+        PAPR_AUTHORITY.is_file() and not PAPR_AUTHORITY.is_symlink()
+        and PAPR_SELECTED.is_file() and not PAPR_SELECTED.is_symlink()
+        and PAPR_COMPLETION.is_file() and not PAPR_COMPLETION.is_symlink()
+    )
+    expected_papr_authority = int(papr_authority_present and not papr_terminal_present)
+    expected_papr_terminal = papr_terminal_present
+    expected_w10_authority = int(
+        W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink()
+        and PAPR_AUTHORITY.is_file() and not PAPR_AUTHORITY.is_symlink()
+        and PAPR_SELECTED.is_file() and not PAPR_SELECTED.is_symlink()
+        and PAPR_COMPLETION.is_file() and not PAPR_COMPLETION.is_symlink()
+        and not (W10_CLOSEOUT.is_file() and not W10_CLOSEOUT.is_symlink())
+    )
     require(replaced_er9 == expected_er9, "hosted ER-9 runtime-command replacement count differs")
     require(replaced_er2 == expected_er2, "hosted ER-2 runtime-command replacement count differs")
     require(replaced_g11 == expected_g11, "hosted G-11 runtime-command replacement count differs")
     require(replaced_w10 == expected_w10, "hosted W10 runtime-command replacement count differs")
+    require(replaced_papr_authority == expected_papr_authority, "hosted PAPR authority-command replacement count differs")
+    require(replaced_papr_terminal == expected_papr_terminal, "hosted PAPR terminal-command replacement count differs")
+    require(replaced_w10_authority == expected_w10_authority, "hosted W10 authority-command replacement count differs")
     return tuple(result)
 
 
@@ -380,10 +468,21 @@ def self_test() -> None:
     differences = [(before, after) for before, after in zip(original, hosted, strict=True) if before != after]
     g11_present = G11_AUTHORITY.is_file() and not G11_AUTHORITY.is_symlink() and G11_TERMINAL.is_file() and not G11_TERMINAL.is_symlink()
     w10_present = W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink() and W10_CLOSEOUT.is_file() and not W10_CLOSEOUT.is_symlink()
-    expected = 1 + int(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink()) + int(g11_present) + int(w10_present)
+    papr_present = PAPR_AUTHORITY.is_file() and not PAPR_AUTHORITY.is_symlink()
+    papr_terminal = papr_present and PAPR_SELECTED.is_file() and not PAPR_SELECTED.is_symlink() and PAPR_COMPLETION.is_file() and not PAPR_COMPLETION.is_symlink()
+    w10_authority = W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink() and not w10_present and papr_terminal
+    expected = (
+        int(ER9_CLOSEOUT.is_file() and not ER9_CLOSEOUT.is_symlink())
+        + int(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink())
+        + int(g11_present)
+        + int(w10_present)
+        + int(papr_present and not papr_terminal)
+        + int(papr_terminal)
+        + int(w10_authority)
+    )
     require(len(differences) == expected, "hosted routing changed an unexpected command")
     for before, after in differences:
-        require(Path(before[1]).name in {"verify_er9_production_v4.py", "verify_er2_randomized.py", "verify_g11.py", "verify_w10_rehearsal.py"}, "hosted routing replaced a non-runtime command")
+        require(Path(before[1]).name in {"verify_er9_production_v4.py", "verify_er2_randomized.py", "verify_g11.py", "verify_w10_rehearsal.py", "verify_papr_training_authorization.py"}, "hosted routing replaced a non-runtime command")
         require(Path(after[1]).resolve() == Path(__file__).resolve(), "hosted routing replacement is not this audited adapter")
     verify_er9_published()
     if ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink():
@@ -392,6 +491,12 @@ def self_test() -> None:
         verify_g11_published()
     if w10_present:
         verify_w10_published()
+    if papr_present and not papr_terminal:
+        verify_papr_authority_published()
+    if papr_terminal:
+        verify_papr_published()
+    if w10_authority:
+        verify_w10_authority_published()
     print(f"hosted quality-gate routing self-test PASS: replacements={len(differences)}")
 
 
@@ -409,7 +514,7 @@ def run(profile: str) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "verify-g11-published", "verify-w10-published", "static", "ci-cpu"))
+    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "verify-g11-published", "verify-papr-authority-published", "verify-papr-published", "verify-w10-authority-published", "verify-w10-published", "static", "ci-cpu"))
     args = parser.parse_args(argv)
     if args.action == "self-test":
         self_test()
@@ -419,6 +524,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         verify_er2_published()
     elif args.action == "verify-g11-published":
         verify_g11_published()
+    elif args.action == "verify-papr-authority-published":
+        verify_papr_authority_published()
+    elif args.action == "verify-papr-published":
+        verify_papr_published()
+    elif args.action == "verify-w10-authority-published":
+        verify_w10_authority_published()
     elif args.action == "verify-w10-published":
         verify_w10_published()
     else:

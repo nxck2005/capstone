@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -65,6 +66,59 @@ def _synthetic_backend(expected: dict, *, n_correct: int = 500, n_total: int = 1
         "max_papr_db": 3.0,
         "papr_measured_count": n_total,
         "papr_denominator": n_total,
+        "papr_domain": "symbol_domain_not_oversampled_waveform",
+    }
+
+
+def _multi_stream_backend(expected: dict) -> dict:
+    def rows_for(variant: str, n_correct: int) -> list[dict]:
+        identity = run_identity(
+            system=expected["system"],
+            bw_ratio=expected["bw_ratio"],
+            snr_db=expected["snr_db"],
+            config_hash="a" * 64,
+            checkpoint_id="b" * 64,
+            classifier_variant=variant,
+            ldpc_rate="1/2",
+            modulation="qpsk",
+            quantiser_bits=None,
+            transmit_dim=None,
+            reconstruction_weight=None,
+        )
+        return [
+            sr18_row(
+                identity=identity,
+                stable_sample_id=f"val-{index:04d}",
+                true_label=index % 10,
+                pred_label=(index % 10) if index < n_correct else (index % 10) + 1,
+                correct=index < n_correct,
+                outage=False,
+                outage_reason=None,
+                source_bytes=None,
+            )
+            for index in range(1000)
+        ]
+
+    primary = rows_for("artifact_finetuned", 500)
+    secondary = rows_for("clean", 600)
+    return {
+        "n_correct": recompute_n_correct(primary),
+        "n_total": 1000,
+        "binding": {"unit": expected["role"], "synthetic": True},
+        "per_image": primary,
+        "primary_classifier_variant": "artifact_finetuned",
+        "secondary_streams": [
+            {
+                "classifier_variant": "clean",
+                "per_image": secondary,
+                "n_correct": recompute_n_correct(secondary),
+                "n_total": 1000,
+            }
+        ],
+        "mean_papr_db": 2.5,
+        "max_papr_db": 3.0,
+        "papr_measured_count": 1000,
+        "papr_denominator": 1000,
         "papr_domain": "symbol_domain_not_oversampled_waveform",
     }
 
@@ -173,6 +227,58 @@ def test_w10_synthetic_execute_and_closeout_bind_ordered_evidence(tmp_path: Path
         canonical_bytes({"unit_ids": [unit["unit_id"]]})
     ).hexdigest()
     assert closeout["test"] == "SEALED" and closeout["test_access"] == 0
+
+
+@pytest.mark.parametrize("mutation", ["missing", "changed"])
+def test_w10_resume_authenticates_every_secondary_scorer_stream(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, mutation: str
+) -> None:
+    expected = next(
+        unit
+        for unit in work_units()
+        if unit["system"] == "classical_adaptive" and unit["bw_ratio"] == "r_1_6"
+    )
+    monkeypatch.setattr(rehearsal, "work_units", lambda: (expected,))
+    monkeypatch.setattr(rehearsal, "unit_count", lambda: 1)
+    authority = _authority()
+    authority["unit_count"] = 1
+    results = rehearsal.execute(
+        tmp_path,
+        authority=authority,
+        backend=_multi_stream_backend,
+        expected_stable_ids=[f"val-{index:04d}" for index in range(1000)],
+    )
+    unit = results[0]
+    assert [item["classifier_variant"] for item in unit["scorer_variants"]] == [
+        "artifact_finetuned",
+        "clean",
+    ]
+    manifest = rehearsal.unit_manifest(tmp_path, results)
+    assert len(manifest["units"][0]["scorer_variants"]) == 2
+    image_manifest = rehearsal.per_image_manifest(tmp_path, manifest)
+    assert image_manifest["stream_count"] == 2
+
+    secondary_path = tmp_path / unit["scorer_variants"][1]["path"]
+    if mutation == "missing":
+        secondary_path.unlink()
+    else:
+        record = json.loads(secondary_path.read_bytes())
+        record["rows"][0]["correct"] = not record["rows"][0]["correct"]
+        secondary_path.write_bytes(canonical_bytes(record))
+
+    with pytest.raises(DownstreamHold):
+        rehearsal.unit_manifest(tmp_path, results)
+
+    def unexpected_backend(_unit):
+        raise AssertionError("resume attempted to rerun a unit after scorer custody drift")
+
+    with pytest.raises(DownstreamHold):
+        rehearsal.execute(
+            tmp_path,
+            authority=authority,
+            backend=unexpected_backend,
+            expected_stable_ids=[f"val-{index:04d}" for index in range(1000)],
+        )
 
 
 def test_w10_rejects_wrong_denominator_and_test_authority(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

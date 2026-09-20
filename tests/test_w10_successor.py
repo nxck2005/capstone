@@ -10,6 +10,9 @@ import torch
 
 from baseline.jpeg import JpegCodec
 from channels.power import PeakPowerConstraint
+from config.params import get
+from config.run_config import config_hash as run_config_hash
+from evaluation import w10_dispatch
 from evaluation.w10_backends import (
     DECODE_FAILURE,
     W10Execution,
@@ -21,7 +24,13 @@ from evaluation.w10_backends import (
 from evaluation.w10_bindings import pending_states, resolve_scope_bindings
 from evaluation.w10_evidence import validate_per_image
 from evaluation.w10_scope import entry_for
-from training.papr_constrained import PaprConstrainedTrainer, build_papr_model, load_papr_config, protected_counters
+from training.papr_constrained import (
+    PaprConstrainedTrainer,
+    build_papr_model,
+    load_papr_config,
+    papr_protocol_config_hash,
+    protected_counters,
+)
 from training.w8_protocol import load_w8_config
 
 
@@ -131,6 +140,67 @@ def test_papr_constraint_is_installed_only_on_the_constrained_build() -> None:
     assert float(constrained.encoder.peak_constraint.max_papr_db) == 3.0  # literal-ok: AM-98 frozen cap
     assert PaprConstrainedTrainer._build_model is not None
     assert protected_counters()["papr_constrained_training"] == 0
+
+
+def test_w10_papr_dispatch_uses_projected_config_identity_not_ordinary_w8(monkeypatch) -> None:
+    papr_config = load_papr_config()
+    ordinary_config = load_w8_config("r_1_6", 0, 0)
+    assert run_config_hash(papr_config) != run_config_hash(ordinary_config)
+    captured: dict[str, object] = {}
+
+    class _Model:
+        def load_state_dict(self, state, strict=True):
+            captured["state"] = state
+            captured["strict"] = strict
+            return type("Incompatible", (), {"missing_keys": [], "unexpected_keys": []})()
+
+        def eval(self):
+            captured["eval"] = True
+            return self
+
+    monkeypatch.setattr(w10_dispatch, "build_papr_model", lambda config, device: (captured.update(config=config, device=device) or _Model()))
+    monkeypatch.setattr(w10_dispatch, "_load_checkpoint_state", lambda path, expected: {})
+    monkeypatch.setattr(w10_dispatch, "load_papr_config", lambda: papr_config)
+    monkeypatch.setattr(w10_dispatch, "load_w8_config", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("ordinary W8 loader used")))
+    checkpoint = {
+        "config_hash": run_config_hash(papr_config),
+        "protocol_config_hash": papr_protocol_config_hash(papr_config),
+        "papr_cap_db": float(get("evaluation.w10_papr_cap_db")),
+        "papr_cap_compliant": True,
+        "authority_id": "paprtrainingauth-synthetic",
+        "selection_id": "paprselected-synthetic",
+        "completion_id": "paprcompletion-synthetic",
+        "checkpoint_path": "checkpoints/synthetic.pt",
+        "checkpoint_id": "a" * 64,
+    }
+    model, config = w10_dispatch._load_papr_model(W10Execution(root=Path("."), device="cpu"), checkpoint)
+    assert model is not None and config is papr_config
+    assert captured["config"] is papr_config
+    assert checkpoint["config_hash"] != run_config_hash(ordinary_config)
+
+
+def test_w10_papr_evaluation_binding_carries_projected_config_and_protocol() -> None:
+    config = load_papr_config()
+    context = _context()
+    unit = {
+        "system": "learned_papr_constrained",
+        "bw_ratio": "r_1_6",
+        "snr_db": -8,
+        "train_seed": 0,
+        "channel_seed": 0,
+    }
+    evidence = learned_unit(
+        context,
+        unit,
+        model=_StubModel(),
+        config=config,
+        checkpoint_id="a" * 64,
+        papr_cap_db=3.0,
+        protocol_config_hash=papr_protocol_config_hash(config),
+    )
+    assert evidence["binding"]["config_hash"] == run_config_hash(config)
+    assert evidence["binding"]["protocol_config_hash"] == papr_protocol_config_hash(config)
+    assert evidence["binding"]["config_hash"] != run_config_hash(load_w8_config("r_1_6", 0, 0))
 
 
 def test_jpeg_codec_search_stays_within_budget() -> None:

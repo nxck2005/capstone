@@ -50,6 +50,7 @@ from training.papr_lifecycle import (  # noqa: E402
     load_validation_summaries,
     publish_selected_and_completion,
     validate_summary_chain,
+    verify_epoch_chain,
     verify_papr_authority,
 )
 from training.w8_final import W8SourceLineage, publish_immutable_json  # noqa: E402
@@ -183,9 +184,15 @@ def _select(root: Path, authority: dict, *, authority_path: Path, execution_comm
         trainer.resume()
     if trainer.completed_epoch != PAPR_EPOCHS - 1:
         raise SystemExit("PAPR selection requires the complete 100-epoch chain")
-    if (root / PAPR_SELECTED_CHECKPOINT_PATH).exists():
-        raise SystemExit("a PAPR selected checkpoint already exists; the one run is immutable")
-    chain = _chain_summary(root, authority, execution_commit)
+    # Rebuild the complete authenticated worker chain before consulting any
+    # pre-existing terminal artifact.  This is what makes selected->completion
+    # recovery a proof over the runtime, rather than a hash-only retry path.
+    chain = verify_epoch_chain(
+        root,
+        authority,
+        execution_commit,
+        expected_initial_state_sha256=None,
+    )
     summaries = validate_summary_chain(root, authority, chain)
     selection = select_checkpoint_epoch(
         summaries, expected_epochs=PAPR_EPOCHS, namespace=PAPR_VALIDATION_NAMESPACE
@@ -270,8 +277,6 @@ def action_status(authority_path: Path) -> int:
 
 def action_train(authority_path: Path) -> int:
     authority = verify_papr_authority(REPO, authority_path)
-    if (REPO / PAPR_SELECTED_CHECKPOINT_PATH).exists():
-        raise SystemExit("a PAPR selected checkpoint already exists; the one run is immutable")
     trainer, _config, execution_commit = _trainer(authority, root=REPO)
     _run_chain(trainer, repo=REPO)
     _select(REPO, authority, authority_path=authority_path, execution_commit=execution_commit)
