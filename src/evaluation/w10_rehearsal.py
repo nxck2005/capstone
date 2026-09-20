@@ -9,12 +9,14 @@ model or a dataset itself, so its contracts stay source- and test-independent.
 from __future__ import annotations
 
 import hashlib
+import math
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
 from evaluation.downstream_v4 import immutable_write, read_json, require
 from evaluation.w10_evidence import (
+    W10_PAPR_DOMAIN,
     W10_UNIT_PREFIX,
     W10_UNIT_ROLE,
     build_per_image_record,
@@ -91,6 +93,12 @@ def unit_body(
         "decode_failure_count": int(evidence.get("decode_failure_count", 0)),
         "infeasible_count": int(evidence.get("infeasible_count", 0)),
         "mean_papr_db": evidence.get("mean_papr_db"),
+        "max_papr_db": evidence.get("max_papr_db"),
+        "papr_measured_count": int(evidence.get("papr_measured_count", 0)),
+        "papr_denominator": int(evidence.get("papr_denominator", 0)),
+        "papr_domain": evidence.get("papr_domain", W10_PAPR_DOMAIN),
+        "papr_cap_db": evidence.get("papr_cap_db"),
+        "papr_cap_compliant": evidence.get("papr_cap_compliant"),
         "source_bytes": evidence.get("source_bytes"),
         "binding": dict(evidence["binding"]),
         "per_image_path": per_image_path,
@@ -123,6 +131,25 @@ def validate_unit(value: Mapping[str, Any], expected: Mapping[str, Any]) -> None
         require(isinstance(variant, Mapping) and variant.get("n_total") == W10_VALIDATION_DENOMINATOR, "W10 scorer variant denominator differs")
         require(isinstance(variant.get("sha256"), str) and len(variant["sha256"]) == 64, "W10 scorer variant digest is malformed")  # literal-ok: SHA-256 width
     require(variants[0].get("n_correct") == value.get("n_correct"), "W10 unit aggregate is not the primary stream aggregate")
+    denominator = value.get("papr_denominator")
+    measured = value.get("papr_measured_count")
+    require(denominator == W10_VALIDATION_DENOMINATOR, "W10 unit PAPR denominator differs")
+    require(isinstance(measured, int) and not isinstance(measured, bool) and 0 <= measured <= denominator, "W10 unit PAPR measured count differs")
+    if measured > 0:
+        require(value.get("papr_domain") == W10_PAPR_DOMAIN, "W10 unit PAPR domain differs")
+        require(
+            isinstance(value.get("mean_papr_db"), int | float)
+            and not isinstance(value["mean_papr_db"], bool)
+            and math.isfinite(float(value["mean_papr_db"])),
+            "W10 unit mean PAPR is missing or invalid",
+        )
+        require(
+            isinstance(value.get("max_papr_db"), int | float)
+            and not isinstance(value["max_papr_db"], bool)
+            and math.isfinite(float(value["max_papr_db"]))
+            and float(value["max_papr_db"]) >= float(value["mean_papr_db"]),
+            "W10 unit max PAPR is missing or invalid",
+        )
     body = dict(value)
     identifier = body.pop("unit_id", None)
     require(identifier == W10_UNIT_PREFIX + canonical_sha256(body), "W10 unit identity differs")
@@ -353,6 +380,30 @@ def closeout(
     body, units, images = build_closeout(runtime_root, results, authority=authority)
     immutable_write(runtime_root / "unit_manifest.json", units)
     immutable_write(runtime_root / "per_image_manifest.json", images)
+    return body
+
+
+def published_units(results: list[Mapping[str, Any]], *, authority: Mapping[str, Any]) -> dict[str, Any]:
+    """The compact published unit bodies a clean clone can re-authenticate."""
+
+    expected = work_units()
+    require(len(results) == len(expected), "W10 published unit count differs")
+    bodies = []
+    for value, unit in zip(results, expected, strict=True):
+        validate_unit(value, unit)
+        bodies.append(dict(value))
+    body = {
+        "schema_version": 1,
+        "artifact_role": "W10_VALIDATION_REHEARSAL_PUBLISHED_UNITS",
+        "authority_id": authority["authority_id"],
+        "scope_sha256": authority["scope_sha256"],
+        "unit_count": len(bodies),
+        "units": bodies,
+        "validation_only": True,
+        "test": "SEALED",
+        "test_access": 0,
+    }
+    body["published_units_id"] = "w10publishedunits-" + canonical_sha256(body)
     return body
 
 

@@ -61,6 +61,11 @@ def _synthetic_backend(expected: dict, *, n_correct: int = 500, n_total: int = 1
         "binding": {"unit": expected["role"], "synthetic": True},
         "per_image": rows,
         "primary_classifier_variant": "own_task_head",
+        "mean_papr_db": 2.5,
+        "max_papr_db": 3.0,
+        "papr_measured_count": n_total,
+        "papr_denominator": n_total,
+        "papr_domain": "symbol_domain_not_oversampled_waveform",
     }
 
 

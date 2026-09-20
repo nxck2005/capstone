@@ -62,6 +62,61 @@ class JpegCodec:
         )
         return buffer.getvalue()
 
+    def _cache_key(
+        self,
+        *,
+        canonical_pixels_sha256: str,
+        budget_bytes: int,
+        encode_axis_px: int,
+        quality: int | None,
+    ) -> str:
+        return hashlib.sha256(
+            (
+                canonical_pixels_sha256
+                + "|"
+                + str(int(budget_bytes))
+                + "|"
+                + str(int(encode_axis_px))
+                + "|jpeg|"
+                + str(self.subsampling)
+                + "|"
+                + str(self.optimize)
+                + ("|exact_quality:" + str(int(quality)) if quality is not None else "|search")
+            ).encode("ascii")
+        ).hexdigest()
+
+    def encode_exact_quality(
+        self,
+        image: np.ndarray,
+        *,
+        canonical_pixels_sha256: str,
+        budget_bytes: int,
+        encode_axis_px: int,
+        quality: int,
+    ) -> JpegResult:
+        """Encode exactly ``quality``; never fall back to another quality.
+
+        The prospectively selected W10 JPEG quality is a frozen scientific
+        decision.  If its codestream exceeds the packet budget, the correct
+        result is the frozen codec-infeasibility verdict, not a silent switch
+        to a lower quality.
+        """
+
+        if budget_bytes <= 0:
+            raise JpegCodecError("JPEG budget must be positive")
+        if int(quality) not in self.quality_grid:
+            raise JpegCodecError(f"JPEG quality {quality} is not in the configured grid")
+        codestream = self.encode_at_quality(image, quality=int(quality))
+        cache_key = self._cache_key(
+            canonical_pixels_sha256=canonical_pixels_sha256,
+            budget_bytes=budget_bytes,
+            encode_axis_px=encode_axis_px,
+            quality=int(quality),
+        )
+        if len(codestream) > budget_bytes:
+            return JpegResult(False, int(quality), None, None, cache_key, (int(quality),))
+        return JpegResult(True, int(quality), len(codestream), codestream, cache_key, (int(quality),))
+
     def encode_to_budget(
         self,
         image: np.ndarray,
@@ -70,7 +125,11 @@ class JpegCodec:
         budget_bytes: int,
         encode_axis_px: int,
     ) -> JpegResult:
-        """The highest-configured quality whose emitted bytes fit the budget."""
+        """The highest-configured quality whose emitted bytes fit the budget.
+
+        This search helper exists for the *selector*; frozen W10 execution must
+        use :meth:`encode_exact_quality`.
+        """
 
         if budget_bytes <= 0:
             raise JpegCodecError("JPEG budget must be positive")
@@ -82,19 +141,12 @@ class JpegCodec:
             if len(codestream) <= budget_bytes:
                 best = (quality, codestream)
                 break
-        cache_key = hashlib.sha256(
-            (
-                canonical_pixels_sha256
-                + "|"
-                + str(int(budget_bytes))
-                + "|"
-                + str(int(encode_axis_px))
-                + "|jpeg|"
-                + str(self.subsampling)
-                + "|"
-                + str(self.optimize)
-            ).encode("ascii")
-        ).hexdigest()
+        cache_key = self._cache_key(
+            canonical_pixels_sha256=canonical_pixels_sha256,
+            budget_bytes=budget_bytes,
+            encode_axis_px=encode_axis_px,
+            quality=None,
+        )
         if best is None:
             return JpegResult(False, -1, None, None, cache_key, tuple(search))
         return JpegResult(True, best[0], len(best[1]), best[1], cache_key, tuple(search))

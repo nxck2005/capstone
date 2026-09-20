@@ -44,8 +44,13 @@ def run_jpeg_pipeline(
     block_index: int = 0,
     device: str = "cpu",
 ) -> ClassicalResult:
-    """Run one image through the JPEG secondary arm and return its verdict."""
+    """Run one image through the JPEG secondary arm at exactly ``quality``."""
 
+    if int(quality) not in codec.quality_grid:
+        raise ClassicalPipelineError(
+            f"JPEG execution quality {quality} is not in the configured grid; "
+            "frozen W10 execution never searches or substitutes a quality"
+        )
     packet = build_packet_plan(k_symbols, modulation, ldpc_rate)
     canonical_image = codec_input(product)
     stable_sample_id = product.stable_sample_id
@@ -92,11 +97,12 @@ def run_jpeg_pipeline(
         attempted.append(axis)
         candidate = codec_downsample(canonical_image, axis)
         try:
-            encoded = codec.encode_to_budget(
+            encoded = codec.encode_exact_quality(
                 candidate,
                 canonical_pixels_sha256=hashlib.sha256(canonical_image.tobytes()).hexdigest(),
                 budget_bytes=accounting.payload_bytes,
                 encode_axis_px=axis,
+                quality=int(quality),
             )
         except JpegCodecError as exc:
             reasons.append((axis, f"codec_configuration_error: {exc}"))

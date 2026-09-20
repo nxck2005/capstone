@@ -31,6 +31,7 @@ from evaluation.w10_scope import (
 W10_UNIT_ROLE = "W10_VALIDATION_REHEARSAL_UNIT"
 W10_PER_IMAGE_ROLE = "W10_VALIDATION_REHEARSAL_PER_IMAGE"
 W10_UNIT_PREFIX = "w10unit-"
+W10_PAPR_DOMAIN = "symbol_domain_not_oversampled_waveform"
 
 
 def dataset_version() -> str:
@@ -241,6 +242,7 @@ def per_image_relative_path(unit: Mapping[str, Any], variant_index: int) -> str:
 
 
 __all__ = [
+    "W10_PAPR_DOMAIN",
     "W10_PER_IMAGE_ROLE",
     "W10_UNIT_PREFIX",
     "W10_UNIT_ROLE",

@@ -8,6 +8,7 @@ lives in :mod:`evaluation.w10_dispatch`.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
@@ -19,6 +20,7 @@ from baseline.classical.records import score_result
 from config.params import get
 from config.run_config import config_hash as run_config_hash
 from evaluation.w10_evidence import (
+    W10_PAPR_DOMAIN,
     per_image_relative_path,
     recompute_n_correct,
     rows_sha256,
@@ -36,6 +38,39 @@ NOT_APPLICABLE = "not_applicable"
 DECODE_FAILURE = "decode_failure"
 STRUCTURAL_INFEASIBILITY = "structural_infeasibility"
 CODEC_INFEASIBILITY = "codec_infeasibility"
+PAPR_BOUND_TOLERANCE_DB = 1e-4  # literal-ok: PeakPowerConstraint numerical bound tolerance
+
+
+def papr_record(values: Sequence[float], *, denominator: int) -> dict[str, Any]:
+    """Measured symbol-domain PAPR over the rows that actually transmitted.
+
+    ``papr_measured_count`` is the number of transmissions whose realised
+    symbols were measured; ``papr_denominator`` is the unit's complete row
+    count.  Infeasible rows emit no symbols and are excluded from the mean but
+    remain visible in the denominator, so a cell cannot report a clean PAPR by
+    simply failing to transmit.
+    """
+
+    measured = [float(value) for value in values]
+    if not measured:
+        return {
+            "mean_papr_db": None,
+            "max_papr_db": None,
+            "papr_measured_count": 0,
+            "papr_denominator": int(denominator),
+            "papr_domain": W10_PAPR_DOMAIN,
+        }
+    if not all(math.isfinite(value) for value in measured):
+        raise RuntimeError("W10 PAPR measurement is non-finite")
+    if len(measured) > int(denominator):
+        raise RuntimeError("W10 PAPR measured count exceeds its denominator")
+    return {
+        "mean_papr_db": sum(measured) / len(measured),
+        "max_papr_db": max(measured),
+        "papr_measured_count": len(measured),
+        "papr_denominator": int(denominator),
+        "papr_domain": W10_PAPR_DOMAIN,
+    }
 
 
 @dataclass
@@ -192,25 +227,36 @@ def _learned_rows(
                     source_bytes=None,
                 )
             )
-    return rows, (sum(papr_values) / len(papr_values) if papr_values else None)
+    return rows, papr_values
+
+
+def _apply_papr(aggregate: dict[str, Any], values: Sequence[float], *, denominator: int) -> None:
+    aggregate.update(papr_record(values, denominator=denominator))
 
 
 def learned_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.Module, config: Any, checkpoint_id: str, papr_cap_db: float | None = None) -> dict[str, Any]:
-    rows, mean_papr = _learned_rows(context, model=model, config=config, checkpoint_id=checkpoint_id, unit=unit, mode="learned")
+    rows, papr_values = _learned_rows(context, model=model, config=config, checkpoint_id=checkpoint_id, unit=unit, mode="learned")
     aggregate = _aggregate(rows, system=unit["system"])
-    aggregate["mean_papr_db"] = mean_papr
+    _apply_papr(aggregate, papr_values, denominator=len(rows))
+    if papr_cap_db is not None:
+        aggregate["papr_cap_db"] = float(papr_cap_db)
+        aggregate["papr_cap_compliant"] = bool(
+            aggregate["max_papr_db"] is not None
+            and aggregate["max_papr_db"] <= float(papr_cap_db) + PAPR_BOUND_TOLERANCE_DB
+        )
     aggregate["binding"] = {
         "kind": "learned_validation_evaluation",
         "checkpoint_id": checkpoint_id,
         "papr_cap_db": None if papr_cap_db is None else float(papr_cap_db),
+        "papr_cap_compliance_required": papr_cap_db is not None,
     }
     return aggregate
 
 
 def recon_ablation_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.Module, config: Any, checkpoint_id: str) -> dict[str, Any]:
-    rows, mean_papr = _learned_rows(context, model=model, config=config, checkpoint_id=checkpoint_id, unit=unit, mode="recon_ablation")
+    rows, papr_values = _learned_rows(context, model=model, config=config, checkpoint_id=checkpoint_id, unit=unit, mode="recon_ablation")
     aggregate = _aggregate(rows, system=unit["system"])
-    aggregate["mean_papr_db"] = mean_papr
+    _apply_papr(aggregate, papr_values, denominator=len(rows))
     aggregate["binding"] = {
         "kind": "er4_reconstruction_ablation",
         "checkpoint_id": checkpoint_id,
@@ -245,6 +291,7 @@ def er2_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.
     from channels.awgn import keyed_complex_noise
 
     rows: list[dict[str, Any]] = []
+    papr_values: list[float] = []
     batch = 32  # literal-ok: frozen W8 validation batch size
     for start in range(0, len(view.stable_ids), batch):
         chunk = view.stable_ids[start : start + batch]
@@ -255,11 +302,13 @@ def er2_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.
         ]
         noise = keyed_complex_noise(tuple(noise_ids), k, dtype=torch.complex64, device=context.device)
         output = model(inputs, float(unit["snr_db"]), unit_noise=noise)
+        papr_values.extend(float(value) for value in output.papr_db.detach().cpu())
         predictions = [int(value) for value in output.logits.argmax(dim=1).cpu()]
         for stable_id, prediction in zip(chunk, predictions, strict=True):
             label = view.label(stable_id)
             rows.append(sr18_row(identity=identity, stable_sample_id=stable_id, true_label=label, pred_label=prediction, correct=prediction == label, outage=False, outage_reason=None, source_bytes=None))
     aggregate = _aggregate(rows, system=unit["system"])
+    _apply_papr(aggregate, papr_values, denominator=len(rows))
     aggregate["binding"] = {
         "kind": "er2_randomized_validation_evaluation",
         "checkpoint_id": checkpoint_id,
@@ -314,6 +363,7 @@ def er9_unit(context: W10Execution, unit: Mapping[str, Any], *, assets: Mapping[
     policy = authenticated_er9_outage_policy(config)
     session = ER9TransportBatch(packet, device=str(context.device))
     rows: list[dict[str, Any]] = []
+    papr_values: list[float] = []
     batch = 32  # literal-ok: frozen W8 validation batch size
     for start in range(0, len(view.stable_ids), batch):
         chunk = view.stable_ids[start : start + batch]
@@ -325,6 +375,7 @@ def er9_unit(context: W10Execution, unit: Mapping[str, Any], *, assets: Mapping[
         ]
         noise_ids = [scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], k=k) for stable_id in chunk]
         result = session.round_trip(payloads=payloads, snr_db=float(unit["snr_db"]), noise_ids=noise_ids)
+        papr_values.extend(float(value) for value in result.papr_db)
         for stable_id, payload in zip(chunk, result.payloads, strict=True):
             true_label = view.label(stable_id)
             if payload is None:
@@ -345,7 +396,7 @@ def er9_unit(context: W10Execution, unit: Mapping[str, Any], *, assets: Mapping[
                     outage_reason = None
             rows.append(sr18_row(identity=identity, stable_sample_id=stable_id, true_label=true_label, pred_label=pred_label, correct=correct, outage=outage_reason is not None, outage_reason=outage_reason, source_bytes=int(layout.payload_bits) // 8))  # literal-ok: bits-per-octet conversion
     aggregate = _aggregate(rows, system=unit["system"])
-    aggregate["mean_papr_db"] = None
+    _apply_papr(aggregate, papr_values, denominator=len(rows))
     aggregate["binding"] = {
         "kind": "er9_frozen_selected_phy_validation_evaluation",
         "checkpoint_id": checkpoint_id,
@@ -447,6 +498,7 @@ def label_bound_unit(context: W10Execution, unit: Mapping[str, Any], *, selectio
         noise_ids = [scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], k=k) for stable_id in chunk]
         session = ER9TransportBatch(packet, device=str(context.device))
         result = session.round_trip(payloads=payloads, snr_db=float(unit["snr_db"]), noise_ids=noise_ids)
+        papr_values.extend(float(value) for value in result.papr_db)
         for stable_id, payload in zip(chunk, result.payloads, strict=True):
             true_label = view.label(stable_id)
             if payload is None or decode_label_payload(payload, payload_bits=int(layout.payload_bits)) is None:
@@ -458,8 +510,14 @@ def label_bound_unit(context: W10Execution, unit: Mapping[str, Any], *, selectio
                 correct = pred_label == true_label
                 outage_reason = None
             rows.append(sr18_row(identity=identity, stable_sample_id=stable_id, true_label=true_label, pred_label=pred_label, correct=correct, outage=outage_reason is not None, outage_reason=outage_reason, source_bytes=payload_bytes))
+    from evaluation.w10_selections import score_vector_digest
+
+    if point.get("per_image_correct_digest") is not None and score_vector_digest(
+        [bool(row["correct"]) for row in rows]
+    ) != str(point["per_image_correct_digest"]):
+        raise RuntimeError("W10 ER-12 arm does not reproduce its frozen selection candidate digest")
     aggregate = _aggregate(rows, system=unit["system"])
-    aggregate["mean_papr_db"] = None
+    _apply_papr(aggregate, papr_values, denominator=len(rows))
     aggregate["binding"] = {
         "kind": "er12_label_transmission_upper_bound",
         "checkpoint_id": checkpoint_id,
@@ -506,6 +564,7 @@ __all__ = [
     "DECODE_FAILURE",
     "NOT_APPLICABLE",
     "STRUCTURAL_INFEASIBILITY",
+    "papr_record",
     "W10Execution",
     "ValidationView",
     "decode_label_payload",

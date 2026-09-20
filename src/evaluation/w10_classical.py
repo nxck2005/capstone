@@ -25,19 +25,23 @@ from baseline.classical.pipeline import (
     ClassicalResult,
     run_classical_pipeline,
 )
-from baseline.classical.records import classify_reconstruction, score_result
+from baseline.classical.records import score_result
 from baseline.classical.jpeg_pipeline import run_jpeg_pipeline
 from baseline.j2k import J2KCodec
 from baseline.jpeg import JpegCodec
 from baseline.classical.outage import load_outage_policy
 from config.params import get
-from evaluation.w10_backends import NOT_APPLICABLE, W10Execution, _aggregate
+from evaluation.w10_backends import W10Execution, _aggregate, _apply_papr
 from evaluation.w10_evidence import run_identity, scheduled_noise_id
 from evaluation.w10_scope import W10_DATASET
 from models.frozen_reference_classifier import load_frozen_reference_classifier
 from training.deterministic_core import canonical_sha256
 
 OUTAGE_POLICY_PATH = "results/baseline/w4/outage_policy.json"
+# The W10 runtime root (checkpoints/w10_rehearsal) is worker-local and ignored;
+# the J2K cache is content-addressed by canonical pixels and codec configuration,
+# so it is deterministic and never scientific evidence.
+W10_J2K_CACHE_DIR = "checkpoints/w10_rehearsal/j2k_cache"
 OUTAGE_POLICY_SHA256 = "ebcc34133f7a1e38635e8a958cb41a4b8f019b02fd97bd2f0ad606a0a1396121"
 ARTIFACT_CHECKPOINT_PATH = "checkpoints/artifact_classifier/epoch-17.pt"
 G1_BEST_PATH = "results/reference_classifier/best_checkpoint.json"
@@ -118,6 +122,9 @@ def _selection_map(binding: Mapping[str, Any]) -> dict[int, dict[str, Any]]:
     if binding.get("kind") == "classical_pass_two":
         table = {str(item["snr_db"]): item for item in binding["selections"]}
         return {int(float(snr)): {"authority_candidate_id": item["authority_candidate_id"]} for snr, item in table.items()}
+    if binding.get("kind") == "w10_jpeg_validation_selection":
+        # Frozen W10 JPEG execution uses exactly the selected quality and PHY.
+        return {int(float(item["snr_db"])): dict(item) for item in binding["selections"]}
     raise RuntimeError(f"unsupported classical selection binding: {binding.get('kind')}")
 
 
@@ -178,8 +185,13 @@ def classical_unit(
         encode_axis = int(point["encode_axis_px"])
         config_hash = canonical_sha256(point)
     k = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{unit['bw_ratio']}"))
-    codec = J2KCodec() if codec_kind == "jpeg2000" else JpegCodec()
+    codec = (
+        J2KCodec(Path(root) / W10_J2K_CACHE_DIR)
+        if codec_kind == "jpeg2000"
+        else JpegCodec()
+    )
     streams: dict[str, list[dict[str, Any]]] = {variant: [] for variant in classifiers}
+    papr_values: list[float] = []
     for stable_id in view.stable_ids:
         product = view.product(stable_id)
         label = view.label(stable_id)
@@ -217,6 +229,8 @@ def classical_unit(
                 encode_axis_px=encode_axis,
                 device=str(context.device),
             )
+        if result.transport is not None:
+            papr_values.append(float(result.transport.papr_db))
         from data.preprocessing import codec_input
 
         canonical_image = codec_input(product)
@@ -254,8 +268,17 @@ def classical_unit(
             )
     primary_variant = unit_primary_variant(unit)
     primary = streams[primary_variant]
+    expected_digest = point.get("per_image_correct_digest") if codec_kind != "jpeg2000" else None
+    if expected_digest is not None:
+        from evaluation.w10_selections import score_vector_digest
+
+        require_digest = score_vector_digest([bool(row["correct"]) for row in primary])
+        if require_digest != str(expected_digest):
+            raise RuntimeError(
+                "W10 JPEG arm does not reproduce its frozen selection candidate digest"
+            )
     aggregate = _aggregate(primary, system=unit["system"])
-    aggregate["mean_papr_db"] = None
+    _apply_papr(aggregate, papr_values, denominator=len(view.stable_ids))
     aggregate["binding"] = {
         "kind": "jpeg_secondary_validation_evaluation" if codec_kind != "jpeg2000" else "classical_per_image_validation_evaluation",
         "codec": codec_kind,

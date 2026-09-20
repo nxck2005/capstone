@@ -20,6 +20,7 @@ from baseline.ldpc.modulation import max_log_llr, n0_from_esn0_db
 from baseline.ldpc.segmentation import segment
 from baseline.ldpc.transport import PacketPlan
 from channels.awgn import AWGN, keyed_complex_noise
+from channels.power import symbol_papr_db
 from channels.registry import build_channel
 from config.params import get
 
@@ -30,6 +31,7 @@ class TransportBatchResult:
     crc_ok: tuple[bool, ...]
     symbols_per_packet: int
     realised_symbol_energy: tuple[float, ...]
+    papr_db: tuple[float, ...]
 
 
 class ER9TransportBatch:
@@ -148,11 +150,16 @@ class ER9TransportBatch:
         )
         decoded, verdicts = self._decode(llrs)
         energy = tuple(float(np.mean(np.abs(row) ** 2)) for row in symbols)  # literal-ok: packet energy statistic
+        # Symbol-domain PAPR is a property of the actually transmitted digital
+        # symbols; QAM constellations are not constant modulus, so this is
+        # measured per transmission rather than assumed constant.
+        papr = tuple(float(value) for value in symbol_papr_db(transmitted).detach().cpu())
         return TransportBatchResult(
             payloads=decoded,
             crc_ok=verdicts,
             symbols_per_packet=int(symbols.shape[1]),
             realised_symbol_energy=energy,
+            papr_db=papr,
         )
 
 

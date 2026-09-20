@@ -52,11 +52,16 @@ def _load_checkpoint_state(path: Path, expected_sha256: str) -> dict[str, Any]:
     return dict(payload["model_state"])
 
 
+def _checkpoint_path(context: W10Execution, relative: str) -> Path:
+    path = Path(str(relative))
+    return path if path.is_absolute() else Path(context.root) / path
+
+
 def _load_w8_model(context: W10Execution, ratio: str, checkpoint: Mapping[str, Any], *, papr_cap_db: float | None) -> tuple[torch.nn.Module, Any]:
     config = load_w8_config(ratio, 0, 0)
     constraint = None if papr_cap_db is None else PeakPowerConstraint(float(papr_cap_db))
     model = build_djscc(config, peak_constraint=constraint, device=context.device)
-    state = _load_checkpoint_state(Path(str(checkpoint["checkpoint_path"])), str(checkpoint["checkpoint_id"]))
+    state = _load_checkpoint_state(_checkpoint_path(context, checkpoint["checkpoint_path"]), str(checkpoint["checkpoint_id"]))
     incompatible = model.load_state_dict(state, strict=True)
     if incompatible.missing_keys or incompatible.unexpected_keys:
         raise RuntimeError("W10 W8 checkpoint did not load strictly")
@@ -67,7 +72,7 @@ def _load_w8_model(context: W10Execution, ratio: str, checkpoint: Mapping[str, A
 def _load_er2_model(context: W10Execution, checkpoint: Mapping[str, Any]) -> tuple[torch.nn.Module, Any]:
     config = load_experiment(ER2_CONFIG, train_seed=0, channel_seed=0)
     model = build_djscc(config, device=context.device)
-    state = _load_checkpoint_state(Path(str(checkpoint["checkpoint_path"])), str(checkpoint["checkpoint_sha256"]))
+    state = _load_checkpoint_state(_checkpoint_path(context, checkpoint["checkpoint_path"]), str(checkpoint["checkpoint_sha256"]))
     incompatible = model.load_state_dict(state, strict=True)
     if incompatible.missing_keys or incompatible.unexpected_keys:
         raise RuntimeError("W10 ER-2 checkpoint did not load strictly")
