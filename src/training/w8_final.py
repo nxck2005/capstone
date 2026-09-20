@@ -47,6 +47,7 @@ from training.djscc_loss import DJSCCObjective
 from training.w8_protocol import (
     W8_ACCUMULATION_FACTOR,
     W8_CHECKPOINT_ROLE,
+    W8_CHECKPOINT_SIDECAR_ROLE,
     W8_CHECKPOINT_SELECTION_CHANNEL_SEED_RULE,
     W8_COMPONENT_PATH,
     W8_CORE_ROLE,
@@ -76,6 +77,8 @@ from training.w8_protocol import (
 
 W8_CHECKPOINT_SCHEMA_VERSION = 1
 W8_EPOCH_RECORD_SCHEMA_VERSION = 1
+W8_PAPR_BOUND_TOLERANCE_DB = 1e-4  # literal-ok: PeakPowerConstraint numerical bound tolerance
+W8_PAPR_DOMAIN = "symbol_domain_not_oversampled_waveform"
 W8_SMOKE_CHECKPOINT_ROLE = "W8_NON_SCIENTIFIC_SMOKE_CHECKPOINT"
 W8_SMOKE_EPOCH_ROLE = "W8_NON_SCIENTIFIC_SMOKE_EPOCH_RECORD"
 W8_SMOKE_SIDECAR_ROLE = "W8_NON_SCIENTIFIC_SMOKE_CHECKPOINT_SIDECAR"
@@ -165,6 +168,12 @@ def _publish_new_bytes(path: Path, raw: bytes) -> None:
     except BaseException:
         temporary.unlink(missing_ok=True)
         raise
+
+
+def publish_immutable_json(path: Path, value: Any) -> None:
+    """Atomically publish canonical JSON at an immutable path (no replacement)."""
+
+    _publish_new_bytes(Path(path), canonical_bytes(value))
 
 
 def _replace_pointer(path: Path, raw: bytes) -> None:
@@ -318,12 +327,29 @@ class W8SourceLineage:
 
 @dataclass(frozen=True)
 class W8TrainingPolicy:
-    """Explicit W8 role policy; eligibility is never inferred from a filename."""
+    """Explicit W8 role policy; eligibility is never inferred from a filename.
+
+    The trainer consumes every artifact role, protocol version and eligibility
+    projection from this object.  A successor lifecycle (AM-98's PAPR-
+    constrained run) supplies its own policy rather than impersonating a W8
+    artifact role; the W8 default remains byte-for-byte the historical one.
+    """
 
     role: str
     validation_enabled: bool
     scientific: bool
     protected_counters: Mapping[str, int]
+    protocol_version: str = W8_PROTOCOL_VERSION
+    epoch_role: str = W8_TRAINING_EPOCH_ROLE
+    checkpoint_role: str = W8_CHECKPOINT_ROLE
+    sidecar_role: str = W8_CHECKPOINT_SIDECAR_ROLE
+    eligibility: Mapping[str, str] | None = None
+    papr_cap_db: float | None = None
+
+    def eligibility_record(self) -> dict[str, str]:
+        if self.eligibility is not None:
+            return dict(self.eligibility)
+        return eligibility_for_role(self.role)
 
     def validate(self, config: RunConfig) -> None:
         validate_w8_config(config)
@@ -396,8 +422,8 @@ class W8Trainer:
                 "only after this run has published its own authenticated checkpoint"
             )
         _require(isinstance(config, RunConfig), "W8 requires a resolved RunConfig")
-        validate_w8_config(config)
         self.policy = policy or W8_CORE_TRAINING_POLICY
+        self.policy.validate(config)
         if model is not None and self.policy.scientific:
             raise W8Hold(
                 "scientific W8 core runs must construct their own keyed fresh model; "
@@ -423,10 +449,9 @@ class W8Trainer:
             self.profile_binding.get("git_commit") == self.source_lineage.source_commit,
             "W8 profile binding source commit differs",
         )
-        self.policy.validate(config)
         self.recipe = learned_recipe(config)
         self.recipe_sha256 = canonical_sha256(self.recipe)
-        self.protocol_hash = protocol_config_hash(config)
+        self.protocol_hash = self._protocol_config_hash(config)
         self.num_workers = int(
             self.recipe["dataloader_workers"] if num_workers is None else num_workers
         )
@@ -460,6 +485,11 @@ class W8Trainer:
         """Construct the keyed fresh model; the PAPR successor overrides only this."""
 
         return build_djscc(config, device=device)
+
+    def _protocol_config_hash(self, config: RunConfig) -> str:
+        """The protocol/config fingerprint; a successor policy overrides this."""
+
+        return protocol_config_hash(config)
 
     @staticmethod
     def _default_run_id(config: RunConfig) -> str:
@@ -695,6 +725,7 @@ class W8Trainer:
         opportunities = 0
         observed_ids: list[str] = []
         observed_noise_ids: list[str] = []
+        papr_max_observed: float | None = None
         all_finite = True
         all_named_finite = True
         named_status_last: dict[str, Any] = {}
@@ -764,6 +795,22 @@ class W8Trainer:
                     inputs, self.config.resolved["train_snr_db"], unit_noise=unit_noise
                 )
                 loss = self.objective(output, labels, inputs)
+            if self.policy.papr_cap_db is not None:
+                _require(
+                    hasattr(output, "papr_db"),
+                    "PAPR-constrained training requires the model symbol-domain PAPR",
+                )
+                measured = output.papr_db.detach().float()
+                _require(
+                    bool(torch.isfinite(measured).all()),
+                    "PAPR-constrained training observed non-finite symbol PAPR",
+                )
+                for value in measured.reshape(-1).tolist():
+                    papr_max_observed = value if papr_max_observed is None else max(papr_max_observed, float(value))
+                _require(
+                    papr_max_observed <= self.policy.papr_cap_db + W8_PAPR_BOUND_TOLERANCE_DB,
+                    "PAPR-constrained training exceeded its frozen symbol-domain cap",
+                )
             values = {
                 "total": float(loss.total.detach().float().item()),
                 "cross_entropy": float(loss.cross_entropy.detach().float().item()),
@@ -829,8 +876,8 @@ class W8Trainer:
         self.scheduler.completed_epoch = epoch
         record = {
             "schema_version": W8_EPOCH_RECORD_SCHEMA_VERSION,
-            "artifact_role": W8_TRAINING_EPOCH_ROLE if self.policy.scientific else W8_SMOKE_EPOCH_ROLE,
-            "eligibility": eligibility_for_role(self.policy.role),
+            "artifact_role": self.policy.epoch_role if self.policy.scientific else W8_SMOKE_EPOCH_ROLE,
+            "eligibility": self.policy.eligibility_record(),
             "campaign_id": self.campaign_id,
             "run_id": self.run_id,
             "lineage": self._lineage(predecessor=self.predecessor_checkpoint_id),
@@ -870,12 +917,25 @@ class W8Trainer:
             "training_noise_identity_digest": canonical_sha256(observed_noise_ids),
             "validation_noise_identity_rule": W8_CHECKPOINT_SELECTION_CHANNEL_SEED_RULE,
         }
+        if self.policy.papr_cap_db is not None:
+            _require(papr_max_observed is not None, "PAPR-constrained epoch observed no symbols")
+            record["papr_checks"] = {
+                "cap_db": float(self.policy.papr_cap_db),
+                "domain": W8_PAPR_DOMAIN,
+                "max_observed_db": float(papr_max_observed),
+                "bound_tolerance_db": W8_PAPR_BOUND_TOLERANCE_DB,
+                "constraint_installed": True,
+                "compliant": bool(
+                    papr_max_observed
+                    <= float(self.policy.papr_cap_db) + W8_PAPR_BOUND_TOLERANCE_DB
+                ),
+            }
         return record
 
     def _lineage(self, *, predecessor: str | None) -> dict[str, Any]:
         resolved = self.config.resolved
         return {
-            "protocol_version": W8_PROTOCOL_VERSION,
+            "protocol_version": self.policy.protocol_version,
             "source_commit": self.source_lineage.source_commit,
             "source_manifest_id": self.source_lineage.source_manifest_id,
             "source_manifest_sha256": self.source_lineage.source_manifest_sha256,
@@ -908,8 +968,8 @@ class W8Trainer:
         _require(self.completed_epoch >= 0, "cannot checkpoint before a completed W8 epoch")
         return {
             "schema_version": W8_CHECKPOINT_SCHEMA_VERSION,
-            "artifact_role": W8_CHECKPOINT_ROLE if self.policy.scientific else W8_SMOKE_CHECKPOINT_ROLE,
-            "eligibility": eligibility_for_role(self.policy.role),
+            "artifact_role": self.policy.checkpoint_role if self.policy.scientific else W8_SMOKE_CHECKPOINT_ROLE,
+            "eligibility": self.policy.eligibility_record(),
             "campaign_id": self.campaign_id,
             "run_id": self.run_id,
             "lineage": self._lineage(predecessor=self.predecessor_checkpoint_id),
@@ -953,8 +1013,8 @@ class W8Trainer:
         checkpoint_id = _sha256_file(checkpoint_path)
         sidecar = {
             "schema_version": W8_CHECKPOINT_SCHEMA_VERSION,
-            "artifact_role": W8_CHECKPOINT_SIDECAR_ROLE if self.policy.scientific else W8_SMOKE_SIDECAR_ROLE,
-            "eligibility": eligibility_for_role(self.policy.role),
+            "artifact_role": self.policy.sidecar_role if self.policy.scientific else W8_SMOKE_SIDECAR_ROLE,
+            "eligibility": self.policy.eligibility_record(),
             "campaign_id": self.campaign_id,
             "run_id": self.run_id,
             "checkpoint_path": checkpoint_rel,
@@ -1121,11 +1181,13 @@ class W8Trainer:
             "gradient_checks", "training_noise_identity_digest",
             "validation_noise_identity_rule",
         }
+        if self.policy.papr_cap_db is not None:
+            required.add("papr_checks")
         _require(set(record) == required, "W8 epoch record schema differs")
-        expected_role = W8_TRAINING_EPOCH_ROLE if self.policy.scientific else W8_SMOKE_EPOCH_ROLE
+        expected_role = self.policy.epoch_role if self.policy.scientific else W8_SMOKE_EPOCH_ROLE
         _require(record["schema_version"] == W8_EPOCH_RECORD_SCHEMA_VERSION, "W8 epoch record version differs")
         _require(record["artifact_role"] == expected_role, "W8 epoch record role differs")
-        _require(record["eligibility"] == eligibility_for_role(self.policy.role), "W8 epoch record eligibility differs")
+        _require(record["eligibility"] == self.policy.eligibility_record(), "W8 epoch record eligibility differs")
         _require(record["campaign_id"] == self.campaign_id and record["run_id"] == self.run_id, "W8 epoch record run differs")
         _require(record["epoch"] == expected_epoch and record["next_epoch"] == expected_epoch + 1, "W8 epoch record epoch differs")
         _require(record["lineage"] == self._lineage(predecessor=expected_predecessor), "W8 epoch record lineage differs")
@@ -1167,6 +1229,35 @@ class W8Trainer:
             _require(isinstance(record[field], int | float) and not isinstance(record[field], bool) and math.isfinite(float(record[field])), f"W8 epoch {field} is invalid")
         _require(record["duration_seconds"] >= 0 and record["finite_loss"] is True, "W8 epoch finite/duration status differs")
         _require(record["validation_noise_identity_rule"] == W8_CHECKPOINT_SELECTION_CHANNEL_SEED_RULE, "W8 epoch validation-noise rule differs")
+        if self.policy.papr_cap_db is not None:
+            papr = record["papr_checks"]
+            _require(
+                isinstance(papr, Mapping)
+                and set(papr) == {
+                    "cap_db", "domain", "max_observed_db", "bound_tolerance_db",
+                    "constraint_installed", "compliant",
+                },
+                "PAPR epoch check schema differs",
+            )
+            _require(
+                float(papr["cap_db"]) == float(self.policy.papr_cap_db)
+                and papr["domain"] == W8_PAPR_DOMAIN
+                and float(papr["bound_tolerance_db"]) == W8_PAPR_BOUND_TOLERANCE_DB
+                and papr["constraint_installed"] is True,
+                "PAPR epoch check binding differs",
+            )
+            _require(
+                isinstance(papr["max_observed_db"], int | float)
+                and not isinstance(papr["max_observed_db"], bool)
+                and math.isfinite(float(papr["max_observed_db"])),
+                "PAPR epoch observed maximum is invalid",
+            )
+            _require(
+                papr["compliant"] is True
+                and float(papr["max_observed_db"])
+                <= float(self.policy.papr_cap_db) + W8_PAPR_BOUND_TOLERANCE_DB,
+                "PAPR epoch observed maximum exceeds the frozen cap",
+            )
 
         checks = record["gradient_checks"]
         _require(isinstance(checks, Mapping) and set(checks) == {
@@ -1198,9 +1289,9 @@ class W8Trainer:
         }
         _require(isinstance(sidecar, Mapping) and set(sidecar) == required, "W8 checkpoint sidecar schema differs")
         value = dict(sidecar)
-        expected_role = W8_CHECKPOINT_SIDECAR_ROLE if self.policy.scientific else W8_SMOKE_SIDECAR_ROLE
+        expected_role = self.policy.sidecar_role if self.policy.scientific else W8_SMOKE_SIDECAR_ROLE
         _require(value["schema_version"] == W8_CHECKPOINT_SCHEMA_VERSION and value["artifact_role"] == expected_role, "W8 sidecar role/version differs")
-        _require(value["eligibility"] == eligibility_for_role(self.policy.role), "W8 sidecar eligibility differs")
+        _require(value["eligibility"] == self.policy.eligibility_record(), "W8 sidecar eligibility differs")
         _require(value["campaign_id"] == self.campaign_id and value["run_id"] == self.run_id, "W8 sidecar run differs")
         _require(_full_sha(value["checkpoint_id"], 64), "W8 checkpoint ID is invalid")  # literal-ok: SHA-256 width
         _require(_full_sha(value["source_commit"], 40), "W8 sidecar source commit is invalid")  # literal-ok: Git SHA-1 width
@@ -1337,9 +1428,9 @@ class W8Trainer:
             "protected_counters",
         }
         _require(isinstance(payload, Mapping) and set(payload) == required, "W8 checkpoint payload schema differs")
-        expected_role = W8_CHECKPOINT_ROLE if self.policy.scientific else W8_SMOKE_CHECKPOINT_ROLE
+        expected_role = self.policy.checkpoint_role if self.policy.scientific else W8_SMOKE_CHECKPOINT_ROLE
         _require(payload["schema_version"] == W8_CHECKPOINT_SCHEMA_VERSION and payload["artifact_role"] == expected_role, "W8 checkpoint role/version differs")
-        _require(payload["eligibility"] == eligibility_for_role(self.policy.role), "W8 checkpoint eligibility differs")
+        _require(payload["eligibility"] == self.policy.eligibility_record(), "W8 checkpoint eligibility differs")
         _require(payload["campaign_id"] == self.campaign_id and payload["run_id"] == self.run_id, "W8 checkpoint run differs")
         _require(payload["execution_profile"] == self.profile_binding, "W8 checkpoint execution binding differs")
         _require(payload["rng_state_policy"] == W8_RNG_STATE_POLICY, "W8 checkpoint RNG policy differs")

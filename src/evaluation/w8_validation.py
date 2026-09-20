@@ -20,10 +20,11 @@ from channels.awgn import keyed_complex_noise
 from config.params import get
 from data.djscc_validation import ValidationDJSCCDataset, validation_noise_id
 from training.deterministic_core import canonical_sha256
-from training.w8_final import W8Hold, W8Trainer
+from training.w8_final import W8_PAPR_BOUND_TOLERANCE_DB, W8_PAPR_DOMAIN, W8Hold, W8Trainer
 from training.w8_protocol import (
     W8_CHECKPOINT_SELECTION_CHANNEL_SEED_RULE,
     W8_CHECKPOINT_SELECTION_SNR_PARAMETER,
+    W8_CORE_ROLE,
     W8_DATASET,
     W8_EXPECTED_K,
     W8_EXPECTED_RATIOS,
@@ -40,14 +41,74 @@ W8_VALIDATION_SUMMARY_SCHEMA_VERSION = 1
 W8_SELECTED_CHECKPOINT_SCHEMA_VERSION = 1
 W8_VALIDATION_NOISE_POLICY = "keyed_per_image_fixed_snr_run_channel_seed_same_across_epochs"
 W8_VALIDATION_ORDER = "stable_manifest_order"
+W8_FORBIDDEN_SELECTION_INPUTS = ["psnr", "papr", "reconstruction_loss"]
 
 
 class W8ValidationHold(W8Hold):
     """The validation path is incomplete, changed, or outside W8 scope."""
 
 
+@dataclass(frozen=True)
+class ValidationNamespace:
+    """Explicit validation/selection artifact identity for one lifecycle.
+
+    W8 and the AM-98 PAPR-constrained successor share the validation mechanics
+    (1000 committed images, one fixed selection SNR, keyed per-image noise) but
+    must never share artifact roles or eligibility.  The namespace makes that
+    distinction explicit instead of inferring it from a filename.
+    """
+
+    summary_role: str
+    eligibility: Mapping[str, Any]
+    expected_k: Mapping[str, int]
+    selected_role: str
+    selected_eligibility: Mapping[str, Any] | None = None
+    train_seeds: tuple[int, ...] = W8_TRAIN_SEEDS
+    summary_schema_version: int = W8_VALIDATION_SUMMARY_SCHEMA_VERSION
+    metric: str = "validation_top1_accuracy"
+    mode: str = "max"
+    tie_break: str = "earliest_epoch"
+    validation_sample_count: int | None = None
+    order: str = W8_VALIDATION_ORDER
+    noise_policy: str = W8_VALIDATION_NOISE_POLICY
+    forbidden_selection_inputs: tuple[str, ...] = tuple(W8_FORBIDDEN_SELECTION_INPUTS)
+    measure_papr: bool = False
+    papr_cap_db: float | None = None
+
+    def sample_count(self) -> int:
+        """The committed denominator; the W8 default tracks its module constant."""
+
+        return int(W8_VALIDATION_SAMPLE_COUNT if self.validation_sample_count is None else self.validation_sample_count)
+
+
+W8_VALIDATION_NAMESPACE = ValidationNamespace(
+    summary_role="W8_VALIDATION_EPOCH_SUMMARY",
+    eligibility=eligibility_for_role(W8_CORE_ROLE),
+    expected_k=dict(W8_EXPECTED_K),
+    selected_role=W8_SELECTED_ROLE,
+)
+
+
+def selected_eligibility_for(namespace: ValidationNamespace) -> dict[str, Any]:
+    """The authenticated eligibility projection for one selected checkpoint."""
+
+    if namespace.selected_eligibility is not None:
+        return dict(namespace.selected_eligibility)
+    return {
+        **eligibility_for_role(W8_CORE_ROLE),
+        "artifact_role": W8_SELECTED_ROLE,
+        "selection_eligibility": "ELIGIBLE_FOR_PER_RUN_PRE_TEST_VALIDATION_ONLY",
+        "w8_eligibility": "SELECTED_W8_CHECKPOINT_PENDING_RECONCILIATION",
+        "g10_eligibility": "NOT_ELIGIBLE_UNTIL_W8_RECONCILIATION",
+        "test_eligibility": "NOT_ELIGIBLE_FOR_TEST",
+    }
+
+
 def evaluation_config_hash(
-    trainer: W8Trainer, *, batch_size: int
+    trainer: W8Trainer,
+    *,
+    batch_size: int,
+    namespace: ValidationNamespace = W8_VALIDATION_NAMESPACE,
 ) -> str:
     """Digest the non-result validation execution identity for one run."""
 
@@ -58,7 +119,7 @@ def evaluation_config_hash(
             "snr_db": checkpoint_selection_snr_db(),
             "channel_seed": trainer.config.resolved["channel_seed"],
             "batch_size": int(batch_size),
-            "order": W8_VALIDATION_ORDER,
+            "order": namespace.order,
         }
     )
 
@@ -154,8 +215,9 @@ def evaluate_validation(
     batch_size: int | None = None,
     repo_root=None,
     retain_rows: bool = False,
+    namespace: ValidationNamespace = W8_VALIDATION_NAMESPACE,
 ) -> ValidationEvaluation:
-    """Evaluate all 1000 validation images at the frozen W8 selection SNR."""
+    """Evaluate all 1000 validation images at the frozen selection SNR."""
 
     if not trainer.policy.validation_enabled or not trainer.policy.scientific:
         raise W8ValidationHold("non-scientific W8 artifacts cannot enter validation")
@@ -168,10 +230,12 @@ def evaluate_validation(
     chosen_batch = W8_VALIDATION_BATCH_SIZE if batch_size is None else int(batch_size)
     if chosen_batch <= 0:
         raise W8ValidationHold("W8 validation batch size must be positive")
+    if namespace.measure_papr and namespace.papr_cap_db is None:
+        raise W8ValidationHold("PAPR-measuring validation requires its frozen cap")
     dataset = ValidationDJSCCDataset(W8_DATASET, repo_root=repo_root)
     expected_total = int(get(f"datasets.{W8_DATASET}.val_images"))
-    if expected_total != W8_VALIDATION_SAMPLE_COUNT or len(dataset) != expected_total:
-        raise W8ValidationHold("W8 validation denominator differs from the committed 1000-image split")
+    if expected_total != namespace.sample_count() or len(dataset) != expected_total:
+        raise W8ValidationHold("W8 validation denominator differs from the committed split")
     loader = DataLoader(
         dataset,
         batch_size=chosen_batch,
@@ -188,6 +252,7 @@ def evaluate_validation(
     all_labels: list[int] = []
     all_noise_ids: list[str] = []
     rows: list[dict[str, Any]] = []
+    papr_max_observed: float | None = None
     with torch.inference_mode():
         for inputs, labels, stable_ids in loader:
             ids = [str(value) for value in stable_ids]
@@ -202,6 +267,18 @@ def evaluate_validation(
                 device=trainer.device,
             )
             output = trainer.model(inputs_device, chosen_snr, unit_noise=noise)
+            if namespace.measure_papr:
+                if not hasattr(output, "papr_db"):
+                    raise W8ValidationHold("PAPR-measuring validation lacks symbol-domain PAPR")
+                measured = output.papr_db.detach().float()
+                if not bool(torch.isfinite(measured).all()):
+                    raise W8ValidationHold("PAPR-measuring validation observed non-finite PAPR")
+                for value in measured.reshape(-1).tolist():
+                    papr_max_observed = (
+                        float(value)
+                        if papr_max_observed is None
+                        else max(papr_max_observed, float(value))
+                    )
             predictions = [int(value) for value in output.logits.argmax(dim=1).detach().cpu()]
             for stable_id, label, prediction, noise_id in zip(ids, labels_list, predictions, noise_ids):
                 is_correct = prediction == label
@@ -235,9 +312,9 @@ def evaluate_validation(
         ]
     )
     summary_body = {
-        "schema_version": W8_VALIDATION_SUMMARY_SCHEMA_VERSION,
-        "artifact_role": "W8_VALIDATION_EPOCH_SUMMARY",
-        "eligibility": eligibility_for_role("W8_FINAL_MULTI_SEED_RUN"),
+        "schema_version": namespace.summary_schema_version,
+        "artifact_role": namespace.summary_role,
+        "eligibility": dict(namespace.eligibility),
         "campaign_id": trainer.campaign_id,
         "run_id": trainer.run_id,
         "ratio": trainer.config.resolved["bw_ratio"],
@@ -247,7 +324,7 @@ def evaluate_validation(
         "checkpoint_id": checkpoint_id,
         "epoch": trainer.completed_epoch,
         "validation_split": "val",
-        "validation_order": W8_VALIDATION_ORDER,
+        "validation_order": namespace.order,
         "validation_augmentation": False,
         "validation_batch_size": chosen_batch,
         "validation_snr_parameter": W8_CHECKPOINT_SELECTION_SNR_PARAMETER,
@@ -255,7 +332,7 @@ def evaluate_validation(
         "validation_snr_db": chosen_snr,
         "validation_channel_seed_rule": W8_CHECKPOINT_SELECTION_CHANNEL_SEED_RULE,
         "validation_channel_seed": trainer.config.resolved["channel_seed"],
-        "validation_noise_policy": W8_VALIDATION_NOISE_POLICY,
+        "validation_noise_policy": namespace.noise_policy,
         "validation_noise_id_digest": canonical_sha256(all_noise_ids),
         "validation_noise_id_count": len(all_noise_ids),
         "n_correct": correct,
@@ -264,11 +341,28 @@ def evaluate_validation(
         "prediction_digest": _prediction_digest(all_ids, all_predictions, all_labels),
         "row_digest": row_digest,
         "evaluation_config_hash": evaluation_config_hash(
-            trainer, batch_size=chosen_batch
+            trainer, batch_size=chosen_batch, namespace=namespace
         ),
-        "forbidden_selection_inputs": ["psnr", "papr", "reconstruction_loss"],
+        "forbidden_selection_inputs": list(namespace.forbidden_selection_inputs),
         "test_model_facing_access": 0,
     }
+    if namespace.measure_papr:
+        if papr_max_observed is None:
+            raise W8ValidationHold("PAPR-measuring validation observed no symbols")
+        compliant = (
+            papr_max_observed
+            <= float(namespace.papr_cap_db) + W8_PAPR_BOUND_TOLERANCE_DB
+        )
+        if not compliant:
+            raise W8ValidationHold("validation observed PAPR above the frozen cap")
+        summary_body["papr_checks"] = {
+            "cap_db": float(namespace.papr_cap_db),
+            "domain": W8_PAPR_DOMAIN,
+            "max_observed_db": float(papr_max_observed),
+            "bound_tolerance_db": W8_PAPR_BOUND_TOLERANCE_DB,
+            "constraint_installed": True,
+            "compliant": True,
+        }
     summary_body["summary_id"] = canonical_sha256(summary_body)
     return ValidationEvaluation(summary=summary_body, rows=tuple(rows))
 
@@ -278,6 +372,7 @@ def _validate_summary(
     *,
     expected_epoch: int | None = None,
     expected_evaluation_config_hash: str | None = None,
+    namespace: ValidationNamespace = W8_VALIDATION_NAMESPACE,
 ) -> None:
     required = {
         "schema_version", "artifact_role", "eligibility", "campaign_id", "run_id",
@@ -290,28 +385,30 @@ def _validate_summary(
         "evaluation_config_hash", "forbidden_selection_inputs", "test_model_facing_access",
         "summary_id",
     }
+    if namespace.measure_papr:
+        required.add("papr_checks")
     if set(summary) != required:
         raise W8ValidationHold("W8 validation summary schema differs")
     body = dict(summary)
     digest = body.pop("summary_id")
     if digest != canonical_sha256(body):
         raise W8ValidationHold("W8 validation summary digest differs")
-    if summary["schema_version"] != W8_VALIDATION_SUMMARY_SCHEMA_VERSION or summary["artifact_role"] != "W8_VALIDATION_EPOCH_SUMMARY":
+    if summary["schema_version"] != namespace.summary_schema_version or summary["artifact_role"] != namespace.summary_role:
         raise W8ValidationHold("W8 validation summary role/version differs")
-    if summary["eligibility"] != eligibility_for_role("W8_FINAL_MULTI_SEED_RUN"):
+    if summary["eligibility"] != dict(namespace.eligibility):
         raise W8ValidationHold("W8 validation summary eligibility differs")
     if (
         not isinstance(summary["ratio"], str)
-        or summary["ratio"] not in W8_EXPECTED_RATIOS
+        or summary["ratio"] not in namespace.expected_k
         or not isinstance(summary["k"], int)
         or isinstance(summary["k"], bool)
-        or summary["k"] != W8_EXPECTED_K[summary["ratio"]]
+        or summary["k"] != namespace.expected_k[summary["ratio"]]
     ):
         raise W8ValidationHold("W8 validation ratio or k differs")
     if (
         not isinstance(summary["train_seed"], int)
         or isinstance(summary["train_seed"], bool)
-        or summary["train_seed"] not in W8_TRAIN_SEEDS
+        or summary["train_seed"] not in namespace.train_seeds
         or not isinstance(summary["channel_seed"], int)
         or isinstance(summary["channel_seed"], bool)
         or summary["channel_seed"] != summary["train_seed"]
@@ -327,7 +424,7 @@ def _validate_summary(
         raise W8ValidationHold("W8 validation summary epoch is invalid")
     if not isinstance(summary["checkpoint_id"], str) or not summary["checkpoint_id"]:
         raise W8ValidationHold("W8 validation checkpoint ID is empty")
-    if summary["validation_split"] != "val" or summary["validation_order"] != W8_VALIDATION_ORDER or summary["validation_augmentation"] is not False:
+    if summary["validation_split"] != "val" or summary["validation_order"] != namespace.order or summary["validation_augmentation"] is not False:
         raise W8ValidationHold("W8 validation view differs")
     if expected_evaluation_config_hash is not None and summary["evaluation_config_hash"] != expected_evaluation_config_hash:
         raise W8ValidationHold("W8 validation evaluation configuration digest differs")
@@ -355,17 +452,17 @@ def _validate_summary(
         or summary["validation_channel_seed"] != summary["channel_seed"]
     ):
         raise W8ValidationHold("W8 validation channel-seed rule differs")
-    if summary["validation_noise_policy"] != W8_VALIDATION_NOISE_POLICY:
+    if summary["validation_noise_policy"] != namespace.noise_policy:
         raise W8ValidationHold("W8 validation noise policy differs")
     if (
         not isinstance(summary["validation_noise_id_count"], int)
         or isinstance(summary["validation_noise_id_count"], bool)
-        or summary["validation_noise_id_count"] != W8_VALIDATION_SAMPLE_COUNT
+        or summary["validation_noise_id_count"] != namespace.sample_count()
     ):
         raise W8ValidationHold("W8 validation noise denominator differs")
-    if not isinstance(summary["n_total"], int) or isinstance(summary["n_total"], bool) or summary["n_total"] != W8_VALIDATION_SAMPLE_COUNT:
-        raise W8ValidationHold("W8 validation denominator differs from 1000")
-    if not isinstance(summary["n_correct"], int) or isinstance(summary["n_correct"], bool) or not 0 <= summary["n_correct"] <= W8_VALIDATION_SAMPLE_COUNT:
+    if not isinstance(summary["n_total"], int) or isinstance(summary["n_total"], bool) or summary["n_total"] != namespace.sample_count():
+        raise W8ValidationHold("W8 validation denominator differs from its namespace")
+    if not isinstance(summary["n_correct"], int) or isinstance(summary["n_correct"], bool) or not 0 <= summary["n_correct"] <= namespace.sample_count():
         raise W8ValidationHold("W8 validation correct count is invalid")
     if (
         not isinstance(summary["top1_accuracy"], int | float)
@@ -376,13 +473,37 @@ def _validate_summary(
         raise W8ValidationHold("W8 top-1 accuracy is not count-derived")
     if summary["test_model_facing_access"] != 0 or not isinstance(summary["test_model_facing_access"], int) or isinstance(summary["test_model_facing_access"], bool):
         raise W8ValidationHold("W8 validation summary claims test access")
-    if summary["forbidden_selection_inputs"] != ["psnr", "papr", "reconstruction_loss"]:
+    if summary["forbidden_selection_inputs"] != list(namespace.forbidden_selection_inputs):
         raise W8ValidationHold("W8 selection inputs are not fail-closed")
     if summary["test_model_facing_access"] != 0:
         raise W8ValidationHold("W8 validation summary claims test access")
+    if namespace.measure_papr:
+        papr = summary["papr_checks"]
+        if not (
+            isinstance(papr, Mapping)
+            and set(papr) == {
+                "cap_db", "domain", "max_observed_db", "bound_tolerance_db",
+                "constraint_installed", "compliant",
+            }
+            and float(papr["cap_db"]) == float(namespace.papr_cap_db)
+            and papr["domain"] == W8_PAPR_DOMAIN
+            and float(papr["bound_tolerance_db"]) == W8_PAPR_BOUND_TOLERANCE_DB
+            and papr["constraint_installed"] is True
+            and papr["compliant"] is True
+            and isinstance(papr["max_observed_db"], int | float)
+            and not isinstance(papr["max_observed_db"], bool)
+            and math.isfinite(float(papr["max_observed_db"]))
+            and float(papr["max_observed_db"])
+            <= float(namespace.papr_cap_db) + W8_PAPR_BOUND_TOLERANCE_DB
+        ):
+            raise W8ValidationHold("PAPR validation summary check differs")
 
 
-def _validate_selection(selection: Mapping[str, Any]) -> None:
+def _validate_selection(
+    selection: Mapping[str, Any],
+    *,
+    namespace: ValidationNamespace = W8_VALIDATION_NAMESPACE,
+) -> None:
     """Authenticate the per-run selector object before it is consumed."""
 
     required = {
@@ -401,17 +522,9 @@ def _validate_selection(selection: Mapping[str, Any]) -> None:
         raise W8ValidationHold("W8 selection ID is invalid")
     if identifier != canonical_sha256(body):
         raise W8ValidationHold("W8 selection digest differs")
-    if selection["artifact_role"] != W8_SELECTED_ROLE:
+    if selection["artifact_role"] != namespace.selected_role:
         raise W8ValidationHold("W8 selected-checkpoint role differs")
-    expected_eligibility = {
-        **eligibility_for_role("W8_FINAL_MULTI_SEED_RUN"),
-        "artifact_role": W8_SELECTED_ROLE,
-        "selection_eligibility": "ELIGIBLE_FOR_PER_RUN_PRE_TEST_VALIDATION_ONLY",
-        "w8_eligibility": "SELECTED_W8_CHECKPOINT_PENDING_RECONCILIATION",
-        "g10_eligibility": "NOT_ELIGIBLE_UNTIL_W8_RECONCILIATION",
-        "test_eligibility": "NOT_ELIGIBLE_FOR_TEST",
-    }
-    if selection["eligibility"] != expected_eligibility:
+    if selection["eligibility"] != selected_eligibility_for(namespace):
         raise W8ValidationHold("W8 selected-checkpoint eligibility differs")
     if (
         not isinstance(selection["ratio"], str)
@@ -430,7 +543,7 @@ def _validate_selection(selection: Mapping[str, Any]) -> None:
         or selection["channel_seed"] != selection["train_seed"]
     ):
         raise W8ValidationHold("W8 selected-checkpoint seed pairing differs")
-    if selection["metric"] != "validation_top1_accuracy" or selection["mode"] != "max" or selection["tie_break"] != "earliest_epoch":
+    if selection["metric"] != namespace.metric or selection["mode"] != namespace.mode or selection["tie_break"] != namespace.tie_break:
         raise W8ValidationHold("W8 selected-checkpoint rule differs")
     if (
         selection["validation_snr_parameter"] != W8_CHECKPOINT_SELECTION_SNR_PARAMETER
@@ -464,7 +577,10 @@ def _validate_selection(selection: Mapping[str, Any]) -> None:
 
 
 def select_checkpoint_epoch(
-    summaries: Sequence[Mapping[str, Any]], *, expected_epochs: int
+    summaries: Sequence[Mapping[str, Any]],
+    *,
+    expected_epochs: int,
+    namespace: ValidationNamespace = W8_VALIDATION_NAMESPACE,
 ) -> dict[str, Any]:
     """Select max validation top-1, retaining the earliest exact tie.
 
@@ -479,7 +595,7 @@ def select_checkpoint_epoch(
         raise W8ValidationHold("W8 checkpoint-selection validation history is incomplete")
     validated: list[dict[str, Any]] = []
     for epoch, summary in enumerate(summaries):
-        _validate_summary(summary, expected_epoch=epoch)
+        _validate_summary(summary, expected_epoch=epoch, namespace=namespace)
         validated.append(dict(summary))
     identity = (validated[0]["campaign_id"], validated[0]["run_id"], validated[0]["ratio"], validated[0]["train_seed"], validated[0]["channel_seed"], validated[0]["k"])
     if any((item["campaign_id"], item["run_id"], item["ratio"], item["train_seed"], item["channel_seed"], item["k"]) != identity for item in validated):
@@ -491,24 +607,17 @@ def select_checkpoint_epoch(
     selected = validated[selected_epoch]
     campaign_id, run_id, ratio, train_seed, channel_seed, k = identity
     body = {
-        "artifact_role": W8_SELECTED_ROLE,
-        "eligibility": {
-            **eligibility_for_role("W8_FINAL_MULTI_SEED_RUN"),
-            "artifact_role": W8_SELECTED_ROLE,
-            "selection_eligibility": "ELIGIBLE_FOR_PER_RUN_PRE_TEST_VALIDATION_ONLY",
-            "w8_eligibility": "SELECTED_W8_CHECKPOINT_PENDING_RECONCILIATION",
-            "g10_eligibility": "NOT_ELIGIBLE_UNTIL_W8_RECONCILIATION",
-            "test_eligibility": "NOT_ELIGIBLE_FOR_TEST",
-        },
+        "artifact_role": namespace.selected_role,
+        "eligibility": selected_eligibility_for(namespace),
         "campaign_id": campaign_id,
         "run_id": run_id,
         "ratio": ratio,
         "k": k,
         "train_seed": train_seed,
         "channel_seed": channel_seed,
-        "metric": "validation_top1_accuracy",
-        "mode": "max",
-        "tie_break": "earliest_epoch",
+        "metric": namespace.metric,
+        "mode": namespace.mode,
+        "tie_break": namespace.tie_break,
         "validation_snr_parameter": W8_CHECKPOINT_SELECTION_SNR_PARAMETER,
         "validation_snr_resolution": "params.channel.train_snr_db_fixed",
         "validation_snr_db": checkpoint_selection_snr_db(),
@@ -524,7 +633,7 @@ def select_checkpoint_epoch(
         "reconstruction_loss_selected": False,
     }
     body["selection_id"] = canonical_sha256(body)
-    _validate_selection(body)
+    _validate_selection(body, namespace=namespace)
     return body
 
 

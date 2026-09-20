@@ -10,7 +10,7 @@ choices:
   classifier_variant: clean
   architecture: djscc_residual_v1
   execution_profile_id: confessor_pascal_cu126
-  artifact_role: W8_FINAL_MULTI_SEED_RUN
+  artifact_role: PAPR_CONSTRAINED_TRAINING_RUN
   physical_batch_size: 32
   accumulation_factor: 1
   effective_batch_size: 32
