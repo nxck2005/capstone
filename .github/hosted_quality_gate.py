@@ -10,6 +10,7 @@ quality-gate command is preserved verbatim.
 from __future__ import annotations
 
 import argparse
+import math
 import os
 import subprocess
 import sys
@@ -40,9 +41,21 @@ from verify_er2_randomized import verify_audit, verify_validation  # noqa: E402
 from verify_g11 import verify_authority as verify_g11_authority  # noqa: E402
 from training.papr_constrained import (  # noqa: E402
     PAPR_AUTHORITY_PATH,
+    PAPR_CHANNEL_SEED,
     PAPR_COMPLETION_PATH,
+    PAPR_COMPLETION_PREFIX,
+    PAPR_COMPLETION_ROLE,
+    PAPR_EPOCHS,
+    PAPR_RATIO,
+    PAPR_RUN_ID,
     PAPR_SELECTED_CHECKPOINT_PATH,
+    PAPR_SELECTED_PREFIX,
+    PAPR_SELECTED_ROLE,
+    PAPR_TRAIN_SEED,
+    active_protected_counters,
+    papr_cap_db,
 )
+from training.w8_final import W8_PAPR_BOUND_TOLERANCE_DB, W8_PAPR_DOMAIN  # noqa: E402
 
 
 ER9_CLOSEOUT = REPO / "results/learned/er9/er9_production_closeout_v4.json"
@@ -344,12 +357,265 @@ def verify_papr_authority_published() -> None:
 
 
 def verify_papr_published() -> None:
-    """Authenticate completed PAPR evidence without recomputing worker facts."""
+    """Authenticate completed PAPR evidence without recomputing worker facts.
 
-    from verify_papr_training_published import verify_published
+    This hosted verifier is deliberately independent of
+    ``tools/verify_papr_training_published.py``.  That tool is frozen under the
+    protected ``tools/`` prefix and carries one stale literal: it compares the
+    completion's ``runtime_root`` against the lifecycle's parent directory
+    instead of the runtime root the frozen authority binds.  The authoritative
+    producer (``training.papr_lifecycle.build_papr_completion``) emits
+    ``authority["runtime_root"]`` verbatim, so the published semantic
+    requirement is the equality below, and this adapter performs every other
+    check that tool performed, unchanged.
+    """
 
-    value = verify_published()
-    print(f"PAPR published-evidence verifier PASS: {value['completion_id']}; worker runtime not recomputed")
+    from training.papr_lifecycle import execution_commit_for, verify_papr_authority
+
+    authority = verify_papr_authority(REPO, authority_path=PAPR_AUTHORITY, require_live_source=True)
+    require(PAPR_SELECTED.is_file() and not PAPR_SELECTED.is_symlink(), "PAPR selected checkpoint evidence is missing or unsafe")
+    require(PAPR_COMPLETION.is_file() and not PAPR_COMPLETION.is_symlink(), "PAPR completion evidence is missing or unsafe")
+    authority_sha256 = sha256_file(PAPR_AUTHORITY)
+    # The records must bind the exact Git commit that carries the frozen
+    # authority bytes — never a later operational commit.
+    authority_execution_commit = execution_commit_for(REPO, PAPR_AUTHORITY)
+    selected = read_json(PAPR_SELECTED, "PAPR selected checkpoint")
+    completion = read_json(PAPR_COMPLETION, "PAPR completion")
+    _papr_selection_published(selected, authority, authority_execution_commit, authority_sha256)
+    _papr_completion_published(
+        completion, authority, authority_execution_commit, authority_sha256, selected
+    )
+    print(
+        "PAPR published-evidence verifier PASS: "
+        f"{completion['completion_id']}; runtime root bound to the frozen authority; worker runtime not recomputed"
+    )
+
+
+def _papr_selection_published(
+    value: Mapping[str, Any],
+    authority: Mapping[str, Any],
+    authority_execution_commit: str,
+    authority_sha256: str,
+) -> None:
+    """Authenticate every published field of the selected-checkpoint record."""
+
+    from training.papr_lifecycle import (  # noqa: PLC0415
+        PAPR_SELECTED_SCHEMA_VERSION,
+        PAPR_SELECTED_STATUS,
+    )
+
+    content_address(value, "selection_id", PAPR_SELECTED_PREFIX, "PAPR selected checkpoint")
+    require(
+        value.get("schema_version") == PAPR_SELECTED_SCHEMA_VERSION
+        and value.get("artifact_role") == PAPR_SELECTED_ROLE,
+        "PAPR selected role/schema differs",
+    )
+    require(value.get("status") == PAPR_SELECTED_STATUS, "PAPR selected status differs")
+    require(value.get("authority_id") == authority["authority_id"], "PAPR selected authority differs")
+    require(value.get("authority_path") == PAPR_AUTHORITY_PATH, "PAPR selected authority path differs")
+    require(value.get("authority_sha256") == authority_sha256, "PAPR selected authority SHA differs")
+    require(value.get("source_manifest") == authority.get("source_manifest"), "PAPR selected source manifest differs")
+    require(
+        value.get("scientific_source_commit") == authority.get("source_commit"),
+        "PAPR selected source commit differs",
+    )
+    require(
+        isinstance(value.get("execution_commit"), str)
+        and len(value["execution_commit"]) == 40  # literal-ok: Git SHA-1 width
+        and value["execution_commit"] == authority_execution_commit,
+        "PAPR selected execution commit is malformed",
+    )
+    require(value.get("config_hash") == authority.get("config_hash"), "PAPR selected config hash differs")
+    require(
+        value.get("protocol_config_hash") == authority.get("protocol_config_hash"),
+        "PAPR selected protocol hash differs",
+    )
+    require(
+        value.get("papr_cap_db") == papr_cap_db() and value.get("papr_domain") == W8_PAPR_DOMAIN,
+        "PAPR selected cap/domain differs",
+    )
+    require(
+        value.get("train_seed") == PAPR_TRAIN_SEED and value.get("channel_seed") == PAPR_CHANNEL_SEED,
+        "PAPR selected cell differs",
+    )
+    require(value.get("epochs_completed") == PAPR_EPOCHS, "PAPR selected epoch-chain length differs")
+    full_sha256(value.get("epoch_chain_digest"), "PAPR selected epoch-chain digest")
+    full_sha256(value.get("validation_trajectory_digest"), "PAPR selected validation-trajectory digest")
+    selection = value.get("selection")
+    require(isinstance(selection, Mapping), "PAPR selected checkpoint rule is missing")
+    content_address(selection, "selection_id", "", "PAPR selected checkpoint rule")
+    require(
+        selection.get("artifact_role") == PAPR_SELECTED_ROLE
+        and selection.get("metric") == "validation_top1_accuracy"
+        and selection.get("mode") == "max"
+        and selection.get("tie_break") == "earliest_epoch"
+        and selection.get("cross_seed_selection") is False
+        and selection.get("psnr_selected") is False
+        and selection.get("papr_selected") is False
+        and selection.get("reconstruction_loss_selected") is False,
+        "PAPR selected checkpoint rule differs",
+    )
+    epoch = value.get("selected_epoch")
+    require(
+        isinstance(epoch, int) and not isinstance(epoch, bool) and 0 <= epoch < PAPR_EPOCHS,
+        "PAPR selected epoch is invalid",
+    )
+    require(
+        selection.get("selected_epoch") == epoch
+        and selection.get("selected_checkpoint_id") == value.get("checkpoint_id"),
+        "PAPR selected checkpoint/selection differs",
+    )
+    full_sha256(value.get("checkpoint_id"), "PAPR selected checkpoint ID")
+    require(
+        value.get("checkpoint_path") == f"{authority['runtime_root']}/checkpoints/epoch-{epoch:04d}.pt",
+        "PAPR selected checkpoint path differs",
+    )
+    require(
+        isinstance(value.get("checkpoint_bytes"), int)
+        and not isinstance(value["checkpoint_bytes"], bool)
+        and value["checkpoint_bytes"] > 0,
+        "PAPR selected checkpoint byte metadata differs",
+    )
+    require(
+        value.get("n_total") == int(get("datasets.imagenette160.val_images"))
+        and 0 <= int(value.get("n_correct", -1)) <= value["n_total"],
+        "PAPR selected validation count differs",
+    )
+    require(
+        value.get("training_runs") == 1
+        and value.get("protected_counters") == active_protected_counters(),
+        "PAPR selected counters differ",
+    )
+    require(
+        value.get("test") == "SEALED" and value.get("test_access") == 0,
+        "PAPR selected evidence crossed the test boundary",
+    )
+
+
+def _papr_completion_published(
+    value: Mapping[str, Any],
+    authority: Mapping[str, Any],
+    authority_execution_commit: str,
+    authority_sha256: str,
+    selected: Mapping[str, Any],
+) -> None:
+    """Authenticate every published field of the completion record."""
+
+    from training.papr_lifecycle import (  # noqa: PLC0415
+        PAPR_COMPLETION_SCHEMA_VERSION,
+        PAPR_COMPLETION_STATUS,
+    )
+
+    content_address(value, "completion_id", PAPR_COMPLETION_PREFIX, "PAPR completion")
+    require(
+        value.get("schema_version") == PAPR_COMPLETION_SCHEMA_VERSION
+        and value.get("artifact_role") == PAPR_COMPLETION_ROLE,
+        "PAPR completion role/schema differs",
+    )
+    require(value.get("status") == PAPR_COMPLETION_STATUS, "PAPR completion status differs")
+    require(
+        value.get("authority_id") == authority["authority_id"]
+        and value.get("authority_path") == PAPR_AUTHORITY_PATH,
+        "PAPR completion authority differs",
+    )
+    require(value.get("authority_sha256") == authority_sha256, "PAPR completion authority SHA differs")
+    require(
+        value.get("source_manifest") == authority.get("source_manifest")
+        and value.get("scientific_source_commit") == authority.get("source_commit"),
+        "PAPR completion source differs",
+    )
+    require(
+        isinstance(value.get("execution_commit"), str)
+        and len(value["execution_commit"]) == 40  # literal-ok: Git SHA-1 width
+        and value["execution_commit"] == authority_execution_commit,
+        "PAPR completion execution commit is malformed",
+    )
+    # The single semantic correction versus the frozen stale tool: the runtime
+    # root is whatever the frozen authority froze, never a stale literal.
+    require(
+        value.get("runtime_root") == authority.get("runtime_root"),
+        "PAPR completion runtime identity differs",
+    )
+    require(
+        value.get("campaign_id")
+        and value.get("run_id") == PAPR_RUN_ID
+        and value.get("ratio") in (None, PAPR_RATIO),
+        "PAPR completion run identity differs",
+    )
+    require(
+        value.get("config_hash") == authority.get("config_hash")
+        and value.get("protocol_config_hash") == authority.get("protocol_config_hash"),
+        "PAPR completion config/protocol differs",
+    )
+    require(
+        value.get("papr_cap_db") == papr_cap_db() and value.get("papr_domain") == W8_PAPR_DOMAIN,
+        "PAPR completion cap/domain differs",
+    )
+    observed = value.get("papr_max_observed_db")
+    require(
+        isinstance(observed, int | float)
+        and not isinstance(observed, bool)
+        and math.isfinite(float(observed)),
+        "PAPR completion observed cap is invalid",
+    )
+    require(
+        value.get("papr_cap_compliant") is True
+        and float(observed) <= papr_cap_db() + W8_PAPR_BOUND_TOLERANCE_DB,
+        "PAPR completion cap compliance differs",
+    )
+    require(value.get("epochs") == PAPR_EPOCHS, "PAPR completion epoch count differs")
+    full_sha256(value.get("epoch_chain_digest"), "PAPR completion epoch-chain digest")
+    full_sha256(value.get("validation_trajectory_digest"), "PAPR completion validation-trajectory digest")
+    require(
+        value.get("epoch_chain_digest") == selected.get("epoch_chain_digest")
+        and value.get("validation_trajectory_digest") == selected.get("validation_trajectory_digest"),
+        "PAPR completion trajectory digests differ from the selection",
+    )
+    for field in ("optimizer_step_opportunities", "optimizer_steps", "grad_scaler_skips", "global_optimizer_step"):
+        require(
+            isinstance(value.get(field), int) and not isinstance(value[field], bool) and value[field] >= 0,
+            f"PAPR completion {field} is invalid",
+        )
+    require(
+        value["optimizer_steps"] + value["grad_scaler_skips"] == value["optimizer_step_opportunities"],
+        "PAPR completion optimizer accounting differs",
+    )
+    require(value["global_optimizer_step"] == value["optimizer_steps"], "PAPR completion global step differs")
+    require(
+        value.get("selection_id") == selected.get("selection_id")
+        and value.get("selected_epoch") == selected.get("selected_epoch"),
+        "PAPR completion selection differs",
+    )
+    require(
+        value.get("checkpoint_id") == selected.get("checkpoint_id")
+        and value.get("checkpoint_path") == selected.get("checkpoint_path")
+        and value.get("checkpoint_bytes") == selected.get("checkpoint_bytes"),
+        "PAPR completion checkpoint differs",
+    )
+    require(
+        value.get("n_correct") == selected.get("n_correct")
+        and value.get("n_total") == selected.get("n_total"),
+        "PAPR completion validation count differs",
+    )
+    require(
+        value.get("training_runs") == 1
+        and value.get("train_seed") == PAPR_TRAIN_SEED
+        and value.get("channel_seed") == PAPR_CHANNEL_SEED,
+        "PAPR completion training identity differs",
+    )
+    require(
+        value.get("fresh_initialization") is True and value.get("transfer_initialization") is False,
+        "PAPR completion initialization differs",
+    )
+    full_sha256(value.get("initial_model_state_sha256"), "PAPR completion initial state")
+    require(
+        value.get("protected_counters") == active_protected_counters(),
+        "PAPR completion counters differ",
+    )
+    require(
+        value.get("test") == "SEALED" and value.get("test_access") == 0,
+        "PAPR completion crossed the test boundary",
+    )
 
 
 def verify_w10_authority_published() -> None:
