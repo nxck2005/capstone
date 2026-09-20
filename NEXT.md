@@ -7,7 +7,12 @@ Not normative — `spec/SPEC.md` governs. If something here contradicts the spec
 this file is wrong. Anything here that turns out to be a durable decision belongs in `SPEC.md`
 (as a `DEC`), a durable risk belongs in `SPEC.md` §16, and an explanation belongs in `docs/`.
 
-**Last updated:** 2026-09-20 · **Phase:** **W10/PAPR SUCCESSOR-V2 FROZEN; ONE PAPR-CONSTRAINED TRAINING AUTHORITY NEXT.** ER-9 production, randomized ER-2, G10, G11/H4 and all closed evidence are byte-unchanged. AM-99 records the corrective pre-science repair of the AM-98 implementation: the PAPR lifecycle now carries explicit protocol/policy/role identities, per-epoch validation custody with crash-safe resume, an execution-commit source closure, a terminal verifier, and one selected-checkpoint schema shared with W10 dispatch; W10 executes exactly the frozen JPEG quality, scopes its J2K cache, measures symbol-domain PAPR for every arm, and binds the closed G11 terminal. Successor-v1 `w10downstreamsource-ef0273a720adb8dfd86f8ad9809ebe6ed031dfa64022b019f594dc46e010fef2` remains preserved as superseded-before-science with 0 PAPR runs, 0 W10 units and 0 test access; successor-v2 `w10downstreamsourcev2-3e01dfc4c57061706079cdde9f6b3d45b6152f5e8a24848666df8ab8df626ef1` (file SHA-256 `d2ce8f2ee88d97a11acdae5bc60e1dcdb35e5181c2a017e0a68a66e292f975e3`, source commit `aac5edebe0a85270441e54b913cf7c46a9a49789`) governs PAPR training and W10. **PAPR-constrained training has NOT run, W10 authority is NOT frozen, W10 units = 0, G12 unopened, test SEALED, test_access = 0.** The exact next action is: **OWNER AUTHORIZE EXACTLY ONE PAPR-CONSTRAINED R1_6 TRAIN0/CHANNEL0 SCIENTIFIC TRAINING LIFECYCLE** (`tools/gen_papr_training_authorization.py` then `tools/run_papr_training.py train`); afterwards the JPEG-secondary and ER-12 label-bound validation selections must be frozen before `tools/gen_w10_rehearsal_authorization.py` can pass its binding check. Successor-v1 and its source epoch are historical provenance and must not be edited.
+**Last updated:** 2026-09-21 · **Phase:** **W10/PAPR EXECUTED AND CLOSED — THE SINGLE PAPR-CONSTRAINED LIFECYCLE IS GREEN/CLOSED/PUBLISHED; JPEG-SECONDARY AND ER-12 VALIDATION SELECTIONS NEXT.** ER-9 production, randomized ER-2, G10, G11/H4 and all closed evidence are byte-unchanged. The active W10/PAPR source epoch is successor-v4 `w10downstreamsourcev4-28af9f881b27af36f7cfbceb313e81fbf0081b0baab455475f9c709d65e53a5a` (file SHA-256 `54f2f736dd75cba612a3bdc803880c86379af1557c3cc09b0df8070744edfb9a`, source commit `982688ab119959d3b861af302f896c8e952a4c60`); successor-v1/v2/v3 remain preserved superseded-before-science history and must not be edited. Under the owner-frozen authority `paprtrainingauth-b0e6b33c0432603de2e34e6ed78ab927e42d1e07135d9a2b56468d38963a68a1`, exactly one scientific PAPR-constrained r_1_6 train0/channel0 lifecycle ran at execution commit `14babd7a2689e50663af04a518328137c186dd81` and is COMPLETE, CLOSED and PUBLISHED at evidence commit `f92ec63601fecd8cf200e9126f35084d74f27511` (publication commits `d22cece` hosted-verifier repair + `f92ec63` evidence): 100/100 epochs, checkpoints and validation records; selected zero-based epoch 79 (human 80/100) at 833/1000 with checkpoint SHA `145ec9233185f476a855fb1a922340df84cd88d0ea8b08bb7c8afd9801061410`; final epoch 823/1000; max observed PAPR 3.000002384185791 dB against the 3.0 dB cap with the frozen 1e-4 dB tolerance → compliant; optimizer 26,500 opportunities = 26,484 steps + 16 GradScaler skips; terminal completion `paprcompletion-2d23d342ad7fe2661c9a3926f5e025b3d7174c290f5e56983d05efbbc65d74ca`. **PAPR retraining/rerunning is FORBIDDEN. JPEG-secondary validation selection NOT RUN; ER-12 validation selection NOT RUN; W10 authority NOT frozen; W10 units = 0; G12 unopened; test SEALED; test_access = 0.** The exact next action is: **OWNER FREEZE THE JPEG-SECONDARY AND ER-12 VALIDATION SELECTIONS** (`tools/gen_w10_jpeg_validation_selection.py` and `tools/gen_w10_er12_validation_selection.py`, each under its own owner authorization; validation selections only — no training, no test access); afterwards `tools/gen_w10_rehearsal_authorization.py` binds the closed G11 terminal and the PAPR selected checkpoint.
+
+## Known operational TODOs (recorded 2026-09-21; do not rediscover by trial and error)
+
+- **TODO (hosted W10 terminal):** the corrected hosted PAPR published verifier lives in `.github/hosted_quality_gate.py` (action `verify-papr-published`) and binds `runtime_root` to the frozen authority. The protected historical tool `tools/verify_papr_training_published.py` still contains the stale runtime-root literal (the lifecycle parent `checkpoints/papr_constrained_pascal_v4` instead of the authority-bound `checkpoints/papr_constrained_pascal_v4/train0_channel0`) and is intentionally unchanged. The future hosted W10 terminal path — `tools/verify_w10_rehearsal.py::verify_published()`, which imports that stale tool — must NOT route PAPR published verification through `tools/verify_papr_training_published.py`; it must use the corrected hosted PAPR verification path first. Fixing this requires an authorized protected-source task; it does NOT block the JPEG-secondary or ER-12 validation selections.
+- **TODO (pinned cursor marker):** the `capstone-current-pascal-state` HTML-comment markers in `NEXT.md`, `AGENTS.md` and `instructions/RESUME.md` are byte-pinned by `tools/check_doc_consistency.py` (`PASCAL_CURSOR_EXPECTED`) and `tests/test_doc_consistency.py`, which still expect `next=owner-create-one-papr-constrained-r1-6-training-authority` — the pre-execution state. The PAPR lifecycle has since closed, so those pinned values lag; the addendum marker below each pinned marker carries the live state. Do not edit a pinned marker alone: advancing it requires one authorized protected-source update that changes the checker constant, the test fixture and all three markers together.
 
 **Immediate W9 next action (2026-09-15):** randomized ER-2 only, under its separate frozen authority. ER-9 production training and final validation are complete and must not rerun. G11/H4 and W10 remain unopened; only the later guarded final campaign may open test. Do not reopen Stage 1, Stage 2, D/b selection, G10 or AM-95/96/97.
 owner-authorized E5 selection pass one executed EXACTLY ONCE under the narrow
@@ -215,6 +220,8 @@ G8_E E0/E1 are complete and verified with zero validation coverage; E2 remains u
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=owner-create-one-papr-constrained-r1-6-training-authority; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w10-papr-successor-v4-frozen-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
 
+<!-- capstone-current-state-addendum (2026-09-21): the Pascal cursor marker above is byte-pinned by tools/check_doc_consistency.py (PASCAL_CURSOR_EXPECTED) and tests/test_doc_consistency.py, so its next/readiness values still describe the pre-execution state; do not edit it alone. Live W10 state: papr_lifecycle=closed-published; papr_training_count=1; jpeg_selection=not-run; er12_selection=not-run; w10_authority=absent; w10_units=0; g12=unopened; test=sealed; test_access=0; next=owner-freeze-jpeg-secondary-and-er12-validation-selections -->
+
 The top-level `results/baseline/g8_pascal_successor/campaign_state.json` is the
 immutable zero-coverage readiness marker; the separate
 `results/baseline/g8_pascal_successor/runtime/campaign_state.json` is the
@@ -291,15 +298,18 @@ and [`audit/pascal-worker-adoption-audit-2026-08-14-SECOND-AGENT-THOUGHTS.md`](a
 
 ## Single next task
 
-**Current task:** W9 post-Stage-2 closeout is complete. G10, AM-95, AM-96 and AM-97 are
-closed; AM-97 remains a pointwise H4 precision diagnostic only. ER-9 v4 Stage 1
-is closed with six trained candidates, six real-chain validation evaluations at
-7 dB, and the frozen selection D2048/b2 at 820/1000. Stage 2 is closed as a
-zero-work metadata closeout with no new training or evaluation. The ER-9 search
-phase is complete and the final selected pair is D2048/b2. **Exact next action:**
-create the final downstream implementation successor for production, randomized
-ER-2, G11/H4, W10 and the post-science lifecycle gates. Production and all later
-scientific work remain unopened; test remains SEALED.
+**Current task:** the W9 downstream implementation successor is complete and
+closed: ER-9 production (three cells), randomized ER-2 (one run), G11/H4 and
+the single PAPR-constrained lifecycle are all GREEN/CLOSED/PUBLISHED; G10,
+AM-95, AM-96 and AM-97 remain closed; the ER-9 search phase selected
+D2048/b2 at 820/1000. **Exact next action:** owner freeze the JPEG-secondary
+validation selection and the ER-12 validation selection
+(`tools/gen_w10_jpeg_validation_selection.py`,
+`tools/gen_w10_er12_validation_selection.py`) — validation selections only:
+no training, no test access, test remains SEALED. The W10 authority is NOT
+frozen and W10 units = 0; the W10 rehearsal authority may be frozen only after
+both selections exist and pass `tools/gen_w10_rehearsal_authorization.py`'s
+binding check. G12 is unopened; test is SEALED.
 
 **The current path, stated once. Every live section below must agree with these six lines; if one
 does not, it is wrong and this block is right.**
@@ -343,7 +353,12 @@ does not, it is wrong and this block is right.**
 | W9 / G10 validation-only execution | **complete — 63 evaluations; expected_crossover_observed; bracket −5 → −4 dB; test sealed** |
 | W9 / ER-9 v4 Stage 1 | **complete — six trained candidates and six real-chain validation evaluations; D2048/b2 selected at 820/1000** |
 | W9 / ER-9 v4 Stage 2 | **complete — zero-work metadata closeout; no new training or evaluation** |
-| W9 / final downstream implementation successor | **next — production, randomized ER-2, G11/H4, W10 and post-science lifecycle gates** |
+| W9 · ER-9 production (three cells) | **GREEN/CLOSED/PUBLISHED — all three required seed cells trained, validated and reconciled; rerun forbidden** |
+| W9 · randomized ER-2 | **GREEN/CLOSED — one authorized run completed and published; rerun forbidden** |
+| W9 · G11/H4 | **GREEN/CLOSED — terminal closeout published; rerun forbidden** |
+| W10 · PAPR-constrained training | **GREEN/CLOSED/PUBLISHED — exactly one run under `paprtrainingauth-b0e6b33c…`: 100/100 epochs, selected zero-based epoch 79 (833/1000), final 823/1000, max PAPR 3.000002384185791 dB ≤ 3.0 dB cap (1e-4 tolerance); completion `paprcompletion-2d23d342…`, checkpoint `145ec923…`; published at `f92ec636…`; retraining/rerun forbidden** |
+| W10 / JPEG-secondary and ER-12 validation selections | **next — owner freeze both validation selections (`tools/gen_w10_jpeg_validation_selection.py`, `tools/gen_w10_er12_validation_selection.py`); W10 authority afterwards; W10 units = 0** |
+| W9 / final downstream implementation successor | **in progress — production, randomized ER-2, G11/H4 and the PAPR lifecycle are complete; the JPEG-secondary and ER-12 validation selections remain under the W10 frontier row above** |
 | `j2k_resolutions` vs CIFAR-10 24/16 px | **resolved by AM-80** — CIFAR-10's ladder is the single native 32 px rung |
 | BR-11 `header_bytes`/`payload_bytes` | **resolved by AM-81** — defined arithmetically, aggregated over every emitted codestream |
 | test split | sealed until G-12 at W11 |
@@ -358,9 +373,9 @@ The test split and every later scientific phase remain closed. G8_D D0–D7 are
 complete and GREEN; earlier G8_E E1 epochs are immutable superseded-before-data
 history, corrected-v3 E1 is frozen pre-data
 with zero validation coverage at freeze time, the owner relocated execution to the qualified worker (additive worker-successor epoch, commit `493d656`), production E2 completed at exactly 288000/288000 on `confessor_pascal_cu126`/`cuda:0` with E3 and E4 verified, and the full validation
-campaign remains scoped exactly to that authorization. G8 is not reopened. The
-The live W9 handoff is the final downstream implementation successor and
-downstream completion plan above; the ER-9 search phase is complete and no new
+campaign remains scoped exactly to that authorization. G8 is not reopened.
+The live W10 handoff is the JPEG-secondary and ER-12 validation selections
+under `## Single next task`; the ER-9 search phase is complete and no new
 scientific protocol is being introduced.
 
 ### ~~Historical G8 planning note~~
@@ -860,12 +875,14 @@ which was faster than the evidence beside it (AM-29). The old scratch copies at 
 
 ## Do next
 
-**Current W9 handoff:** Stage 1 and Stage 2 are closed; D2048/b2 is frozen at
-820/1000. The only admissible Stage-2 width at D=2048 was b=2, so the ER-9
-search phase is complete with no new Stage-2 training or evaluation. The
-immediate next task is the final downstream implementation successor for the three fresh
-production seed cells, one randomized ER-2 training run, G11/H4, W10 and the
-post-science lifecycle gates. Do not reopen Stage 1 or open the test split;
+**Current W10 handoff:** ER-9 Stage 1 and Stage 2 are closed; D2048/b2 is frozen at
+820/1000. ER-9 production, randomized ER-2, G11/H4 and the single PAPR-constrained
+lifecycle are GREEN/CLOSED/PUBLISHED (PAPR: exactly one run — 100/100 epochs,
+selected zero-based epoch 79 at 833/1000, final 823/1000, max PAPR
+3.000002384185791 dB vs the 3.0 dB cap; do not retrain or rerun it). The
+immediate next task is owner-freezing the JPEG-secondary validation selection
+and the ER-12 validation selection, then the W10 rehearsal authority; W10
+units = 0. Do not reopen closed evidence or open the test split;
 test remains SEALED.
 
 ### ⏰ First Review delivery contract (check this every session)
@@ -890,14 +907,15 @@ The slot is **15 minutes**. The rubric scores six criteria × 5 sub-marks = 30, 
 
 ### Cold-start: the first thing to do in a fresh session
 
-**Current W9 cold-start:** read the top handoff and the `## Single next task`
-table first. G10, AM-95, AM-96, AM-97 and ER-9 v4 Stages 1 and 2 are closed;
-D2048/b2 is selected at 820/1000 and the ER-9 search phase is complete. Create
-the final downstream implementation successor. It must
-cover only the three fresh production seeds `(0,0)`, `(1,1)` and `(2,2)` at
-D2048/b2, one randomized ER-2 scientific training run, G11/H4, W10 and the
-post-science lifecycle gates. Do not reopen Stage 1, add optimizer work to
-Stage 2, rerun G10, or access test; **test is SEALED**. The current e8 hosted
+**Current W10 cold-start:** read the top handoff and the `## Single next task`
+table first. ER-9 production, randomized ER-2, G11/H4 and G10 are closed; the
+single PAPR-constrained lifecycle is GREEN/CLOSED/PUBLISHED — do not retrain,
+rerun or re-authorize it (completion `paprcompletion-2d23d342…`). The next work
+is inside W10: owner-freeze the JPEG-secondary validation selection and the
+ER-12 validation selection; neither has run. The W10 authority is NOT frozen;
+W10 units = 0; G12 is unopened; do not access test; **test is SEALED**. The two
+known hosted-W10 operational TODOs at the top of this file must not be
+rediscovered by trial and error. The current e8 hosted
 CI compatibility failure is not a reason to edit protected source or bypass a
 gate.
 
@@ -1177,14 +1195,15 @@ CPU lock also passed a clean hashed install with `torch.version.cuda is None`.
 
 ### The short version, in order
 
-**Current W9 short version:** G10 is closed after 63 validation-only
-evaluations (`expected_crossover_observed`, bracket −5 → −4 dB); AM-95,
-AM-96 and AM-97 are closed; and ER-9 v4 Stage 1 is closed after six real-chain
-7 dB validation evaluations. The frozen winner is D2048/b2 at 820/1000. Stage
-2 is a zero-work metadata closeout because b=2 is the only admissible width at
-D2048. Then create the final downstream implementation successor for fresh
-production, randomized ER-2, G11/H4, W10 and the final guarded test campaign.
-Production and test remain unopened; test is SEALED.
+**Current W10 short version:** ER-9 production, randomized ER-2, G11/H4 and
+G10 are closed (the ER-9 search phase selected D2048/b2 at 820/1000), and the
+single PAPR-constrained lifecycle ran exactly once and is GREEN/CLOSED/PUBLISHED
+(100/100 epochs; selected zero-based epoch 79 at 833/1000; final 823/1000; max
+PAPR 3.000002384185791 dB vs the 3.0 dB cap; completion `paprcompletion-2d23d342…`).
+The remaining W10 work, in order: (1) owner-freeze the JPEG-secondary
+validation selection, (2) owner-freeze the ER-12 validation selection, (3) then
+the W10 rehearsal authority. The JPEG and ER-12 selections have not run; the
+W10 authority is absent; W10 units = 0; G12 is unopened; test is SEALED.
 
 ### ~~Historical pre-Stage-1 short version~~
 W4 also includes **PB_3C**, the corrective
@@ -1450,6 +1469,8 @@ afterwards — AM-47 exists for exactly this and still did not catch it.
   §17 is append-only and superseded entries stay wrong in place, on purpose.
 
 ## Session log
+
+- **2026-09-21 (single PAPR-constrained lifecycle GREEN/CLOSED/PUBLISHED; cursor advanced)** — Under the owner-frozen authority `paprtrainingauth-b0e6b33c…` (successor-v4 epoch `w10downstreamsourcev4-28af9f88…`, SHA `54f2f736…`, source commit `982688ab…`, execution commit `14babd7a…`), the detached Pascal worker (`papr-constrained-train0-channel0.service` on Confessor, GTX 1080 Ti) completed the only authorized PAPR-constrained r_1_6 train0/channel0 lifecycle: exactly 100/100 epochs, checkpoints and validation records; optimizer 26,500 opportunities = 26,484 steps + 16 GradScaler skips; max observed PAPR 3.000002384185791 dB ≤ 3.0 dB + the frozen 1e-4 dB tolerance (compliant); the frozen validation-top-1/max/earliest-tie rule selected zero-based epoch 79 (human 80/100) at 833/1000 with checkpoint SHA `145ec923…` (`checkpoints/papr_constrained_pascal_v4/train0_channel0/checkpoints/epoch-0079.pt`); the final epoch closed at 823/1000. Strong worker verification (`tools/run_papr_training.py verify` and `tools/verify_papr_training_authorization.py --terminal`) passed repeatedly, including after publication; terminal completion `paprcompletion-2d23d342…` and selection `paprselected-a0c4d26b…` are content-addressed and published. The hosted published-evidence path was repaired in `.github/hosted_quality_gate.py` (commit `d22cece…`, one file, zero protected-source drift): it now authenticates the terminal records independently of the frozen stale `tools/verify_papr_training_published.py` (whose stale runtime-root literal is recorded as a known TODO at the top of this file); the corrected hosted verifier, the hosted routing self-test and the v4 source closure all pass after publication. The evidence commit is `f92ec63…` with origin/main parity on both hosts and clean worktrees. The PAPR Discord monitor delivered its final message and was stopped and disabled with its directory preserved; the worker service is inactive with exit 0. Protected counters in the completion carry only `papr_constrained_training=1` (G10, ER-9, ER-2, G11, W10, production, learned test inference and model-facing test access all 0). The JPEG-secondary and ER-12 validation selections have not run; G12 is unopened; test is SEALED with test_access = 0. Next: owner-freeze the JPEG-secondary and ER-12 validation selections.
 
 - **2026-09-04 (W8-C terminal reconciliation GREEN/CLOSED)** — Independently authenticated the owner-authorized `w8-final-pascal-20260901-r1` successor from immutable Confessor custody: source `d52d85dd…` clean, terminal heartbeat/status complete, lock free, no runner/tmux campaign session or W8 GPU process, exact six run directories, 600 epoch records, 600 checkpoint payloads, 600 scientific sidecars and 600 validation summaries. The full-root inventory is `w8inventory-06548512…` (2,420 files; 11,393,422,099 bytes); optimizer accounting is 159,000 opportunities = 158,902 applied + 98 GradScaler skips. Validation-top-1/max/earliest-tie selection independently matches all six published checkpoints. G10, ER2, PAPR-constrained training, ER9 and test access remain zero; the historical c5a8 partial checkpoint remains excluded. Published carrier evidence is `w8creconcile-95215c9d…` plus terminal `w8completion-c1ffa6f9…`; next is owner audit, then W9/G10 validation-only work.
 

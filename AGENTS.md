@@ -4,7 +4,33 @@ This file provides guidance to coding agents (Claude Code, and any other agent t
 
 ## Repository status
 
-**Current project status (2026-09-13):** G10 is CLOSED after 63 validation-only
+**Current project status (2026-09-21):** the single PAPR-constrained lifecycle is
+GREEN/CLOSED/PUBLISHED. Under the owner-frozen authority
+`paprtrainingauth-b0e6b33c0432603de2e34e6ed78ab927e42d1e07135d9a2b56468d38963a68a1`
+on the active successor-v4 source epoch
+`results/learned/w10/w10_downstream_source_manifest_v4.json`
+(`w10downstreamsourcev4-28af9f881b27af36f7cfbceb313e81fbf0081b0baab455475f9c709d65e53a5a`,
+SHA-256 `54f2f736dd75cba612a3bdc803880c86379af1557c3cc09b0df8070744edfb9a`,
+source commit `982688ab119959d3b861af302f896c8e952a4c60`), exactly one
+scientific run completed at execution commit
+`14babd7a2689e50663af04a518328137c186dd81`: 100/100 epochs, checkpoints and
+validation records; selected zero-based epoch 79 (human 80/100) at 833/1000
+with checkpoint SHA
+`145ec9233185f476a855fb1a922340df84cd88d0ea8b08bb7c8afd9801061410`; final
+epoch 823/1000; max observed PAPR 3.000002384185791 dB against the 3.0 dB cap
+with the frozen 1e-4 dB tolerance (compliant); optimizer 26,500 opportunities
+= 26,484 steps + 16 GradScaler skips; terminal completion
+`paprcompletion-2d23d342ad7fe2661c9a3926f5e025b3d7174c290f5e56983d05efbbc65d74ca`.
+Evidence is published at commit `f92ec636…` with origin parity; the hosted
+published verifier was corrected in `.github/hosted_quality_gate.py` (commit
+`d22cece…`, `.github` only) while `tools/verify_papr_training_published.py`
+stays frozen with its stale runtime-root literal — see the recorded
+hosted-W10-terminal TODO in `NEXT.md`. ER-9 production, randomized ER-2 and
+G11/H4 are CLOSED and immutable. JPEG-secondary validation selection NOT RUN;
+ER-12 validation selection NOT RUN; W10 authority NOT frozen; W10 units = 0;
+G12 unopened; **test is SEALED** with test_access = 0.
+
+**Project status record (2026-09-13):** G10 is CLOSED after 63 validation-only
 evaluations with classification `expected_crossover_observed` and crossover
 bracket −5 → −4 dB. AM-95 and AM-96 are CLOSED. AM-97 is CLOSED as a
 pointwise H4 precision diagnostic only and does not certify full H4 power.
@@ -16,13 +42,15 @@ The ER-9 search phase is complete and the final selected pair is D2048/b2.
 Production, randomized ER-2, G11, W10 and learned test inference remain
 unopened; **test is SEALED**.
 
-**Agent handoff warning:** do not reopen Stage 1 or retrain/reevaluate D2048/b2.
-Stage 2 is formally closed as metadata only. Create the final downstream
-implementation successor for the three fresh production seeds `(0,0)`, `(1,1)` and
-`(2,2)`, one randomized ER-2 training run, G11/H4, W10 and the post-science lifecycle gates.
-This is downstream completion work, not another protocol audit. The current
-e8 hosted CI compatibility failure does not authorize editing protected source
-or bypassing a gate.
+**Agent handoff warning:** do not retrain, rerun or re-authorize the
+PAPR-constrained lifecycle — it is closed after exactly one run and its
+evidence is published; do not reopen the closed ER-9/ER-2/G11 evidence. The
+exact next action is owner-freezing the JPEG-secondary and ER-12 validation
+selections (`tools/gen_w10_jpeg_validation_selection.py`,
+`tools/gen_w10_er12_validation_selection.py`, validation selections only),
+then the W10 rehearsal authority; W10 units remain 0 and G12 stays unopened.
+This is downstream completion work, not another protocol audit. No hosted CI
+compatibility failure authorizes editing protected source or bypassing a gate.
 
 **Historical repository-status record (pre-ER-9 Stage 1):** Implementation started 2026-07-28. W1, W2 and W3 are complete; G-9, G-1,
 G-7 and G-2 passed; the validation-only transparency-bitrate probe is complete
@@ -179,6 +207,8 @@ sealed. The next action requires separate authority for G-10 validation-only
 evaluation; do not run it under the AM-94 task, rerun W8, or alter custody.
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=owner-create-one-papr-constrained-r1-6-training-authority; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w10-papr-successor-v4-frozen-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+
+<!-- capstone-current-state-addendum (2026-09-21): the Pascal cursor marker above is byte-pinned by tools/check_doc_consistency.py (PASCAL_CURSOR_EXPECTED) and tests/test_doc_consistency.py, so its next/readiness values still describe the pre-execution state; do not edit it alone. Live W10 state: papr_lifecycle=closed-published; papr_training_count=1; jpeg_selection=not-run; er12_selection=not-run; w10_authority=absent; w10_units=0; g12=unopened; test=sealed; test_access=0; next=owner-freeze-jpeg-secondary-and-er12-validation-selections -->
 
 **Current compute model:** two independently authenticated production execution
 profiles exist: `local_4060_cu130` and the qualified

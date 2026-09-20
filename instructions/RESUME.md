@@ -1,18 +1,22 @@
 # Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C / G8
 
-## Current W9 handoff
+## Current W10 handoff
 
-The live project cursor is [`NEXT.md`](../NEXT.md). G10, AM-95, AM-96, AM-97
-and ER-9 v4 Stage 1 are closed; D2048/b2 is selected at 820/1000. Stage 2 is
-next as a zero-work metadata closeout because b=2 is the only admissible width
-at D=2048, so no new training or evaluation is needed. After that, the final
-downstream implementation successor covers the three fresh production seeds,
-one randomized ER-2 training run, G11/H4, W10 and the post-science lifecycle
-gates. Do not reopen Stage 1 or open test; **test is SEALED**.
+The live project cursor is [`NEXT.md`](../NEXT.md). ER-9 production, randomized
+ER-2, G11/H4 and G10 are closed and immutable, and the single PAPR-constrained
+lifecycle is GREEN/CLOSED/PUBLISHED: exactly one run (100/100 epochs, selected
+zero-based epoch 79 at 833/1000, final 823/1000, max PAPR 3.000002384185791 dB
+against the 3.0 dB cap; completion `paprcompletion-2d23d342…`; checkpoint
+`145ec923…`). Do not retrain, rerun or re-authorize PAPR. The exact next action
+is owner-freezing the JPEG-secondary validation selection and the ER-12
+validation selection — neither has run — before the W10 rehearsal authority.
+The W10 authority is NOT frozen; W10 units = 0; G12 is unopened;
+**test is SEALED**; test_access = 0. The known hosted-W10-terminal verifier
+TODO is recorded at the top of `NEXT.md`.
 
 The rest of this file preserves the completed G8 custody and recovery ledger.
 Its machine-checked Pascal cursor records the G8 execution state; it is not the
-live W9 next-step declaration.
+live W10 next-step declaration.
 
 ## Current execution-profile handoff (AM-83–AM-86)
 
@@ -31,6 +35,8 @@ mandatory before table freeze or G8_D release. Git commit signing is optional
 prospectively. Historical signing facts are unchanged.
 
 <!-- capstone-current-pascal-state: execution=complete; coverage=3213/3213; evidence=published; next=owner-create-one-papr-constrained-r1-6-training-authority; bler_table=frozen; g8_d=d7-complete; g8_e_e2e4=complete-verified; g8_e_e5e7=complete-green-pass-one-frozen; readiness_state=w10-papr-successor-v4-frozen-test-sealed; runtime_state=w5-attempt4-closed-prior-attempts-preserved; rerun=forbidden; old_local=immutable-zero-successor-coverage -->
+
+<!-- capstone-current-state-addendum (2026-09-21): the Pascal cursor marker above is byte-pinned by tools/check_doc_consistency.py (PASCAL_CURSOR_EXPECTED) and tests/test_doc_consistency.py, so its next/readiness values still describe the pre-execution state; do not edit it alone. Live W10 state: papr_lifecycle=closed-published; papr_training_count=1; jpeg_selection=not-run; er12_selection=not-run; w10_authority=absent; w10_units=0; g12=unopened; test=sealed; test_access=0; next=owner-freeze-jpeg-secondary-and-er12-validation-selections -->
 
 The old local RTX4060/cu130 G8_C campaign is valid immutable history but is
 superseded before BLER-table freeze and contributes zero successor coverage.
