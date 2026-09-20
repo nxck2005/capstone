@@ -18,6 +18,7 @@ sys.path.insert(0, str(REPO / "src"))
 
 from config.params import get  # noqa: E402
 from config.run_config import config_hash as run_config_hash  # noqa: E402
+from config.execution_profiles import authenticate_cuda_visible_mapping  # noqa: E402
 from config.w8_execution import authenticate_w8_gpu  # noqa: E402
 from evaluation.downstream_v4 import immutable_write  # noqa: E402
 from runtime.source_epochs import load_w10_manifest, source_record  # noqa: E402
@@ -40,7 +41,19 @@ from training.papr_constrained import (  # noqa: E402
 TARGET = REPO / PAPR_AUTHORITY_PATH
 
 
-def build_authority(*, config, source: dict, gpu_name: str, gpu_uuid: str, cuda_mapping: dict | None) -> dict:
+def authenticate_papr_cuda_mapping() -> dict:
+    """Authenticate the physical GPU to logical ``cuda:0`` in this process."""
+
+    profile = get("environment.execution_profiles.confessor_pascal_cu126")
+    return authenticate_cuda_visible_mapping(
+        expected_gpu_uuid=PAPR_GPU_UUID,
+        device="cuda:0",
+        expected_gpu_name=PAPR_GPU_NAME,
+        expected_compute_capability=str(profile["compute_capability"]),
+    )
+
+
+def build_authority(*, config, source: dict, gpu_name: str, gpu_uuid: str, cuda_mapping: dict) -> dict:
     profile = get("environment.execution_profiles.confessor_pascal_cu126")
     record = source_record(REPO, source)
     protocol = papr_authority_protocol(config, source_record_value=record)
@@ -70,8 +83,7 @@ def build_authority(*, config, source: dict, gpu_name: str, gpu_uuid: str, cuda_
         "test": "SEALED",
         "test_access": 0,
     }
-    if cuda_mapping is not None:
-        body["cuda_mapping"] = cuda_mapping
+    body["cuda_mapping"] = cuda_mapping
     body["authority_id"] = PAPR_AUTHORITY_PREFIX + canonical_sha256(body)
     return body
 
@@ -95,15 +107,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if TARGET.is_file() or TARGET.is_symlink():
         raise SystemExit("PAPR training authority already exists and is immutable")
-    binding = authenticate_w8_gpu(
+    authenticate_w8_gpu(
         config_hash=run_config_hash(config), expected_gpu_uuid=PAPR_GPU_UUID
     )
+    # W8 authentication deliberately retains its historical/general contract;
+    # the PAPR authority additionally requires the process-local logical-device
+    # mapping that the worker will use.
+    cuda_mapping = authenticate_papr_cuda_mapping()
     body = build_authority(
         config=config,
         source=source,
         gpu_name=args.gpu_name,
         gpu_uuid=args.gpu_uuid,
-        cuda_mapping=binding["profile_environment"]["cuda_mapping"],
+        cuda_mapping=cuda_mapping,
     )
     immutable_write(TARGET, body)
     print(f"PAPR constrained training authority: {body['authority_id']}")

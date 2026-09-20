@@ -3,10 +3,11 @@
 The historical W9 v4 manifest (`results/learned/w9/downstream_source_manifest_v4.json`)
 remains immutable.  Successor-v1 is the AM-98 freeze that produced zero PAPR and
 zero W10 science; it is preserved as superseded-before-science evidence.
-Successor-v2 (AM-99) remains immutable history.  Successor-v3 is the active
-pre-science epoch over the repaired implementation.  The active-epoch closure
-check lets closed-authority verifiers keep verifying against their own embedded
-bytes while the successor governs new work.
+Successor-v2 (AM-99) remains immutable history.  Successor-v3 is the
+superseded-before-science repaired epoch.  Successor-v4 is the active
+pre-science epoch over the narrow authority-generation contract repair.  The
+active-epoch closure check lets closed-authority verifiers keep verifying
+against their own embedded bytes while the successor governs new work.
 """
 
 from __future__ import annotations
@@ -36,7 +37,15 @@ W10_V2_MANIFEST_PREFIX = "w10downstreamsourcev2-"
 W10_V3_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v3.json"
 W10_V3_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V3"
 W10_V3_MANIFEST_PREFIX = "w10downstreamsourcev3-"
-W10_MANIFEST_KINDS = (W10_MANIFEST_KIND, W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND)
+W10_V4_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v4.json"
+W10_V4_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V4"
+W10_V4_MANIFEST_PREFIX = "w10downstreamsourcev4-"
+W10_MANIFEST_KINDS = (
+    W10_MANIFEST_KIND,
+    W10_V2_MANIFEST_KIND,
+    W10_V3_MANIFEST_KIND,
+    W10_V4_MANIFEST_KIND,
+)
 HISTORICAL_SOURCE_PATH = "results/learned/w9/downstream_source_manifest_v4.json"
 HISTORICAL_SOURCE_COMMIT = "22fde3e0ba0c8ad7a92356587eb95780ded89ee6"
 
@@ -126,8 +135,12 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
     _require(manifest.get("manifest_kind") in W10_MANIFEST_KINDS, "W10 source manifest kind differs")
     _require(manifest.get("source_commit_comparison") == "exact_clean_HEAD_at_freeze", "W10 source freeze rule differs")
     _require(manifest.get("protected_source_prefixes") == list(PROTECTED_PREFIXES), "W10 protected source boundary differs")
-    if manifest.get("manifest_kind") in {W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND}:
-        _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 v2 evidence boundary differs")
+    if manifest.get("manifest_kind") in {
+        W10_V2_MANIFEST_KIND,
+        W10_V3_MANIFEST_KIND,
+        W10_V4_MANIFEST_KIND,
+    }:
+        _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 successor evidence boundary differs")
     else:
         _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_V1_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 v1 evidence boundary differs")
     _require(manifest.get("working_tree_guard") == WORKING_TREE_GUARD, "W10 working-tree guard differs")
@@ -170,12 +183,15 @@ def successor_path(root: Path, *, epoch: str = "v2") -> Path:
         "v1": W10_SOURCE_PATH,
         "v2": W10_V2_SOURCE_PATH,
         "v3": W10_V3_SOURCE_PATH,
+        "v4": W10_V4_SOURCE_PATH,
     }
     _require(epoch in names, f"unknown W10 successor epoch: {epoch}")
     return Path(root) / names[epoch]
 
 
 def manifest_prefix(kind: str) -> str:
+    if kind == W10_V4_MANIFEST_KIND:
+        return W10_V4_MANIFEST_PREFIX
     if kind == W10_V3_MANIFEST_KIND:
         return W10_V3_MANIFEST_PREFIX
     if kind == W10_V2_MANIFEST_KIND:
@@ -184,6 +200,9 @@ def manifest_prefix(kind: str) -> str:
 
 
 def active_manifest_path(root: Path) -> Path:
+    v4 = successor_path(root, epoch="v4")
+    if v4.is_file() and not v4.is_symlink():
+        return v4
     v3 = successor_path(root, epoch="v3")
     if v3.is_file() and not v3.is_symlink():
         return v3
@@ -207,6 +226,8 @@ def load_w10_manifest(root: Path, *, live: bool = True, epoch: str | None = None
         _require_w10_v2_supersession(root, value)
     if kind == W10_V3_MANIFEST_KIND:
         _require_w10_v3_supersession(root, value)
+    if kind == W10_V4_MANIFEST_KIND:
+        _require_w10_v4_supersession(root, value)
     if live:
         assert_clean_active_source_closure(root, value)
     return value
@@ -255,6 +276,29 @@ def _require_w10_v3_supersession(root: Path, value: Mapping[str, Any]) -> None:
     )
 
 
+def _require_w10_v4_supersession(root: Path, value: Mapping[str, Any]) -> None:
+    """Successor-v4 names the exact superseded-before-science v3 bytes."""
+
+    superseded = value.get("superseded_successor")
+    _require(isinstance(superseded, Mapping), "W10 v4 supersession record is missing")
+    v3_path = successor_path(root, epoch="v3")
+    _require(v3_path.is_file() and not v3_path.is_symlink(), "superseded W10 v3 manifest is missing")
+    raw = v3_path.read_bytes()
+    predecessor = json.loads(raw)
+    _require(superseded.get("path") == W10_V3_SOURCE_PATH, "W10 v4 superseded path differs")
+    _require(superseded.get("manifest_kind") == W10_V3_MANIFEST_KIND, "W10 v4 superseded kind differs")
+    _require(superseded.get("manifest_id") == predecessor.get("manifest_id"), "W10 v4 superseded ID differs")
+    _require(superseded.get("sha256") == hashlib.sha256(raw).hexdigest(), "W10 v4 superseded bytes differ")
+    _require(superseded.get("source_commit") == predecessor.get("source_commit"), "W10 v4 predecessor source commit differs")
+    _require(
+        superseded.get("superseded_before_science") is True
+        and superseded.get("papr_constrained_training_runs") == 0
+        and superseded.get("w10_scientific_units") == 0
+        and superseded.get("test_access") == 0,
+        "W10 v4 supersession is not zero-science",
+    )
+
+
 def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = None) -> dict[str, Any]:
     if path is None:
         kind = str(manifest.get("manifest_kind"))
@@ -262,6 +306,7 @@ def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = N
             W10_MANIFEST_KIND: W10_SOURCE_PATH,
             W10_V2_MANIFEST_KIND: W10_V2_SOURCE_PATH,
             W10_V3_MANIFEST_KIND: W10_V3_SOURCE_PATH,
+            W10_V4_MANIFEST_KIND: W10_V4_SOURCE_PATH,
         }
         candidate = root / candidates[kind]
         if not candidate.is_file():
@@ -367,6 +412,52 @@ def build_w10_manifest_v3(root: Path, *, source_commit: str) -> dict[str, Any]:
     return base
 
 
+def build_w10_manifest_v4(root: Path, *, source_commit: str) -> dict[str, Any]:
+    """Build successor-v4 over the immutable zero-science v3 bytes."""
+
+    base = build_manifest(
+        root,
+        source_commit=source_commit,
+        relevant_config_paths=W10_RELEVANT_CONFIG_PATHS,
+    )
+    base.pop("manifest_id")
+    base["manifest_kind"] = W10_V4_MANIFEST_KIND
+    base["historical_w9_downstream_manifest"] = {
+        "path": HISTORICAL_SOURCE_PATH,
+        "source_commit": HISTORICAL_SOURCE_COMMIT,
+        "manifest_id": "w9downstreamsource-89bdc14e154a6a9e9d4ea3ba75fc05f5b4cff6474cb3e2e3133fd21c48d5da33",
+    }
+    v3_path = successor_path(Path(root), epoch="v3")
+    _require(v3_path.is_file() and not v3_path.is_symlink(), "W10 v4 requires the frozen v3 predecessor")
+    raw = v3_path.read_bytes()
+    predecessor = json.loads(raw)
+    base["superseded_successor"] = {
+        "path": W10_V3_SOURCE_PATH,
+        "manifest_kind": W10_V3_MANIFEST_KIND,
+        "manifest_id": predecessor["manifest_id"],
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "source_commit": predecessor["source_commit"],
+        "superseded_before_science": True,
+        "papr_constrained_training_runs": 0,
+        "w10_scientific_units": 0,
+        "test_access": 0,
+    }
+    base["allowed_evidence_runtime_prefixes"] = list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
+    base["governs"] = list(W10_GOVERNS)
+    base["pre_science_state"] = {
+        "papr_constrained_training_runs": 0,
+        "w10_authority_frozen": False,
+        "w10_scientific_units": 0,
+        "g12_freeze_manifest": False,
+        "test": "SEALED",
+        "test_access": 0,
+    }
+    base["manifest_id"] = W10_V4_MANIFEST_PREFIX + hashlib.sha256(
+        (json.dumps(base, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
+    ).hexdigest()
+    return base
+
+
 def assert_clean_active_source_closure(root: Path, authority: Mapping[str, Any]) -> dict[str, Any]:
     """Live worktree closure against one manifest's own commit and trees."""
 
@@ -427,6 +518,9 @@ __all__ = [
     "W10_V3_MANIFEST_KIND",
     "W10_V3_MANIFEST_PREFIX",
     "W10_V3_SOURCE_PATH",
+    "W10_V4_MANIFEST_KIND",
+    "W10_V4_MANIFEST_PREFIX",
+    "W10_V4_SOURCE_PATH",
     "SourceEpochHold",
     "active_manifest_path",
     "assert_active_epoch_closure",
@@ -435,6 +529,7 @@ __all__ = [
     "build_w10_manifest",
     "build_w10_manifest_v2",
     "build_w10_manifest_v3",
+    "build_w10_manifest_v4",
     "load_w10_manifest",
     "manifest_prefix",
     "source_record",

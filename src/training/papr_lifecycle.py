@@ -53,6 +53,8 @@ from training.papr_constrained import (
     PAPR_SIDECAR_ROLE,
     PAPR_TRAIN_SEED,
     PAPR_CHANNEL_SEED,
+    PAPR_GPU_NAME,
+    PAPR_GPU_UUID,
     PAPR_VALIDATION_ROLE,
     active_protected_counters,
     papr_cap_db,
@@ -258,8 +260,19 @@ def verify_papr_authority(
     _require(value.get("w10_authorized") is False and value.get("test_authorized") is False, "PAPR authority authorizes forbidden work")
     _require(value.get("test") == "SEALED" and value.get("test_access") == 0, "PAPR authority test boundary differs")
     _require(value.get("host") == "confessor" and value.get("device") == "cuda:0", "PAPR authority host/device differs")
-    _require(value.get("gpu_uuid") == "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b" and value.get("gpu_name") == "NVIDIA GeForce GTX 1080 Ti", "PAPR authority GPU differs")  # literal-ok: frozen profile identity
+    _require(value.get("gpu_uuid") == PAPR_GPU_UUID and value.get("gpu_name") == PAPR_GPU_NAME, "PAPR authority GPU differs")
     _require(value.get("cuda_visible_devices") == value.get("gpu_uuid"), "PAPR authority CUDA binding differs")
+    _require(
+        value.get("cuda_mapping") == {
+            "cuda_visible_devices": PAPR_GPU_UUID,
+            "logical_device": "cuda:0",
+            "cuda0_gpu_uuid": PAPR_GPU_UUID,
+            "cuda0_gpu_name": PAPR_GPU_NAME,
+            "cuda0_compute_capability": "6.1",
+            "device_count": 1,
+        },
+        "PAPR authority process-local CUDA mapping differs",
+    )
     _require(value.get("config_path") == "configs/learned-papr-constrained-r1-6.yaml", "PAPR authority config path differs")
     # The authority is result-independent, so its two configuration identities
     # must be recomputed at this boundary.  Waiting for a worker sidecar or a

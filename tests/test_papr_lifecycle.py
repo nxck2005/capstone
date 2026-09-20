@@ -236,6 +236,14 @@ def _synthetic_authority(root: Path, monkeypatch) -> dict:
         "compute_capability": "6.1",
         "device": "cuda:0",
         "cuda_visible_devices": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+        "cuda_mapping": {
+            "cuda_visible_devices": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+            "logical_device": "cuda:0",
+            "cuda0_gpu_uuid": "GPU-00214b86-48e7-fcf0-bf46-575fa7f85b6b",
+            "cuda0_gpu_name": "NVIDIA GeForce GTX 1080 Ti",
+            "cuda0_compute_capability": "6.1",
+            "device_count": 1,
+        },
         "training_count": 1,
         "w10_authorized": False,
         "test_authorized": False,
@@ -593,7 +601,19 @@ def test_papr_terminal_publication_holds_on_completion_without_selected_or_misma
 
 @pytest.mark.parametrize(
     "mutation",
-    ("config_hash", "protocol_config_hash", "protocol_cap", "protocol_recipe", "source_binding"),
+    (
+        "config_hash",
+        "protocol_config_hash",
+        "protocol_cap",
+        "protocol_recipe",
+        "source_binding",
+        "cuda_mapping_missing",
+        "cuda_mapping_uuid",
+        "cuda_mapping_device",
+        "cuda_mapping_name",
+        "cuda_mapping_compute",
+        "cuda_mapping_count",
+    ),
 )
 def test_papr_authority_recomputes_projected_config_protocol_and_source(
     tmp_path: Path, monkeypatch, mutation: str
@@ -609,8 +629,27 @@ def test_papr_authority_recomputes_projected_config_protocol_and_source(
         value["protocol"]["papr_cap_db"] = 99.0
     elif mutation == "protocol_recipe":
         value["protocol"]["recipe"] = "unauthorized_recipe"
-    else:
+    elif mutation == "source_binding":
         value["source_binding"] = {**value["source_binding"], "source_commit": "0" * 40}
+    elif mutation == "cuda_mapping_missing":
+        value.pop("cuda_mapping")
+    else:
+        mapping = dict(value["cuda_mapping"])
+        field = {
+            "cuda_mapping_uuid": "cuda0_gpu_uuid",
+            "cuda_mapping_device": "logical_device",
+            "cuda_mapping_name": "cuda0_gpu_name",
+            "cuda_mapping_compute": "cuda0_compute_capability",
+            "cuda_mapping_count": "device_count",
+        }[mutation]
+        mapping[field] = {
+            "cuda0_gpu_uuid": "GPU-00000000-0000-0000-0000-000000000000",
+            "logical_device": "cuda:1",
+            "cuda0_gpu_name": "NVIDIA TITAN Xp",
+            "cuda0_compute_capability": "7.5",
+            "device_count": 2,
+        }[field]
+        value["cuda_mapping"] = mapping
     body = dict(value)
     body.pop("authority_id", None)
     value["authority_id"] = papr.PAPR_AUTHORITY_PREFIX + canonical_sha256(body)
