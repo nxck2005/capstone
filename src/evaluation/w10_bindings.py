@@ -31,6 +31,8 @@ G1_BEST_CHECKPOINT = "results/reference_classifier/best_checkpoint.json"
 JPEG_SELECTION = "results/learned/w10/jpeg_validation_selection.json"
 ER12_SELECTION = "results/learned/w10/er12_validation_selection.json"
 PAPR_SELECTED_CHECKPOINT = "results/learned/w10/papr_selected_checkpoint.json"
+PAPR_COMPLETION = "results/learned/w10/papr_training_completion.json"
+PAPR_AUTHORITY = "results/learned/w10/papr_training_authorization.json"
 
 PENDING_PREFIX = "pending:"
 
@@ -175,29 +177,67 @@ def _er9_cell(root: Path) -> dict[str, Any]:
     }
 
 
-def _papr_checkpoint(root: Path) -> dict[str, Any]:
+def _papr_checkpoint(root: Path, *, verify_runtime: bool = True) -> dict[str, Any]:
     path = Path(root) / PAPR_SELECTED_CHECKPOINT
-    if not path.is_file() or path.is_symlink():
+    completion_path = Path(root) / PAPR_COMPLETION
+    authority_path = Path(root) / PAPR_AUTHORITY
+    if not (
+        path.is_file()
+        and not path.is_symlink()
+        and completion_path.is_file()
+        and not completion_path.is_symlink()
+        and authority_path.is_file()
+        and not authority_path.is_symlink()
+    ):
         return _pending(
             "papr_training",
             PAPR_SELECTED_CHECKPOINT,
             "one authorized fresh-initialization r_1_6/cell(0,0) PAPR-constrained training lifecycle",
         )
     selected = read_json(path, "PAPR selected checkpoint")
-    expected_cap = float(selected.get("papr_cap_db", -1))
-    require(expected_cap == float(_parameter("w10_papr_cap_db")), "PAPR selected cap differs from the frozen cap")
+    completion = read_json(completion_path, "PAPR training completion")
+    require(
+        completion.get("selection_id") == selected.get("selection_id")
+        and completion.get("checkpoint_id") == selected.get("checkpoint_id")
+        and completion.get("checkpoint_path") == selected.get("checkpoint_path"),
+        "PAPR committed evidence cross-binding differs",
+    )
+    terminal = None
+    if verify_runtime:
+        from training.papr_lifecycle import verify_papr_terminal
+
+        terminal = verify_papr_terminal(root, authority_path=authority_path)
+    require(
+        float(selected["papr_cap_db"]) == float(_parameter("w10_papr_cap_db")),
+        "PAPR selected cap differs from the frozen cap",
+    )
+    require(completion["papr_cap_db"] == selected["papr_cap_db"], "PAPR completion cap differs")
+    require(completion["papr_cap_compliant"] is True, "PAPR completion does not certify cap compliance")
+    require(completion["training_runs"] == 1 and completion["test_access"] == 0, "PAPR completion boundary differs")
+    if terminal is not None:
+        require(selected["selection_id"] == terminal["selection_id"], "PAPR binding selection differs from the terminal")
+        require(selected["checkpoint_id"] == terminal["checkpoint_id"], "PAPR binding checkpoint differs from the terminal")
+        require(int(selected["selected_epoch"]) == int(terminal["selected_epoch"]), "PAPR binding epoch differs from the terminal")
     return {
         "state": "FROZEN",
         "kind": "papr_selected_checkpoint",
         "selection": artifact_record(root, PAPR_SELECTED_CHECKPOINT),
+        "completion": artifact_record(root, PAPR_COMPLETION),
         "authority_id": str(selected["authority_id"]),
         "selection_id": str(selected["selection_id"]),
+        "completion_id": str(completion["completion_id"]),
+        # One explicit schema: ``checkpoint_id`` is the SHA-256 of the checkpoint
+        # bytes and ``checkpoint_path`` the repository-relative location, exactly
+        # what the learned dispatch route consumes.
+        "checkpoint_id": str(selected["checkpoint_id"]),
         "checkpoint_path": str(selected["checkpoint_path"]),
-        "checkpoint_sha256": str(selected["checkpoint_sha256"]),
-        "selected_epoch": int(selected["selected_epoch"]),
+        "checkpoint_bytes": int(selected["checkpoint_bytes"]),
+        "epoch": int(selected["selected_epoch"]),
         "papr_cap_db": float(selected["papr_cap_db"]),
-        "train_seed": 0,
-        "channel_seed": 0,
+        "papr_cap_compliant": True,
+        "papr_max_observed_db": float(completion["papr_max_observed_db"]),
+        "train_seed": int(selected["train_seed"]),
+        "channel_seed": int(selected["channel_seed"]),
     }
 
 
@@ -257,17 +297,21 @@ def _pending_selection(root: Path, relative: str, kind: str, requirement: str) -
     path = Path(root) / relative
     if not path.is_file() or path.is_symlink():
         return _pending(kind, relative, requirement)
-    value = read_json(path, relative)
-    require(value.get("test") == "SEALED" and value.get("test_access") == 0, f"{relative} crossed the test boundary")
-    selections = value.get("selections")
+    from evaluation.w10_selections import verify_selection_artifact
+
+    selection_kind = "jpeg_secondary" if kind == "w10_jpeg_validation_selection" else "er12_label_bound"
+    value = verify_selection_artifact(root, selection_kind, read_json(path, relative), path=path)
+    selections = value["selections"]
     require(isinstance(selections, list) and len(selections) == 21, f"{relative} does not select 21 SNRs")  # literal-ok: frozen SNR grid cardinality
     return {
         "state": "FROZEN",
         "kind": kind,
         "artifact": artifact_record(root, relative),
-        "selection_id": str(value.get("selection_id")),
+        "selection_id": str(value["selection_id"]),
+        "contract_sha256": str(value["contract_sha256"]),
+        "source_epoch": dict(value["source_epoch"]),
         "selections": selections,
-        "selections_digest": canonical_sha256({"selections": selections}),
+        "selections_digest": canonical_sha256({"selections": [dict(item) for item in selections]}),
     }
 
 
@@ -301,7 +345,7 @@ def _scorer(root: Path, name: str) -> dict[str, Any]:
     }
 
 
-def _checkpoint(root: Path, source: str) -> dict[str, Any]:
+def _checkpoint(root: Path, source: str, *, verify_runtime: bool = True) -> dict[str, Any]:
     if source.startswith("w8_reconciliation:"):
         _, ratio, _cell = source.split(":")
         return _w8_checkpoint(root, ratio)
@@ -310,7 +354,7 @@ def _checkpoint(root: Path, source: str) -> dict[str, Any]:
     if source.startswith("er9_production_closeout:"):
         return _er9_cell(root)
     if source == "pending_papr_training":
-        return _papr_checkpoint(root)
+        return _papr_checkpoint(root, verify_runtime=verify_runtime)
     if source == "not_applicable_untrained_codec":
         return {"state": "FROZEN", "kind": "not_applicable_untrained_codec"}
     raise RuntimeError(f"unknown W10 checkpoint source: {source}")
@@ -343,12 +387,14 @@ def _selection(root: Path, source: str) -> dict[str, Any]:
     raise RuntimeError(f"unknown W10 selection source: {source}")
 
 
-def resolve_binding(root: Path, entry: W10ScopeEntry) -> dict[str, Any]:
+def resolve_binding(
+    root: Path, entry: W10ScopeEntry, *, verify_runtime: bool = True
+) -> dict[str, Any]:
     """The complete resolved scientific binding for one scope entry."""
 
     binding = {
         "scope": entry.identity(),
-        "checkpoint": _checkpoint(root, entry.checkpoint_source),
+        "checkpoint": _checkpoint(root, entry.checkpoint_source, verify_runtime=verify_runtime),
         "scorer": _scorer(root, entry.scorer_source),
         "selection": _selection(root, entry.selection_source),
     }
@@ -356,8 +402,8 @@ def resolve_binding(root: Path, entry: W10ScopeEntry) -> dict[str, Any]:
     return binding
 
 
-def resolve_scope_bindings(root: Path) -> list[dict[str, Any]]:
-    return [resolve_binding(root, entry) for entry in SCOPE]
+def resolve_scope_bindings(root: Path, *, verify_runtime: bool = True) -> list[dict[str, Any]]:
+    return [resolve_binding(root, entry, verify_runtime=verify_runtime) for entry in SCOPE]
 
 
 def pending_states(bindings: list[Mapping[str, Any]]) -> list[str]:
@@ -388,6 +434,8 @@ __all__ = [
     "G1_BEST_CHECKPOINT",
     "G8_CLOSEOUT",
     "JPEG_SELECTION",
+    "PAPR_AUTHORITY",
+    "PAPR_COMPLETION",
     "PAPR_SELECTED_CHECKPOINT",
     "PASS_TWO_STATE",
     "W8_CAMPAIGN_ROOT",

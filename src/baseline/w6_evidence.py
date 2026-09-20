@@ -16,6 +16,7 @@ from config.params import REPO_ROOT
 from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
 from evaluation.am97_spec_compatibility import load as load_am97_spec_compatibility
 from evaluation.am98_spec_compatibility import load as load_am98_spec_compatibility
+from evaluation.am99_spec_compatibility import load as load_am99_spec_compatibility
 from evaluation.g10_spec_compatibility import load as load_am94_spec_compatibility
 
 SCHEMA_VERSION = 1
@@ -62,6 +63,10 @@ _AM97_CURRENT_NORMATIVE_SHA256 = {
 _AM98_CURRENT_NORMATIVE_SHA256 = {
     "normative_spec": "51f428740e76125c58ea381b7c09c492ece7badd4e54d15424e1ca11b7e7e7f5",
     "resolved_params": "37a5b93ea539cffb94ebcb9b28b79dae5811794cdd2c21c3a414fcc4f723efc0",
+}
+_AM99_CURRENT_NORMATIVE_SHA256 = {
+    "normative_spec": "14e97bb11e8a596514dd06f11d7a0d56c2a431ba1945eca7b1548290213edb83",
+    "resolved_params": "45165a333775c6e089cb22cd70b1e08ef0bca920ac40ec8b59b3f5c374c09c69",
 }
 STATUSES = {
     "W6_REQUIRED_AND_SATISFIED",
@@ -187,10 +192,15 @@ def _binding(spec: tuple[Any, ...]) -> dict[str, Any]:
             load_am97_spec_compatibility(REPO_ROOT, allow_downstream=True)
             allowed.add(_AM97_CURRENT_NORMATIVE_SHA256[name])
         if file_sha256 == _AM98_CURRENT_NORMATIVE_SHA256[name]:
-            # AM-98 is the live prospective W10/PAPR source epoch; its loader
-            # authenticates the current views and the W10 successor manifest.
+            # AM-98 is the historical W10/PAPR source epoch; its loader
+            # authenticates the historical views and the W10 successor manifest.
             load_am98_spec_compatibility(REPO_ROOT, allow_downstream=True)
             allowed.add(_AM98_CURRENT_NORMATIVE_SHA256[name])
+        if file_sha256 == _AM99_CURRENT_NORMATIVE_SHA256[name]:
+            # AM-99 is the corrected live pre-science epoch; its loader
+            # authenticates the current views and successor-v2.
+            load_am99_spec_compatibility(REPO_ROOT)
+            allowed.add(_AM99_CURRENT_NORMATIVE_SHA256[name])
         require(
             file_sha256 in allowed,
             f"{name} is neither the frozen W6 nor an authenticated successor normative byte image",

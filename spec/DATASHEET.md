@@ -739,7 +739,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `evaluation.w10_validation_denominator` | 1000 | SR-24 |
 | `evaluation.w10_learned_ratios` | r_1_6, r_1_24 | SR-24 |
 | `evaluation.w10_per_image_required` | true | - |
-| `evaluation.w10_analysis_version_policy` | retain_1_no_estimand_or_definition_change | AM-98 |
+| `evaluation.w10_analysis_version_policy` | retain_2_no_estimand_or_definition_change | AM-98, AM-99 |
 | `evaluation.w10_papr_protocol_version` | 1 | - |
 | `evaluation.w10_papr_cap_db` | 3.0 | - |
 | `evaluation.w10_papr_training_runs` | 1 | - |
@@ -808,7 +808,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `config.fingerprint_parameter_roots` | project, datasets, preprocessing, bandwidth, channel, learned_system, baseline, reference_classifier, digital_semantic_control, evaluation, compute, artifacts, environment | AM-68, SR-1, SR-18 |
 | `config.fingerprint_excluded_roots` | config, demo, hardware_tier23, deliverables | AM-68, SR-1, SR-18 |
 | `config.run_config_hash_form` | sha256_over_versioned_resolved_and_parameter_snapshot_canonical_json | AM-68, SR-1, SR-18 |
-| `config.analysis_version` | 2 | AM-68, AM-69, AM-81, AM-98, SR-1, SR-18 |
+| `config.analysis_version` | 2 | AM-68, AM-69, AM-81, AM-98, AM-99, SR-1, SR-18 |
 | `config.analysis_version_bump_rule` | bump_on_inference_estimand_or_analysis_implementation_change | AM-68, AM-81, SR-1, SR-18 |
 | `config.dataset_version_rule` | archive_sha256 | AM-68, AM-69, SR-1, SR-18 |
 | `config.literal_lint_scope` | src/ | AM-68, SR-1, SR-18 |

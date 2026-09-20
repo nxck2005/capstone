@@ -47,6 +47,8 @@ G11_ROOT = REPO / "results/learned/g11"
 G11_AUTHORITY = G11_ROOT / "g11_execution_authorization_v4.json"
 G11_TERMINAL = G11_ROOT / "g11_terminal_closeout.json"
 G10_MANIFEST = REPO / "results/learned/w9/g10_runtime_manifest.json"
+W10_AUTHORITY = REPO / "results/learned/w10/w10_rehearsal_authorization.json"
+W10_CLOSEOUT = REPO / "results/learned/w10/w10_rehearsal_closeout.json"
 
 
 class HostedEvidenceHold(RuntimeError):
@@ -305,6 +307,17 @@ def verify_g11_published() -> None:
     print("G11/H4 published-evidence verifier PASS: authority, H4, architecture, terminal, 3 ER-9 and 63 G10 manifest bindings; worker-local G10 per-image bytes not recomputed")
 
 
+def verify_w10_published() -> None:
+    from verify_w10_rehearsal import verify_published
+
+    value = verify_published()
+    print(
+        "W10 published-evidence verifier PASS: "
+        f"authority={value['authority_id']} closeout={value['closeout_id']} "
+        f"units={value['unit_count']}; worker-local per-image bytes not recomputed"
+    )
+
+
 def hosted_commands(profile: str) -> tuple[list[str], ...]:
     """Replace only exact worker-runtime terminal commands, failing closed."""
 
@@ -312,6 +325,7 @@ def hosted_commands(profile: str) -> tuple[list[str], ...]:
     replaced_er9 = 0
     replaced_er2 = 0
     replaced_g11 = 0
+    replaced_w10 = 0
     result: list[list[str]] = []
     for command in commands:
         tool = Path(command[1]).name if len(command) >= 2 else ""
@@ -332,6 +346,14 @@ def hosted_commands(profile: str) -> tuple[list[str], ...]:
             )
             result.append([sys.executable, str(Path(__file__).resolve()), "verify-g11-published"])
             replaced_g11 += 1
+        elif tool == "verify_w10_rehearsal.py" and arguments == ["--terminal"]:
+            require(
+                W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink()
+                and W10_CLOSEOUT.is_file() and not W10_CLOSEOUT.is_symlink(),
+                "W10 terminal routing lacks a safe authority/closeout",
+            )
+            result.append([sys.executable, str(Path(__file__).resolve()), "verify-w10-published"])
+            replaced_w10 += 1
         else:
             result.append(command)
     expected_er9 = int(ER9_CLOSEOUT.is_file() and not ER9_CLOSEOUT.is_symlink())
@@ -340,9 +362,14 @@ def hosted_commands(profile: str) -> tuple[list[str], ...]:
         G11_AUTHORITY.is_file() and not G11_AUTHORITY.is_symlink()
         and G11_TERMINAL.is_file() and not G11_TERMINAL.is_symlink()
     )
+    expected_w10 = int(
+        W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink()
+        and W10_CLOSEOUT.is_file() and not W10_CLOSEOUT.is_symlink()
+    )
     require(replaced_er9 == expected_er9, "hosted ER-9 runtime-command replacement count differs")
     require(replaced_er2 == expected_er2, "hosted ER-2 runtime-command replacement count differs")
     require(replaced_g11 == expected_g11, "hosted G-11 runtime-command replacement count differs")
+    require(replaced_w10 == expected_w10, "hosted W10 runtime-command replacement count differs")
     return tuple(result)
 
 
@@ -352,16 +379,19 @@ def self_test() -> None:
     require(len(original) == len(hosted), "hosted routing changed command count")
     differences = [(before, after) for before, after in zip(original, hosted, strict=True) if before != after]
     g11_present = G11_AUTHORITY.is_file() and not G11_AUTHORITY.is_symlink() and G11_TERMINAL.is_file() and not G11_TERMINAL.is_symlink()
-    expected = 1 + int(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink()) + int(g11_present)
+    w10_present = W10_AUTHORITY.is_file() and not W10_AUTHORITY.is_symlink() and W10_CLOSEOUT.is_file() and not W10_CLOSEOUT.is_symlink()
+    expected = 1 + int(ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink()) + int(g11_present) + int(w10_present)
     require(len(differences) == expected, "hosted routing changed an unexpected command")
     for before, after in differences:
-        require(Path(before[1]).name in {"verify_er9_production_v4.py", "verify_er2_randomized.py", "verify_g11.py"}, "hosted routing replaced a non-runtime command")
+        require(Path(before[1]).name in {"verify_er9_production_v4.py", "verify_er2_randomized.py", "verify_g11.py", "verify_w10_rehearsal.py"}, "hosted routing replaced a non-runtime command")
         require(Path(after[1]).resolve() == Path(__file__).resolve(), "hosted routing replacement is not this audited adapter")
     verify_er9_published()
     if ER2_COMPLETION.is_file() and not ER2_COMPLETION.is_symlink():
         verify_er2_published()
     if g11_present:
         verify_g11_published()
+    if w10_present:
+        verify_w10_published()
     print(f"hosted quality-gate routing self-test PASS: replacements={len(differences)}")
 
 
@@ -379,7 +409,7 @@ def run(profile: str) -> None:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "verify-g11-published", "static", "ci-cpu"))
+    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "verify-g11-published", "verify-w10-published", "static", "ci-cpu"))
     args = parser.parse_args(argv)
     if args.action == "self-test":
         self_test()
@@ -389,6 +419,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         verify_er2_published()
     elif args.action == "verify-g11-published":
         verify_g11_published()
+    elif args.action == "verify-w10-published":
+        verify_w10_published()
     else:
         run(args.action)
     return 0

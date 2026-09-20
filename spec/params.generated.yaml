@@ -1066,7 +1066,7 @@ evaluation:
   - r_1_6
   - r_1_24
   w10_per_image_required: true
-  w10_analysis_version_policy: retain_1_no_estimand_or_definition_change
+  w10_analysis_version_policy: retain_2_no_estimand_or_definition_change
   w10_papr_protocol_version: 1
   w10_papr_cap_db: 3.0
   w10_papr_training_runs: 1

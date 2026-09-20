@@ -10,6 +10,7 @@ and the two pre-W10 validation selections) and the exact Confessor TITAN Xp.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import sys
 from pathlib import Path
 
@@ -34,8 +35,32 @@ from evaluation.w10_scope import (  # noqa: E402
 from runtime.source_epochs import load_w10_manifest, source_record  # noqa: E402
 from runtime.w9_authority import authenticate_live_w9_pascal  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
+from verify_g11 import verify_authority as verify_g11_authority, verify_terminal as verify_g11_terminal  # noqa: E402
 
 TARGET = REPO / "results/learned/w10/w10_rehearsal_authorization.json"
+W10_RUNTIME_ROOT = "checkpoints/w10_rehearsal"
+
+
+def g11_closure() -> dict:
+    """Authenticate and content-bind the closed G11 terminal via its own verifier."""
+
+    authority_path = REPO / "results/learned/g11/g11_execution_authorization_v4.json"
+    terminal_path = REPO / "results/learned/g11/g11_terminal_closeout.json"
+    authority = verify_g11_authority()
+    terminal = verify_g11_terminal(terminal_path)
+    if terminal.get("decision") != "GREEN" or terminal.get("test_access") != 0:
+        raise SystemExit("G11 terminal is not GREEN with zero test access")
+    return {
+        "authority_id": str(authority["authority_id"]),
+        "authority_path": str(authority_path.relative_to(REPO)),
+        "authority_sha256": hashlib.sha256(authority_path.read_bytes()).hexdigest(),
+        "terminal_id": str(terminal["terminal_id"]),
+        "terminal_path": str(terminal_path.relative_to(REPO)),
+        "terminal_sha256": hashlib.sha256(terminal_path.read_bytes()).hexdigest(),
+        "decision": "GREEN",
+        "test": "SEALED",
+        "test_access": 0,
+    }
 
 
 def build_body(*, gpu_name: str, gpu_uuid: str, source: dict, bindings: list[dict], cuda_mapping: dict | None) -> dict:
@@ -62,7 +87,8 @@ def build_body(*, gpu_name: str, gpu_uuid: str, source: dict, bindings: list[dic
         "unit_count": unit_count(),
         "unit_count_derived_from_scope": True,
         "bindings": bindings,
-        "runtime_root": "results/learned/w10/runtime",
+        "g11_closure": g11_closure(),
+        "runtime_root": W10_RUNTIME_ROOT,
         "execution_profile_id": "confessor_pascal_cu126",
         "host": "confessor",
         "gpu_name": gpu_name,
@@ -74,7 +100,8 @@ def build_body(*, gpu_name: str, gpu_uuid: str, source: dict, bindings: list[dic
         "production_training_authorized": False,
         "er2_training_authorized": False,
         "g11_authorized": False,
-        "papr_training_run_count": 0,
+        "papr_training_run_count": 1,
+        "papr_lifecycle_bound": True,
         "test_authorized": False,
         "validation_only": True,
         "test": "SEALED",

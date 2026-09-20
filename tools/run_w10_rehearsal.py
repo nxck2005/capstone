@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Manage W10's validation-only rehearsal: plan, execute, closeout (AM-98)."""
+"""Manage W10's validation-only rehearsal: plan, execute, closeout (AM-98).
+
+The runtime root is worker-local (``checkpoints/w10_rehearsal``), so a running
+or resumed rehearsal never dirties the scientific checkout.  Closeout publishes
+compact, content-addressed evidence to ``results/learned/w10/`` for the hosted
+published-evidence path; the per-image bytes remain worker custody.
+"""
 
 from __future__ import annotations
 
@@ -13,10 +19,15 @@ sys.path.insert(0, str(REPO / "src"))
 from evaluation.downstream_v4 import immutable_write, read_json  # noqa: E402
 from evaluation.w10_backends import ValidationView  # noqa: E402
 from evaluation.w10_dispatch import dispatch  # noqa: E402
-from evaluation.w10_rehearsal import closeout, validate_unit, work_units  # noqa: E402
+from evaluation.w10_rehearsal import closeout, published_units, validate_unit, work_units  # noqa: E402
 from runtime.w9_authority import authenticate_live_w9_pascal  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 from verify_w10_rehearsal import verify_authority  # noqa: E402
+
+CLOSEOUT_PATH = "results/learned/w10/w10_rehearsal_closeout.json"
+UNIT_MANIFEST_PATH = "results/learned/w10/w10_rehearsal_unit_manifest.json"
+PER_IMAGE_MANIFEST_PATH = "results/learned/w10/w10_rehearsal_per_image_manifest.json"
+UNITS_PATH = "results/learned/w10/w10_rehearsal_units.json"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -61,7 +72,13 @@ def main(argv: list[str] | None = None) -> int:
         validate_unit(value, expected)
         results.append(value)
     value = closeout(runtime, results, authority=authority)
-    immutable_write(REPO / "results/learned/w10/w10_rehearsal_closeout.json", value)
+    units = read_json(runtime / "unit_manifest.json", "W10 runtime unit manifest")
+    images = read_json(runtime / "per_image_manifest.json", "W10 runtime per-image manifest")
+    published = published_units(results, authority=authority)
+    immutable_write(REPO / UNIT_MANIFEST_PATH, units)
+    immutable_write(REPO / PER_IMAGE_MANIFEST_PATH, images)
+    immutable_write(REPO / UNITS_PATH, published)
+    immutable_write(REPO / CLOSEOUT_PATH, value)
     print(f"W10 validation rehearsal complete: {value['closeout_id']}")
     return 0
 

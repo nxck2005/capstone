@@ -115,6 +115,23 @@ AM98_EXTRA_W8_CARRIER_SOURCES: dict[str, tuple[int, str]] = {
     "src/training/w8_final.py": (74980, "3f5d2ab3d36f92cf06f3d4cebdbeac229b61984f2778b2dfea0fc079ba0cdc80"),
 }
 
+# AM-99 is the corrected W10/PAPR pre-science epoch.  Its carriers keep the
+# same historical manifest base and admit only the exact corrected images.
+AM99_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = dict(AM98_W8_CARRIER_SOURCE_HASHES)
+AM99_W8_CARRIER_SOURCE_HASHES.update({
+    "spec/SPEC.md": (437035, '14e97bb11e8a596514dd06f11d7a0d56c2a431ba1945eca7b1548290213edb83'),
+    "spec/params.generated.yaml": (49750, '45165a333775c6e089cb22cd70b1e08ef0bca920ac40ec8b59b3f5c374c09c69'),
+    "src/baseline/w8_spec_compatibility.py": (16809, '8f4557541392a801487f787faca500ba0aed3e1788a206799a3598726e4b22b8'),
+    "src/baseline/w7c_source_compatibility.py": (19089, '7cce51084e92f57d485ab92b2256f6c13fa47818cd9f9b3b5ee5daf20bb58b46'),
+    "src/baseline/g8_campaign.py": (62235, '75fdb1dbd9df632208f2c6cf717776fd7fd8672b2d74c3edf39cc6792d987d8f'),
+    "src/baseline/w6_evidence.py": (32703, '5a1263473218d06fa59498183a121c31658449940c63c273f2c8973bbd895553'),
+    "tools/verify_w6_complete.py": (54882, '61f172cf65d3876dd4e0376df3e19e776fea868c4f0db270af3c32b7860ed112'),
+})
+AM99_EXTRA_W8_CARRIER_SOURCES: dict[str, tuple[int, str]] = {
+    "src/training/w8_final.py": (79279, '5a68079957359c0fd4c6dee64f2a99298e0ac218659f3357ed21cec2d91d2771'),
+    "src/evaluation/w8_validation.py": (40983, 'be4ba40c4a960472fd7cbf11e0d1f468b14b8d47bef76c2d6e2e7aa6611f6c0a'),
+}
+
 
 class G10SemanticsFreezeError(RuntimeError):
     """The exact AM-94 transition or its zero-science boundary differs."""
@@ -313,7 +330,9 @@ def verify_w8_carrier_source_transition(
         if len(raw) == current_bytes and sha256_bytes(raw) == current_sha:
             compatible.add(path)
             continue
-        successor = AM98_W8_CARRIER_SOURCE_HASHES.get(path)
+        successor = AM99_W8_CARRIER_SOURCE_HASHES.get(path)
+        if successor is None:
+            successor = AM98_W8_CARRIER_SOURCE_HASHES.get(path)
         if successor is None:
             successor = AM97_W8_CARRIER_SOURCE_HASHES.get(path)
         if successor is None:
@@ -328,6 +347,12 @@ def verify_w8_carrier_source_transition(
         )
         compatible.add(path)
     for path, (extra_bytes, extra_sha) in AM98_EXTRA_W8_CARRIER_SOURCES.items():
+        if path not in by_path:
+            continue
+        raw = (root / path).read_bytes()
+        if len(raw) == extra_bytes and sha256_bytes(raw) == extra_sha:
+            compatible.add(path)
+    for path, (extra_bytes, extra_sha) in AM99_EXTRA_W8_CARRIER_SOURCES.items():
         if path not in by_path:
             continue
         raw = (root / path).read_bytes()

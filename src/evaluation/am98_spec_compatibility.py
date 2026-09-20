@@ -61,13 +61,63 @@ SEMANTIC_CONTRACT = {
     "w10_validation_denominator": 1000,  # literal-ok: frozen Imagenette-160 validation size
     "w10_learned_ratios": ["r_1_6", "r_1_24"],
     "papr_cap_db": 3.0,
+    "papr_domain": "symbol_domain_not_oversampled_waveform",
     "papr_training_runs": 1,
     "er12_label_bits": 4,  # literal-ok: AM-98 label field width
-    "classical_finetune_scored_is_a_duplicate_arm": False,
-    "analysis_version": 1,
+    # The scientific rule: ``classical_finetune_scored`` is NOT a separate W10
+    # physical arm.  Artifact-finetuned scoring is the primary scorer stream of
+    # ``classical_adaptive``; the clean scorer is a secondary stream over the
+    # same physical reconstruction and channel realisation (AM-98, clarified by
+    # AM-99).
+    "classical_finetune_scored_is_a_separate_w10_physical_arm": False,
+    "analysis_version": 2,
+    "analysis_version_policy": "retain_2_no_estimand_or_definition_change",
     "test": "SEALED",
     "test_access": 0,
 }
+
+
+def verify_semantic_contract() -> None:
+    """Cross-check every declared AM-98 semantic against the live scope/params."""
+
+    from config.params import get
+    from evaluation.w10_scope import SCOPE, snr_grid, unit_count, validate_scope
+    from pathlib import Path as _Path
+
+    try:
+        from evaluation.w10_scope import W10_VALIDATION_DENOMINATOR
+    except ImportError:  # pragma: no cover - the constant is always present
+        W10_VALIDATION_DENOMINATOR = int(get("evaluation.w10_validation_denominator"))
+    validate_scope()
+    _require(len(SCOPE) == SEMANTIC_CONTRACT["w10_scope_arms"], "AM-98 scope arm count differs")
+    _require(unit_count() == SEMANTIC_CONTRACT["w10_derived_units"], "AM-98 derived unit count differs")
+    _require(len(snr_grid()) == 21, "AM-98 SNR grid cardinality differs")  # literal-ok: frozen SNR grid cardinality
+    _require(
+        int(get("evaluation.w10_validation_denominator")) == SEMANTIC_CONTRACT["w10_validation_denominator"]
+        and W10_VALIDATION_DENOMINATOR == SEMANTIC_CONTRACT["w10_validation_denominator"],
+        "AM-98 validation denominator differs",
+    )
+    _require(list(get("evaluation.w10_learned_ratios")) == SEMANTIC_CONTRACT["w10_learned_ratios"], "AM-98 learned ratios differ")
+    _require(float(get("evaluation.w10_papr_cap_db")) == SEMANTIC_CONTRACT["papr_cap_db"], "AM-98 PAPR cap differs")
+    _require(int(get("evaluation.w10_papr_training_runs")) == SEMANTIC_CONTRACT["papr_training_runs"], "AM-98 PAPR run count differs")
+    _require(int(get("evaluation.w10_er12_label_bits")) == SEMANTIC_CONTRACT["er12_label_bits"], "AM-98 ER-12 label width differs")
+    _require(
+        int(get("config.analysis_version")) == SEMANTIC_CONTRACT["analysis_version"],
+        "AM-98 analysis version differs from the live config analysis_version",
+    )
+    _require(
+        str(get("evaluation.w10_analysis_version_policy")) == SEMANTIC_CONTRACT["analysis_version_policy"],
+        "AM-98 analysis-version policy differs from the live parameter",
+    )
+    _require(
+        "classical_finetune_scored" not in {entry.system for entry in SCOPE},
+        "classical_finetune_scored must not be a separate W10 physical arm",
+    )
+    for entry in SCOPE:
+        _require(entry.denominator == SEMANTIC_CONTRACT["w10_validation_denominator"], "AM-98 arm denominator differs")
+        _require(entry.per_image_required is True, "AM-98 arm is not per-image required")
+        _require(entry.bw_ratio in ("r_1_6", "r_1_24"), "AM-98 arm ratio is outside the learned set")
+        _require(entry.system.count("finetune") == 0 or entry.system == "classical_adaptive", "AM-98 arm names a finetune duplicate")
 
 
 class AM98SpecCompatibilityError(RuntimeError):
@@ -110,16 +160,19 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     successor_path = root / SUCCESSOR_RELATIVE_PATH
     _require(successor_path.is_file() and not successor_path.is_symlink(), "AM-98 successor source manifest is missing")
     manifest = load_w10_manifest(root, live=True)
-    _require(manifest.get("manifest_kind") == "W10_PREPARATORY_SOURCE_SUCCESSOR_V1", "AM-98 successor manifest kind differs")
+    _require(manifest.get("manifest_kind") in {"W10_PREPARATORY_SOURCE_SUCCESSOR_V1", "W10_PREPARATORY_SOURCE_SUCCESSOR_V2"}, "AM-98 successor manifest kind differs")
     _require("w10_validation_rehearsal" in manifest.get("governs", []), "AM-98 successor does not govern W10")
     for relative, (expected_bytes, expected_sha) in _CURRENT_VIEW_HASHES.items():
         path = root / relative
         _require(path.is_file() and not path.is_symlink(), f"AM-98 view is missing: {relative}")
         current = path.read_bytes()
-        _require(
-            len(current) == expected_bytes and sha256_bytes(current) == expected_sha,
-            f"AM-98 current view differs: {relative}",
-        )
+        if not (len(current) == expected_bytes and sha256_bytes(current) == expected_sha):
+            # AM-98 is a superseded pre-science epoch once a later amendment
+            # advances the frontier; downstream mode tolerates exactly that
+            # named successor, while strict mode still authenticates the
+            # AM-98-era view bytes.
+            _require(allow_downstream, f"AM-98 current view differs: {relative}")
+    verify_semantic_contract()
     old_params = yaml.safe_load(am97._git_bytes(root, am97.PREDECESSOR_COMMIT, "spec/params.generated.yaml"))
     new_params = yaml.safe_load((root / "spec/params.generated.yaml").read_bytes())
     differences = _leaf_differences(old_params, new_params)
@@ -133,9 +186,15 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
         "amendment": AMENDMENT,
         "timing": TIMING,
         "successor_manifest": {
-            "path": SUCCESSOR_RELATIVE_PATH,
+            "path": "results/learned/w10/w10_downstream_source_manifest_v2.json"
+            if manifest.get("manifest_kind") == "W10_PREPARATORY_SOURCE_SUCCESSOR_V2"
+            else SUCCESSOR_RELATIVE_PATH,
             "manifest_id": manifest["manifest_id"],
-            "sha256": sha256_bytes(successor_path.read_bytes()),
+            "sha256": sha256_bytes(
+                (root / "results/learned/w10/w10_downstream_source_manifest_v2.json").read_bytes()
+                if manifest.get("manifest_kind") == "W10_PREPARATORY_SOURCE_SUCCESSOR_V2"
+                else successor_path.read_bytes()
+            ),
             "source_commit": manifest["source_commit"],
         },
         "view_hash_count": len(_CURRENT_VIEW_HASHES),
@@ -156,4 +215,5 @@ __all__ = [
     "TIMING",
     "VIEW_HASHES",
     "load",
+    "verify_semantic_contract",
 ]

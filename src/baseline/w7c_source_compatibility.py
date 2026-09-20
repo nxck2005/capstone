@@ -54,6 +54,8 @@ AM97_G8_CURRENT_BYTES = 61171
 AM97_G8_CURRENT_SHA256 = "33efac7b5b4be71fa66add3a2fe030f5e72d1df6e080a8fb8ad37a955c4d42cf"
 AM98_G8_CURRENT_BYTES = 61772
 AM98_G8_CURRENT_SHA256 = "de0b82ec010f51dc503b463d30f1e40aab528b7f0f324c2b70338fd43f19ac70"
+AM99_G8_CURRENT_BYTES = 62235
+AM99_G8_CURRENT_SHA256 = "75fdb1dbd9df632208f2c6cf717776fd7fd8672b2d74c3edf39cc6792d987d8f"
 
 W7C_ALLOWED_PARAMETER_PATHS = (
     "learned_system.lambda_core",
@@ -232,8 +234,10 @@ def load_w8_g8_campaign_source_compatibility(root: Path = REPO_ROOT) -> dict[str
         current_bytes, current_sha256 = AM97_G8_CURRENT_BYTES, AM97_G8_CURRENT_SHA256
     elif len(current) == AM98_G8_CURRENT_BYTES and sha256_bytes(current) == AM98_G8_CURRENT_SHA256:
         current_bytes, current_sha256 = AM98_G8_CURRENT_BYTES, AM98_G8_CURRENT_SHA256
+    elif len(current) == AM99_G8_CURRENT_BYTES and sha256_bytes(current) == AM99_G8_CURRENT_SHA256:
+        current_bytes, current_sha256 = AM99_G8_CURRENT_BYTES, AM99_G8_CURRENT_SHA256
     else:
-        _require(False, "AM-94/AM-95/AM-96/AM-97/AM-98 G8-campaign verifier source bytes differ")
+        _require(False, "AM-94/AM-95/AM-96/AM-97/AM-98/AM-99 G8-campaign verifier source bytes differ")
     projection = json.loads(json.dumps(value))
     projection["entries"][0]["current_bytes"] = current_bytes
     projection["entries"][0]["current_sha256"] = current_sha256

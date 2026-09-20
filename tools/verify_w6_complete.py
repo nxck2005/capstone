@@ -72,6 +72,7 @@ AM94_W6_EVIDENCE_SHA256 = "6ba1932d485dc1ebd2dc8454c453492c214c48f168b51e67605f0
 AM97_W6_EVIDENCE_SHA256 = "49661e91ec026ed0af2b704bfe436a4b07ff3c319bdd78ebf219e1c2e5d21111"
 # AM-98 adds only the prospective W10/PAPR source-epoch compatibility route.
 AM98_W6_EVIDENCE_SHA256 = "03060337a1a8e0de8d325e08bd5a88f803c45af823dee8ebe17e158c75676978"
+AM99_W6_EVIDENCE_SHA256 = "5a1263473218d06fa59498183a121c31658449940c63c273f2c8973bbd895553"
 W7C_W4_VERIFIER_BYTES = 77281  # literal-ok: exact W7-C compatibility successor
 W7C_W4_VERIFIER_SHA256 = "475b78d1eb2ba65cb851ade3d0b4b6ea03ff6c404280e3f83ba55abc3ffd953a"
 W6_RECORDED_W4_VERIFIER_BYTES = 76398  # literal-ok: immutable W6 completion binding
@@ -80,6 +81,7 @@ W7C_TERMINAL_VERIFIER_PROJECTION_SHA256 = "d05513fe99ddae40da22fc9657455cb4a36c3
 # AM-98 admits the prospective W10/PAPR compatibility route; the projection
 # blanks its own binding so the embedded digest is not self-referential.
 AM98_TERMINAL_VERIFIER_PROJECTION_SHA256 = "7315da9a869c3fd37d746974290850f736590c4943c09877110f785482d249b2"
+AM99_TERMINAL_VERIFIER_PROJECTION_SHA256 = "a9ffbe9149b75e42ae27b94723d23b19b2e23729a4f4231c7e4dcac05fe035f3"
 W6_RECORDED_TERMINAL_VERIFIER_BYTES = 49979  # literal-ok: immutable W6 completion binding
 W6_RECORDED_TERMINAL_VERIFIER_SHA256 = "e8ea0146da63bbe4f37091e1e184ff5954787f98e91d7f687b27671a626341d7"
 W6_A_CI = {
@@ -326,6 +328,13 @@ def _w7c_terminal_verifier_projection(source: bytes) -> bytes:
         count=1,
     )
     require(am98_count == 1, "AM-98 terminal-verifier compatibility binding is missing")
+    projected, am99_count = re.subn(
+        rb'(?m)^AM99_TERMINAL_VERIFIER_PROJECTION_SHA256\s*=\s*["\'][0-9a-fPENDING]{7,64}["\']',
+        b'AM99_TERMINAL_VERIFIER_PROJECTION_SHA256 = "<exact-compatibility-binding>"',
+        projected,
+        count=1,
+    )
+    require(am99_count == 1, "AM-99 terminal-verifier compatibility binding is missing")
     return projected
 
 
@@ -346,7 +355,11 @@ def _tool_binding(path: Path) -> dict[str, Any]:
     if relative == "tools/verify_w6_complete.py":
         digest = hashlib.sha256(_w7c_terminal_verifier_projection(path.read_bytes())).hexdigest()
         require(
-            digest in {W7C_TERMINAL_VERIFIER_PROJECTION_SHA256, AM98_TERMINAL_VERIFIER_PROJECTION_SHA256},
+            digest in {
+                W7C_TERMINAL_VERIFIER_PROJECTION_SHA256,
+                AM98_TERMINAL_VERIFIER_PROJECTION_SHA256,
+                AM99_TERMINAL_VERIFIER_PROJECTION_SHA256,
+            },
             "W7-C terminal verifier compatibility successor differs",
         )
         return {
@@ -464,6 +477,7 @@ def _verify_w6_a_epoch() -> dict[str, Any]:
                 AM94_W6_EVIDENCE_SHA256,
                 AM97_W6_EVIDENCE_SHA256,
                 AM98_W6_EVIDENCE_SHA256,
+                AM99_W6_EVIDENCE_SHA256,
             }:
                 pass
             else:

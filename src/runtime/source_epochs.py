@@ -1,10 +1,11 @@
-"""The prospective W10/PAPR downstream source epoch (AM-98).
+"""The prospective W10/PAPR downstream source epochs (AM-98, AM-99).
 
 The historical W9 v4 manifest (`results/learned/w9/downstream_source_manifest_v4.json`)
-remains immutable.  This module builds and authenticates its additive successor,
-which governs PAPR-constrained training and the W10 validation rehearsal, and it
-provides the active-epoch closure check used by the closed-authority verifiers so
-that historical v4 authorities keep verifying against their own embedded bytes.
+remains immutable.  Successor-v1 is the AM-98 freeze that produced zero PAPR and
+zero W10 science; it is preserved as superseded-before-science evidence.
+Successor-v2 (AM-99) is the active epoch over the corrected implementation.  The
+active-epoch closure check lets closed-authority verifiers keep verifying against
+their own embedded bytes while the successor governs new work.
 """
 
 from __future__ import annotations
@@ -28,6 +29,10 @@ from training.deterministic_core import canonical_sha256
 W10_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest.json"
 W10_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V1"
 W10_MANIFEST_PREFIX = "w10downstreamsource-"
+W10_V2_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v2.json"
+W10_V2_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V2"
+W10_V2_MANIFEST_PREFIX = "w10downstreamsourcev2-"
+W10_MANIFEST_KINDS = (W10_MANIFEST_KIND, W10_V2_MANIFEST_KIND)
 HISTORICAL_SOURCE_PATH = "results/learned/w9/downstream_source_manifest_v4.json"
 HISTORICAL_SOURCE_COMMIT = "22fde3e0ba0c8ad7a92356587eb95780ded89ee6"
 
@@ -38,7 +43,9 @@ W10_RELEVANT_CONFIG_PATHS = (
     "spec/params.generated.yaml",
 )
 
-W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES = (
+# Historical successor-v1 declared this exact boundary and must keep verifying
+# against its own bytes; successor-v2 adds the worker-local W10 rehearsal root.
+W10_V1_ALLOWED_EVIDENCE_RUNTIME_PREFIXES = (
     "results/learned/er9/",
     "results/learned/er2_randomized/",
     "results/learned/g11/",
@@ -49,6 +56,11 @@ W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES = (
     "checkpoints/papr_constrained_pascal_v4/",
     "checkpoints/smoke/",
     "checkpoints/er9_production_pascal_v4/",
+)
+
+W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES = (
+    *W10_V1_ALLOWED_EVIDENCE_RUNTIME_PREFIXES,
+    "checkpoints/w10_rehearsal/",
 )
 
 W10_GOVERNS = (
@@ -89,7 +101,7 @@ def build_w10_manifest(root: Path, *, source_commit: str) -> dict[str, Any]:
         "source_commit": HISTORICAL_SOURCE_COMMIT,
         "manifest_id": "w9downstreamsource-89bdc14e154a6a9e9d4ea3ba75fc05f5b4cff6474cb3e2e3133fd21c48d5da33",
     }
-    base["allowed_evidence_runtime_prefixes"] = list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
+    base["allowed_evidence_runtime_prefixes"] = list(W10_V1_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
     base["governs"] = list(W10_GOVERNS)
     base["pre_science_state"] = {
         "papr_constrained_training_runs": 0,
@@ -107,10 +119,13 @@ def build_w10_manifest(root: Path, *, source_commit: str) -> dict[str, Any]:
 
 def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
     _require(manifest.get("schema_version") == 2, "W10 source manifest schema differs")
-    _require(manifest.get("manifest_kind") == W10_MANIFEST_KIND, "W10 source manifest kind differs")
+    _require(manifest.get("manifest_kind") in W10_MANIFEST_KINDS, "W10 source manifest kind differs")
     _require(manifest.get("source_commit_comparison") == "exact_clean_HEAD_at_freeze", "W10 source freeze rule differs")
     _require(manifest.get("protected_source_prefixes") == list(PROTECTED_PREFIXES), "W10 protected source boundary differs")
-    _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 evidence boundary differs")
+    if manifest.get("manifest_kind") == W10_V2_MANIFEST_KIND:
+        _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 v2 evidence boundary differs")
+    else:
+        _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_V1_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 v1 evidence boundary differs")
     _require(manifest.get("working_tree_guard") == WORKING_TREE_GUARD, "W10 working-tree guard differs")
     _require(manifest.get("governs") == list(W10_GOVERNS), "W10 governed lifecycle differs")
     _require(manifest.get("historical_w9_downstream_manifest", {}).get("source_commit") == HISTORICAL_SOURCE_COMMIT, "W10 historical source binding differs")
@@ -144,30 +159,120 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
     )
 
 
-def successor_path(root: Path) -> Path:
-    return Path(root) / W10_SOURCE_PATH
+def successor_path(root: Path, *, epoch: str = "v2") -> Path:
+    """The active successor path; v1 remains addressable as history."""
+
+    name = W10_V2_SOURCE_PATH if epoch == "v2" else W10_SOURCE_PATH
+    return Path(root) / name
 
 
-def load_w10_manifest(root: Path, *, live: bool = True) -> dict[str, Any]:
-    path = successor_path(root)
+def manifest_prefix(kind: str) -> str:
+    return W10_V2_MANIFEST_PREFIX if kind == W10_V2_MANIFEST_KIND else W10_MANIFEST_PREFIX
+
+
+def active_manifest_path(root: Path) -> Path:
+    v2 = successor_path(root, epoch="v2")
+    if v2.is_file() and not v2.is_symlink():
+        return v2
+    return successor_path(root, epoch="v1")
+
+
+def load_w10_manifest(root: Path, *, live: bool = True, epoch: str | None = None) -> dict[str, Any]:
+    path = successor_path(root, epoch=epoch) if epoch is not None else active_manifest_path(root)
     _require(path.is_file() and not path.is_symlink(), "W10 successor source manifest is missing")
     value = json.loads(path.read_bytes())
     body = dict(value)
     identifier = body.pop("manifest_id", None)
-    _require(identifier == W10_MANIFEST_PREFIX + canonical_sha256(body), "W10 source manifest ID differs")
+    kind = value.get("manifest_kind")
+    _require(kind in W10_MANIFEST_KINDS, "W10 successor manifest kind differs")
+    _require(identifier == manifest_prefix(str(kind)) + canonical_sha256(body), "W10 source manifest ID differs")
     assert_w10_manifest_contract(value)
+    if kind == W10_V2_MANIFEST_KIND:
+        _require_w10_v2_supersession(root, value)
     if live:
         assert_clean_active_source_closure(root, value)
     return value
 
 
+def _require_w10_v2_supersession(root: Path, value: Mapping[str, Any]) -> None:
+    """Successor-v2 names the exact superseded-before-science v1 bytes."""
+
+    superseded = value.get("superseded_successor")
+    _require(isinstance(superseded, Mapping), "W10 v2 supersession record is missing")
+    v1_path = successor_path(root, epoch="v1")
+    _require(v1_path.is_file() and not v1_path.is_symlink(), "superseded W10 v1 manifest is missing")
+    raw = v1_path.read_bytes()
+    _require(superseded.get("path") == W10_SOURCE_PATH, "W10 v2 superseded path differs")
+    _require(superseded.get("manifest_id") == json.loads(raw).get("manifest_id"), "W10 v2 superseded ID differs")
+    _require(superseded.get("sha256") == hashlib.sha256(raw).hexdigest(), "W10 v2 superseded bytes differ")
+    _require(
+        superseded.get("superseded_before_science") is True
+        and superseded.get("papr_constrained_training_runs") == 0
+        and superseded.get("w10_scientific_units") == 0
+        and superseded.get("test_access") == 0,
+        "W10 v2 supersession is not zero-science",
+    )
+
+
 def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = None) -> dict[str, Any]:
-    target = path or successor_path(root)
+    if path is None:
+        kind = str(manifest.get("manifest_kind"))
+        candidate = root / (W10_V2_SOURCE_PATH if kind == W10_V2_MANIFEST_KIND else W10_SOURCE_PATH)
+        if not candidate.is_file():
+            candidate = active_manifest_path(root)
+        target = candidate
+    else:
+        target = path
     return {
         "path": str(target.relative_to(root)),
         "manifest_id": str(manifest["manifest_id"]),
         "sha256": hashlib.sha256(target.read_bytes()).hexdigest(),
     }
+
+
+def build_w10_manifest_v2(root: Path, *, source_commit: str) -> dict[str, Any]:
+    """Build the corrected AM-99 successor epoch at the exact clean HEAD it binds."""
+
+    base = build_manifest(
+        root,
+        source_commit=source_commit,
+        relevant_config_paths=W10_RELEVANT_CONFIG_PATHS,
+    )
+    base.pop("manifest_id")
+    base["manifest_kind"] = W10_V2_MANIFEST_KIND
+    base["historical_w9_downstream_manifest"] = {
+        "path": HISTORICAL_SOURCE_PATH,
+        "source_commit": HISTORICAL_SOURCE_COMMIT,
+        "manifest_id": "w9downstreamsource-89bdc14e154a6a9e9d4ea3ba75fc05f5b4cff6474cb3e2e3133fd21c48d5da33",
+    }
+    v1_path = successor_path(Path(root), epoch="v1")
+    if v1_path.is_file() and not v1_path.is_symlink():
+        raw = v1_path.read_bytes()
+        base["superseded_successor"] = {
+            "path": W10_SOURCE_PATH,
+            "manifest_kind": W10_MANIFEST_KIND,
+            "manifest_id": json.loads(raw)["manifest_id"],
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "source_commit": json.loads(raw)["source_commit"],
+            "superseded_before_science": True,
+            "papr_constrained_training_runs": 0,
+            "w10_scientific_units": 0,
+            "test_access": 0,
+        }
+    base["allowed_evidence_runtime_prefixes"] = list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
+    base["governs"] = list(W10_GOVERNS)
+    base["pre_science_state"] = {
+        "papr_constrained_training_runs": 0,
+        "w10_authority_frozen": False,
+        "w10_scientific_units": 0,
+        "g12_freeze_manifest": False,
+        "test": "SEALED",
+        "test_access": 0,
+    }
+    base["manifest_id"] = W10_V2_MANIFEST_PREFIX + hashlib.sha256(
+        (json.dumps(base, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
+    ).hexdigest()
+    return base
 
 
 def assert_clean_active_source_closure(root: Path, authority: Mapping[str, Any]) -> dict[str, Any]:
@@ -195,12 +300,13 @@ def assert_active_epoch_closure(root: Path, historical: Mapping[str, Any]) -> No
 
     The historical v4 manifest promised that no protected source would change
     after its commit.  A successor epoch is exactly that permitted change, so
-    the live check moves to the successor while the historical manifest is
-    still authenticated against its own commit and never rewritten.
+    the live check moves to the active successor while the historical manifest
+    is still authenticated against its own commit and never rewritten.
     """
 
     assert_manifest_commit_bytes(root, historical)
-    if successor_path(root).is_file() and not successor_path(root).is_symlink():
+    active = active_manifest_path(root)
+    if active.is_file() and not active.is_symlink():
         successor = load_w10_manifest(root, live=True)
         _require(
             successor.get("historical_w9_downstream_manifest", {}).get("path") == HISTORICAL_SOURCE_PATH,
@@ -217,16 +323,24 @@ __all__ = [
     "HISTORICAL_SOURCE_PATH",
     "W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES",
     "W10_GOVERNS",
+    "W10_V1_ALLOWED_EVIDENCE_RUNTIME_PREFIXES",
     "W10_MANIFEST_KIND",
+    "W10_MANIFEST_KINDS",
     "W10_MANIFEST_PREFIX",
     "W10_RELEVANT_CONFIG_PATHS",
     "W10_SOURCE_PATH",
+    "W10_V2_MANIFEST_KIND",
+    "W10_V2_MANIFEST_PREFIX",
+    "W10_V2_SOURCE_PATH",
     "SourceEpochHold",
+    "active_manifest_path",
     "assert_active_epoch_closure",
     "assert_clean_active_source_closure",
     "assert_w10_manifest_contract",
     "build_w10_manifest",
+    "build_w10_manifest_v2",
     "load_w10_manifest",
+    "manifest_prefix",
     "source_record",
     "successor_path",
 ]
