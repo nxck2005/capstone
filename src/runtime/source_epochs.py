@@ -4,10 +4,20 @@ The historical W9 v4 manifest (`results/learned/w9/downstream_source_manifest_v4
 remains immutable.  Successor-v1 is the AM-98 freeze that produced zero PAPR and
 zero W10 science; it is preserved as superseded-before-science evidence.
 Successor-v2 (AM-99) remains immutable history.  Successor-v3 is the
-superseded-before-science repaired epoch.  Successor-v4 is the active
-pre-science epoch over the narrow authority-generation contract repair.  The
-active-epoch closure check lets closed-authority verifiers keep verifying
-against their own embedded bytes while the successor governs new work.
+superseded-before-science repaired epoch.  Successor-v4 is the pre-science epoch
+over the narrow authority-generation contract repair; it produced the one closed
+PAPR-constrained training lifecycle and therefore is *not* superseded-before-
+science history.  The active-epoch closure check lets closed-authority verifiers
+keep verifying against their own embedded bytes while the successor governs new
+work.
+
+Successor-v5 is the post-PAPR/pre-selection source repair: the frozen JPEG
+selector was missing its ``canonical_sha256`` binding, so the first selection
+launch failed before any selection artifact existed.  v5 binds the exact
+immutable v4 bytes and the terminal PAPR completion as a dedicated
+``transition_from_v4`` record, records the honest post-PAPR/pre-future-work
+state (one closed lifecycle, zero selections, zero W10 work, test sealed), and
+never claims that v4 was superseded before science.
 """
 
 from __future__ import annotations
@@ -40,14 +50,63 @@ W10_V3_MANIFEST_PREFIX = "w10downstreamsourcev3-"
 W10_V4_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v4.json"
 W10_V4_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V4"
 W10_V4_MANIFEST_PREFIX = "w10downstreamsourcev4-"
+W10_V5_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v5.json"
+W10_V5_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V5"
+W10_V5_MANIFEST_PREFIX = "w10downstreamsourcev5-"
 W10_MANIFEST_KINDS = (
     W10_MANIFEST_KIND,
     W10_V2_MANIFEST_KIND,
     W10_V3_MANIFEST_KIND,
     W10_V4_MANIFEST_KIND,
+    W10_V5_MANIFEST_KIND,
 )
+W10_EPOCHS = ("v1", "v2", "v3", "v4", "v5")
+_EPOCH_FOR_KIND = {
+    W10_MANIFEST_KIND: "v1",
+    W10_V2_MANIFEST_KIND: "v2",
+    W10_V3_MANIFEST_KIND: "v3",
+    W10_V4_MANIFEST_KIND: "v4",
+    W10_V5_MANIFEST_KIND: "v5",
+}
 HISTORICAL_SOURCE_PATH = "results/learned/w9/downstream_source_manifest_v4.json"
 HISTORICAL_SOURCE_COMMIT = "22fde3e0ba0c8ad7a92356587eb95780ded89ee6"
+
+# The closed PAPR lifecycle executed under the immutable v4 epoch.  These are
+# historical facts: a successor may govern new work but must bind exactly these
+# identities, and the PAPR authority must keep verifying against v4 bytes.
+W10_V4_MANIFEST_ID = "w10downstreamsourcev4-28af9f881b27af36f7cfbceb313e81fbf0081b0baab455475f9c709d65e53a5a"
+W10_V4_MANIFEST_SHA256 = "54f2f736dd75cba612a3bdc803880c86379af1557c3cc09b0df8070744edfb9a"
+W10_V4_SOURCE_COMMIT = "982688ab119959d3b861af302f896c8e952a4c60"
+PAPR_COMPLETION_SOURCE_PATH = "results/learned/w10/papr_training_completion.json"
+PAPR_COMPLETION_PREFIX = "paprcompletion-"
+PAPR_COMPLETION_ID = "paprcompletion-2d23d342ad7fe2661c9a3926f5e025b3d7174c290f5e56983d05efbbc65d74ca"
+PAPR_COMPLETION_SHA256 = "ced0e6a955071252863558dd9b1db41fc93d408435cdb2131d729e4b18afdfa4"
+PAPR_EPOCH_COUNT = 100  # literal-ok: closed PAPR lifecycle epoch count
+W10_V5_TRANSITION_KIND = "post_papr_pre_selection_source_repair"
+W10_V5_REPAIR_REASON = "jpeg_selector_missing_canonical_sha256_import"
+
+# Successor-v5 must freeze before any of these post-PAPR artifacts can exist.
+# They are freeze-time facts recorded in the transition; they are deliberately
+# not re-asserted by live verification, because the selections and the W10
+# authority are legitimate later work under this same epoch.
+W10_JPEG_SELECTION_SOURCE_PATH = "results/learned/w10/jpeg_validation_selection.json"
+W10_ER12_SELECTION_SOURCE_PATH = "results/learned/w10/er12_validation_selection.json"
+W10_AUTHORITY_SOURCE_PATH = "results/learned/w10/w10_rehearsal_authorization.json"
+W10_CLOSEOUT_SOURCE_PATH = "results/learned/w10/w10_rehearsal_closeout.json"
+W10_RUNTIME_SOURCE_PATH = "checkpoints/w10_rehearsal"
+G12_FREEZE_MANIFEST_SOURCE_PATH = "results/freeze_manifest.json"
+
+W10_V5_PRE_FUTURE_WORK_STATE = {
+    "papr_constrained_training_runs": 1,
+    "papr_lifecycle_closed": True,
+    "jpeg_validation_selection_count": 0,
+    "er12_validation_selection_count": 0,
+    "w10_authority_frozen": False,
+    "w10_scientific_units": 0,
+    "g12_freeze_manifest": False,
+    "test": "SEALED",
+    "test_access": 0,
+}
 
 W10_RELEVANT_CONFIG_PATHS = (
     "configs/er9-digital-pascal-v4.yaml",
@@ -139,6 +198,7 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
         W10_V2_MANIFEST_KIND,
         W10_V3_MANIFEST_KIND,
         W10_V4_MANIFEST_KIND,
+        W10_V5_MANIFEST_KIND,
     }:
         _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 successor evidence boundary differs")
     else:
@@ -164,16 +224,51 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
     lock = manifest.get("requirements_pascal_lock_sha256")
     _require(isinstance(lock, str) and len(lock) == 64, "W10 Pascal lock identity is malformed")  # literal-ok: SHA-256 width
     pre_science = manifest.get("pre_science_state")
-    _require(
-        isinstance(pre_science, Mapping)
-        and pre_science.get("papr_constrained_training_runs") == 0
-        and pre_science.get("w10_authority_frozen") is False
-        and pre_science.get("w10_scientific_units") == 0
-        and pre_science.get("g12_freeze_manifest") is False
-        and pre_science.get("test") == "SEALED"
-        and pre_science.get("test_access") == 0,
-        "W10 pre-science state differs",
-    )
+    if manifest.get("manifest_kind") == W10_V5_MANIFEST_KIND:
+        _require("pre_science_state" not in manifest, "W10 v5 must not reuse the zero-science pre-science state")
+        transition = manifest.get("transition_from_v4")
+        _require(isinstance(transition, Mapping), "W10 v5 transition record is missing")
+        _require(transition.get("transition_kind") == W10_V5_TRANSITION_KIND, "W10 v5 transition kind differs")
+        _require(transition.get("repair_reason") == W10_V5_REPAIR_REASON, "W10 v5 repair reason differs")
+        _require(
+            transition.get("predecessor_papr_constrained_training_runs") == 1,
+            "W10 v5 must record exactly one closed PAPR training lifecycle",
+        )
+        _require(
+            transition.get("jpeg_validation_selection_count") == 0
+            and transition.get("er12_validation_selection_count") == 0,
+            "W10 v5 must record a pre-selection freeze",
+        )
+        _require(
+            transition.get("w10_authority_frozen") is False
+            and transition.get("w10_scientific_units") == 0
+            and transition.get("g12_freeze_manifest") is False
+            and transition.get("test") == "SEALED"
+            and transition.get("test_access") == 0,
+            "W10 v5 transition is not pre-future-work",
+        )
+        _require(
+            isinstance(transition.get("predecessor_papr_completion_id"), str)
+            and str(transition["predecessor_papr_completion_id"]).startswith(PAPR_COMPLETION_PREFIX),
+            "W10 v5 does not bind a PAPR completion",
+        )
+        _require("superseded_successor" not in manifest, "W10 v5 must not claim a zero-science supersession")
+        _require(
+            isinstance(manifest.get("pre_future_work_state"), Mapping)
+            and dict(manifest["pre_future_work_state"]) == W10_V5_PRE_FUTURE_WORK_STATE,
+            "W10 v5 pre-future-work state differs",
+        )
+    else:
+        _require(
+            isinstance(pre_science, Mapping)
+            and pre_science.get("papr_constrained_training_runs") == 0
+            and pre_science.get("w10_authority_frozen") is False
+            and pre_science.get("w10_scientific_units") == 0
+            and pre_science.get("g12_freeze_manifest") is False
+            and pre_science.get("test") == "SEALED"
+            and pre_science.get("test_access") == 0,
+            "W10 pre-science state differs",
+        )
 
 
 def successor_path(root: Path, *, epoch: str = "v2") -> Path:
@@ -184,12 +279,15 @@ def successor_path(root: Path, *, epoch: str = "v2") -> Path:
         "v2": W10_V2_SOURCE_PATH,
         "v3": W10_V3_SOURCE_PATH,
         "v4": W10_V4_SOURCE_PATH,
+        "v5": W10_V5_SOURCE_PATH,
     }
     _require(epoch in names, f"unknown W10 successor epoch: {epoch}")
     return Path(root) / names[epoch]
 
 
 def manifest_prefix(kind: str) -> str:
+    if kind == W10_V5_MANIFEST_KIND:
+        return W10_V5_MANIFEST_PREFIX
     if kind == W10_V4_MANIFEST_KIND:
         return W10_V4_MANIFEST_PREFIX
     if kind == W10_V3_MANIFEST_KIND:
@@ -199,16 +297,36 @@ def manifest_prefix(kind: str) -> str:
     return W10_MANIFEST_PREFIX
 
 
+def epoch_for_kind(kind: str) -> str:
+    """The explicit successor epoch one manifest kind belongs to."""
+
+    _require(kind in _EPOCH_FOR_KIND, f"unknown W10 successor manifest kind: {kind}")
+    return _EPOCH_FOR_KIND[kind]
+
+
+def predecessor_binding(manifest: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    """The exact predecessor record a successor epoch declares.
+
+    Successors v2-v4 declare ``superseded_successor`` (zero-science).
+    Successor-v5 declares ``transition_from_v4`` (post-PAPR repair) and must
+    never be described as a before-science supersession.
+    """
+
+    kind = manifest.get("manifest_kind")
+    if kind in {W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND, W10_V4_MANIFEST_KIND}:
+        value = manifest.get("superseded_successor")
+    elif kind == W10_V5_MANIFEST_KIND:
+        value = manifest.get("transition_from_v4")
+    else:
+        value = None
+    return value if isinstance(value, Mapping) else None
+
+
 def active_manifest_path(root: Path) -> Path:
-    v4 = successor_path(root, epoch="v4")
-    if v4.is_file() and not v4.is_symlink():
-        return v4
-    v3 = successor_path(root, epoch="v3")
-    if v3.is_file() and not v3.is_symlink():
-        return v3
-    v2 = successor_path(root, epoch="v2")
-    if v2.is_file() and not v2.is_symlink():
-        return v2
+    for epoch in ("v5", "v4", "v3", "v2"):
+        candidate = successor_path(root, epoch=epoch)
+        if candidate.is_file() and not candidate.is_symlink():
+            return candidate
     return successor_path(root, epoch="v1")
 
 
@@ -228,6 +346,8 @@ def load_w10_manifest(root: Path, *, live: bool = True, epoch: str | None = None
         _require_w10_v3_supersession(root, value)
     if kind == W10_V4_MANIFEST_KIND:
         _require_w10_v4_supersession(root, value)
+    if kind == W10_V5_MANIFEST_KIND:
+        _require_w10_v5_transition(root, value)
     if live:
         assert_clean_active_source_closure(root, value)
     return value
@@ -299,6 +419,95 @@ def _require_w10_v4_supersession(root: Path, value: Mapping[str, Any]) -> None:
     )
 
 
+def _require_w10_v5_transition(root: Path, value: Mapping[str, Any]) -> None:
+    """Successor-v5 is a post-PAPR/pre-selection repair of the closed v4 epoch.
+
+    It binds the exact immutable v4 bytes and authenticates the terminal PAPR
+    completion that proves the predecessor produced exactly one closed
+    validation-only lifecycle.  The declared zero selection/authority/unit/G-12
+    counts are freeze-boundary facts; ``assert_v5_freeze_boundary`` enforces
+    them when the manifest is built, and this verifier enforces that they were
+    declared and that the bound predecessor bytes still authenticate.
+    """
+
+    transition = value.get("transition_from_v4")
+    _require(isinstance(transition, Mapping), "W10 v5 transition record is missing")
+    predecessor_path = successor_path(root, epoch="v4")
+    _require(predecessor_path.is_file() and not predecessor_path.is_symlink(), "W10 v5 predecessor manifest is missing")
+    raw = predecessor_path.read_bytes()
+    predecessor = json.loads(raw)
+    _require(transition.get("path") == W10_V4_SOURCE_PATH, "W10 v5 predecessor path differs")
+    _require(
+        transition.get("manifest_kind") == W10_V4_MANIFEST_KIND
+        and predecessor.get("manifest_kind") == W10_V4_MANIFEST_KIND,
+        "W10 v5 predecessor kind differs",
+    )
+    _require(
+        transition.get("manifest_id") == predecessor.get("manifest_id") == W10_V4_MANIFEST_ID,
+        "W10 v5 predecessor ID differs",
+    )
+    _require(
+        transition.get("sha256") == hashlib.sha256(raw).hexdigest() == W10_V4_MANIFEST_SHA256,
+        "W10 v5 predecessor bytes differ",
+    )
+    _require(
+        transition.get("source_commit") == predecessor.get("source_commit") == W10_V4_SOURCE_COMMIT,
+        "W10 v5 predecessor source commit differs",
+    )
+    _require(transition.get("transition_kind") == W10_V5_TRANSITION_KIND, "W10 v5 transition kind differs")
+    _require(transition.get("repair_reason") == W10_V5_REPAIR_REASON, "W10 v5 repair reason differs")
+    _require(
+        transition.get("predecessor_papr_constrained_training_runs") == 1,
+        "W10 v5 must record exactly one closed PAPR training lifecycle",
+    )
+    _require(
+        transition.get("jpeg_validation_selection_count") == 0
+        and transition.get("er12_validation_selection_count") == 0,
+        "W10 v5 must record a pre-selection freeze",
+    )
+    _require(
+        transition.get("w10_authority_frozen") is False
+        and transition.get("w10_scientific_units") == 0
+        and transition.get("g12_freeze_manifest") is False
+        and transition.get("test") == "SEALED"
+        and transition.get("test_access") == 0,
+        "W10 v5 transition is not pre-future-work",
+    )
+    completion_path = root / PAPR_COMPLETION_SOURCE_PATH
+    _require(completion_path.is_file() and not completion_path.is_symlink(), "W10 v5 PAPR completion evidence is missing")
+    completion_raw = completion_path.read_bytes()
+    completion = json.loads(completion_raw)
+    completion_body = dict(completion)
+    completion_identifier = completion_body.pop("completion_id", None)
+    _require(
+        completion_identifier == PAPR_COMPLETION_PREFIX + canonical_sha256(completion_body),
+        "W10 v5 PAPR completion ID differs",
+    )
+    _require(
+        transition.get("predecessor_papr_completion_path") == PAPR_COMPLETION_SOURCE_PATH,
+        "W10 v5 PAPR completion path differs",
+    )
+    _require(
+        completion_identifier == transition.get("predecessor_papr_completion_id") == PAPR_COMPLETION_ID,
+        "W10 v5 PAPR completion ID binding differs",
+    )
+    _require(
+        transition.get("predecessor_papr_completion_sha256") == hashlib.sha256(completion_raw).hexdigest() == PAPR_COMPLETION_SHA256,
+        "W10 v5 PAPR completion bytes differ",
+    )
+    _require(completion.get("training_runs") == 1, "W10 v5 PAPR completion run count differs")
+    _require(
+        completion.get("test") == "SEALED" and completion.get("test_access") == 0,
+        "W10 v5 PAPR completion crossed the test boundary",
+    )
+    _require(completion.get("epochs") == PAPR_EPOCH_COUNT, "W10 v5 PAPR completion epoch count differs")
+    _require(
+        completion.get("source_manifest") == source_record(root, predecessor, path=predecessor_path)
+        and completion.get("scientific_source_commit") == W10_V4_SOURCE_COMMIT,
+        "W10 v5 PAPR completion source epoch differs",
+    )
+
+
 def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = None) -> dict[str, Any]:
     if path is None:
         kind = str(manifest.get("manifest_kind"))
@@ -307,6 +516,7 @@ def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = N
             W10_V2_MANIFEST_KIND: W10_V2_SOURCE_PATH,
             W10_V3_MANIFEST_KIND: W10_V3_SOURCE_PATH,
             W10_V4_MANIFEST_KIND: W10_V4_SOURCE_PATH,
+            W10_V5_MANIFEST_KIND: W10_V5_SOURCE_PATH,
         }
         candidate = root / candidates[kind]
         if not candidate.is_file():
@@ -458,6 +668,110 @@ def build_w10_manifest_v4(root: Path, *, source_commit: str) -> dict[str, Any]:
     return base
 
 
+def assert_v5_freeze_boundary(root: Path) -> None:
+    """Successor-v5 may only be frozen while the post-PAPR frontier is untouched.
+
+    These are freeze-time facts, not live-verification requirements: once the
+    JPEG/ER-12 selections and the W10 authority exist they are legitimate work
+    under this same epoch, and the historical v5 transition record simply keeps
+    saying that none of them existed when it froze.
+    """
+
+    root = Path(root)
+    for relative, label in (
+        (W10_JPEG_SELECTION_SOURCE_PATH, "JPEG-secondary validation selection"),
+        (W10_ER12_SELECTION_SOURCE_PATH, "ER-12 validation selection"),
+        (W10_AUTHORITY_SOURCE_PATH, "W10 rehearsal authority"),
+        (W10_CLOSEOUT_SOURCE_PATH, "W10 rehearsal closeout"),
+        (W10_RUNTIME_SOURCE_PATH, "W10 rehearsal runtime"),
+        (G12_FREEZE_MANIFEST_SOURCE_PATH, "G-12 test freeze manifest"),
+    ):
+        path = root / relative
+        _require(
+            not path.exists() and not path.is_symlink(),
+            f"{label} already exists at the successor-v5 freeze boundary",
+        )
+
+
+def build_w10_manifest_v5(root: Path, *, source_commit: str) -> dict[str, Any]:
+    """Build the post-PAPR/pre-selection repair of the closed v4 epoch.
+
+    The predecessor is recorded as ``transition_from_v4``, deliberately not as
+    ``superseded_successor``: v4 was *not* superseded before science.  It
+    produced the one closed PAPR-constrained training lifecycle, and v5 records
+    that truth while binding the exact immutable v4 bytes and the terminal PAPR
+    completion evidence.
+    """
+
+    root = Path(root)
+    base = build_manifest(
+        root,
+        source_commit=source_commit,
+        relevant_config_paths=W10_RELEVANT_CONFIG_PATHS,
+    )
+    base.pop("manifest_id")
+    base["manifest_kind"] = W10_V5_MANIFEST_KIND
+    base["historical_w9_downstream_manifest"] = {
+        "path": HISTORICAL_SOURCE_PATH,
+        "source_commit": HISTORICAL_SOURCE_COMMIT,
+        "manifest_id": "w9downstreamsource-89bdc14e154a6a9e9d4ea3ba75fc05f5b4cff6474cb3e2e3133fd21c48d5da33",
+    }
+    predecessor_path = successor_path(root, epoch="v4")
+    _require(predecessor_path.is_file() and not predecessor_path.is_symlink(), "W10 v5 requires the frozen v4 predecessor")
+    predecessor_raw = predecessor_path.read_bytes()
+    predecessor = json.loads(predecessor_raw)
+    _require(predecessor.get("manifest_kind") == W10_V4_MANIFEST_KIND, "W10 v5 predecessor is not the v4 epoch")
+    _require(predecessor.get("manifest_id") == W10_V4_MANIFEST_ID, "W10 v5 predecessor is not the closed v4 epoch")
+    _require(hashlib.sha256(predecessor_raw).hexdigest() == W10_V4_MANIFEST_SHA256, "W10 v5 predecessor bytes differ")
+    _require(predecessor.get("source_commit") == W10_V4_SOURCE_COMMIT, "W10 v5 predecessor source commit differs")
+    completion_path = root / PAPR_COMPLETION_SOURCE_PATH
+    _require(completion_path.is_file() and not completion_path.is_symlink(), "W10 v5 requires the closed PAPR completion evidence")
+    completion_raw = completion_path.read_bytes()
+    completion = json.loads(completion_raw)
+    completion_body = dict(completion)
+    completion_identifier = completion_body.pop("completion_id", None)
+    _require(
+        completion_identifier == PAPR_COMPLETION_PREFIX + canonical_sha256(completion_body),
+        "W10 v5 PAPR completion ID differs",
+    )
+    _require(completion_identifier == PAPR_COMPLETION_ID, "W10 v5 PAPR completion is not the closed lifecycle")
+    _require(hashlib.sha256(completion_raw).hexdigest() == PAPR_COMPLETION_SHA256, "W10 v5 PAPR completion bytes differ")
+    _require(
+        completion.get("training_runs") == 1
+        and completion.get("test") == "SEALED"
+        and completion.get("test_access") == 0,
+        "W10 v5 PAPR completion is not a closed validation-only lifecycle",
+    )
+    assert_v5_freeze_boundary(root)
+    base["transition_from_v4"] = {
+        "path": W10_V4_SOURCE_PATH,
+        "manifest_kind": W10_V4_MANIFEST_KIND,
+        "manifest_id": predecessor["manifest_id"],
+        "sha256": hashlib.sha256(predecessor_raw).hexdigest(),
+        "source_commit": predecessor["source_commit"],
+        "transition_kind": W10_V5_TRANSITION_KIND,
+        "predecessor_papr_constrained_training_runs": 1,
+        "predecessor_papr_completion_path": PAPR_COMPLETION_SOURCE_PATH,
+        "predecessor_papr_completion_id": completion["completion_id"],
+        "predecessor_papr_completion_sha256": hashlib.sha256(completion_raw).hexdigest(),
+        "jpeg_validation_selection_count": 0,
+        "er12_validation_selection_count": 0,
+        "w10_authority_frozen": False,
+        "w10_scientific_units": 0,
+        "g12_freeze_manifest": False,
+        "test": "SEALED",
+        "test_access": 0,
+        "repair_reason": W10_V5_REPAIR_REASON,
+    }
+    base["allowed_evidence_runtime_prefixes"] = list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
+    base["governs"] = list(W10_GOVERNS)
+    base["pre_future_work_state"] = dict(W10_V5_PRE_FUTURE_WORK_STATE)
+    base["manifest_id"] = W10_V5_MANIFEST_PREFIX + hashlib.sha256(
+        (json.dumps(base, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
+    ).hexdigest()
+    return base
+
+
 def assert_clean_active_source_closure(root: Path, authority: Mapping[str, Any]) -> dict[str, Any]:
     """Live worktree closure against one manifest's own commit and trees."""
 
@@ -478,27 +792,80 @@ def assert_clean_active_source_closure(root: Path, authority: Mapping[str, Any])
     return {"committed": committed, **working}
 
 
+def assert_successor_lineage(
+    root: Path,
+    historical: Mapping[str, Any],
+    *,
+    successor: Mapping[str, Any] | None = None,
+) -> Mapping[str, Any]:
+    """Prove the active successor chain reaches one exact historical epoch.
+
+    Every successor names its predecessor's manifest ID, kind, SHA-256 and
+    source commit.  Walking the chain makes the current epoch answerable to the
+    historical one instead of merely declaring it, and the predecessor bytes are
+    re-hashed from the worktree rather than trusted from the record.
+    """
+
+    current = dict(successor) if successor is not None else load_w10_manifest(root, live=True)
+    target = str(historical.get("manifest_id", ""))
+    _require(bool(target), "historical epoch has no manifest ID")
+    seen: set[str] = set()
+    for _ in range(len(W10_EPOCHS)):
+        if str(current.get("manifest_id")) == target:
+            return current
+        identifier = str(current.get("manifest_id"))
+        _require(identifier not in seen, "active successor lineage contains a cycle")
+        seen.add(identifier)
+        predecessor = predecessor_binding(current)
+        _require(isinstance(predecessor, Mapping), "active successor does not declare its predecessor epoch")
+        if str(predecessor.get("manifest_id")) == target:
+            epoch = epoch_for_kind(str(predecessor.get("manifest_kind")))
+            path = successor_path(root, epoch=epoch)
+            _require(path.is_file() and not path.is_symlink(), "historical successor manifest is missing")
+            _require(
+                predecessor.get("sha256") == hashlib.sha256(path.read_bytes()).hexdigest(),
+                "historical successor manifest bytes differ",
+            )
+            _require(predecessor.get("source_commit") == historical.get("source_commit"), "historical successor source commit differs")
+            return current
+        epoch = epoch_for_kind(str(predecessor.get("manifest_kind")))
+        current = load_w10_manifest(root, live=False, epoch=epoch)
+    raise SourceEpochHold("active successor lineage does not reach the historical epoch")
+
+
 def assert_active_epoch_closure(root: Path, historical: Mapping[str, Any]) -> None:
     """Closed-authority closure: historical bytes plus live active closure.
 
-    The historical v4 manifest promised that no protected source would change
-    after its commit.  A successor epoch is exactly that permitted change, so
-    the live check moves to the active successor while the historical manifest
-    is still authenticated against its own commit and never rewritten.
+    The historical manifest promised that no protected source would change after
+    its commit.  A successor epoch is exactly that permitted change, so the live
+    check moves to the active successor while the historical manifest is still
+    authenticated against its own commit and never rewritten.  The active
+    successor must also prove an authenticated lineage back to the historical
+    epoch: a bare path mention is not enough.
     """
 
     assert_manifest_commit_bytes(root, historical)
     active = active_manifest_path(root)
-    if active.is_file() and not active.is_symlink():
-        successor = load_w10_manifest(root, live=True)
-        _require(
-            successor.get("historical_w9_downstream_manifest", {}).get("path") == HISTORICAL_SOURCE_PATH,
-            "active successor does not name the historical epoch",
-        )
-    else:
+    if not (active.is_file() and not active.is_symlink()):
         from runtime.source_guard import assert_clean_source_closure  # noqa: PLC0415
 
         assert_clean_source_closure(root, historical)
+        return
+    successor = load_w10_manifest(root, live=True)
+    if str(historical.get("manifest_id")) == str(successor.get("manifest_id")):
+        # The historical epoch is itself the active one; its live closure was
+        # just authenticated by ``load_w10_manifest``.
+        return
+    if str(historical.get("manifest_kind", "")).startswith("W10_PREPARATORY_SOURCE_SUCCESSOR"):
+        assert_successor_lineage(root, historical, successor=successor)
+        return
+    binding = successor.get("historical_w9_downstream_manifest")
+    _require(
+        isinstance(binding, Mapping) and binding.get("path") == HISTORICAL_SOURCE_PATH,
+        "active successor does not name the historical epoch",
+    )
+    _require(binding.get("manifest_id") == historical.get("manifest_id"), "active successor does not bind the historical manifest ID")
+    _require(binding.get("source_commit") == historical.get("source_commit"), "active successor does not bind the historical source commit")
 
 
 __all__ = [
@@ -519,19 +886,33 @@ __all__ = [
     "W10_V3_MANIFEST_PREFIX",
     "W10_V3_SOURCE_PATH",
     "W10_V4_MANIFEST_KIND",
+    "W10_V4_MANIFEST_ID",
     "W10_V4_MANIFEST_PREFIX",
+    "W10_V4_MANIFEST_SHA256",
     "W10_V4_SOURCE_PATH",
+    "W10_V4_SOURCE_COMMIT",
+    "W10_V5_MANIFEST_KIND",
+    "W10_V5_MANIFEST_PREFIX",
+    "W10_V5_PRE_FUTURE_WORK_STATE",
+    "W10_V5_REPAIR_REASON",
+    "W10_V5_SOURCE_PATH",
+    "W10_V5_TRANSITION_KIND",
     "SourceEpochHold",
     "active_manifest_path",
     "assert_active_epoch_closure",
     "assert_clean_active_source_closure",
+    "assert_successor_lineage",
+    "assert_v5_freeze_boundary",
     "assert_w10_manifest_contract",
     "build_w10_manifest",
     "build_w10_manifest_v2",
     "build_w10_manifest_v3",
     "build_w10_manifest_v4",
+    "build_w10_manifest_v5",
+    "epoch_for_kind",
     "load_w10_manifest",
     "manifest_prefix",
+    "predecessor_binding",
     "source_record",
     "successor_path",
 ]

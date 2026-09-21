@@ -40,6 +40,7 @@ from evaluation.w10_selections import (
 from runtime.source_epochs import load_w10_manifest, source_record
 from runtime.w9_authority import authenticate_live_w9_pascal
 from evaluation.downstream_v4 import TITAN_XP_NAME, TITAN_XP_UUID
+from training.deterministic_core import canonical_sha256
 
 TARGET = REPO / JPEG_SELECTION_PATH
 K = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{HEADLINE_RATIO}"))

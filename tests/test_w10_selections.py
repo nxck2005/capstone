@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,7 @@ from evaluation.w10_selections import (
     score_vector_digest,
     verify_selection_artifact,
 )
+from training.deterministic_core import canonical_sha256
 
 REPO = Path(__file__).resolve().parents[1]
 SYNTHETIC_MANIFEST = {
@@ -199,6 +201,70 @@ def test_jpeg_selection_generator_has_no_noisy_channel_simulation() -> None:
     assert "run_jpeg_pipeline" not in source
     assert "scheduled_noise_id" not in source
     assert "ER9Transport" not in source
+
+
+def _load_jpeg_generator_module():
+    """Import the frozen JPEG selector as a module, not as source text.
+
+    The failed 2026-09-21 launch died with ``NameError: canonical_sha256`` at
+    ``_score_candidate``'s emitted-byte digest, which no source-string assertion
+    can see.  Importing the module and executing that exact line is the
+    regression this test exists for.
+    """
+
+    path = REPO / "tools/gen_w10_jpeg_validation_selection.py"
+    spec = importlib.util.spec_from_file_location(
+        "gen_w10_jpeg_validation_selection_regression", path
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_jpeg_generator_binds_and_executes_canonical_sha256(monkeypatch) -> None:
+    generator = _load_jpeg_generator_module()
+    probe = {"emitted_bytes": [None, 3]}
+    assert generator.canonical_sha256(probe) == canonical_sha256(probe)
+
+    candidates = generator.jpeg_candidate_space(generator.REPO)
+    candidate = candidates[next(iter(candidates))][0]
+    captured: dict = {}
+
+    def _capture(root, entry, *, clean):
+        captured["clean"] = dict(clean)
+        return {
+            "schema_version": 1,
+            "method": "br4_analytic_composition",
+            "eligibility": "uncharacterized",
+            "composition": None,
+        }
+
+    monkeypatch.setattr(generator, "jpeg_analytic_evidence", _capture)
+
+    class _EmptyView:
+        stable_ids: tuple[str, ...] = ()
+
+    entry, correct = generator._score_candidate(
+        view=_EmptyView(),
+        classifier=None,
+        policy=None,
+        codec=None,
+        snr_db=int(candidate["snr_db"]),
+        phy=candidate,
+        quality=int(candidate["quality"]),
+        device="cpu",
+        source_epoch={
+            "path": "results/learned/w10/w10_downstream_source_manifest_v5.json",
+            "manifest_id": "synthetic",
+            "sha256": "0" * 64,
+        },
+    )
+    assert correct == []
+    assert entry["n_total"] == 0
+    assert entry["analytic_evidence"]["method"] == "br4_analytic_composition"
+    # The exact digest line that raised NameError during the failed launch.
+    assert captured["clean"]["emitted_bytes_digest"] == canonical_sha256({"emitted_bytes": []})
+    assert entry["candidate_evidence"]["source_epoch"]["manifest_id"] == "synthetic"
 
 
 def test_rank_keys_are_total_and_tie_ordered() -> None:

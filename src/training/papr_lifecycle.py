@@ -29,7 +29,12 @@ from evaluation.w8_validation import (
     W8_VALIDATION_SAMPLE_COUNT,
     select_checkpoint_epoch,
 )
-from runtime.source_epochs import load_w10_manifest, source_record
+from runtime.source_epochs import (
+    assert_active_epoch_closure,
+    epoch_for_kind,
+    load_w10_manifest,
+    source_record,
+)
 from runtime.source_guard import committed_source_differences, git_tree_hashes
 from training.papr_constrained import (
     PAPR_AUTHORITY_PATH,
@@ -185,18 +190,48 @@ def execution_commit_for(root: Path, authority_path: Path) -> str:
     return commit
 
 
-def assert_authority_source_closure(
-    root: Path, authority: Mapping[str, Any], execution_commit: str
-) -> dict[str, Any]:
-    """The execution commit's protected source must equal the frozen epoch."""
+def _authority_source_epoch(root: Path, authority: Mapping[str, Any]) -> dict[str, Any]:
+    """The authority's own historical epoch, authenticated from its bytes.
 
-    manifest = load_w10_manifest(root, live=True)
+    The closed PAPR authority executed under the immutable v4 epoch.  A later
+    successor (v5) governs new work but must never rewrite this binding, so the
+    authority is authenticated against *its own* epoch; the live active epoch is
+    authenticated separately by ``assert_active_epoch_closure``.
+    """
+
+    embedded = authority.get("source_binding")
+    _require(isinstance(embedded, Mapping), "PAPR authority source binding is missing")
+    epoch = epoch_for_kind(str(embedded.get("manifest_kind")))
+    historical = load_w10_manifest(root, live=False, epoch=epoch)
     _require(
-        authority.get("source_manifest") == source_record(root, manifest),
+        dict(embedded) == historical,
+        "PAPR authority source binding differs from its historical epoch bytes",
+    )
+    return historical
+
+
+def assert_authority_source_closure(
+    root: Path,
+    authority: Mapping[str, Any],
+    execution_commit: str,
+    *,
+    historical: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """The execution commit's protected source must equal the authority's epoch.
+
+    The closure is against the epoch the authority actually executed under
+    (v4 for the closed PAPR lifecycle), never against a later successor that
+    merely declares it.  The active successor is authenticated separately.
+    """
+
+    if historical is None:
+        historical = _authority_source_epoch(root, authority)
+    _require(
+        authority.get("source_manifest") == source_record(root, historical),
         "PAPR authority source manifest binding differs",
     )
-    _require(authority.get("source_commit") == manifest["source_commit"], "PAPR authority source commit differs")
-    source_commit = str(manifest["source_commit"])
+    _require(authority.get("source_commit") == historical["source_commit"], "PAPR authority source commit differs")
+    source_commit = str(historical["source_commit"])
     ancestor = subprocess.run(
         ["git", "merge-base", "--is-ancestor", source_commit, execution_commit],
         cwd=root,
@@ -208,10 +243,10 @@ def assert_authority_source_closure(
         "PAPR execution commit changed protected source since the frozen epoch",
     )
     _require(
-        git_tree_hashes(root, source_commit) == dict(manifest["tree_hashes"]),
+        git_tree_hashes(root, source_commit) == dict(historical["tree_hashes"]),
         "PAPR frozen-epoch Git tree closure differs",
     )
-    return manifest
+    return dict(historical)
 
 
 def verify_papr_authority(
@@ -296,13 +331,14 @@ def verify_papr_authority(
         "PAPR authority protocol differs from the frozen projected recipe/source",
     )
     if require_live_source:
-        manifest = load_w10_manifest(root, live=True)
-        _require(
-            value.get("source_binding") == manifest,
-            "PAPR authority source binding differs from the active frozen source epoch",
-        )
+        # The closed authority authenticates its own historical epoch bytes
+        # (v4), the exact protected source at its execution commit, the current
+        # active successor independently, and a lineage connecting them.  The
+        # authority is never rebound to a later successor.
+        historical = _authority_source_epoch(root, value)
         execution_commit = execution_commit_for(root, path)
-        assert_authority_source_closure(root, value, execution_commit)
+        assert_authority_source_closure(root, value, execution_commit, historical=historical)
+        assert_active_epoch_closure(root, historical)
     return value
 
 
@@ -807,7 +843,8 @@ def verify_papr_terminal(
     path = Path(authority_path) if authority_path is not None else root / PAPR_AUTHORITY_PATH
     authority = verify_papr_authority(root, path)
     execution_commit = execution_commit_for(root, path)
-    assert_authority_source_closure(root, authority, execution_commit)
+    historical = assert_authority_source_closure(root, authority, execution_commit)
+    active = load_w10_manifest(root, live=True)
     chain = verify_epoch_chain(
         root,
         authority,
@@ -868,6 +905,8 @@ def verify_papr_terminal(
     return {
         "authority_id": authority["authority_id"],
         "execution_commit": execution_commit,
+        "authority_source_epoch": source_record(root, historical),
+        "active_source_epoch": source_record(root, active),
         "selection_id": stored["selection_id"],
         "completion_id": completion["completion_id"],
         "selected_epoch": selected_epoch,

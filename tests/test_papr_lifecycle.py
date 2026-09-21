@@ -211,7 +211,7 @@ def _synthetic_manifest(root: Path) -> dict:
 
 def _synthetic_authority(root: Path, monkeypatch) -> dict:
     manifest = _synthetic_manifest(root)
-    monkeypatch.setattr(lifecycle, "load_w10_manifest", lambda _root, live=True: manifest)
+    monkeypatch.setattr(lifecycle, "load_w10_manifest", lambda _root, live=True, epoch=None: manifest)
     monkeypatch.setattr(lifecycle, "source_record", lambda _root, _manifest, path=None: source_record(root, manifest))
     authority_path = root / "results/learned/w10/papr_training_authorization.json"
     config = load_papr_config()
@@ -254,6 +254,11 @@ def _synthetic_authority(root: Path, monkeypatch) -> dict:
     publish_immutable_json(authority_path, body)
     monkeypatch.setattr(lifecycle, "execution_commit_for", lambda _root, _path: "a" * 40)
     monkeypatch.setattr(lifecycle, "assert_authority_source_closure", lambda *_a, **_k: manifest)
+    # The live active-epoch closure needs a real Git history; the synthetic
+    # lifecycle tests exercise the authority contract and the terminal chain,
+    # while the real repository test in tests/test_w10_source_epochs.py proves
+    # the historical-v4/active-successor closure end to end.
+    monkeypatch.setattr(lifecycle, "assert_active_epoch_closure", lambda *_a, **_k: None)
     return body
 
 
@@ -724,7 +729,7 @@ def test_papr_execution_commit_closure_requires_protected_source_equality(
 
     manifest["source_commit"] = source_commit
     manifest["tree_hashes"] = git_tree_hashes(repo, source_commit)
-    monkeypatch.setattr(lifecycle, "load_w10_manifest", lambda _root, live=True: manifest)
+    monkeypatch.setattr(lifecycle, "load_w10_manifest", lambda _root, live=True, epoch=None: manifest)
 
     authority_path = repo / "evidence/authority.json"
     authority_path.parent.mkdir(parents=True)
@@ -732,8 +737,12 @@ def test_papr_execution_commit_closure_requires_protected_source_equality(
     subprocess.run(["git", "add", "."], cwd=repo, check=True)
     subprocess.run(["git", "commit", "-qm", "evidence"], cwd=repo, check=True)
     execution_commit = lifecycle.execution_commit_for(repo, authority_path)
-    authority = {"source_manifest": source_record(repo, manifest), "source_commit": source_commit}
-    lifecycle.assert_authority_source_closure(repo, authority, execution_commit)
+    authority = {
+        "source_binding": manifest,
+        "source_manifest": source_record(repo, manifest),
+        "source_commit": source_commit,
+    }
+    assert lifecycle.assert_authority_source_closure(repo, authority, execution_commit) == manifest
 
     # A protected change carried by the authority's own execution commit is refused.
     (repo / "src/example.py").write_text("value = 2\n")
