@@ -18,6 +18,12 @@ immutable v4 bytes and the terminal PAPR completion as a dedicated
 ``transition_from_v4`` record, records the honest post-PAPR/pre-future-work
 state (one closed lifecycle, zero selections, zero W10 work, test sealed), and
 never claims that v4 was superseded before science.
+
+Successor-v6 is the post-JPEG/pre-ER-12 custody and source repair.  It binds
+the completed JPEG selection executed under historical v5, its lossless
+publication carrier and descriptor, and the unchanged v5 bytes.  It records
+one closed JPEG selection while keeping ER-12, W10 units, W10 authority, G-12
+and test access unopened.
 """
 
 from __future__ import annotations
@@ -53,20 +59,25 @@ W10_V4_MANIFEST_PREFIX = "w10downstreamsourcev4-"
 W10_V5_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v5.json"
 W10_V5_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V5"
 W10_V5_MANIFEST_PREFIX = "w10downstreamsourcev5-"
+W10_V6_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v6.json"
+W10_V6_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V6"
+W10_V6_MANIFEST_PREFIX = "w10downstreamsourcev6-"
 W10_MANIFEST_KINDS = (
     W10_MANIFEST_KIND,
     W10_V2_MANIFEST_KIND,
     W10_V3_MANIFEST_KIND,
     W10_V4_MANIFEST_KIND,
     W10_V5_MANIFEST_KIND,
+    W10_V6_MANIFEST_KIND,
 )
-W10_EPOCHS = ("v1", "v2", "v3", "v4", "v5")
+W10_EPOCHS = ("v1", "v2", "v3", "v4", "v5", "v6")
 _EPOCH_FOR_KIND = {
     W10_MANIFEST_KIND: "v1",
     W10_V2_MANIFEST_KIND: "v2",
     W10_V3_MANIFEST_KIND: "v3",
     W10_V4_MANIFEST_KIND: "v4",
     W10_V5_MANIFEST_KIND: "v5",
+    W10_V6_MANIFEST_KIND: "v6",
 }
 HISTORICAL_SOURCE_PATH = "results/learned/w9/downstream_source_manifest_v4.json"
 HISTORICAL_SOURCE_COMMIT = "22fde3e0ba0c8ad7a92356587eb95780ded89ee6"
@@ -84,6 +95,15 @@ PAPR_COMPLETION_SHA256 = "ced0e6a955071252863558dd9b1db41fc93d408435cdb2131d729e
 PAPR_EPOCH_COUNT = 100  # literal-ok: closed PAPR lifecycle epoch count
 W10_V5_TRANSITION_KIND = "post_papr_pre_selection_source_repair"
 W10_V5_REPAIR_REASON = "jpeg_selector_missing_canonical_sha256_import"
+W10_V5_MANIFEST_ID = "w10downstreamsourcev5-00e19a1c1fbf0a6052347a58db57d7236e1efde9914a978e3b45408844339652"
+W10_V5_MANIFEST_SHA256 = "4fe35441999bc5771fa6fea10692378eab76ce6e5ac626d68202d80802c81ae3"
+W10_V5_SOURCE_COMMIT = "1e0d26e8f12b791aa4ba099dc3488111e1342880"
+W10_V6_TRANSITION_KIND = "post_jpeg_pre_er12_source_repair"
+W10_V6_REPAIR_REASONS = (
+    "jpeg_analytic_packet_metadata_json_normalization",
+    "jpeg_selection_lossless_publication_carrier",
+    "post_jpeg_clean_checkout_for_er12",
+)
 
 # Successor-v5 must freeze before any of these post-PAPR artifacts can exist.
 # They are freeze-time facts recorded in the transition; they are deliberately
@@ -100,6 +120,18 @@ W10_V5_PRE_FUTURE_WORK_STATE = {
     "papr_constrained_training_runs": 1,
     "papr_lifecycle_closed": True,
     "jpeg_validation_selection_count": 0,
+    "er12_validation_selection_count": 0,
+    "w10_authority_frozen": False,
+    "w10_scientific_units": 0,
+    "g12_freeze_manifest": False,
+    "test": "SEALED",
+    "test_access": 0,
+}
+W10_V6_PRE_FUTURE_WORK_STATE = {
+    "papr_constrained_training_runs": 1,
+    "papr_lifecycle_closed": True,
+    "jpeg_validation_selection_count": 1,
+    "jpeg_validation_selection_closed": True,
     "er12_validation_selection_count": 0,
     "w10_authority_frozen": False,
     "w10_scientific_units": 0,
@@ -199,6 +231,7 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
         W10_V3_MANIFEST_KIND,
         W10_V4_MANIFEST_KIND,
         W10_V5_MANIFEST_KIND,
+        W10_V6_MANIFEST_KIND,
     }:
         _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 successor evidence boundary differs")
     else:
@@ -258,6 +291,33 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
             and dict(manifest["pre_future_work_state"]) == W10_V5_PRE_FUTURE_WORK_STATE,
             "W10 v5 pre-future-work state differs",
         )
+    elif manifest.get("manifest_kind") == W10_V6_MANIFEST_KIND:
+        _require("pre_science_state" not in manifest, "W10 v6 must not reuse the zero-science pre-science state")
+        _require("superseded_successor" not in manifest, "W10 v6 must not claim a zero-science supersession")
+        transition = manifest.get("transition_from_v5")
+        _require(isinstance(transition, Mapping), "W10 v6 transition record is missing")
+        _require(transition.get("transition_kind") == W10_V6_TRANSITION_KIND, "W10 v6 transition kind differs")
+        _require(
+            transition.get("repair_reasons") == list(W10_V6_REPAIR_REASONS),
+            "W10 v6 repair reasons differ",
+        )
+        _require(
+            transition.get("predecessor_papr_constrained_training_runs") == 1
+            and transition.get("jpeg_validation_selection_count") == 1
+            and transition.get("jpeg_validation_selection_closed") is True
+            and transition.get("er12_validation_selection_count") == 0
+            and transition.get("w10_authority_frozen") is False
+            and transition.get("w10_scientific_units") == 0
+            and transition.get("g12_freeze_manifest") is False
+            and transition.get("test") == "SEALED"
+            and transition.get("test_access") == 0,
+            "W10 v6 JPEG selection count/transition is not post-JPEG/pre-ER-12",
+        )
+        _require(
+            isinstance(manifest.get("pre_future_work_state"), Mapping)
+            and dict(manifest["pre_future_work_state"]) == W10_V6_PRE_FUTURE_WORK_STATE,
+            "W10 v6 pre-future-work state differs",
+        )
     else:
         _require(
             isinstance(pre_science, Mapping)
@@ -280,12 +340,15 @@ def successor_path(root: Path, *, epoch: str = "v2") -> Path:
         "v3": W10_V3_SOURCE_PATH,
         "v4": W10_V4_SOURCE_PATH,
         "v5": W10_V5_SOURCE_PATH,
+        "v6": W10_V6_SOURCE_PATH,
     }
     _require(epoch in names, f"unknown W10 successor epoch: {epoch}")
     return Path(root) / names[epoch]
 
 
 def manifest_prefix(kind: str) -> str:
+    if kind == W10_V6_MANIFEST_KIND:
+        return W10_V6_MANIFEST_PREFIX
     if kind == W10_V5_MANIFEST_KIND:
         return W10_V5_MANIFEST_PREFIX
     if kind == W10_V4_MANIFEST_KIND:
@@ -317,13 +380,15 @@ def predecessor_binding(manifest: Mapping[str, Any]) -> Mapping[str, Any] | None
         value = manifest.get("superseded_successor")
     elif kind == W10_V5_MANIFEST_KIND:
         value = manifest.get("transition_from_v4")
+    elif kind == W10_V6_MANIFEST_KIND:
+        value = manifest.get("transition_from_v5")
     else:
         value = None
     return value if isinstance(value, Mapping) else None
 
 
 def active_manifest_path(root: Path) -> Path:
-    for epoch in ("v5", "v4", "v3", "v2"):
+    for epoch in ("v6", "v5", "v4", "v3", "v2"):
         candidate = successor_path(root, epoch=epoch)
         if candidate.is_file() and not candidate.is_symlink():
             return candidate
@@ -348,6 +413,8 @@ def load_w10_manifest(root: Path, *, live: bool = True, epoch: str | None = None
         _require_w10_v4_supersession(root, value)
     if kind == W10_V5_MANIFEST_KIND:
         _require_w10_v5_transition(root, value)
+    if kind == W10_V6_MANIFEST_KIND:
+        _require_w10_v6_transition(root, value)
     if live:
         assert_clean_active_source_closure(root, value)
     return value
@@ -508,6 +575,88 @@ def _require_w10_v5_transition(root: Path, value: Mapping[str, Any]) -> None:
     )
 
 
+def _require_w10_v6_transition(root: Path, value: Mapping[str, Any]) -> None:
+    """Authenticate v6's exact v5 predecessor and completed JPEG carrier."""
+
+    from evaluation.w10_jpeg_carrier import (
+        JPEG_CARRIER_DESCRIPTOR_PATH,
+        JPEG_CARRIER_PATH,
+        JPEG_SELECTION_CONTRACT_SHA256,
+        JPEG_SELECTION_ID,
+        JPEG_SELECTION_RAW_BYTES,
+        JPEG_SELECTION_RAW_SHA256,
+        JPEG_SELECTION_SOURCE_RECORD,
+        check_jpeg_carrier,
+    )
+
+    transition = value.get("transition_from_v5")
+    _require(isinstance(transition, Mapping), "W10 v6 transition record is missing")
+    predecessor_path = successor_path(root, epoch="v5")
+    _require(predecessor_path.is_file() and not predecessor_path.is_symlink(), "W10 v6 predecessor manifest is missing")
+    predecessor_raw = predecessor_path.read_bytes()
+    predecessor = json.loads(predecessor_raw)
+    _require(transition.get("path") == W10_V5_SOURCE_PATH, "W10 v6 predecessor path differs")
+    _require(
+        transition.get("manifest_kind") == W10_V5_MANIFEST_KIND
+        and predecessor.get("manifest_kind") == W10_V5_MANIFEST_KIND,
+        "W10 v6 predecessor kind differs",
+    )
+    _require(
+        transition.get("manifest_id") == predecessor.get("manifest_id") == W10_V5_MANIFEST_ID,
+        "W10 v6 predecessor ID differs",
+    )
+    _require(
+        transition.get("sha256") == hashlib.sha256(predecessor_raw).hexdigest() == W10_V5_MANIFEST_SHA256,
+        "W10 v6 predecessor bytes differ",
+    )
+    _require(
+        transition.get("source_commit") == predecessor.get("source_commit") == W10_V5_SOURCE_COMMIT,
+        "W10 v6 predecessor source commit differs",
+    )
+    _require(transition.get("transition_kind") == W10_V6_TRANSITION_KIND, "W10 v6 transition kind differs")
+    _require(transition.get("repair_reasons") == list(W10_V6_REPAIR_REASONS), "W10 v6 repair reasons differ")
+    _require(transition.get("jpeg_validation_selection_count") == 1, "W10 v6 JPEG selection count differs")
+    _require(transition.get("jpeg_validation_selection_closed") is True, "W10 v6 JPEG selection is not closed")
+    _require(transition.get("er12_validation_selection_count") == 0, "W10 v6 ER-12 selection count differs")
+    _require(transition.get("w10_authority_frozen") is False, "W10 v6 authority state differs")
+    _require(transition.get("w10_scientific_units") == 0, "W10 v6 scientific unit count differs")
+    _require(transition.get("g12_freeze_manifest") is False, "W10 v6 G-12 state differs")
+    _require(transition.get("test") == "SEALED" and transition.get("test_access") == 0, "W10 v6 transition crossed the test boundary")
+    loaded = check_jpeg_carrier(root)
+    provenance = loaded.provenance
+    _require(loaded.value.get("selection_id") == JPEG_SELECTION_ID, "W10 v6 JPEG selection ID differs")
+    _require(loaded.value.get("contract_sha256") == JPEG_SELECTION_CONTRACT_SHA256, "W10 v6 JPEG contract differs")
+    _require(loaded.value.get("source_epoch") == JPEG_SELECTION_SOURCE_RECORD, "W10 v6 JPEG source epoch differs")
+    _require(provenance.get("raw_sha256") == JPEG_SELECTION_RAW_SHA256, "W10 v6 JPEG raw SHA differs")
+    _require(provenance.get("raw_bytes") == JPEG_SELECTION_RAW_BYTES, "W10 v6 JPEG raw byte count differs")
+    _require(provenance.get("carrier_path") == JPEG_CARRIER_PATH, "W10 v6 JPEG carrier path differs")
+    _require(provenance.get("carrier_descriptor_path") == JPEG_CARRIER_DESCRIPTOR_PATH, "W10 v6 JPEG descriptor path differs")
+    for field, expected in (
+        ("jpeg_validation_selection_id", JPEG_SELECTION_ID),
+        ("jpeg_validation_selection_contract_sha256", JPEG_SELECTION_CONTRACT_SHA256),
+        ("jpeg_validation_selection_raw_sha256", JPEG_SELECTION_RAW_SHA256),
+        ("jpeg_validation_selection_raw_bytes", JPEG_SELECTION_RAW_BYTES),
+        ("jpeg_validation_selection_source_epoch", JPEG_SELECTION_SOURCE_RECORD),
+        ("jpeg_validation_selection_carrier_path", JPEG_CARRIER_PATH),
+        ("jpeg_validation_selection_carrier_sha256", provenance.get("carrier_sha256")),
+        ("jpeg_validation_selection_carrier_bytes", provenance.get("carrier_bytes")),
+        ("jpeg_validation_selection_carrier_descriptor_path", JPEG_CARRIER_DESCRIPTOR_PATH),
+        ("jpeg_validation_selection_carrier_descriptor_id", provenance.get("carrier_descriptor_id")),
+        ("jpeg_validation_selection_carrier_descriptor_sha256", provenance.get("carrier_descriptor_sha256")),
+    ):
+        _require(transition.get(field) == expected, f"W10 v6 JPEG binding differs: {field}")
+
+
+def _v6_forbidden_paths(root: Path) -> tuple[tuple[str, str], ...]:
+    return (
+        (W10_ER12_SELECTION_SOURCE_PATH, "ER-12 validation selection"),
+        (W10_AUTHORITY_SOURCE_PATH, "W10 rehearsal authority"),
+        (W10_CLOSEOUT_SOURCE_PATH, "W10 rehearsal closeout"),
+        (W10_RUNTIME_SOURCE_PATH, "W10 rehearsal runtime"),
+        (G12_FREEZE_MANIFEST_SOURCE_PATH, "G-12 test freeze manifest"),
+    )
+
+
 def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = None) -> dict[str, Any]:
     if path is None:
         kind = str(manifest.get("manifest_kind"))
@@ -517,6 +666,7 @@ def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = N
             W10_V3_MANIFEST_KIND: W10_V3_SOURCE_PATH,
             W10_V4_MANIFEST_KIND: W10_V4_SOURCE_PATH,
             W10_V5_MANIFEST_KIND: W10_V5_SOURCE_PATH,
+            W10_V6_MANIFEST_KIND: W10_V6_SOURCE_PATH,
         }
         candidate = root / candidates[kind]
         if not candidate.is_file():
@@ -772,6 +922,105 @@ def build_w10_manifest_v5(root: Path, *, source_commit: str) -> dict[str, Any]:
     return base
 
 
+def assert_v6_freeze_boundary(root: Path) -> None:
+    """Require the post-JPEG/pre-ER-12 frontier before freezing v6."""
+
+    root = Path(root)
+    for relative, label in _v6_forbidden_paths(root):
+        path = root / relative
+        _require(
+            not path.exists() and not path.is_symlink(),
+            f"{label} already exists at the successor-v6 freeze boundary",
+        )
+    for relative in (PAPR_COMPLETION_SOURCE_PATH, "results/learned/w10/papr_selected_checkpoint.json", "results/learned/w10/papr_training_authorization.json"):
+        path = root / relative
+        if path.is_file() and not path.is_symlink():
+            try:
+                value = json.loads(path.read_bytes())
+            except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise SourceEpochHold(f"v6 freeze boundary evidence is corrupt: {relative}: {exc}") from None
+            _require(value.get("test_access") == 0 and value.get("test") == "SEALED", f"v6 freeze boundary test access differs: {relative}")
+
+
+def build_w10_manifest_v6(root: Path, *, source_commit: str) -> dict[str, Any]:
+    """Build the post-JPEG/pre-ER-12 successor over exact v5 and carrier bytes."""
+
+    from evaluation.w10_jpeg_carrier import (
+        JPEG_CARRIER_DESCRIPTOR_PATH,
+        JPEG_CARRIER_PATH,
+        JPEG_SELECTION_CONTRACT_SHA256,
+        JPEG_SELECTION_ID,
+        JPEG_SELECTION_RAW_BYTES,
+        JPEG_SELECTION_RAW_SHA256,
+        JPEG_SELECTION_SOURCE_RECORD,
+        check_jpeg_carrier,
+    )
+
+    root = Path(root)
+    base = build_manifest(
+        root,
+        source_commit=source_commit,
+        relevant_config_paths=W10_RELEVANT_CONFIG_PATHS,
+    )
+    base.pop("manifest_id")
+    base["manifest_kind"] = W10_V6_MANIFEST_KIND
+    base["historical_w9_downstream_manifest"] = {
+        "path": HISTORICAL_SOURCE_PATH,
+        "source_commit": HISTORICAL_SOURCE_COMMIT,
+        "manifest_id": "w9downstreamsource-89bdc14e154a6a9e9d4ea3ba75fc05f5b4cff6474cb3e2e3133fd21c48d5da33",
+    }
+    predecessor_path = successor_path(root, epoch="v5")
+    _require(predecessor_path.is_file() and not predecessor_path.is_symlink(), "W10 v6 requires the frozen v5 predecessor")
+    predecessor_raw = predecessor_path.read_bytes()
+    predecessor = json.loads(predecessor_raw)
+    _require(predecessor.get("manifest_kind") == W10_V5_MANIFEST_KIND, "W10 v6 predecessor is not the v5 epoch")
+    _require(predecessor.get("manifest_id") == W10_V5_MANIFEST_ID, "W10 v6 predecessor is not the exact v5 epoch")
+    _require(hashlib.sha256(predecessor_raw).hexdigest() == W10_V5_MANIFEST_SHA256, "W10 v6 predecessor bytes differ")
+    _require(predecessor.get("source_commit") == W10_V5_SOURCE_COMMIT, "W10 v6 predecessor source commit differs")
+    assert_v6_freeze_boundary(root)
+    loaded = check_jpeg_carrier(root)
+    provenance = loaded.provenance
+    predecessor_record = source_record(root, predecessor, path=predecessor_path)
+    _require(loaded.value.get("source_epoch") == predecessor_record == JPEG_SELECTION_SOURCE_RECORD, "W10 v6 JPEG historical source differs")
+    _require(loaded.value.get("selection_id") == JPEG_SELECTION_ID, "W10 v6 JPEG selection ID differs")
+    _require(loaded.value.get("contract_sha256") == JPEG_SELECTION_CONTRACT_SHA256, "W10 v6 JPEG contract differs")
+    transition = {
+        "path": W10_V5_SOURCE_PATH,
+        "manifest_kind": W10_V5_MANIFEST_KIND,
+        "manifest_id": predecessor["manifest_id"],
+        "sha256": hashlib.sha256(predecessor_raw).hexdigest(),
+        "source_commit": predecessor["source_commit"],
+        "transition_kind": W10_V6_TRANSITION_KIND,
+        "repair_reasons": list(W10_V6_REPAIR_REASONS),
+        "predecessor_papr_constrained_training_runs": 1,
+        "jpeg_validation_selection_count": 1,
+        "jpeg_validation_selection_closed": True,
+        "jpeg_validation_selection_id": JPEG_SELECTION_ID,
+        "jpeg_validation_selection_contract_sha256": JPEG_SELECTION_CONTRACT_SHA256,
+        "jpeg_validation_selection_raw_sha256": JPEG_SELECTION_RAW_SHA256,
+        "jpeg_validation_selection_raw_bytes": JPEG_SELECTION_RAW_BYTES,
+        "jpeg_validation_selection_source_epoch": JPEG_SELECTION_SOURCE_RECORD,
+        "jpeg_validation_selection_carrier_path": JPEG_CARRIER_PATH,
+        "jpeg_validation_selection_carrier_sha256": provenance["carrier_sha256"],
+        "jpeg_validation_selection_carrier_bytes": provenance["carrier_bytes"],
+        "jpeg_validation_selection_carrier_descriptor_path": JPEG_CARRIER_DESCRIPTOR_PATH,
+        "jpeg_validation_selection_carrier_descriptor_id": provenance["carrier_descriptor_id"],
+        "jpeg_validation_selection_carrier_descriptor_sha256": provenance["carrier_descriptor_sha256"],
+        "er12_validation_selection_count": 0,
+        "w10_authority_frozen": False,
+        "w10_scientific_units": 0,
+        "g12_freeze_manifest": False,
+        "test": "SEALED",
+        "test_access": 0,
+    }
+    base["transition_from_v5"] = transition
+    base["allowed_evidence_runtime_prefixes"] = list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
+    base["governs"] = list(W10_GOVERNS)
+    base["pre_future_work_state"] = dict(W10_V6_PRE_FUTURE_WORK_STATE)
+    base["manifest_id"] = W10_V6_MANIFEST_PREFIX + canonical_sha256(base)
+    return base
+
+
 def assert_clean_active_source_closure(root: Path, authority: Mapping[str, Any]) -> dict[str, Any]:
     """Live worktree closure against one manifest's own commit and trees."""
 
@@ -892,16 +1141,26 @@ __all__ = [
     "W10_V4_SOURCE_PATH",
     "W10_V4_SOURCE_COMMIT",
     "W10_V5_MANIFEST_KIND",
+    "W10_V5_MANIFEST_ID",
+    "W10_V5_MANIFEST_SHA256",
     "W10_V5_MANIFEST_PREFIX",
     "W10_V5_PRE_FUTURE_WORK_STATE",
     "W10_V5_REPAIR_REASON",
     "W10_V5_SOURCE_PATH",
+    "W10_V5_SOURCE_COMMIT",
     "W10_V5_TRANSITION_KIND",
+    "W10_V6_MANIFEST_KIND",
+    "W10_V6_MANIFEST_PREFIX",
+    "W10_V6_PRE_FUTURE_WORK_STATE",
+    "W10_V6_REPAIR_REASONS",
+    "W10_V6_SOURCE_PATH",
+    "W10_V6_TRANSITION_KIND",
     "SourceEpochHold",
     "active_manifest_path",
     "assert_active_epoch_closure",
     "assert_clean_active_source_closure",
     "assert_successor_lineage",
+    "assert_v6_freeze_boundary",
     "assert_v5_freeze_boundary",
     "assert_w10_manifest_contract",
     "build_w10_manifest",
@@ -909,6 +1168,7 @@ __all__ = [
     "build_w10_manifest_v3",
     "build_w10_manifest_v4",
     "build_w10_manifest_v5",
+    "build_w10_manifest_v6",
     "epoch_for_kind",
     "load_w10_manifest",
     "manifest_prefix",

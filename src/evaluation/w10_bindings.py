@@ -15,6 +15,13 @@ from pathlib import Path
 from typing import Any
 
 from evaluation.downstream_v4 import read_json, require
+from evaluation.w10_jpeg_carrier import (
+    JPEG_CARRIER_DESCRIPTOR_PATH,
+    JPEG_CARRIER_PATH,
+    JPEG_SELECTION_PATH as JPEG_LOGICAL_SELECTION_PATH,
+    JpegCarrierHold,
+    load_jpeg_selection_artifact,
+)
 from evaluation.w10_scope import SCOPE, W10ScopeEntry
 from training.deterministic_core import canonical_sha256
 
@@ -28,7 +35,7 @@ CANDIDATE_AUTHORITY = "results/baseline/g8_e/candidate_authority.json"
 G8_CLOSEOUT = "results/baseline/g8/g8_closeout.json"
 BR12_FREEZE = "results/baseline/g8_f/artifact_classifier_freeze.json"
 G1_BEST_CHECKPOINT = "results/reference_classifier/best_checkpoint.json"
-JPEG_SELECTION = "results/learned/w10/jpeg_validation_selection.json"
+JPEG_SELECTION = JPEG_LOGICAL_SELECTION_PATH
 ER12_SELECTION = "results/learned/w10/er12_validation_selection.json"
 PAPR_SELECTED_CHECKPOINT = "results/learned/w10/papr_selected_checkpoint.json"
 PAPR_COMPLETION = "results/learned/w10/papr_training_completion.json"
@@ -339,21 +346,53 @@ def _br16_selection(root: Path) -> dict[str, Any]:
 
 def _pending_selection(root: Path, relative: str, kind: str, requirement: str) -> dict[str, Any]:
     path = Path(root) / relative
-    if not path.is_file() or path.is_symlink():
-        return _pending(kind, relative, requirement)
     from evaluation.w10_selections import verify_selection_artifact
 
     selection_kind = "jpeg_secondary" if kind == "w10_jpeg_validation_selection" else "er12_label_bound"
-    value = verify_selection_artifact(root, selection_kind, read_json(path, relative), path=path)
+    provenance: dict[str, Any] | None = None
+    if kind == "w10_jpeg_validation_selection":
+        raw_present = path.exists() or path.is_symlink()
+        carrier_present = (Path(root) / JPEG_CARRIER_PATH).exists() or (Path(root) / JPEG_CARRIER_PATH).is_symlink()
+        descriptor_present = (Path(root) / JPEG_CARRIER_DESCRIPTOR_PATH).exists() or (Path(root) / JPEG_CARRIER_DESCRIPTOR_PATH).is_symlink()
+        if not raw_present and not carrier_present and not descriptor_present:
+            return _pending(kind, relative, requirement)
+        try:
+            loaded = load_jpeg_selection_artifact(root)
+        except JpegCarrierHold as exc:
+            raise RuntimeError(str(exc)) from None
+        value = verify_selection_artifact(root, selection_kind, loaded.value, path=path)
+        provenance = dict(loaded.provenance)
+    else:
+        if not path.is_file() or path.is_symlink():
+            return _pending(kind, relative, requirement)
+        value = verify_selection_artifact(root, selection_kind, read_json(path, relative), path=path)
     selections = value["selections"]
     require(isinstance(selections, list) and len(selections) == 21, f"{relative} does not select 21 SNRs")  # literal-ok: frozen SNR grid cardinality
+    if provenance is None:
+        artifact = artifact_record(root, relative)
+    else:
+        artifact = {
+            "path": relative,
+            "sha256": provenance["raw_sha256"],
+            "present": True,
+            "artifact_role": value.get("artifact_role"),
+            "artifact_id": value.get("selection_id"),
+            **provenance,
+        }
     return {
         "state": "FROZEN",
         "kind": kind,
-        "artifact": artifact_record(root, relative),
+        "artifact": artifact,
         "selection_id": str(value["selection_id"]),
         "contract_sha256": str(value["contract_sha256"]),
         "source_epoch": dict(value["source_epoch"]),
+        "raw_sha256": provenance["raw_sha256"] if provenance is not None else artifact["sha256"],
+        "carrier_path": provenance["carrier_path"] if provenance is not None else None,
+        "carrier_sha256": provenance["carrier_sha256"] if provenance is not None else None,
+        "carrier_descriptor_path": provenance["carrier_descriptor_path"] if provenance is not None else None,
+        "carrier_descriptor_id": provenance["carrier_descriptor_id"] if provenance is not None else None,
+        "carrier_descriptor_sha256": provenance["carrier_descriptor_sha256"] if provenance is not None else None,
+        "selection_digest": provenance["selection_digest"] if provenance is not None else canonical_sha256(value),
         "selections": selections,
         "selections_digest": canonical_sha256({"selections": [dict(item) for item in selections]}),
     }

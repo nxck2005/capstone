@@ -73,8 +73,8 @@ def _synthetic_candidate_sets(monkeypatch):
         }
 
     monkeypatch.setattr(selections, "_expected_candidate_set", expected)
-    monkeypatch.setattr(selections, "_verify_jpeg_analytic_candidate", lambda root, entry: None)
-    monkeypatch.setattr(selections, "_verify_er12_candidate_evidence", lambda root, entry: None)
+    monkeypatch.setattr(selections, "_verify_jpeg_analytic_candidate", lambda root, entry, **kwargs: None)
+    monkeypatch.setattr(selections, "_verify_er12_candidate_evidence", lambda root, entry, **kwargs: None)
 
 
 def _candidate_evidence(entry: dict, *, kind: str) -> dict:

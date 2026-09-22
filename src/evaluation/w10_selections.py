@@ -30,8 +30,14 @@ from baseline.g8_pascal_merge import MERGE_REPORT_PATH, TABLE_PATH, load_success
 from config.params import REPO_ROOT, get
 from evaluation.w10_scope import HEADLINE_RATIO, W10_DATASET, W10_VALIDATION_DENOMINATOR, snr_grid
 from evaluation.er9_search import configured_phy_candidates
-from runtime.source_epochs import load_w10_manifest, source_record
-from training.deterministic_core import canonical_sha256
+from runtime.source_epochs import (
+    W10_EPOCHS,
+    assert_successor_lineage,
+    load_w10_manifest,
+    source_record,
+    successor_path,
+)
+from training.deterministic_core import canonical_bytes, canonical_sha256
 
 JPEG_SELECTION_PATH = "results/learned/w10/jpeg_validation_selection.json"
 ER12_SELECTION_PATH = "results/learned/w10/er12_validation_selection.json"
@@ -129,8 +135,14 @@ class SelectionContract:
     test: str = "SEALED"
     test_access: int = 0
 
-    def identity(self) -> dict[str, Any]:
-        manifest = load_w10_manifest(REPO_ROOT, live=True)
+    def identity(
+        self,
+        *,
+        source_manifest: Mapping[str, Any] | None = None,
+        source_root: Path = REPO_ROOT,
+    ) -> dict[str, Any]:
+        root = Path(source_root).resolve()
+        manifest = source_manifest if source_manifest is not None else load_w10_manifest(root, live=True)
         return {
             "contract_version": SELECTION_SCHEMA_VERSION,
             "kind": self.kind,
@@ -154,13 +166,18 @@ class SelectionContract:
             "selection_method": self.selection_method,
             "packet_budget_rule": self.packet_budget_rule,
             "er12_protocol_version": int(_parameter("w10_er12_protocol_version")),
-            "source_epoch": source_record(REPO_ROOT, manifest),
+            "source_epoch": source_record(root, manifest),
             "test": self.test,
             "test_access": self.test_access,
         }
 
-    def sha256(self) -> str:
-        return canonical_sha256(self.identity())
+    def sha256(
+        self,
+        *,
+        source_manifest: Mapping[str, Any] | None = None,
+        source_root: Path = REPO_ROOT,
+    ) -> str:
+        return canonical_sha256(self.identity(source_manifest=source_manifest, source_root=source_root))
 
 
 def _configured_axes() -> tuple[int, ...]:
@@ -213,24 +230,42 @@ def er12_selection_contract() -> SelectionContract:
     )
 
 
-def jpeg_contract_sha256() -> str:
-    return jpeg_selection_contract().sha256()
+def jpeg_contract_sha256(
+    *,
+    source_manifest: Mapping[str, Any] | None = None,
+    source_root: Path = REPO_ROOT,
+) -> str:
+    return jpeg_selection_contract().sha256(source_manifest=source_manifest, source_root=source_root)
 
 
-def er12_contract_sha256() -> str:
-    return er12_selection_contract().sha256()
+def er12_contract_sha256(
+    *,
+    source_manifest: Mapping[str, Any] | None = None,
+    source_root: Path = REPO_ROOT,
+) -> str:
+    return er12_selection_contract().sha256(source_manifest=source_manifest, source_root=source_root)
 
 
-def _contract_identity(kind: str) -> dict[str, Any]:
+def _contract_identity(
+    kind: str,
+    *,
+    source_manifest: Mapping[str, Any] | None = None,
+    source_root: Path = REPO_ROOT,
+) -> dict[str, Any]:
     if kind == "jpeg_secondary":
-        return jpeg_selection_contract().identity()
+        return jpeg_selection_contract().identity(source_manifest=source_manifest, source_root=source_root)
     if kind == "er12_label_bound":
-        return er12_selection_contract().identity()
+        return er12_selection_contract().identity(source_manifest=source_manifest, source_root=source_root)
     raise W10SelectionHold(f"unknown W10 selection kind: {kind}")
 
 
-def _contract_sha256(kind: str) -> str:
-    return canonical_sha256(_contract_identity(kind))
+def _contract_sha256(
+    kind: str,
+    *,
+    source_manifest: Mapping[str, Any] | None = None,
+    source_root: Path = REPO_ROOT,
+) -> str:
+    return canonical_sha256(_contract_identity(kind, source_manifest=source_manifest, source_root=source_root))
 
 
 def _candidate_id(entry: Mapping[str, Any]) -> str:
@@ -400,11 +435,15 @@ def verify_selection_artifact(
     _require(identifier == prefix + canonical_sha256(body), "W10 selection ID differs")
     _require(value.get("schema_version") == SELECTION_SCHEMA_VERSION and value.get("artifact_role") == role, "W10 selection role differs")
     _require(value.get("status") == SELECTION_STATUS, "W10 selection status differs")
-    live_contract = _contract_identity(kind)
-    _require(value.get("contract") == live_contract, "W10 selection contract differs from the live prospective contract")
-    _require(value.get("contract_sha256") == _contract_sha256(kind), "W10 selection contract digest differs")
-    manifest = load_w10_manifest(root, live=True)
-    _require(value.get("source_epoch") == source_record(root, manifest), "W10 selection source epoch differs")
+    historical_manifest, expected_source_record = _authenticated_source_context(root, value.get("source_epoch"))
+    expected_contract = _contract_identity(
+        kind,
+        source_manifest=historical_manifest,
+        source_root=root,
+    )
+    expected_contract_sha256 = canonical_sha256(expected_contract)
+    _require(value.get("contract") == expected_contract, "W10 selection contract differs from its authenticated source epoch")
+    _require(value.get("contract_sha256") == expected_contract_sha256, "W10 selection contract digest differs")
     _require(value.get("validation_only") is True and value.get("test") == "SEALED" and value.get("test_access") == 0, "W10 selection crossed the test boundary")
     _require(int(value.get("denominator")) == W10_VALIDATION_DENOMINATOR, "W10 selection denominator differs")
     _require(
@@ -442,9 +481,19 @@ def verify_selection_artifact(
             _require(float(entry["snr_db"]) == float(snr), "W10 candidate score SNR differs")
             _require(_candidate_id(entry) in expected_candidates[str(int(snr))], "W10 candidate is outside the frozen candidate set")
             if kind == "jpeg_secondary":
-                _verify_jpeg_analytic_candidate(root, entry)
+                _verify_jpeg_analytic_candidate(
+                    root,
+                    entry,
+                    expected_source_record=expected_source_record,
+                    expected_contract_sha256=expected_contract_sha256,
+                )
             else:
-                _verify_er12_candidate_evidence(root, entry)
+                _verify_er12_candidate_evidence(
+                    root,
+                    entry,
+                    expected_source_record=expected_source_record,
+                    expected_contract_sha256=expected_contract_sha256,
+                )
         _require(
             {_candidate_id(entry) for entry in candidates} == expected_candidates[str(int(snr))],
             "W10 candidate score point does not cover the exact frozen candidate set",
@@ -525,6 +574,29 @@ def _expected_candidate_set(kind: str, root: Path) -> dict[str, set[str]]:
     }
 
 
+def _authenticated_source_context(
+    root: Path,
+    embedded: Mapping[str, Any],
+) -> tuple[Mapping[str, Any], dict[str, Any]]:
+    """Resolve an artifact's explicit epoch and prove it reaches the active one."""
+
+    _require(isinstance(embedded, Mapping), "W10 selection source epoch is missing")
+    active = load_w10_manifest(root, live=True)
+    active_record = source_record(root, active)
+    if dict(embedded) == active_record:
+        return active, active_record
+    for epoch in W10_EPOCHS:
+        candidate_path = successor_path(root, epoch=epoch)
+        if str(embedded.get("path")) != str(candidate_path.relative_to(root)):
+            continue
+        historical = load_w10_manifest(root, live=False, epoch=epoch)
+        historical_record = source_record(root, historical, path=candidate_path)
+        _require(dict(embedded) == historical_record, "W10 selection source epoch bytes differ")
+        assert_successor_lineage(root, historical, successor=active)
+        return historical, historical_record
+    raise W10SelectionHold("W10 selection source epoch is not an authenticated successor")
+
+
 @cache
 def _br4_dependencies(root_text: str) -> tuple[Any, dict[str, Any], dict[str, Any]]:
     """Load the authoritative BR-4 table/outage inputs once per repository."""
@@ -591,6 +663,12 @@ def _br4_packet_record(*, modulation: str, ldpc_rate: str) -> tuple[Any, list[di
     return packet, identities
 
 
+def _json_compatible(value: Any) -> Any:
+    """Use the persisted JSON value domain at the production boundary."""
+
+    return json.loads(canonical_bytes(value))
+
+
 def jpeg_analytic_evidence(
     root: Path,
     entry: Mapping[str, Any],
@@ -654,7 +732,7 @@ def jpeg_analytic_evidence(
             "k_symbols": int(get(f"bandwidth.k_symbols.{W10_DATASET}.{HEADLINE_RATIO}")),
             "modulation": str(entry["modulation"]),
             "ldpc_rate": str(entry["ldpc_rate"]),
-            "packet_metadata": packet.metadata(),
+            "packet_metadata": _json_compatible(packet.metadata()),
             "block_identities": identities,
         },
         "bler": {
@@ -691,7 +769,13 @@ def scorer_binding(root: Path) -> dict[str, Any]:
     }
 
 
-def _verify_jpeg_analytic_candidate(root: Path, entry: Mapping[str, Any]) -> None:
+def _verify_jpeg_analytic_candidate(
+    root: Path,
+    entry: Mapping[str, Any],
+    *,
+    expected_source_record: Mapping[str, Any] | None = None,
+    expected_contract_sha256: str | None = None,
+) -> None:
     analytic = entry["analytic_evidence"]
     clean = analytic.get("clean")
     _require(isinstance(clean, Mapping), "W10 JPEG clean evidence is missing")
@@ -708,11 +792,18 @@ def _verify_jpeg_analytic_candidate(root: Path, entry: Mapping[str, Any]) -> Non
     _require(isinstance(clean.get("emitted_bytes_digest"), str) and _full_sha(clean["emitted_bytes_digest"]), "W10 JPEG emitted-byte digest differs")
     evidence = entry["candidate_evidence"]
     _require(evidence.get("clean") == dict(clean), "W10 JPEG candidate evidence clean inputs differ")
-    _require(evidence.get("selection_contract_sha256") == _contract_sha256("jpeg_secondary"), "W10 JPEG candidate evidence contract differs")
+    if expected_source_record is None or expected_contract_sha256 is None:
+        historical_manifest, resolved_source_record = _authenticated_source_context(root, evidence.get("source_epoch"))
+        expected_source_record = resolved_source_record
+        expected_contract_sha256 = _contract_sha256(
+            "jpeg_secondary",
+            source_manifest=historical_manifest,
+            source_root=root,
+        )
+    _require(evidence.get("selection_contract_sha256") == expected_contract_sha256, "W10 JPEG candidate evidence contract differs")
     _require(evidence.get("scorer_binding") == clean.get("scorer_binding"), "W10 JPEG candidate evidence scorer binding differs")
     _require(evidence.get("scorer_binding") == scorer_binding(root), "W10 JPEG scorer binding differs from BR-12 freeze")
-    manifest = load_w10_manifest(root, live=True)
-    _require(evidence.get("source_epoch") == source_record(root, manifest), "W10 JPEG candidate evidence source epoch differs")
+    _require(evidence.get("source_epoch") == dict(expected_source_record), "W10 JPEG candidate evidence source epoch differs")
     recomputed = jpeg_analytic_evidence(root, entry, clean=clean)
     _require(dict(analytic) == recomputed, "W10 JPEG analytic evidence does not independently recompute")
     if entry.get("status") == "eligible":
@@ -724,7 +815,13 @@ def _verify_jpeg_analytic_candidate(root: Path, entry: Mapping[str, Any]) -> Non
         _require(entry.get("expected_accuracy") is None and entry.get("success_probability") is None, "W10 JPEG uncharacterized score differs")
 
 
-def _verify_er12_candidate_evidence(root: Path, entry: Mapping[str, Any]) -> None:
+def _verify_er12_candidate_evidence(
+    root: Path,
+    entry: Mapping[str, Any],
+    *,
+    expected_source_record: Mapping[str, Any] | None = None,
+    expected_contract_sha256: str | None = None,
+) -> None:
     evidence = entry["candidate_evidence"]
     _require(evidence.get("method") == "er12_per_image_channel_simulation", "W10 ER-12 evidence method differs")
     _require(evidence.get("protocol_version") == int(_parameter("w10_er12_protocol_version")), "W10 ER-12 evidence protocol version differs")
@@ -752,9 +849,16 @@ def _verify_er12_candidate_evidence(root: Path, entry: Mapping[str, Any]) -> Non
     worker_body = dict(worker)
     worker_id = worker_body.pop("worker_evidence_id", None)
     _require(worker_id == "w10er12workerevidence-" + canonical_sha256(worker_body), "W10 ER-12 worker evidence ID differs")
-    manifest = load_w10_manifest(root, live=True)
-    _require(worker.get("source_epoch") == source_record(root, manifest), "W10 ER-12 worker source epoch differs")
-    _require(worker.get("selection_contract_sha256") == _contract_sha256("er12_label_bound"), "W10 ER-12 worker contract differs")
+    if expected_source_record is None or expected_contract_sha256 is None:
+        historical_manifest, resolved_source_record = _authenticated_source_context(root, worker.get("source_epoch"))
+        expected_source_record = resolved_source_record
+        expected_contract_sha256 = _contract_sha256(
+            "er12_label_bound",
+            source_manifest=historical_manifest,
+            source_root=root,
+        )
+    _require(worker.get("source_epoch") == dict(expected_source_record), "W10 ER-12 worker source epoch differs")
+    _require(worker.get("selection_contract_sha256") == expected_contract_sha256, "W10 ER-12 worker contract differs")
     _require(
         worker.get("correct") == evidence.get("correct")
         and worker.get("total") == evidence.get("total")
