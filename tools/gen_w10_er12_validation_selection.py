@@ -10,6 +10,7 @@ labels.  ``--preflight`` writes nothing and touches no GPU.
 from __future__ import annotations
 
 import argparse
+from collections.abc import Mapping
 import sys
 from pathlib import Path
 
@@ -62,6 +63,31 @@ def _authority(source: dict) -> dict:
         "cuda_visible_devices": TITAN_XP_UUID,
         "source_binding": source,
     }
+
+
+def _er12_checkpoint_id(er9_binding: Mapping[str, object], assets: Mapping[str, object]) -> str:
+    """Require the loaded ER-9 checkpoint to match its frozen W10 binding."""
+
+    try:
+        bound_checkpoint_id = er9_binding["checkpoint"]["selected_checkpoint_sha256"]
+    except (KeyError, TypeError):
+        raise RuntimeError(
+            "ER-12 frozen ER-9 binding is missing selected_checkpoint_sha256"
+        ) from None
+    try:
+        loaded_checkpoint_id = assets["checkpoint_id"]
+    except (KeyError, TypeError):
+        raise RuntimeError("ER-12 loaded ER-9 assets are missing checkpoint_id") from None
+
+    if not isinstance(bound_checkpoint_id, str) or not bound_checkpoint_id:
+        raise RuntimeError("ER-12 frozen ER-9 checkpoint identity is invalid")
+    if not isinstance(loaded_checkpoint_id, str) or not loaded_checkpoint_id:
+        raise RuntimeError("ER-12 loaded ER-9 checkpoint identity is invalid")
+    if loaded_checkpoint_id != bound_checkpoint_id:
+        raise RuntimeError(
+            "ER-12 loaded ER-9 checkpoint identity differs from the frozen binding"
+        )
+    return loaded_checkpoint_id
 
 
 def _predicted_labels(model, view: ValidationView, device: str) -> dict[str, int]:
@@ -206,6 +232,7 @@ def main(argv: list[str] | None = None) -> int:
     context = W10Execution(root=REPO, device=args.device, view=view)
     er9_binding = resolve_binding(REPO, entry_for("er9_digital", HEADLINE_RATIO))
     assets = _load_er9_assets(context, er9_binding["checkpoint"], root=REPO)
+    checkpoint_id = _er12_checkpoint_id(er9_binding, assets)
     from evaluation.er9_campaign import authenticated_er9_outage_policy
 
     policy = authenticated_er9_outage_policy(assets["config"])
@@ -213,7 +240,6 @@ def main(argv: list[str] | None = None) -> int:
     candidates = {(str(item["modulation"]), str(item["ldpc_rate"])): item for item in assets["phy_candidates"]}
     source_epoch = source_record(REPO, source)
     selection_contract_sha256 = er12_selection_contract().sha256()
-    checkpoint_id = str(er9_binding["checkpoint"]["checkpoint_id"])
     selections = []
     candidate_scores = []
     for snr in contract["snr_grid_db"]:

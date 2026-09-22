@@ -212,15 +212,19 @@ def test_carrier_identity_is_unchanged_and_raw_json_absent(v7_manifest: dict) ->
     assert not (REPO / "results/learned/w10/jpeg_validation_selection.json").exists()
 
 
-@pytest.mark.skipif(not V7_PATH.is_file(), reason="active ER-12 source binding is v7 after the immutable freeze")
-def test_active_er12_contract_uses_v7(v7_manifest: dict) -> None:
+@pytest.mark.skipif(not V7_PATH.is_file(), reason="active ER-12 source binding requires a frozen successor epoch")
+def test_active_er12_contract_uses_current_successor(v7_manifest: dict) -> None:
     active = load_w10_manifest(REPO, live=True)
-    expected = source_record(REPO, active, path=V7_PATH)
+    active_path = epochs.active_manifest_path(REPO)
+    expected = source_record(REPO, active, path=active_path)
     identity = er12_selection_contract().identity()
-    assert active["manifest_kind"] == W10_V7_MANIFEST_KIND
+    assert active["manifest_kind"] in {W10_V7_MANIFEST_KIND, epochs.W10_V8_MANIFEST_KIND}
     assert identity["source_epoch"] == expected
     assert er12_contract_sha256() != "39584f9a9dee921b7c06d80ea62f6a584df9ebb1eb8c635f9e10f770483cc841"
-    assert v7_manifest["manifest_id"] == active["manifest_id"]
+    if active["manifest_kind"] == W10_V7_MANIFEST_KIND:
+        assert v7_manifest["manifest_id"] == active["manifest_id"]
+    else:
+        assert active["transition_from_v7"]["manifest_id"] == v7_manifest["manifest_id"]
 
 
 def test_protected_source_drift_after_v7_fails_closed(v7_manifest: dict, monkeypatch) -> None:

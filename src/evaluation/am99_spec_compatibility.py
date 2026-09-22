@@ -25,6 +25,7 @@ from runtime.source_epochs import (
     W10_V5_MANIFEST_KIND,
     W10_V6_MANIFEST_KIND,
     W10_V7_MANIFEST_KIND,
+    W10_V8_MANIFEST_KIND,
     active_manifest_path,
     load_w10_manifest,
 )
@@ -71,8 +72,8 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     manifest = load_w10_manifest(root, live=True)
     if not allow_downstream:
         _require(
-            manifest.get("manifest_kind") in {W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND, W10_V4_MANIFEST_KIND, W10_V5_MANIFEST_KIND, W10_V6_MANIFEST_KIND, W10_V7_MANIFEST_KIND},
-            "AM-99 requires the active successor-v2 through successor-v7 source epoch",
+            manifest.get("manifest_kind") in {W10_V2_MANIFEST_KIND, W10_V3_MANIFEST_KIND, W10_V4_MANIFEST_KIND, W10_V5_MANIFEST_KIND, W10_V6_MANIFEST_KIND, W10_V7_MANIFEST_KIND, W10_V8_MANIFEST_KIND},
+            "AM-99 requires the active successor-v2 through successor-v8 source epoch",
         )
     _require("w10_validation_rehearsal" in manifest.get("governs", []), "AM-99 successor does not govern W10")
     for relative, (expected_bytes, expected_sha) in _CURRENT_VIEW_HASHES.items():
