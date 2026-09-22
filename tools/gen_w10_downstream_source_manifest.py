@@ -4,8 +4,9 @@
 ``--epoch v1`` reproduces the historical AM-98 freeze; ``v2`` is the historical
 AM-99 successor, ``v3`` is the repaired pre-science successor, ``v4`` builds the
 authority-generation repair over the exact v3 bytes, ``v5`` builds the
-post-PAPR/pre-selection repair over the exact immutable v4 bytes, and ``v6``
-freezes the completed JPEG evidence and post-JPEG/pre-ER-12 frontier.
+post-PAPR/pre-selection repair over the exact immutable v4 bytes, ``v6``
+freezes the completed JPEG evidence and post-JPEG/pre-ER-12 frontier, and
+``v7`` adds the post-JPEG static-policy repair over exact v6 bytes.
 """
 
 from __future__ import annotations
@@ -26,18 +27,20 @@ from runtime.source_epochs import (  # noqa: E402
     W10_V4_SOURCE_PATH,
     W10_V5_SOURCE_PATH,
     W10_V6_SOURCE_PATH,
+    W10_V7_SOURCE_PATH,
     build_w10_manifest,
     build_w10_manifest_v2,
     build_w10_manifest_v3,
     build_w10_manifest_v4,
     build_w10_manifest_v5,
     build_w10_manifest_v6,
+    build_w10_manifest_v7,
 )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--epoch", choices=("v1", "v2", "v3", "v4", "v5", "v6"), default="v4")
+    parser.add_argument("--epoch", choices=("v1", "v2", "v3", "v4", "v5", "v6", "v7"), default="v4")
     args = parser.parse_args(argv)
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
     if args.epoch == "v1":
@@ -55,9 +58,12 @@ def main(argv: list[str] | None = None) -> int:
     elif args.epoch == "v5":
         value = build_w10_manifest_v5(REPO, source_commit=head)
         target = REPO / W10_V5_SOURCE_PATH
-    else:
+    elif args.epoch == "v6":
         value = build_w10_manifest_v6(REPO, source_commit=head)
         target = REPO / W10_V6_SOURCE_PATH
+    else:
+        value = build_w10_manifest_v7(REPO, source_commit=head)
+        target = REPO / W10_V7_SOURCE_PATH
     immutable_write(target, value)
     print(f"W10 downstream source manifest {args.epoch}: {value['manifest_id']} @ {head}")
     return 0

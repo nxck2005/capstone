@@ -109,7 +109,7 @@ def test_persisted_packet_metadata_normalizes_tuple_and_rejects_changed_er(tmp_p
     historical = load_w10_manifest(REPO, live=False, epoch="v5")
     historical_path = successor_path(REPO, epoch="v5")
     historical_record = source_record(REPO, historical, path=historical_path)
-    # The live source closure intentionally holds until successor-v6 is frozen;
+    # The live source closure intentionally holds until successor-v7 is frozen;
     # this test targets the real packet/evidence persistence boundary itself.
     monkeypatch.setattr(selections, "load_w10_manifest", lambda root, live=True, epoch=None: historical)
     monkeypatch.setattr(selections, "source_record", lambda root, manifest, path=None: historical_record)

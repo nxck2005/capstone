@@ -28,10 +28,10 @@ JPEG_CARRIER_COMPRESSION = "xz"
 JPEG_CARRIER_COMPRESSION_SETTINGS = {
     "format": "xz",
     "check": "crc64",
-    "preset": 9,
+    "preset": 9,  # literal-ok: fixed deterministic XZ compression preset
     "extreme": True,
 }
-JPEG_CARRIER_MAX_BYTES_EXCLUSIVE = 95 * 1024 * 1024
+JPEG_CARRIER_MAX_BYTES_EXCLUSIVE = 95 * 1024 * 1024  # literal-ok: publication safety ceiling and MiB-to-byte conversion
 
 JPEG_SELECTION_PREFIX = "w10jpegselection-"
 JPEG_SELECTION_ID = "w10jpegselection-ff847b73e8f117bf6061b74f21d33fa48db4fbedd7399a105e8a5733b039601d"
@@ -88,13 +88,13 @@ def _validate_selection(raw: bytes) -> dict[str, Any]:
     _require(value.get("test") == "SEALED" and value.get("test_access") == 0, "JPEG selection crossed the test boundary")
     selections = value.get("selections")
     score_table = value.get("candidate_scores")
-    _require(isinstance(selections, list) and len(selections) == 21, "JPEG selection does not cover 21 SNRs")
-    _require(isinstance(score_table, list) and len(score_table) == 21, "JPEG score table does not cover 21 SNRs")
+    _require(isinstance(selections, list) and len(selections) == 21, "JPEG selection does not cover 21 SNRs")  # literal-ok: frozen completed JPEG selection SNR cardinality
+    _require(isinstance(score_table, list) and len(score_table) == 21, "JPEG score table does not cover 21 SNRs")  # literal-ok: frozen completed JPEG selection SNR cardinality
     counts = []
     for point in score_table:
         _require(isinstance(point, dict) and isinstance(point.get("candidates"), list), "JPEG score table point is malformed")
         counts.append(len(point["candidates"]))
-    _require(counts == [912] * 21, "JPEG score table candidate cardinality differs")
+    _require(counts == [912] * 21, "JPEG score table candidate cardinality differs")  # literal-ok: frozen completed JPEG selection SNR cardinality
     _require(sum(counts) == 19152, "JPEG score table record count differs")
     return value
 
@@ -116,7 +116,7 @@ def _validate_descriptor(value: dict[str, Any]) -> None:
     _require(value.get("contract_sha256") == JPEG_SELECTION_CONTRACT_SHA256, "JPEG descriptor contract SHA-256 differs")
     _require(value.get("source_epoch") == JPEG_SELECTION_SOURCE_RECORD, "JPEG descriptor source epoch differs")
     _require(value.get("test") == "SEALED" and value.get("test_access") == 0, "JPEG descriptor crossed the test boundary")
-    _require(isinstance(value.get("carrier_sha256"), str) and len(value["carrier_sha256"]) == 64, "JPEG carrier SHA-256 is malformed")
+    _require(isinstance(value.get("carrier_sha256"), str) and len(value["carrier_sha256"]) == 64, "JPEG carrier SHA-256 is malformed")  # literal-ok: SHA-256 hexadecimal width
     _require(isinstance(value.get("carrier_bytes"), int) and value["carrier_bytes"] > 0, "JPEG carrier byte length is malformed")
 
 
@@ -127,7 +127,7 @@ def compress_jpeg_selection(raw: bytes) -> bytes:
         raw,
         format=lzma.FORMAT_XZ,
         check=lzma.CHECK_CRC64,
-        preset=lzma.PRESET_EXTREME | 9,
+        preset=lzma.PRESET_EXTREME | 9,  # literal-ok: fixed deterministic XZ compression preset
     )
 
 

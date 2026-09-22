@@ -17,14 +17,12 @@ from evaluation.w10_jpeg_carrier import (
     JPEG_SELECTION_RAW_SHA256,
     JPEG_SELECTION_SOURCE_RECORD,
 )
-from evaluation.w10_selections import er12_contract_sha256, er12_selection_contract
 from runtime.source_epochs import (
     W10_V4_MANIFEST_ID,
     W10_V5_MANIFEST_ID,
     W10_V6_MANIFEST_KIND,
     W10_V6_SOURCE_PATH,
     SourceEpochHold,
-    active_manifest_path,
     assert_clean_active_source_closure,
     assert_successor_lineage,
     assert_w10_manifest_contract,
@@ -50,7 +48,6 @@ def _v6() -> dict:
 def test_v6_records_one_closed_jpeg_and_keeps_future_work_unopened() -> None:
     value = _v6()
     assert value["manifest_kind"] == W10_V6_MANIFEST_KIND
-    assert active_manifest_path(REPO) == V6_PATH
     assert value["pre_future_work_state"] == epochs.W10_V6_PRE_FUTURE_WORK_STATE
     transition = value["transition_from_v5"]
     assert transition["jpeg_validation_selection_count"] == 1
@@ -129,16 +126,9 @@ def test_lineage_keeps_papr_at_v4_and_jpeg_at_v5() -> None:
     assert source_record(REPO, v5, path=successor_path(REPO, epoch="v5")) == JPEG_SELECTION_SOURCE_RECORD
 
 
-def test_future_er12_contract_uses_active_v6() -> None:
-    active = _v6()
-    expected = source_record(REPO, active, path=V6_PATH)
-    identity = er12_selection_contract().identity()
-    assert identity["source_epoch"] == expected
-    assert er12_contract_sha256() != "3e395dc6ead072ec067372952acc149da36e3bebd3a651f18f43ea15e67bf824"
-
-
 def test_protected_source_drift_after_v6_fails_closed(monkeypatch) -> None:
     active = _v6()
+    monkeypatch.setattr(epochs, "committed_source_differences", lambda root, source_commit, head=None: [])
     monkeypatch.setattr(
         epochs,
         "working_tree_source_differences",

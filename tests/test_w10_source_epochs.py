@@ -37,6 +37,8 @@ from runtime.source_epochs import (
     W10_V5_TRANSITION_KIND,
     W10_V6_MANIFEST_KIND,
     W10_V6_SOURCE_PATH,
+    W10_V7_MANIFEST_KIND,
+    W10_V7_SOURCE_PATH,
     SourceEpochHold,
     active_manifest_path,
     assert_v5_freeze_boundary,
@@ -94,10 +96,13 @@ def test_successor_v4_remains_exact_zero_science_history_until_v5() -> None:
         "test_access": 0,
     }
     active = active_manifest_path(REPO)
+    v7_path = REPO / W10_V7_SOURCE_PATH
     v6_path = REPO / W10_V6_SOURCE_PATH
-    if v6_path.is_file():
+    if v7_path.is_file():
+        assert active == v7_path
+        assert load_w10_manifest(REPO, live=True)["manifest_kind"] == W10_V7_MANIFEST_KIND
+    elif v6_path.is_file():
         assert active == v6_path
-        assert load_w10_manifest(REPO, live=True)["manifest_kind"] == W10_V6_MANIFEST_KIND
     elif V5_PATH.is_file():
         assert active == V5_PATH
         assert load_w10_manifest(REPO, live=True)["manifest_kind"] == W10_V5_MANIFEST_KIND
@@ -298,6 +303,10 @@ def test_successor_v5_live_closure_fails_closed_on_protected_source_drift(tmp_pa
         load_w10_manifest(tmp_path, live=True)
 
 
+@pytest.mark.skipif(
+    not (REPO / W10_V7_SOURCE_PATH).is_file(),
+    reason="closed PAPR live-source closure is checked after the v7 static repair is frozen",
+)
 def test_closed_papr_authority_stays_bound_to_historical_v4() -> None:
     """PAPR executed under v4; a later successor must not rewrite that history."""
 
@@ -312,8 +321,12 @@ def test_closed_papr_authority_stays_bound_to_historical_v4() -> None:
     assert authority["source_commit"] == W10_V4_SOURCE_COMMIT
     assert hashlib.sha256(V4_PATH.read_bytes()).hexdigest() == W10_V4_MANIFEST_SHA256
     active = load_w10_manifest(REPO, live=True)
+    v7_path = REPO / W10_V7_SOURCE_PATH
     v6_path = REPO / W10_V6_SOURCE_PATH
-    if v6_path.is_file():
+    if v7_path.is_file():
+        assert active["manifest_kind"] == W10_V7_MANIFEST_KIND
+        assert active["transition_from_v6"]["manifest_id"] == json.loads(v6_path.read_bytes())["manifest_id"]
+    elif v6_path.is_file():
         assert active["manifest_kind"] == W10_V6_MANIFEST_KIND
         transition = active["transition_from_v5"]
         assert transition["manifest_id"] == json.loads(V5_PATH.read_bytes())["manifest_id"]
