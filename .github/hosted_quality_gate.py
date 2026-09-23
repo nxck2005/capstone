@@ -337,13 +337,57 @@ def verify_g11_published() -> None:
 
 
 def verify_w10_published() -> None:
-    from verify_w10_rehearsal import verify_published
+    """Authenticate committed W10 terminal evidence without worker runtime."""
 
-    value = verify_published()
+    # The protected W10 published verifier routes through the frozen
+    # standalone PAPR verifier, whose runtime-root literal is stale.  Use the
+    # corrected hosted PAPR adapter, then preserve the W10 checks below.
+    verify_papr_published()
+    from verify_w10_rehearsal import _published_records, verify_authority
+
+    authority = verify_authority(
+        verify_bindings_runtime=False,
+        verify_g11_runtime=False,
+    )
+    units, unit_manifest, images = _published_records()
+    require(
+        units["authority_id"] == authority["authority_id"]
+        and units["scope_sha256"] == authority["scope_sha256"],
+        "W10 published units authority/scope differs",
+    )
+    require(
+        unit_manifest.get("ordered_unit_ids_digest")
+        == canonical_sha256({"unit_ids": [value["unit_id"] for value in units["units"]]}),
+        "W10 published unit digest differs",
+    )
+    require(
+        images.get("ordered_per_image_digest")
+        == canonical_sha256({"streams": images["streams"]}),
+        "W10 published per-image digest differs",
+    )
+    closeout_value = read_json(W10_CLOSEOUT, "W10 closeout")
+    body = dict(closeout_value)
+    identifier = body.pop("closeout_id", None)
+    require(identifier == "w10closeout-" + canonical_sha256(body), "W10 closeout ID differs")
+    require(closeout_value.get("authority_id") == authority["authority_id"], "W10 closeout authority differs")
+    require(closeout_value.get("scope_sha256") == authority["scope_sha256"], "W10 closeout scope differs")
+    require(closeout_value.get("unit_count") == len(units["units"]), "W10 closeout unit count differs")
+    require(
+        closeout_value.get("ordered_unit_ids_digest") == unit_manifest["ordered_unit_ids_digest"],
+        "W10 closeout unit digest differs",
+    )
+    require(
+        closeout_value.get("ordered_per_image_digest") == images["ordered_per_image_digest"],
+        "W10 closeout per-image digest differs",
+    )
+    require(
+        closeout_value.get("test") == "SEALED" and closeout_value.get("test_access") == 0,
+        "W10 closeout crossed test boundary",
+    )
     print(
         "W10 published-evidence verifier PASS: "
-        f"authority={value['authority_id']} closeout={value['closeout_id']} "
-        f"units={value['unit_count']}; worker-local per-image bytes not recomputed"
+        f"authority={authority['authority_id']} closeout={closeout_value['closeout_id']} "
+        f"units={closeout_value['unit_count']}; worker-local per-image bytes not recomputed"
     )
 
 
