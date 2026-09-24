@@ -23,6 +23,7 @@ from evaluation.w10_rehearsal import closeout, published_units, validate_unit, w
 from runtime.w9_authority import authenticate_live_w9_pascal  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 from verify_w10_rehearsal import verify_authority  # noqa: E402
+from runtime.source_epochs import W10_V9_SOURCE_PATH  # noqa: E402
 
 CLOSEOUT_PATH = "results/learned/w10/w10_rehearsal_closeout.json"
 UNIT_MANIFEST_PATH = "results/learned/w10/w10_rehearsal_unit_manifest.json"
@@ -34,6 +35,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("plan", "execute", "closeout"))
     args = parser.parse_args(argv)
+    if (REPO / W10_V9_SOURCE_PATH).exists():
+        raise SystemExit("Original W10 v8 runner is closed after the failed prefix; use the separate v9 continuation runner")
     authority = verify_authority()
     runtime = REPO / authority["runtime_root"]
     if args.action == "plan":

@@ -31,7 +31,7 @@ from evaluation.w10_scope import (  # noqa: E402
     snr_grid,
     unit_count,
 )
-from runtime.source_epochs import load_w10_manifest, source_record  # noqa: E402
+from runtime.source_epochs import W10_V9_SOURCE_PATH, assert_active_epoch_closure, load_w10_manifest, source_record  # noqa: E402
 from training.deterministic_core import canonical_sha256  # noqa: E402
 
 AUTHORITY = REPO / "results/learned/w10/w10_rehearsal_authorization.json"
@@ -94,7 +94,11 @@ def verify_authority(
     require(identifier == "w10rehearsalauth-" + canonical_sha256(body), "W10 authority ID differs")
     require(value.get("schema_version") == 2 and value.get("authority_kind") == "W10_VALIDATION_REHEARSAL_AUTHORITY", "W10 authority role differs")
     require(value.get("status") == "FROZEN_W10_ONLY_PRE_EXECUTION", "W10 authority status differs")
-    source = load_w10_manifest(REPO, live=True)
+    if (REPO / W10_V9_SOURCE_PATH).is_file():
+        source = load_w10_manifest(REPO, live=False, epoch="v8")
+        assert_active_epoch_closure(REPO, source)
+    else:
+        source = load_w10_manifest(REPO, live=True)
     require(value.get("source_manifest") == source_record(REPO, source) and value.get("source_binding") == source and value.get("source_commit") == source["source_commit"], "W10 source binding differs")
     require(value.get("scope") == scope_identity(), "W10 authority scope differs")
     require(value.get("scope_sha256") == scope_sha256(), "W10 authority scope digest differs")

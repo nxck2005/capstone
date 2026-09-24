@@ -67,6 +67,9 @@ G11_TERMINAL = G11_ROOT / "g11_terminal_closeout.json"
 G10_MANIFEST = REPO / "results/learned/w9/g10_runtime_manifest.json"
 W10_AUTHORITY = REPO / "results/learned/w10/w10_rehearsal_authorization.json"
 W10_CLOSEOUT = REPO / "results/learned/w10/w10_rehearsal_closeout.json"
+W10_CONTINUATION_AUTHORITY = REPO / "results/learned/w10/w10_continuation_authorization_v9.json"
+W10_CONTINUATION_CLOSEOUT = REPO / "results/learned/w10/w10_continuation_closeout_v9.json"
+W10_CONTINUATION_LAUNCH = REPO / "results/learned/w10/w10_continuation_launch_authorization_v9.json"
 PAPR_AUTHORITY = REPO / PAPR_AUTHORITY_PATH
 PAPR_SELECTED = REPO / PAPR_SELECTED_CHECKPOINT_PATH
 PAPR_COMPLETION = REPO / PAPR_COMPLETION_PATH
@@ -672,6 +675,24 @@ def verify_w10_authority_published() -> None:
     print(f"W10 published authority verifier PASS: {value['authority_id']}; worker runtime not inspected")
 
 
+def verify_w10_continuation_published() -> None:
+    """Authenticate v9 committed evidence without claiming per-image worker bytes."""
+
+    verify_papr_published()
+    if W10_CONTINUATION_CLOSEOUT.is_file() and not W10_CONTINUATION_CLOSEOUT.is_symlink():
+        from verify_w10_continuation import verify_published
+
+        result = verify_published()
+        print(f"W10 v9 published continuation PASS: {result['closeout_id']}; worker runtime not inspected")
+    else:
+        from evaluation.w10_continuation import build_continuation_plan, verify_continuation_authority, verify_launch_authorization
+
+        value = verify_continuation_authority(REPO)
+        if W10_CONTINUATION_LAUNCH.is_file() and not W10_CONTINUATION_LAUNCH.is_symlink():
+            verify_launch_authorization(REPO, value, build_continuation_plan(value))
+        print(f"W10 v9 published continuation authority PASS: {value['authority_id']}; worker runtime not inspected")
+
+
 def hosted_commands(profile: str) -> tuple[list[str], ...]:
     """Replace only exact worker-runtime terminal commands, failing closed."""
 
@@ -807,6 +828,8 @@ def self_test() -> None:
         verify_papr_published()
     if w10_authority:
         verify_w10_authority_published()
+    if W10_CONTINUATION_AUTHORITY.is_file() and not W10_CONTINUATION_AUTHORITY.is_symlink():
+        verify_w10_continuation_published()
     print(f"hosted quality-gate routing self-test PASS: replacements={len(differences)}")
 
 
@@ -818,13 +841,15 @@ def run(profile: str) -> None:
     for command in hosted_commands(profile):
         print("$ " + " ".join(command), flush=True)
         subprocess.run(command, cwd=REPO, env=environment, check=True)
+    if W10_CONTINUATION_AUTHORITY.is_file() and not W10_CONTINUATION_AUTHORITY.is_symlink():
+        verify_w10_continuation_published()
     gate._check_clean_checkout()
     print(f"hosted quality gate PASS: {profile}")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "verify-g11-published", "verify-papr-authority-published", "verify-papr-published", "verify-w10-authority-published", "verify-w10-published", "static", "ci-cpu"))
+    parser.add_argument("action", choices=("self-test", "verify-er9-published", "verify-er2-published", "verify-g11-published", "verify-papr-authority-published", "verify-papr-published", "verify-w10-authority-published", "verify-w10-published", "verify-w10-continuation-published", "static", "ci-cpu"))
     args = parser.parse_args(argv)
     if args.action == "self-test":
         self_test()
@@ -842,6 +867,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         verify_w10_authority_published()
     elif args.action == "verify-w10-published":
         verify_w10_published()
+    elif args.action == "verify-w10-continuation-published":
+        verify_w10_continuation_published()
     else:
         run(args.action)
     return 0

@@ -100,10 +100,13 @@ def _outage_policy(root: Path) -> Any:
     )
 
 
-def _candidate_table(root: Path) -> dict[str, dict[str, Any]]:
+def _candidate_table(root: Path, *, expected_sha256: str | None = None) -> dict[str, dict[str, Any]]:
     import json
 
-    value = json.loads((Path(root) / "results/baseline/g8_e/candidate_authority.json").read_bytes())
+    raw = (Path(root) / "results/baseline/g8_e/candidate_authority.json").read_bytes()
+    if expected_sha256 is not None and hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise RuntimeError("W10 adaptive candidate authority bytes differ")
+    value = json.loads(raw)
     return {str(item["candidate_id"]): item for item in value["candidates"]}
 
 
@@ -126,6 +129,59 @@ def _selection_map(binding: Mapping[str, Any]) -> dict[int, dict[str, Any]]:
         # Frozen W10 JPEG execution uses exactly the selected quality and PHY.
         return {int(float(item["snr_db"])): dict(item) for item in binding["selections"]}
     raise RuntimeError(f"unsupported classical selection binding: {binding.get('kind')}")
+
+
+def resolve_classical_configuration(
+    *,
+    binding: Mapping[str, Any],
+    point: Mapping[str, Any],
+    candidates: Mapping[str, Mapping[str, Any]],
+    codec_kind: str,
+    quality: int | None,
+) -> tuple[str, str, int, str]:
+    """Resolve one frozen selection without giving fixed MCS a candidate ID."""
+
+    kind = binding.get("kind")
+    if kind == "classical_pass_two" and codec_kind == "jpeg2000":
+        candidate_id = str(point["authority_candidate_id"])
+        candidate = candidates[candidate_id]
+        if candidate.get("candidate_id") != candidate_id:
+            raise RuntimeError("W10 adaptive candidate authority identity differs")
+        return (
+            str(candidate["modulation"]),
+            str(candidate["ldpc_rate"]),
+            int(candidate["encode_axis_px"]),
+            canonical_sha256(candidate),
+        )
+    if kind == "br16_fixed_mcs" and codec_kind == "jpeg2000":
+        fixed = binding["fixed_configuration"]
+        if set(fixed) != {"design_snr_db", "encode_axis_px", "ldpc_rate", "modulation", "packet_count"}:
+            raise RuntimeError("W10 BR-16 frozen configuration fields differ")
+        if fixed["packet_count"] != 1 or float(fixed["design_snr_db"]) != float(get("baseline.fixed_mcs_design_snr_db")):
+            raise RuntimeError("W10 BR-16 frozen design point differs")
+        if dict(point) != {
+            "snr_db": point["snr_db"],
+            "modulation": fixed["modulation"],
+            "ldpc_rate": fixed["ldpc_rate"],
+            "encode_axis_px": fixed["encode_axis_px"],
+        }:
+            raise RuntimeError("W10 BR-16 point differs from the frozen configuration")
+        return (
+            str(fixed["modulation"]),
+            str(fixed["ldpc_rate"]),
+            int(fixed["encode_axis_px"]),
+            canonical_sha256(fixed),
+        )
+    if kind == "w10_jpeg_validation_selection" and codec_kind == "jpeg":
+        if quality is None or int(quality) != int(point["quality"]):
+            raise RuntimeError("W10 JPEG execution quality is not the frozen selected quality")
+        return (
+            str(point["modulation"]),
+            str(point["ldpc_rate"]),
+            int(point["encode_axis_px"]),
+            canonical_sha256(point),
+        )
+    raise RuntimeError(f"unsupported W10 codec/selection pair: {codec_kind}/{kind}")
 
 
 def _classical_scoring(
@@ -170,22 +226,16 @@ def classical_unit(
     }
     if "clean" in unit_classifier_variants(unit):
         classifiers["clean"] = context.classifier("clean")
-    candidates = _candidate_table(root)
     selection = _selection_map(binding)
     point = selection[int(unit["snr_db"])]
-    if codec_kind == "jpeg2000":
-        candidate = candidates[str(point["authority_candidate_id"])]
-        modulation = str(candidate["modulation"])
-        ldpc_rate = str(candidate["ldpc_rate"])
-        encode_axis = int(candidate["encode_axis_px"])
-        config_hash = canonical_sha256(candidate)
-    else:
-        modulation = str(point["modulation"])
-        ldpc_rate = str(point["ldpc_rate"])
-        encode_axis = int(point["encode_axis_px"])
-        config_hash = canonical_sha256(point)
-        if quality is None or int(quality) != int(point["quality"]):
-            raise RuntimeError("W10 JPEG execution quality is not the frozen selected quality")
+    candidate_record = binding.get("candidate_authority", {})
+    candidates = (
+        _candidate_table(root, expected_sha256=candidate_record.get("sha256"))
+        if binding.get("kind") == "classical_pass_two" else {}
+    )
+    modulation, ldpc_rate, encode_axis, config_hash = resolve_classical_configuration(
+        binding=binding, point=point, candidates=candidates, codec_kind=codec_kind, quality=quality
+    )
     k = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{unit['bw_ratio']}"))
     codec = (
         J2KCodec(Path(root) / W10_J2K_CACHE_DIR)

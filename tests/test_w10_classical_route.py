@@ -79,6 +79,49 @@ class _StubPolicy:
         return int(true_label) == 0
 
 
+def test_br16_classical_unit_uses_frozen_fixed_mcs_without_candidate_id(monkeypatch, tmp_path: Path) -> None:
+    """The exact failed v8 route reaches a fixed MCS without a candidate key."""
+
+    import json
+
+    authority = json.loads((Path(".") / "results/learned/w10/w10_rehearsal_authorization.json").read_bytes())
+    binding = next(item["selection"] for item in authority["bindings"] if item["scope"]["role"] == "br16_fixed_mcs")
+    monkeypatch.setattr(w10_classical, "_outage_policy", lambda _root: _StubPolicy())
+    context = W10Execution(root=tmp_path, device="cpu")
+    context.view = _StubView(1)
+    context.classifiers["artifact_finetuned"] = _StubClassifier().eval()
+    context.classifiers["clean"] = _StubClassifier().eval()
+    monkeypatch.setattr(
+        w10_classical,
+        "run_classical_pipeline",
+        lambda *args, **kwargs: SimpleNamespace(
+            verdict=DECODE_FAILURE,
+            dataset="imagenette160",
+            k_symbols=12800,
+            modulation="qam16",
+            ldpc_rate="1/2",
+            snr_db=-8.0,
+            stable_sample_id="val-0000",
+            noise_id=None,
+            packet_feasible=True,
+            structural_reason=None,
+            accounting=None,
+            source_coding=None,
+            transport=None,
+            codestream_recovered_exactly=None,
+            decoded_image=None,
+        ),
+    )
+    unit = {"system": "classical_fixed_mcs", "bw_ratio": "r_1_6", "snr_db": -8, "channel_seed": 0}
+    result = w10_classical.classical_unit(
+        context, unit, root=Path("."), checkpoint_id="not_applicable_untrained_codec", binding=binding
+    )
+    assert result["binding"]["selection_kind"] == "br16_fixed_mcs"
+    assert result["binding"]["modulation"] == "qam16"
+    assert result["binding"]["ldpc_rate"] == "1/2"
+    assert result["binding"]["encode_axis_px"] == 160
+
+
 def test_j2k_route_constructs_cache_scoped_codec(monkeypatch, tmp_path: Path) -> None:
     captured: dict[str, object] = {}
     real_codec = J2KCodec

@@ -41,6 +41,8 @@ from runtime.source_epochs import (
     W10_V7_SOURCE_PATH,
     W10_V8_MANIFEST_KIND,
     W10_V8_SOURCE_PATH,
+    W10_V9_MANIFEST_KIND,
+    W10_V9_SOURCE_PATH,
     SourceEpochHold,
     active_manifest_path,
     assert_v5_freeze_boundary,
@@ -98,10 +100,14 @@ def test_successor_v4_remains_exact_zero_science_history_until_v5() -> None:
         "test_access": 0,
     }
     active = active_manifest_path(REPO)
+    v9_path = REPO / W10_V9_SOURCE_PATH
     v8_path = REPO / W10_V8_SOURCE_PATH
     v7_path = REPO / W10_V7_SOURCE_PATH
     v6_path = REPO / W10_V6_SOURCE_PATH
-    if v8_path.is_file():
+    if v9_path.is_file():
+        assert active == v9_path
+        assert load_w10_manifest(REPO, live=True)["manifest_kind"] == W10_V9_MANIFEST_KIND
+    elif v8_path.is_file():
         assert active == v8_path
         assert load_w10_manifest(REPO, live=True)["manifest_kind"] == W10_V8_MANIFEST_KIND
     elif v7_path.is_file():

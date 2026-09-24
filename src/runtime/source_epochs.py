@@ -75,6 +75,18 @@ W10_V7_SOURCE_COMMIT = "cc705300dc0dd33dc23498ff127b56f1f92427ad"
 W10_V8_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v8.json"
 W10_V8_MANIFEST_KIND = "W10_PREPARATORY_SOURCE_SUCCESSOR_V8"
 W10_V8_MANIFEST_PREFIX = "w10downstreamsourcev8-"
+W10_V9_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v9.json"
+W10_V9_MANIFEST_KIND = "W10_VALIDATION_CONTINUATION_SOURCE_SUCCESSOR_V9"
+W10_V9_MANIFEST_PREFIX = "w10downstreamsourcev9-"
+W10_V8_MANIFEST_ID = "w10downstreamsourcev8-e13ba8905c1910645794ffdf5d7a06c55c55b8a01beec84a392a4a59f9bc48fc"
+W10_V8_MANIFEST_SHA256 = "c37ce2c845acaa111b9ee0d49552867fc671e2ffe7e593589102c8d7e1a1f3c3"
+W10_V8_AUTHORITY_ID = "w10rehearsalauth-18582571f86b71aadcd546808f1199410d1c55cd0237def20689d985aa21eb7d"
+W10_V8_AUTHORITY_SHA256 = "0db7e8900c8cb4415e34e62167e8065dba5ecda8648f28d5e2885729c20abdb0"
+W10_V8_CUSTODY_PATH = "results/learned/w10/w10_v8_failed_prefix_custody.json"
+W10_V8_CUSTODY_ID = "w10v8prefix-a4cbafd6366eb105c24c3806c9182689c81ff4323aee4d45138d75ad4b80171f"
+W10_V8_CUSTODY_SHA256 = "4b20751860633e815bb63236ad5796bfba0092496ec59456428d465d6f7b53a1"
+W10_V8_PREFIX_DIGEST = "4f83fc7d5889ab1209f7e3c66a7d9e485e9c940509c981252c8c05d31f9769a5"
+W10_V8_EXECUTION_COMMIT = "c906ab920cba652c8ea681b4cefda869d5e829b2"
 W10_MANIFEST_KINDS = (
     W10_MANIFEST_KIND,
     W10_V2_MANIFEST_KIND,
@@ -84,8 +96,9 @@ W10_MANIFEST_KINDS = (
     W10_V6_MANIFEST_KIND,
     W10_V7_MANIFEST_KIND,
     W10_V8_MANIFEST_KIND,
+    W10_V9_MANIFEST_KIND,
 )
-W10_EPOCHS = ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8")
+W10_EPOCHS = ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9")
 _EPOCH_FOR_KIND = {
     W10_MANIFEST_KIND: "v1",
     W10_V2_MANIFEST_KIND: "v2",
@@ -95,6 +108,7 @@ _EPOCH_FOR_KIND = {
     W10_V6_MANIFEST_KIND: "v6",
     W10_V7_MANIFEST_KIND: "v7",
     W10_V8_MANIFEST_KIND: "v8",
+    W10_V9_MANIFEST_KIND: "v9",
 }
 HISTORICAL_SOURCE_PATH = "results/learned/w9/downstream_source_manifest_v4.json"
 HISTORICAL_SOURCE_COMMIT = "22fde3e0ba0c8ad7a92356587eb95780ded89ee6"
@@ -178,6 +192,20 @@ W10_V6_PRE_FUTURE_WORK_STATE = {
 }
 W10_V7_PRE_FUTURE_WORK_STATE = dict(W10_V6_PRE_FUTURE_WORK_STATE)
 W10_V8_PRE_FUTURE_WORK_STATE = dict(W10_V7_PRE_FUTURE_WORK_STATE)
+W10_V9_PRE_FUTURE_WORK_STATE = {
+    "papr_constrained_training_runs": 1,
+    "papr_lifecycle_closed": True,
+    "jpeg_validation_selection_count": 1,
+    "er12_validation_selection_count": 1,
+    "v8_w10_authority_frozen": True,
+    "v8_w10_scientific_units_complete": 126,
+    "v8_w10_failed_ordinal": 126,
+    "v9_continuation_authority_frozen": False,
+    "v9_w10_scientific_units": 0,
+    "g12_freeze_manifest": False,
+    "test": "SEALED",
+    "test_access": 0,
+}
 
 W10_RELEVANT_CONFIG_PATHS = (
     "configs/er9-digital-pascal-v4.yaml",
@@ -273,6 +301,7 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
         W10_V6_MANIFEST_KIND,
         W10_V7_MANIFEST_KIND,
         W10_V8_MANIFEST_KIND,
+        W10_V9_MANIFEST_KIND,
     }:
         _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 successor evidence boundary differs")
     else:
@@ -383,6 +412,13 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
             and dict(manifest["pre_future_work_state"]) == W10_V7_PRE_FUTURE_WORK_STATE,
             "W10 v7 pre-future-work state differs",
         )
+    elif manifest.get("manifest_kind") == W10_V9_MANIFEST_KIND:
+        _require("pre_science_state" not in manifest and "superseded_successor" not in manifest, "W10 v9 must record executed v8 science")
+        transition = manifest.get("transition_from_v8")
+        _require(isinstance(transition, Mapping), "W10 v9 transition record is missing")
+        _require(transition.get("transition_kind") == "failed_partial_science_to_suffix_continuation", "W10 v9 transition kind differs")
+        _require(transition.get("v8_scientific_work_executed") is True and transition.get("completed_ordinals") == [0, 125] and transition.get("failed_ordinal") == 126, "W10 v9 historical frontier differs")
+        _require(dict(manifest.get("pre_future_work_state", {})) == W10_V9_PRE_FUTURE_WORK_STATE, "W10 v9 pre-future-work state differs")
     elif manifest.get("manifest_kind") == W10_V8_MANIFEST_KIND:
         _require("pre_science_state" not in manifest, "W10 v8 must not reuse the zero-science pre-science state")
         _require("superseded_successor" not in manifest, "W10 v8 must not claim a zero-science supersession")
@@ -437,12 +473,15 @@ def successor_path(root: Path, *, epoch: str = "v2") -> Path:
         "v6": W10_V6_SOURCE_PATH,
         "v7": W10_V7_SOURCE_PATH,
         "v8": W10_V8_SOURCE_PATH,
+        "v9": W10_V9_SOURCE_PATH,
     }
     _require(epoch in names, f"unknown W10 successor epoch: {epoch}")
     return Path(root) / names[epoch]
 
 
 def manifest_prefix(kind: str) -> str:
+    if kind == W10_V9_MANIFEST_KIND:
+        return W10_V9_MANIFEST_PREFIX
     if kind == W10_V8_MANIFEST_KIND:
         return W10_V8_MANIFEST_PREFIX
     if kind == W10_V7_MANIFEST_KIND:
@@ -486,13 +525,15 @@ def predecessor_binding(manifest: Mapping[str, Any]) -> Mapping[str, Any] | None
         value = manifest.get("transition_from_v6")
     elif kind == W10_V8_MANIFEST_KIND:
         value = manifest.get("transition_from_v7")
+    elif kind == W10_V9_MANIFEST_KIND:
+        value = manifest.get("transition_from_v8")
     else:
         value = None
     return value if isinstance(value, Mapping) else None
 
 
 def active_manifest_path(root: Path) -> Path:
-    for epoch in ("v8", "v7", "v6", "v5", "v4", "v3", "v2"):
+    for epoch in ("v9", "v8", "v7", "v6", "v5", "v4", "v3", "v2"):
         candidate = successor_path(root, epoch=epoch)
         if candidate.is_file() and not candidate.is_symlink():
             return candidate
@@ -523,6 +564,8 @@ def load_w10_manifest(root: Path, *, live: bool = True, epoch: str | None = None
         _require_w10_v7_transition(root, value)
     if kind == W10_V8_MANIFEST_KIND:
         _require_w10_v8_transition(root, value)
+    if kind == W10_V9_MANIFEST_KIND:
+        _require_w10_v9_transition(root, value)
     if live:
         assert_clean_active_source_closure(root, value)
     return value
@@ -885,6 +928,101 @@ def _require_w10_v8_transition(root: Path, value: Mapping[str, Any]) -> None:
     _require(dict(transition) == expected_transition, "W10 v8 transition fields differ")
 
 
+def v8_continuation_custody(root: Path) -> dict[str, Any]:
+    """Authenticate immutable published facts before a v9 source freeze."""
+
+    root = Path(root)
+    source_path = root / W10_V8_SOURCE_PATH
+    authority_path = root / W10_AUTHORITY_SOURCE_PATH
+    custody_path = root / W10_V8_CUSTODY_PATH
+    for path in (source_path, authority_path, custody_path):
+        _require(path.is_file() and not path.is_symlink(), f"W10 v8 custody input is missing or unsafe: {path}")
+    source = load_w10_manifest(root, live=False, epoch="v8")
+    _require(source["manifest_id"] == W10_V8_MANIFEST_ID and hashlib.sha256(source_path.read_bytes()).hexdigest() == W10_V8_MANIFEST_SHA256, "W10 v8 source bytes differ")
+    authority = json.loads(authority_path.read_bytes())
+    authority_body = dict(authority)
+    authority_id = authority_body.pop("authority_id", None)
+    _require(authority_id == W10_V8_AUTHORITY_ID == "w10rehearsalauth-" + canonical_sha256(authority_body), "W10 v8 authority ID differs")
+    _require(hashlib.sha256(authority_path.read_bytes()).hexdigest() == W10_V8_AUTHORITY_SHA256, "W10 v8 authority bytes differ")
+    _require(authority.get("source_binding") == source and authority.get("source_commit") == source["source_commit"], "W10 v8 authority source differs")
+    _require(authority.get("validation_only") is True and authority.get("test") == "SEALED" and authority.get("test_access") == 0, "W10 v8 authority test boundary differs")
+    custody = json.loads(custody_path.read_bytes())
+    custody_body = dict(custody)
+    custody_id = custody_body.pop("custody_id", None)
+    _require(custody_id == W10_V8_CUSTODY_ID == "w10v8prefix-" + canonical_sha256(custody_body), "W10 v8 custody ID differs")
+    _require(hashlib.sha256(custody_path.read_bytes()).hexdigest() == W10_V8_CUSTODY_SHA256, "W10 v8 custody bytes differ")
+    _require(custody.get("authority", {}).get("authority_id") == authority_id and custody.get("authority", {}).get("sha256") == W10_V8_AUTHORITY_SHA256, "W10 v8 custody authority differs")
+    _require(custody.get("source", {}).get("manifest_id") == source["manifest_id"] and custody.get("source", {}).get("sha256") == W10_V8_MANIFEST_SHA256, "W10 v8 custody source differs")
+    _require(custody.get("execution_commit") == W10_V8_EXECUTION_COMMIT and custody.get("status") == "FAILED_PARTIAL_NOT_CLOSEOUT", "W10 v8 failed execution differs")
+    _require(custody.get("completed_ordinals") == [0, 125] and custody.get("failed_ordinal") == 126 and custody.get("unit_count") == 126 and custody.get("stream_count") == 168, "W10 v8 prefix frontier differs")
+    units = custody.get("units")
+    streams = custody.get("streams")
+    _require(isinstance(units, list) and [item.get("ordinal") for item in units] == list(range(126)), "W10 v8 ordered unit custody differs")
+    _require(isinstance(streams, list) and len(streams) == 168 and all(isinstance(item.get("ordinal"), int) and 0 <= item["ordinal"] < 126 for item in streams), "W10 v8 ordered scorer custody differs")
+    _require(len({item.get("path") for item in units}) == 126 and len({item.get("path") for item in streams}) == 168, "W10 v8 custody paths are not unique")
+    _require(custody.get("complete_prefix_digest") == canonical_sha256({"units": units, "streams": streams}), "W10 v8 custody prefix digest does not recompute")
+    _require(custody.get("complete_prefix_digest") == W10_V8_PREFIX_DIGEST, "W10 v8 prefix digest differs")
+    _require(custody.get("validation_only") is True and custody.get("test") == "SEALED" and custody.get("test_access") == 0 and custody.get("g12_unopened") is True, "W10 v8 custody test boundary differs")
+    return custody
+
+
+def _v9_transition(root: Path) -> dict[str, Any]:
+    custody = v8_continuation_custody(root)
+    papr_path = Path(root) / PAPR_COMPLETION_SOURCE_PATH
+    _require(papr_path.is_file() and not papr_path.is_symlink(), "W10 v9 PAPR completion is missing or unsafe")
+    _require(hashlib.sha256(papr_path.read_bytes()).hexdigest() == PAPR_COMPLETION_SHA256, "W10 v9 PAPR completion bytes differ")
+    papr_completion = json.loads(papr_path.read_bytes())
+    _require(papr_completion.get("completion_id") == PAPR_COMPLETION_ID, "W10 v9 PAPR completion ID differs")
+    authority = json.loads((Path(root) / W10_AUTHORITY_SOURCE_PATH).read_bytes())
+    selections = {str(item["scope"]["role"]): item["selection"] for item in authority["bindings"]}
+    for role, epoch in (("dec9_jpeg_secondary", "v5"), ("er12_label_upper_bound", "v8")):
+        selection = selections[role]
+        historical = load_w10_manifest(root, live=False, epoch=epoch)
+        _require(selection["source_epoch"] == source_record(root, historical), f"W10 v9 {role} historical source epoch differs")
+        if selection["carrier_path"] is None:
+            path = Path(root) / selection["artifact"]["path"]
+            _require(path.is_file() and not path.is_symlink(), f"W10 v9 {role} selection is missing or unsafe")
+            _require(hashlib.sha256(path.read_bytes()).hexdigest() == selection["raw_sha256"], f"W10 v9 {role} selection bytes differ")
+            continue
+        for path_field, sha_field in (("carrier_path", "carrier_sha256"), ("carrier_descriptor_path", "carrier_descriptor_sha256")):
+            path = Path(root) / selection[path_field]
+            _require(path.is_file() and not path.is_symlink(), f"W10 v9 {role} carrier is missing or unsafe")
+            _require(hashlib.sha256(path.read_bytes()).hexdigest() == selection[sha_field], f"W10 v9 {role} carrier bytes differ")
+    return {
+        "path": W10_V8_SOURCE_PATH,
+        "manifest_kind": W10_V8_MANIFEST_KIND,
+        "manifest_id": W10_V8_MANIFEST_ID,
+        "sha256": W10_V8_MANIFEST_SHA256,
+        "source_commit": custody["source"]["source_commit"],
+        "transition_kind": "failed_partial_science_to_suffix_continuation",
+        "v8_scientific_work_executed": True,
+        "v8_authority_id": W10_V8_AUTHORITY_ID,
+        "v8_authority_sha256": W10_V8_AUTHORITY_SHA256,
+        "v8_execution_commit": W10_V8_EXECUTION_COMMIT,
+        "historical_custody_path": W10_V8_CUSTODY_PATH,
+        "historical_custody_id": W10_V8_CUSTODY_ID,
+        "historical_custody_sha256": W10_V8_CUSTODY_SHA256,
+        "historical_prefix_digest": W10_V8_PREFIX_DIGEST,
+        "completed_ordinals": [0, 125],
+        "failed_ordinal": 126,
+        "papr_completion_id": PAPR_COMPLETION_ID,
+        "papr_completion_sha256": PAPR_COMPLETION_SHA256,
+        "jpeg_selection_id": selections["dec9_jpeg_secondary"]["selection_id"],
+        "jpeg_selection_source_epoch": selections["dec9_jpeg_secondary"]["source_epoch"],
+        "jpeg_selection_raw_sha256": selections["dec9_jpeg_secondary"]["raw_sha256"],
+        "er12_selection_id": selections["er12_label_upper_bound"]["selection_id"],
+        "er12_selection_source_epoch": selections["er12_label_upper_bound"]["source_epoch"],
+        "er12_selection_raw_sha256": selections["er12_label_upper_bound"]["raw_sha256"],
+        "g12_freeze_manifest": False,
+        "test": "SEALED",
+        "test_access": 0,
+    }
+
+
+def _require_w10_v9_transition(root: Path, value: Mapping[str, Any]) -> None:
+    _require(dict(value.get("transition_from_v8", {})) == _v9_transition(root), "W10 v9 transition differs from immutable v8 custody")
+
+
 def _v6_forbidden_paths(root: Path) -> tuple[tuple[str, str], ...]:
     return (
         (W10_ER12_SELECTION_SOURCE_PATH, "ER-12 validation selection"),
@@ -1101,6 +1239,33 @@ def build_w10_manifest_v8(root: Path, *, source_commit: str) -> dict[str, Any]:
     return base
 
 
+def build_w10_manifest_v9(root: Path, *, source_commit: str) -> dict[str, Any]:
+    """Build a future successor over failed, already executed v8 science."""
+
+    root = Path(root)
+    output = successor_path(root, epoch="v9")
+    _require(not output.exists() and not output.is_symlink(), "W10 v9 manifest already exists")
+    _require(not (root / W10_CLOSEOUT_SOURCE_PATH).exists(), "W10 closeout already exists")
+    _require(not (root / G12_FREEZE_MANIFEST_SOURCE_PATH).exists(), "G12 is already open")
+    _require(not (root / "results/learned/w10/w10_continuation_authorization_v9.json").exists(), "W10 v9 authority already exists")
+    _require(not (root / "results/learned/w10/w10_continuation_launch_authorization_v9.json").exists(), "W10 v9 launch grant already exists")
+    transition = _v9_transition(root)
+    base = build_manifest(root, source_commit=source_commit, relevant_config_paths=W10_RELEVANT_CONFIG_PATHS)
+    base.pop("manifest_id")
+    base["manifest_kind"] = W10_V9_MANIFEST_KIND
+    base["historical_w9_downstream_manifest"] = {
+        "path": HISTORICAL_SOURCE_PATH,
+        "source_commit": HISTORICAL_SOURCE_COMMIT,
+        "manifest_id": "w9downstreamsource-89bdc14e154a6a9e9d4ea3ba75fc05f5b4cff6474cb3e2e3133fd21c48d5da33",
+    }
+    base["transition_from_v8"] = transition
+    base["allowed_evidence_runtime_prefixes"] = list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
+    base["governs"] = list(W10_GOVERNS)
+    base["pre_future_work_state"] = dict(W10_V9_PRE_FUTURE_WORK_STATE)
+    base["manifest_id"] = W10_V9_MANIFEST_PREFIX + canonical_sha256(base)
+    return base
+
+
 def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = None) -> dict[str, Any]:
     if path is None:
         kind = str(manifest.get("manifest_kind"))
@@ -1113,9 +1278,11 @@ def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = N
             W10_V6_MANIFEST_KIND: W10_V6_SOURCE_PATH,
             W10_V7_MANIFEST_KIND: W10_V7_SOURCE_PATH,
             W10_V8_MANIFEST_KIND: W10_V8_SOURCE_PATH,
+            W10_V9_MANIFEST_KIND: W10_V9_SOURCE_PATH,
         }
         candidate = root / candidates[kind]
         if not candidate.is_file():
+            _require(kind != W10_V9_MANIFEST_KIND, "W10 v9 source record requires its frozen manifest bytes")
             candidate = active_manifest_path(root)
         target = candidate
     else:
@@ -1619,6 +1786,19 @@ __all__ = [
     "W10_V8_REPAIR_REASON",
     "W10_V8_SOURCE_PATH",
     "W10_V8_TRANSITION_KIND",
+    "W10_V8_AUTHORITY_ID",
+    "W10_V8_AUTHORITY_SHA256",
+    "W10_V8_CUSTODY_ID",
+    "W10_V8_CUSTODY_PATH",
+    "W10_V8_CUSTODY_SHA256",
+    "W10_V8_EXECUTION_COMMIT",
+    "W10_V8_MANIFEST_ID",
+    "W10_V8_MANIFEST_SHA256",
+    "W10_V8_PREFIX_DIGEST",
+    "W10_V9_MANIFEST_KIND",
+    "W10_V9_MANIFEST_PREFIX",
+    "W10_V9_PRE_FUTURE_WORK_STATE",
+    "W10_V9_SOURCE_PATH",
     "SourceEpochHold",
     "active_manifest_path",
     "assert_active_epoch_closure",
@@ -1637,10 +1817,12 @@ __all__ = [
     "build_w10_manifest_v6",
     "build_w10_manifest_v7",
     "build_w10_manifest_v8",
+    "build_w10_manifest_v9",
     "epoch_for_kind",
     "load_w10_manifest",
     "manifest_prefix",
     "predecessor_binding",
     "source_record",
     "successor_path",
+    "v8_continuation_custody",
 ]

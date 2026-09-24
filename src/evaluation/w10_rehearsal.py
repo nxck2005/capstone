@@ -263,7 +263,14 @@ def execute(
     boundary.
     """
 
-    require(authority.get("authority_kind") == "W10_VALIDATION_REHEARSAL_AUTHORITY", "W10 execution authority role differs")
+    continuation = authority.get("authority_kind") == "W10_VALIDATION_CONTINUATION_AUTHORITY_V9"
+    require(
+        continuation or authority.get("authority_kind") == "W10_VALIDATION_REHEARSAL_AUTHORITY",
+        "W10 execution authority role differs",
+    )
+    if continuation:
+        require(authority.get("historical_completed_ordinals") == list(range(126)), "W10 historical continuation ordinals differ")  # literal-ok: authenticated failed prefix
+        require(authority.get("new_authorized_ordinals") == list(range(126, 252)), "W10 new continuation ordinals differ")  # literal-ok: exact suffix of 252-unit scope
     require(authority.get("cell") == {"train_seed": W10_TRAIN_SEED, "channel_seed": W10_CHANNEL_SEED}, "W10 execution authority cell differs")
     require(authority.get("split") == W10_SPLIT, "W10 execution authority split differs")
     require(authority.get("systems") == list(W10_SYSTEMS), "W10 execution authority systems differ")
@@ -279,6 +286,11 @@ def execute(
         if path.is_file() and not path.is_symlink():
             value = read_json(path, f"W10 unit {expected['ordinal']}")
             validate_unit(value, expected)
+            if continuation:
+                if expected["ordinal"] < 126:  # literal-ok: immutable historical prefix
+                    require("execution_authority_id" not in value["binding"], "historical W10 unit was relabelled")
+                else:
+                    require(value["binding"].get("execution_authority_id") == authority["authority_id"], "cross-authority W10 suffix unit")
             require(value["per_image_path"] == relative, "W10 resumed unit per-image path differs")
             _validate_persisted_streams(
                 runtime_root,
@@ -289,7 +301,12 @@ def execute(
             require(canonical_sha256(read_json(per_image_path, "W10 per-image")) == value["per_image_sha256"], "W10 resumed per-image digest differs")
             results.append(value)
             continue
+        if continuation:
+            require(expected["ordinal"] >= 126, "historical W10 unit is missing")  # literal-ok: failed ordinal boundary
         supplied = backend(expected)
+        if continuation:
+            supplied = dict(supplied)
+            supplied["binding"] = {**supplied["binding"], "execution_authority_id": authority["authority_id"]}
         rows = [dict(row) for row in supplied["per_image"]]
         if expected_stable_ids is not None:
             validate_per_image(
