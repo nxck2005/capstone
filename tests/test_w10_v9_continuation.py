@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 
 import evaluation.w10_classical as classical
+import evaluation.am98_spec_compatibility as am98
+import evaluation.am99_spec_compatibility as am99
 import runtime.source_epochs as epochs
 from evaluation.w10_continuation import (
     CONTINUATION_AUTHORITY_PATH,
@@ -110,8 +112,16 @@ def test_jpeg_resolution_is_byte_identical_to_previous_behavior() -> None:
             )
 
 
-def test_v9_source_transition_records_executed_v8_without_freezing(monkeypatch) -> None:
+def test_v9_source_transition_records_executed_v8_without_freezing(monkeypatch, tmp_path: Path) -> None:
     predecessor = epochs.load_w10_manifest(REPO, live=False, epoch="v8")
+    frozen_v9_path = REPO / epochs.W10_V9_SOURCE_PATH
+    frozen_v9_before = frozen_v9_path.read_bytes() if frozen_v9_path.is_file() else None
+    real_successor_path = epochs.successor_path
+
+    def fake_successor_path(root, *, epoch="v2"):
+        if epoch == "v9":
+            return tmp_path / epochs.W10_V9_SOURCE_PATH.rsplit("/", 1)[-1]
+        return real_successor_path(root, epoch=epoch)
 
     def fake_build(_root, *, source_commit, relevant_config_paths):
         assert tuple(relevant_config_paths) == epochs.W10_RELEVANT_CONFIG_PATHS
@@ -122,6 +132,7 @@ def test_v9_source_transition_records_executed_v8_without_freezing(monkeypatch) 
         return base
 
     monkeypatch.setattr(epochs, "build_manifest", fake_build)
+    monkeypatch.setattr(epochs, "successor_path", fake_successor_path)
     value = epochs.build_w10_manifest_v9(REPO, source_commit="a" * 40)
     epochs.assert_w10_manifest_contract(value)
     assert value["manifest_kind"] == epochs.W10_V9_MANIFEST_KIND
@@ -129,7 +140,50 @@ def test_v9_source_transition_records_executed_v8_without_freezing(monkeypatch) 
     assert value["transition_from_v8"]["historical_custody_id"] == CUSTODY["custody_id"]
     assert "superseded_successor" not in value
     assert epochs.predecessor_binding(value) == value["transition_from_v8"]
-    assert not (REPO / epochs.W10_V9_SOURCE_PATH).exists()
+    assert (frozen_v9_path.read_bytes() if frozen_v9_path.is_file() else None) == frozen_v9_before
+
+
+def test_am99_accepts_v9_only_with_authenticated_v8_lineage(monkeypatch) -> None:
+    historical = epochs.load_w10_manifest(REPO, live=False, epoch="v8")
+    historical_path = REPO / epochs.W10_V8_SOURCE_PATH
+    manifest_path = epochs.successor_path(REPO, epoch="v9")
+    if not manifest_path.is_file():
+        manifest_path = historical_path
+    source = {
+        "manifest_kind": epochs.W10_V9_MANIFEST_KIND,
+        "manifest_id": epochs.W10_V9_MANIFEST_PREFIX + "synthetic",
+        "source_commit": "a" * 40,
+        "governs": ["papr_constrained_training", "w10_validation_rehearsal"],
+        "transition_from_v8": {
+            "path": epochs.W10_V8_SOURCE_PATH,
+            "manifest_kind": historical["manifest_kind"],
+            "manifest_id": historical["manifest_id"],
+            "sha256": hashlib.sha256(historical_path.read_bytes()).hexdigest(),
+            "source_commit": historical["source_commit"],
+        },
+    }
+    current = [source]
+
+    def fake_load(_root, *, live=True, epoch=None):
+        del live
+        return historical if epoch == "v8" else current[0]
+
+    monkeypatch.setattr(am99, "load_w10_manifest", fake_load)
+    monkeypatch.setattr(am98, "load_w10_manifest", fake_load)
+    monkeypatch.setattr(am99, "active_manifest_path", lambda _root: manifest_path)
+    monkeypatch.setattr(am98, "active_manifest_path", lambda _root: manifest_path)
+    monkeypatch.setattr(am98.am97, "load", lambda *_args, **_kwargs: {})
+
+    result = am99.load(REPO)
+    assert result["successor_manifest"]["kind"] == epochs.W10_V9_MANIFEST_KIND
+    assert result["successor_manifest"]["manifest_id"] == source["manifest_id"]
+
+    current[0] = {
+        **source,
+        "transition_from_v8": {**source["transition_from_v8"], "sha256": "0" * 64},
+    }
+    with pytest.raises(epochs.SourceEpochHold, match="historical successor manifest bytes differ"):
+        am99.load(REPO)
 
 
 def test_continuation_authority_projects_original_science_without_freeze(monkeypatch) -> None:
