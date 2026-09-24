@@ -333,10 +333,17 @@ def test_closed_papr_authority_stays_bound_to_historical_v4() -> None:
     assert authority["source_commit"] == W10_V4_SOURCE_COMMIT
     assert hashlib.sha256(V4_PATH.read_bytes()).hexdigest() == W10_V4_MANIFEST_SHA256
     active = load_w10_manifest(REPO, live=True)
+    v9_path = REPO / W10_V9_SOURCE_PATH
     v8_path = REPO / W10_V8_SOURCE_PATH
     v7_path = REPO / W10_V7_SOURCE_PATH
     v6_path = REPO / W10_V6_SOURCE_PATH
-    if v8_path.is_file():
+    if v9_path.is_file():
+        assert active["manifest_kind"] == W10_V9_MANIFEST_KIND
+        transition = active["transition_from_v8"]
+        assert transition["path"] == W10_V8_SOURCE_PATH
+        assert transition["manifest_id"] == json.loads(v8_path.read_bytes())["manifest_id"]
+        assert transition["test"] == "SEALED" and transition["test_access"] == 0
+    elif v8_path.is_file():
         assert active["manifest_kind"] == W10_V8_MANIFEST_KIND
         assert active["transition_from_v7"]["path"] == W10_V7_SOURCE_PATH
         assert active["transition_from_v7"]["manifest_id"] == json.loads(v7_path.read_bytes())["manifest_id"]

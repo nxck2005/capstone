@@ -71,7 +71,8 @@ def _authority(tmp_path: Path) -> dict:
 
 @pytest.fixture(autouse=True)
 def _synthetic_contract(monkeypatch):
-    monkeypatch.setattr(verifier, "load_w10_manifest", lambda root, live=True: MANIFEST)
+    monkeypatch.setattr(verifier, "load_w10_manifest", lambda root, live=True, epoch=None: MANIFEST)
+    monkeypatch.setattr(verifier, "assert_active_epoch_closure", lambda root, historical: None)
     monkeypatch.setattr(verifier, "source_record", lambda root, manifest: SOURCE_RECORD)
     monkeypatch.setattr(verifier, "resolve_scope_bindings", lambda root, verify_runtime=True: _fake_bindings())
     monkeypatch.setattr(verifier, "pending_states", lambda bindings: [])
