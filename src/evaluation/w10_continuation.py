@@ -11,12 +11,20 @@ from baseline.classical.records import make_pair_id
 from config.params import get
 from evaluation.downstream_v4 import read_json, require
 from evaluation.w10_classical import _candidate_table, _selection_map, resolve_classical_configuration
-from evaluation.w10_evidence import per_image_relative_path, scheduled_noise_id, unit_relative_path
+from evaluation.w10_evidence import (
+    build_per_image_record,
+    per_image_relative_path,
+    recompute_n_correct,
+    scheduled_noise_id,
+    unit_relative_path,
+    validate_per_image,
+)
 from evaluation.w10_rehearsal import (
     _validate_persisted_streams,
     per_image_manifest,
     unit_manifest,
     validate_unit,
+    unit_evidence_requirement,
     work_units,
 )
 from evaluation.w10_scope import W10_VALIDATION_DENOMINATOR
@@ -36,7 +44,7 @@ from runtime.source_epochs import (
     v8_continuation_custody,
 )
 from runtime.source_guard import assert_manifest_commit_bytes, git_blob_bytes
-from training.deterministic_core import canonical_sha256
+from training.deterministic_core import canonical_bytes, canonical_sha256
 
 CONTINUATION_AUTHORITY_PATH = "results/learned/w10/w10_continuation_authorization_v9.json"
 CONTINUATION_LAUNCH_PATH = "results/learned/w10/w10_continuation_launch_authorization_v9.json"
@@ -296,8 +304,64 @@ def verify_launch_authorization(root: Path, authority: Mapping[str, Any], plan: 
     return value
 
 
-def verify_suffix_evidence_set(runtime: Path, custody: Mapping[str, Any], authority: Mapping[str, Any]) -> None:
-    """Allow only an ordered, v9-marked suffix prefix after the original 126."""
+_ROOT_DIRECTORIES = {"units", "per_image", "j2k_cache"}
+_ROOT_FILES = {"plan.json", CONTINUATION_PLAN_PATH}
+_CLOSEOUT_FILES = {
+    "continuation_unit_manifest_v9.json",
+    "continuation_per_image_manifest_v9.json",
+    "continuation_closeout_v9.json",
+}
+
+
+def verify_runtime_root_namespace(runtime: Path, *, phase: str) -> None:
+    """Keep the runtime root limited to the artifacts of the current phase."""
+
+    require(phase in {"plan", "execute", "closeout"}, "unknown W10 continuation phase")
+    require(runtime.is_dir() and not runtime.is_symlink(), "W10 runtime root is missing or unsafe")
+    allowed = _ROOT_DIRECTORIES | _ROOT_FILES | (_CLOSEOUT_FILES if phase == "closeout" else set())
+    names = {path.name for path in runtime.iterdir()}
+    require(names <= allowed, f"unexpected W10 runtime-root artifacts: {sorted(names - allowed)}")
+    for name in names & _ROOT_DIRECTORIES:
+        path = runtime / name
+        require(path.is_dir() and not path.is_symlink(), f"W10 runtime directory is unsafe: {name}")
+    for name in names & (_ROOT_FILES | _CLOSEOUT_FILES):
+        path = runtime / name
+        require(path.is_file() and not path.is_symlink(), f"W10 runtime file is unsafe: {name}")
+    require({"units", "per_image", "plan.json"} <= names, "W10 historical runtime layout differs")
+    if phase != "plan":
+        require(CONTINUATION_PLAN_PATH in names, "W10 continuation plan is missing")
+
+
+def _verify_orphan_stream(path: Path, unit: Mapping[str, Any], index: int, stable_ids: Sequence[str]) -> None:
+    """Authenticate an uncommitted scorer stream without promoting it to a unit."""
+
+    relative = per_image_relative_path(unit, index)
+    variant = unit_evidence_requirement(unit)["classifier_variants"][index]
+    record = read_json(path, "pending W10 scorer stream")
+    rows = record.get("rows")
+    require(isinstance(rows, list), "pending W10 scorer rows are missing")
+    require(record == build_per_image_record(
+        ordinal=int(unit["ordinal"]), unit_key=relative, rows=rows, classifier_variant=variant
+    ), "pending W10 scorer schema or identity differs")
+    require(path.read_bytes() == canonical_bytes(record), "pending W10 scorer bytes are not canonical")
+    validate_per_image(
+        rows, expected_stable_ids=stable_ids, system=str(unit["system"]),
+        bw_ratio=str(unit["bw_ratio"]), snr_db=unit["snr_db"],
+    )
+    require(record["n_total"] == W10_VALIDATION_DENOMINATOR, "pending W10 scorer denominator differs")
+    _verify_scheduled_rows(rows, unit)
+    require(0 <= recompute_n_correct(rows) <= W10_VALIDATION_DENOMINATOR, "pending W10 scorer correctness differs")
+
+
+def verify_suffix_evidence_set(
+    runtime: Path,
+    custody: Mapping[str, Any],
+    authority: Mapping[str, Any],
+    *,
+    expected_stable_ids: Sequence[str] | None = None,
+    phase: str = "execute",
+) -> None:
+    """Authenticate committed suffix units and only the next unit's stream prefix."""
 
     expected = work_units()
     unit_files = {str(path.relative_to(runtime)) for path in (runtime / "units").iterdir()}
@@ -311,18 +375,39 @@ def verify_suffix_evidence_set(runtime: Path, custody: Mapping[str, Any], author
     for unit in expected[CONTINUATION_START:]:
         relative = unit_relative_path(unit, "json")
         path = runtime / relative
-        if not path.exists():
+        if relative not in unit_files:
             continue
         require(path.is_file() and not path.is_symlink(), "v9 suffix unit is unsafe")
         value = read_json(path, "W10 v9 suffix unit")
         validate_unit(value, unit)
         require(value["binding"].get("execution_authority_id") == authority["authority_id"], "cross-authority suffix evidence")
+        require(expected_stable_ids is not None, "W10 suffix verification needs validation stable IDs")
+        require(path.read_bytes() == canonical_bytes(value), "v9 suffix unit bytes are not canonical")
+        _validate_persisted_streams(runtime, unit, value, expected_stable_ids=list(expected_stable_ids))
+        for variant in value["scorer_variants"]:
+            stream_path = runtime / variant["path"]
+            record = read_json(stream_path, "committed W10 scorer stream")
+            require(stream_path.read_bytes() == canonical_bytes(record), "committed W10 scorer bytes are not canonical")
+            _verify_scheduled_rows(record["rows"], unit)
         suffix_ordinals.append(unit["ordinal"])
         expected_suffix_units.add(relative)
         expected_suffix_streams.update(variant["path"] for variant in value["scorer_variants"])
     require(suffix_ordinals == list(range(CONTINUATION_START, CONTINUATION_START + len(suffix_ordinals))), "v9 suffix has a hole")
     require(unit_files == historical_units | expected_suffix_units, "unexpected W10 unit evidence")
+    pending_ordinal = CONTINUATION_START + len(suffix_ordinals)
+    if pending_ordinal < CONTINUATION_STOP:
+        pending = expected[pending_ordinal]
+        variants = unit_evidence_requirement(pending)["classifier_variants"]
+        pending_paths = [per_image_relative_path(pending, index) for index in range(len(variants))]
+        present = [path in stream_files for path in pending_paths]
+        require(present == [True] * sum(present) + [False] * (len(present) - sum(present)), "pending W10 scorer streams are not an ordered prefix")
+        if any(present):
+            require(expected_stable_ids is not None, "pending W10 scorer verification needs validation stable IDs")
+            for index in range(sum(present)):
+                _verify_orphan_stream(runtime / pending_paths[index], pending, index, expected_stable_ids)
+            expected_suffix_streams.update(pending_paths[:sum(present)])
     require(stream_files == historical_streams | expected_suffix_streams, "unexpected W10 scorer evidence")
+    verify_runtime_root_namespace(runtime, phase=phase)
 
 
 def verify_suffix_streams(runtime: Path, *, expected_stable_ids: Sequence[str], authority: Mapping[str, Any]) -> None:

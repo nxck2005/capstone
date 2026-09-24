@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import math
+import os
+import tempfile
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -38,7 +40,7 @@ from evaluation.w10_scope import (
     unit_count,
     work_units,
 )
-from training.deterministic_core import canonical_sha256
+from training.deterministic_core import canonical_bytes, canonical_sha256
 
 W10_SYSTEMS = tuple(dict.fromkeys(entry.system for entry in SCOPE))
 
@@ -53,6 +55,35 @@ W10_UNIT_KEYS = (
     "channel_seed",
     "split",
 )
+
+
+def _immutable_w10_write(path: Path, value: Mapping[str, Any]) -> None:
+    """Publish a complete W10 record without exposing a partial final file."""
+
+    if path.exists() or path.is_symlink():
+        immutable_write(path, value)  # exact-byte replay, including a prior stream
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = canonical_bytes(dict(value))
+    descriptor, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(raw)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, path)
+        except FileExistsError:
+            immutable_write(path, value)
+        else:
+            directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def unit_evidence_requirement(expected: Mapping[str, Any]) -> dict[str, Any]:
@@ -185,7 +216,7 @@ def _write_per_image(
         classifier_variant=classifier_variant,
     )
     path = runtime / relative
-    immutable_write(path, record)
+    _immutable_w10_write(path, record)
     digest = canonical_sha256(record)
     return {
         "classifier_variant": classifier_variant,
@@ -373,7 +404,7 @@ def execute(
             scorer_variants=public_variants,
         )
         validate_unit(value, expected)
-        immutable_write(path, value)
+        _immutable_w10_write(path, value)
         results.append(value)
     require(len(results) == unit_count(), "W10 execution did not cover the exact scope")
     return results

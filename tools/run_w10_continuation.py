@@ -41,7 +41,10 @@ def main(argv: list[str] | None = None) -> int:
     runtime = REPO / authority["runtime_root"]
     view = ValidationView()
     custody = verify_worker_prefix(REPO, expected_stable_ids=view.stable_ids, allow_suffix=True)
-    verify_suffix_evidence_set(runtime, custody, authority)
+    verify_suffix_evidence_set(
+        runtime, custody, authority, expected_stable_ids=view.stable_ids,
+        phase="closeout" if args.action == "closeout" else args.action,
+    )
     if args.action == "plan":
         immutable_write(runtime / CONTINUATION_PLAN_PATH, build_continuation_plan(authority))
         print("W10 v9 continuation plan ready: historical 0–125; new 126–251")

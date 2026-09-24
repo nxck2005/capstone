@@ -128,7 +128,7 @@ def verify_worker() -> dict:
     custody = verify_worker_prefix(REPO, expected_stable_ids=stable_ids, allow_suffix=True)
     plan = verify_continuation_plan(runtime, authority)
     verify_launch_authorization(REPO, authority, plan)
-    verify_suffix_evidence_set(runtime, custody, authority)
+    verify_suffix_evidence_set(runtime, custody, authority, expected_stable_ids=stable_ids, phase="closeout")
     verify_suffix_streams(runtime, expected_stable_ids=stable_ids, authority=authority)
     results = []
     for unit in work_units():

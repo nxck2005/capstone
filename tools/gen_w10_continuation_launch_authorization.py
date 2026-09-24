@@ -28,8 +28,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     authority = verify_continuation_authority(REPO)
     runtime = REPO / authority["runtime_root"]
-    custody = verify_worker_prefix(REPO, expected_stable_ids=ValidationView().stable_ids)
-    verify_suffix_evidence_set(runtime, custody, authority)
+    stable_ids = ValidationView().stable_ids
+    custody = verify_worker_prefix(REPO, expected_stable_ids=stable_ids)
+    verify_suffix_evidence_set(runtime, custody, authority, expected_stable_ids=stable_ids)
     plan = verify_continuation_plan(runtime, authority)
     body = build_launch_authorization(authority, plan)
     if args.preflight:
