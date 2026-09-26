@@ -78,6 +78,9 @@ W10_V8_MANIFEST_PREFIX = "w10downstreamsourcev8-"
 W10_V9_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v9.json"
 W10_V9_MANIFEST_KIND = "W10_VALIDATION_CONTINUATION_SOURCE_SUCCESSOR_V9"
 W10_V9_MANIFEST_PREFIX = "w10downstreamsourcev9-"
+W10_V10_SOURCE_PATH = "results/learned/w10/w10_downstream_source_manifest_v10.json"
+W10_V10_MANIFEST_KIND = "W10_VALIDATION_CONTINUATION_SOURCE_SUCCESSOR_V10"
+W10_V10_MANIFEST_PREFIX = "w10downstreamsourcev10-"
 W10_V8_MANIFEST_ID = "w10downstreamsourcev8-e13ba8905c1910645794ffdf5d7a06c55c55b8a01beec84a392a4a59f9bc48fc"
 W10_V8_MANIFEST_SHA256 = "c37ce2c845acaa111b9ee0d49552867fc671e2ffe7e593589102c8d7e1a1f3c3"
 W10_V8_AUTHORITY_ID = "w10rehearsalauth-18582571f86b71aadcd546808f1199410d1c55cd0237def20689d985aa21eb7d"
@@ -97,8 +100,9 @@ W10_MANIFEST_KINDS = (
     W10_V7_MANIFEST_KIND,
     W10_V8_MANIFEST_KIND,
     W10_V9_MANIFEST_KIND,
+    W10_V10_MANIFEST_KIND,
 )
-W10_EPOCHS = ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9")
+W10_EPOCHS = ("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10")
 _EPOCH_FOR_KIND = {
     W10_MANIFEST_KIND: "v1",
     W10_V2_MANIFEST_KIND: "v2",
@@ -109,6 +113,7 @@ _EPOCH_FOR_KIND = {
     W10_V7_MANIFEST_KIND: "v7",
     W10_V8_MANIFEST_KIND: "v8",
     W10_V9_MANIFEST_KIND: "v9",
+    W10_V10_MANIFEST_KIND: "v10",
 }
 HISTORICAL_SOURCE_PATH = "results/learned/w9/downstream_source_manifest_v4.json"
 HISTORICAL_SOURCE_COMMIT = "22fde3e0ba0c8ad7a92356587eb95780ded89ee6"
@@ -202,6 +207,15 @@ W10_V9_PRE_FUTURE_WORK_STATE = {
     "v8_w10_failed_ordinal": 126,
     "v9_continuation_authority_frozen": False,
     "v9_w10_scientific_units": 0,
+    "g12_freeze_manifest": False,
+    "test": "SEALED",
+    "test_access": 0,
+}
+W10_V10_PRE_FUTURE_WORK_STATE = {
+    "v8_w10_scientific_units_complete": 126,
+    "v9_w10_scientific_units_complete": 105,
+    "v9_w10_failed_ordinal": 231,
+    "v10_w10_scientific_units": 0,
     "g12_freeze_manifest": False,
     "test": "SEALED",
     "test_access": 0,
@@ -302,6 +316,7 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
         W10_V7_MANIFEST_KIND,
         W10_V8_MANIFEST_KIND,
         W10_V9_MANIFEST_KIND,
+        W10_V10_MANIFEST_KIND,
     }:
         _require(manifest.get("allowed_evidence_runtime_prefixes") == list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES), "W10 successor evidence boundary differs")
     else:
@@ -412,6 +427,13 @@ def assert_w10_manifest_contract(manifest: Mapping[str, Any]) -> None:
             and dict(manifest["pre_future_work_state"]) == W10_V7_PRE_FUTURE_WORK_STATE,
             "W10 v7 pre-future-work state differs",
         )
+    elif manifest.get("manifest_kind") == W10_V10_MANIFEST_KIND:
+        _require("pre_science_state" not in manifest and "superseded_successor" not in manifest, "W10 v10 must record executed v8/v9 science")
+        transition = manifest.get("transition_from_v9")
+        _require(isinstance(transition, Mapping), "W10 v10 transition record is missing")
+        _require(transition.get("transition_kind") == "failed_v9_partial_science_to_v10_suffix", "W10 v10 transition kind differs")
+        _require(transition.get("v8_completed_ordinals") == [0, 125] and transition.get("v9_completed_ordinals") == [126, 230] and transition.get("failed_ordinal") == 231, "W10 v10 historical frontier differs")
+        _require(dict(manifest.get("pre_future_work_state", {})) == W10_V10_PRE_FUTURE_WORK_STATE, "W10 v10 pre-future-work state differs")
     elif manifest.get("manifest_kind") == W10_V9_MANIFEST_KIND:
         _require("pre_science_state" not in manifest and "superseded_successor" not in manifest, "W10 v9 must record executed v8 science")
         transition = manifest.get("transition_from_v8")
@@ -474,12 +496,15 @@ def successor_path(root: Path, *, epoch: str = "v2") -> Path:
         "v7": W10_V7_SOURCE_PATH,
         "v8": W10_V8_SOURCE_PATH,
         "v9": W10_V9_SOURCE_PATH,
+        "v10": W10_V10_SOURCE_PATH,
     }
     _require(epoch in names, f"unknown W10 successor epoch: {epoch}")
     return Path(root) / names[epoch]
 
 
 def manifest_prefix(kind: str) -> str:
+    if kind == W10_V10_MANIFEST_KIND:
+        return W10_V10_MANIFEST_PREFIX
     if kind == W10_V9_MANIFEST_KIND:
         return W10_V9_MANIFEST_PREFIX
     if kind == W10_V8_MANIFEST_KIND:
@@ -527,13 +552,15 @@ def predecessor_binding(manifest: Mapping[str, Any]) -> Mapping[str, Any] | None
         value = manifest.get("transition_from_v7")
     elif kind == W10_V9_MANIFEST_KIND:
         value = manifest.get("transition_from_v8")
+    elif kind == W10_V10_MANIFEST_KIND:
+        value = manifest.get("transition_from_v9")
     else:
         value = None
     return value if isinstance(value, Mapping) else None
 
 
 def active_manifest_path(root: Path) -> Path:
-    for epoch in ("v9", "v8", "v7", "v6", "v5", "v4", "v3", "v2"):
+    for epoch in ("v10", "v9", "v8", "v7", "v6", "v5", "v4", "v3", "v2"):
         candidate = successor_path(root, epoch=epoch)
         if candidate.is_file() and not candidate.is_symlink():
             return candidate
@@ -566,6 +593,8 @@ def load_w10_manifest(root: Path, *, live: bool = True, epoch: str | None = None
         _require_w10_v8_transition(root, value)
     if kind == W10_V9_MANIFEST_KIND:
         _require_w10_v9_transition(root, value)
+    if kind == W10_V10_MANIFEST_KIND:
+        _require_w10_v10_transition(root, value)
     if live:
         assert_clean_active_source_closure(root, value)
     return value
@@ -1023,6 +1052,40 @@ def _require_w10_v9_transition(root: Path, value: Mapping[str, Any]) -> None:
     _require(dict(value.get("transition_from_v8", {})) == _v9_transition(root), "W10 v9 transition differs from immutable v8 custody")
 
 
+def _v10_transition(root: Path) -> dict[str, Any]:
+    """Bind the failed v9 prefix without assigning it to the new source."""
+
+    from evaluation.w10_successor_v10 import V9_CUSTODY_PATH, load_v9_custody, verify_v9_authority_for_succession
+
+    root = Path(root)
+    source, authority = verify_v9_authority_for_succession(root)
+    custody = load_v9_custody(root, source=source, authority=authority)
+    return {
+        "path": W10_V9_SOURCE_PATH,
+        "manifest_kind": W10_V9_MANIFEST_KIND,
+        "manifest_id": source["manifest_id"],
+        "sha256": source_record(root, source)["sha256"],
+        "source_commit": source["source_commit"],
+        "transition_kind": "failed_v9_partial_science_to_v10_suffix",
+        "v8_completed_ordinals": [0, 125],
+        "v9_completed_ordinals": [126, 230],
+        "failed_ordinal": 231,
+        "v8_custody_id": W10_V8_CUSTODY_ID,
+        "v9_authority_id": authority["authority_id"],
+        "v9_custody_path": V9_CUSTODY_PATH,
+        "v9_custody_id": custody["custody_id"],
+        "v9_custody_sha256": hashlib.sha256((root / V9_CUSTODY_PATH).read_bytes()).hexdigest(),
+        "v9_prefix_digest": custody["complete_prefix_digest"],
+        "g12_freeze_manifest": False,
+        "test": "SEALED",
+        "test_access": 0,
+    }
+
+
+def _require_w10_v10_transition(root: Path, value: Mapping[str, Any]) -> None:
+    _require(dict(value.get("transition_from_v9", {})) == _v10_transition(root), "W10 v10 transition differs from immutable v9 custody")
+
+
 def _v6_forbidden_paths(root: Path) -> tuple[tuple[str, str], ...]:
     return (
         (W10_ER12_SELECTION_SOURCE_PATH, "ER-12 validation selection"),
@@ -1266,6 +1329,33 @@ def build_w10_manifest_v9(root: Path, *, source_commit: str) -> dict[str, Any]:
     return base
 
 
+def build_w10_manifest_v10(root: Path, *, source_commit: str) -> dict[str, Any]:
+    """Freeze a successor over the authenticated 0–230 failed v9 prefix."""
+
+    root = Path(root)
+    output = successor_path(root, epoch="v10")
+    _require(not output.exists() and not output.is_symlink(), "W10 v10 manifest already exists")
+    _require(not (root / W10_CLOSEOUT_SOURCE_PATH).exists(), "W10 closeout already exists")
+    _require(not (root / G12_FREEZE_MANIFEST_SOURCE_PATH).exists(), "G12 is already open")
+    _require(not (root / "results/learned/w10/w10_continuation_authorization_v10.json").exists(), "W10 v10 authority already exists")
+    _require(not (root / "results/learned/w10/w10_continuation_launch_authorization_v10.json").exists(), "W10 v10 launch grant already exists")
+    transition = _v10_transition(root)
+    base = build_manifest(root, source_commit=source_commit, relevant_config_paths=W10_RELEVANT_CONFIG_PATHS)
+    base.pop("manifest_id")
+    base["manifest_kind"] = W10_V10_MANIFEST_KIND
+    base["historical_w9_downstream_manifest"] = {
+        "path": HISTORICAL_SOURCE_PATH,
+        "source_commit": HISTORICAL_SOURCE_COMMIT,
+        "manifest_id": "w9downstreamsource-89bdc14e154a6a9e9d4ea3ba75fc05f5b4cff6474cb3e2e3133fd21c48d5da33",
+    }
+    base["transition_from_v9"] = transition
+    base["allowed_evidence_runtime_prefixes"] = list(W10_ALLOWED_EVIDENCE_RUNTIME_PREFIXES)
+    base["governs"] = list(W10_GOVERNS)
+    base["pre_future_work_state"] = dict(W10_V10_PRE_FUTURE_WORK_STATE)
+    base["manifest_id"] = W10_V10_MANIFEST_PREFIX + canonical_sha256(base)
+    return base
+
+
 def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = None) -> dict[str, Any]:
     if path is None:
         kind = str(manifest.get("manifest_kind"))
@@ -1279,10 +1369,11 @@ def source_record(root: Path, manifest: Mapping[str, Any], path: Path | None = N
             W10_V7_MANIFEST_KIND: W10_V7_SOURCE_PATH,
             W10_V8_MANIFEST_KIND: W10_V8_SOURCE_PATH,
             W10_V9_MANIFEST_KIND: W10_V9_SOURCE_PATH,
+            W10_V10_MANIFEST_KIND: W10_V10_SOURCE_PATH,
         }
         candidate = root / candidates[kind]
         if not candidate.is_file():
-            _require(kind != W10_V9_MANIFEST_KIND, "W10 v9 source record requires its frozen manifest bytes")
+            _require(kind not in {W10_V9_MANIFEST_KIND, W10_V10_MANIFEST_KIND}, "W10 v9/v10 source record requires its frozen manifest bytes")
             candidate = active_manifest_path(root)
         target = candidate
     else:
@@ -1799,6 +1890,10 @@ __all__ = [
     "W10_V9_MANIFEST_PREFIX",
     "W10_V9_PRE_FUTURE_WORK_STATE",
     "W10_V9_SOURCE_PATH",
+    "W10_V10_MANIFEST_KIND",
+    "W10_V10_MANIFEST_PREFIX",
+    "W10_V10_PRE_FUTURE_WORK_STATE",
+    "W10_V10_SOURCE_PATH",
     "SourceEpochHold",
     "active_manifest_path",
     "assert_active_epoch_closure",
@@ -1818,6 +1913,7 @@ __all__ = [
     "build_w10_manifest_v7",
     "build_w10_manifest_v8",
     "build_w10_manifest_v9",
+    "build_w10_manifest_v10",
     "epoch_for_kind",
     "load_w10_manifest",
     "manifest_prefix",

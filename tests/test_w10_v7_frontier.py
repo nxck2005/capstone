@@ -218,13 +218,18 @@ def test_active_er12_contract_uses_current_successor(v7_manifest: dict) -> None:
     active_path = epochs.active_manifest_path(REPO)
     expected = source_record(REPO, active, path=active_path)
     identity = er12_selection_contract().identity()
-    assert active["manifest_kind"] in {W10_V7_MANIFEST_KIND, epochs.W10_V8_MANIFEST_KIND}
+    assert active["manifest_kind"] in {
+        W10_V7_MANIFEST_KIND,
+        epochs.W10_V8_MANIFEST_KIND,
+        epochs.W10_V9_MANIFEST_KIND,
+        epochs.W10_V10_MANIFEST_KIND,
+    }
     assert identity["source_epoch"] == expected
     assert er12_contract_sha256() != "39584f9a9dee921b7c06d80ea62f6a584df9ebb1eb8c635f9e10f770483cc841"
     if active["manifest_kind"] == W10_V7_MANIFEST_KIND:
         assert v7_manifest["manifest_id"] == active["manifest_id"]
     else:
-        assert active["transition_from_v7"]["manifest_id"] == v7_manifest["manifest_id"]
+        epochs.assert_successor_lineage(REPO, v7_manifest, successor=active)
 
 
 def test_protected_source_drift_after_v7_fails_closed(v7_manifest: dict, monkeypatch) -> None:

@@ -169,6 +169,10 @@ def test_downstream_phase_selectors_are_lifecycle_aware(tmp_path, monkeypatch):
     assert "verify_g11.py --authority-only" not in selected
     assert "verify_w10_rehearsal.py --terminal" in selected
 
+    _mark(tmp_path, Path("results/learned/w10/w10_continuation_closeout_v10.json"))
+    selected = "\n".join(" ".join(command) for command in gate._w9_v4_commands())
+    assert "run_w10_v10.py verify --published" in selected
+
 
 def test_hosted_routing_covers_every_papr_and_w10_lifecycle_state(tmp_path, monkeypatch):
     monkeypatch.setattr(hosted_gate, "REPO", tmp_path)
@@ -232,6 +236,21 @@ def test_hosted_routing_covers_every_papr_and_w10_lifecycle_state(tmp_path, monk
         changed = [command for command in after if command not in before]
         assert [command[2] for command in changed] == list(replacements)
         assert len(changed) == len(replacements)
+
+
+def test_hosted_w10_continuation_uses_v10_published_closeout(tmp_path, monkeypatch, capsys):
+    import evaluation.w10_successor_v10 as v10
+
+    authority = tmp_path / "v10-authority.json"
+    closeout = tmp_path / "v10-closeout.json"
+    authority.write_bytes(b"authority")
+    closeout.write_bytes(b"closeout")
+    monkeypatch.setattr(hosted_gate, "W10_V10_AUTHORITY", authority)
+    monkeypatch.setattr(hosted_gate, "W10_V10_CLOSEOUT", closeout)
+    monkeypatch.setattr(hosted_gate, "verify_papr_published", lambda: None)
+    monkeypatch.setattr(v10, "verify_v10_published", lambda _root: {"closeout_id": "v10-complete"})
+    hosted_gate.verify_w10_continuation_published()
+    assert "W10 v10 published continuation PASS: v10-complete" in capsys.readouterr().out
 
 
 def test_affected_historical_check_is_direct_before_terminal_g10(tmp_path, monkeypatch):

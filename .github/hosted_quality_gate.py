@@ -70,6 +70,9 @@ W10_CLOSEOUT = REPO / "results/learned/w10/w10_rehearsal_closeout.json"
 W10_CONTINUATION_AUTHORITY = REPO / "results/learned/w10/w10_continuation_authorization_v9.json"
 W10_CONTINUATION_CLOSEOUT = REPO / "results/learned/w10/w10_continuation_closeout_v9.json"
 W10_CONTINUATION_LAUNCH = REPO / "results/learned/w10/w10_continuation_launch_authorization_v9.json"
+W10_V10_AUTHORITY = REPO / "results/learned/w10/w10_continuation_authorization_v10.json"
+W10_V10_CLOSEOUT = REPO / "results/learned/w10/w10_continuation_closeout_v10.json"
+W10_V10_LAUNCH = REPO / "results/learned/w10/w10_continuation_launch_authorization_v10.json"
 PAPR_AUTHORITY = REPO / PAPR_AUTHORITY_PATH
 PAPR_SELECTED = REPO / PAPR_SELECTED_CHECKPOINT_PATH
 PAPR_COMPLETION = REPO / PAPR_COMPLETION_PATH
@@ -676,9 +679,21 @@ def verify_w10_authority_published() -> None:
 
 
 def verify_w10_continuation_published() -> None:
-    """Authenticate v9 committed evidence without claiming per-image worker bytes."""
+    """Authenticate the active continuation without claiming worker bytes."""
 
     verify_papr_published()
+    if W10_V10_AUTHORITY.is_file() and not W10_V10_AUTHORITY.is_symlink():
+        from evaluation.w10_successor_v10 import build_v10_plan, verify_v10_authority, verify_v10_launch, verify_v10_published
+
+        if W10_V10_CLOSEOUT.is_file() and not W10_V10_CLOSEOUT.is_symlink():
+            result = verify_v10_published(REPO)
+            print(f"W10 v10 published continuation PASS: {result['closeout_id']}; worker runtime not inspected")
+        else:
+            authority = verify_v10_authority(REPO)
+            if W10_V10_LAUNCH.is_file() and not W10_V10_LAUNCH.is_symlink():
+                verify_v10_launch(REPO, authority, build_v10_plan(authority))
+            print(f"W10 v10 published continuation authority PASS: {authority['authority_id']}; worker runtime not inspected")
+        return
     if W10_CONTINUATION_CLOSEOUT.is_file() and not W10_CONTINUATION_CLOSEOUT.is_symlink():
         from verify_w10_continuation import verify_published
 
@@ -841,7 +856,7 @@ def run(profile: str) -> None:
     for command in hosted_commands(profile):
         print("$ " + " ".join(command), flush=True)
         subprocess.run(command, cwd=REPO, env=environment, check=True)
-    if W10_CONTINUATION_AUTHORITY.is_file() and not W10_CONTINUATION_AUTHORITY.is_symlink():
+    if W10_CONTINUATION_AUTHORITY.is_file() and not W10_CONTINUATION_AUTHORITY.is_symlink() and not (W10_V10_CLOSEOUT.is_file() and not W10_V10_CLOSEOUT.is_symlink()):
         verify_w10_continuation_published()
     gate._check_clean_checkout()
     print(f"hosted quality gate PASS: {profile}")

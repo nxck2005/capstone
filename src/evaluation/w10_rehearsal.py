@@ -294,14 +294,19 @@ def execute(
     boundary.
     """
 
-    continuation = authority.get("authority_kind") == "W10_VALIDATION_CONTINUATION_AUTHORITY_V9"
+    kind = authority.get("authority_kind")
+    continuation = kind in {
+        "W10_VALIDATION_CONTINUATION_AUTHORITY_V9",
+        "W10_VALIDATION_CONTINUATION_AUTHORITY_V10",
+    }
     require(
         continuation or authority.get("authority_kind") == "W10_VALIDATION_REHEARSAL_AUTHORITY",
         "W10 execution authority role differs",
     )
     if continuation:
-        require(authority.get("historical_completed_ordinals") == list(range(126)), "W10 historical continuation ordinals differ")  # literal-ok: authenticated failed prefix
-        require(authority.get("new_authorized_ordinals") == list(range(126, 252)), "W10 new continuation ordinals differ")  # literal-ok: exact suffix of 252-unit scope
+        start = 231 if kind == "W10_VALIDATION_CONTINUATION_AUTHORITY_V10" else 126
+        require(authority.get("historical_completed_ordinals") == list(range(start)), "W10 historical continuation ordinals differ")
+        require(authority.get("new_authorized_ordinals") == list(range(start, 252)), "W10 new continuation ordinals differ")
     require(authority.get("cell") == {"train_seed": W10_TRAIN_SEED, "channel_seed": W10_CHANNEL_SEED}, "W10 execution authority cell differs")
     require(authority.get("split") == W10_SPLIT, "W10 execution authority split differs")
     require(authority.get("systems") == list(W10_SYSTEMS), "W10 execution authority systems differ")
@@ -320,6 +325,8 @@ def execute(
             if continuation:
                 if expected["ordinal"] < 126:  # literal-ok: immutable historical prefix
                     require("execution_authority_id" not in value["binding"], "historical W10 unit was relabelled")
+                elif kind == "W10_VALIDATION_CONTINUATION_AUTHORITY_V10" and expected["ordinal"] < 231:
+                    require(value["binding"].get("execution_authority_id") == authority["v9_authority"]["authority_id"], "historical v9 W10 unit was relabelled")
                 else:
                     require(value["binding"].get("execution_authority_id") == authority["authority_id"], "cross-authority W10 suffix unit")
             require(value["per_image_path"] == relative, "W10 resumed unit per-image path differs")
@@ -333,7 +340,7 @@ def execute(
             results.append(value)
             continue
         if continuation:
-            require(expected["ordinal"] >= 126, "historical W10 unit is missing")  # literal-ok: failed ordinal boundary
+            require(expected["ordinal"] >= start, "historical W10 unit is missing")
         supplied = backend(expected)
         if continuation:
             supplied = dict(supplied)

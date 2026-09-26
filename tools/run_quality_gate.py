@@ -179,6 +179,8 @@ def _w9_v4_commands() -> tuple[list[str], ...]:
         if _present(REPO / "results/learned/w10/w10_rehearsal_closeout.json"):
             command.append("--terminal")
         commands.append(command)
+    if _present(REPO / "results/learned/w10/w10_continuation_closeout_v10.json"):
+        commands.append(_python_tool("tools/run_w10_v10.py", "verify", "--published"))
     if _present(REPO / "results/learned/w10/papr_training_authorization.json"):
         command = _python_tool("tools/verify_papr_training_authorization.py")
         if (

@@ -29,6 +29,7 @@ from training.deterministic_core import canonical_bytes, canonical_sha256
 REPO = Path(__file__).resolve().parents[1]
 ORIGINAL = json.loads((REPO / "results/learned/w10/w10_rehearsal_authorization.json").read_bytes())
 CUSTODY = json.loads((REPO / epochs.W10_V8_CUSTODY_PATH).read_bytes())
+V9_SOURCE_COMMIT = json.loads((REPO / epochs.W10_V9_SOURCE_PATH).read_bytes())["source_commit"]
 
 
 def _binding(role: str) -> dict:
@@ -44,7 +45,7 @@ def test_historical_custody_is_self_consistent_and_failed_partial() -> None:
     assert len(CUSTODY["streams"]) == 168
 
 
-def test_completed_learned_science_and_common_evidence_code_are_byte_unchanged() -> None:
+def test_completed_v8_v9_code_is_pinned_and_v10_backend_change_is_exact() -> None:
     for relative in (
         "src/evaluation/w10_dispatch.py",
         "src/evaluation/w10_backends.py",
@@ -58,7 +59,21 @@ def test_completed_learned_science_and_common_evidence_code_are_byte_unchanged()
             ["git", "show", f"{epochs.W10_V8_EXECUTION_COMMIT}:{relative}"],
             cwd=REPO, check=True, capture_output=True,
         ).stdout
-        assert (REPO / relative).read_bytes() == original, relative
+        v9 = subprocess.run(
+            ["git", "show", f"{V9_SOURCE_COMMIT}:{relative}"],
+            cwd=REPO, check=True, capture_output=True,
+        ).stdout
+        assert v9 == original, relative
+        live = (REPO / relative).read_bytes()
+        if relative == "src/evaluation/w10_backends.py":
+            old = b'aggregate = _aggregate(rows, system=unit["system"])\n'
+            new = b'aggregate = _aggregate(rows, system=unit["system"], primary_classifier_variant="clean")\n'
+            before, marker, recon_and_after = original.partition(b"def recon_ablation_unit(")
+            assert marker and recon_and_after.startswith(b"context:")
+            assert recon_and_after.count(old) >= 1
+            assert live == before + marker + recon_and_after.replace(old, new, 1)
+        else:
+            assert live == original, relative
 
 
 def test_adaptive_candidate_resolution_matches_original_for_both_completed_arms() -> None:
@@ -116,12 +131,7 @@ def test_v9_source_transition_records_executed_v8_without_freezing(monkeypatch, 
     predecessor = epochs.load_w10_manifest(REPO, live=False, epoch="v8")
     frozen_v9_path = REPO / epochs.W10_V9_SOURCE_PATH
     frozen_v9_before = frozen_v9_path.read_bytes() if frozen_v9_path.is_file() else None
-    real_successor_path = epochs.successor_path
-
-    def fake_successor_path(root, *, epoch="v2"):
-        if epoch == "v9":
-            return tmp_path / epochs.W10_V9_SOURCE_PATH.rsplit("/", 1)[-1]
-        return real_successor_path(root, epoch=epoch)
+    real_transition = epochs._v9_transition
 
     def fake_build(_root, *, source_commit, relevant_config_paths):
         assert tuple(relevant_config_paths) == epochs.W10_RELEVANT_CONFIG_PATHS
@@ -132,8 +142,8 @@ def test_v9_source_transition_records_executed_v8_without_freezing(monkeypatch, 
         return base
 
     monkeypatch.setattr(epochs, "build_manifest", fake_build)
-    monkeypatch.setattr(epochs, "successor_path", fake_successor_path)
-    value = epochs.build_w10_manifest_v9(REPO, source_commit="a" * 40)
+    monkeypatch.setattr(epochs, "_v9_transition", lambda _root: real_transition(REPO))
+    value = epochs.build_w10_manifest_v9(tmp_path, source_commit="a" * 40)
     epochs.assert_w10_manifest_contract(value)
     assert value["manifest_kind"] == epochs.W10_V9_MANIFEST_KIND
     assert value["transition_from_v8"]["v8_scientific_work_executed"] is True

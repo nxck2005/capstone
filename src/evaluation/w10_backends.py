@@ -273,7 +273,7 @@ def learned_unit(
 
 def recon_ablation_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.Module, config: Any, checkpoint_id: str) -> dict[str, Any]:
     rows, papr_values = _learned_rows(context, model=model, config=config, checkpoint_id=checkpoint_id, unit=unit, mode="recon_ablation")
-    aggregate = _aggregate(rows, system=unit["system"])
+    aggregate = _aggregate(rows, system=unit["system"], primary_classifier_variant="clean")
     _apply_papr(aggregate, papr_values, denominator=len(rows))
     aggregate["binding"] = {
         "kind": "er4_reconstruction_ablation",
