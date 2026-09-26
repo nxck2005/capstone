@@ -299,6 +299,94 @@ def test_v10_transition_rejects_changed_source_binding(monkeypatch) -> None:
         })
 
 
+def test_validation_successor_lineage_routes_v9_through_v10_and_v11(monkeypatch, tmp_path: Path) -> None:
+    v9 = epochs.load_w10_manifest(REPO, live=False, epoch="v9")
+    v10 = epochs.load_w10_manifest(REPO, live=False, epoch="v10")
+    v10_path = tmp_path / epochs.W10_V10_SOURCE_PATH
+    v10_path.parent.mkdir(parents=True)
+    v10_path.write_bytes(canonical_bytes(v10))
+    (tmp_path / epochs.W10_V9_SOURCE_PATH).write_bytes((REPO / epochs.W10_V9_SOURCE_PATH).read_bytes())
+    v11 = {
+        "manifest_kind": epochs.W10_V11_MANIFEST_KIND,
+        "manifest_id": "w10downstreamsourcev11-test",
+        "transition_from_v10": {
+            "manifest_kind": epochs.W10_V10_MANIFEST_KIND,
+            "manifest_id": v10["manifest_id"],
+            "sha256": epochs.hashlib.sha256(v10_path.read_bytes()).hexdigest(),
+            "source_commit": v10["source_commit"],
+        },
+    }
+    monkeypatch.setattr(epochs, "assert_manifest_commit_bytes", lambda *_args: None)
+    monkeypatch.setattr(epochs, "active_manifest_path", lambda *_args: v10_path)
+    original_load = epochs.load_w10_manifest
+    monkeypatch.setattr(epochs, "load_w10_manifest", lambda root, *, live=True, epoch=None: v11 if live else original_load(REPO, live=False, epoch=epoch))
+    epochs.assert_active_epoch_closure(tmp_path, v9)
+    altered = copy.deepcopy(v11)
+    altered["transition_from_v10"]["sha256"] = "0" * 64
+    monkeypatch.setattr(epochs, "load_w10_manifest", lambda root, *, live=True, epoch=None: altered if live else original_load(REPO, live=False, epoch=epoch))
+    with pytest.raises(epochs.SourceEpochHold, match="bytes differ"):
+        epochs.assert_active_epoch_closure(tmp_path, v9)
+
+
+def test_v11_plan_launch_and_closeout_keep_three_execution_epochs(monkeypatch, tmp_path: Path) -> None:
+    authority = _authority()
+    authority.update({
+        "authority_kind": v10.V11_AUTHORITY_KIND,
+        "plan_path": v10.V11_PLAN_PATH,
+        "superseded_v10": {"v10_authority_id": "unexecuted-v10"},
+    })
+    plan = v10.build_v10_plan(authority)
+    assert plan["v11_ordinals"] == [231, 251] and "v10_ordinals" not in plan
+    runtime = tmp_path / "runtime"
+    runtime.mkdir()
+    (runtime / v10.V11_PLAN_PATH).write_bytes(canonical_bytes(plan))
+    assert v10.verify_v10_plan(runtime, authority) == plan
+    launch = v10.build_v10_launch(authority, plan)
+    assert launch["authorized_ordinals"] == list(range(231, 252))
+    assert launch["test"] == "SEALED" and launch["test_access"] == 0
+    grant_path = tmp_path / v10.V11_LAUNCH_PATH
+    grant_path.parent.mkdir(parents=True)
+    grant_path.write_bytes(canonical_bytes(launch))
+    assert v10.verify_v10_launch(tmp_path, authority, plan) == launch
+    values = [
+        {"unit_id": f"unit-{i}", "binding": (
+            {} if i < 126 else {"execution_authority_id": V9["authority_id"] if i < 231 else authority["authority_id"]}
+        )}
+        for i in range(252)
+    ]
+    monkeypatch.setattr(v10, "validate_unit", lambda *_args: None)
+    monkeypatch.setattr(v10, "unit_manifest", lambda *_args: {"ordered_unit_ids_digest": "units"})
+    monkeypatch.setattr(v10, "per_image_manifest", lambda *_args: {"stream_count": 357, "ordered_per_image_digest": "streams"})
+    closeout, _, _ = v10.build_v10_closeout(runtime, values, authority)
+    assert closeout["ordinal_provenance"][230]["authority_id"] == V9["authority_id"]
+    assert closeout["ordinal_provenance"][231]["authority_id"] == authority["authority_id"]
+    assert closeout["superseded_v10_authority_id"] == "unexecuted-v10"
+    assert closeout["test"] == "SEALED" and closeout["test_access"] == 0
+
+
+def test_v11_execution_admits_only_ordinal_231_after_existing_prefix(tmp_path: Path, monkeypatch) -> None:
+    authority = _authority()
+    authority["authority_kind"] = v10.V11_AUTHORITY_KIND
+    runtime = tmp_path / "runtime"
+    (runtime / "units").mkdir(parents=True)
+    for unit in work_units()[:231]:
+        (runtime / unit_relative_path(unit, "json")).touch()
+    before = {path.name: path.stat().st_mtime_ns for path in (runtime / "units").iterdir()}
+    monkeypatch.setattr("evaluation.w10_rehearsal.read_json", lambda path, _label: (
+        {"binding": {} if int(path.name[:3]) < 126 else {"execution_authority_id": V9["authority_id"]},
+         "per_image_path": per_image_relative_path(work_units()[int(path.name[:3])], 0),
+         "per_image_sha256": canonical_sha256({})}
+        if path.parent.name == "units" else {}
+    ))
+    monkeypatch.setattr("evaluation.w10_rehearsal.validate_unit", lambda *_args: None)
+    monkeypatch.setattr("evaluation.w10_rehearsal._validate_persisted_streams", lambda *_args, **_kwargs: None)
+    called = []
+    with pytest.raises(RuntimeError, match="admitted 231"):
+        execute(runtime, authority=authority, backend=lambda unit: called.append(unit["ordinal"]) or (_ for _ in ()).throw(RuntimeError("admitted 231")))
+    assert called == [231]
+    assert before == {path.name: path.stat().st_mtime_ns for path in (runtime / "units").iterdir()}
+
+
 def test_published_verifier_keeps_v8_and_v9_custody_distinct(tmp_path: Path, monkeypatch) -> None:
     authority = _authority()
     monkeypatch.setattr(v10, "validate_unit", lambda *_args: None)

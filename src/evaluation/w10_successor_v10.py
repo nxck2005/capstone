@@ -28,6 +28,7 @@ from runtime.source_epochs import (
     W10_V8_PREFIX_DIGEST,
     W10_V9_MANIFEST_KIND,
     W10_V10_MANIFEST_KIND,
+    W10_V11_MANIFEST_KIND,
     assert_active_epoch_closure,
     load_w10_manifest,
     source_record,
@@ -44,6 +45,10 @@ V10_PLAN_PATH = "continuation_plan_v10.json"
 V10_START = 231
 V10_STOP = 252
 V10_AUTHORITY_KIND = "W10_VALIDATION_CONTINUATION_AUTHORITY_V10"
+V11_AUTHORITY_PATH = "results/learned/w10/w10_continuation_authorization_v11.json"
+V11_LAUNCH_PATH = "results/learned/w10/w10_continuation_launch_authorization_v11.json"
+V11_PLAN_PATH = "continuation_plan_v11.json"
+V11_AUTHORITY_KIND = "W10_VALIDATION_CONTINUATION_AUTHORITY_V11"
 V10_CLOSEOUT_FILES = {
     "continuation_unit_manifest_v10.json",
     "continuation_per_image_manifest_v10.json",
@@ -225,15 +230,22 @@ def verify_historical_prefix(root: Path, *, stable_ids: Sequence[str], allow_v10
     return custody
 
 
+def _epoch(authority: Mapping[str, Any]) -> str:
+    kind = authority.get("authority_kind")
+    require(kind in {V10_AUTHORITY_KIND, V11_AUTHORITY_KIND}, "W10 suffix authority kind differs")
+    return "v11" if kind == V11_AUTHORITY_KIND else "v10"
+
+
 def build_v10_authority(root: Path, source: Mapping[str, Any]) -> dict[str, Any]:
-    require(source.get("manifest_kind") == W10_V10_MANIFEST_KIND, "W10 v10 authority needs source-v10")
+    require(source.get("manifest_kind") in {W10_V10_MANIFEST_KIND, W10_V11_MANIFEST_KIND}, "W10 suffix authority needs source-v10/v11")
     root = Path(root)
+    epoch = "v11" if source["manifest_kind"] == W10_V11_MANIFEST_KIND else "v10"
     v9_source, v9 = verify_v9_authority_for_succession(root)
     custody = load_v9_custody(root, source=v9_source, authority=v9)
     body = {key: value for key, value in v9.items() if key != "authority_id"}
     body.update({
         "schema_version": 4,
-        "authority_kind": V10_AUTHORITY_KIND,
+        "authority_kind": V11_AUTHORITY_KIND if epoch == "v11" else V10_AUTHORITY_KIND,
         "status": "FROZEN_231_251_ONLY_PRE_EXECUTION",
         "source_manifest": source_record(root, source),
         "source_binding": dict(source),
@@ -247,53 +259,58 @@ def build_v10_authority(root: Path, source: Mapping[str, Any]) -> dict[str, Any]
         "v9_custody": {"path": V9_CUSTODY_PATH, "custody_id": custody["custody_id"], "sha256": _sha(root / V9_CUSTODY_PATH)},
         "historical_completed_ordinals": list(range(V10_START)),
         "new_authorized_ordinals": list(range(V10_START, V10_STOP)),
-        "plan_path": V10_PLAN_PATH,
+        "plan_path": V11_PLAN_PATH if epoch == "v11" else V10_PLAN_PATH,
         "suffix_only": True,
     })
+    if epoch == "v11":
+        body["superseded_v10"] = dict(source["transition_from_v10"])
     return body
 
 
-def verify_v10_authority(root: Path, *, live: bool = True) -> dict[str, Any]:
+def verify_v10_authority(root: Path, *, live: bool = True, epoch: str = "v10", historical: bool = False) -> dict[str, Any]:
     root = Path(root)
-    source = load_w10_manifest(root, live=live, epoch="v10")
-    path = root / V10_AUTHORITY_PATH
+    require(epoch in {"v10", "v11"}, "unknown W10 suffix epoch")
+    source = load_w10_manifest(root, live=live, epoch=epoch)
+    path = root / (V11_AUTHORITY_PATH if epoch == "v11" else V10_AUTHORITY_PATH)
     require(path.is_file() and not path.is_symlink(), "W10 v10 authority is missing or unsafe")
     value = read_json(path, "W10 v10 authority")
     require(path.read_bytes() == canonical_bytes(value), "W10 v10 authority bytes are not canonical")
     body = dict(value)
     identifier = body.pop("authority_id", None)
-    require(identifier == "w10continuationauthv10-" + canonical_sha256(body), "W10 v10 authority ID differs")
+    require(identifier == f"w10continuationauth{epoch}-" + canonical_sha256(body), "W10 suffix authority ID differs")
     require(body == build_v10_authority(root, source), "W10 v10 authority fields differ")
     from evaluation.w10_bindings import resolve_scope_bindings
 
-    require(value["bindings"] == resolve_scope_bindings(root, verify_runtime=False), "W10 v10 frozen scientific bindings differ")
+    if not historical:
+        require(value["bindings"] == resolve_scope_bindings(root, verify_runtime=False), "W10 v10 frozen scientific bindings differ")
     require(value["scope_sha256"] == canonical_sha256(value["scope"]), "W10 v10 scope digest differs")
     require(value["validation_only"] is True and value["test"] == "SEALED" and value["test_access"] == 0 and value["test_authorized"] is False, "W10 v10 authority crossed test boundary")
     return value
 
 
 def build_v10_plan(authority: Mapping[str, Any]) -> dict[str, Any]:
+    epoch = _epoch(authority)
     require(authority["historical_completed_ordinals"] == list(range(V10_START)) and authority["new_authorized_ordinals"] == list(range(V10_START, V10_STOP)), "W10 v10 plan frontier differs")
     body = {
         "schema_version": 1,
-        "artifact_role": "W10_VALIDATION_CONTINUATION_PLAN_V10",
+        "artifact_role": f"W10_VALIDATION_CONTINUATION_PLAN_{epoch.upper()}",
         "authority_id": authority["authority_id"],
         "scope_sha256": authority["scope_sha256"],
         "v8_ordinals": [0, 125],
         "v9_ordinals": [126, 230],
-        "v10_ordinals": [V10_START, V10_STOP - 1],
+        f"{epoch}_ordinals": [V10_START, V10_STOP - 1],
         "v9_custody_id": authority["v9_custody"]["custody_id"],
         "work_units": list(work_units()),
         "validation_only": True,
         "test": "SEALED",
         "test_access": 0,
     }
-    body["plan_id"] = "w10continuationplanv10-" + canonical_sha256(body)
+    body["plan_id"] = f"w10continuationplan{epoch}-" + canonical_sha256(body)
     return body
 
 
 def verify_v10_plan(runtime: Path, authority: Mapping[str, Any]) -> dict[str, Any]:
-    path = Path(runtime) / V10_PLAN_PATH
+    path = Path(runtime) / authority["plan_path"]
     require(path.is_file() and not path.is_symlink(), "W10 v10 plan is missing or unsafe")
     value = read_json(path, "W10 v10 plan")
     require(value == build_v10_plan(authority), "W10 v10 plan differs")
@@ -302,10 +319,11 @@ def verify_v10_plan(runtime: Path, authority: Mapping[str, Any]) -> dict[str, An
 
 
 def build_v10_launch(authority: Mapping[str, Any], plan: Mapping[str, Any]) -> dict[str, Any]:
+    epoch = _epoch(authority)
     require(dict(plan) == build_v10_plan(authority), "W10 v10 launch plan differs")
     body = {
         "schema_version": 1,
-        "artifact_role": "W10_VALIDATION_CONTINUATION_LAUNCH_AUTHORIZATION_V10",
+        "artifact_role": f"W10_VALIDATION_CONTINUATION_LAUNCH_AUTHORIZATION_{epoch.upper()}",
         "status": "OWNER_AUTHORIZED_231_251_ONLY",
         "authority_id": authority["authority_id"],
         "source_manifest_id": authority["source_manifest"]["manifest_id"],
@@ -316,12 +334,12 @@ def build_v10_launch(authority: Mapping[str, Any], plan: Mapping[str, Any]) -> d
         "test": "SEALED",
         "test_access": 0,
     }
-    body["launch_id"] = "w10continuationlaunchv10-" + canonical_sha256(body)
+    body["launch_id"] = f"w10continuationlaunch{epoch}-" + canonical_sha256(body)
     return body
 
 
 def verify_v10_launch(root: Path, authority: Mapping[str, Any], plan: Mapping[str, Any]) -> dict[str, Any]:
-    path = Path(root) / V10_LAUNCH_PATH
+    path = Path(root) / (V11_LAUNCH_PATH if _epoch(authority) == "v11" else V10_LAUNCH_PATH)
     require(path.is_file() and not path.is_symlink(), "W10 v10 launch lacks separate owner authorization")
     value = read_json(path, "W10 v10 launch")
     require(value == build_v10_launch(authority, plan), "W10 v10 launch authorization differs")
@@ -335,6 +353,7 @@ def verify_v10_evidence_set(
     """Accept exactly a contiguous v10 suffix after the immutable 0–230 prefix."""
 
     require(phase in {"plan", "execute", "closeout"}, "unknown W10 v10 phase")
+    epoch = _epoch(authority)
     root = Path(root)
     require(not (root / "results/freeze_manifest.json").exists(), "G12 is already open")
     custody = verify_historical_prefix(root, stable_ids=stable_ids)
@@ -377,9 +396,9 @@ def verify_v10_evidence_set(
             _verify_orphan_stream(runtime / pending_path, units[pending], 0, stable_ids)
             expected_streams.add(pending_path)
     require(stream_files == expected_streams, "W10 v10 scorer streams have a gap or unexpected record")
-    allowed = {"units", "per_image", "j2k_cache", "plan.json", "continuation_plan_v9.json", V10_PLAN_PATH}
+    allowed = {"units", "per_image", "j2k_cache", "plan.json", "continuation_plan_v9.json", authority["plan_path"]}
     if phase == "closeout":
-        allowed |= V10_CLOSEOUT_FILES
+        allowed |= {f"continuation_unit_manifest_{epoch}.json", f"continuation_per_image_manifest_{epoch}.json", f"continuation_closeout_{epoch}.json"}
     names = {path.name for path in runtime.iterdir()}
     require(names <= allowed, "W10 v10 runtime contains unexpected files")
     for name in names & {"units", "per_image", "j2k_cache"}:
@@ -405,6 +424,7 @@ def _closeout_from_manifests(
     unit_rows: Mapping[str, Any], image_rows: Mapping[str, Any],
 ) -> dict[str, Any]:
     require(len(results) == V10_STOP, "W10 v10 closeout requires 252 units")
+    epoch = _epoch(authority)
     v9_source_id = authority["v9_authority"]["source_manifest_id"]
     v9_authority_id = authority["v9_authority"]["authority_id"]
     provenance = []
@@ -418,11 +438,11 @@ def _closeout_from_manifests(
         provenance.append({"ordinal": index, "source_manifest_id": source_id, "authority_id": authority_id, "unit_id": value["unit_id"]})
     body = {
         "schema_version": 1,
-        "artifact_role": "W10_VALIDATION_CONTINUATION_CLOSEOUT_V10",
+        "artifact_role": f"W10_VALIDATION_CONTINUATION_CLOSEOUT_{epoch.upper()}",
         "status": "COMPLETE",
         "v8_authority_id": W10_V8_AUTHORITY_ID,
         "v9_authority_id": v9_authority_id,
-        "v10_authority_id": authority["authority_id"],
+        f"{epoch}_authority_id": authority["authority_id"],
         "v8_custody_id": W10_V8_CUSTODY_ID,
         "v9_custody_id": authority["v9_custody"]["custody_id"],
         "scope_sha256": authority["scope_sha256"],
@@ -437,18 +457,21 @@ def _closeout_from_manifests(
         "test": "SEALED",
         "test_access": 0,
     }
-    body["closeout_id"] = "w10continuationcloseoutv10-" + canonical_sha256(body)
+    if epoch == "v11":
+        body["superseded_v10_authority_id"] = authority["superseded_v10"]["v10_authority_id"]
+    body["closeout_id"] = f"w10continuationcloseout{epoch}-" + canonical_sha256(body)
     return body
 
 
 def published_v10_units(results: list[Mapping[str, Any]], authority: Mapping[str, Any]) -> dict[str, Any]:
     require(len(results) == V10_STOP, "W10 v10 publication requires 252 units")
+    epoch = _epoch(authority)
     body = {
         "schema_version": 1,
-        "artifact_role": "W10_VALIDATION_CONTINUATION_PUBLISHED_UNITS_V10",
+        "artifact_role": f"W10_VALIDATION_CONTINUATION_PUBLISHED_UNITS_{epoch.upper()}",
         "v8_authority_id": W10_V8_AUTHORITY_ID,
         "v9_authority_id": authority["v9_authority"]["authority_id"],
-        "v10_authority_id": authority["authority_id"],
+        f"{epoch}_authority_id": authority["authority_id"],
         "v8_custody_id": W10_V8_CUSTODY_ID,
         "v9_custody_id": authority["v9_custody"]["custody_id"],
         "unit_count": V10_STOP,
@@ -457,24 +480,26 @@ def published_v10_units(results: list[Mapping[str, Any]], authority: Mapping[str
         "test": "SEALED",
         "test_access": 0,
     }
-    body["published_units_id"] = "w10continuationunitsv10-" + canonical_sha256(body)
+    if epoch == "v11":
+        body["superseded_v10_authority_id"] = authority["superseded_v10"]["v10_authority_id"]
+    body["published_units_id"] = f"w10continuationunits{epoch}-" + canonical_sha256(body)
     return body
 
 
-def verify_v10_published(root: Path) -> dict[str, Any]:
+def verify_v10_published(root: Path, *, epoch: str = "v10") -> dict[str, Any]:
     """Authenticate committed v10 closeout without claiming access to worker bytes."""
 
     root = Path(root)
-    authority = verify_v10_authority(root)
+    authority = verify_v10_authority(root) if epoch == "v10" else verify_v10_authority(root, epoch=epoch)
     verify_v10_launch(root, authority, build_v10_plan(authority))
     v8 = v8_continuation_custody(root)
     v9_source, v9_authority = verify_v9_authority_for_succession(root)
     v9 = load_v9_custody(root, source=v9_source, authority=v9_authority)
     paths = {
-        "units": root / "results/learned/w10/w10_continuation_units_v10.json",
-        "unit_manifest": root / "results/learned/w10/w10_continuation_unit_manifest_v10.json",
-        "images": root / "results/learned/w10/w10_continuation_per_image_manifest_v10.json",
-        "closeout": root / "results/learned/w10/w10_continuation_closeout_v10.json",
+        "units": root / f"results/learned/w10/w10_continuation_units_{epoch}.json",
+        "unit_manifest": root / f"results/learned/w10/w10_continuation_unit_manifest_{epoch}.json",
+        "images": root / f"results/learned/w10/w10_continuation_per_image_manifest_{epoch}.json",
+        "closeout": root / f"results/learned/w10/w10_continuation_closeout_{epoch}.json",
     }
     values = {}
     for name, path in paths.items():

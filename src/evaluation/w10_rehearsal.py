@@ -298,13 +298,14 @@ def execute(
     continuation = kind in {
         "W10_VALIDATION_CONTINUATION_AUTHORITY_V9",
         "W10_VALIDATION_CONTINUATION_AUTHORITY_V10",
+        "W10_VALIDATION_CONTINUATION_AUTHORITY_V11",
     }
     require(
         continuation or authority.get("authority_kind") == "W10_VALIDATION_REHEARSAL_AUTHORITY",
         "W10 execution authority role differs",
     )
     if continuation:
-        start = 231 if kind == "W10_VALIDATION_CONTINUATION_AUTHORITY_V10" else 126
+        start = 231 if kind in {"W10_VALIDATION_CONTINUATION_AUTHORITY_V10", "W10_VALIDATION_CONTINUATION_AUTHORITY_V11"} else 126
         require(authority.get("historical_completed_ordinals") == list(range(start)), "W10 historical continuation ordinals differ")
         require(authority.get("new_authorized_ordinals") == list(range(start, 252)), "W10 new continuation ordinals differ")
     require(authority.get("cell") == {"train_seed": W10_TRAIN_SEED, "channel_seed": W10_CHANNEL_SEED}, "W10 execution authority cell differs")
@@ -325,7 +326,7 @@ def execute(
             if continuation:
                 if expected["ordinal"] < 126:  # literal-ok: immutable historical prefix
                     require("execution_authority_id" not in value["binding"], "historical W10 unit was relabelled")
-                elif kind == "W10_VALIDATION_CONTINUATION_AUTHORITY_V10" and expected["ordinal"] < 231:
+                elif kind in {"W10_VALIDATION_CONTINUATION_AUTHORITY_V10", "W10_VALIDATION_CONTINUATION_AUTHORITY_V11"} and expected["ordinal"] < 231:
                     require(value["binding"].get("execution_authority_id") == authority["v9_authority"]["authority_id"], "historical v9 W10 unit was relabelled")
                 else:
                     require(value["binding"].get("execution_authority_id") == authority["authority_id"], "cross-authority W10 suffix unit")

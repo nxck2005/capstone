@@ -33,6 +33,7 @@ from runtime.source_epochs import (  # noqa: E402
     W10_V8_SOURCE_PATH,
     W10_V9_SOURCE_PATH,
     W10_V10_SOURCE_PATH,
+    W10_V11_SOURCE_PATH,
     build_w10_manifest,
     build_w10_manifest_v2,
     build_w10_manifest_v3,
@@ -43,12 +44,13 @@ from runtime.source_epochs import (  # noqa: E402
     build_w10_manifest_v8,
     build_w10_manifest_v9,
     build_w10_manifest_v10,
+    build_w10_manifest_v11,
 )
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--epoch", choices=("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10"), default="v4")
+    parser.add_argument("--epoch", choices=("v1", "v2", "v3", "v4", "v5", "v6", "v7", "v8", "v9", "v10", "v11"), default="v4")
     args = parser.parse_args(argv)
     head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
     if args.epoch == "v1":
@@ -78,9 +80,12 @@ def main(argv: list[str] | None = None) -> int:
     elif args.epoch == "v9":
         value = build_w10_manifest_v9(REPO, source_commit=head)
         target = REPO / W10_V9_SOURCE_PATH
-    else:
+    elif args.epoch == "v10":
         value = build_w10_manifest_v10(REPO, source_commit=head)
         target = REPO / W10_V10_SOURCE_PATH
+    else:
+        value = build_w10_manifest_v11(REPO, source_commit=head)
+        target = REPO / W10_V11_SOURCE_PATH
     immutable_write(target, value)
     print(f"W10 downstream source manifest {args.epoch}: {value['manifest_id']} @ {head}")
     return 0

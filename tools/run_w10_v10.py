@@ -17,9 +17,12 @@ from evaluation.w10_evidence import unit_relative_path  # noqa: E402
 from evaluation.w10_rehearsal import execute, validate_unit, work_units  # noqa: E402
 from evaluation.w10_successor_v10 import (  # noqa: E402
     V10_AUTHORITY_PATH,
+    V11_AUTHORITY_PATH,
     V10_CLOSEOUT_FILES,
     V10_LAUNCH_PATH,
+    V11_LAUNCH_PATH,
     V10_PLAN_PATH,
+    V11_PLAN_PATH,
     V10_START,
     V10_STOP,
     V9_CUSTODY_PATH,
@@ -59,7 +62,8 @@ def _complete_results(runtime: Path) -> list[dict]:
     return results
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, *, epoch: str = "v10") -> int:
+    require(epoch in {"v10", "v11"}, "unknown W10 suffix epoch")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("custody", "authority", "plan", "launch", "execute", "closeout", "verify"))
     parser.add_argument("--preflight", action="store_true", help="authenticate custody/authority/launch without writing")
@@ -71,11 +75,12 @@ def main(argv: list[str] | None = None) -> int:
         require(not (REPO / "results/freeze_manifest.json").exists(), "G12 is already open")
 
     if args.published:
-        result = verify_v10_published(REPO)
+        result = verify_v10_published(REPO, epoch=epoch)
         print(f"W10 v10 published verifier PASS: {result['closeout_id']}")
         return 0
 
     if args.action == "custody":
+        require(epoch == "v10", "v9 custody was already frozen before v11")
         custody = build_v9_custody(REPO, stable_ids=ValidationView().stable_ids)
         if not args.preflight:
             immutable_write(REPO / V9_CUSTODY_PATH, custody)
@@ -83,19 +88,19 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.action == "authority":
-        source = load_w10_manifest(REPO, live=True, epoch="v10")
+        source = load_w10_manifest(REPO, live=True, epoch=epoch)
         body = build_v10_authority(REPO, source)
         live = authenticate_live_w9_pascal(
             REPO, body, config_hash=canonical_sha256({"scope": body["scope"], "units": work_units()})
         )
         require(body["cuda_mapping"] == live["environment"]["cuda_mapping"], "W10 v10 CUDA mapping differs")
         if not args.preflight:
-            body["authority_id"] = "w10continuationauthv10-" + canonical_sha256(body)
-            immutable_write(REPO / V10_AUTHORITY_PATH, body)
+            body["authority_id"] = f"w10continuationauth{epoch}-" + canonical_sha256(body)
+            immutable_write(REPO / (V11_AUTHORITY_PATH if epoch == "v11" else V10_AUTHORITY_PATH), body)
         print(f"W10 v10 authority ready: new ordinals={V10_START}–{V10_STOP - 1}; written={not args.preflight}")
         return 0
 
-    authority = verify_v10_authority(REPO)
+    authority = verify_v10_authority(REPO, epoch=epoch)
     runtime = REPO / authority["runtime_root"]
     stable_ids = ValidationView().stable_ids
     count = verify_v10_evidence_set(
@@ -104,7 +109,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     if args.action == "plan":
         require(count == 0, "W10 v10 plan must precede new evidence")
-        immutable_write(runtime / V10_PLAN_PATH, build_v10_plan(authority))
+        immutable_write(runtime / authority["plan_path"], build_v10_plan(authority))
         print("W10 v10 plan ready: historical 0–230; new 231–251")
         return 0
 
@@ -113,7 +118,7 @@ def main(argv: list[str] | None = None) -> int:
         require(count == 0, "W10 v10 launch grant must precede new evidence")
         body = build_v10_launch(authority, plan)
         if not args.preflight:
-            immutable_write(REPO / V10_LAUNCH_PATH, body)
+            immutable_write(REPO / (V11_LAUNCH_PATH if epoch == "v11" else V10_LAUNCH_PATH), body)
         print(f"W10 v10 launch grant: {body['launch_id']}; written={not args.preflight}")
         return 0
     verify_v10_launch(REPO, authority, plan)
@@ -132,31 +137,31 @@ def main(argv: list[str] | None = None) -> int:
     published = published_v10_units(results, authority)
     if args.action == "closeout":
         for name, value in (
-            ("continuation_unit_manifest_v10.json", units),
-            ("continuation_per_image_manifest_v10.json", images),
-            ("continuation_closeout_v10.json", closeout),
+            (f"continuation_unit_manifest_{epoch}.json", units),
+            (f"continuation_per_image_manifest_{epoch}.json", images),
+            (f"continuation_closeout_{epoch}.json", closeout),
         ):
             immutable_write(runtime / name, value)
         for name, value in (
-            ("w10_continuation_unit_manifest_v10.json", units),
-            ("w10_continuation_per_image_manifest_v10.json", images),
-            ("w10_continuation_units_v10.json", published),
-            ("w10_continuation_closeout_v10.json", closeout),
+            (f"w10_continuation_unit_manifest_{epoch}.json", units),
+            (f"w10_continuation_per_image_manifest_{epoch}.json", images),
+            (f"w10_continuation_units_{epoch}.json", published),
+            (f"w10_continuation_closeout_{epoch}.json", closeout),
         ):
             immutable_write(PUBLISHED / name, value)
         print(f"W10 v10 closeout: {closeout['closeout_id']}")
         return 0
 
-    require({path.name for path in runtime.iterdir()} >= V10_CLOSEOUT_FILES, "W10 v10 runtime closeout is missing")
+    require({path.name for path in runtime.iterdir()} >= {f"continuation_unit_manifest_{epoch}.json", f"continuation_per_image_manifest_{epoch}.json", f"continuation_closeout_{epoch}.json"}, "W10 suffix runtime closeout is missing")
     for name, value in (
-        ("continuation_unit_manifest_v10.json", units),
-        ("continuation_per_image_manifest_v10.json", images),
-        ("continuation_closeout_v10.json", closeout),
+        (f"continuation_unit_manifest_{epoch}.json", units),
+        (f"continuation_per_image_manifest_{epoch}.json", images),
+        (f"continuation_closeout_{epoch}.json", closeout),
     ):
         path = runtime / name
         require(path.read_bytes() == canonical_bytes(value), f"W10 v10 runtime {name} differs")
     for key, value in (("units", published), ("unit_manifest", units), ("images", images), ("closeout", closeout)):
-        require(PUBLISHED_FILES[key].read_bytes() == canonical_bytes(value), f"W10 v10 published {key} differs")
+        require((PUBLISHED / PUBLISHED_FILES[key].name.replace("_v10.json", f"_{epoch}.json")).read_bytes() == canonical_bytes(value), f"W10 suffix published {key} differs")
     print(f"W10 v10 terminal verifier PASS: {closeout['closeout_id']}")
     return 0
 
