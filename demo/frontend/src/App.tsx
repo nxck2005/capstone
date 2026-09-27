@@ -17,6 +17,7 @@ function Visual({ src, alt, fallback }: { src?: string | null; alt: string; fall
 
 function ArmCard({ kind, result, pending, hasRequest }: { kind: 'classical' | 'learned'; result?: InferenceArm; pending: boolean; hasRequest: boolean }) {
   const isLearned = kind === 'learned'
+  const isClassicalOutage = !isLearned && !!result && ['decode_failure', 'codec_infeasibility', 'structural_infeasibility'].includes(result.status)
   const label = isLearned ? 'Semantic DJSCC' : 'Classical digital'
   const detail = isLearned ? 'TASK-AWARE · END TO END' : 'JPEG 2000 · LDPC · ADAPTIVE'
   return <article className={`arm-card ${isLearned ? 'arm-learned' : 'arm-classical'}`} aria-label={label}>
@@ -29,11 +30,11 @@ function ArmCard({ kind, result, pending, hasRequest }: { kind: 'classical' | 'l
     </div>
     <div className="arm-visual"><Visual src={result?.image_url} alt={`${label} output`} fallback={pending ? 'Processing image…' : result?.status === 'unavailable' ? 'Inference unavailable' : result && !isLearned ? 'No decoded image at this SNR' : result ? 'Reconstruction unavailable' : 'Awaiting local inference'} /></div>
     <div className="arm-prediction">
-      <div><span className="field-label">PREDICTED LABEL</span><strong>{pending ? 'Computing…' : result?.predicted_label || 'Not available'}</strong></div>
-      <div className="confidence"><span className="field-label">CONFIDENCE</span><strong>{pending ? '—' : formatPercent(result?.confidence ?? null)}</strong></div>
+      <div><span className="field-label">{isClassicalOutage ? 'OUTAGE FALLBACK · NO IMAGE CLASSIFIED' : 'PREDICTED LABEL'}</span><strong>{pending ? 'Computing…' : result?.predicted_label || 'Not available'}</strong></div>
+      <div className="confidence"><span className="field-label">CONFIDENCE</span><strong>{pending ? '—' : isClassicalOutage ? 'N/A' : formatPercent(result?.confidence ?? null)}</strong></div>
     </div>
     {result?.detail && !pending && <p className="arm-note">{result.detail}</p>}
-    {result && !pending && ['decode_failure', 'codec_infeasibility', 'structural_infeasibility'].includes(result.status) && <p className="arm-note">An outage prediction may still be returned by the frozen fallback policy. A fallback is not a delivered transmission.</p>}
+    {isClassicalOutage && !pending && <p className="arm-note">No image was recovered. {result.predicted_label === 'tench' ? 'Tench is a fish category selected as the frozen default when delivery fails.' : 'This is the frozen default class when delivery fails.'} It is not a prediction from the selected image.</p>}
     {result?.status === 'unavailable' && !pending && !result.detail && <p className="arm-note">Image-level inference is not available from this local service. No prediction was substituted.</p>}
   </article>
 }

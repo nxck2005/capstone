@@ -22,7 +22,9 @@ const chart = (ratio = 'r_1_6') => ({ ratio, series: [
 const infer = (image_id = 'image-a', snr_db = -8, ratio = 'r_1_6') => ({
   image_id, snr_db, ratio, input_image_url: '/api/assets/a.png',
   learned: { status: 'delivered', predicted_label: 'tench', confidence: .82, image_url: '/api/assets/learned.png' },
-  classical: { status: 'decode_failure', predicted_label: 'cassette player', confidence: .1, image_url: null },
+  classical: snr_db === -8
+    ? { status: 'decode_failure', predicted_label: 'tench', confidence: null, image_url: null }
+    : { status: 'delivered', predicted_label: 'English springer', confidence: .89, image_url: '/api/assets/decoded.png' },
 })
 const response = (body: unknown) => ({ ok: true, json: async () => body }) as Response
 
@@ -56,7 +58,12 @@ describe('exhibit', () => {
     expect(screen.getAllByText(/TEST SPLIT SEALED|TEST SEALED/).length).toBeGreaterThan(0)
     expect(screen.getByText(/Lines connect measured points/)).toBeInTheDocument()
     await waitFor(() => expect(screen.getByText('82.0%')).toBeInTheDocument())
-    expect(screen.getByText(/An outage prediction may still be returned/)).toBeInTheDocument()
+    const classical = screen.getByLabelText('Classical digital')
+    expect(classical).toHaveTextContent('OUTAGE FALLBACK · NO IMAGE CLASSIFIED')
+    expect(classical).toHaveTextContent('tench')
+    expect(classical).toHaveTextContent('Tench is a fish category')
+    expect(classical).toHaveTextContent('CONFIDENCEN/A')
+    expect(classical).toHaveTextContent('No decoded image at this SNR')
     expect(fetchMock.mock.calls.map(([url]) => String(url))).toEqual(expect.arrayContaining(['/api/metadata', '/api/images', '/api/chart?ratio=r_1_6', '/api/infer']))
   })
 
@@ -71,6 +78,17 @@ describe('exhibit', () => {
     fireEvent.click(within(screen.getByLabelText('Choose a training image')).getByRole('button', { name: 'Train image B' }))
     await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/infer' && JSON.parse(String(options?.body)).image_id === 'image-b' && JSON.parse(String(options?.body)).snr_db === 18 && JSON.parse(String(options?.body)).ratio === 'r_1_24')).toBe(true))
     expect(screen.getByText('83.4%')).toBeInTheDocument()
+  })
+
+  it('restores the image-based prediction label when classical delivery succeeds', async () => {
+    render(<App />)
+    await screen.findByText('OUTAGE FALLBACK · NO IMAGE CLASSIFIED')
+    fireEvent.change(screen.getByLabelText('CHANNEL SNR'), { target: { value: '1' } })
+    const classical = screen.getByLabelText('Classical digital')
+    await waitFor(() => expect(classical).toHaveTextContent('English springer'))
+    expect(classical).toHaveTextContent('PREDICTED LABEL')
+    expect(classical).toHaveTextContent('89.0%')
+    expect(classical).not.toHaveTextContent('OUTAGE FALLBACK')
   })
 
   it('fails visibly if the measured chart does not match the published SNR grid', async () => {
@@ -108,7 +126,7 @@ describe('exhibit', () => {
     render(<App />)
     await waitFor(() => expect(screen.getByLabelText('Classical digital')).toHaveTextContent('Classical decode unavailable.'))
     expect(screen.getByRole('status', { name: 'Local service status' })).toHaveTextContent('INFERENCE UNAVAILABLE')
-    expect(screen.queryByText(/An outage prediction may still/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/No image was recovered/)).not.toBeInTheDocument()
     expect(screen.getAllByText('Not available')).toHaveLength(2)
   })
 
