@@ -66,7 +66,7 @@ FONT_FILES = {
     "mono": "/usr/share/fonts/AdwaitaMono-Regular.ttf",
 }
 
-TOTAL = 19
+TOTAL = 20
 
 
 def rgb(value: str) -> RGBColor:
@@ -392,8 +392,52 @@ def build_scenes() -> list[SlideScene]:
 
     add_footer(s); slides.append(s)
 
-    # 6 — headline figure
-    s = SlideScene(6, "Headline", "Where the digital system gives up, and where it takes over",
+    # 6 — model parameters
+    s = SlideScene(6, "Models", "The two models behind every number",
+                   ("Results", "Analytical Skills"),
+                   "Both trained from scratch on this dataset; no pre-trained weights")
+    add_header(s)
+    lead(s, "One classifier reads the pictures. One learned link decides what to transmit.",
+         size=13, bold=False, color_=MUTED)
+
+    s.text(0.62, 1.70, 6.00, 0.26, "The learned link", size=12.5, bold=True,
+           font="sans", text_color=INK)
+    grid(s, 0.62, 2.00,
+         [("Part", 1.66), ("What it is", 4.34)],
+         ["Part", "What it is"],
+         [["Encoder", "Conv stack, 64 then 128 channels"],
+          ["Blocks", "2 residual blocks, Group norm, PReLU"],
+          ["Decoder", "Mirror of the encoder, two heads"],
+          ["Heads", "Class scores, plus a rebuilt picture"],
+          ["Width sent", "8 complex symbols per use at half rate"],
+          ["Parameters", "1.64 M at the widest rate"]],
+         head_h=0.38, row_h=0.40, size=10.5, head_size=10)
+
+    s.text(6.86, 1.70, 5.79, 0.26, "How it was trained", size=12.5, bold=True,
+           font="sans", text_color=INK)
+    grid(s, 6.86, 2.00,
+         [("Setting", 1.90), ("Value", 3.89)],
+         ["Setting", "Value"],
+         [["Objective", "Class scores + 3.0 × reconstruction"],
+          ["Optimiser", "Adam, learning rate 0.001"],
+          ["Schedule", "Cosine decay, no warm-up"],
+          ["Batch, epochs", "32 pictures, 100 epochs"],
+          ["Augmentation", "Random crop, horizontal flip"],
+          ["Precision", "Mixed 16-bit"]],
+         head_h=0.38, row_h=0.40, size=10.5, head_size=10)
+
+    s.line(0.62, 4.94, 12.05, 0, stroke=LINE, stroke_width=0.7)
+    defs(s, 0.62, 5.10, 12.05, [
+        ("The classifier",
+         "ResNet-18, 11.18 M parameters, trained from scratch. It reads 89.8% of held-back pictures correctly, and that is the ceiling both systems are measured against."),
+        ("Training cost",
+         "48.7 seconds per epoch and 1.0 GiB of graphics memory, measured on a laptop GPU."),
+    ], label_w=1.90, pitch=0.82, size=11.5)
+    add_footer(s); slides.append(s)
+
+
+    # 7 — headline figure
+    s = SlideScene(7, "Headline", "Where the digital system gives up, and where it takes over",
                    ("Results",),
                    "Half rate · all 21 measured signal strengths · held-back pictures")
     add_header(s)
@@ -404,8 +448,8 @@ def build_scenes() -> list[SlideScene]:
          "At the weakest signal the learned system is right on 728 of 1,000 while the digital system delivers nothing. From −4 dB it delivers and goes ahead. At +18 dB it is well ahead.")
     add_footer(s); slides.append(s)
 
-    # 7 — the close-up
-    s = SlideScene(7, "Low SNR", "Close-up: the moment the digital system starts working",
+    # 8 — the close-up
+    s = SlideScene(8, "Low SNR", "Close-up: the moment the digital system starts working",
                    ("Results", "Analytical Skills"),
                    "−8 to +2 dB")
     add_header(s)
@@ -418,8 +462,8 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=1.50, pitch=0.44, size=11.5)
     add_footer(s); slides.append(s)
 
-    # 8 — delivery coverage
-    s = SlideScene(8, "Mechanism", "Why the digital line breaks where it does",
+    # 9 — delivery coverage
+    s = SlideScene(9, "Mechanism", "Why the digital line breaks where it does",
                    ("Analytical Skills", "Results"),
                    "When pictures stop arriving, the score drops to match")
     add_header(s)
@@ -437,8 +481,8 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=1.70, pitch=1.26, size=11)
     add_footer(s); slides.append(s)
 
-    # 9 — bandwidth
-    s = SlideScene(9, "Bandwidth", "What happens when we quarter the radio time",
+    # 10 — bandwidth
+    s = SlideScene(10, "Bandwidth", "What happens when we quarter the radio time",
                    ("Results", "Analytical Skills"),
                    "Quarter rate against half rate · compare within each panel")
     add_header(s)
@@ -451,8 +495,8 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=2.10, pitch=0.50, size=11.5)
     add_footer(s); slides.append(s)
 
-    # 10 — randomised training
-    s = SlideScene(10, "Robustness", "Training across signal strengths instead of one",
+    # 11 — randomised training
+    s = SlideScene(11, "Robustness", "Training across signal strengths instead of one",
                    ("Results", "Analytical Skills"),
                    "Two separately trained versions of the learned system")
     add_header(s)
@@ -467,8 +511,8 @@ def build_scenes() -> list[SlideScene]:
          head_h=0.42, row_h=0.46, size=11.5, tint={0: "F3F3F3"})
     add_footer(s); slides.append(s)
 
-    # 11 — task-aware digital control
-    s = SlideScene(11, "Attribution", "The control that keeps the comparison honest",
+    # 12 — task-aware digital control
+    s = SlideScene(12, "Attribution", "The control that keeps the comparison honest",
                    ("Results", "Analytical Skills"),
                    "Same radio time, same error-correction code, same modulation")
     add_header(s)
@@ -482,8 +526,8 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=2.10, pitch=0.74, size=11.5)
     add_footer(s); slides.append(s)
 
-    # 12 — peak power
-    s = SlideScene(12, "Peak power", "Keeping the signal peaks from getting too tall",
+    # 13 — peak power
+    s = SlideScene(13, "Peak power", "Keeping the signal peaks from getting too tall",
                    ("Results", "Analytical Skills"),
                    "Peak-to-average power ratio, measured on the numbers we send")
     add_header(s)
@@ -501,8 +545,8 @@ def build_scenes() -> list[SlideScene]:
          head_h=0.42, row_h=0.46, size=11.5, tint={0: "F3F3F3"})
     add_footer(s); slides.append(s)
 
-    # 13 — secondary controls
-    s = SlideScene(13, "Controls", "Four controls on the digital system",
+    # 14 — secondary controls
+    s = SlideScene(14, "Controls", "Four controls on the digital system",
                    ("Results", "Analytical Skills"),
                    "Settings, image format, sending the answer, rebuilding the picture")
     add_header(s)
@@ -516,8 +560,8 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=2.10, pitch=0.50, size=11.5)
     add_footer(s); slides.append(s)
 
-    # 14 — numbers table
-    s = SlideScene(14, "Tables", "The numbers behind the curves",
+    # 15 — numbers table
+    s = SlideScene(15, "Tables", "The numbers behind the curves",
                    ("Results", "Analytical Skills"),
                    "Pictures labelled correctly out of 1,000 · held-back set")
     add_header(s)
@@ -561,8 +605,8 @@ def build_scenes() -> list[SlideScene]:
            size=11, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
-    # 15 — limits
-    s = SlideScene(15, "Limits", "How to read these results",
+    # 16 — limits
+    s = SlideScene(16, "Limits", "How to read these results",
                    ("Analytical Skills", "Methodology"),
                    "The qualifications behind every number in this deck")
     add_header(s)
@@ -583,8 +627,8 @@ def build_scenes() -> list[SlideScene]:
          "Both outcomes count as a successful project: a crossing, and the learned system winning everywhere.")
     add_footer(s); slides.append(s)
 
-    # 16 — SPEC §17 distillation (PR-8c)
-    s = SlideScene(16, "Course correction", "Four times we changed the approach because of what we found",
+    # 17 — SPEC §17 distillation (PR-8c)
+    s = SlideScene(17, "Course correction", "Four times we changed the approach because of what we found",
                    ("Methodology",),
                    "What we changed once we could see the measurements")
     add_header(s)
@@ -616,8 +660,8 @@ def build_scenes() -> list[SlideScene]:
          "Twenty-two further changes were made during the project, including three checks that turned out to be wrong and were repaired.")
     add_footer(s); slides.append(s)
 
-    # 17 — originality / novelty
-    s = SlideScene(17, "Originality", "What we claim as new",
+    # 18 — originality / novelty
+    s = SlideScene(18, "Originality", "What we claim as new",
                    ("Originality", "Novelty"),
                    "Two claims · both about experimental design")
     add_header(s)
@@ -661,8 +705,8 @@ def build_scenes() -> list[SlideScene]:
            size=11, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
-    # 18 — timeline
-    s = SlideScene(18, "Timeline", "Where the remaining weeks went",
+    # 19 — timeline
+    s = SlideScene(19, "Timeline", "Where the remaining weeks went",
                    ("Timeline",),
                    "Second Review 29 Sep–3 Oct · Final Review 17–21 Nov · report due 20 Nov")
     add_header(s)
@@ -689,8 +733,8 @@ def build_scenes() -> list[SlideScene]:
          "The report is due on 20 November, inside Final Review week, so the week before it is a freeze.")
     add_footer(s); slides.append(s)
 
-    # 19 — close
-    s = SlideScene(19, "Close", "Where this leaves the project",
+    # 20 — close
+    s = SlideScene(20, "Close", "Where this leaves the project",
                    ("Results", "Methodology"),
                    "Questions welcome")
     add_header(s)

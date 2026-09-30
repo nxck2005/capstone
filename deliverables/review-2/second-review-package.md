@@ -10,7 +10,7 @@ Derived from the annotated git tag `review-2-basis` on this branch.
 |---|---|
 | `semantic-communication-second-review.pptx` | The deck. Native editable shapes, so anyone can revise wording without rebuilding. |
 | `semantic-communication-second-review.pdf` | Rendered copy for machines without an Office renderer. |
-| `semantic-communication-second-review-contact-sheet.png` | All 19 slides on one page, for a fast check of flow. |
+| `semantic-communication-second-review-contact-sheet.png` | All 20 slides on one page, for a fast check of flow. |
 | `previews/slide-NN.png` | Per-slide previews at 1600×900. |
 | `review-2-presenter-guide.md` | What to say on each slide, and answers to the questions we expect. |
 | `ITERATION-NOTES.md` | What changed between drafts. |
@@ -72,7 +72,7 @@ The four course corrections on slide 16 are labelled by what each one *was*
 (Baseline too weak, Signal grid too coarse, A faulty check, Exam set unlocked too
 early) rather than by amendment number. An automated scan for paths, gate IDs,
 requirement IDs, amendment IDs, spec refs and week numbers returns zero across
-all 19 slides.
+all 20 slides.
 
 This constraint is about the deck only. The package note, the iteration notes and
 the presenter guide are internal working documents and do carry the IDs, because
@@ -110,12 +110,12 @@ The Second Review is 30 marks, carrying six criteria. The deck maps onto them:
 
 | Criterion | Sub-marks | Slides | How the deck answers it |
 |---|---|---|---|
-| Results (graphs/tables/test cases) | 20 | 6, 7, 8, 9, 10, 11, 12, 13, 14 | Eight measured figures plus two numeric tables at both rates. 252 published measurements. |
-| Originality | 10 | 17 | Two claims tied to experimental design, with the prior art each rests on. |
-| Analytical skills | 5 | 5, 7, 8, 9, 14, 15 | Why the curves break where they do, what the controls buy, how to read the numbers. |
-| Presentation | 5 | all | 19 slides for a 25-minute slot. Presenter guide carries the timing. |
-| Methodology | 5 | 16 | The §17 distillation: four documented course corrections. Required by PR-8(c). |
-| Timeline | 5 | 2, 18 | Progress since the First Review, and the remaining weeks with their gates. |
+| Results (graphs/tables/test cases) | 20 | 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 | Eight measured figures plus two numeric tables at both rates. 252 published measurements. |
+| Originality | 10 | 18 | Two claims tied to experimental design, with the prior art each rests on. |
+| Analytical skills | 5 | 5, 6, 8, 9, 15, 16 | Why the curves break where they do, what the controls buy, how to read the numbers. |
+| Presentation | 5 | all | 20 slides for a 25-minute slot. Presenter guide carries the timing. |
+| Methodology | 5 | 17 | The one-slide course-correction summary required by PR-8(c). |
+| Timeline | 5 | 2, 19 | Progress since the First Review, and the remaining weeks with their gates. |
 
 ## 2. Narrative contract
 
@@ -139,17 +139,18 @@ controls that let a panel judge it.
 |---|---|---|
 | 1–3 | 4 min | Title, progress since August, objectives as completion criteria |
 | 4 | 2 min | The plain-language primer |
-| 5 | 1 min | What we measured |
-| 6–8 | 5 min | Headline, the delivery transition, and what causes it |
-| 9–13 | 6 min | Bandwidth, randomised training, the control, peak power, secondary controls |
-| 14–15 | 3 min | Numbers table, how to read them |
-| 16 | 2 min | Course correction (SPEC §17) |
-| 17–18 | 2 min | Novelty, timeline |
-| 19 | 1 min | Close |
+| 5 | 1.5 min | What we measured |
+| 6 | 1.5 min | The two models |
+| 7–9 | 5 min | Headline, the delivery transition, and what causes it |
+| 10–14 | 6 min | Bandwidth, randomised training, the control, peak power, secondary controls |
+| 15–16 | 3 min | Numbers table, how to read them |
+| 17 | 2 min | Course correction |
+| 18–19 | 2 min | Novelty, timeline |
+| 20 | 1 min | Close |
 
-Roughly 26 minutes of planned content against a 25-minute slot, so the slack
-comes out of slides 12 and 13. Both are mechanism detail and the numbers survive
-in the report.
+Roughly 28 minutes of planned content against a 25-minute slot, so the slack
+comes out of slides 13 and 14. Both are secondary controls and the numbers
+survive in the report.
 
 ## 4. Slide content contract
 
@@ -165,27 +166,32 @@ panel states that completion is independent of the result.
 The structurally important slide. It defines four words, works an example, and
 explains the flat 10% line that otherwise looks like a suspicious floor.
 
-### Slides 5–8 — The headline and its mechanism
+### Slide 6 — The models
 
-Slide 6 is the one to spend time on. Slide 7 zooms into the delivery transition,
-slide 8 explains what causes it, and slide 9 quarters the radio time.
+Architecture, training recipe, the classifier that reads the pictures, and what
+training cost. Every figure is traceable to committed evidence.
 
-### Slides 9–13 — The controls
+### Slides 7–9 — The headline and its mechanism
 
-Slide 11 is the task-aware digital control, the most important slide after the
-headline. Slide 12 is peak power, and slide 13 the secondary controls including the
-JPEG outage at +9 dB.
+Slide 7 is the one to spend time on. Slide 8 zooms into the delivery transition,
+slide 9 explains what causes it.
 
-### Slides 14–15 — Numbers and qualifications
+### Slides 10–14 — The controls
 
-Slide 14 is the table version of the curves at both rates. Slide 15 is the single
+Slide 12 is the task-aware digital control, the most important slide after the
+headline. Slide 13 is peak power, and slide 14 the secondary controls including
+the JPEG outage at +9 dB.
+
+### Slides 15–16 — Numbers and qualifications
+
+Slide 15 is the table version of the curves at both rates. Slide 16 is the single
 place qualifications are stated.
 
-### Slide 16 — Course correction
+### Slide 17 — Course correction
 
 Four corrections, required by PR-8(c).
 
-### Slides 17–19 — Novelty, timeline, close
+### Slides 18–20 — Novelty, timeline, close
 
 ## 5. Required figures and provenance
 
@@ -222,9 +228,10 @@ clause never fired and the objectives were not restated as PR-8(b) permits.
 | Plain-language primer | Ready | slide 4 |
 | Results figures | Ready, held-back set only | `presentation-results/figures/` |
 | Objectives slide, PR-8(a) | Ready | slide 3 |
-| §17 distillation slide, PR-8(c) | Ready | slide 16 |
-| Novelty negative check, PR-7 | Ready | slide 17 |
-| Gantt current, PR-2 | Ready | `docs/gantt-plan.md`, slide 18 |
+| Model parameters | Ready | slide 6 |
+| §17 distillation slide, PR-8(c) | Ready | slide 17 |
+| Novelty negative check, PR-7 | Ready | slide 18 |
+| Gantt current, PR-2 | Ready | `docs/gantt-plan.md`, slide 19 |
 | Exam-set results | None exist, none claimed | — |
 | Guide hardware acknowledgement | Carried from the First Review, unverified | — |
 | Four-member rehearsal | Carried from the First Review, unverified | — |

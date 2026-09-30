@@ -82,7 +82,28 @@ Then the two rows underneath, because they govern how every later slide reads:
 > built into them, the digital systems by one we trained on compressed-looking
 > images. So the gap on the next eight slides is a whole-system gap.
 
-## Slide 6 — Headline
+## Slide 6 — The two models behind every number
+
+Ninety seconds, and skip it if the panel already knows the architecture.
+
+> Two models are involved. A ResNet-18 classifier reads the pictures, and a
+> residual convolutional link decides what to transmit. Both trained from
+> scratch on this dataset, no pre-trained weights.
+
+> The link has an encoder and a mirrored decoder with two heads: class scores,
+> and a rebuilt picture as an auxiliary task. It sends 8 complex symbols per
+> channel use at half rate. It is 1.64 million parameters at its widest.
+
+> Training is Adam at 0.001, cosine decay, batch 32, 100 epochs, random crop and
+> horizontal flip, mixed 16-bit. The objective is class scores plus three times
+> the reconstruction error, and that weight of three was chosen on the held-back
+> set rather than by hand.
+
+The last line is the one worth saying out loud: the weight was calibrated on
+validation, so a panel question about it has a preregistered answer behind it.
+
+
+## Slide 7 — Headline
 
 Ninety seconds. Walk it left to right.
 
@@ -96,13 +117,13 @@ Then the interpretation, once:
 > The learned advantage lives entirely below the digital delivery threshold.
 > Above it, the digital system is the better system.
 
-## Slide 7 — The moment the digital system starts working
+## Slide 8 — The moment the digital system starts working
 
 Sixty seconds. The shape is the point: nothing gets through until −5 dB,
 everything gets through at −4 dB. The transition lies somewhere between the two.
 Mention the two dips at −2 and +9 dB yourself, so nobody has to find them.
 
-## Slide 8 — Why the digital line breaks
+## Slide 9 — Why the digital line breaks
 
 Ninety seconds. This answers the most technical question in the room.
 
@@ -114,7 +135,7 @@ Ninety seconds. This answers the most technical question in the room.
 If asked why the learned system has no flat line: its rules promise a label at
 every signal strength.
 
-## Slide 9 — Quartering the radio time
+## Slide 10 — Quartering the radio time
 
 Ninety seconds. Two panels, compare within each.
 
@@ -127,7 +148,7 @@ Then the complication, which the slide already states:
 > At this rate the digital system passes the learned one at +4 dB, falls back at
 > +9 dB, and goes ahead again after that. The crossing happens twice here.
 
-## Slide 10 — Training across signal strengths
+## Slide 11 — Training across signal strengths
 
 Sixty seconds. Two rows, the gap is widest at the bottom.
 
@@ -136,7 +157,7 @@ Sixty seconds. Two rows, the gap is widest at the bottom.
 
 Both rows are separately trained models from one run. Say that and move on.
 
-## Slide 11 — The task-aware digital control
+## Slide 12 — The task-aware digital control
 
 Ninety seconds. The most important slide after the headline, because it stops the
 result being overstated.
@@ -153,7 +174,7 @@ result being overstated.
 If asked whether this isolates the error-correction code: the feature encoders
 differ, so it compares representations.
 
-## Slide 12 — Peak power
+## Slide 13 — Peak power
 
 Sixty seconds.
 
@@ -165,7 +186,7 @@ Sixty seconds.
 The peak-to-average ratio here is measured on the numbers we put on the radio.
 Both models are separately trained.
 
-## Slide 13 — Four controls
+## Slide 14 — Four controls
 
 Sixty seconds, and only if time allows. One line per panel. Keep the JPEG point
 in:
@@ -173,18 +194,18 @@ in:
 > JPEG reaches 88.6% at +18 dB, with a full outage at +9 dB. That point is in the
 > figure because it is what we measured.
 
-## Slide 14 — The numbers
+## Slide 15 — The numbers
 
 Sixty seconds. Don't read it out. Point at where the two tables differ and use
 the reading guide underneath.
 
-## Slide 15 — How to read these results
+## Slide 16 — How to read these results
 
 Ninety seconds, unhurried. Read the five rows. Spend the time on "Whole systems"
 and let the rest go. The point of this slide is that the panel gets the
 qualifications once, in one place, and can then ask real questions.
 
-## Slide 16 — Course correction
+## Slide 17 — Course correction
 
 Two minutes. This is the slide `Methodology` is scoring.
 
@@ -203,7 +224,7 @@ Two minutes. This is the slide `Methodology` is scoring.
   document that locks it existed. We moved it to week 11. It has stayed locked
   ever since.
 
-## Slide 17 — What we claim as new
+## Slide 18 — What we claim as new
 
 Ninety seconds. Two claims, then the list on the right:
 
@@ -214,13 +235,13 @@ Ninety seconds. Two claims, then the list on the right:
 > and charging the file and framing overhead to the digital system so it is tuned
 > on the payload it can actually use.
 
-## Slide 18 — Timeline
+## Slide 19 — Timeline
 
 Sixty seconds. The week of 5 October is the one that matters: one guarded opening
 of the exam set. The report is due on 20 November, inside Final Review week, so
 the week before that is a freeze.
 
-## Slide 19 — Close
+## Slide 20 — Close
 
 Thirty seconds. One sentence for the result, one for what's next, then the sealed
 exam set. Stop there.

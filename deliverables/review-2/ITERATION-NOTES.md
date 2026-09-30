@@ -2,6 +2,41 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v9 — 2026-09-30, model parameters slide added
+
+A capstone panel reviewing an AI project will ask what was trained. The deck
+had no architecture slide at all — slides 5 and 6 went from "what we measured"
+straight to a results curve, so the model underneath was unstated.
+
+New slide 6, "The two models behind every number": two side-by-side tables (the
+learned link's architecture, and the training recipe) plus two rows for the
+classifier and the training cost. Every figure is traceable to committed
+evidence, and none was typed in by hand:
+
+| Figure | Source |
+|---|---|
+| 64 then 128 channels, 2 residual blocks, Group norm, PReLU, two heads | `spec/params.generated.yaml` → `learned_system` |
+| 8 complex symbols per use at half rate | same, `encoder_output_complex_channels.r_1_6` |
+| 1.64 M parameters | `results/profiling/g7_djscc_profile.json` → `model.parameter_count` = 1,640,957 |
+| objective, Adam 0.001, cosine, batch 32, 100 epochs, 16-bit | same, `learned_system` |
+| ResNet-18, 11.18 M parameters, 89.8% | `results/reference_classifier/g1_adjudication.json` |
+| 48.7 s/epoch, 1.0 GiB | `results/profiling/g7_djscc_profile.json` → `training`, `memory` |
+
+Two honesty details worth keeping. The 1.64 M figure was measured at the widest
+rate, which has 24 complex channels; the rates actually reported here are
+narrower, so the slide says "1.64 M at the widest rate" rather than claiming it
+for the headline model. And λ = 3.0 was calibrated on held-back data at a gate,
+so the presenter guide points that out rather than presenting it as a free
+parameter.
+
+The slide's rubric tag is `Results, Analytical Skills`. `Subject Knowledge` is a
+First Review criterion and has no place in a Second Review footer.
+
+Slides 6–19 shift to 7–20; the guide's per-slide sections were rebuilt in the
+new order and the package note's rubric table, timing plan and readiness matrix
+updated. Deck is now 20 slides for 25 minutes, with the slack explicitly taken
+out of the two secondary-control slides.
+
 ## v8 — 2026-09-30, "arm" removed and the mechanism slide moved up
 
 **The undefined term.** "Arm" is this project's own name for a system variant —
