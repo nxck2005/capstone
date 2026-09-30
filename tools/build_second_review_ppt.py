@@ -64,7 +64,7 @@ FONT_FILES = {
     "mono": "/usr/share/fonts/Adwaito/AdwaitaMono-Regular.ttf",
 }
 
-TOTAL = 18
+TOTAL = 19
 
 
 def rgb(value: str) -> RGBColor:
@@ -204,6 +204,13 @@ def stat(scene: SlideScene, x, y, w, h, value, caption, *, accent=NAVY, fill=PAP
                font="sans", text_color=MUTED, align="center")
 
 
+def gloss(scene: SlideScene, x, y, w, text_value, *, accent=NAVY):
+    """A small 'plain words / technical name' chip."""
+    scene.rect(x, y, w, 0.26, fill=PALE_NAVY, stroke=None, radius=0.04)
+    scene.text(x + 0.09, y + 0.045, w - 0.18, 0.18, text_value, size=7.2,
+               font="mono", text_color=accent, valign="mid")
+
+
 def table(scene: SlideScene, x, y, w, *, headers, rows, row_labels,
           label_w=1.94, row_h=0.40, head_h=0.34, accent=NAVY,
           highlight=None):
@@ -285,28 +292,28 @@ def build_scenes() -> list[SlideScene]:
 
     s.rect(1.05, 5.86, 11.23, 0.92, fill=PALE_AMBER, stroke=None, radius=0.07)
     s.text(1.31, 6.02, 10.71, 0.62,
-           "Second Review, 29 September – 3 October 2026.\nEverything shown here was measured on the validation split. No test data has been read.",
+           "Second Review, 29 September – 3 October 2026.\nEverything here was measured on held-back pictures. The exam set has not been opened.",
            size=11.4, font="sans", text_color=AMBER, align="center")
     add_footer(s); slides.append(s)
 
     # 2 — what happened since the first review
-    s = SlideScene(2, "Progress", "What changed between the two reviews",
+    s = SlideScene(2, "Progress", "What has changed since the first review",
                    ("Timeline", "Results"),
-                   "First Review 18–22 Aug 2026 · Second Review 29 Sep–3 Oct 2026")
+                   "First review 18–22 Aug 2026 · Second review 29 Sep–3 Oct 2026")
     add_header(s)
     s.text(0.82, 1.44, 11.68, 0.34,
-           "In August we had a working classical chain and no trained learned model. Both exist now.",
+           "In August we had a working digital system and no trained learned model. We have both now.",
            size=13.6, font="serif", text_color=MUTED, align="center")
 
     rows = [
-        ("Aug", "Classical baseline", "3,213 measured BLER identities, 153 BLER curves, 288,000-row validation sweep, per-SNR adaptive selection frozen", GREEN),
-        ("Aug", "Learned training", "Checkpoint/resume loop, multi-seed headline models, three frozen seed cells at 1/6", GREEN),
-        ("Sep", "Attribution control", "ER-9 task-aware digital features over the same LDPC chain — the control for H4", GREEN),
-        ("Sep", "Robustness", "SNR-randomised training variant, compared against fixed-SNR training", GREEN),
-        ("Sep", "Crossover decision", "G-10 closed on frozen validation curves: crossover observed between −5 and −4 dB", GREEN),
-        ("Sep", "Peak-power constraint", "One PAPR-constrained training run, capped at 3 dB in the symbol domain", GREEN),
-        ("Oct", "Validation rehearsal", "252 measurement units across 12 arms and 21 SNRs, 1,000 images each", BURGUNDY),
-        ("Nov", "Test campaign", "Still sealed. Opens at G-12 once the freeze manifest is signed", FAINT),
+        ("Aug", "The digital system", "Measured how badly it loses pictures at every setting, tested it on all 288,000 held-back combinations, and froze the settings it should use at each signal strength", GREEN),
+        ("Aug", "The learned system", "Built the training loop, trained models at several seeds, and froze three of them at half rate", GREEN),
+        ("Sep", "The fair comparison", "Built the control that sends learned features digitally, so we are not just comparing against a normal compressed picture", GREEN),
+        ("Sep", "Weak-link training", "Trained a second version with the signal strength picked at random, and compared it against the first", GREEN),
+        ("Sep", "The crossing question", "Decided it on held-back pictures before seeing the answer: the two lines cross between −5 and −4 dB", GREEN),
+        ("Sep", "Power limits", "Trained one model under a hard limit on how tall the signal spikes may get", GREEN),
+        ("Oct", "The measurements", "252 measurements across twelve versions of the system and twenty-one signal strengths, 1,000 held-back pictures each", BURGUNDY),
+        ("Nov", "The exam set", "Still locked. It opens in week 11 once the locking document is signed", FAINT),
     ]
     s.rect(0.82, 1.96, 11.68, 4.66, fill=PAPER, stroke=LINE, radius=0.08)
     for i, (when, what, detail, accent) in enumerate(rows):
@@ -330,18 +337,18 @@ def build_scenes() -> list[SlideScene]:
                    "SPEC §2 wording · objectives are not restated at this review")
     add_header(s)
     s.text(0.82, 1.42, 11.68, 0.30,
-           "The rubric asks whether objectives were met, so they are written as things we did, not results we hoped for.",
+           "The rubric asks whether we finished what we set out to do, so we wrote it as things we did, not results we hoped for.",
            size=12.4, font="sans", text_color=MUTED, align="center")
 
     left = [
-        ("Build", "A learned encoder and decoder trained end to end for image classification over a simulated AWGN link."),
-        ("Bandwidth-match", "Every system gets the same channel-use budget at each SNR and ratio."),
-        ("Bit-account", "Filler, CRC, code-block segmentation and rate matching are charged before any source byte."),
-        ("Evaluate", "At the operating point chosen by a classical-only rule, so the selection never saw the learned curve."),
-        ("Report", "Paired per-image outcomes, including the outage decision, on every row."),
+        ("Build it", "Train a learned sender and a learned receiver together, so the image goes through the same kind of noise a radio would add."),
+        ("Give both the same radio time", "At every signal strength and every rate, the two systems get the same number of chances to use the radio."),
+        ("Charge the overhead", "Checksums, padding and error-correction bytes all come out of the budget before any picture data does."),
+        ("Pick the setting fairly", "The operating point is chosen using the digital system alone, before anyone looks at the learned curve."),
+        ("Report per picture", "Every row records what happened to one picture, including the ones that never arrived."),
     ]
     s.rect(0.82, 1.92, 7.48, 4.62, fill=PAPER, stroke=LINE, radius=0.08)
-    label(s, 1.08, 2.16, 1.02, "We set out to")
+    label(s, 1.08, 2.16, 1.24, "What we set out to do")
     for i, (heading, body) in enumerate(left):
         y = 2.66 + i * 0.755
         s.circle(1.11, y + 0.02, 0.28, 0.28, fill=NAVY, stroke=None)
@@ -355,81 +362,131 @@ def build_scenes() -> list[SlideScene]:
             s.line(1.52, y + 0.60, 6.52, 0, stroke=LINE, stroke_width=0.5)
 
     s.rect(8.64, 1.92, 3.86, 4.62, fill=PALE_GREEN, stroke=None, radius=0.08)
-    label(s, 8.92, 2.16, 1.42, "Not the objective", fill=WHITE, ink=GREEN)
-    s.text(8.92, 2.72, 3.30, 1.60,
-           "“Show that the learned system beats the classical one.”",
+    label(s, 8.92, 2.16, 1.72, "What we did not aim for", fill=WHITE, ink=GREEN)
+    s.text(8.92, 2.72, 3.30, 1.44,
+           "“Show that the learned system beats the digital one.”",
            size=15.0, bold=True, font="serif", text_color=INK, align="center")
-    s.text(8.92, 4.46, 3.30, 1.72,
-           "That is a result, not an objective. A crossover and learned dominance are both complete outcomes under SPEC §2, and the rubric scores the second review on objectives we set — not on which way the curve went.",
+    s.text(8.92, 4.34, 3.30, 1.84,
+           "That is a result, not an objective. Our specification treats both a crossing and the learned system winning everywhere as complete, successful outcomes. The rubric scores the second review on what we set out to do, not on which way the curve went.",
            size=10.4, font="sans", text_color=GREEN, align="center")
     s.text(0.82, 6.68, 11.68, 0.22,
-           "G-10 found a crossover, so DEC-16's fallback clause never fired and the objectives were not rewritten.",
+           "We found a crossing, so the fallback we had planned for never happened and the objectives were not rewritten.",
            size=9.8, italic=True, font="sans", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 
-    # 4 — the evidence base
-    s = SlideScene(4, "Evidence base", "What was measured for this review",
+    # 4 — plain-language on-ramp before any results
+    s = SlideScene(4, "How to read these", "Before the numbers, one picture",
                    ("Results", "Analytical Skills"),
-                   "AM-98 rehearsal scope · 252 units = 12 arms × 21 SNRs")
+                   "Nothing technical on this slide. The next fourteen depend on it.")
     add_header(s)
+    s.text(0.82, 1.42, 11.68, 0.34,
+           "Every chart that follows runs from a very weak radio signal on the left to a clean one on the right.",
+           size=13.0, font="serif", text_color=MUTED, align="center")
+
+    words = [
+        ("How strong the signal is", "SNR, in decibels", "the left-to-right axis", NAVY),
+        ("How many pictures got through", "delivery coverage", "the flat 10% line", BURGUNDY),
+        ("How many we labelled correctly", "top-1 accuracy", "the up-and-down axis", GREEN),
+        ("How many times we use the radio", "channel-use budget", "12,800 or 3,200 per picture", AMBER),
+    ]
+    s.rect(0.82, 1.92, 7.30, 4.16, fill=PAPER, stroke=LINE, radius=0.08)
+    label(s, 1.08, 2.16, 1.86, "Plain words / our term")
+    for i, (plain, term, where, accent) in enumerate(words):
+        y = 2.76 + i * 0.78
+        s.rect(1.08, y + 0.10, 0.075, 0.30, fill=accent, stroke=None, radius=0)
+        s.text(1.30, y + 0.06, 2.72, 0.24, plain, size=11.0, bold=True,
+               font="serif", text_color=INK)
+        s.text(4.08, y + 0.08, 1.90, 0.22, term, size=9.2, font="mono", text_color=accent)
+        s.text(6.02, y + 0.08, 1.86, 0.36, where, size=8.8, font="sans", text_color=MUTED)
+        if i < len(words) - 1:
+            s.line(1.08, y + 0.60, 6.78, 0, stroke=LINE, stroke_width=0.5)
+    s.text(1.08, 5.62, 6.78, 0.34,
+           "Every point on every chart is the same 1,000 pictures, sent at that one signal strength.",
+           size=10.0, italic=True, font="sans", text_color=NAVY)
+
+    s.rect(8.46, 1.92, 4.06, 4.16, fill=PALE_AMBER, stroke=None, radius=0.08)
+    label(s, 8.74, 2.16, 1.62, "One example", fill=WHITE, ink=AMBER)
+    s.text(8.74, 2.66, 3.50, 0.28, "At the weakest signal we measured:",
+           size=10.2, bold=True, font="sans", text_color=AMBER)
+    s.text(8.74, 3.06, 3.50, 1.20,
+           "The learned system labelled 728 of the 1,000 pictures correctly.\n\nThe digital system got almost nothing through, so every picture fell back to one fixed answer — and that answer happens to be right 100 times out of 1,000. So 10%.",
+           size=10.4, font="sans", text_color=INK)
+    s.rect(8.74, 4.52, 3.50, 1.24, fill=PAPER, stroke=None, radius=0.06)
+    s.text(8.90, 4.70, 3.18, 0.92,
+           "That flat 10% is not a bad prediction. It is 1,000 pictures that never arrived.",
+           size=11.4, bold=True, font="serif", text_color=BURGUNDY)
+    s.text(0.82, 6.86, 11.68, 0.18,
+           "These were 1,000 held-back pictures. The exam pictures stay sealed until week 11.",
+           size=9.2, italic=True, font="sans", text_color=MUTED, align="center")
+    add_footer(s); slides.append(s)
+
+    # 5 — what was measured
+    s = SlideScene(5, "Evidence base", "What we measured for this review",
+                   ("Results", "Analytical Skills"),
+                   "252 measurements = 12 ways of building the system × 21 signal strengths")
+    add_header(s)
+    s.text(0.82, 1.44, 11.68, 0.32,
+           "We built twelve versions of the system and tested each one at twenty-one signal strengths.",
+           size=13.0, font="serif", text_color=MUTED, align="center")
     tiles = [
-        ("252", "measurement units, each one row of the published aggregate", NAVY),
-        ("12", "system arms, including five controls", BURGUNDY),
-        ("21", "SNR points, −8 dB to +18 dB on the measured grid", GREEN),
-        ("1,000", "validation images behind every point", AMBER),
-        ("0", "test images read, at any point, ever", BURGUNDY),
+        ("252", "individual measurements, one row each in the published record", NAVY),
+        ("12", "versions of the system, five of them controls", BURGUNDY),
+        ("21", "signal strengths, from very weak to very clean", GREEN),
+        ("1,000", "held-back pictures behind every single point", AMBER),
+        ("0", "exam pictures ever opened", BURGUNDY),
     ]
     for i, (value, caption, accent) in enumerate(tiles):
-        stat(s, 0.82 + i * 2.36, 1.50, 2.18, 1.72, value, caption, accent=accent)
+        stat(s, 0.82 + i * 2.36, 1.94, 2.18, 1.66, value, caption, accent=accent,
+             value_size=25)
 
-    s.rect(0.82, 3.50, 5.78, 3.10, fill=PAPER, stroke=LINE, radius=0.08)
-    label(s, 1.08, 3.74, 1.20, "Bandwidth")
-    s.text(1.08, 4.22, 5.26, 0.50,
-           "1/6 ratio — 12,800 channel uses per image\n1/24 ratio — 3,200 channel uses per image",
-           size=11.2, font="sans", text_color=INK)
-    s.text(1.08, 5.00, 5.26, 1.34,
-           "These are matched channel-use budgets within a ratio. They do not match transmitted information, and the learned and digital arms carry different representations.",
-           size=10.4, font="sans", text_color=MUTED)
+    s.rect(0.82, 3.86, 5.78, 2.70, fill=PAPER, stroke=LINE, radius=0.08)
+    label(s, 1.08, 4.10, 1.34, "Radio time")
+    s.text(1.08, 4.58, 5.26, 0.50,
+           "Half rate — 12,800 uses of the radio per picture\nQuarter rate — 3,200 uses per picture",
+           size=11.0, font="sans", text_color=INK)
+    s.text(1.08, 5.28, 5.26, 1.06,
+           "Within one rate, both systems get the same amount of radio time. It does not mean they send the same amount of information, and the two sides carry different kinds of picture.",
+           size=10.2, font="sans", text_color=MUTED)
 
-    s.rect(6.84, 3.50, 5.68, 3.10, fill=PAPER, stroke=LINE, radius=0.08)
-    label(s, 7.10, 3.74, 1.46, "Scorers")
-    s.text(7.10, 4.22, 5.16, 2.12,
-           "Learned arms are scored by their own task head. The classical arms are scored by the artifact-finetuned classifier; the same transmitted outputs also carry a clean-classifier stream in the published scorer CSV.\n\nSo an end-to-end learned-versus-classical gap combines communication, representation and scorer. We treat it as a whole-system comparison and say so wherever it appears.",
-           size=10.4, font="sans", text_color=MUTED)
-    s.rect(0.82, 6.70, 11.70, 0.30, fill=PALE_RED, stroke=None, radius=0.04)
-    s.text(1.00, 6.76, 11.34, 0.18,
-           "One frozen seed cell. These are observed point differences, not confidence intervals.",
+    s.rect(6.84, 3.86, 5.68, 2.70, fill=PAPER, stroke=LINE, radius=0.08)
+    label(s, 7.10, 4.10, 1.62, "Who marks it")
+    s.text(7.10, 4.58, 5.16, 1.82,
+           "The learned systems are marked by the classifier built into them. The classical systems are marked by a classifier we trained specifically on compressed-looking images.\n\nSo when we compare the two, we are comparing whole systems — the link, the way the picture is represented, and the marker. We say so wherever the comparison appears.",
+           size=10.2, font="sans", text_color=MUTED)
+    s.rect(0.82, 6.66, 11.70, 0.34, fill=PALE_RED, stroke=None, radius=0.04)
+    s.text(1.00, 6.72, 11.34, 0.20,
+           "One training run. These are observed differences, not confidence intervals.",
            size=9.4, bold=True, font="sans", text_color=BURGUNDY, align="center")
     add_footer(s); slides.append(s)
 
-    # 5 — headline figure
-    s = SlideScene(5, "Headline", "Learned DJSCC against the adaptive classical chain",
+    # 6 — headline figure
+    s = SlideScene(6, "Headline", "Where the digital system gives up, and where it takes over",
                    ("Results",),
-                   "Figure 01 · 1/6 bandwidth · all 21 measured SNRs")
+                   "Half rate · all 21 measured signal strengths · held-back pictures")
     add_header(s)
-    s.text(0.82, 1.36, 11.68, 0.30,
-           "The learned system answers at every SNR. The digital chain is silent until −4 dB, then overtakes it.",
-           size=13.2, bold=True, font="serif", text_color=NAVY, align="center")
+    s.text(0.82, 1.38, 11.68, 0.30,
+           "The learned system keeps answering the whole way across. The digital system stays silent, then overtakes it.",
+           size=13.0, bold=True, font="serif", text_color=NAVY, align="center")
     fx, fy, fw, fh = figure(s, "01_headline_full_snr.png", y=1.76, max_h=4.52)
     s.rect(0.90, 6.44, 11.55, 0.50, fill=PALE_NAVY, stroke=None, radius=0.05)
     s.text(1.06, 6.53, 11.23, 0.34,
-           "At −8 dB: learned 72.8%, digital 10.0% (no delivery). At −4 dB: digital 83.4%, learned 79.4%. At +18 dB: digital 89.3%, learned 83.4%.",
+           "Weakest signal: learned right on 728 of 1,000, digital got nothing through. At −4 dB the digital system starts working and beats the learned one. At +18 dB it is well ahead.",
            size=9.6, font="sans", text_color=NAVY, align="center")
     add_footer(s); slides.append(s)
 
-    # 6 — the close-up
-    s = SlideScene(6, "Low SNR", "Close-up: where the digital chain gives up",
+    # 7 — the close-up
+    s = SlideScene(7, "Low SNR", "Close-up: the moment the digital system starts working",
                    ("Results", "Analytical Skills"),
-                   "Figure 02 · −8 to +2 dB · measured points only")
+                   "−8 to +2 dB · measured points only, nothing in between")
     add_header(s)
-    s.text(0.82, 1.36, 11.68, 0.30,
-           "Between −5 and −4 dB the digital chain starts delivering and its accuracy jumps 73 points.",
-           size=13.2, bold=True, font="serif", text_color=NAVY, align="center")
+    s.text(0.82, 1.38, 11.68, 0.30,
+           "Between −5 and −4 dB the digital system begins getting pictures through, and its score jumps 73 points.",
+           size=13.0, bold=True, font="serif", text_color=NAVY, align="center")
     fx, fy, fw, fh = figure(s, "02_low_snr_closeup.png", y=1.74, max_h=3.94)
     notes = [
-        ("−8 dB", "Learned 72.8%. Digital coverage is 0%, so its score is the 10.0% outage fallback.", BURGUNDY),
-        ("−4 dB", "Digital coverage reaches 100% and accuracy 83.4%, above the learned 79.4%.", GREEN),
-        ("Above", "Coverage dips to 97.7% at −2 dB and 96.2% at +9 dB, so the digital curve is not monotone.", AMBER),
+        ("At −8 dB", "The learned system is right on 728 of 1,000. The digital system got nothing through, so it scores 10%.", BURGUNDY),
+        ("At −4 dB", "The digital system now gets everything through and reaches 83.4%, ahead of the learned system's 79.4%.", GREEN),
+        ("After that", "It dips at −2 dB and again at +9 dB, so its line is not perfectly smooth.", AMBER),
     ]
     for i, (tag, body, accent) in enumerate(notes):
         x = 0.90 + i * 3.87
@@ -440,112 +497,114 @@ def build_scenes() -> list[SlideScene]:
         s.text(x + 0.20, 6.28, 3.34, 0.48, body, size=9.2,
                font="sans", text_color=MUTED)
     s.text(0.82, 6.90, 11.68, 0.18,
-           "No SNR between −5 and −4 dB was measured, so we quote a bracket and not a threshold.",
+           "We never measured a signal strength between −5 and −4 dB, so this is a gap between two points, not a known threshold.",
            size=8.8, italic=True, font="sans", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 
-    # 7 — bandwidth
-    s = SlideScene(7, "Bandwidth", "Cutting the budget fourfold",
+    # 8 — bandwidth
+    s = SlideScene(8, "Bandwidth", "What happens when we quarter the radio time",
                    ("Results", "Analytical Skills"),
-                   "Figure 03 · 1/24 and 1/6 · compare within each panel")
+                   "Quarter rate against half rate · compare within each panel")
     add_header(s)
-    s.text(0.82, 1.34, 11.68, 0.30,
-           "At 1/24 the digital arm loses far more at low SNR than the learned arm does.",
-           size=13.2, bold=True, font="serif", text_color=NAVY, align="center")
+    s.text(0.82, 1.36, 11.68, 0.30,
+           "On a quarter of the radio time, the digital system loses far more at the weak end than the learned one does.",
+           size=13.0, bold=True, font="serif", text_color=NAVY, align="center")
     fx, fy, fw, fh = figure(s, "03_bandwidth_efficiency.png", y=1.72, max_h=3.28)
     cards = [
-        ("−8 dB, 1/6 → 1/24", "Learned drops 72.8% → 49.4%, a 23.4 point loss.", BURGUNDY),
-        ("0 dB, 1/24", "Learned 78.7% against digital 69.4%.", GREEN),
-        ("First overtaking", "Digital passes learned at the measured +4 dB point, then learned retakes the lead at +9 dB where digital coverage dips.", AMBER),
+        ("Weak signal, half → quarter", "The learned system drops from 72.8% to 49.4% rightness. A 23 point loss.", BURGUNDY),
+        ("At 0 dB, quarter rate", "Learned 78.7%, digital 69.4%. The learned system is still ahead.", GREEN),
+        ("Digital catches up, then slips", "Digital first passes the learned system at the +4 dB point, then loses the lead again at +9 dB where it drops some pictures.", AMBER),
     ]
     for i, (heading, body, accent) in enumerate(cards):
         card(s, 0.90 + i * 3.87, 5.22, 3.72, 1.62, heading, body, accent=accent, body_size=10.0)
     s.text(0.82, 6.92, 11.68, 0.18,
-           "The +9 dB recross means we should not claim one clean crossover at this ratio.",
+           "Because it crosses and then uncrosses, we should not claim one clean crossover at this rate.",
            size=8.8, italic=True, font="sans", text_color=BURGUNDY, align="center")
     add_footer(s); slides.append(s)
 
-    # 8 — SNR-randomised training
-    s = SlideScene(8, "Robustness", "Training across SNRs instead of at one",
+    # 9 — SNR-randomised training
+    s = SlideScene(9, "Robustness", "Training across signal strengths instead of one",
                    ("Results", "Analytical Skills"),
-                   "Figure 04 · 1/6 · fixed-SNR versus SNR-randomised checkpoints")
+                   "Two separately trained versions of the learned system")
     add_header(s)
-    s.text(0.82, 1.36, 11.68, 0.30,
-           "Drawing the training SNR uniformly lifts the whole weak-channel end of the curve.",
-           size=13.2, bold=True, font="serif", text_color=NAVY, align="center")
+    s.text(0.82, 1.38, 11.68, 0.30,
+           "Picking the training signal strength at random each time lifts the whole weak end of the line.",
+           size=13.0, bold=True, font="serif", text_color=NAVY, align="center")
     fx, fy, fw, fh = figure(s, "04_training_robustness.png", y=1.76, max_h=4.10)
     table(s, 1.90, 6.02, 9.54,
           headers=["−8 dB", "−4 dB", "0 dB", "+9 dB", "+18 dB"],
           rows=[["77.0", "82.4", "83.0", "84.1", "83.9"],
                 ["72.8", "79.4", "81.2", "83.8", "83.4"]],
-          row_labels=["SNR-randomised", "Fixed-SNR"],
+          row_labels=["Random each time", "One fixed strength"],
           highlight={0: (GREEN, PALE_GREEN)})
     s.text(0.82, 6.92, 11.68, 0.18,
-           "Two separately trained checkpoints in one seed cell. This is not an estimate of seed-to-seed training variance.",
+           "Two separately trained models from one seed. This is not a measure of how much results vary between runs.",
            size=8.8, italic=True, font="sans", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 
-    # 9 — ER-9 control
-    s = SlideScene(9, "Attribution", "The control that keeps the credit honest",
+    # 10 — ER-9 control
+    s = SlideScene(10, "Attribution", "The control that keeps the comparison honest",
                    ("Results", "Analytical Skills"),
-                   "Figure 05 · ER-9 task-aware digital at the matched 1/6 budget")
+                   "Same radio time, same error-correction code, same modulation")
     add_header(s)
-    s.text(0.82, 1.36, 11.68, 0.30,
-           "If we had only compared against JPEG, the low-SNR story would have been too easy to believe.",
-           size=13.2, bold=True, font="serif", text_color=NAVY, align="center")
+    s.text(0.82, 1.38, 11.68, 0.30,
+           "If we had only compared against a normal compressed image, the weak-signal story would be too easy to believe.",
+           size=13.0, bold=True, font="serif", text_color=NAVY, align="center")
     fx, fy, fw, fh = figure(s, "05_task_aware_digital.png", y=1.76, max_h=3.86)
     s.rect(0.82, 5.82, 5.78, 1.10, fill=PAPER, stroke=LINE, radius=0.07)
     s.rect(0.82, 5.82, 0.055, 1.10, fill=BURGUNDY, stroke=None, radius=0)
-    s.text(1.04, 5.94, 5.34, 0.24, "What ER-9 does", size=12.4, bold=True,
+    s.text(1.04, 5.94, 5.34, 0.24, "What this arm does", size=12.4, bold=True,
            font="serif", text_color=INK)
     s.text(1.04, 6.26, 5.34, 0.56,
-           "Sends learned task features over the same LDPC and QPSK chain at the same 12,800 channel uses. It is the control that separates task-aware representation from joint coding.",
+           "Instead of a JPEG image it sends the learned features themselves, through the same error-correction code and the same radio settings, using the same 12,800 radio uses. It is the control that separates “knows the task” from “codes both at once”.",
            size=9.8, font="sans", text_color=MUTED)
     s.rect(6.84, 5.82, 5.68, 1.10, fill=PALE_AMBER, stroke=None, radius=0.07)
     s.text(7.06, 5.94, 5.24, 0.24, "What it settles", size=12.4, bold=True,
            font="serif", text_color=AMBER)
     s.text(7.06, 6.26, 5.24, 0.56,
-           "It holds 82.0% at every SNR from −4 dB up. Digital transmission of task features is strong once it delivers, so the low-SNR gap is about outage behaviour as well as representation. It does not isolate the LDPC code.",
+           "It holds 82.0% at every strength from −4 dB up. Sending learned features digitally is strong once pictures get through, so the weak-signal gap is about failed deliveries as much as representation. It does not isolate the error-correction code.",
            size=9.8, font="sans", text_color=INK)
     add_footer(s); slides.append(s)
 
-    # 10 — PAPR
-    s = SlideScene(10, "Peak power", "Holding the crest factor under a hard cap",
+    # 11 — PAPR
+    s = SlideScene(11, "Peak power", "Keeping the signal peaks from getting too tall",
                    ("Results", "Analytical Skills"),
-                   "Figure 06 · symbol-domain PAPR · 3.0 dB cap, 0.0001 dB tolerance")
+                   "Peak-to-average power ratio, measured on the symbols we send · cap 3.0 dB")
     add_header(s)
-    s.text(0.82, 1.36, 11.68, 0.30,
-           "A PA-friendly transmitter is a real design constraint, so we trained under one.",
-           size=13.2, bold=True, font="serif", text_color=NAVY, align="center")
+    s.text(0.82, 1.38, 11.68, 0.30,
+           "A real transmitter cannot send a signal with tall spikes, so we trained a second model under that limit.",
+           size=13.0, bold=True, font="serif", text_color=NAVY, align="center")
     fx, fy, fw, fh = figure(s, "06_papr_tradeoff.png", y=1.76, max_h=3.16)
+    gloss(s, 0.82, 4.98, 5.60,
+          "“Peak-to-average power ratio” = how much taller the tallest spike is than the average")
     tiles = [
-        ("3.000002 dB", "max PAPR, constrained run — inside the frozen cap", GREEN),
-        ("20.059284 dB", "max PAPR, unconstrained learned symbols", BURGUNDY),
-        ("+3.1 pp", "accuracy gain at −8 dB, constrained versus unconstrained", NAVY),
-        ("−0.2 pp", "at +18 dB — the cap costs nothing up here", AMBER),
+        ("3.000002 dB", "tallest spike, limited model — inside the cap", GREEN),
+        ("20.059284 dB", "tallest spike, the ordinary learned model", BURGUNDY),
+        ("+3.1 pp", "better at −8 dB, limited versus ordinary", NAVY),
+        ("−0.2 pp", "worse at +18 dB — the limit costs nothing up here", AMBER),
     ]
     for i, (value, caption, accent) in enumerate(tiles):
-        stat(s, 0.82 + i * 2.94, 5.18, 2.76, 1.42, value, caption, accent=accent,
+        stat(s, 0.82 + i * 2.94, 5.34, 2.76, 1.28, value, caption, accent=accent,
              value_size=21)
-    s.text(0.82, 6.72, 11.68, 0.30,
-           "This is PAPR measured on channel symbols. It says nothing about amplifier or over-the-air compliance, and the constrained run is a separately trained checkpoint, so the accuracy differences are not a clean causal penalty.",
+    s.text(0.82, 6.74, 11.68, 0.28,
+           "This measures the numbers we put on the radio, not a real amplifier. And the limited model is a separate training run, so the accuracy gap is not a clean penalty for the limit.",
            size=9.0, italic=True, font="sans", text_color=MUTED, align="center")
     add_footer(s); slides.append(s)
 
-    # 11 — secondary controls
-    s = SlideScene(11, "Controls", "Four controls, including one that went against us",
+    # 12 — secondary controls
+    s = SlideScene(12, "Controls", "Four controls, including one that went against us",
                    ("Results", "Analytical Skills"),
-                   "Figure 07 · selection, codec, transmitted label, reconstruction pathway")
+                   "Selection, image format, sending the answer, rebuilding the picture")
     add_header(s)
-    s.text(0.82, 1.30, 11.68, 0.28,
-           "Each panel takes one design choice away from the classical chain and shows what it was worth.",
+    s.text(0.82, 1.32, 11.68, 0.28,
+           "Each panel takes one design choice away from the digital system and shows what it was worth.",
            size=12.6, bold=True, font="serif", text_color=NAVY, align="center")
     fx, fy, fw, fh = figure(s, "07_secondary_controls.png", y=1.62, max_h=3.26)
     notes = [
-        ("Fixed MCS", "Outage floor until +6 dB, then 89.0%. Per-SNR selection buys real reach.", NAVY),
-        ("Fixed modulation", "Delivers later than adaptive selection, plateaus near 88.7%.", NAVY),
-        ("JPEG secondary", "88.6% at +18 dB, and a genuine 0% coverage / 10.0% point at +9 dB. Kept in.", AMBER),
-        ("Predicted label", "82.0% once it delivers. A transmitted label, not the oracle true label.", NAVY),
+        ("Fixed settings", "No delivery until +6 dB, then 89.0%. Choosing new settings per signal strength buys real reach.", NAVY),
+        ("Fixed modulation", "Starts working later than choosing per strength, and settles near 88.7%.", NAVY),
+        ("JPEG instead of JPEG 2000", "88.6% at +18 dB, and a real point at +9 dB where nothing got through. We kept it.", AMBER),
+        ("Sending the answer itself", "82.0% once it arrives. A label the sender guessed, not the true answer.", NAVY),
     ]
     for i, (heading, body, accent) in enumerate(notes):
         x = 0.82 + (i % 2) * 6.00
@@ -558,21 +617,21 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
-    # 12 — delivery coverage
-    s = SlideScene(12, "Mechanism", "Why the digital curve breaks where it does",
+    # 13 — delivery coverage
+    s = SlideScene(13, "Mechanism", "Why the digital line breaks where it does",
                    ("Analytical Skills", "Results"),
-                   "Figure 08 · delivery coverage explains the accuracy steps")
+                   "When pictures stop arriving, the score drops to match")
     add_header(s)
-    s.text(0.82, 1.32, 7.00, 0.30,
-           "Accuracy steps track delivery steps, one for one.",
-           size=13.2, bold=True, font="serif", text_color=NAVY)
+    s.text(0.82, 1.34, 7.00, 0.30,
+           "The score only moves when the pictures start or stop arriving.",
+           size=13.0, bold=True, font="serif", text_color=NAVY)
     fx, fy, fw, fh = figure(s, "08_delivery_coverage.png", y=1.72, max_h=4.20, x=0.86)
     s.rect(6.60, 1.72, 5.92, 4.20, fill=PAPER, stroke=LINE, radius=0.08)
     label(s, 6.86, 1.96, 1.32, "Reading it")
     body = [
-        ("The 10.0% floor is a policy, not a delivery", "When the digital chain cannot deliver, every image falls back to the single class selected on validation. On an exactly stratified split that is 100 of 1,000 images, so 10.0%." , BURGUNDY),
-        ("Outage is part of the result", "Coverage and accuracy are reported side by side on every row, so a reader can separate “the link failed” from “the classifier was wrong.”", NAVY),
-        ("Learned output availability is contractual", "The learned contract returns a label at every SNR, which is why its curve has no floor to sit on.", GREEN),
+        ("The flat 10% is a rule, not a delivery", "When the digital system gets nothing through, every picture takes the same fallback answer. On an evenly split set that is right 100 times in 1,000.", BURGUNDY),
+        ("Failed deliveries are part of the result", "We report how many pictures arrived next to how many we got right, so you can tell a broken link from a wrong guess.", NAVY),
+        ("The learned system always answers", "Its rules promise a label at every signal strength, which is why its line has no floor to sit on.", GREEN),
     ]
     for i, (heading, text_v, accent) in enumerate(body):
         y = 2.42 + i * 1.16
@@ -582,20 +641,20 @@ def build_scenes() -> list[SlideScene]:
         s.text(7.06, y + 0.32, 5.24, 0.76, text_v, size=9.6,
                font="sans", text_color=MUTED)
     s.text(0.82, 6.34, 5.60, 0.60,
-           "No points were inserted between measured SNRs, and no curve was smoothed to hide a step.",
+           "We did not add any points between the ones we measured, and we did not smooth any curve to hide a step.",
            size=9.4, italic=True, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
-    # 13 — numbers table
-    s = SlideScene(13, "Tables", "The numbers behind the figures",
+    # 14 — numbers table
+    s = SlideScene(14, "Tables", "The numbers behind the curves",
                    ("Results", "Analytical Skills"),
-                   "End-to-end top-1 accuracy, n_correct / 1000, validation split")
+                   "Pictures labelled correctly out of 1,000 · held-back set")
     add_header(s)
     s.text(0.82, 1.34, 11.68, 0.28,
-           "End-to-end accuracy on the frozen validation split, counted per image including outage decisions.",
+           "How many of the 1,000 held-back pictures we labelled correctly, counted one picture at a time.",
            size=11.8, font="sans", text_color=MUTED, align="center")
 
-    s.text(0.82, 1.78, 5.78, 0.24, "1/6 BANDWIDTH  ·  12,800 CHANNEL USES", size=8.4,
+    s.text(0.82, 1.78, 5.78, 0.24, "HALF RATE  ·  12,800 RADIO USES PER PICTURE", size=8.4,
            bold=True, font="mono", text_color=BURGUNDY)
     table(s, 0.82, 2.08, 5.78,
           headers=["−8", "−5", "−4", "0", "+9", "+18"],
@@ -604,46 +663,46 @@ def build_scenes() -> list[SlideScene]:
                 ["77.0", "82.4", "82.4", "83.0", "84.1", "83.9"],
                 ["10.0", "10.0", "82.0", "82.0", "82.0", "82.0"],
                 ["75.9", "80.1", "80.5", "82.3", "83.0", "83.2"]],
-          row_labels=["Learned DJSCC", "Adaptive classical", "SNR-randomised",
-                      "ER-9 digital", "PAPR-constrained"],
-          label_w=1.92, row_h=0.40,
+          row_labels=["Learned, trained once", "Digital, picks settings", "Learned, random signal",
+                      "Digital, learned features", "Learned, power-limited"],
+          label_w=2.16, row_h=0.40,
           highlight={0: (NAVY, PALE_NAVY), 1: (BURGUNDY, PALE_RED)})
 
-    s.text(6.84, 1.78, 5.68, 0.24, "1/24 BANDWIDTH  ·  3,200 CHANNEL USES", size=8.4,
+    s.text(6.84, 1.78, 5.68, 0.24, "QUARTER RATE  ·  3,200 RADIO USES PER PICTURE", size=8.4,
            bold=True, font="mono", text_color=NAVY)
     table(s, 6.84, 2.08, 5.68,
           headers=["−8", "−4", "−2", "0", "+4", "+18"],
           rows=[["49.4", "69.3", "76.2", "78.7", "82.0", "82.8"],
                 ["10.0", "10.0", "31.0", "69.4", "83.4", "87.7"]],
-          row_labels=["Learned DJSCC", "Adaptive classical"],
-          label_w=1.92, row_h=0.40,
+          row_labels=["Learned, trained once", "Digital, picks settings"],
+          label_w=2.16, row_h=0.40,
           highlight={0: (NAVY, PALE_NAVY), 1: (BURGUNDY, PALE_RED)})
 
     s.rect(6.84, 3.30, 5.68, 1.06, fill=PALE_GREEN, stroke=None, radius=0.06)
-    s.text(7.06, 3.42, 5.24, 0.24, "G-10, the crossover decision", size=12.0,
+    s.text(7.06, 3.42, 5.24, 0.24, "Where the two lines cross", size=12.0,
            bold=True, font="serif", text_color=GREEN)
     s.text(7.06, 3.74, 5.24, 0.52,
-           "The measured sign of the learned-minus-classical gap flips between −5 dB and −4 dB at 1/6. That is an expected-direction crossover and it closes gate G-10.",
+           "At half rate, which system is ahead flips between −5 dB and −4 dB. We decided the crossover question on exactly that, before seeing the answer.",
            size=9.6, font="sans", text_color=INK)
 
     s.rect(0.82, 4.64, 11.70, 1.86, fill=PAPER, stroke=LINE, radius=0.08)
-    label(s, 1.08, 4.88, 1.62, "What the table is not")
+    label(s, 1.08, 4.88, 1.72, "What this table is not")
     s.text(1.08, 5.36, 11.18, 0.94,
-           "These are 21 SNR points on one grid, not 21 independent replications. Every cell comes from the same 1,000-image validation set at one frozen seed cell, so the smoothness of a curve carries no statistical information. A one- or two-point difference between rows should be described as an observed difference and nothing more. The bulk per-image rows that would support paired uncertainty intervals are not in this checkout, so we have not computed any.",
+           "Twenty-one signal strengths is not twenty-one independent experiments. Every cell comes from the same 1,000 held-back pictures and the same single training seed, so a smooth-looking line tells you nothing statistically. A one or two point gap between rows is an observed difference and nothing more. The full per-picture records that would let us compute proper uncertainty ranges are not in this checkout, so we have not computed any.",
            size=10.2, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
-    # 14 — limits
-    s = SlideScene(14, "Limits", "What this evidence cannot tell you",
+    # 15 — limits
+    s = SlideScene(15, "Limits", "What this evidence cannot tell you",
                    ("Analytical Skills", "Methodology"),
-                   "Stated plainly so the third review is not a surprise")
+                   "Stated plainly now, so the final review is not a surprise")
     add_header(s)
     items = [
-        ("One seed cell, validation only", "Every number here is descriptive. No population interval, no significance claim, no replication count.", BURGUNDY),
-        ("Different scorers on the two sides", "The learned arms use their own task head, the classical arms the artifact-finetuned classifier. The gap is a system-level quantity, not a controlled test of channel coding.", BURGUNDY),
-        ("Not equal optimisation effort", "The classical selection rules and artifact scorer were frozen from validation work; the learned controls are separate training runs. Specific and fair, but not matched compute.", AMBER),
-        ("No waveform or amplifier data", "PAPR is measured on channel symbols. Nothing here establishes RF behaviour, and the project stays simulation-first.", AMBER),
-        ("Discrete, frozen choices produce steps", "Outage fallback, 1,000 images and frozen operating points give abrupt changes and a few non-monotone points. We did not smooth them.", NAVY),
+        ("One training run, held-back pictures only", "Everything here is a description. No ranges, no significance, no repeated trials.", BURGUNDY),
+        ("A different grader on each side", "The learned systems are marked by their own built-in classifier, the digital systems by one we trained on compressed images. So this measures whole systems, not error-correction coding on its own.", BURGUNDY),
+        ("Not the same amount of effort", "The digital system's settings and its grader were frozen from earlier work. The learned versions are separate training runs. That is a specific, fair comparison, but not a matched-compute one.", AMBER),
+        ("No real amplifier involved", "We measured how tall the spikes are in the numbers we send. Nothing here shows what a real transmitter would do. The project stays on a simulated channel.", AMBER),
+        ("Frozen choices make sharp steps", "The fallback rule, 1,000 pictures and fixed operating points produce jumps and a few bumpy points. We did not smooth them.", NAVY),
     ]
     for i, (heading, body, accent) in enumerate(items):
         y = 1.50 + i * 1.06
@@ -654,12 +713,12 @@ def build_scenes() -> list[SlideScene]:
         s.text(4.84, y + 0.12, 7.42, 0.68, body, size=10.0,
                font="sans", text_color=MUTED)
     s.text(0.82, 6.86, 11.70, 0.20,
-           "SPEC §2 treats both a crossover and learned dominance as complete Tier 1 outcomes. Neither result undoes the other.",
+           "Our specification treats both a crossing and the learned system winning everywhere as complete, successful outcomes. Neither result undoes the other.",
            size=9.2, italic=True, font="sans", text_color=BURGUNDY, align="center")
     add_footer(s); slides.append(s)
 
-    # 15 — SPEC §17 distillation (PR-8c)
-    s = SlideScene(15, "Course correction", "Four times we changed the approach because of what we found",
+    # 16 — SPEC §17 distillation (PR-8c)
+    s = SlideScene(16, "Course correction", "Four times we changed the approach because of what we found",
                    ("Methodology",),
                    "Required by PR-8(c): a one-slide distillation of SPEC §17")
     add_header(s)
@@ -667,10 +726,10 @@ def build_scenes() -> list[SlideScene]:
            "The rubric asks what we decided based on the results obtained. These are the four that count.",
            size=12.4, font="sans", text_color=MUTED, align="center")
     corrections = [
-        ("AM-34 · DEC-16", "The baseline was capped at QPSK, which made a crossover arithmetically impossible. We added 16-QAM and made modulation adaptive per SNR, so the baseline transmits more as the link improves.", "The rule we adopted: every lever strengthens the baseline or is preregistered. We never weaken the learned system."),
-        ("AM-52", "Our SNR grid was sampled every 2 dB exactly where the BPSK waterfall sits, so the classical cliff could have been smeared or missed. We added −7, −5 and −3 dB before the curve mattered.", "Dense where the effect lives, not where sampling was convenient."),
-        ("AM-58", "The packetisation checker reported zero failures while violating four of its own rules, including byte alignment and exact code-block division. We fixed the checker, not the results.", "All 215 configurations stayed feasible and every scientific outcome was unchanged."),
-        ("AM-60", "Test access was set to release at G-10, which sits in week 9. That opened the test split about three weeks before the freeze manifest existed.", "The release moved to G-12 in week 11. It has stayed sealed since."),
+        ("AM-34", "We had pinned the digital system to the weakest radio setting, which made the two lines crossing impossible by arithmetic. We let it pick a stronger setting as the signal improves.", "The rule we adopted: every change strengthens the digital system or is decided in advance. We never weaken the learned system."),
+        ("AM-52", "Our signal strengths were spaced 2 dB apart exactly where the sharpest drop happens, so we could have missed it entirely. We added three more strengths before it mattered.", "Put the detail where the effect is, not where it is convenient to sample."),
+        ("AM-58", "The script that checks our packet sizes reported no problems while breaking four of its own rules. We fixed the script, not the results.", "All 215 configurations stayed feasible and every scientific outcome came out the same."),
+        ("AM-60", "The exam pictures were set to unlock in week 9, about three weeks before the manifest that locks them existed. We moved that to week 11.", "They have stayed locked ever since. Nothing has been read."),
     ]
     for i, (tag, what, why) in enumerate(corrections):
         x = 0.82 + (i % 2) * 6.00
@@ -686,26 +745,26 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=GREEN)
     s.rect(0.82, 6.60, 11.70, 0.34, fill=PALE_GREEN, stroke=None, radius=0.05)
     s.text(1.00, 6.67, 11.34, 0.20,
-           "Twenty-two further amendments are recorded in SPEC §17, including three checks that were wrong and had to be repaired.",
+           "Twenty-two further changes are written down in SPEC §17, including three checks that turned out to be wrong and had to be repaired.",
            size=9.4, bold=True, font="sans", text_color=GREEN, align="center")
     add_footer(s); slides.append(s)
 
-    # 16 — originality / novelty
-    s = SlideScene(16, "Originality", "What we claim as new, and what we do not",
+    # 17 — originality / novelty
+    s = SlideScene(17, "Originality", "What we claim as new, and what we do not",
                    ("Originality", "Novelty"),
-                   "SPEC PR-7 · DEC-13 · claims resolvable to the 30-source review")
+                   "Two claims · both about how the experiment is built, not the idea itself")
     add_header(s)
     s.text(0.82, 1.32, 11.68, 0.28,
-           "Two claims, both tied to the experimental design rather than to the idea of semantic communication.",
+           "Both claims are about how the experiment is built, not about the idea of sending meaning instead of pixels.",
            size=12.4, font="sans", text_color=MUTED, align="center")
 
     claims = [
-        ("ER-9 attribution decomposition", BURGUNDY,
-         "A task-aware digital arm sends learned features over the same LDPC and modulation chain at the same channel-use budget. It separates task-aware representation from joint coding inside one experiment.",
-         "Distinguished from: work that reports a learned-versus-classical gap without such a control."),
-        ("BR-11 format-overhead-controlled baseline", NAVY,
-         "Codec container, framing, CRC, segmentation and rate-matching overhead are measured, charged and published, so the classical arm is tuned on the payload it can actually use.",
-         "Distinguished from: pipelines that quote a nominal ratio and leave the overhead unaccounted."),
+        ("The task-aware digital control", BURGUNDY,
+         "A digital arm sends learned features through the same error-correction code and radio settings, using the same amount of radio time. It tells “knows the task” apart from “codes both at once” inside one experiment.",
+         "Different from: studies that report a learned-versus-digital gap without such a control."),
+        ("Charging the overhead to the digital system", NAVY,
+         "The picture file, framing, checksums and rate-matching bytes are all measured and counted, so the digital system is tuned on the payload it can genuinely use.",
+         "Different from: pipelines that quote a nominal rate and leave the overhead uncounted."),
     ]
     for i, (heading, accent, body, against) in enumerate(claims):
         y = 1.78 + i * 1.72
@@ -721,39 +780,39 @@ def build_scenes() -> list[SlideScene]:
     s.rect(8.64, 1.78, 3.88, 3.44, fill=PALE_RED, stroke=None, radius=0.07)
     label(s, 8.92, 2.02, 1.86, "Not claimed as new", fill=WHITE, ink=BURGUNDY)
     nots = [
-        "Graceful degradation under noise",
-        "Avoiding the digital cliff",
-        "A task-aware digital semantic system",
-        "DeepJSCC as a method",
+        "Getting steadily worse as the link worsens",
+        "Avoiding the sudden drop-off",
+        "Sending task-aware features digitally",
+        "Training a neural encoder and decoder",
     ]
     for i, item in enumerate(nots):
         y = 2.56 + i * 0.50
         s.rect(8.92, y + 0.09, 0.09, 0.09, fill=BURGUNDY, stroke=None, radius=0)
         s.text(9.14, y, 3.16, 0.30, item, size=10.4, font="sans", text_color=INK)
     s.text(8.92, 4.62, 3.36, 0.50,
-           "All four have substantial prior art. Claiming any of them would cost more than it earns.",
+           "People have already done all four of these. Claiming them would cost more than it earns.",
            size=9.6, italic=True, font="sans", text_color=BURGUNDY, align="center")
 
     s.rect(0.82, 5.44, 11.70, 1.34, fill=PAPER, stroke=LINE, radius=0.07)
     label(s, 1.08, 5.66, 1.50, "Negative check")
     s.text(1.08, 6.06, 11.18, 0.60,
-           "Each claim above is checked against the 30 references in docs/literature-review.md, and each negative assertion in the novelty statement must resolve to that list rather than to this specification. The full PR-7 statement ships with the third review package.",
+           "Both claims above are checked against the 30 references in docs/literature-review.md, and any claim that something has never been reported has to trace back to that list rather than to our own specification. The full written statement ships with the final review package.",
            size=10.2, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
-    # 17 — timeline
-    s = SlideScene(17, "Timeline", "Where the remaining weeks went",
+    # 18 — timeline
+    s = SlideScene(18, "Timeline", "Where the remaining weeks went",
                    ("Timeline",),
                    "Second Review 29 Sep–3 Oct · Final Review 17–21 Nov · report due 20 Nov")
     add_header(s)
     phases = [
-        ("W10", "29 Sep – 3 Oct", "Second Review", "Validation rehearsal complete; package and figures frozen", GREEN, 1.00),
-        ("W11", "5 – 11 Oct", "Test campaign", "One guarded opening at G-12 after the freeze manifest is signed", BURGUNDY, 0.00),
-        ("W12", "12 – 18 Oct", "Tier 1 close", "Every hypothesis decided; ER-1 to ER-4, ER-9, ER-10 frozen", BURGUNDY, 0.00),
-        ("W13", "19 – 25 Oct", "Demo", "SNR slider, both pipelines side by side, frozen plot", BURGUNDY, 0.00),
-        ("W14", "26 Oct – 1 Nov", "Poster + optional SDR", "Poster draft; hardware replay only if Tier 1 leaves room", MUTED, 0.00),
-        ("W15", "2 – 8 Nov", "Internal freeze", "Report complete in the prescribed format", MUTED, 0.00),
-        ("W16", "9 – 15 Nov", "Contingency", "Report completion and audit only. No new experiments", FAINT, 0.00),
+        ("W10", "29 Sep – 3 Oct", "Second Review", "Held-back measurements complete; package and figures frozen", GREEN, 1.00),
+        ("W11", "5 – 11 Oct", "Open the exam set", "One guarded opening once the locking manifest is signed", BURGUNDY, 0.00),
+        ("W12", "12 – 18 Oct", "Decide everything", "Every hypothesis settled on the exam set; Tier 1 frozen", BURGUNDY, 0.00),
+        ("W13", "19 – 25 Oct", "Demo", "Signal-strength slider, both systems side by side, frozen plot", BURGUNDY, 0.00),
+        ("W14", "26 Oct – 1 Nov", "Poster + optional hardware", "Poster draft; real radio only if Tier 1 leaves room", MUTED, 0.00),
+        ("W15", "2 – 8 Nov", "Internal freeze", "Report finished in the required format", MUTED, 0.00),
+        ("W16", "9 – 15 Nov", "Spare week", "Report completion and checking only. No new experiments", FAINT, 0.00),
         ("W17", "16 – 22 Nov", "Final Review", "Final review 17–21 Nov; report and supporting material due 20 Nov", BURGUNDY, 0.00),
     ]
     s.line(1.72, 1.86, 0, 4.72, stroke=LINE, stroke_width=1.2)
@@ -764,33 +823,33 @@ def build_scenes() -> list[SlideScene]:
         s.circle(1.62, y + 0.08, 0.20, 0.20, fill=accent if accent != FAINT else PAPER,
                  stroke=accent, stroke_width=1.4)
         s.text(1.98, y, 1.72, 0.24, dates, size=9.4, font="mono", text_color=MUTED)
-        s.text(3.76, y - 0.02, 2.30, 0.26, name, size=11.6, bold=True,
+        s.text(3.76, y - 0.02, 2.42, 0.26, name, size=11.6, bold=True,
                font="serif", text_color=INK)
-        s.text(6.14, y, 5.30, 0.28, detail, size=9.8, font="sans", text_color=MUTED)
+        s.text(6.26, y, 5.18, 0.28, detail, size=9.8, font="sans", text_color=MUTED)
         s.text(11.62, y, 0.90, 0.24, "done" if done else "planned", size=8.4,
                bold=True, font="sans",
                text_color=GREEN if done else FAINT, align="right")
     s.rect(0.82, 6.52, 11.70, 0.42, fill=PALE_AMBER, stroke=None, radius=0.05)
     s.text(1.00, 6.60, 11.34, 0.26,
-           "The report deadline falls inside Final Review week, which is why W15 carries an internal freeze and W16 holds no experimental scope.",
+           "The report is due inside Final Review week, which is why W15 is an internal freeze and W16 holds no experimental work.",
            size=9.4, font="sans", text_color=AMBER, align="center")
     add_footer(s); slides.append(s)
 
-    # 18 — close
-    s = SlideScene(18, "Close", "Where this leaves the project",
+    # 19 — close
+    s = SlideScene(19, "Close", "Where this leaves the project",
                    ("Results", "Methodology"),
                    "Questions welcome — the detail is in the repository, not on this slide")
     add_header(s)
     s.rect(0.82, 1.50, 11.70, 1.44, fill=PAPER, stroke=BURGUNDY,
            stroke_width=1.1, radius=0.08)
     s.text(1.14, 1.74, 11.06, 0.94,
-           "A learned system trained for the task keeps answering when the link is too poor for the digital chain to deliver anything. Once the digital chain delivers, it is the more accurate system, and the curves cross between −5 and −4 dB.",
+           "The learned system keeps answering when the link is too weak for the digital one to get a single picture through. Once the digital system starts delivering, it is the more accurate of the two. They cross between −5 and −4 dB.",
            size=15.4, font="serif", text_color=INK, align="center", valign="mid")
 
     nexts = [
-        ("Next", "One guarded test campaign at G-12, once the freeze manifest is signed. Test access is 0 today.", BURGUNDY),
-        ("Then", "Every hypothesis decided on the test split, and Tier 1 frozen at G-5.", NAVY),
-        ("Later", "Tier 2 SDR replay and the live demo are stretch. The project does not depend on them.", MUTED),
+        ("Next", "One guarded run on the exam set once the locking manifest is signed. So far, zero exam pictures opened.", BURGUNDY),
+        ("Then", "Every hypothesis settled on the exam set, and the first tier frozen.", NAVY),
+        ("Later", "Real-radio replay and the live demo are stretch goals. The project does not depend on them.", MUTED),
     ]
     for i, (heading, body, accent) in enumerate(nexts):
         card(s, 0.82 + i * 3.94, 3.20, 3.72, 1.44, heading, body,
@@ -799,11 +858,11 @@ def build_scenes() -> list[SlideScene]:
     s.rect(0.82, 4.90, 11.70, 1.06, fill=PALE_NAVY, stroke=None, radius=0.07)
     label(s, 1.08, 5.10, 1.72, "Evidence trail")
     s.text(1.08, 5.50, 11.18, 0.34,
-           "252-unit aggregate and per-image manifest in results/learned/w10/ · figures and CSVs in presentation-results/ · requirements and amendments in spec/SPEC.md §17",
+           "252-measurement record and per-picture manifest in results/learned/w10/ · figures and data in presentation-results/ · requirements and changes in spec/SPEC.md §17",
            size=10.0, font="mono", text_color=NAVY, align="center")
     s.rect(0.82, 6.16, 11.70, 0.62, fill=PALE_RED, stroke=None, radius=0.06)
     s.text(1.06, 6.28, 11.22, 0.40,
-           "The test split has not been opened. test_access = 0 across every gate, every run and every artifact in this project.",
+           "The exam set has never been opened. It stays that way through every gate, run and record in this project.",
            size=11.0, bold=True, font="sans", text_color=BURGUNDY, align="center")
     add_footer(s); slides.append(s)
 

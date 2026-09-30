@@ -2,6 +2,45 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v2 — 2026-09-30, plain-language pass
+
+Nineteen slides, up from eighteen. One slide added and almost every line of body
+copy rewritten.
+
+**The problem this fixed.** v1 opened on "252 measurement units, each one row of
+the published aggregate" and had `end-to-end accuracy`, `coverage`, `task head`,
+`artifact-finetuned classifier`, `ER-9`, `outage` and `PAPR` scattered through the
+results section with nothing defining them first. The First Review deck does not
+do that — it opens with "Imagine a remote camera sending images to a server that
+decides what it sees" and only then reaches for AWGN. v2 follows that pattern.
+
+**New slide 4, "Before the numbers, one picture."** Four concepts in ordinary
+words, the term used for each, and where it appears on the charts: signal
+strength, pictures that got through, how many we labelled correctly, and how many
+uses of the radio. The right-hand panel works the −8 dB case end to end and
+closes on the flat 10% — it is not a bad prediction, it is 1,000 pictures that
+never arrived. That one number is the most misread thing in the deck and slide 4
+is where it gets explained.
+
+**Vocabulary swaps.** `classical chain` → `digital system`; `coverage` →
+`pictures that got through`; `top-1 accuracy` → `how many we labelled
+correctly`; `channel-use budget` → `radio time`; `outage` → `arrived` or
+`fallback answer`; `task head` → `the classifier built into it`; `SNR-randomised`
+→ `random each time`; `test split` → `exam set`. ER-9, PAPR, LDPC and QPSK are
+written out on first use and kept only in citation footers where a panel member
+can trace them.
+
+**Numbers as counts.** Percentages became "728 of the 1,000 pictures" wherever
+the sentence allows it, because a percentage with an unstated denominator is the
+thing that makes a results slide hard to follow.
+
+**Titles.** Rewritten as plain statements or questions: "Where the digital system
+gives up, and where it takes over" rather than "Learned DJSCC against the
+adaptive classical chain".
+
+**Layout.** New rows on slide 4 at 0.78 in spacing inside taller panels, after
+the first render put the closing note on top of the last row.
+
 ## v1 — 2026-09-30, first build
 
 Eighteen slides for the 25-minute Second Review slot, built from the same scene
@@ -18,7 +57,7 @@ renderer.
 ### Rubric mapping
 
 The Second Review carries six criteria. Every slide declares which ones it
-serves, and those names print in the footer. Slide 15 exists specifically to
+serves, and those names print in the footer. Slide 16 exists specifically to
 answer `Methodology` and slide 3 to answer `Objectives Met`, both required by
 SPEC PR-8.
 
@@ -36,6 +75,8 @@ previews rather than guessed at:
 3. Slide 10's `20.059284 dB` stat value wrapped onto its caption at the default
    size. Added a `value_size` argument to `stat()` and dropped that slide's values
    to 21 pt rather than truncating the number.
+4. Slide 4's closing note sat on top of its last row in the first v2 render.
+   Rows respaced to 0.78 in inside taller panels.
 
 A geometry scan over every slide now reports zero elements outside the content
 area and zero image-to-panel collisions.
