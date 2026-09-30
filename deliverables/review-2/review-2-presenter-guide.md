@@ -102,7 +102,19 @@ Sixty seconds. The shape is the point: nothing gets through until −5 dB,
 everything gets through at −4 dB. The transition lies somewhere between the two.
 Mention the two dips at −2 and +9 dB yourself, so nobody has to find them.
 
-## Slide 8 — Quartering the radio time
+## Slide 8 — Why the digital line breaks
+
+Ninety seconds. This answers the most technical question in the room.
+
+> We report how many pictures arrived next to how many we got right. When the
+> digital system stops delivering, the score drops to match; when it starts again,
+> the score comes back. The flat 10% is the fallback rule — on an evenly split
+> set, one fixed answer covers 100 pictures in 1,000.
+
+If asked why the learned system has no flat line: its rules promise a label at
+every signal strength.
+
+## Slide 9 — Quartering the radio time
 
 Ninety seconds. Two panels, compare within each.
 
@@ -115,7 +127,7 @@ Then the complication, which the slide already states:
 > At this rate the digital system passes the learned one at +4 dB, falls back at
 > +9 dB, and goes ahead again after that. The crossing happens twice here.
 
-## Slide 9 — Training across signal strengths
+## Slide 10 — Training across signal strengths
 
 Sixty seconds. Two rows, the gap is widest at the bottom.
 
@@ -124,7 +136,7 @@ Sixty seconds. Two rows, the gap is widest at the bottom.
 
 Both rows are separately trained models from one run. Say that and move on.
 
-## Slide 10 — The task-aware digital control
+## Slide 11 — The task-aware digital control
 
 Ninety seconds. The most important slide after the headline, because it stops the
 result being overstated.
@@ -141,7 +153,7 @@ result being overstated.
 If asked whether this isolates the error-correction code: the feature encoders
 differ, so it compares representations.
 
-## Slide 11 — Peak power
+## Slide 12 — Peak power
 
 Sixty seconds.
 
@@ -153,25 +165,13 @@ Sixty seconds.
 The peak-to-average ratio here is measured on the numbers we put on the radio.
 Both models are separately trained.
 
-## Slide 12 — Four controls
+## Slide 13 — Four controls
 
 Sixty seconds, and only if time allows. One line per panel. Keep the JPEG point
 in:
 
 > JPEG reaches 88.6% at +18 dB, with a full outage at +9 dB. That point is in the
 > figure because it is what we measured.
-
-## Slide 13 — Why the digital line breaks
-
-Ninety seconds. This answers the most technical question in the room.
-
-> We report how many pictures arrived next to how many we got right. When the
-> digital system stops delivering, the score drops to match; when it starts again,
-> the score comes back. The flat 10% is the fallback rule — on an evenly split
-> set, one fixed answer covers 100 pictures in 1,000.
-
-If asked why the learned system has no flat line: its rules promise a label at
-every signal strength.
 
 ## Slide 14 — The numbers
 

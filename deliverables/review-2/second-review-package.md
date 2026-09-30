@@ -51,8 +51,9 @@ Concretely:
   row) and once as the closing statement on slide 19.
 - The single-training-run qualification appears on slide 15.
 - The scorer difference appears on slide 5 and on slide 15, where it belongs.
-- Mechanism explanations that are load-bearing stay on the slide they explain —
-  the 10% fallback floor on slide 4, the delivery mechanism on slide 13.
+- Mechanism explanations stay on the slide they explain. The 10% fallback floor is
+  on slide 4; the delivery mechanism is on slide 8, directly behind the close-up
+  that raises the question.
 
 Slide titles are claims or questions, never admissions. "What this evidence
 cannot tell you" became "How to read these results"; "Not claimed as new" became
@@ -83,7 +84,7 @@ Every number traces to the published W10 v11 validation aggregate. Nothing was
 re-derived for the deck and no curve was redrawn.
 
 - Aggregate CSV: `presentation-results/data/w10_primary_252.csv` — 252 rows,
-  12 arms × 21 SNRs
+  12 system variants × 21 signal strengths
 - Scorer streams: `presentation-results/data/w10_scorers_357.csv`
 - Figures 01–08: `presentation-results/figures/{png,pdf,svg}/`
 - Written findings: `presentation-results/report/findings.md`
@@ -109,9 +110,9 @@ The Second Review is 30 marks, carrying six criteria. The deck maps onto them:
 
 | Criterion | Sub-marks | Slides | How the deck answers it |
 |---|---|---|---|
-| Results (graphs/tables/test cases) | 20 | 6, 7, 8, 9, 10, 11, 12, 14 | Eight measured figures plus two numeric tables at both rates. 252 published measurements. |
+| Results (graphs/tables/test cases) | 20 | 6, 7, 8, 9, 10, 11, 12, 13, 14 | Eight measured figures plus two numeric tables at both rates. 252 published measurements. |
 | Originality | 10 | 17 | Two claims tied to experimental design, with the prior art each rests on. |
-| Analytical skills | 5 | 5, 7, 8, 13, 14, 15 | Why the curves break where they do, what the controls buy, how to read the numbers. |
+| Analytical skills | 5 | 5, 7, 8, 9, 14, 15 | Why the curves break where they do, what the controls buy, how to read the numbers. |
 | Presentation | 5 | all | 19 slides for a 25-minute slot. Presenter guide carries the timing. |
 | Methodology | 5 | 16 | The §17 distillation: four documented course corrections. Required by PR-8(c). |
 | Timeline | 5 | 2, 18 | Progress since the First Review, and the remaining weeks with their gates. |
@@ -139,8 +140,8 @@ controls that let a panel judge it.
 | 1–3 | 4 min | Title, progress since August, objectives as completion criteria |
 | 4 | 2 min | The plain-language primer |
 | 5 | 1 min | What we measured |
-| 6–8 | 5 min | Headline, the delivery transition, bandwidth |
-| 9–13 | 6 min | Randomised training, the control, peak power, secondary controls, delivery |
+| 6–8 | 5 min | Headline, the delivery transition, and what causes it |
+| 9–13 | 6 min | Bandwidth, randomised training, the control, peak power, secondary controls |
 | 14–15 | 3 min | Numbers table, how to read them |
 | 16 | 2 min | Course correction (SPEC §17) |
 | 17–18 | 2 min | Novelty, timeline |
@@ -166,14 +167,14 @@ explains the flat 10% line that otherwise looks like a suspicious floor.
 
 ### Slides 5–8 — The headline and its mechanism
 
-Slide 6 is the one to spend time on. Slide 7 zooms into the delivery transition.
-Slide 8 quarters the radio time.
+Slide 6 is the one to spend time on. Slide 7 zooms into the delivery transition,
+slide 8 explains what causes it, and slide 9 quarters the radio time.
 
 ### Slides 9–13 — The controls
 
-Slide 10 is the task-aware digital control, the most important slide after the
-headline. Slide 11 is peak power. Slide 12 is the secondary controls, including
-the JPEG outage at +9 dB. Slide 13 explains the mechanism behind the cliff.
+Slide 11 is the task-aware digital control, the most important slide after the
+headline. Slide 12 is peak power, and slide 13 the secondary controls including the
+JPEG outage at +9 dB.
 
 ### Slides 14–15 — Numbers and qualifications
 

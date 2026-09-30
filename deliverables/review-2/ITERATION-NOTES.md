@@ -2,6 +2,44 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v8 — 2026-09-30, "arm" removed and the mechanism slide moved up
+
+**The undefined term.** "Arm" is this project's own name for a system variant —
+it comes from the column header in the W10 aggregate — and it appeared on two
+slides without ever being defined. A panel reading "This arm is harder" on slide
+11 has no way to know what an arm is. Slide 5 already introduces the plain term
+("Versions of the system"), so the deck now uses *system* throughout and the word
+"arm" appears nowhere.
+
+**The flow.** Slide 13 explained why the digital line breaks — delivery coverage
+tracking accuracy — but it sat five slides after the close-up that shows the
+effect and six after the headline that raises the question, with three unrelated
+controls in between. A reader who wanted to know *why* had to hold the question
+for half the deck. It moves to position 8, directly behind the close-up, so the
+results run:
+
+```
+6  headline          the claim
+7  close-up          the evidence
+8  why it breaks     the explanation
+9  quarter the radio first variation
+10 random training    learned-system variation
+11 task-aware control the attribution control
+12 peak power         a design constraint
+13 four controls      the remaining controls
+14 numbers            both tables
+15 how to read them   the qualifications
+```
+
+Claim, evidence, explanation, variations, controls, tables, qualifications. The
+old order put the explanation after the variation slides, which is backwards for
+a reader who has just been shown something they do not yet understand.
+
+Slides 8–13 renumbered to 9–14. The presenter guide's sections were reordered to
+match and the package note's slide references updated, so the 25-minute plan now
+reads 6–8 for headline/close-up/mechanism and 9–13 for the variations and
+controls.
+
 ## v7 — 2026-09-30, repository internals removed
 
 The audience is a capstone review panel. v6 had left our own machinery on the

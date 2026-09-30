@@ -418,8 +418,27 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=1.50, pitch=0.44, size=11.5)
     add_footer(s); slides.append(s)
 
-    # 8 — bandwidth
-    s = SlideScene(8, "Bandwidth", "What happens when we quarter the radio time",
+    # 8 — delivery coverage
+    s = SlideScene(8, "Mechanism", "Why the digital line breaks where it does",
+                   ("Analytical Skills", "Results"),
+                   "When pictures stop arriving, the score drops to match")
+    add_header(s)
+    s.text(0.72, 1.40, 6.20, 0.32,
+           "The score only moves when the pictures start or stop arriving.",
+           size=13, bold=True, font="sans", text_color=INK)
+    figure(s, "08_delivery_coverage.png", y=1.84, max_h=4.10, x=0.86)
+    defs(s, 7.36, 1.90, 5.26, [
+        ("The 10% is a rule",
+         "Every picture takes the same fallback answer when delivery fails. On an evenly split set that is right 100 times in 1,000."),
+        ("Outages are part of it",
+         "We report how many pictures arrived next to how many we got right, so a broken link is distinguishable from a wrong guess."),
+        ("Learned always answers",
+         "Its rules promise a label at every strength, so its curve never flattens against a floor."),
+    ], label_w=1.70, pitch=1.26, size=11)
+    add_footer(s); slides.append(s)
+
+    # 9 — bandwidth
+    s = SlideScene(9, "Bandwidth", "What happens when we quarter the radio time",
                    ("Results", "Analytical Skills"),
                    "Quarter rate against half rate · compare within each panel")
     add_header(s)
@@ -432,8 +451,8 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=2.10, pitch=0.50, size=11.5)
     add_footer(s); slides.append(s)
 
-    # 9 — randomised training
-    s = SlideScene(9, "Robustness", "Training across signal strengths instead of one",
+    # 10 — randomised training
+    s = SlideScene(10, "Robustness", "Training across signal strengths instead of one",
                    ("Results", "Analytical Skills"),
                    "Two separately trained versions of the learned system")
     add_header(s)
@@ -448,23 +467,23 @@ def build_scenes() -> list[SlideScene]:
          head_h=0.42, row_h=0.46, size=11.5, tint={0: "F3F3F3"})
     add_footer(s); slides.append(s)
 
-    # 10 — task-aware digital control
-    s = SlideScene(10, "Attribution", "The control that keeps the comparison honest",
+    # 11 — task-aware digital control
+    s = SlideScene(11, "Attribution", "The control that keeps the comparison honest",
                    ("Results", "Analytical Skills"),
                    "Same radio time, same error-correction code, same modulation")
     add_header(s)
-    lead(s, "A JPEG image is an easy thing to beat. This arm is harder, and it is the one worth reporting.")
+    lead(s, "A JPEG image is an easy thing to beat. This system is harder, and it is the one worth reporting.")
     figure(s, "05_task_aware_digital.png", y=1.80, max_h=3.34)
     defs(s, 0.72, 5.32, 11.75, [
-        ("What this arm does",
+        ("What this system does",
          "Instead of a JPEG image it sends the learned features themselves, through the same error-correction code and radio settings, using the same 12,800 uses of the radio. It separates “knows the task” from “codes both at once”."),
         ("What it settles",
          "It holds 82.0% at every strength from −4 dB up. Sending learned features digitally is strong once pictures get through, so the weak-signal gap is about failed deliveries as much as representation."),
     ], label_w=2.10, pitch=0.74, size=11.5)
     add_footer(s); slides.append(s)
 
-    # 11 — peak power
-    s = SlideScene(11, "Peak power", "Keeping the signal peaks from getting too tall",
+    # 12 — peak power
+    s = SlideScene(12, "Peak power", "Keeping the signal peaks from getting too tall",
                    ("Results", "Analytical Skills"),
                    "Peak-to-average power ratio, measured on the numbers we send")
     add_header(s)
@@ -482,8 +501,8 @@ def build_scenes() -> list[SlideScene]:
          head_h=0.42, row_h=0.46, size=11.5, tint={0: "F3F3F3"})
     add_footer(s); slides.append(s)
 
-    # 12 — secondary controls
-    s = SlideScene(12, "Controls", "Four controls on the digital system",
+    # 13 — secondary controls
+    s = SlideScene(13, "Controls", "Four controls on the digital system",
                    ("Results", "Analytical Skills"),
                    "Settings, image format, sending the answer, rebuilding the picture")
     add_header(s)
@@ -495,25 +514,6 @@ def build_scenes() -> list[SlideScene]:
         ("JPEG secondary curve", "88.6% at +18 dB, with a full outage at +9 dB."),
         ("Sending the answer", "82.0% once it arrives, using the sender’s own predicted label."),
     ], label_w=2.10, pitch=0.50, size=11.5)
-    add_footer(s); slides.append(s)
-
-    # 13 — delivery coverage
-    s = SlideScene(13, "Mechanism", "Why the digital line breaks where it does",
-                   ("Analytical Skills", "Results"),
-                   "When pictures stop arriving, the score drops to match")
-    add_header(s)
-    s.text(0.72, 1.40, 6.20, 0.32,
-           "The score only moves when the pictures start or stop arriving.",
-           size=13, bold=True, font="sans", text_color=INK)
-    figure(s, "08_delivery_coverage.png", y=1.84, max_h=4.10, x=0.86)
-    defs(s, 7.36, 1.90, 5.26, [
-        ("The 10% is a rule",
-         "Every picture takes the same fallback answer when delivery fails. On an evenly split set that is right 100 times in 1,000."),
-        ("Outages are part of it",
-         "We report how many pictures arrived next to how many we got right, so a broken link is distinguishable from a wrong guess."),
-        ("Learned always answers",
-         "Its rules promise a label at every strength, so its curve never flattens against a floor."),
-    ], label_w=1.70, pitch=1.26, size=11)
     add_footer(s); slides.append(s)
 
     # 14 — numbers table
@@ -623,7 +623,7 @@ def build_scenes() -> list[SlideScene]:
     add_header(s)
     claims = [
         ("The task-aware digital control",
-         "A digital arm sends learned features through the same error-correction code and radio settings, using the same amount of radio time. It tells “knows the task” apart from “codes both at once” inside one experiment.",
+         "A second system sends learned features through the same error-correction code and radio settings, using the same amount of radio time. It tells “knows the task” apart from “codes both at once” inside one experiment.",
          "Prior work reports the gap without this control."),
         ("Charging the overhead to the digital system",
          "The picture file, framing, checksums and rate-matching bytes are all measured and counted, so the digital system is tuned on the payload it can genuinely use.",
