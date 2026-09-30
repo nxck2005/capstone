@@ -89,17 +89,18 @@ gantt
 | W5 training system | 27 Aug | G8_G adjudication | Checkpoint/resume learned-system training loop and schema-exact records | **Complete** — optimizer-wide GradScaler accounting repaired; authenticated successor non-scientific CUDA plumbing; exact kill/resume; no selection |
 | W6 classical evidence closure | 27 Aug | G8_G evidence | Classical-only implementation closure; artifact corpus and final pass-two outputs available | **GREEN/CLOSED** — terminal completion `w6completion-f992e38e…` and `tools/verify_w6_complete.py` authenticate the accepted W6-A epoch, G-1/G-2/W4 readiness, frozen corpus, operating points and final pass-two outputs; no classical science recomputed |
 | W7-A protocol/profile/source freeze | 27 Aug | W5–W6 | Pre-result G-4 contract, Pascal profile, source freeze and lock proof | **Complete — GREEN/PRE-EXECUTION; zero scientific coverage** |
-| W7-B pilot and λ calibration | 11–17 Sep | W7-A + separate owner authorization | One-seed pilot and G-4 | **Not authorized; not started** |
-| W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | Not started |
-| W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | Not started |
-| W10 validation rehearsal | 2–8 Oct | W9 | Paired full-grid validation rehearsal and Second Review figures | Not started |
-| W11 single test campaign | 5–11 Oct | Freeze manifest and G-12 | One guarded test opening covering every registered test-reading experiment | Sealed/not started |
+| W7-B pilot and λ calibration | 11–17 Sep | W7-A + separate owner authorization | One-seed pilot and G-4 | **GREEN/CLOSED** — W7-C G-4 adjudication ran exactly once and the frozen adjudicator selected primary-tier λ `3.0`; W8-C and G-4 evidence are immutable |
+| W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | **GREEN/CLOSED** — W8-C's six runs, 600 epoch/checkpoint/sidecar/validation transactions and six frozen selections authenticate from immutable worker custody |
+| W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | **CLOSED** — G-10 closed `expected_crossover_observed` with crossover bracket −5 → −4 dB after 63 validation-only evaluations; ER-9 production selected D2048/b2 at 820/1000; randomized ER-2 and G11/H4 are CLOSED and immutable |
+| W10 validation rehearsal | 2–8 Oct | W9 | Paired full-grid validation rehearsal and Second Review figures | **Figures delivered; authority open** — 252 validation units across 12 arms and 21 SNRs are published and back the Second Review figures, but the AM-98 rehearsal authority is not frozen and the JPEG-secondary and ER-12 validation selections have not run. W10 units on the frozen authority remain 0 |
+| W11 single test campaign | 5–11 Oct | Freeze manifest and G-12 | One guarded test opening covering every registered test-reading experiment | Sealed; `test_access` = 0 |
 | W12 Tier 1 close | 12–18 Oct | W11 | Frozen ER-1–ER-4, ER-9, ER-10; every hypothesis decided; G-5 | Not started |
 | W13 demo | 19–25 Oct | Frozen checkpoints/results | SNR slider, paired pipelines, frozen plot, latency record | Not started |
 | W14 hardware/poster | 26 Oct–1 Nov | G-5 for purchase; Tier 2 readiness | SDR replay or prerecorded fallback; poster draft | Optional/not started |
 | W15 internal report freeze | 2–8 Nov | Frozen results | Prescribed-format thesis, audit, novelty statement, plagiarism workflow | Not started |
 | W16 contingency | 9–15 Nov | W15 | Report completion and audit only; no new scientific scope | Reserved |
 | W17 final delivery | 16–22 Nov | Internal freeze | Final review, report and supporting material by 20 Nov, viva preparation | Not started |
+| Second Review package | 29 Sep–3 Oct | W9 evidence; W10 validation figures | Deck matching the Second Review rubric weighting; objectives in completion terms; one-slide SPEC §17 distillation; numeric tables; updated Gantt; package under `deliverables/review-2/`; `review-2-basis` tag | **Deck, PDF, previews, package note and presenter guide complete.** The `review-2-basis` annotated tag is still to be cut. Guide hardware acknowledgement and four-member rehearsal were carried from the First Review and are unverified here |
 
 ## 3. Critical path and control rules
 
