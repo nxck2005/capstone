@@ -22,7 +22,7 @@ The project succeeds if this comparison is built, run, and reported properly und
 
 ## 2. Where the project stands
 
-As of 2026-10-01, after the Second Review.
+As of 2026-10-01, during Second Review week (29 September – 3 October).
 
 | Stage | State |
 |---|---|
@@ -39,7 +39,7 @@ As of 2026-10-01, after the Second Review.
 | SNR-randomized DJSCC (ER-2), PAPR-capped DJSCC | Done: one run each |
 | H4 precision diagnostic (G-11) | Done: see [`RESULTS.md`](RESULTS.md), finding 11 |
 | Full validation rehearsal: 12 variants × 21 SNRs (W10) | Done: 252 measurements, published at `c31dd2b` |
-| Second Review deck, demo app, paper draft, supplement | Done |
+| Second Review deck, demo app, paper draft, supplement | Ready |
 | **Test split** | **Sealed. Never read by a model.** |
 
 **What comes next**, in order (the dates are the course's, from `params.deliverables`):
@@ -147,7 +147,7 @@ A curve crossing is reported if seen, but it is not a pass condition. Completion
 | Deliverable | Where | State |
 |---|---|---|
 | First Review deck | `deliverables/review-1/` | Delivered (18–22 Aug) |
-| Second Review deck and presenter guide | `deliverables/review-2/` | Delivered (29 Sep–3 Oct) |
+| Second Review deck and presenter guide | `deliverables/review-2/` | Ready for 29 Sep–3 Oct |
 | Research paper (IEEE) | `deliverables/research-paper/capstone_rp.tex` | Draft; Sections IV–X being revised by the authors |
 | Supplementary material (IEEE) | `deliverables/research-paper/supplement/` | Draft |
 | Results package (figures, CSVs, notes) | `presentation-results/` | Done (validation) |
