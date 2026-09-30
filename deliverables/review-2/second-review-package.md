@@ -19,6 +19,17 @@ annotated git tag `review-2-basis` on this branch, not reconstructed afterwards.
 Builder: `tools/build_second_review_ppt.py`. Re-run it to regenerate everything
 from the committed W10 figures.
 
+## Look
+
+The deck follows `deliverables/review-1/semantic-communication-first-review.pptx`
+— the plain First Review deck, not the `academic-v2` one. White ground, Arial
+throughout, black and grey type, no colour accents. Emphasis comes from weight,
+hairline rules and upper-case label chips rather than from hue. Body type runs
+10.5–13 pt so it reads from the back of a room on a 25-minute slot.
+
+If you are extending the deck, keep to that palette. A new colour will make this
+one deck look like it came from a different project than the First Review did.
+
 ## Tone
 
 The audience for this review is not reading the spec. Some of them were not in

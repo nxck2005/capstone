@@ -1,0 +1,238 @@
+% Working manuscript generated 2026-08-24.
+% IEEE version uses the IEEEtran conference format.
+% Scientific implementation facts audited against nxck2005/capstone commit:
+% b7e67c597411f991afdb42c1ec6cb61d0d3ae99b
+% Headline learned-vs-classical results are intentionally not claimed here.
+\documentclass[conference]{IEEEtran}
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage[hidelinks]{hyperref}
+
+\title{Do We Really Need All Those Pixels?\\
+Deep Learning-Based Task-Oriented Image Communication with JSCC}
+
+\author{
+\IEEEauthorblockN{U. N. Kar, N. Ravi, S. Mukherjee, A. Mishra, T. Srivastava}
+\IEEEauthorblockA{\textit{Vellore Institute of Technology, Andhra Pradesh, India}\\
+nishchalravi05@gmail.com}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}a
+Deep joint source--channel coding (DJSCC) offers a different way to transmit images over bandwidth-constrained wireless channels. Instead of separately compressing an image and protecting the resulting bits against channel errors, DJSCC learns the source representation and its transmission jointly. For task-oriented applications, where the receiver may only need to classify an image rather than reconstruct it perfectly, this raises an important question: does the benefit come from joint source--channel coding itself, or simply from learning to transmit information that is more useful for the task?
+
+This paper develops a controlled three-system framework for studying that question over a complex additive white Gaussian noise channel. The conventional digital system transmits JPEG~2000-compressed images using an NR-LDPC-based physical layer. A second, task-aware digital control uses the same transmission chain but replaces the conventional image representation with quantized learned features. The third system is an end-to-end DJSCC model that maps images directly to channel symbols and supports both reconstruction and classification at the receiver.
+
+The three systems are given the same transmission budget and are tested under the same channel conditions and dataset splits. This lets us compare them more fairly and see whether any improvement comes from learning better features for classification, from learning how to transmit those features over the channel, or from both. The validation completed so far confirms that the digital baseline, reference classifier, and supporting implementation are working as intended.
+
+
+
+\begin{IEEEkeywords}
+semantic communication, task-oriented communication, deep joint source--channel coding, image classification, 5G NR LDPC, JPEG 2000
+\end{IEEEkeywords}
+\end{abstract}
+
+\section{Introduction}
+Conventional communication systems usually treat source coding and channel coding as two separate problems. The source is first compressed into a digital bitstream. Redundancy is then added so that the bitstream can be protected against errors introduced by the channel. Shannon's separation theorem provides the classical foundation for this design: under its assumptions and with sufficiently long blocklengths, source and channel coding can be optimized independently without losing optimality~\cite{shannon1948}.
+
+Real systems do not operate in this asymptotic setting. They use finite blocklengths and must meet finite latency constraints. As a result, coding-rate back-off and nonzero decoding-failure probabilities matter in practice~\cite{polyanskiy2010,kostina2013}. Packetization and format overhead also consume part of the available transmission budget, leaving less room for the source payload itself.
+
+This distinction becomes especially important when the receiver does not need a bit-perfect reconstruction of the original source. In machine-oriented communication, the real goal may be a downstream task such as classification, retrieval, or control. In that setting, transmitting every visual detail of an image may be unnecessary. A lower-dimensional representation can be sufficient if it preserves the information needed for the task. This motivates \emph{task-oriented}, or more broadly semantic, communication systems, where the transmitted representation is optimized for the receiver's objective rather than only for reconstruction quality.
+
+Deep joint source--channel coding is one way to build such a system. Instead of first producing a compressed bitstream and then protecting it with a separate channel code, DJSCC uses a neural encoder to map the source directly to channel symbols. A differentiable channel model is placed between the transmitter and receiver during training, allowing the neural encoder and decoder to be optimized end to end~\cite{bourtsoulatze2019}. Early work on image transmission showed the well-known graceful-degradation behavior of neural JSCC. Later studies extended the idea to feedback, variable bandwidth, OFDM-oriented models, and transformer-based architectures~\cite{kurka2020feedback,kurka2021bandwidth,yang2021ofdm,yang2023witt}.
+
+A simple learned-versus-digital comparison does not reveal why the learned system performs differently. A task-oriented DJSCC encoder changes two things at the same time. First, it can learn a representation that is tailored to the task. Second, it removes the usual boundary between source coding and channel coding. A conventional JPEG-based system changes neither of these: it sends a generic image representation and relies on a separate channel code for robustness.
+
+This creates an attribution problem. If the learned system achieves higher task accuracy, the gain may come from the learned representation, from joint source--channel optimization, from limitations of the chosen digital baseline, or from some combination of these factors. For this reason, a controlled comparison needs a task-aware digital system in addition to the conventional reconstruction-oriented baseline.
+
+There is also a second problem: the digital baseline must be given the same physical transmission budget as the learned system. Calling a baseline simply ``JPEG + LDPC'' is not enough, because finite-block overhead and the selected coding and modulation settings determine how much useful source data can actually be carried within a fixed number of complex channel uses. A digital baseline can also be unfairly weakened if it is forced to use a single operating point across every SNR.
+
+To address both issues, the study is structured around three systems for task-oriented image classification. The first is a reconstruction-oriented separated baseline using JPEG 2000, a TS~38.212-derived 5G NR LDPC coding/rate-matching core, and BPSK, QPSK, or 16-QAM~\cite{jpeg2000,3gpp38212}. The second is a task-oriented separated digital control in which learned image features are quantized and sent through the same digital physical layer. The third is a task-aware DJSCC system that maps images directly to a fixed number of complex channel symbols and produces both reconstruction and classification outputs at the receiver. The conventional digital chain and DJSCC architecture are implemented; the task-aware digital control defines the remaining attribution comparison and is not used to support the validation results reported in this manuscript.
+
+The contribution of this study is therefore not a new communication family. It is a controlled experimental design that separates representation learning from joint source--channel optimization. The two digital arms use the same finite-block transmission chain, and the three systems are defined under a common complex-channel-use budget and $E_s/N_0$ convention. This design makes a task-level comparison interpretable without treating the digital baseline as an idealized or cost-free reference.
+
+The experiments in this manuscript use image classification over a simulated complex AWGN channel. Top-1 classification accuracy is the primary task metric, while reconstruction quality is retained as a secondary diagnostic.
+
+\section{Related Work}
+\subsection{Deep JSCC and practical digital comparators}
+DeepJSCC introduced end-to-end image transmission in which a neural encoder maps images directly to noisy-channel symbols instead of first producing a reliable intermediate bitstream~\cite{bourtsoulatze2019}. Later work extended the approach to feedback and bandwidth adaptation~\cite{kurka2020feedback,kurka2021bandwidth}. Constellation-constrained variants further showed that learned JSCC can operate with finite channel-input alphabets~\cite{tung2022}. Practical digital comparators have also appeared in earlier studies, where conventional image codecs were combined with finite-length LDPC coding and digital modulation rather than compared only through idealized channel-capacity limits~\cite{kurka2020feedback,tung2022}. The present work therefore does not claim novelty for using a practical channel code or for comparing digital transmission with DeepJSCC.
+
+\subsection{Task-oriented and digital semantic communication}
+Task-oriented communication changes the receiver's objective from faithful reconstruction to a downstream inference task. For example, Jankowski \emph{et al.} compared learned digital feature transmission with direct learned feature-to-channel mappings for wireless image retrieval~\cite{jankowski2021}. Information-bottleneck approaches have explored related task-oriented feature representations for edge inference, and later work has studied digital task-oriented communication with quantization and finite modulation directly~\cite{xie2023,park2025,mao2026}. A task-aware digital arm is therefore not a new communication paradigm. In this study, its role is instead to act as an attribution control while sharing the same implemented digital physical layer as the reconstruction-oriented arm.
+
+Using a learned JSCC receiver for both reconstruction and classification is also established in prior work. Lyu \emph{et al.} study semantic communication for simultaneous image recovery and classification~\cite{lyu2024}, while later work examines how reconstruction-oriented and task-oriented communication objectives can be aligned~\cite{diao2025}. Recent vector-quantized semantic systems have also compared conventional image coding, learned digital representations, and learned JSCC with practical channel coding~\cite{lokumarambage2026}. Accordingly, this paper does not claim the first three-family comparison or a novel dual-head architecture.
+
+\subsection{Positioning of this study}
+The contribution pursued here is mainly methodological. Unlike a simple learned-versus-digital comparison, the study controls both the transmitted representation and the choice between separated and joint source--channel coding. A reconstruction-oriented digital link and a task-oriented digital feature link share the same finite-block NR-LDPC/rate-matching chain, while the learned JSCC arm uses the same complex-channel-use budget and $E_s/N_0$ convention. This arrangement is intended to make differences between the three systems easier to attribute to the representation and coding strategy rather than to unequal transmission resources.
+
+\section{System Model and Problem Formulation}
+\subsection{Source and channel-use budget}
+Consider an image-label pair $(\mathbf{x},y)\sim\mathcal{D}$, where $\mathbf{x}\in[0,1]^{H\times W\times C}$ is an RGB image and $y\in\{1,\ldots,M\}$ is its class label. For Imagenette-160, $H=W=160$, $C=3$, and $M=10$. The source dimensionality is $n=HWC$. A communication system is allocated $k$ complex baseband channel uses per image, with bandwidth ratio
+\begin{equation}
+ r=\frac{k}{n}.
+\end{equation}
+The configured bandwidth-ratio set is
+\begin{equation}
+ r\in\left\{\frac12,\frac13,\frac16,\frac1{12},\frac1{24},\frac1{48}\right\}.
+\end{equation}
+For Imagenette-160, $n=76{,}800$, giving channel-use budgets of $38{,}400$, $25{,}600$, $12{,}800$, $6{,}400$, $3{,}200$, and $1{,}600$, respectively.
+
+\begin{table}[t]
+\caption{Imagenette-160 split sizes used in the study.}
+\label{tab:datasets}
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Dataset & Train & Val. & Test \\
+\midrule
+Imagenette-160 & 8469 & 1000 & 3925 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Channel model}
+Let $\mathbf{z}\in\mathbb{C}^{k}$ denote the transmitter output before power normalization. The channel input is normalized independently per image as
+\begin{equation}
+ \tilde{\mathbf{z}}=\frac{\mathbf{z}}{\sqrt{\frac{1}{k}\sum_{i=1}^{k}|z_i|^2}},
+\end{equation}
+which imposes unit average symbol power. Transmission uses a memoryless complex AWGN channel,
+\begin{equation}
+ \mathbf{r}=\tilde{\mathbf{z}}+\gamma^{-1/2}\mathbf{n},
+ \qquad \mathbf{n}\sim\mathcal{CN}(\mathbf{0},\mathbf{I}),
+\end{equation}
+where $\gamma=10^{\mathrm{SNR}_{\mathrm{dB}}/10}$. SNR is reported as $E_s/N_0$ per normalized complex channel use. For digital references stated in $E_b/N_0$,
+\begin{equation}
+ \left.\frac{E_s}{N_0}\right|_{\mathrm{dB}}=
+ \left.\frac{E_b}{N_0}\right|_{\mathrm{dB}}+10\log_{10}(Q_mR_c),
+\end{equation}
+where $Q_m$ is coded bits per modulation symbol and $R_c$ is channel-code rate.
+
+To make paired comparisons more controlled, the implementation uses a system-independent keyed noise identity. For a fixed image, SNR, seed, and channel-use budget, paired systems therefore receive the same deterministic AWGN realization whenever the representation permits such pairing.
+
+\subsection{Task objective}
+Each system ultimately produces class logits $\mathbf{s}\in\mathbb{R}^{M}$ and prediction $\hat y=\arg\max_j s_j$. The primary endpoint is top-1 task accuracy as a function of SNR,
+\begin{equation}
+ A(\gamma)=\Pr(\hat y=y\mid\gamma).
+\end{equation}
+PSNR and SSIM are retained as secondary reconstruction diagnostics, not substitutes for the downstream task endpoint.
+
+\section{Compared Communication Systems}
+\subsection{Reconstruction-oriented separated digital system}
+The conventional arm is
+\begin{equation}
+\begin{split}
+\mathbf{x} &\xrightarrow{\mathcal{C}_{\mathrm{J2K}}} \mathbf{b}_s
+\xrightarrow{\mathcal{P}} \mathbf{b}_p
+\xrightarrow{\mathcal{E}_{\mathrm{LDPC}}} \mathbf{b}_c
+\xrightarrow{\mathcal{M}} \mathbf{z}\\
+&\xrightarrow{\mathrm{AWGN}}\mathbf{r}
+\xrightarrow{\mathcal{D}_{\mathrm{digital}}}\hat{\mathbf{x}}
+\xrightarrow{h}\hat y.
+\end{split}
+\end{equation}
+Here $\mathcal{C}_{\mathrm{J2K}}$ denotes JPEG 2000 source coding, $\mathcal{P}$ is the project-owned transport-block accounting and packetization logic, $\mathcal{E}_{\mathrm{LDPC}}$ is the TS~38.212-derived LDPC coding/rate-matching chain, and $\mathcal{M}$ represents BPSK, QPSK, or 16-QAM. Sionna 2.0.1 is used for LDPC encoding and decoding at the library seam. Segmentation, CRC, filler handling, and transport accounting remain explicitly represented by the experiment.
+
+For a chosen modulation, the coded-bit budget is $G=kQ_m$. The source payload is then chosen as the largest byte-aligned transport-block payload whose full coding and rate-matching representation fits inside $G$. Failed transmissions are not removed from evaluation. Structural infeasibility, codec infeasibility, decode failure, and successful delivery are recorded as distinct outcomes, and the prescribed outage outcome remains in the task-accuracy denominator.
+
+\subsection{Task-aware learned JSCC system}
+The learned joint arm uses an encoder
+\begin{equation}
+ f_{\theta}:\mathbb{R}^{H\times W\times C}\rightarrow\mathbb{C}^{k},
+\end{equation}
+followed by the common power normalization and AWGN model. The implemented residual CNN downsamples Imagenette inputs by a factor of four. Pairs of real-valued feature channels are then packed into native complex symbols. The number of learned complex feature channels is selected so that the latent tensor contains exactly $k$ complex symbols at every configured bandwidth ratio.
+
+The receiver exposes a reconstruction head and an image-classification head,
+\begin{equation}
+ g_{\phi}(\mathbf{r})=(\hat{\mathbf{x}},\mathbf{s}),
+\end{equation}
+with training objective
+\begin{equation}
+ \mathcal{L}=\mathcal{L}_{\mathrm{CE}}(\mathbf{s},y)+\lambda\mathcal{L}_{\mathrm{MSE}}(\hat{\mathbf{x}},\mathbf{x}).
+\end{equation}
+The architecture has been implemented and compute-profiled. The weighting parameter $\lambda$ controls the balance between classification and reconstruction losses.
+
+\subsection{Task-oriented separated digital feature control}
+The attribution control is
+\begin{equation}
+ \mathbf{x}\xrightarrow{q_{\psi}}\mathbf{u}
+ \xrightarrow{\mathrm{quantize}}\mathbf{b}_u
+ \xrightarrow{\mathrm{same\ digital\ link}}\hat{\mathbf{b}}_u
+ \xrightarrow{d_{\omega}}\hat y.
+\end{equation}
+This arm keeps task-aware representation learning but restores a discrete boundary between source and channel coding. The three-way design therefore separates reconstruction-oriented digital transmission, task-aware digital transmission, and task-aware joint transmission. Comparing the first two isolates the effect of changing the transmitted representation toward the task; comparing the task-aware digital arm with DJSCC isolates the additional effect associated with joint source--channel optimization. This control is included here to define the attribution experiment, but no result in the present manuscript depends on it.
+
+\section{Experimental Protocol}
+\subsection{Datasets and split discipline}
+Imagenette-160 is used for the experiments, with 8469 training, 1000 validation, and 3925 test images across 10 classes. Dataset membership and sample identities are fixed through versioned manifests. The published training partition is deterministically divided into project training and validation subsets, while the published Imagenette validation partition is used as the project test split.
+
+Model and operating-point choices use only the training and validation data. The project test split is excluded from model selection and digital operating-point selection.
+
+\subsection{Paired evaluation and statistical target}
+The primary statistical target is the paired, image-level difference in top-1 accuracy between systems at a fixed SNR and bandwidth ratio. Stable sample IDs are used as the resampling unit so that system and SNR comparisons remain paired within each bootstrap draw. The analysis procedure is configured for 10,000 paired bootstrap resamples.
+
+Bandwidth-ratio selection for the classical system is based on validation data rather than on learned-versus-classical test results. This keeps the choice of operating point separate from the comparison it is later used to evaluate.
+
+\section{Completed Implementation Validation}
+This section reports completed implementation and validation measurements. It does not report a learned-versus-classical performance comparison.
+
+\subsection{Reference classifier and learned-model profile}
+The reference classifier is a ResNet-18 trained from scratch on the Imagenette training partition. After 100 epochs, it reaches 898/1000 correct predictions, corresponding to 0.898 top-1 accuracy on the clean validation set. This is above the target validation floor of 0.88. The checkpoint contains 11,181,642 parameters.
+
+At the profiled $r=1/2$ configuration, the implemented \texttt{djscc\_residual\_v1} architecture contains 1,640,957 parameters. A batch-32 profile on an RTX 4060 Laptop GPU measured 1.004~GiB of peak reserved memory and 48.684~s for one profiled epoch. Under the same measured conditions, this corresponds to a projected 1.352~h for 100 epochs. These measurements establish implementation scale and compute feasibility; they are not evidence of trained-model task performance.
+
+\subsection{LDPC conformance and BLER characterization}
+The TS~38.212-derived LDPC core is checked against an independent reference using $K=128$, $N=256$, base graph 2, lifting size 22, rate $1/2$, offset-min-sum decoding, and 5000 blocks per SNR point. Across BPSK, QPSK, and 16-QAM, the measured waterfall displacement at BLER $10^{-2}$ remains within 0.0037~dB in magnitude. Packetization is checked across 216 configurations, of which 215 are feasible and one is structurally infeasible under the configured budget.
+
+A separate digital-baseline sweep produced 3213 measured physical-layer operating points organized into 153 BLER curves. Each point used 5000 trials, giving 16,065,000 block trials in total. Uncharacterized operating points are excluded rather than assigned an optimistic default BLER.
+
+\subsection{Validation-only classical campaign}
+The classical validation sweep evaluated 288 structural configurations over all 1000 Imagenette validation images, producing 288,000 image--configuration evaluations. Of these, 264,000 were successfully delivered and 24,000 were codec-infeasible. No decode failures or structural failures occurred in this sweep. Operating-point selection produced valid selections for all 378 requested SNR cells from the admissible candidate space.
+
+\begin{table}[t]
+\caption{Completed implementation and validation measurements.}
+\label{tab:validation}
+\centering
+\begin{tabular}{p{0.28\columnwidth}p{0.64\columnwidth}}
+\toprule
+Item & Frozen evidence \\
+\midrule
+Reference classifier & 0.898 validation top-1 (898/1000), ResNet-18 trained from scratch \\
+DJSCC profile & 1,640,957 parameters; 1.004 GiB peak reserved VRAM at batch 32 \\
+LDPC conformance & Waterfall displacement magnitude $\leq0.0037$ dB at BLER $10^{-2}$ in bounded reference test \\
+BLER campaign & 153 curves; 3213 points; 5000 trials/point; 16,065,000 trials total \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Current Validation Status}
+The measurements reported above validate the reference classifier, the finite-block digital transmission chain, LDPC behavior, packetization, and the classical operating-point sweep. They establish that the digital baseline and the learned architecture can be evaluated under the common channel-use and SNR definitions introduced earlier.
+
+No learned-versus-digital task-accuracy result is reported in this manuscript version. In particular, the implementation-validation measurements above should not be read as evidence that DJSCC outperforms, matches, or degrades more gracefully than the digital baseline.
+
+\begin{thebibliography}{20}
+\bibitem{shannon1948} C. E. Shannon, ``A mathematical theory of communication,'' \emph{Bell System Technical Journal}, vol. 27, no. 3, pp. 379--423, 1948.
+\bibitem{polyanskiy2010} Y. Polyanskiy, H. V. Poor, and S. Verdu, ``Channel coding rate in the finite blocklength regime,'' \emph{IEEE Transactions on Information Theory}, vol. 56, no. 5, pp. 2307--2359, 2010.
+\bibitem{kostina2013} V. Kostina and S. Verdu, ``Lossy joint source--channel coding in the finite blocklength regime,'' \emph{IEEE Transactions on Information Theory}, vol. 59, no. 5, pp. 2545--2575, 2013.
+\bibitem{bourtsoulatze2019} E. Bourtsoulatze, D. B. Kurka, and D. Gunduz, ``Deep joint source--channel coding for wireless image transmission,'' \emph{IEEE Transactions on Cognitive Communications and Networking}, vol. 5, no. 3, pp. 567--579, 2019.
+\bibitem{kurka2020feedback} D. B. Kurka and D. Gunduz, ``DeepJSCC-f: Deep joint source--channel coding of images with feedback,'' \emph{IEEE Journal on Selected Areas in Information Theory}, vol. 1, no. 1, pp. 178--193, 2020.
+\bibitem{kurka2021bandwidth} D. B. Kurka and D. Gunduz, ``Bandwidth-agile image transmission with deep joint source--channel coding,'' \emph{IEEE Transactions on Wireless Communications}, vol. 20, no. 12, pp. 8081--8095, 2021.
+\bibitem{yang2021ofdm} M. Yang, C. Bian, and H.-S. Kim, ``Deep joint source channel coding for wireless image transmission with OFDM,'' arXiv:2101.03909, 2021.
+\bibitem{yang2023witt} K. Yang, S. Wang, J. Dai, K. Tan, K. Niu, and P. Zhang, ``WITT: A wireless image transmission transformer for semantic communications,'' in \emph{Proc. IEEE ICASSP}, 2023.
+\bibitem{jankowski2021} M. Jankowski, D. G\"und\"uz, and K. Mikolajczyk, ``Wireless image retrieval at the edge,'' \emph{IEEE Journal on Selected Areas in Communications}, vol. 39, no. 1, pp. 89--100, 2021.
+\bibitem{tung2022} T.-Y. Tung, D. B. Kurka, M. Jankowski, and D. G\"und\"uz, ``DeepJSCC-Q: Constellation constrained deep joint source--channel coding,'' \emph{IEEE Journal on Selected Areas in Information Theory}, vol. 3, no. 4, pp. 720--731, 2022.
+\bibitem{xie2023} S. Xie, S. Ma, M. Ding, Y. Shi, M. Tang, and Y. Wu, ``Robust information bottleneck for task-oriented communication with digital modulation,'' \emph{IEEE Journal on Selected Areas in Communications}, vol. 41, no. 8, pp. 2577--2591, 2023.
+\bibitem{lyu2024} Z. Lyu, G. Zhu, J. Xu, B. Ai, and S. Cui, ``Semantic communications for image recovery and classification via deep joint source and channel coding,'' \emph{IEEE Transactions on Wireless Communications}, vol. 23, no. 8, pp. 8388--8404, 2024.
+\bibitem{park2025} J. Park, Y. Oh, S. Kim, and Y.-S. Jeon, ``Joint source--channel coding for channel-adaptive digital semantic communications,'' \emph{IEEE Transactions on Cognitive Communications and Networking}, vol. 11, no. 1, pp. 75--89, 2025.
+\bibitem{diao2025} Y. Diao, Y. Zhang, C. She, P. G. Zhao, and E. L. Li, ``Aligning task- and reconstruction-oriented communications for edge intelligence,'' \emph{IEEE Journal on Selected Areas in Communications}, vol. 43, no. 7, pp. 2575--2588, 2025.
+\bibitem{mao2026} X. Mao, Q. Yan, B. Dai, X. Tang, and Z. Zhou, ``On the effectiveness of task-oriented digital semantic communication system,'' \emph{IEEE Transactions on Cognitive Communications and Networking}, vol. 12, pp. 3436--3451, 2026.
+\bibitem{lokumarambage2026} M. Lokumarambage, T. Sivalingam, H. Rezaei, P. Rajatheva, and A. Fernando, ``Edge computing based vector quantized semantic communication system for wireless image transmission,'' \emph{IEEE Transactions on Consumer Electronics}, 2026, doi: 10.1109/TCE.2026.3683921.
+\bibitem{jpeg2000} ISO/IEC, ``JPEG 2000 image coding system: Core coding system,'' ISO/IEC 15444-1.
+\bibitem{3gpp38212} 3GPP, ``NR; Multiplexing and channel coding,'' 3GPP TS 38.212.
+\end{thebibliography}
+
+\end{document}

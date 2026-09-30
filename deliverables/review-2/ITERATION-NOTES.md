@@ -2,6 +2,46 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v3 — 2026-09-30, style corrected to the non-v2 First Review deck
+
+v1 and v2 were built against
+`deliverables/review-1/semantic-communication-first-review-academic-v2.pptx`. That
+was the wrong reference. The deck to match is
+`semantic-communication-first-review.pptx` — the plain one, which is also the
+newer file on disk (23 Aug against 18 Aug). The two decks share an architecture
+but not a look:
+
+| | non-v2 First Review (target) | academic-v2 (what v1/v2 used) |
+|---|---|---|
+| ground | white | ivory `#F7F5EF` |
+| fonts | Arial only | Georgia headings, Cascadia Mono numbers, Cambria Math |
+| body colour | `#111111` ink, `#555555` muted | `#18212B` ink, `#5B6570` muted |
+| accents | none — black, grey and rules | navy, burgundy, green, amber |
+| body type | 10–13 pt, median 12 | 8–10 pt, median 9.1 |
+| stat numerals | up to 34 pt | 27 pt |
+
+So v3 collapses the palette. `IVORY`, `PAPER` and `WHITE` all become `FFFFFF`;
+`INK` and every accent become `111111` or a grey; the four pale tints all become
+`F3F3F3`; `LINE` becomes `D9D9D9`. All fonts become Arial, with Courier New for
+figures.
+
+**Colour had been carrying meaning.** With accents gone, emphasis moves to
+weight, rules and label chips: heading weight instead of hue, a `D9D9D9` rule
+instead of a tinted border, and an upper-case label chip for every block. Where
+a slide flagged something unflattering, the accent bar steps down to `999999`
+rather than to burgundy — slide 12's JPEG result and slide 15's amplifier row.
+
+**Type scale raised and copy cut to fit.** Body copy went from 9–10.5 pt to
+10.5–13 pt, stat numerals to 30 pt, table values to 11.5 pt. That does not fit
+the old word counts, so every dense block was shortened rather than shrunk. The
+figures shrank slightly on slides 7, 9 and 12 to buy the space.
+
+**Layout fixes found by looking at the render.** The footer page number was
+wrapping to two lines from slide 10 onward — its box was 0.52 in wide for
+"10 / 19", now 1.10 in. Slide 9's comparison table ran under the footer rule.
+Slide 7's caption and slide 15's closing note crossed into the footer band.
+Geometry scan now reports zero collisions.
+
 ## v2 — 2026-09-30, plain-language pass
 
 Nineteen slides, up from eighteen. One slide added and almost every line of body
