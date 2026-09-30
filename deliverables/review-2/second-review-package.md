@@ -22,13 +22,23 @@ from the committed W10 figures.
 ## Look
 
 The deck follows `deliverables/review-1/semantic-communication-first-review.pptx`
-— the plain First Review deck, not the `academic-v2` one. White ground, Arial
-throughout, black and grey type, no colour accents. Emphasis comes from weight,
-hairline rules and upper-case label chips rather than from hue. Body type runs
-10.5–13 pt so it reads from the back of a room on a 25-minute slot.
+— the plain First Review deck, not the `academic-v2` one. That file is the
+reference, and note that `tools/build_first_review_ppt.py` no longer generates it:
+the shipped `.pptx` is newer than the script and has no header banner, no section
+marker and no footer chips. Copy the rendered deck, not the builder.
 
-If you are extending the deck, keep to that palette. A new colour will make this
-one deck look like it came from a different project than the First Review did.
+The idiom, in short:
+
+- Title and one hairline rule. No banner, no page furniture above the line.
+- A footer of plain text: `Rubric: ...`, a citation, and `N / 19`.
+- Sharp-cornered white boxes with a thin grey border. No rounded corners.
+- Real tables — every row a bordered band with vertical separators.
+- Bold term on the left, plain text on the right, for anything explanatory.
+  No boxes needed.
+- One typeface, black and two greys. No colour, no circles, no accents.
+
+There is no `label()` or chip helper in the builder, and adding one back would
+make this deck look unlike the First Review one.
 
 ## Tone
 

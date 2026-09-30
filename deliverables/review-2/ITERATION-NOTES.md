@@ -2,6 +2,57 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v4 — 2026-09-30, decoration removed
+
+v3 fixed the palette but kept a decorative vocabulary the plain First Review
+deck does not use at all: pill-shaped footer chips, a header banner with a `§ NN`
+marker, rounded corners, thick accent bars on the left of every box, numbered
+circles on the objectives slide, filled circles on the timeline, and five
+oversized numeral tiles on slide 5. For a first-year project review that reads as
+a designed product rather than an academic artifact.
+
+The reference was checked in the *rendered* file, not the builder script, because
+the two disagree: `tools/build_first_review_ppt.py` still emits a banner, a `§`
+marker and footer chips, but the shipped `.pptx` (23 Aug, newer than the script)
+has none of them. The deck that was actually presented is the ground truth, so
+its geometry was read shape by shape and copied.
+
+What review-1 plain actually does, and what v4 now does:
+
+* **Header** — title at x 0.62, y 0.48, one hairline at y 1.18. No banner, no
+  section marker. v4 matches exactly.
+* **Footer** — hairline at y 7.02, then plain text: `Rubric: ...` at x 0.62, a
+  right-aligned citation at x 3.45, and `N / 19` at x 11.72. The chips are gone.
+* **Boxes** — sharp corners, white fill, `777777` border. Every `radius=` in
+  build_scenes is gone.
+* **Tables** — every row is its own bordered band with vertical separators,
+  `F3F3F3` header. v3's rules-only table was a different animal; v4 uses a real
+  grid.
+* **Explanatory text** — bold term on the left, plain text on the right, hairline
+  between rows, and no box around it at all. This is the idiom the plain deck
+  uses for every definition on every slide, and it replaces most of v3's cards.
+* **Colour** — black, one grey, one hairline grey, and a border grey. Nothing
+  else.
+
+Deleted outright: `label()`, `gloss()`, `stat()`, and the `card()` accent strip.
+Slide 5's five numeral tiles became a table. Slide 11's four tiles became a
+table. Slide 12's four boxes and slide 15's five boxes became term/definition
+rows. Slide 18's timeline lost its filled circles and became ruled rows.
+
+Verified against the reference rather than by eye:
+
+```
+review-1 plain   TEXT_BOX 243  LINE 102  AUTO_SHAPE 62   ovals 0  rounded 0  Arial
+review-2         TEXT_BOX 407  LINE 126  AUTO_SHAPE 41   ovals 0  rounded 0  Arial
+```
+
+Same three shape classes, no ovals, no rounded rectangles, one typeface. The
+extra `PICTURE` class is the eight embedded W10 figures, which the First Review
+deck had no equivalent of because it had no results yet.
+
+Two layout faults fixed on the way: slide 14's right-hand table ran 0.6 in past
+the right margin, and three closing notes crossed the footer rule.
+
 ## v3 — 2026-09-30, style corrected to the non-v2 First Review deck
 
 v1 and v2 were built against
