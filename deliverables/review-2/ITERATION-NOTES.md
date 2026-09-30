@@ -2,6 +2,54 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v5 — 2026-09-30, negative framing removed
+
+An audit of the built file counted **60 strings containing a negation**
+(`not`, `never`, `no`, `nothing`, `cannot`, contractions). Across 19 slides that
+is three per slide, and they clustered into three habits:
+
+1. **Repeated caveats.** "The exam set has never been opened" appeared on slides
+   1, 4, 5 and 19. "One training run" appeared on 5, 9 and 15. Repeating a
+   qualification on every chart is what makes a reader stop reading it.
+2. **Disclaimers as content.** Slide 14 carried a whole block titled "What this
+   table is not". Slide 3's right-hand panel was titled "What we did not aim
+   for". Slide 17 had a panel titled "Not claimed as new". Each was a slide
+   region whose job was to say what the work was not.
+3. **Defensive trailing notes.** Slides 6, 7, 8, 9, 11 and 13 each ended with a
+   hairline and a small italic note apologising for the figure directly above it.
+
+The fix was mostly deletion rather than rewording, because rewording a caveat
+into a positive sentence leaves a caveat wearing a hat. What remains:
+
+- The sealed-exam-set fact appears **once** in the evidence base (slide 5, as a
+  table row reading `0 · Sealed until gate G-12`) and **once** as the closing
+  line of slide 19.
+- The single-run qualification appears **once**, on slide 15.
+- Slide 14's disclaimer block is gone, replaced by "Reading the two tables" —
+  which says what the tables show.
+- Slide 3's panel is now "How these are scored", which makes the rubric point
+  positively instead of disclaiming a strawman objective.
+- Slide 17's panel is now "What this builds on", framing the four established
+  ideas as foundations.
+- Slide 15 is retitled "How to read these results", and its five rows are
+  positive headings: One training run, Whole systems, Different amounts of work,
+  Simulated channel, Frozen operating points.
+- Six trailing apology notes were deleted outright.
+
+Where a qualifier is genuinely load-bearing it stayed: the 10% fallback floor on
+slide 4 is the mechanism that makes the headline intelligible, and the delivery
+explanation on slide 13 is the answer to the most technical question in the room.
+
+**60 → 7.** The seven survivors are all factual statements about results or about
+prior work — "the digital system delivers nothing", "1,000 pictures never
+arrived", "reported no problems while breaking four of its own rules", "prior
+work reports the gap without this control". None of them hedge the project's own
+confidence.
+
+The presenter guide was rewritten for the same reason and to match: it had been
+quoting the deleted panels verbatim, so it was both out of date and teaching the
+mannerism. Its "never say X" rules are now "say Y" instructions.
+
 ## v4 — 2026-09-30, decoration removed
 
 v3 fixed the palette but kept a decorative vocabulary the plain First Review
