@@ -272,13 +272,13 @@ def build_scenes() -> list[SlideScene]:
 
     defs(s, 0.72, 1.96, 11.75, [
         ("Aug · Digital system",
-         "Measured how badly it loses pictures at every setting, tested it on all 288,000 held-back combinations, and froze the settings it should use at each signal strength."),
+         "Measured how badly it loses pictures at every setting. All 288,000 held-back combinations tested, and the settings it should use at each signal strength frozen."),
         ("Aug · Learned system",
-         "Built the training loop, trained models at several seeds, and froze three of them at half rate."),
+         "Training loop built, models trained at several seeds. Three of them are frozen at half rate."),
         ("Sep · Fair comparison",
          "Built a control that sends learned features digitally, so the comparison includes a task-aware system alongside a compressed image."),
         ("Sep · Weak-link training",
-         "Trained a second version with the signal strength picked at random, and compared it against the first."),
+         "A second version, with the training signal strength picked at random each time, for comparison against the first."),
         ("Sep · Crossing question",
          "Decided it on held-back pictures before seeing the answer: the two lines cross between −5 and −4 dB."),
         ("Sep · Power limits",
@@ -286,12 +286,9 @@ def build_scenes() -> list[SlideScene]:
         ("Oct · Measurements",
          "252 measurements across twelve versions of the system and twenty-one signal strengths, 1,000 held-back pictures each."),
         ("Nov · Exam set",
-         "Still locked. It opens in week 11 once the locking document is signed."),
+         "Opens in week 11, once the locking document is signed."),
     ], label_w=2.55, pitch=0.60, size=11)
 
-    s.line(0.72, 6.58, 11.75, 0, stroke=LINE, stroke_width=0.7)
-    note(s, 0.72, 6.64, 11.75,
-         "Everything above ran on held-back pictures. The exam set stays locked until gate G-12.")
     add_footer(s); slides.append(s)
 
     # 3 — objectives in completion terms (PR-8a)
@@ -335,7 +332,7 @@ def build_scenes() -> list[SlideScene]:
                    ("Results", "Analytical Skills"),
                    "Plain language. The next fourteen slides depend on it.")
     add_header(s)
-    lead(s, "Every chart that follows runs from a very weak radio signal on the left to a clean one on the right.",
+    lead(s, "Every chart in this deck runs from a very weak radio signal on the left to a clean one on the right.",
          size=13.5, bold=False, color_=MUTED)
 
     grid(s, 0.72, 1.84,
@@ -356,7 +353,7 @@ def build_scenes() -> list[SlideScene]:
     s.text(9.90, 2.36, 2.54, 0.26, "At the weakest signal we measured:",
            size=10.5, font="sans", text_color=MUTED)
     s.text(9.90, 2.72, 2.54, 1.86,
-           "The learned system labelled 728 of the 1,000 pictures correctly.\n\nThe digital system got almost nothing through, so every picture fell back to one fixed answer — and that answer happens to be right 100 times out of 1,000. So 10%.",
+           "The learned system labelled 728 of the 1,000 pictures correctly.\n\nThe digital system got almost nothing through, so every picture fell back to one fixed answer. That answer happens to be right 100 times out of 1,000. So 10%.",
            size=10.5, font="sans", text_color=MUTED)
     s.line(9.90, 4.72, 2.54, 0, stroke=LINE, stroke_width=0.7)
     s.text(9.90, 4.86, 2.54, 1.22,
@@ -377,20 +374,20 @@ def build_scenes() -> list[SlideScene]:
          [("Item", 3.40), ("Figure", 1.70), ("What it is", 6.65)],
          ["Item", "Figure", "What it is"],
          [["Measurements", "252", "One row each in the published record"],
-          ["Versions of the system", "12", "Five of them are controls rather than headline systems"],
+          ["Versions of the system", "12", "Five are controls, not headline systems"],
           ["Signal strengths", "21", "From very weak to very clean"],
           ["Pictures per point", "1,000", "The same held-back pictures every time"],
           ["Exam pictures opened", "0", "Sealed until gate G-12"]],
          head_h=0.42, row_h=0.46, size=11.5)
 
     s.line(0.72, 4.58, 11.75, 0, stroke=LINE, stroke_width=0.7)
-    s.text(0.72, 4.72, 11.75, 0.28, "Two things that govern how every later chart should be read",
+    s.text(0.72, 4.72, 11.75, 0.28, "Two things to keep in mind",
            size=13, bold=True, font="sans", text_color=INK)
     defs(s, 0.72, 5.16, 11.75, [
         ("Radio time",
          "Half rate uses the radio 12,800 times per picture; quarter rate uses it 3,200 times. Within one rate both systems get exactly the same amount of radio time."),
         ("Who marks it",
-         "The learned systems are marked by the classifier built into them. The digital systems are marked by one we trained on compressed-looking images. So we compare whole systems: the link, the representation, and the marker."),
+         "The learned systems are marked by the classifier built into them. The digital systems are marked by one we trained on compressed-looking images. So every comparison in this deck is between whole systems, link and marker included."),
     ], label_w=2.00, pitch=0.70, size=11)
 
     add_footer(s); slides.append(s)
@@ -400,7 +397,7 @@ def build_scenes() -> list[SlideScene]:
                    ("Results",),
                    "Half rate · all 21 measured signal strengths · held-back pictures")
     add_header(s)
-    lead(s, "The learned system keeps answering the whole way across. The digital system stays silent, then overtakes it.")
+    lead(s, "One line runs the whole width of the chart. The other has a step in it near the left.")
     figure(s, "01_headline_full_snr.png", y=1.80, max_h=4.36)
     s.line(0.72, 6.34, 11.75, 0, stroke=LINE, stroke_width=0.7)
     note(s, 0.72, 6.42, 11.75,
@@ -429,7 +426,7 @@ def build_scenes() -> list[SlideScene]:
     lead(s, "On a quarter of the radio time, the digital system loses far more at the weak end than the learned one does.")
     figure(s, "03_bandwidth_efficiency.png", y=1.80, max_h=2.92)
     defs(s, 0.72, 5.00, 11.75, [
-        ("Weak signal", "Going from half to quarter rate drops the learned system from 72.8% to 49.4%. That is a 23 point loss."),
+        ("Weak signal", "Going from half to quarter rate drops the learned system from 72.8% to 49.4%."),
         ("At 0 dB, quarter rate", "Learned 78.7% against digital 69.4%. The learned system is still ahead."),
         ("Catches up, then slips", "Digital passes learned at the +4 dB point, loses the lead at +9 dB, then goes ahead again."),
     ], label_w=2.10, pitch=0.50, size=11.5)
@@ -456,7 +453,7 @@ def build_scenes() -> list[SlideScene]:
                    ("Results", "Analytical Skills"),
                    "Same radio time, same error-correction code, same modulation")
     add_header(s)
-    lead(s, "If we had only compared against a normal compressed image, the weak-signal story would be too easy to believe.")
+    lead(s, "A JPEG image is an easy thing to beat. This arm is harder, and it is the one worth reporting.")
     figure(s, "05_task_aware_digital.png", y=1.80, max_h=3.34)
     defs(s, 0.72, 5.32, 11.75, [
         ("What this arm does",
@@ -486,18 +483,17 @@ def build_scenes() -> list[SlideScene]:
     add_footer(s); slides.append(s)
 
     # 12 — secondary controls
-    s = SlideScene(12, "Controls", "Four controls, including one that went against us",
+    s = SlideScene(12, "Controls", "Four controls on the digital system",
                    ("Results", "Analytical Skills"),
                    "Settings, image format, sending the answer, rebuilding the picture")
     add_header(s)
-    lead(s, "Each panel takes one design choice away from the digital system and shows what it was worth.",
-         size=13)
+    lead(s, "Each panel takes one design choice away and shows what it was worth.", size=13)
     figure(s, "07_secondary_controls.png", y=1.76, max_h=2.72)
     defs(s, 0.72, 4.72, 11.75, [
         ("Fixed settings", "Sits at the fallback floor until +6 dB, then reaches 89.0%. Choosing settings per strength buys real reach."),
         ("Fixed modulation", "Starts working later than adaptive selection, and settles near 88.7%."),
         ("JPEG secondary curve", "88.6% at +18 dB, with a full outage at +9 dB."),
-        ("Sending the answer", "82.0% once it arrives — the sender’s own predicted label."),
+        ("Sending the answer", "82.0% once it arrives, using the sender’s own predicted label."),
     ], label_w=2.10, pitch=0.50, size=11.5)
     add_footer(s); slides.append(s)
 
@@ -572,15 +568,15 @@ def build_scenes() -> list[SlideScene]:
     add_header(s)
     defs(s, 0.72, 1.60, 11.75, [
         ("One training run",
-         "Every figure is a single observed measurement from one run over 1,000 held-back pictures."),
+         "A single observed measurement per figure, from one run over 1,000 held-back pictures."),
         ("Whole systems",
-         "The learned systems are marked by their own classifier, the digital systems by one trained on compressed images. These numbers describe whole systems."),
+         "Marked by their own classifier on one side, by one trained on compressed images on the other. These numbers describe whole systems."),
         ("Different amounts of work",
-         "The digital settings and grader were frozen from earlier validation work. The learned versions are separate training runs."),
+         "Digital settings and grader were frozen from earlier validation work; the learned versions are separate training runs."),
         ("Simulated channel",
-         "Peak-to-average ratio is measured on the numbers we send. Real-radio replay is scheduled for W14."),
+         "Spike heights are measured on the numbers we send. Real-radio replay is scheduled for W14."),
         ("Frozen operating points",
-         "The fallback rule and fixed settings produce visible jumps. Curves pass through measured points only."),
+         "The fallback rule and fixed settings produce visible jumps. Every curve passes through measured points."),
     ], label_w=2.55, pitch=0.94, size=11.5)
     s.line(0.72, 6.42, 11.75, 0, stroke=LINE, stroke_width=0.7)
     note(s, 0.72, 6.48, 11.75,
@@ -592,7 +588,7 @@ def build_scenes() -> list[SlideScene]:
                    ("Methodology",),
                    "Required by PR-8(c): a one-slide distillation of SPEC §17")
     add_header(s)
-    lead(s, "The rubric asks what we decided based on the results obtained. These are the four that count.",
+    lead(s, "What we changed once we could see the measurements.",
          size=12.5, bold=False, color_=MUTED)
     corrections = [
         ("AM-34", "We had pinned the digital system to the weakest radio setting, which made the lines crossing impossible by arithmetic. We let it pick a stronger setting as the signal improves.",
@@ -625,8 +621,6 @@ def build_scenes() -> list[SlideScene]:
                    ("Originality", "Novelty"),
                    "Two claims · both about experimental design")
     add_header(s)
-    lead(s, "Both claims are about how the experiment is built.",
-         size=12.5, bold=False, color_=MUTED)
     claims = [
         ("The task-aware digital control",
          "A digital arm sends learned features through the same error-correction code and radio settings, using the same amount of radio time. It tells “knows the task” apart from “codes both at once” inside one experiment.",
@@ -708,7 +702,7 @@ def build_scenes() -> list[SlideScene]:
            size=16, font="sans", text_color=INK, align="center", valign="mid")
 
     defs(s, 0.62, 3.24, 12.05, [
-        ("Next", "One guarded run on the exam set once the locking manifest is signed. So far, zero exam pictures opened."),
+        ("Next", "One guarded run on the exam set once the locking manifest is signed."),
         ("Then", "Every hypothesis settled on the exam set, and the first tier frozen."),
         ("Later", "Real-radio replay and the live demo run once the first tier is frozen."),
     ], label_w=1.20, pitch=0.56, size=12)

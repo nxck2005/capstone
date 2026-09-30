@@ -2,6 +2,59 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v6 — 2026-09-30, second humanisation pass
+
+v5 killed the negations. A keyword audit then came back nearly clean — 7
+negations, 0 "not just X", 0 buzzwords, 13% of sentences opening with "The" —
+which is the point at which the remaining tells are structural rather than
+lexical and a script stops finding them. So this pass was done by reading all
+263 sentences of deck copy instead.
+
+What that found:
+
+**A note restating the row above it.** Slide 2 ended with "Everything above ran
+on held-back pictures. The exam set stays locked until gate G-12", directly under
+a final row reading "Still locked. It opens in week 11 once the locking document
+is signed." Deleted. Slide 19's "So far, zero exam pictures opened" sat under a
+closing line saying the same thing. Deleted.
+
+**Whole slides built from chained participles.** Slide 2's eight rows were
+"Measured…, tested…, and froze…" / "Built…, trained…, and froze…" /
+"Trained…, and compared…" — every row the same shape, which is how a model writes
+a list. Four rewritten to break the pattern.
+
+**Leads rewording their own title.** Slide 6's title said where the digital
+system gives up and takes over; the lead then said the same thing a third way.
+The lead now does the job a lead should: "One line runs the whole width of the
+chart. The other has a step in it near the left." Slide 16's "The rubric asks
+what we decided based on the results obtained. These are the four that count"
+became "What we changed once we could see the measurements." Slide 17's lead
+repeated its own title and its own footer, and was deleted outright.
+
+**Rhetorical flourishes.** Slide 10 opened "If we had only compared against a
+normal compressed image, the weak-signal story would be too easy to believe" — a
+move that argues rather than informs. Now: "A JPEG image is an easy thing to
+beat. This arm is harder, and it is the one worth reporting."
+
+**Tricolon where two would do.** "the link, the representation, and the marker"
+became "whole systems, link and marker included."
+
+**Five rows opening the same way.** Slide 15 ran "Every figure is…" / "The learned
+systems are…" / "The digital settings…" / "Peak-to-average ratio is…" / "The
+fallback rule…". Reopened so the row rhythm varies.
+
+**Em dashes doing a full stop's job.** Four down to two; the remaining pair are
+table labels ("Half rate — 12,800 uses of the radio"), which is label syntax
+rather than prose punctuation.
+
+Also cut a "That is a 23 point loss" calculator line on slide 8 — the two numbers
+either side already say it — and softened "Two things that govern how every later
+chart should be read" to "Two things to keep in mind".
+
+Negations went 7 → 8, and that is fine: the new one is a classification ("Five are
+controls, not headline systems"). All eight remaining are statements about
+measurements, about prior work, or about how a row is categorised.
+
 ## v5 — 2026-09-30, negative framing removed
 
 An audit of the built file counted **60 strings containing a negation**
