@@ -2,6 +2,37 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v7 — 2026-09-30, repository internals removed
+
+The audience is a capstone review panel. v6 had left our own machinery on the
+slides, which the panel has no way to read and no reason to care about:
+
+- Slide 19 carried an "Evidence trail" block listing `results/learned/w10/`,
+  `presentation-results/` and `spec/SPEC.md §17`
+- Slide 17 cited `docs/literature-review.md`
+- Slide 16 tagged each correction `AM-34` / `AM-52` / `AM-58` / `AM-60`, and its
+  footer read "Required by PR-8(c): a one-slide distillation of SPEC §17"
+- Slide 18 ran a `W10`–`W17` column and a note about "W15 internal freeze"
+- Slides 5 and 19 referred to "gate G-12"
+- Slide 15 referred to "W14"
+
+All of it is gone. The four correction boxes on slide 16 are now labelled by what
+each correction *was* — Baseline too weak, Signal grid too coarse, A faulty
+check, Exam set unlocked too early — which is what a reader needs and the
+amendment numbers only meant to us. Slide 18's week column is dropped in favour
+of the dates it duplicated. "Gate G-12" becomes "week 11" everywhere.
+
+Slide 19's closing block changed purpose rather than just losing its paths: an
+"Evidence trail" listing directories is replaced by "What we are asking for",
+which says the per-picture records are available on request and states the seal.
+A panel wants to know what they can ask for, not where our files sit.
+
+An automated scan for paths, gate IDs, requirement IDs, amendment IDs, spec
+section refs and week numbers now returns zero across all 19 slides. The
+presenter guide's spoken lines were cleaned in the same pass, because a presenter
+reading "it stays sealed until gate G-12" aloud in a viva would have to stop and
+translate it.
+
 ## v6 — 2026-09-30, second humanisation pass
 
 v5 killed the negations. A keyword audit then came back nearly clean — 7

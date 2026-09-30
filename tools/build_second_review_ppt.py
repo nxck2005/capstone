@@ -377,7 +377,7 @@ def build_scenes() -> list[SlideScene]:
           ["Versions of the system", "12", "Five are controls, not headline systems"],
           ["Signal strengths", "21", "From very weak to very clean"],
           ["Pictures per point", "1,000", "The same held-back pictures every time"],
-          ["Exam pictures opened", "0", "Sealed until gate G-12"]],
+          ["Exam pictures opened", "0", "Sealed until week 11"]],
          head_h=0.42, row_h=0.46, size=11.5)
 
     s.line(0.72, 4.58, 11.75, 0, stroke=LINE, stroke_width=0.7)
@@ -574,30 +574,30 @@ def build_scenes() -> list[SlideScene]:
         ("Different amounts of work",
          "Digital settings and grader were frozen from earlier validation work; the learned versions are separate training runs."),
         ("Simulated channel",
-         "Spike heights are measured on the numbers we send. Real-radio replay is scheduled for W14."),
+         "Spike heights are measured on the numbers we send. Real-radio replay is scheduled for late October."),
         ("Frozen operating points",
          "The fallback rule and fixed settings produce visible jumps. Every curve passes through measured points."),
     ], label_w=2.55, pitch=0.94, size=11.5)
     s.line(0.72, 6.42, 11.75, 0, stroke=LINE, stroke_width=0.7)
     note(s, 0.72, 6.48, 11.75,
-         "Both outcomes count as success under the specification: a crossing, and the learned system winning everywhere.")
+         "Both outcomes count as a successful project: a crossing, and the learned system winning everywhere.")
     add_footer(s); slides.append(s)
 
     # 16 — SPEC §17 distillation (PR-8c)
     s = SlideScene(16, "Course correction", "Four times we changed the approach because of what we found",
                    ("Methodology",),
-                   "Required by PR-8(c): a one-slide distillation of SPEC §17")
+                   "What we changed once we could see the measurements")
     add_header(s)
-    lead(s, "What we changed once we could see the measurements.",
+    lead(s, "Four changes we made after the measurements started coming in.",
          size=12.5, bold=False, color_=MUTED)
     corrections = [
-        ("AM-34", "We had pinned the digital system to the weakest radio setting, which made the lines crossing impossible by arithmetic. We let it pick a stronger setting as the signal improves.",
+        ("Baseline too weak", "We had pinned the digital system to the weakest radio setting, which made the lines crossing impossible by arithmetic. We let it pick a stronger setting as the signal improves.",
          "The rule we adopted: every change strengthens the digital system or is decided in advance."),
-        ("AM-52", "Our signal strengths were spaced 2 dB apart exactly where the sharpest drop happens, so we could have missed it entirely. We added three more strengths before it mattered.",
+        ("Signal grid too coarse", "Our signal strengths were spaced 2 dB apart exactly where the sharpest drop happens, so we could have missed it entirely. We added three more strengths before it mattered.",
          "Put the detail where the effect is."),
-        ("AM-58", "The script that checks our packet sizes reported no problems while breaking four of its own rules. We fixed the script, and every result came out the same.",
+        ("A faulty check", "The script that checks our packet sizes reported no problems while breaking four of its own rules. We fixed the script, and every result came out the same.",
          "All 215 configurations stayed feasible, and every scientific outcome was unchanged."),
-        ("AM-60", "The exam set was set to unlock in week 9, about three weeks before the manifest that locks it existed. We moved that to week 11.",
+        ("Exam set unlocked too early", "The exam set was set to unlock in week 9, about three weeks before the document that locks it existed. We moved that to week 11.",
          "They have stayed locked ever since."),
     ]
     for i, (tag, what, why) in enumerate(corrections):
@@ -613,7 +613,7 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=MUTED)
     s.line(0.62, 6.52, 12.05, 0, stroke=LINE, stroke_width=0.7)
     note(s, 0.62, 6.58, 12.05,
-         "Twenty-two further changes are written down in SPEC §17, including three checks that turned out to be wrong and had to be repaired.")
+         "Twenty-two further changes were made during the project, including three checks that turned out to be wrong and were repaired.")
     add_footer(s); slides.append(s)
 
     # 17 — originality / novelty
@@ -657,7 +657,7 @@ def build_scenes() -> list[SlideScene]:
     s.text(0.62, 5.44, 12.05, 0.28, "Negative check", size=13, bold=True,
            font="sans", text_color=INK)
     s.text(0.62, 5.80, 12.05, 0.70,
-           "Each claim resolves to a specific reference in the 30-source review at docs/literature-review.md. The full written novelty statement ships with the final review package.",
+           "Each claim resolves to a specific entry in the 30-source literature review. The full written novelty statement ships with the final review package.",
            size=11, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
@@ -667,28 +667,26 @@ def build_scenes() -> list[SlideScene]:
                    "Second Review 29 Sep–3 Oct · Final Review 17–21 Nov · report due 20 Nov")
     add_header(s)
     phases = [
-        ("W10", "29 Sep – 3 Oct", "Second Review", "Held-back measurements complete; package and figures frozen", True),
-        ("W11", "5 – 11 Oct", "Open the exam set", "One guarded opening once the locking manifest is signed", False),
-        ("W12", "12 – 18 Oct", "Decide everything", "Every hypothesis settled on the exam set; first tier frozen", False),
-        ("W13", "19 – 25 Oct", "Demo", "Signal-strength slider, both systems side by side, frozen plot", False),
-        ("W14", "26 Oct – 1 Nov", "Poster and hardware", "Poster draft; real radio only if the first tier leaves room", False),
-        ("W15", "2 – 8 Nov", "Internal freeze", "Report finished in the required format", False),
-        ("W16", "9 – 15 Nov", "Spare week", "Report completion and checking", False),
-        ("W17", "16 – 22 Nov", "Final Review", "Final review 17–21 Nov; report and material due 20 Nov", False),
+        ("29 Sep – 3 Oct", "Second Review", "Held-back measurements complete; package and figures frozen", True),
+        ("5 – 11 Oct", "Open the exam set", "One guarded opening once the freeze is signed", False),
+        ("12 – 18 Oct", "Decide everything", "Every hypothesis settled on the exam set; first tier frozen", False),
+        ("19 – 25 Oct", "Demo", "Signal-strength slider, both systems side by side, frozen plot", False),
+        ("26 Oct – 1 Nov", "Poster and hardware", "Poster draft; real radio only if the first tier leaves room", False),
+        ("2 – 8 Nov", "Report freeze", "Report finished in the required format", False),
+        ("9 – 15 Nov", "Spare week", "Report completion and checking", False),
+        ("16 – 22 Nov", "Final Review", "Final review 17–21 Nov; report and material due 20 Nov", False),
     ]
-    for i, (week, dates, name, detail, done) in enumerate(phases):
+    for i, (dates, name, detail, done) in enumerate(phases):
         y = 1.50 + i * 0.60
-        s.text(0.62, y + 0.06, 0.62, 0.24, week, size=11, bold=True, font="sans",
-               text_color=INK)
-        s.text(1.42, y + 0.06, 1.72, 0.24, dates, size=11, font="sans", text_color=MUTED)
-        s.text(3.30, y, 2.60, 0.28, name, size=12, bold=True, font="sans", text_color=INK)
-        s.text(6.06, y + 0.02, 5.20, 0.28, detail, size=11, font="sans", text_color=MUTED)
+        s.text(0.62, y + 0.04, 2.00, 0.26, dates, size=11, font="sans", text_color=MUTED)
+        s.text(2.78, y, 2.70, 0.28, name, size=12, bold=True, font="sans", text_color=INK)
+        s.text(5.60, y + 0.02, 5.66, 0.28, detail, size=11, font="sans", text_color=MUTED)
         s.text(11.42, y + 0.04, 1.20, 0.24, "done" if done else "planned", size=10.5,
                bold=True, font="sans", text_color=INK if done else FAINT, align="right")
         s.line(0.62, y + 0.44, 12.05, 0, stroke=LINE, stroke_width=0.5)
     s.line(0.62, 6.46, 12.05, 0, stroke=LINE, stroke_width=0.7)
     note(s, 0.62, 6.52, 12.05,
-         "The report is due inside Final Review week, so W15 is an internal freeze and W16 is reserved for report completion.")
+         "The report is due on 20 November, inside Final Review week, so the week before it is a freeze.")
     add_footer(s); slides.append(s)
 
     # 19 — close
@@ -708,15 +706,11 @@ def build_scenes() -> list[SlideScene]:
     ], label_w=1.20, pitch=0.56, size=12)
 
     s.line(0.62, 5.06, 12.05, 0, stroke=LINE, stroke_width=0.7)
-    s.text(0.62, 5.20, 12.05, 0.28, "Evidence trail", size=13, bold=True,
+    s.text(0.62, 5.24, 12.05, 0.28, "What we are asking for", size=13, bold=True,
            font="sans", text_color=INK)
-    s.text(0.62, 5.54, 12.05, 0.34,
-           "results/learned/w10/ holds the 252-measurement record and the per-picture manifest. Figures and data are in presentation-results/. Requirements and changes are in spec/SPEC.md §17.",
+    s.text(0.62, 5.62, 12.05, 0.62,
+           "Questions on the method or the numbers. The per-picture records behind every point are available on request, and the exam set stays sealed until week 11.",
            size=11, font="sans", text_color=MUTED)
-    s.line(0.62, 6.06, 12.05, 0, stroke=LINE, stroke_width=0.7)
-    s.text(0.62, 6.20, 12.05, 0.34,
-           "The exam set stays sealed until gate G-12.",
-           size=12, bold=True, font="sans", text_color=INK)
     add_footer(s); slides.append(s)
 
     return slides

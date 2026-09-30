@@ -58,6 +58,25 @@ Slide titles are claims or questions, never admissions. "What this evidence
 cannot tell you" became "How to read these results"; "Not claimed as new" became
 "What this builds on"; "What we did not aim for" became "How these are scored".
 
+## What does not appear on a slide
+
+The audience is a review panel. Our own machinery stays out of the deck:
+
+- No repository paths, no directory names
+- No requirement IDs, gate names or amendment numbers
+- No internal week numbering — the schedule slide runs on dates
+- No spec section references
+
+The four course corrections on slide 16 are labelled by what each one *was*
+(Baseline too weak, Signal grid too coarse, A faulty check, Exam set unlocked too
+early) rather than by amendment number. An automated scan for paths, gate IDs,
+requirement IDs, amendment IDs, spec refs and week numbers returns zero across
+all 19 slides.
+
+This constraint is about the deck only. The package note, the iteration notes and
+the presenter guide are internal working documents and do carry the IDs, because
+the presenting team needs them to trace a claim back to its source.
+
 ## Where the results come from
 
 Every number traces to the published W10 v11 validation aggregate. Nothing was

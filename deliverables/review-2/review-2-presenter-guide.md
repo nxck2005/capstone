@@ -200,7 +200,7 @@ Two minutes. This is the slide `Methodology` is scoring.
   breaking four of its own rules. We fixed the script, and every result came out
   the same.
 - **AM-60.** The exam set was set to unlock in week 9, about three weeks before the
-  manifest that locks it existed. We moved it to week 11. It has stayed locked
+  document that locks it existed. We moved it to week 11. It has stayed locked
   ever since.
 
 ## Slide 17 — What we claim as new
@@ -216,9 +216,9 @@ Ninety seconds. Two claims, then the list on the right:
 
 ## Slide 18 — Timeline
 
-Sixty seconds. W11 is the one that matters: one guarded opening of the exam set.
-The report deadline falls inside Final Review week, which is why W15 is an
-internal freeze.
+Sixty seconds. The week of 5 October is the one that matters: one guarded opening
+of the exam set. The report is due on 20 November, inside Final Review week, so
+the week before that is a freeze.
 
 ## Slide 19 — Close
 
@@ -257,24 +257,25 @@ measurement. We removed the pin for that reason.
 ### Why a simulated channel?
 
 The first tier is a simulated link and the project is designed to finish without
-hardware. `docs/deployment-dossier.md` maps it onto a real one. Real-radio replay
-is scheduled for W14.
+hardware. The deployment dossier maps it onto a real one. Real-radio replay is
+scheduled for late October.
 
 ### The spike measurement is on the numbers we send. Does that transfer to a real
 transmitter?
 
 Filter and amplifier behaviour both change the peak ratio. That measurement is a
-design constraint and a reasonable stand-in; the RF measurement is W14 work.
+design constraint and a reasonable stand-in; the RF measurement is late-October
+work.
 
 ### One training run. Is that enough for the crossing decision?
 
 The rule was fixed in advance and applied to exact arithmetic over frozen
-held-back curves, which is what a preregistered gate asks for. Broader inference
-is what the exam campaign and more seed cells are for.
+held-back curves, which is what setting the rule in advance asks for. Broader
+inference is what the exam campaign and more training runs are for.
 
 ### Has the exam set been read?
 
-It stays sealed until gate G-12 in week 11.
+It stays sealed until the week of 5 October.
 
 ### What if the exam results differ?
 
