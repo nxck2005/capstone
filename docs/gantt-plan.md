@@ -100,7 +100,7 @@ gantt
 | W15 internal report freeze | 2–8 Nov | Frozen results | Prescribed-format thesis, audit, novelty statement, plagiarism workflow | Not started |
 | W16 contingency | 9–15 Nov | W15 | Report completion and audit only; no new scientific scope | Reserved |
 | W17 final delivery | 16–22 Nov | Internal freeze | Final review, report and supporting material by 20 Nov, viva preparation | Not started |
-| Second Review package | 29 Sep–3 Oct | W9 evidence; W10 validation figures | Deck matching the Second Review rubric weighting; objectives in completion terms; one-slide SPEC §17 distillation; numeric tables; updated Gantt; package under `deliverables/review-2/`; `review-2-basis` tag | **Deck, PDF, previews, package note and presenter guide complete.** The `review-2-basis` annotated tag is still to be cut. Guide hardware acknowledgement and four-member rehearsal were carried from the First Review and are unverified here |
+| Second Review package | 29 Sep–3 Oct | W9 evidence; W10 validation figures | Deck matching the Second Review rubric weighting; objectives in completion terms; one-slide SPEC §17 distillation; numeric tables; updated Gantt; package under `deliverables/review-2/`; `review-2-basis` tag | **Deck, PDF, previews, package note and presenter guide complete; the `review-2-basis` annotated tag is re-cut at each substantive revision so it matches the shipped deck.** Guide hardware acknowledgement and four-member rehearsal were carried from the First Review and are unverified here |
 
 ## 3. Critical path and control rules
 

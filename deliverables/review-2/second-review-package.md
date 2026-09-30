@@ -2,7 +2,9 @@
 
 Capstone project · Second Review · 29 September – 3 October 2026 · W10
 
-Derived from the annotated git tag `review-2-basis` on this branch.
+Derived from the annotated git tag `review-2-basis` on this branch, re-cut at
+each substantive revision so it points at the deck held here rather than an
+earlier draft.
 
 ## What is in here
 
@@ -29,7 +31,7 @@ marker and no footer chips. Copy the rendered deck, not the builder.
 The idiom, in short:
 
 - Title and one hairline rule. No banner, no page furniture above the line.
-- A footer of plain text: `Rubric: ...`, a citation, and `N / 19`.
+- A footer of plain text: `Rubric: ...`, a citation, and `N / 20`.
 - Sharp-cornered white boxes with a thin grey border. No rounded corners.
 - Real tables — every row a bordered band with vertical separators.
 - Bold term on the left, plain text on the right, for anything explanatory.
@@ -58,6 +60,11 @@ Concretely:
 Slide titles are claims or questions, never admissions. "What this evidence
 cannot tell you" became "How to read these results"; "Not claimed as new" became
 "What this builds on"; "What we did not aim for" became "How these are scored".
+
+Bandwidth ratios keep their spec notation — `1/6` and `1/24` — because the
+embedded figures are titled that way. An earlier draft called them "half rate"
+and "quarter rate", which contradicted both the chart on the slide and the
+spec, where 1/6 is not half of anything.
 
 ## What does not appear on a slide
 
@@ -199,7 +206,7 @@ Four corrections, required by PR-8(c).
 |---|---|---|
 | 01 | `01_headline_full_snr.png` | Held-back pictures, one run, different graders on the two sides |
 | 02 | `02_low_snr_closeup.png` | Transition lies between −5 and −4 dB |
-| 03 | `03_bandwidth_efficiency.png` | Compare within each panel; the crossing happens twice at quarter rate |
+| 03 | `03_bandwidth_efficiency.png` | Compare within each panel; the crossing happens twice at 1/24 rate |
 | 04 | `04_training_robustness.png` | Two separately trained models |
 | 05 | `05_task_aware_digital.png` | Feature encoders differ, so this compares representations |
 | 06 | `06_papr_tradeoff.png` | Measured on the numbers we send |

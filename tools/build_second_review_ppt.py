@@ -274,7 +274,7 @@ def build_scenes() -> list[SlideScene]:
         ("Aug · Digital system",
          "Measured how badly it loses pictures at every setting. All 288,000 held-back combinations tested, and the settings it should use at each signal strength frozen."),
         ("Aug · Learned system",
-         "Training loop built, models trained at several seeds. Three of them are frozen at half rate."),
+         "Training loop built, models trained at several seeds. Three of them are frozen at 1/6 rate."),
         ("Sep · Fair comparison",
          "Built a control that sends learned features digitally, so the comparison includes a task-aware system alongside a compressed image."),
         ("Sep · Weak-link training",
@@ -330,9 +330,9 @@ def build_scenes() -> list[SlideScene]:
     # 4 — plain-language on-ramp before any results
     s = SlideScene(4, "How to read these", "Before the numbers, one picture",
                    ("Results", "Analytical Skills"),
-                   "Plain language. The next fourteen slides depend on it.")
+                   "Plain language. Everything after this slide depends on it.")
     add_header(s)
-    lead(s, "Every chart in this deck runs from a very weak radio signal on the left to a clean one on the right.",
+    lead(s, "Every chart in this deck runs from a weak radio signal on the left to a clean one on the right.",
          size=13.5, bold=False, color_=MUTED)
 
     grid(s, 0.72, 1.84,
@@ -353,7 +353,7 @@ def build_scenes() -> list[SlideScene]:
     s.text(9.90, 2.36, 2.54, 0.26, "At the weakest signal we measured:",
            size=10.5, font="sans", text_color=MUTED)
     s.text(9.90, 2.72, 2.54, 1.86,
-           "The learned system labelled 728 of the 1,000 pictures correctly.\n\nThe digital system got almost nothing through, so every picture fell back to one fixed answer. That answer happens to be right 100 times out of 1,000. So 10%.",
+           "The learned system labelled 728 of the 1,000 pictures correctly.\n\nThe digital system got almost nothing through, so every picture fell back to the same fixed answer. That answer is right 100 times out of 1,000, which is the 10%.",
            size=10.5, font="sans", text_color=MUTED)
     s.line(9.90, 4.72, 2.54, 0, stroke=LINE, stroke_width=0.7)
     s.text(9.90, 4.86, 2.54, 1.22,
@@ -375,7 +375,7 @@ def build_scenes() -> list[SlideScene]:
          ["Item", "Figure", "What it is"],
          [["Measurements", "252", "One row each in the published record"],
           ["Versions of the system", "12", "Five are controls, not headline systems"],
-          ["Signal strengths", "21", "From very weak to very clean"],
+          ["Signal strengths", "21", "From weak to clean"],
           ["Pictures per point", "1,000", "The same held-back pictures every time"],
           ["Exam pictures opened", "0", "Sealed until week 11"]],
          head_h=0.42, row_h=0.46, size=11.5)
@@ -385,7 +385,7 @@ def build_scenes() -> list[SlideScene]:
            size=13, bold=True, font="sans", text_color=INK)
     defs(s, 0.72, 5.16, 11.75, [
         ("Radio time",
-         "Half rate uses the radio 12,800 times per picture; quarter rate uses it 3,200 times. Within one rate both systems get exactly the same amount of radio time."),
+         "1/6 rate uses the radio 12,800 times per picture; 1/24 rate uses it 3,200 times. Within one rate both systems get exactly the same amount of radio time."),
         ("Who marks it",
          "The learned systems are marked by the classifier built into them. The digital systems are marked by one we trained on compressed-looking images. So every comparison in this deck is between whole systems, link and marker included."),
     ], label_w=2.00, pitch=0.70, size=11)
@@ -409,8 +409,8 @@ def build_scenes() -> list[SlideScene]:
           ["Blocks", "2 residual blocks, Group norm, PReLU"],
           ["Decoder", "Mirror of the encoder, two heads"],
           ["Heads", "Class scores, plus a rebuilt picture"],
-          ["Width sent", "8 complex symbols per use at half rate"],
-          ["Parameters", "1.64 M at the widest rate"]],
+          ["Width sent", "8 complex symbols per position, 1,600 positions"],
+          ["Parameters", "1.57 M at the 1/6 rate reported here"]],
          head_h=0.38, row_h=0.40, size=10.5, head_size=10)
 
     s.text(6.86, 1.70, 5.79, 0.26, "How it was trained", size=12.5, bold=True,
@@ -439,7 +439,7 @@ def build_scenes() -> list[SlideScene]:
     # 7 — headline figure
     s = SlideScene(7, "Headline", "Where the digital system gives up, and where it takes over",
                    ("Results",),
-                   "Half rate · all 21 measured signal strengths · held-back pictures")
+                   "1/6 rate · all 21 measured signal strengths · held-back pictures")
     add_header(s)
     lead(s, "One line runs the whole width of the chart. The other has a step in it near the left.")
     figure(s, "01_headline_full_snr.png", y=1.80, max_h=4.36)
@@ -482,15 +482,15 @@ def build_scenes() -> list[SlideScene]:
     add_footer(s); slides.append(s)
 
     # 10 — bandwidth
-    s = SlideScene(10, "Bandwidth", "What happens when we quarter the radio time",
+    s = SlideScene(10, "Bandwidth", "What happens when we cut the radio time fourfold",
                    ("Results", "Analytical Skills"),
-                   "Quarter rate against half rate · compare within each panel")
+                   "1/24 rate against 1/6 rate · compare within each panel")
     add_header(s)
-    lead(s, "On a quarter of the radio time, the digital system loses far more at the weak end than the learned one does.")
+    lead(s, "With four times less radio time, the digital system loses far more at the weak end than the learned one does.")
     figure(s, "03_bandwidth_efficiency.png", y=1.80, max_h=2.92)
     defs(s, 0.72, 5.00, 11.75, [
-        ("Weak signal", "Going from half to quarter rate drops the learned system from 72.8% to 49.4%."),
-        ("At 0 dB, quarter rate", "Learned 78.7% against digital 69.4%. The learned system is still ahead."),
+        ("Weak signal", "Cutting from 1/6 to 1/24 rate drops the learned system from 72.8% to 49.4%."),
+        ("At 0 dB, 1/24 rate", "Learned 78.7% against digital 69.4%. The learned system is still ahead."),
         ("Catches up, then slips", "Digital passes learned at the +4 dB point, loses the lead at +9 dB, then goes ahead again."),
     ], label_w=2.10, pitch=0.50, size=11.5)
     add_footer(s); slides.append(s)
@@ -568,7 +568,7 @@ def build_scenes() -> list[SlideScene]:
     lead(s, "How many of the 1,000 held-back pictures we labelled correctly, one picture at a time.",
          size=12.5, bold=False, color_=MUTED)
 
-    s.text(0.72, 1.76, 5.80, 0.24, "Half rate — 12,800 uses of the radio", size=11,
+    s.text(0.72, 1.76, 5.80, 0.24, "1/6 rate — 12,800 uses of the radio", size=11,
            bold=True, font="sans", text_color=INK)
     grid(s, 0.62, 2.06,
          [("System", 2.00), ("−8", 0.60), ("−5", 0.60), ("−4", 0.60), ("0", 0.60),
@@ -581,7 +581,7 @@ def build_scenes() -> list[SlideScene]:
           ["Learned, power-limited", "75.9", "80.1", "80.5", "82.3", "83.0", "83.2"]],
          head_h=0.40, row_h=0.44, size=11, head_size=10, tint={0: "F3F3F3", 1: "F3F3F3"})
 
-    s.text(6.72, 1.76, 5.64, 0.24, "Quarter rate — 3,200 uses of the radio", size=11,
+    s.text(6.72, 1.76, 5.64, 0.24, "1/24 rate — 3,200 uses of the radio", size=11,
            bold=True, font="sans", text_color=INK)
     grid(s, 6.72, 2.06,
          [("System", 2.00), ("−8", 0.60), ("−4", 0.60), ("−2", 0.60), ("0", 0.60),
@@ -594,14 +594,14 @@ def build_scenes() -> list[SlideScene]:
     s.text(6.72, 3.34, 5.64, 0.28, "Where the two lines cross", size=12, bold=True,
            font="sans", text_color=INK)
     s.text(6.72, 3.66, 5.64, 0.70,
-           "At half rate, which system is ahead flips between −5 dB and −4 dB. We decided the crossing question on exactly that, before seeing the answer.",
+           "At 1/6 rate, which system is ahead flips between −5 dB and −4 dB. We decided the crossing question on exactly that, before seeing the answer.",
            size=11, font="sans", text_color=MUTED)
 
     s.line(0.72, 4.62, 11.75, 0, stroke=LINE, stroke_width=0.7)
     s.text(0.72, 4.76, 11.60, 0.28, "Reading the two tables", size=13, bold=True,
            font="sans", text_color=INK)
     s.text(0.72, 5.12, 11.60, 1.20,
-           "Each column is one signal strength; each cell is the number of correct labels out of the same 1,000 held-back pictures. At half rate the learned row leads up to −5 dB and the digital row leads from −4 dB. At quarter rate the digital row stays on the fallback floor four dB longer, then climbs past the learned row from +4 dB. The difference between the two tables is the effect of cutting radio time fourfold.",
+           "Each column is one signal strength; each cell is the number of correct labels out of the same 1,000 held-back pictures. At 1/6 rate the learned row leads up to −5 dB and the digital row leads from −4 dB. At 1/24 rate the digital row stays on the fallback floor four dB longer, then climbs past the learned row from +4 dB. The difference between the two tables is the effect of cutting radio time fourfold.",
            size=11, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 
@@ -632,7 +632,7 @@ def build_scenes() -> list[SlideScene]:
                    ("Methodology",),
                    "What we changed once we could see the measurements")
     add_header(s)
-    lead(s, "Four changes we made after the measurements started coming in.",
+    lead(s, "Each one was a decision we would have got wrong on paper.",
          size=12.5, bold=False, color_=MUTED)
     corrections = [
         ("Baseline too weak", "We had pinned the digital system to the weakest radio setting, which made the lines crossing impossible by arithmetic. We let it pick a stronger setting as the signal improves.",
@@ -657,7 +657,7 @@ def build_scenes() -> list[SlideScene]:
                font="sans", text_color=MUTED)
     s.line(0.62, 6.52, 12.05, 0, stroke=LINE, stroke_width=0.7)
     note(s, 0.62, 6.58, 12.05,
-         "Twenty-two further changes were made during the project, including three checks that turned out to be wrong and were repaired.")
+         "Twenty-two more changes were made during the project, three of them repairs to checks that were themselves wrong.")
     add_footer(s); slides.append(s)
 
     # 18 — originality / novelty
@@ -753,7 +753,7 @@ def build_scenes() -> list[SlideScene]:
     s.text(0.62, 5.24, 12.05, 0.28, "What we are asking for", size=13, bold=True,
            font="sans", text_color=INK)
     s.text(0.62, 5.62, 12.05, 0.62,
-           "Questions on the method or the numbers. The per-picture records behind every point are available on request, and the exam set stays sealed until week 11.",
+           "Questions on the method or the numbers. The per-picture records behind any point here are available on request. The exam set stays sealed until week 11.",
            size=11, font="sans", text_color=MUTED)
     add_footer(s); slides.append(s)
 

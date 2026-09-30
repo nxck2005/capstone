@@ -2,6 +2,74 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v10 — 2026-09-30, rate naming corrected, then a humanisation pass
+
+**"Half rate" was wrong, and it was visible on the slide.** v2's plain-language
+pass renamed `r_1_6` and `r_1_24` to "half rate" and "quarter rate". Nothing in
+the spec uses those names — `params.bandwidth.ratios` calls them `1/6` and
+`1/24` — and 1/6 is not half of anything. Worse, the two names collided with a
+rung that genuinely exists: `r_1_2` is half rate, and it is a different
+bandwidth (38,400 symbols against 12,800).
+
+The plain-language goal was right, the arithmetic was not, so the ratio now
+travels as `1/6` and `1/24`. That also makes slide text agree with the embedded
+figures, whose own panel titles read `1/24 bandwidth · 3,200 symbols` and
+`1/6 bandwidth · 12,800 symbols`. A panel member could read "half rate" in the
+slide copy and "1/6 bandwidth" on the chart on the same screen, and there was no
+good answer for why.
+
+Twelve strings changed across the builder, the presenter guide and the package
+note. The presenter guide now carries the rule explicitly: say "one sixth" and
+"one twenty-fourth", never "half rate".
+
+**The parameter count was the wrong model's.** Slide 6 quoted 1.64 M, which
+comes from `g7_djscc_profile.json` and was measured at `r_1_2` — 24 complex
+channels. Every other number in the deck is at `r_1_6` (8 complex channels).
+Rebuilding the headline model from `configs/learned-w8-final.yaml` gives:
+
+```
+r_1_6 headline:  total=1,567,197   encoder=820,688   decoder=746,509
+profile (r_1_2): 1,640,957
+```
+
+So the slide said 1.64 M about a 1.57 M model. It now reads "1.57 M at the 1/6
+rate reported here". The width row was wrong in the same way and for the same
+reason: "8 complex symbols per use at half rate" described `r_1_6` while calling
+it half rate. It now reads "8 complex symbols per position, 1,600 positions",
+which is the actual mechanism — 160×160 ÷ 4 = 40×40 = 1,600 positions, times 8
+complex channels, and that product is the 12,800 the slide is about.
+
+**Humanisation.** A probe over the rebuilt deck's 253 sentences, then a read of
+all of them. What changed:
+
+- Two leftover intensifiers from v9's new copy: "a very weak radio signal" and
+  "From very weak to very clean", both on slide 4/5's framing. Now "weak" and
+  "From weak to clean".
+- Slide 10's title was "What happens when we quarter the radio time", which is
+  the same half-rate/quarter-rate error in the title position. "What happens
+  when we cut the radio time fourfold" says the same thing without the bad
+  fraction.
+- Slide 17's lead restated its own title — the title already said "four times we
+  changed the approach", and the lead said "four changes we made after the
+  measurements started coming in". Replaced with the thing a lead should carry:
+  "Each one was a decision we would have got wrong on paper."
+- Slide 4's worked example ended "So 10%." A bare "So" that reads as a
+  conclusion-marker. Now "which is the 10%".
+- Slide 17's closing note was the longest sentence in the deck (23 words, three
+  clauses, a colon and a passive). Shortened.
+- Slide 4's footer claimed a dependency on "the next fourteen slides", a count
+  that went stale the moment v9 added slide 6. Now "Everything after this
+  slide", which cannot go stale.
+- Slide 20's closing paragraph had "behind every point"; now "behind any point
+  here", which is the same claim in fewer words and reads less like a boast.
+
+Probe counts after the pass: 0 "not just X", 0 empty intensifiers, 0
+conclusion-announcers, 2 em dashes (both table labels on slide 15, where the
+dash is label syntax), 9 negations — all statements about measurements or
+about how a row is categorised, none of them hedging the project's own
+confidence. The count of sentences opening with "The" is 31 of 253, about 12%,
+which is unremarkable for technical prose and was left alone.
+
 ## v9 — 2026-09-30, model parameters slide added
 
 A capstone panel reviewing an AI project will ask what was trained. The deck
@@ -16,17 +84,17 @@ evidence, and none was typed in by hand:
 | Figure | Source |
 |---|---|
 | 64 then 128 channels, 2 residual blocks, Group norm, PReLU, two heads | `spec/params.generated.yaml` → `learned_system` |
-| 8 complex symbols per use at half rate | same, `encoder_output_complex_channels.r_1_6` |
-| 1.64 M parameters | `results/profiling/g7_djscc_profile.json` → `model.parameter_count` = 1,640,957 |
+| 8 complex symbols per position, 1,600 positions | `encoder_output_complex_channels.r_1_6` = 8; `encoder_downsample_factor` = 4, so 160÷4 = 40, 40×40 = 1,600 |
+| 1.64 M parameters | `results/profiling/g7_djscc_profile.json` → `model.parameter_count` = 1,640,957 — **superseded in v10, which reports 1.57 M for the r_1_6 model actually shown** |
 | objective, Adam 0.001, cosine, batch 32, 100 epochs, 16-bit | same, `learned_system` |
 | ResNet-18, 11.18 M parameters, 89.8% | `results/reference_classifier/g1_adjudication.json` |
 | 48.7 s/epoch, 1.0 GiB | `results/profiling/g7_djscc_profile.json` → `training`, `memory` |
 
-Two honesty details worth keeping. The 1.64 M figure was measured at the widest
-rate, which has 24 complex channels; the rates actually reported here are
-narrower, so the slide says "1.64 M at the widest rate" rather than claiming it
-for the headline model. And λ = 3.0 was calibrated on held-back data at a gate,
-so the presenter guide points that out rather than presenting it as a free
+Two honesty details worth keeping, one of which v10 later corrected. The 1.64 M
+figure was measured at the widest rate, which has 24 complex channels; the rates
+actually reported here are narrower — v9 handled this by hedging, and v10
+replaced the number outright. And λ = 3.0 was calibrated on held-back data at a
+gate, so the presenter guide points that out rather than presenting it as a free
 parameter.
 
 The slide's rubric tag is `Results, Analytical Skills`. `Subject Knowledge` is a

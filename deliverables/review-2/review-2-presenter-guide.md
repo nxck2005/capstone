@@ -84,15 +84,18 @@ Then the two rows underneath, because they govern how every later slide reads:
 
 ## Slide 6 — The two models behind every number
 
-Ninety seconds, and skip it if the panel already knows the architecture.
+Ninety seconds, and skip it if the panel already knows the architecture. It is
+the slide that answers "what did you actually train", so it is worth doing even
+when it feels like the obvious part.
 
 > Two models are involved. A ResNet-18 classifier reads the pictures, and a
 > residual convolutional link decides what to transmit. Both trained from
 > scratch on this dataset, no pre-trained weights.
 
 > The link has an encoder and a mirrored decoder with two heads: class scores,
-> and a rebuilt picture as an auxiliary task. It sends 8 complex symbols per
-> channel use at half rate. It is 1.64 million parameters at its widest.
+> and a rebuilt picture as an auxiliary task. It cuts the picture down to a
+> 40 by 40 grid and sends 8 complex symbols from each position, which is 12,800
+> channel uses per picture at our main rate. It is 1.57 million parameters.
 
 > Training is Adam at 0.001, cosine decay, batch 32, 100 epochs, random crop and
 > horizontal flip, mixed 16-bit. The objective is class scores plus three times
@@ -135,13 +138,17 @@ Ninety seconds. This answers the most technical question in the room.
 If asked why the learned system has no flat line: its rules promise a label at
 every signal strength.
 
-## Slide 10 — Quartering the radio time
+## Slide 10 — Cutting the radio time fourfold
 
 Ninety seconds. Two panels, compare within each.
 
 > Cutting from 12,800 uses of the radio to 3,200 costs the learned system 23
 > points at −8 dB and almost nothing at +18 dB. The digital system loses much
 > more at the weak end and doesn't begin substantial delivery until −2 dB.
+
+Say the rates as "one sixth" and "one twenty-fourth". Don't say "half rate" —
+the figures on the screen are labelled 1/6 and 1/24, and a panel reading the
+slide next to the chart would ask why the two disagree.
 
 Then the complication, which the slide already states:
 
