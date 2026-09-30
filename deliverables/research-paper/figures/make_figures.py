@@ -106,7 +106,7 @@ def plot(ax, system, label, color, marker, *, ratio="r_1_6", scorer=None, ls="-"
 
 
 def save(fig, stem: str) -> None:
-    fig.savefig(OUT / f"{stem}.pdf")
+    fig.savefig(OUT / f"{stem}.pdf", metadata={"CreationDate": None})
     fig.savefig(OUT / f"{stem}.png", dpi=200)
     plt.close(fig)
 
