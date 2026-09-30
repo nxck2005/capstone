@@ -2,6 +2,40 @@
 
 Second Review deck · `tools/build_second_review_ppt.py`
 
+## v11 — 2026-10-01, manual edits kept, claims corrected
+
+**The `.pptx` is now the source, not the builder.** The authors edited slides 1–4
+by hand (titles on slides 1–4, the right panel of slide 3 removed) and hid slide 4.
+Re-running `tools/build_second_review_ppt.py` would overwrite those edits, so every
+change below was made in place with python-pptx, touching only the text concerned.
+The PDF, previews and contact sheet were re-rendered by PowerPoint itself; the PDF
+omits the hidden slide, the previews include it.
+
+**Claims corrected against the evidence:**
+
+- Slide 2: "Oct · Measurements" → Sep (the W10 closeout is dated 27 September);
+  "Nov · Exam set" → Oct (week 11 is 5–11 October, as slide 19 says); "upto" → "up to".
+- Slide 6: the clean classifier is not "the ceiling both systems are measured
+  against" — the digital side is graded by a copy retrained on compressed pictures.
+- Slide 12: "A JPEG image is an easy thing to beat" contradicted slide 7, where the
+  image system wins from −4 dB up.
+- Slide 13: PAPR shown as 3.0 dB and 20.1 dB instead of six decimal places.
+- Slide 15: "four dB longer" → two (the 1/24 floor ends at −3 dB, the 1/6 floor at −5 dB).
+  The number cells wrapped ("72." / "8") in PowerPoint's font metrics; their side
+  margins are now zero and wrapping is off.
+- Slide 16: real-radio replay is a stretch goal, not "scheduled".
+- Slide 17: "Twenty-two more changes" had no source; the spec records 99 amendments.
+  Replaced with a pointer to the amendment log.
+- Slide 18: "Prior work reports the gap without this control" and "Prior work quotes
+  a nominal rate and leaves the overhead uncounted" overstated the literature
+  (Lokumarambage et al. 2026 compare learned digital and learned JSCC; SwinJSCC uses
+  a per-SNR 5G LDPC baseline). Both now say what was actually checked.
+- Slide 19: "Where the remaining weeks went" → "go"; the demo row now says it is
+  already built.
+
+The presenter guide gained a prepared answer for "hasn't this been done before?"
+under slide 18, naming the closest work first.
+
 ## v10 — 2026-09-30, rate naming corrected, then a humanisation pass
 
 **"Half rate" was wrong, and it was visible on the slide.** v2's plain-language

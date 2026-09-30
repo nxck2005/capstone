@@ -242,6 +242,18 @@ Ninety seconds. Two claims, then the list on the right:
 > and charging the file and framing overhead to the digital system so it is tuned
 > on the payload it can actually use.
 
+If someone asks whether this has been done before, name the closest work first:
+
+> Strong digital baselines exist — SwinJSCC compares against BPG with 5G LDPC at
+> the best setting for each signal strength — and Lokumarambage and colleagues
+> compared a learned digital system with learned JSCC in 2026. What we add, to our
+> knowledge, is doing it for classification with the task-aware control on the
+> identical 5G chain, the same radio time and the same noise per picture. That is
+> what lets us say most of the weak-signal gain comes from pictures that never
+> fail to arrive, not from a better representation.
+
+Say "to our knowledge", never "no one has done this".
+
 ## Slide 19 — Timeline
 
 Sixty seconds. The week of 5 October is the one that matters: one guarded opening
@@ -286,7 +298,7 @@ measurement. We removed the pin for that reason.
 
 The first tier is a simulated link and the project is designed to finish without
 hardware. The deployment dossier maps it onto a real one. Real-radio replay is
-scheduled for late October.
+a stretch goal for late October.
 
 ### The spike measurement is on the numbers we send. Does that transfer to a real
 transmitter?
