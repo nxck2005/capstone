@@ -1,968 +1,293 @@
 # Project Knowledge Transfer
 
-This document is for someone who has just joined the project and knows nothing about it.
+Written 2026-10-01, replacing the version from before final training. This is the document to read first if you are new to the project, coming back to it, or preparing for a review or viva. It explains the idea, the experiment, where things stand, what was found, and how the repository is organised, in that order.
 
-It explains the idea first, then the experiment, then the codebase. It deliberately uses simple
-language. You do not need a communications background, a machine-learning background, or knowledge
-of the repository to begin here.
+It is not normative. `spec/SPEC.md` governs the science, `NEXT.md` holds the session-to-session working state, and [`RESULTS.md`](RESULTS.md) holds every measured number with its caveats. If this document disagrees with any of those, they win.
 
 ## 1. The project in one minute
 
-Imagine a small camera at the edge of a network. The camera sees an image. A server on the other
-side of a wireless link must classify that image.
+A small camera at the edge of a network sees an image. A server on the other side of a noisy wireless link has to say what is in it: one of ten classes. The camera and server can only use a fixed amount of radio time per image.
 
-A normal communication system does this:
+The conventional way is to compress the image, protect the bits with an error-correcting code, send them, rebuild the image at the server, and classify it. The alternative this project studies is **deep joint source–channel coding (DJSCC)**: a neural network at the camera maps the image straight to radio symbols, a second network at the server reads the noisy symbols and outputs the class, and the two are trained together through a simulated channel.
 
-```text
-image
-  -> compress the image
-  -> turn it into protected bits
-  -> send the bits through noise
-  -> recover the bits
-  -> rebuild the image
-  -> classify the rebuilt image
-```
+The project compares three systems at exactly the same radio budget and channel:
 
-This project asks whether we can do this instead:
+1. **Conventional:** JPEG 2000 compression, then 5G NR LDPC error correction and BPSK/QPSK/16-QAM modulation, re-tuned at every signal strength.
+2. **Task-aware digital:** learned task features, quantised and sent over that same digital link.
+3. **DJSCC:** learned end to end, with no bits in between.
 
-```text
-image
-  -> learn the information that is useful for classification
-  -> send that representation through noise
-  -> classify it at the receiver
-```
+The second system exists so the result can be explained. If DJSCC wins, is it because it learned what matters for the task, or because it codes source and channel jointly? Comparing systems 1 and 2 answers the first question; comparing 2 and 3 answers the second.
 
-The learned system may not need to preserve every pixel perfectly. It only needs to preserve enough
-information for the receiver to do its task.
+The project succeeds if this comparison is built, run, and reported properly under the preregistered protocol. DJSCC is not required to win.
 
-The project tests this idea using image classification over a simulated noisy channel. It compares
-three systems at the same communication budget:
+## 2. Where the project stands
 
-1. A strong conventional image-transmission system.
-2. A digital system that transmits learned task features.
-3. A learned joint source-channel coding system.
+As of 2026-10-01, after the Second Review.
 
-The project is successful if this comparison is implemented, run, and reported correctly. The
-learned system is not required to win.
+| Stage | State |
+|---|---|
+| Environment, datasets, manifests, keyed randomness | Done (W1) |
+| Clean reference classifier, ResNet-18 from scratch (G-1) | Done: 898/1000 on validation |
+| DJSCC architecture and compute profile (G-7) | Done |
+| LDPC conformance against an independent reference (G-2) | Done: within 0.0037 dB |
+| Conventional baseline built, BLER curves measured, operating points selected (W4, G-8) | Done: 153 curves, 3,213 points; 288,000 validation evaluations |
+| Classifier fine-tuned on JPEG 2000 artifacts | Done |
+| λ pilot and selection (G-4) | Done: λ = 3 |
+| Final DJSCC training, three seeds × two ratios (W8) | Done: six models |
+| Crossover check on validation (G-10) | Done: crossover between −5 and −4 dB at 1/6 |
+| Task-aware digital control, three seeds (ER-9) | Done: 2,048 features, 2 bits |
+| SNR-randomized DJSCC (ER-2), PAPR-capped DJSCC | Done: one run each |
+| H4 precision diagnostic (G-11) | Done: see [`RESULTS.md`](RESULTS.md), finding 11 |
+| Full validation rehearsal: 12 variants × 21 SNRs (W10) | Done: 252 measurements, published at `c31dd2b` |
+| Second Review deck, demo app, paper draft, supplement | Done |
+| **Test split** | **Sealed. Never read by a model.** |
 
-## 2. What problem are we solving?
+**What comes next**, in order (the dates are the course's, from `params.deliverables`):
 
-An edge device can have limited bandwidth, limited power, and an unreliable connection. Sending a
-complete high-quality image can be expensive. It may also be unnecessary when the receiver only
-needs a narrow answer such as an image class.
+1. **W11: G-12 test release.** Commit the freeze manifest (`results/freeze_manifest.json`, which does not exist yet), covering the code commit, configs, split manifest, checkpoints, classifier variants and operating points. Only then open the test split for **one** campaign. That campaign runs every system on the full 3,925-image test split with three seed pairs, then runs the paired bootstrap that decides H1–H4. The freeze-manifest generator, the test-campaign runner and the H1–H4 analysis still have to be built.
+2. **W12:** results frozen and reported whichever way they fall (G-5).
+3. **W13–W14:** figure polish; optional hardware stretch (Tier 2 SDR replay), otherwise a pre-recorded demo; poster draft.
+4. **W15:** report in the university format, results audit, novelty statement, plagiarism report. **Internal report freeze.**
+5. **W16:** contingency, allocated to finishing the report.
+6. **W17: Final Review, 17–21 November. Report due 20 November.**
 
-For example, the receiver may only need to decide whether an image contains a dog, a truck, or a
-building. It may not need every texture and background detail.
+## 3. The idea in more detail
 
-The central question is:
+### Why not just compress and send?
 
-> At the same bandwidth and channel conditions, can a task-aware learned communication system
-> preserve classification accuracy better than a properly tuned conventional system?
+Shannon's separation theorem says compressing and error-protecting separately loses nothing, but only for infinitely long messages. Real links send short packets with a fixed latency budget, and at finite length separate coding pays a price: the code needs a safety margin, and some packets still fail. When a packet fails, the receiver gets nothing at all. This is the **cliff**: above some signal strength the digital link works almost perfectly; below it, nothing arrives.
 
-This is an experimental question. The repository does not assume the answer is yes.
+A learned joint system has no packets to lose. As the signal gets worse its output gets noisier, but some information still arrives. This is **graceful degradation**. The hope is that noisy-but-useful beats nothing at low SNR.
 
-## 3. What does “semantic communication” mean here?
+### Why not just send the class label?
 
-The word “semantic” can sound vague. In this project it has a specific meaning:
+For ten classes the whole answer is four bits, and four heavily protected bits would survive almost any channel. The project answers this with its **premise**: the split between camera and server is fixed by the deployment. The camera runs an encoder, the server owns the task, and the camera can't run the whole classifier, perhaps because it is too small or because the task belongs to the server. Within that split, the question is the best way to transmit. The label-transmission variant in the results is there so the reader can see what the premise costs.
 
-> Transmit information that is useful for the receiver's task, rather than treating perfect source
-> reconstruction as the only objective.
+### What "semantic" means here
 
-The task is image classification. The sender sees the image. The receiver owns the classifier. The
-sender and receiver are separated by a noisy, bandwidth-limited channel.
+Nothing to do with language models. "Semantic" or "task-oriented" communication just means the system is judged on whether the receiver completes its task (here, top-1 classification accuracy), not on how faithfully it rebuilds the image.
 
-This project does not study language semantics, large language models, agents, or reinforcement
-learning.
+## 4. The systems
 
-It uses supervised learning. A neural encoder and neural decoder are trained end to end through a
-differentiable channel model.
+### 4.1 Conventional: JPEG 2000 + LDPC (adaptive)
 
-## 4. Why not send only the class label?
+At each signal strength, the baseline picks the combination of image size (64–160 px), LDPC code rate (1/3, 1/2, 2/3, 5/6) and modulation (BPSK, QPSK, 16-QAM) that maximises expected accuracy on validation. Expected accuracy combines the measured chance that every block decodes with the measured accuracy on correctly decoded images. The JPEG 2000 file is made as large as the packet can carry. The LDPC chain follows 3GPP TS 38.212 (TB CRC, segmentation, CB CRC, rate matching). Sionna 2.0.1 does the LDPC encoding and decoding; the project writes the rest.
 
-This is an important objection.
+Delivered images are classified by a **ResNet-18 fine-tuned on JPEG 2000-compressed training images**. Failed packets get the **outage rule**: predict class 0, which is right 10% of the time on the balanced validation set. Failures stay in the accuracy; they are never dropped.
 
-There are ten image classes. A complete class label needs only four bits. If the sender were allowed
-to run the entire classifier, it could send only the label. That would be much cheaper than sending
-an image or a learned representation.
+The baseline is deliberately strong: adaptive modulation, a codec chosen to avoid JPEG's header overhead, and a classifier that has seen compression artifacts. A weak baseline would make any DJSCC win meaningless.
 
-The project therefore fixes the deployment split:
+### 4.2 Task-aware digital control (ER-9)
 
-- The sender runs an encoder.
-- The receiver owns the task head.
-- The sender is not allowed to replace the communication problem by running the full receiver task.
+This system uses the same CNN trunk as DJSCC, then outputs 2,048 features (a 32 × 8 × 8 map), squashes them to [−1, 1], and quantises each to 2 bits. The indices are range-coded (or sent raw if that is shorter) and carried by the same LDPC link at BPSK, rate 1/3, in the same channel uses. It is trained without a channel, because the link either delivers the indices exactly or fails.
 
-This models cases where the receiver's task changes, where the task head is private or centrally
-managed, or where the edge device cannot run the full model.
+### 4.3 DJSCC
 
-The project reports the label-only bound so this assumption is visible. It does not pretend the
-objection does not exist.
+Two strided convolutions downsample the image by 4 to a 40 × 40 grid, followed by two residual blocks (GroupNorm, PReLU). A 3 × 3 convolution then produces 2c channels, and each pair becomes one complex symbol:
+- c = 8 at 1/6, giving 12,800 symbols;
+- c = 2 at 1/24, giving 3,200 symbols.
 
-## 5. The three systems
+The symbols are normalised to unit average power per image and sent through complex AWGN. The receiver mirrors the encoder and has two heads: a reconstruction and a class prediction (global average pooling plus one linear layer). The loss is cross-entropy plus 3 × MSE. Training uses Adam at 10⁻³ with cosine decay, 100 epochs, batch 32, mixed precision, and a fixed training SNR of 7 dB. The model has about 1.57 M parameters at 1/6.
 
-The three-way comparison is the core of the project.
+### 4.4 Variants measured alongside
 
-### 5.1 System A: conventional image transmission
+| Variant | What it asks |
+|---|---|
+| DJSCC trained at random SNRs {1, 4, 7, 13, 19} dB (ER-2) | Does training on varied channels help at low SNR? |
+| DJSCC with a 3 dB peak-to-average power cap | What does a hardware-friendly signal cost? |
+| DJSCC reconstruction → clean ResNet-18 (ER-4) | Is rebuilding the image worse than reading the features directly? |
+| JPEG 2000, QPSK only (BR-9) | What is adaptive modulation worth? |
+| JPEG 2000, one fixed operating point (BR-16) | What does the sharpest possible cliff look like? |
+| Baseline JPEG instead of JPEG 2000 (DEC-9) | Why JPEG 2000 was chosen as the codec |
+| Label transmission (ER-12) | Upper bound on sending a decision instead of data |
+| Every digital output also scored by the clean ResNet-18 (BR-12) | How much does the receiver's classifier matter? |
 
-This system sends a compressed image through a digital communication chain.
+## 5. What makes the comparison fair
 
-```text
-canonical image
-  -> JPEG 2000 compression
-  -> packet framing and CRC checks
-  -> 5G NR LDPC channel coding
-  -> BPSK, QPSK, or 16-QAM modulation
-  -> simulated AWGN channel
-  -> soft demodulation and LDPC decoding
-  -> JPEG 2000 reconstruction
-  -> frozen image classifier
-```
+- **Same radio budget.** Every system gets exactly k complex channel uses per image. The digital packet is solved to fill that budget exactly, including every CRC and filler bit.
+- **Same power and noise.** Unit average symbol power, and SNR defined as Es/N0 per complex channel use.
+- **Same noise realisation.** The noise for each (image, SNR, ratio) comes from a keyed random generator that ignores which system asks. Every system at a given ratio sees the identical noise vector, which makes per-image paired comparisons valid.
+- **Failures count.** Decode failures and impossible configurations stay in the denominator via the outage rule.
+- **Validation for every choice.** Operating points, λ, checkpoints, feature size and ratios were all chosen on validation. The test split is guarded in code (`src/data/test_access.py`) and cannot be loaded without the freeze manifest.
+- **The baseline adapts, the learned model does not.** The digital system is re-tuned at every SNR; each learned model is trained once. This favours the baseline and is disclosed.
 
-The system is allowed to tune its JPEG 2000 quality, LDPC rate, modulation, and image downsampling
-on validation data. It is not intentionally weak.
+The fairness claim is about accuracy at equal channel uses and equal average symbol energy. It is not a measured energy saving.
 
-This system is called the classical or separated baseline because image compression and channel
-protection are separate stages.
+## 6. Data and channel
 
-### 5.2 System B: task-aware digital features
+- **Imagenette-160**: a 10-class subset of ImageNet at 160 px (fast.ai). The published training set is split into 8,469 training and 1,000 validation images (100 per class). The published validation set (3,925 images) is our **test** split. Every image has a stable ID from a hash of its bytes, and membership is fixed by versioned manifests in `data/manifests/`.
+- **Bandwidth ratio** r = k / (160·160·3). The main ratio is **1/6** (k = 12,800) and the low-bandwidth ratio **1/24** (k = 3,200).
+- **Channel:** simulated complex AWGN, 21 SNRs: −8 to 7 dB in 1 dB steps, then 9, 11, 13, 15 and 18 dB. No fading, synchronisation errors or hardware effects (Tier 1 is simulation only).
 
-This system transmits learned features instead of image pixels.
+## 7. What was found
 
-```text
-canonical image
-  -> learned feature encoder
-  -> quantization into digital values
-  -> the same digital channel-coding and modulation chain
-  -> receiver task head
-```
+The short version is in [`RESULTS.md`](RESULTS.md), which you should read in full before writing or presenting anything. Five points to keep in your head:
 
-This system answers an attribution question.
+1. **The cliff is real.** At 1/6, both digital systems deliver nothing at −5 dB and below. DJSCC still gets 73–78% there.
+2. **Above the cliff the baseline wins.** From −4 dB up, adaptive JPEG 2000 beats DJSCC by 2.7–6.1 points (89.3% against 83.4% at 18 dB).
+3. **Less bandwidth, bigger DJSCC region.** At 1/24, DJSCC stays ahead up to +3 dB.
+4. **Most of the low-SNR gain is outage avoidance.** The task-aware digital control reaches 82.0% whenever it delivers, within about 2 points of DJSCC across three seeds, but falls off the same cliff.
+5. **The receiver's classifier matters.** Grading the digital images with a classifier that never saw compression artifacts costs up to 43 points near the cliff.
 
-Suppose the learned joint system beats the conventional image system. That difference could come
-from either of two advantages:
+All of this is validation data from one seed pair (except the three-seed H4 diagnostic). It decides none of the hypotheses.
 
-- It sends task-aware information instead of reconstruction-oriented information.
-- It learns source representation and channel protection jointly.
+## 8. The hypotheses
 
-System B has the first advantage but not the second. Comparing against it helps determine where a
-gain came from.
+Preregistered in `spec/SPEC.md` §2, decided only on the test split, averaged over three seed pairs, with image-level paired bootstrap intervals (10,000 resamples):
 
-### 5.3 System C: learned joint source-channel coding
+- **H1 (primary): low-SNR separation.** DJSCC beats adaptive JPEG 2000 at 1/6 at three or more consecutive SNRs at or below 7 dB, each with a paired interval above zero. The run rule is calibrated so that three-in-a-row isn't a lucky streak.
+- **H2: graceful versus cliff.** Across a fixed 3 dB window chosen on validation, the fixed-operating-point baseline loses at least 30 points while DJSCC loses at most 15.
+- **H3: convergence.** The gap shrinks as SNR rises.
+- **H4: attribution.** DJSCC also beats the task-aware digital control under the H1 rule. If it doesn't, the gain is credited to task-aware representation. The G-11 diagnostic shows H4 can resolve about 2 points above the cliff, so a null result will be conservative.
 
-This is the main learned system. It is called DJSCC: deep joint source-channel coding.
+A curve crossing is reported if seen, but it is not a pass condition. Completion doesn't depend on which way the results fall.
 
-```text
-canonical image
-  -> neural encoder
-  -> fixed number of complex channel symbols
-  -> power normalization
-  -> simulated AWGN channel
-  -> neural decoder
-       -> reconstructed image
-       -> classification logits
-```
+## 9. Deliverables
 
-The noisy channel is inside the neural network's training path. Gradients pass through it. The
-encoder and decoder therefore learn together.
-
-The decoder has two outputs:
-
-- A reconstruction head, which produces an image.
-- A task head, which predicts the class.
-
-The training loss combines classification loss and reconstruction loss:
-
-```text
-total loss = classification loss + lambda * reconstruction loss
-```
-
-The value of `lambda` controls the trade-off. It is selected later using validation data under a
-predefined rule.
-
-## 6. What makes the comparison fair?
-
-A learned system can appear better if the baseline is weak or if the systems receive different
-resources. This project has explicit controls to prevent that.
-
-### 6.1 Same communication budget
-
-All systems are compared using the same number of complex channel symbols, called `k`.
-
-A complex symbol contains a real part and an imaginary part. Wireless communication systems use
-these two dimensions to carry information. The project treats one complex symbol as one channel
-use.
-
-The project has six bandwidth ratios, from relatively generous to very small. Each ratio maps to an
-exact value of `k` for each dataset.
-
-### 6.2 Same noise definition
-
-All systems use the same signal-to-noise ratio definition:
-
-```text
-Es/N0 in dB per complex channel use
-```
-
-The transmitted symbols are normalized before noise is added. This makes the SNR request mean the
-same thing across systems.
-
-### 6.3 Same image and channel realization
-
-Rows are paired by image and channel condition. When two systems are compared on one image, they
-receive noise derived from the same stable identity.
-
-The random noise is generated from content-based keys. It does not change when rows are reordered,
-batched differently, or skipped by another system.
-
-### 6.4 Strong conventional baseline
-
-The baseline may tune all of these on validation data:
-
-- JPEG 2000 quality and downsample size.
-- LDPC code rate.
-- BPSK, QPSK, or 16-QAM modulation.
-
-This is important. The project does not compare the learned model with a fixed or deliberately poor
-digital configuration.
-
-### 6.5 Every failure remains in the denominator
-
-A conventional row can end in one of four states:
-
-- `structural_infeasibility`: the requested packet cannot be represented legally.
-- `codec_infeasibility`: JPEG 2000 cannot fit an image into the available bytes.
-- `decode_failure`: the transmission occurred, but the receiver failed its CRC checks.
-- `delivered`: the image was recovered and decoded.
-
-Failed rows are not deleted. They contribute through a predefined outage policy.
-
-### 6.6 Exact byte and symbol accounting
-
-The project counts more than the compressed image bytes. It also counts CRCs, code-block overhead,
-filler bits, rate matching, and all emitted JPEG 2000 structure.
-
-This prevents the baseline from silently sending more information than the learned system.
-
-### 6.7 Validation and test are separate
-
-Validation data is used to choose settings. Test data is used once, after every choice is frozen.
-
-The test split is currently sealed in code. The only module allowed to load a test sample is
-[`src/data/test_access.py`](../src/data/test_access.py), and that module refuses access until the
-required freeze record exists at gate G-12.
-
-## 7. The data
-
-The repository supports three datasets, but they have different jobs.
-
-| Dataset | Role | What to remember |
+| Deliverable | Where | State |
 |---|---|---|
-| Imagenette-160 | Headline scientific dataset | Ten classes; the reference classifier and primary experiment use this dataset. |
-| STL-10 | Fallback headline dataset | Available if the main dataset cannot support the planned study. |
-| CIFAR-10 | Smoke and plumbing only | Used to test transport, cache, accounting, and failure paths. |
-
-The frozen reference classifier is an Imagenette-160 classifier. It must never be used to claim
-CIFAR-10 task accuracy. Both datasets have ten numeric labels, but the labels mean different things.
-
-Each sample has a stable ID derived from its original source bytes. Split manifests are committed
-under [`data/manifests/`](../data/manifests/). This keeps image identity and train/validation/test
-membership stable across machines and library versions.
-
-## 8. The channel model
-
-Tier 1 uses AWGN: additive white Gaussian noise.
-
-In simple terms, the channel adds random complex noise to every transmitted symbol.
-
-```text
-received symbol = transmitted symbol + noise
-```
-
-AWGN is deliberately simple. It lets the project study the communication method without adding
-timing errors, frequency offsets, multipath fading, radio clipping, or hardware calibration.
-
-The project does not claim that an AWGN result automatically transfers to a real radio.
-
-Real SDR replay is a later stretch goal, not a requirement for the main scientific result.
-
-## 9. JPEG 2000, LDPC, modulation, and BLER
-
-These terms appear throughout the repository.
-
-### JPEG 2000
-
-JPEG 2000 is the conventional image codec used by the baseline. The project uses OpenJPEG 2.5.4
-through a Python binding. It emits raw JPEG 2000 codestreams rather than ordinary `.jp2` files.
-
-JPEG 2000 was chosen because it supports low-rate image coding and is stronger than using a basic
-JPEG setting as the main comparator.
-
-### CRC
-
-A cyclic redundancy check is a small checksum added to transmitted data. The receiver uses it to
-detect whether decoding succeeded.
-
-### LDPC
-
-Low-density parity-check coding adds structured redundancy so corrupted data can be recovered. The
-project uses a 5G NR LDPC coding and rate-matching chain derived from 3GPP TS 38.212.
-
-The project does not implement a complete 5G radio link. It does not claim NR scheduling, OFDM,
-HARQ, synchronization, or full 5G conformance.
-
-### Modulation
-
-Modulation maps bits to complex channel symbols.
-
-- BPSK carries one bit per symbol.
-- QPSK carries two bits per symbol.
-- 16-QAM carries four bits per symbol.
-
-Higher-order modulation carries more bits but normally needs a cleaner channel.
-
-### BER and BLER
-
-BER is bit error rate: the fraction of decoded information bits that are wrong.
-
-BLER is block error rate: the fraction of code blocks that fail.
-
-The baseline needs BLER measurements for every physical-layer configuration it may select. A
-missing BLER value is unknown. It is never treated as zero.
-
-## 10. What is the project trying to observe?
-
-The expected behavior is a hypothesis, not a guaranteed result.
-
-A separated digital system may show a decoding cliff. Above some SNR it works well. Below that
-region, block decoding may fail sharply.
-
-A learned joint system may degrade more gradually because it does not require exact bit recovery.
-It may preserve task-relevant information even when its reconstruction becomes worse.
-
-The project measures top-1 classification accuracy against SNR. It also records reconstruction
-quality, transmission failures, symbol energy, PAPR, and system configuration.
-
-## 11. The hypotheses in plain language
-
-The exact statistical rules live in [`spec/SPEC.md`](../spec/SPEC.md) §2. Do not implement a
-statistical decision from this summary alone.
-
-### H1: low-SNR separation
-
-At the main operating ratio, the learned system should outperform the adaptive classical baseline
-over a sustained low-SNR region.
-
-This is the primary confirmatory hypothesis. It uses paired per-image outcomes and a calibrated run
-rule. One lucky SNR point is not enough.
-
-### H2: graceful degradation versus a cliff
-
-Over a validation-selected SNR window, a fixed classical system should show a large accuracy drop
-while the learned system shows a smaller drop.
-
-### H3: convergence at high SNR
-
-As SNR improves, the accuracy difference between the learned and adaptive classical systems should
-contract toward zero.
-
-A curve crossing is reported if it happens. It is not required for project success.
-
-### H4: attribution
-
-The learned joint system is also compared with the task-aware digital feature system.
-
-If it beats the image baseline but not the digital feature system, the gain is attributed mainly to
-task-aware representation. Joint coding receives credit only for the remaining advantage over the
-digital feature control.
-
-## 12. What counts as success?
-
-Project completion and scientific outcome are separate.
-
-Tier 1 is complete when:
-
-- The three systems are implemented.
-- Their resources are matched.
-- The conventional baseline is properly tuned on validation.
-- The learned settings are frozen using validation only.
-- One sealed test campaign is run.
-- Paired results and all failures are reported.
-- Positive, null, and negative findings are handled using the same protocol.
-
-The project does not need to prove that the learned system is always better.
-
-## 13. What has already been completed?
-
-The repository has completed the foundation, the classical-baseline campaign,
-G10, and ER-9 v4 Stage 1. The live scientific choice is now frozen at
-D2048/b2 with 820 correct validation predictions out of 1,000.
-
-### Environment and data foundation
-
-- Reproducible CUDA and CPU dependency locks exist.
-- Dataset archives and manifests have pinned checksums.
-- Canonical image preprocessing is implemented.
-- Stable artifact IDs and deterministic keyed randomness are implemented.
-- The test-access boundary is implemented and tested.
-
-### G-1: reference classifier
-
-The Imagenette-160 classifier was trained from scratch for 100 epochs. It achieved 898 correct
-predictions out of 1,000 validation images, or 89.8%, above its preregistered validation floor.
-
-The test split was not used.
-
-### G-7: learned-system feasibility
-
-The DJSCC architecture is implemented and has been profiled on the available RTX 4060 Laptop GPU.
-Its parameter count, epoch time, and memory use fit the planned training limits.
-
-This was a feasibility profile, not final DJSCC training.
-
-### G-2: digital physical-layer conformance
-
-The LDPC, packetisation, modulation, and reference BLER path passed its conformance gate. Golden
-vectors and independent reference curves agree within the specified tolerance.
-
-G-2 covers a small reference configuration. It is not the full BLER table needed by the adaptive
-baseline.
-
-### W4: conventional pipeline integration
-
-The classical chain runs end to end through JPEG 2000, packetisation, LDPC, modulation, AWGN,
-decoding, reconstruction, outage handling, classification records, and verification.
-
-The committed W4 run is bounded integration evidence. It is not the final scientific sweep.
-
-### G8_A and G8_B
-
-G8_A froze the campaign structure, candidate grid, required BLER identities, state model, and
-preflight rules.
-
-G8_B built the authenticated runner, crash-safe evidence publication, resume machinery, independent
-verifiers, and a bounded non-scientific smoke test.
-
-### G8: classical baseline and validation campaign
-
-G8 is GREEN/CLOSED. Its Pascal successor campaign, C3–C7 closeout, validation
-campaign, pass-one/pass-two selection and final adjudication are complete. The
-measured classical outputs and the 153-curve successor table are frozen. No G8
-worker may be restarted or widened.
-
-### G10 and ER-9 v4 Stage 1
-
-G10 is CLOSED after 63 validation-only evaluations, with classification
-`expected_crossover_observed` and crossover bracket −5 → −4 dB. AM-95 and
-AM-96 are CLOSED. AM-97 is CLOSED as a pointwise H4 precision diagnostic only;
-it does not certify full H4 power.
-
-ER-9 v4 Stage 1 trained six candidates, evaluated each on the real digital chain
-at 7 dB, and selected D2048/b2 under the exact validation `n_correct` rule:
-
-| Candidate | Validation result |
-|---|---:|
-| D64/b2 | 284/1000 |
-| D128/b2 | 552/1000 |
-| D256/b2 | 759/1000 |
-| D512/b2 | 793/1000 |
-| D1024/b2 | 818/1000 |
-| D2048/b2 | **820/1000** |
-
-The Stage-1 selection ID is
-`er9stage1v4selection-92191e4543b1493b9b56d5086ec08d96a7a3236249eb045af05ddbf8817bd263`.
-
-## 14. What has not happened yet?
-
-As of the current handoff:
-
-- Stage 2 is formally closed and published as a zero-work metadata closeout;
-  b=2 was the only admissible width at D=2048, so no new training or evaluation occurred.
-- The final downstream implementation successor has not yet been created.
-- The three fresh production ER-9 seed cells `(0,0)`, `(1,1)` and `(2,2)` have
-  not been trained.
-- The single randomized ER-2 scientific training run has not been run.
-- G11/H4 production and W10 have not been performed.
-- Learned test inference and model-facing test access have not occurred.
-- The test split remains sealed.
-
-Do not describe bounded smoke rows, validation probes, G-2 conformance curves,
-or Stage-1 validation scores as a final learned-versus-classical result.
-
-## 15. What happens next?
-
-The high-level order is:
-
-```text
-Stage 2
-  closed as the D2048/b2 zero-work metadata stage
-
-final downstream successor
-  add only the production orchestration, frozen-grid ER-9 validation,
-  randomized ER-2 completion/validation, G11/H4 production and the
-  post-science lifecycle-aware CI/test handling genuinely needed to finish
-
-production and final evaluation
-  train fresh seeds (0,0), (1,1), (2,2) at D2048/b2
-  run exactly one randomized ER-2 scientific training run
-  finish G11 and perform W10
-  then run the single guarded final test campaign
-```
-
-The live next action is always defined by [`NEXT.md`](../NEXT.md). For G8 work, the exact operational
-cursor is [`instructions/RESUME.md`](../instructions/RESUME.md).
-
-## 16. Why is the repository so strict?
-
-The final experiment makes many choices: codec settings, code rate, modulation, SNR, model
-checkpoint, operating ratio, failure policy, and statistical method.
-
-If these choices are changed after seeing results, the comparison becomes hard to trust.
-
-The repository therefore records:
-
-- The exact configuration used for each run.
-- The source files that produced important evidence.
-- The Git commit and whether the tree was dirty.
-- Content hashes for configurations, requests, results, and contracts.
-- Stable image and noise identities.
-- Phase transitions and permissions.
-- Whether validation, inference, training, or test access occurred.
-
-This machinery is not the scientific idea. It protects the scientific idea from accidental or
-result-driven changes.
-
-## 17. The four layers of the repository
-
-It helps to think of the project in four layers.
-
-### Layer 1: the idea
-
-Task-oriented communication may use a limited noisy link more effectively than pixel-perfect image
-transmission for remote classification.
-
-Start with this document and [`README.md`](../README.md).
-
-### Layer 2: the experiment
-
-The experiment defines the three systems, resource matching, datasets, validation/test separation,
-hypotheses, and completion criteria.
-
-The authority is [`spec/SPEC.md`](../spec/SPEC.md).
-
-### Layer 3: the implementation
-
-The code implements preprocessing, models, channels, the classical pipeline, training, records, and
-verification.
-
-The main implementation is under [`src/`](../src/).
-
-### Layer 4: governance and provenance
-
-Campaign contracts, hashes, state machines, manifests, gates, and resume rules ensure that evidence
-is complete and reproducible.
-
-These live mainly under [`results/`](../results/), [`instructions/`](../instructions/), and
-[`tools/`](../tools/).
-
-Do not begin learning the project from Layer 4. Understand Layers 1 and 2 first.
-
-## 18. Repository map
-
-### Top-level files
-
-| Path | Purpose |
+| First Review deck | `deliverables/review-1/` | Delivered (18–22 Aug) |
+| Second Review deck and presenter guide | `deliverables/review-2/` | Delivered (29 Sep–3 Oct) |
+| Research paper (IEEE) | `deliverables/research-paper/capstone_rp.tex` | Draft; Sections IV–X being revised by the authors |
+| Supplementary material (IEEE) | `deliverables/research-paper/supplement/` | Draft |
+| Results package (figures, CSVs, notes) | `presentation-results/` | Done (validation) |
+| Offline exhibition demo | `demo/` | Built; weights provisioned separately |
+| Literature review (30 sources) | `docs/literature-review.md` | Done |
+| Gantt chart | `docs/gantt-plan.md` | Keep current |
+| Standards register | `docs/standards-and-tools-register.md` | Done |
+| Poster, final report, plagiarism report | not started | W14–W15 |
+
+The paper and supplement acknowledge AI assistance section by section, as IEEE requires. Keep that acknowledgment accurate as sections are rewritten.
+
+## 10. Repository map
+
+| Path | What it holds |
 |---|---|
-| [`README.md`](../README.md) | Project summary, major completed evidence, and common commands. |
-| [`NEXT.md`](../NEXT.md) | Short-lived handoff describing what happens next. Read this at the start of every session. |
-| [`AGENTS.md`](../AGENTS.md) | Detailed rules for agents and contributors working in this repository. |
-| [`requirements.lock`](../requirements.lock) | Exact CUDA runtime dependency lock. |
-| [`requirements-cpu.lock`](../requirements-cpu.lock) | Exact CPU analysis dependency lock. |
+| `spec/SPEC.md` | The specification: thesis, hypotheses, decisions, requirements, schedule, gates, amendment record (§17). Normative. |
+| `spec/params.generated.yaml` | Every experiment constant. Code reads constants only from here, via `src/config/params.py`. |
+| `NEXT.md` | Session hand-off and working state. Read first, update last. Scrappy by design. |
+| `AGENTS.md` | Guidance for coding agents, including commands. |
+| `src/models/` | DJSCC (`djscc.py`), task-aware digital model (`er9_digital.py`), classifiers, task heads |
+| `src/channels/` | AWGN with keyed noise, power normalisation, PAPR cap |
+| `src/baseline/` | JPEG 2000 (`j2k.py`), JPEG, LDPC chain (`ldpc/`), classical pipeline and selection (`classical/`), G-8 campaign code |
+| `src/training/` | Training loops, losses, SNR randomisation, PAPR training |
+| `src/evaluation/` | ER-9 protocol, G-10, H4 diagnostic, W10 evaluation backends |
+| `src/data/` | Dataset adapters, manifests, preprocessing, the guarded test boundary |
+| `results/` | Published evidence: JSON records with hashes, one directory per phase |
+| `presentation-results/` | W10 figures (PNG/PDF/SVG), CSVs, findings, slide notes |
+| `deliverables/` | Review decks, paper, supplement |
+| `demo/` | Offline React + FastAPI demo |
+| `docs/` | Hand-written explanations (this file, results, literature review, crossover explainer, Gantt, standards) |
+| `tests/` | Test suite (`.venv/bin/python -m pytest`) |
+| `tools/` | Generators, verifiers, runners, deck and figure builders |
 
-### Specification
+## 11. How the repository keeps itself honest
 
-| Path | Purpose |
-|---|---|
-| [`spec/SPEC.md`](../spec/SPEC.md) | Normative source of truth. Requirements, parameters, decisions, hypotheses, gates, risks, and amendment history. |
-| [`spec/params.generated.yaml`](../spec/params.generated.yaml) | Machine-readable parameters generated from the spec. Runtime code reads this file. |
-| [`spec/DATASHEET.md`](../spec/DATASHEET.md) | Generated flattened view of all parameters. |
-| [`spec/concerns/`](../spec/concerns/) | Generated requirement views grouped by topic. |
-| [`spec/evidence/`](../spec/evidence/) | Small conformance records and scripts, especially packetisation and LDPC checks. |
+The repository is stricter than a typical student project. Every choice that could flatter a result is made before the result is seen, and that has to be provable afterwards. Four mechanisms do the work:
 
-Never edit generated spec views directly. Edit `spec/SPEC.md`, add an amendment when required, and
-regenerate them.
+- **One source for constants.** No experiment number is hard-coded in `src/`. `tools/check_literals.py` enforces this, and literals that must stay are marked `# literal-ok`.
+- **Keyed randomness.** Random draws come from generators keyed by what they are for: noise by image, SNR and ratio; shuffles by seed and epoch. Results don't depend on batch order, and the same noise is reproducible anywhere.
+- **Evidence with hashes.** Each phase writes JSON evidence that names the code commit, config hash, inputs and outputs by SHA-256. Verifier scripts in `tools/` re-check it. Closed evidence is never edited; a correction is a new, additive record.
+- **The spec changes by amendment.** Any change to the science is written into `SPEC.md` §17 as an AM entry with its reason. Nothing is changed silently.
 
-### Source code
+This is why there are many files named like `..._v4.json`, `..._closeout.json` and `..._authorization.json`. They record who approved what, when, and on which exact inputs.
 
-| Path | Purpose |
-|---|---|
-| [`src/config/`](../src/config/) | Loads parameters and produces complete run configurations and hashes. |
-| [`src/data/`](../src/data/) | Dataset registry, source-byte decoding, manifests, preprocessing, classifier loading, and the test-access guard. |
-| [`src/channels/`](../src/channels/) | AWGN, symbol-power normalization, PAPR, and the channel registry. |
-| [`src/models/`](../src/models/) | DJSCC encoder/decoder, reference classifier, frozen classifier wrapper, and task heads. |
-| [`src/training/`](../src/training/) | Reference-classifier training and DJSCC loss functions. |
-| [`src/baseline/j2k.py`](../src/baseline/j2k.py) | JPEG 2000 codec wrapper and budget search. |
-| [`src/baseline/ldpc/`](../src/baseline/ldpc/) | CRCs, segmentation, LDPC adapter, rate matching, modulation, and transport construction. |
-| [`src/baseline/classical/`](../src/baseline/classical/) | End-to-end classical image path, records, outage handling, and operating-point composition. |
-| `src/baseline/g8_*` | G8 campaign enumeration, work units, authenticated state, runner, resume logic, and characterization. |
-| [`src/artifacts/`](../src/artifacts/) | Stable IDs and deterministic keyed random streams. |
-| [`src/probes/`](../src/probes/) | Validation-only engineering probes. |
+## 12. Rules before changing anything
 
-### Commands, tests, and evidence
+- **Don't open the test split.** Only the G-12 campaign may, after the freeze manifest is committed. Any selection or tuning on test invalidates the project.
+- **Don't re-run closed campaigns.** W8, ER-9, ER-2, the PAPR run, G-10, G-11 and W10 are closed. Re-running one because a number looks wrong is exactly the selective reporting the protocol forbids. If there's a real defect, it gets an amendment and a complete re-run.
+- **Don't weaken the baseline.** Every change must strengthen the baseline or be preregistered. Never handicap the learned system either.
+- **Don't hard-code constants.** Add them to the spec's parameters.
+- **Don't edit published evidence.** Add a new record instead.
+- **Report failures.** Outages stay in the denominator, and unfavourable points (like the JPEG 9 dB outage) stay in the figures.
 
-| Path | Purpose |
-|---|---|
-| [`tools/`](../tools/) | Command-line entry points, evidence generators, verifiers, migrations, and campaign coordinators. |
-| [`tests/`](../tests/) | Unit, integration, mutation, provenance, and failure-path tests. |
-| [`configs/`](../configs/) | Human-written experiment choices. These are resolved against generated parameters before use. |
-| [`results/`](../results/) | Committed evidence, adjudications, source manifests, and campaign state. |
-| [`worklogs/`](../worklogs/) | Historical engineering records for completed work. |
-| [`instructions/`](../instructions/) | Durable phase protocols and the live G8 recovery ledger. |
-| [`docs/`](../docs/) | Human-written explanations, literature review, Gantt plan, deployment dossier, and this document. |
-| [`deliverables/`](../deliverables/) | Review and final-delivery packages. |
+## 13. Things that sound reasonable but are wrong here
 
-## 19. How configuration works
+- **"DJSCC beats the digital system."** Only where the digital system delivers nothing. Above the cliff it loses by up to 6 points.
+- **"The curves must cross for the project to pass."** No. Crossing is reported if seen and is not a criterion.
+- **"The project shows an energy saving."** No. It compares accuracy at equal channel uses and equal average symbol energy.
+- **"Failed packets can be dropped, since there is no prediction."** No. They are scored by the outage rule and stay in the denominator.
+- **"This is reinforcement learning."** No. It's supervised end-to-end training through a differentiable channel.
+- **"Validation and test are both held out, so either can be used for tuning."** No. Every choice is made on validation, and test opens once.
+- **"The PAPR-capped model meets RF power limits."** Only in the symbol domain, not on a transmitted waveform.
+- **"One seed shows SNR randomisation adds 3 points."** It shows a 3-point difference between two runs. The effect size needs more seeds.
+- **"Hardware is required."** No. Tiers 2 and 3 (SDR, Raspberry Pi) are stretch goals. The capstone stands on the simulation.
 
-Scientific constants do not belong as unexplained numbers in source code.
-
-The intended flow is:
-
-```text
-spec/SPEC.md
-  -> tools/gen_spec_views.py
-  -> spec/params.generated.yaml
-  -> human experiment config under configs/
-  -> fully resolved RunConfig
-  -> config_hash
-  -> archived beside results
-```
-
-A human config chooses things such as dataset, ratio, channel, modulation, or code rate. The runtime
-combines those choices with all relevant generated parameters. The resulting complete configuration
-gets a content hash.
-
-If a scientific parameter changes, the hash changes. Old evidence remains tied to the old
-configuration.
-
-## 20. How randomness works
-
-Normal global random-number generators are sensitive to call order. That is dangerous when two
-systems have different control flow.
-
-This repository uses keyed random streams. A draw is a function of its purpose and identity.
-
-Examples include:
-
-- Model initialization from the training seed and component path.
-- Batch order from the training seed and epoch.
-- Augmentation from the image ID, training seed, and epoch.
-- Channel noise from a content-derived `noise_id`.
-
-This means that reordering rows does not silently change the noise assigned to an image.
-
-## 21. How evidence works
-
-Important evidence usually has several parts:
-
-- Raw or aggregate output.
-- A resolved configuration.
-- A summary or adjudication file.
-- Hashes of output files.
-- A manifest of the source files that produced it.
-- An offline verifier that recomputes important claims.
-
-Do not trust a JSON field merely because it says `PASS`. Read the verifier to see what it recomputes.
-
-Do not regenerate a historical source manifest to make changed code appear compatible with old
-measurements. A source mismatch may mean the evidence no longer describes the current implementation.
-
-## 22. Safe first-day setup
-
-Read these files in order:
-
-1. This document.
-2. [`README.md`](../README.md).
-3. [`NEXT.md`](../NEXT.md).
-4. [`spec/SPEC.md`](../spec/SPEC.md) §1–3.
-5. The relevant requirement section for the component you will change.
-6. [`instructions/RESUME.md`](../instructions/RESUME.md) only if you are working on the active G8 campaign.
-
-Create or sync the runtime environment using the commands in [`AGENTS.md`](../AGENTS.md). On this
-machine, project commands run with `.venv/bin/python`.
-
-On a fresh clone, fetch the ignored third-party LDPC fixture before running the full test suite:
+## 14. Useful commands
 
 ```bash
-.venv/bin/python tools/fetch_ldpc_golden_vectors.py
-.venv/bin/python -m pytest
+# checks (no GPU, no network)
+python tools/gen_spec_views.py --check          # spec and generated views agree
+python tools/check_doc_consistency.py           # docs agree with the spec
+python tools/check_literals.py                  # no hard-coded constants
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py   # once per fresh clone, before pytest
+.venv/bin/python -m pytest                      # full test suite
+
+# paper and supplement
+python3 deliverables/research-paper/figures/make_figures.py
+python3 deliverables/research-paper/supplement/make_tables.py
+cd deliverables/research-paper && latexmk -pdf capstone_rp.tex
+cd supplement && latexmk -pdf capstone_rp_supplement.tex
+
+# W10 presentation figures
+python presentation-results/plot_results.py
+
+# demo (see demo/README.md for provisioning weights first)
+./demo/scripts/start.sh
 ```
 
-Useful read-only checks are:
+`AGENTS.md` lists every other command, including dataset fetching and each phase's verifier.
 
-```bash
-.venv/bin/python tools/gen_spec_views.py --check
-.venv/bin/python tools/check_doc_consistency.py -v
-.venv/bin/python tools/check_literals.py -v
-.venv/bin/python spec/evidence/check_packetisation.py
-.venv/bin/python tools/fetch_datasets.py --check
-.venv/bin/python tools/materialize_manifests.py --check
-.venv/bin/python tools/verify_g1_adjudication.py
-.venv/bin/python tools/verify_g7_profile.py
-.venv/bin/python tools/verify_g2_adjudication.py
-.venv/bin/python tools/verify_w4_baseline_integration.py
-```
+## 15. Questions you should be able to answer
 
-The full test suite requires the CUDA environment. This repository intentionally rejects a CPU-only
-build in its main environment test.
+1. Why does the digital baseline score exactly 10.0% at low SNR?
+2. Why is the task-aware digital system's accuracy flat at 82.0%?
+3. Why was the classifier fine-tuned on JPEG 2000 images, and what happens to the crossover without it?
+4. Why JPEG 2000 and not JPEG?
+5. What is the difference between the 1/6 and 1/24 results, and why?
+6. Why does the label-transmission bound fail at the same SNR as the task-aware system?
+7. Why are the validation results not a test of H1?
+8. What would H4 returning "unsupported" mean, given the G-11 diagnostic?
+9. What does the PAPR result say, and what doesn't it say?
+10. Why would re-running a closed campaign be a problem, even to fix a number?
 
-This machine is WSL2. GPU availability is checked through `/dev/dxg` and PyTorch CUDA initialization,
-not by looking for `/dev/nvidia*`.
+The answers are in this file and in [`RESULTS.md`](RESULTS.md).
 
-## 23. Rules before changing code
+## 16. Glossary
 
-### Read the authority first
-
-Read the relevant requirements in `spec/SPEC.md`. The spec wins if another document disagrees with
-it.
-
-### Do not hard-code scientific values
-
-Runtime code must read generated parameters or resolved configuration. Run
-`tools/check_literals.py` after source changes.
-
-### Do not open the test split
-
-Test access is forbidden before G-12. Do not import or bypass `src/data/test_access.py`.
-
-### Do not weaken the baseline
-
-Do not remove modulation choices, reduce baseline tuning, drop failed rows, or substitute a simpler
-codec to make the learned system look better.
-
-### Do not treat smoke tests as science
-
-Smoke tests prove that code paths work. They do not establish scientific performance.
-
-### Do not rewrite history
-
-Historical mistakes are recorded and corrected. They are not erased, rebased away, or silently
-described as if they never happened.
-
-### Amend the spec when the science changes
-
-If you change a requirement, parameter, decision, or gate, append a new `AM-n` record in
-`spec/SPEC.md` and add the amendment reference to the changed item.
-
-Implementation fixes that restore already specified behavior may not need an amendment. Record the
-reasoning either way.
-
-### Preserve active campaign evidence
-
-Do not edit raw G8 work-unit evidence, registered contracts, or frozen epoch-1 sources. Do not run a
-G8 worker from an old command copied from history.
-
-For G8_C, follow the exact inspect, reconcile, marker, push-parity, and restart sequence in
-`instructions/RESUME.md`.
-
-## 24. Things that sound reasonable but are wrong here
-
-### “Semantic communication means an LLM understands the message.”
-
-No. Here it means task-oriented image communication for classification.
-
-### “This is reinforcement learning.”
-
-No. The DJSCC model is trained with supervised losses through a differentiable channel.
-
-### “The learned system only needs to beat JPEG.”
-
-No. The headline baseline is JPEG 2000 plus a tuned digital physical layer, and the project also
-includes a task-aware digital control.
-
-### “If no BLER record exists, the link probably works at high SNR.”
-
-No. Missing BLER evidence means uncharacterized. The candidate is ineligible.
-
-### “The small G-2 BLER table can be reused everywhere.”
-
-No. G-2 is a conformance check for one physical identity. G8_C measures the complete table needed by
-the adaptive baseline.
-
-### “CIFAR-10 also has ten classes, so the Imagenette classifier can score it.”
-
-No. The class meanings differ. CIFAR-10 is transport smoke only in this repository.
-
-### “Failed decodes can be excluded because no prediction was produced.”
-
-No. That would reward a system for failing. Failed rows remain in the denominator through the outage
-policy.
-
-### “Validation and test are both held-out data, so either is fine for tuning.”
-
-No. Validation is used for tuning. Test is used once for final reporting.
-
-### “A crossover must exist for the project to pass.”
-
-No. A crossover is descriptive. Learned dominance, classical dominance, or no clear difference can
-all be reported.
-
-### “The project claims lower energy use.”
-
-No measured energy saving is currently claimed. Systems are compared at equal channel uses and
-measured aggregate symbol energy under the simulation model.
-
-### “Hardware is required to complete the capstone.”
-
-The registered Tier 1 path is simulation-first. SDR and Raspberry Pi work are stretch goals. The
-guide's dated acknowledgement of this path is still a human deliverable for the First Review.
-
-### “A passing test means the science is correct.”
-
-No. Tests show that declared properties hold. They do not prove that the research question,
-assumptions, or statistical interpretation are scientifically valid.
-
-## 25. Suggested path for a new contributor
-
-### Day 1: understand the problem
-
-- Read §§1–12 of this document.
-- Read `spec/SPEC.md` §§1–3.
-- Explain the three systems in your own words.
-- Explain why System B is necessary.
-- Explain why the test split is sealed.
-
-Do not begin with G8 state contracts or runner code.
-
-### Day 2: trace one sample through the code
-
-For the learned path, read:
-
-1. `src/data/preprocessing.py`
-2. `src/models/djscc.py`
-3. `src/channels/awgn.py`
-4. `src/training/djscc_loss.py`
-
-For the conventional path, read:
-
-1. `src/data/preprocessing.py`
-2. `src/baseline/j2k.py`
-3. `src/baseline/ldpc/transport.py`
-4. `src/baseline/classical/channel_transport.py`
-5. `src/baseline/classical/pipeline.py`
-6. `src/baseline/classical/records.py`
-
-### Day 3: understand one evidence package
-
-Start with G-1 or G-7. Read the adjudication JSON and its verifier together.
-
-Then answer:
-
-- Which claims are stored?
-- Which claims are recomputed?
-- Which source files are bound?
-- Which dataset split was accessed?
-- What would make verification fail?
-
-### Day 4: run safe checks
-
-Run the read-only checks in §22. Run a small relevant test module. Do not start a production campaign.
-
-### Day 5: choose a bounded contribution
-
-Good first contributions include:
-
-- Improving plain-language documentation.
-- Adding a focused unit test for an existing contract.
-- Improving an error message without changing scientific behavior.
-- Tracing and documenting a single data or configuration path.
-- Fixing an isolated bug with a regression test after confirming its requirement.
-
-Avoid choosing a first contribution that changes experiment parameters, active G8 evidence, test
-access, the baseline search space, or hypothesis logic.
-
-## 26. Questions every contributor should be able to answer
-
-Before changing scientific code, you should be able to answer these:
-
-1. What is the downstream task?
-2. Why are there three systems rather than two?
-3. What is held equal across systems?
-4. What can be tuned on validation?
-5. Why is the test split sealed?
-6. What is the difference between G-2 and G8_C BLER evidence?
-7. Why do failed rows remain in the denominator?
-8. What does `k` mean?
-9. What is AWGN?
-10. What result would count as project completion?
-11. Where is the normative specification?
-12. Where is the live operational cursor?
-
-Short answers:
-
-1. Imagenette-160 image classification over a noisy link.
-2. To separate task-aware representation from joint source-channel coding.
-3. Image identity, split, channel uses, SNR convention, and paired noise identity.
-4. Baseline settings, learned hyperparameters, checkpoints, and operating choices defined by the spec.
-5. To prevent tuning to the final evaluation data.
-6. G-2 is small conformance evidence; G8_C builds the complete measured table for selection.
-7. Excluding them would bias accuracy upward.
-8. The number of complex channel symbols available to transmit one image.
-9. A simple channel that adds Gaussian noise to complex symbols.
-10. A correct, frozen, fairly matched, one-time evaluation and honest report, regardless of winner.
-11. `spec/SPEC.md`.
-12. `NEXT.md`, and `instructions/RESUME.md` for active G8 execution.
-
-## 27. Glossary
-
-| Term | Simple meaning |
+| Term | Meaning |
 |---|---|
-| AWGN | A channel that adds independent Gaussian noise. |
-| Baseline | The conventional system used for comparison. |
-| BER | Fraction of information bits decoded incorrectly. |
-| BLER | Fraction of transmitted code blocks that fail. |
-| Canonical image | The one fixed preprocessed image given to both scientific arms. |
-| Channel use | One transmitted complex symbol. |
-| Checkpoint | Saved neural-model state. |
-| Classical adaptive | The conventional baseline tuned separately at each SNR on validation. |
-| Codec | Software that compresses and reconstructs media. JPEG 2000 is the headline codec here. |
-| Complex symbol | A transmitted value with real and imaginary parts. |
-| Config hash | Content ID for a complete resolved experiment configuration. |
-| CRC | Checksum used to detect a decoding failure. |
-| DJSCC | Deep joint source-channel coding. A neural encoder and decoder trained through a channel. |
-| Evidence manifest | A record of files, hashes, and source versions behind a result. |
-| G-1, G-2, etc. | Gates that must pass before later work is allowed. |
-| G8 | The campaign that fully characterizes and selects the conventional baseline. |
-| Imagenette-160 | Ten-class image dataset used for the headline task. |
-| Joint coding | Learning representation and channel protection together. |
-| `k` | Exact number of complex symbols available for one image. |
-| LDPC | Error-correcting code used by the digital systems. |
-| Modulation | Rule that maps bits to complex transmitted symbols. |
-| Outage | A failed digital delivery handled by a predefined fallback prediction. |
-| PAPR | Ratio between peak and average symbol power. |
-| Paired evaluation | Comparing systems on the same images and matched channel identities. |
-| Preregistration | Fixing decisions and analysis rules before final results are observed. |
-| SNR | Signal-to-noise ratio. Higher usually means a cleaner channel. |
-| Source coding | Compressing the original image. |
-| Task head | Part of the receiver model that predicts the class. |
-| Test split | Final held-out data opened once after all choices are frozen. |
-| Validation split | Held-out data used to choose settings before final evaluation. |
-| Work unit | One independently executable BLER characterization job in G8_C. |
+| DJSCC | Deep joint source–channel coding: neural encoder to channel symbols, neural decoder, trained end to end |
+| AWGN | Additive white Gaussian noise channel |
+| SNR, Es/N0 | Signal-to-noise ratio, energy per complex symbol over noise density, in dB |
+| r, k | Bandwidth ratio and number of complex channel uses per image |
+| LDPC | Low-density parity-check code, the 5G NR data channel code |
+| BLER | Block error rate: fraction of code blocks that fail to decode |
+| MCS | Modulation and coding scheme: a modulation plus a code rate |
+| Outage | A packet that fails, or an image that can't be encoded in the budget |
+| PAPR | Peak-to-average power ratio of the transmitted symbols |
+| Crossover | The SNR where one system's accuracy curve passes the other's |
+| Cliff | The sharp drop to outage when a digital link stops decoding |
+| Seed pair / seed cell | One (training seed, channel seed) combination; the design uses three |
+| W*n* | Project week *n* of the 17-week schedule |
+| G-*n* | A go/no-go gate in the schedule (G-12 is the test release) |
+| AM-*n* | A numbered amendment to the spec (§17) |
+| ER-, BR-, SR-, DR-, HR-, PR- | Requirement IDs: experiment, baseline, system, demo, hardware, programme |
+| ER-9 | The task-aware digital control |
+| ER-12 | The label-transmission bound |
+| ER-2 | SNR-randomized training |
+| ER-4 | The reconstruction ablation |
+| BR-4 | The baseline's per-SNR operating-point selection |
+| BR-9, BR-16 | Fixed-modulation and fixed-MCS baselines |
+| BR-12 | Scoring with the artifact fine-tuned classifier |
+| DEC-9 | The decision to use JPEG 2000 as the codec of record (JPEG kept as a secondary curve) |
 
-## 28. Where to go for more detail
+## 17. Where to read more
 
-- Scientific source of truth: [`spec/SPEC.md`](../spec/SPEC.md)
-- Current next steps: [`NEXT.md`](../NEXT.md)
-- Active campaign recovery: [`instructions/RESUME.md`](../instructions/RESUME.md)
-- Literature synthesis: [`docs/literature-review.md`](literature-review.md)
-- Schedule: [`docs/gantt-plan.md`](gantt-plan.md)
-- Standards boundary: [`docs/standards-and-tools-register.md`](standards-and-tools-register.md)
-- Deployment plan: [`docs/deployment-dossier.md`](deployment-dossier.md)
-- Crossover explanation: [`docs/crossover-explained.md`](crossover-explained.md)
-- Historical implementation details: [`worklogs/`](../worklogs/)
-- First Review package: [`deliverables/review-1/`](../deliverables/review-1/)
-
-If two documents disagree, use this priority:
-
-1. `spec/SPEC.md` for scientific meaning and requirements.
-2. `instructions/RESUME.md` for the active G8 execution cursor.
-3. `NEXT.md` for the current general handoff.
-4. This document for explanation.
-5. Historical worklogs for background only.
+- [`RESULTS.md`](RESULTS.md): every measured number, with what it means and what not to claim.
+- `presentation-results/report/findings.md`: the W10 findings and figure captions.
+- [`crossover-explained.md`](crossover-explained.md): why "the curves must cross" was dropped as a success criterion.
+- [`literature-review.md`](literature-review.md): the 30-source review and the gap this project fills.
+- `spec/SPEC.md`: the full specification. §1–2 for the thesis and hypotheses, §13 for the schedule, §17 for why things changed.
+- `deliverables/research-paper/`: the paper and the supplement with pseudocode and full tables.
+- `NEXT.md`: the current working state, and the session log.
