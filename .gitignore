@@ -256,3 +256,10 @@ results/per_image/
 #   requirements*.lock -- the whole point of SR-21 is that they are committed.
 #
 # `.pytest_cache/` is already covered by the Python section above.
+
+# LaTeX build by-products (latexmk) and the local Overleaf package.
+*.aux
+*.fdb_latexmk
+*.fls
+*.out
+deliverables/research-paper/capstone_rp_overleaf.zip
