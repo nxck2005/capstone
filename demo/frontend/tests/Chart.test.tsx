@@ -1,37 +1,45 @@
-import { expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
+import { afterEach, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import Chart from '../src/Chart'
 
-vi.mock('recharts', () => ({
-  ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-  LineChart: ({ children, data }: { children: ReactNode; data: unknown }) => <div data-testid="rows" data-rows={JSON.stringify(data)}>{children}</div>,
-  CartesianGrid: () => null,
-  XAxis: ({ type, domain }: { type: string; domain: number[] }) => <span data-testid="x-axis" data-type={type} data-domain={JSON.stringify(domain)} />,
-  YAxis: () => null,
-  Tooltip: () => null,
-  Line: ({ stroke }: { stroke: string }) => <span data-testid="curve" data-stroke={stroke} />,
-  ReferenceLine: ({ x }: { x: number }) => <span data-testid="marker" data-x={x} />,
-}))
+const grid = [-8, -4, 18]
+const points = (values: number[], coverage?: number[]) => grid.map((snr_db, index) => ({ snr_db, accuracy: values[index], coverage: coverage?.[index] }))
+const series = [
+  { id: 'learned', label: 'Learned', points: points([.728, .794, .834], [1, 1, 1]) },
+  { id: 'classical_adaptive', label: 'Classical', points: points([.1, .834, .893], [0, 1, 1]) },
+  { id: 'learned_randomized', label: 'Randomized', points: points([.77, .824, .839], [1, 1, 1]) },
+]
 
-it('plots only measured samples at their numeric SNR positions, using W10 colors and selected marker', () => {
-  const grid = [-8, -4, 18]
-  const points = (values: number[]) => grid.map((snr_db, index) => ({ snr_db, accuracy: values[index] }))
-  const series = [
-    { id: 'learned', label: 'Learned', points: points([.728, .794, .834]) },
-    { id: 'classical_adaptive', label: 'Classical', points: points([.1, .834, .893]) },
-    { id: 'learned_randomized', label: 'Randomized', points: points([.77, .824, .839]) },
-  ]
+afterEach(() => cleanup())
+
+it('plots only measured samples, one equal step per measured SNR, labelled with real values, in the W10 colors', () => {
   render(<Chart series={series} snr={18} grid={grid} />)
-  expect(screen.getByTestId('x-axis')).toHaveAttribute('data-type', 'number')
-  expect(screen.getByTestId('x-axis')).toHaveAttribute('data-domain', '[-8,18]')
-  expect(screen.getByTestId('marker')).toHaveAttribute('data-x', '18')
-  expect(JSON.parse(screen.getByTestId('rows').getAttribute('data-rows')!)).toEqual([
-    { snr_db: -8, arm0: .728, arm1: .1, arm2: .77 },
-    { snr_db: -4, arm0: .794, arm1: .834, arm2: .824 },
-    { snr_db: 18, arm0: .834, arm1: .893, arm2: .839 },
-  ])
-  expect(screen.getAllByTestId('curve').map((item) => item.getAttribute('data-stroke'))).toEqual(['#0072B2', '#D55E00', '#009E73'])
+  const curves = screen.getAllByTestId('series')
+  const strokes = Object.fromEntries(curves.map((item) => [item.getAttribute('data-series'), item.getAttribute('data-stroke')]))
+  expect(strokes).toEqual({ learned: '#0072B2', classical_adaptive: '#D55E00', learned_randomized: '#009E73' })
+  for (const curve of curves) {
+    const dots = curve.querySelectorAll('[data-testid="point"]')
+    expect([...dots].map((dot) => Number(dot.getAttribute('data-snr')))).toEqual(grid)
+  }
+  // Equal width per measured point; the jump from −4 to +18 is shown by a break mark, not hidden.
+  const xs = [...curves[0].querySelectorAll('[data-testid="point"]')].map((dot) => Number(dot.getAttribute('cx')))
+  expect(xs[1] - xs[0]).toBeCloseTo(xs[2] - xs[1], 5)
+  for (const label of ['−8', '−4', '+18']) expect(screen.getByText(label)).toBeInTheDocument()
+  expect(document.querySelector('.chart-break')).not.toBeNull()
+  expect(screen.getByTestId('marker')).toHaveAttribute('data-snr', '18')
   expect(screen.getByLabelText(/selected 18 dB/)).toBeInTheDocument()
-  cleanup()
+})
+
+it('selects the nearest measured SNR when the chart is clicked', () => {
+  const onSelect = vi.fn()
+  render(<Chart series={series} snr={-8} grid={grid} onSelect={onSelect} />)
+  const svg = screen.getByRole('img')
+  svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 820, height: 190, right: 820, bottom: 190, x: 0, y: 0, toJSON: () => ({}) })
+  fireEvent.pointerDown(svg, { clientX: 815, pointerId: 1 })
+  expect(onSelect).toHaveBeenLastCalledWith(18)
+})
+
+it('marks the region where no digital transmission got through', () => {
+  render(<Chart series={series} snr={-8} grid={grid} />)
+  expect(screen.getByText('Only the AI link gets through')).toBeInTheDocument()
 })

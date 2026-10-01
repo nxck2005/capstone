@@ -4,14 +4,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: '#101b2b',
-        canvas: '#f3f4f2',
-        teal: '#157d7a',
-        coral: '#e77b5c',
+        ink: '#16181d',
+        canvas: '#f3f2ee',
       },
       fontFamily: {
-        sans: ['DM Sans', 'sans-serif'],
-        display: ['Space Grotesk', 'sans-serif'],
+        sans: ['IBM Plex Sans', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'monospace'],
       },
     },
   },
