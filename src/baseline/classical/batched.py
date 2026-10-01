@@ -178,7 +178,7 @@ def run_classical_batch(
     block_index: int = 0,
     device: str = "cpu",
     transport: BatchedTransport | None = None,
-    batch_size: int = 256,
+    batch_size: int = 256,  # literal-ok: decode batch size; outputs are batch-invariant
     codec_kind: str = "jpeg2000",
     quality: int | None = None,
 ) -> list[ClassicalResult]:
@@ -254,7 +254,9 @@ def run_classical_batch(
 
     for start in range(0, len(pending), batch_size):
         chunk = pending[start : start + batch_size]
-        outcomes = transport.round_trip([item[3] for item in chunk], snr_db=float(snr_db), noise_ids=[item[4] for item in chunk])
+        payloads = [item[3] for item in chunk]
+        noise_ids = [item[4] for item in chunk]
+        outcomes = transport.round_trip(payloads, snr_db=float(snr_db), noise_ids=noise_ids)
         for (index, source_coding, j2k, _bits, noise_id, canonical_image), outcome in zip(chunk, outcomes, strict=True):
             product = products[index]
             if not outcome.crc_ok or outcome.payload_bits is None:
