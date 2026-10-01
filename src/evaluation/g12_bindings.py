@@ -28,6 +28,7 @@ W8_CAMPAIGN_ROOT = "/home/nick/w8-final-pascal-20260901-r1"
 ER9_PRODUCTION_CLOSEOUT = "results/learned/er9/er9_production_closeout_v4.json"
 LOW_RATE_VALIDATION = "results/learned/er9_low_rate/validation_summary.json"
 LOW_RATE_RUNTIME_ROOT = "checkpoints/er9_pascal_v4/stage1/D1024_b2"
+LOW_RATE_STAGE1_EVALUATION = "results/learned/er9/stage1_v4_evaluations/D1024_b2.json"
 
 
 class G12BindingError(RuntimeError):
@@ -128,6 +129,8 @@ def _low_rate(root: Path) -> dict[str, Any]:
         "kind": "am100_low_rate_variant",
         "validation": _record(root, LOW_RATE_VALIDATION),
         "runtime_root": LOW_RATE_RUNTIME_ROOT,
+        "stage1_evaluation": _record(root, LOW_RATE_STAGE1_EVALUATION),
+        "entropy_table": _read(root, LOW_RATE_STAGE1_EVALUATION)["entropy_model"]["table"],
         **variant,
     }
 

@@ -212,7 +212,7 @@ def dispatch(root: Path, *, device: torch.device | str, bindings: list[Mapping[s
                 epoch=int(checkpoint["checkpoint_epoch"]),
                 sha256=str(checkpoint["checkpoint_sha256"]),
                 runtime_root=str(checkpoint["runtime_root"]),
-                entropy_table=None,
+                entropy_table=checkpoint["entropy_table"],
             ))
             packet = build_packet_plan(int(assets["config"].resolved["k"]), str(checkpoint["modulation"]), str(checkpoint["ldpc_rate"]))
             assets["phy_candidates"] = [{"modulation": str(checkpoint["modulation"]), "ldpc_rate": str(checkpoint["ldpc_rate"]), "packet": packet}]

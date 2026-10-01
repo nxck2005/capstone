@@ -13,6 +13,11 @@ units.  Every opening of the test split is appended to the runtime access log.
 ``closeout`` writes the per-image release files, ``results/per_image_manifest.csv``
 and the aggregate CSV, then runs the frozen ER-10 analysis into
 ``results/inference_summary.csv``.
+
+``--rehearsal`` runs the identical code on the validation split before the
+freeze: the view, split label, output directories and the freeze source (built
+in memory, never written) are the only differences, and nothing is written
+under ``results/``.  It never reaches a test loader.
 """
 
 from __future__ import annotations
@@ -22,12 +27,12 @@ import csv
 import datetime as dt
 import gzip
 import hashlib
-import io
 import json
 import os
 import subprocess
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -37,12 +42,52 @@ sys.path.insert(0, str(REPO / "tools"))
 
 from config.params import get  # noqa: E402
 
-RUNTIME = REPO / "checkpoints/g12_campaign"
-UNITS_DIR = RUNTIME / "units"
-ACCESS_LOG = RUNTIME / "test_access_log.jsonl"
-CAMPAIGN_MARKER = RUNTIME / "campaign.json"
-RESULTS_DIR = REPO / "results/g12"
-PER_IMAGE_DIR = REPO / str(get("artifacts.per_image_dir")) / "g12"
+
+@dataclass(frozen=True)
+class Mode:
+    rehearsal: bool
+    split: str
+    runtime: Path
+    results_dir: Path
+    per_image_dir: Path
+    per_image_manifest: Path
+    inference_summary: Path
+    j2k_cache_dir: str
+
+    @property
+    def units_dir(self) -> Path:
+        return self.runtime / "units"
+
+    @property
+    def access_log(self) -> Path:
+        return self.runtime / "test_access_log.jsonl"
+
+    @property
+    def marker(self) -> Path:
+        return self.runtime / "campaign.json"
+
+
+CAMPAIGN = Mode(
+    rehearsal=False,
+    split="test",
+    runtime=REPO / "checkpoints/g12_campaign",
+    results_dir=REPO / "results/g12",
+    per_image_dir=REPO / str(get("artifacts.per_image_dir")) / "g12",
+    per_image_manifest=REPO / str(get("artifacts.per_image_manifest")),
+    inference_summary=REPO / str(get("artifacts.inference_summary_file")),
+    j2k_cache_dir="checkpoints/g12_campaign/j2k_cache",
+)
+_REHEARSAL_ROOT = REPO / "checkpoints/g12_rehearsal_full"
+REHEARSAL = Mode(
+    rehearsal=True,
+    split="val",
+    runtime=_REHEARSAL_ROOT,
+    results_dir=_REHEARSAL_ROOT / "results",
+    per_image_dir=_REHEARSAL_ROOT / "per_image",
+    per_image_manifest=_REHEARSAL_ROOT / "results/per_image_manifest.csv",
+    inference_summary=_REHEARSAL_ROOT / "results/inference_summary.csv",
+    j2k_cache_dir="checkpoints/g12_rehearsal_full/j2k_cache",
+)
 
 
 def _git(*args: str) -> str:
@@ -58,11 +103,13 @@ def _canonical(value: Any) -> bytes:
     return (json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode()
 
 
-def _freeze() -> dict[str, Any]:
-    """The committed, reproducing freeze manifest and the commit it binds."""
+def _freeze(mode: Mode) -> dict[str, Any]:
+    """The committed, reproducing freeze manifest (or an in-memory one to rehearse)."""
 
     import g12_freeze  # noqa: PLC0415
 
+    if mode.rehearsal:
+        return g12_freeze.build(code_commit=_git("rev-parse", "HEAD"))
     path = REPO / str(get("artifacts.freeze_manifest_file"))
     _require(path.is_file(), "no freeze manifest; G-12 has not been frozen")
     value = json.loads(path.read_bytes())
@@ -105,10 +152,42 @@ class TestView:
         return evaluation_input(self.product(stable_id))
 
 
-def _unit_path(unit: dict[str, Any]) -> Path:
+class CachedValidationView:
+    """The rehearsal's validation view, caching canonical products like ``TestView``."""
+
+    def __init__(self) -> None:
+        from evaluation.w10_backends import ValidationView  # noqa: PLC0415
+
+        self._view = ValidationView()
+        self.stable_ids = list(self._view.stable_ids)
+        self.labels = dict(self._view.labels)
+        self._products: dict[str, Any] = {}
+
+    def product(self, stable_id: str) -> Any:
+        if stable_id not in self._products:
+            self._products[stable_id] = self._view.product(stable_id)
+        return self._products[stable_id]
+
+    def label(self, stable_id: str) -> int:
+        return self.labels[stable_id]
+
+    def index_of(self, stable_id: str) -> int:
+        return self.stable_ids.index(stable_id)
+
+    def canonical_tensor(self, stable_id: str) -> Any:
+        from data.preprocessing import evaluation_input  # noqa: PLC0415
+
+        return evaluation_input(self.product(stable_id))
+
+
+def _denominator(mode: Mode) -> int:
+    return int(get("datasets.imagenette160.val_images" if mode.rehearsal else "datasets.imagenette160.test_images"))
+
+
+def _unit_path(mode: Mode, unit: dict[str, Any]) -> Path:
     from evaluation.g12_scope import unit_stem  # noqa: PLC0415
 
-    return UNITS_DIR / f"{unit_stem(unit)}.json.gz"
+    return mode.units_dir / f"{unit_stem(unit)}.json.gz"
 
 
 def _read_unit(path: Path) -> dict[str, Any]:
@@ -123,7 +202,11 @@ def _streams(aggregate: dict[str, Any]) -> list[dict[str, Any]]:
     return streams
 
 
-def _verify_unit(value: dict[str, Any], unit: dict[str, Any], stable_ids: list[str] | None, freeze_id: str) -> None:
+def _unit_for_mode(mode: Mode, unit: dict[str, Any]) -> dict[str, Any]:
+    return {**unit, "split": mode.split}
+
+
+def _verify_unit(mode: Mode, value: dict[str, Any], unit: dict[str, Any], stable_ids: list[str] | None, freeze_id: str) -> None:
     from evaluation.g12_scope import arm_for  # noqa: PLC0415
 
     _require(value["unit"] == unit and value["freeze_id"] == freeze_id, f"unit {unit['ordinal']} belongs to another campaign")
@@ -132,10 +215,12 @@ def _verify_unit(value: dict[str, Any], unit: dict[str, Any], stable_ids: list[s
     for stream in value["streams"]:
         rows = stream["rows"]
         ids = [row["stable_sample_id"] for row in rows]
+        _require(len(rows) == _denominator(mode) and len(set(ids)) == len(ids), f"unit {unit['ordinal']} does not cover the split exactly once")
         if stable_ids is not None:
-            _require(ids == stable_ids, f"unit {unit['ordinal']} rows are not the complete ordered test split")
-        _require(all(row["split"] == "test" and float(row["test_snr_db"]) == float(unit["snr_db"]) for row in rows), f"unit {unit['ordinal']} rows differ from the unit")
+            _require(ids == stable_ids, f"unit {unit['ordinal']} rows are not the complete ordered split")
+        _require(all(row["split"] == mode.split and float(row["test_snr_db"]) == float(unit["snr_db"]) for row in rows), f"unit {unit['ordinal']} rows differ from the unit")
         _require(hashlib.sha256(b"".join(_canonical(row) for row in rows)).hexdigest() == stream["rows_sha256"], f"unit {unit['ordinal']} row digest differs")
+        _require(sum(1 for row in rows if row["correct"]) == stream["n_correct"], f"unit {unit['ordinal']} n_correct does not recompute")
 
 
 def _write_atomic(path: Path, value: dict[str, Any]) -> None:
@@ -146,39 +231,39 @@ def _write_atomic(path: Path, value: dict[str, Any]) -> None:
     os.replace(temporary, path)
 
 
-def run(worker: int, workers: int, device: str) -> int:
+def run(mode: Mode, worker: int, workers: int, device: str) -> int:
     import torch
 
     from evaluation.g12_bindings import resolve
     from evaluation.g12_dispatch import dispatch
     from evaluation.g12_scope import work_units
 
-    freeze = _freeze()
-    RUNTIME.mkdir(parents=True, exist_ok=True)
-    if CAMPAIGN_MARKER.exists():
-        marker = json.loads(CAMPAIGN_MARKER.read_bytes())
-        _require(marker["freeze_id"] == freeze["freeze_id"], "a different G-12 campaign already opened test; it must be closed or invalidated, never mixed")
+    freeze = _freeze(mode)
+    mode.runtime.mkdir(parents=True, exist_ok=True)
+    if mode.marker.exists():
+        marker = json.loads(mode.marker.read_bytes())
+        _require(marker["freeze_id"] == freeze["freeze_id"], "a different G-12 campaign already opened this runtime; it must be closed or invalidated, never mixed")
     else:
-        CAMPAIGN_MARKER.write_bytes(_canonical({"freeze_id": freeze["freeze_id"], "code_commit": freeze["code_commit"], "opened_at": dt.datetime.now(dt.timezone.utc).isoformat()}))
+        mode.marker.write_bytes(_canonical({"freeze_id": freeze["freeze_id"], "code_commit": freeze["code_commit"], "split": mode.split, "opened_at": dt.datetime.now(dt.timezone.utc).isoformat()}))
     bindings = resolve(REPO)
     _require([item["binding_id"] for item in bindings] == [item["binding_id"] for item in freeze["checkpoints"]], "live bindings differ from the frozen checkpoints")
     torch.set_num_threads(max(1, (os.cpu_count() or workers) // workers))
-    units = [unit for unit in work_units() if int(unit["ordinal"]) % workers == worker]
+    units = [_unit_for_mode(mode, unit) for unit in work_units() if int(unit["ordinal"]) % workers == worker]
     pending = []
     for unit in units:
-        path = _unit_path(unit)
+        path = _unit_path(mode, unit)
         if path.exists():
-            _verify_unit(_read_unit(path), unit, None, freeze["freeze_id"])
+            _verify_unit(mode, _read_unit(path), unit, None, freeze["freeze_id"])
         else:
             pending.append(unit)
     print(f"worker {worker}/{workers} on {device}: {len(units) - len(pending)} done, {len(pending)} pending", flush=True)
     if not pending:
         return 0
-    with ACCESS_LOG.open("a") as log:
-        log.write(json.dumps({"event": "test_split_opened", "worker": worker, "device": device, "pid": os.getpid(), "freeze_id": freeze["freeze_id"], "at": dt.datetime.now(dt.timezone.utc).isoformat()}) + "\n")
-    view = TestView()
-    _require(len(view.stable_ids) == int(get("datasets.imagenette160.test_images")), "test denominator differs")
-    backend = dispatch(REPO, device=device, bindings=bindings, view=view)
+    with mode.access_log.open("a") as log:
+        log.write(json.dumps({"event": f"{mode.split}_split_opened", "worker": worker, "device": device, "pid": os.getpid(), "freeze_id": freeze["freeze_id"], "at": dt.datetime.now(dt.timezone.utc).isoformat()}) + "\n")
+    view = CachedValidationView() if mode.rehearsal else TestView()
+    _require(len(view.stable_ids) == _denominator(mode), "split denominator differs")
+    backend = dispatch(REPO, device=device, bindings=bindings, view=view, split=mode.split, j2k_cache_dir=mode.j2k_cache_dir)
     for unit in pending:
         started = time.monotonic()
         with torch.no_grad():
@@ -198,22 +283,22 @@ def run(worker: int, workers: int, device: str) -> int:
             "summary": summary,
             "streams": streams,
         }
-        _verify_unit(value, unit, view.stable_ids, freeze["freeze_id"])
-        _write_atomic(_unit_path(unit), value)
+        _verify_unit(mode, value, unit, view.stable_ids, freeze["freeze_id"])
+        _write_atomic(_unit_path(mode, unit), value)
         print(f"{unit['ordinal']:3d} {unit['role']:28s} c{unit['train_seed']} {unit['snr_db']:>4} dB  {streams[0]['n_correct']}/{len(streams[0]['rows'])}  {value['wall_clock_s']:.0f}s", flush=True)
     return 0
 
 
-def status() -> int:
+def status(mode: Mode) -> int:
     from evaluation.g12_scope import work_units
 
-    units = work_units()
-    done = [unit for unit in units if _unit_path(unit).exists()]
-    print(f"{len(done)}/{len(units)} G-12 units complete")
+    units = [_unit_for_mode(mode, unit) for unit in work_units()]
+    done = [unit for unit in units if _unit_path(mode, unit).exists()]
+    print(f"{len(done)}/{len(units)} G-12 units complete ({mode.split})")
     return 0
 
 
-def _csv_row(value: dict[str, Any], stream: dict[str, Any]) -> dict[str, Any]:
+def _csv_row(mode: Mode, value: dict[str, Any], stream: dict[str, Any]) -> dict[str, Any]:
     unit, summary, rows = value["unit"], value["summary"], stream["rows"]
     binding = summary.get("binding", {}) or {}
     n = len(rows)
@@ -227,7 +312,7 @@ def _csv_row(value: dict[str, Any], stream: dict[str, Any]) -> dict[str, Any]:
         "checkpoint_id": binding.get("checkpoint_id"),
         "system": unit["system"],
         "dataset": "imagenette160",
-        "split": "test",
+        "split": mode.split,
         "n": n,
         "k": int(get(f"bandwidth.k_symbols.imagenette160.{unit['bw_ratio']}")),
         "bw_ratio": unit["bw_ratio"],
@@ -274,40 +359,66 @@ def _csv_row(value: dict[str, Any], stream: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def closeout() -> int:
+def _descriptive(outcomes: Any) -> dict[str, Any]:
+    """ER-10's per-cell curves, between-cell range and per-cell McNemar checks."""
+
+    from evaluation.g12_analysis import mcnemar_exact  # noqa: PLC0415
+
+    curves = {}
+    for system, values in outcomes.correct.items():
+        per_cell = values.mean(axis=0)  # cells × SNRs
+        curves[system] = {
+            "per_cell_accuracy": {str(cell): [float(v) for v in per_cell[j]] for j, cell in enumerate(outcomes.cells)},
+            "cell_mean_accuracy": [float(v) for v in per_cell.mean(axis=0)],
+            "between_cell_range": [float(v) for v in per_cell.max(axis=0) - per_cell.min(axis=0)],
+        }
+    mcnemar = []
+    learned = outcomes.correct["learned"]
+    for comparator in ("classical_adaptive", "er9_digital"):
+        other = outcomes.correct[comparator]
+        for j, cell in enumerate(outcomes.cells):
+            for s, snr in enumerate(outcomes.snrs):
+                a_only = int(((learned[:, j, s] == 1) & (other[:, j, s] == 0)).sum())
+                b_only = int(((learned[:, j, s] == 0) & (other[:, j, s] == 1)).sum())
+                mcnemar.append({"comparator": comparator, "cell": cell, "snr_db": snr, "learned_only": a_only, "comparator_only": b_only, "p_value": mcnemar_exact(a_only, b_only)})
+    return {"role": get("evaluation.paired_test_role"), "curves": curves, "mcnemar": mcnemar}
+
+
+def closeout(mode: Mode) -> int:
     from evaluation import g12_analysis
     from evaluation.g12_scope import arm_for, work_units
 
-    freeze = _freeze()
-    units = work_units()
-    missing = [unit["ordinal"] for unit in units if not _unit_path(unit).exists()]
+    freeze = _freeze(mode)
+    units = [_unit_for_mode(mode, unit) for unit in work_units()]
+    missing = [unit["ordinal"] for unit in units if not _unit_path(mode, unit).exists()]
     _require(not missing, f"{len(missing)} units are missing: {missing[:10]}")
-    PER_IMAGE_DIR.mkdir(parents=True, exist_ok=True)
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    mode.per_image_dir.mkdir(parents=True, exist_ok=True)
+    mode.results_dir.mkdir(parents=True, exist_ok=True)
     schema = list(get("artifacts.csv_schema"))
     manifest_rows, csv_rows, analysis_rows = [], [], []
     reference_ids = None
     for unit in units:
-        value = _read_unit(_unit_path(unit))
-        _verify_unit(value, unit, reference_ids, freeze["freeze_id"])
+        value = _read_unit(_unit_path(mode, unit))
+        _verify_unit(mode, value, unit, reference_ids, freeze["freeze_id"])
         reference_ids = reference_ids or [row["stable_sample_id"] for row in value["streams"][0]["rows"]]
         arm = arm_for(unit["role"])
         for stream in value["streams"]:
             raw = b"".join(_canonical(row) for row in stream["rows"])
             digest = hashlib.sha256(raw).hexdigest()
-            name = f"{_unit_path(unit).name[:-len('.json.gz')]}.{stream['classifier_variant']}.jsonl.gz"
-            with gzip.GzipFile(PER_IMAGE_DIR / name, "wb", mtime=0) as handle:
+            name = f"{_unit_path(mode, unit).name[:-len('.json.gz')]}.{stream['classifier_variant']}.jsonl.gz"
+            with gzip.GzipFile(mode.per_image_dir / name, "wb", mtime=0) as handle:
                 handle.write(raw)
             manifest_rows.append({"file": f"g12/{name}", "rows_sha256": digest, "rows": len(stream["rows"]), "run_id": stream["rows"][0]["run_id"], "system": unit["system"], "bw_ratio": unit["bw_ratio"], "train_seed": unit["train_seed"], "test_snr_db": unit["snr_db"], "classifier_variant": stream["classifier_variant"]})
-            csv_rows.append(_csv_row(value, stream))
+            csv_rows.append(_csv_row(mode, value, stream))
             if stream["classifier_variant"] == arm.classifier_variants[0] and unit["bw_ratio"] == "r_1_6":
                 for row in stream["rows"]:
                     analysis_rows.append({"system": unit["system"], "bw_ratio": unit["bw_ratio"], "stable_sample_id": row["stable_sample_id"], "train_seed": unit["train_seed"], "test_snr_db": row["test_snr_db"], "correct": row["correct"]})
-    with (REPO / str(get("artifacts.per_image_manifest"))).open("w", newline="") as handle:
+    mode.per_image_manifest.parent.mkdir(parents=True, exist_ok=True)
+    with mode.per_image_manifest.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(manifest_rows[0]))
         writer.writeheader()
         writer.writerows(manifest_rows)
-    with (RESULTS_DIR / "results.csv").open("w", newline="") as handle:
+    with (mode.results_dir / "results.csv").open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=schema)
         writer.writeheader()
         writer.writerows(csv_rows)
@@ -316,20 +427,22 @@ def closeout() -> int:
     outcomes = g12_analysis.outcomes_from_rows(analysis_rows, systems=systems, cells=(0, 1, 2))
     window = (freeze["h2_window"]["low_snr_db"], freeze["h2_window"]["high_snr_db"])
     result = g12_analysis.analyse(outcomes, h2_window=window)
-    per_image_sha = hashlib.sha256((REPO / str(get("artifacts.per_image_manifest"))).read_bytes()).hexdigest()
+    per_image_sha = hashlib.sha256(mode.per_image_manifest.read_bytes()).hexdigest()
+    result["split"] = mode.split
     result["freeze_id"] = freeze["freeze_id"]
     result["code_commit"] = freeze["code_commit"]
     result["per_image_manifest_sha256"] = per_image_sha
-    (RESULTS_DIR / "analysis.json").write_bytes(json.dumps(result, indent=1, sort_keys=True, allow_nan=False).encode() + b"\n")
-    _write_inference_summary(result, freeze, per_image_sha)
-    print(f"G-12 closeout: {len(csv_rows)} result rows, {len(manifest_rows)} per-image streams")
+    result["descriptive"] = _descriptive(outcomes)
+    (mode.results_dir / "analysis.json").write_bytes(json.dumps(result, indent=1, sort_keys=True, allow_nan=False).encode() + b"\n")
+    _write_inference_summary(mode, result, freeze, per_image_sha)
+    print(f"G-12 closeout ({mode.split}): {len(csv_rows)} result rows, {len(manifest_rows)} per-image streams")
     for key in ("H1", "H2", "H3", "H4"):
         if key in result:
             print(f"{key}: supported={result[key]['supported']}")
     return 0
 
 
-def _write_inference_summary(result: dict[str, Any], freeze: dict[str, Any], per_image_sha: str) -> None:
+def _write_inference_summary(mode: Mode, result: dict[str, Any], freeze: dict[str, Any], per_image_sha: str) -> None:
     from training.deterministic_core import canonical_sha256  # noqa: PLC0415
 
     schema = list(get("artifacts.inference_summary_schema"))
@@ -360,7 +473,8 @@ def _write_inference_summary(result: dict[str, Any], freeze: dict[str, Any], per
     rows.append({**common, "hypothesis": "H3", "systems": "learned-classical_adaptive", "snr_region": "full grid", "window": None,
                  "estimate": value["slope_per_db"], "ci_low": value["slope_ci"][0], "ci_high": value["slope_ci"][1], "p_value": None,
                  "calibration_statistic": json.dumps(value["clauses"], sort_keys=True), "support_decision": value["supported"]})
-    with (REPO / str(get("artifacts.inference_summary_file"))).open("w", newline="") as handle:
+    mode.inference_summary.parent.mkdir(parents=True, exist_ok=True)
+    with mode.inference_summary.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=schema)
         writer.writeheader()
         writer.writerows(rows)
@@ -368,6 +482,7 @@ def _write_inference_summary(result: dict[str, Any], freeze: dict[str, Any], per
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--rehearsal", action="store_true", help="run the identical code on the validation split, before the freeze")
     sub = parser.add_subparsers(dest="command", required=True)
     runner = sub.add_parser("run")
     runner.add_argument("--worker", type=int, required=True)
@@ -376,9 +491,10 @@ def main() -> int:
     sub.add_parser("status")
     sub.add_parser("closeout")
     args = parser.parse_args()
+    mode = REHEARSAL if args.rehearsal else CAMPAIGN
     if args.command == "run":
-        return run(args.worker, args.workers, args.device)
-    return status() if args.command == "status" else closeout()
+        return run(mode, args.worker, args.workers, args.device)
+    return status(mode) if args.command == "status" else closeout(mode)
 
 
 if __name__ == "__main__":
