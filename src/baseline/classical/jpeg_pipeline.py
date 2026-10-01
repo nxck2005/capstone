@@ -8,6 +8,7 @@ decode with the JPEG 2000 arm, so the two curves differ only in the codec.
 from __future__ import annotations
 
 import hashlib
+from typing import Any
 
 import numpy as np
 
@@ -27,6 +28,94 @@ from baseline.classical.pipeline import (
 from baseline.jpeg import JpegCodec, JpegCodecError, decode_codestream
 from baseline.ldpc.transport import build_packet_plan
 from data.preprocessing import CanonicalProduct, codec_downsample, codec_input, codec_upsample
+
+
+def jpeg_source_coding(
+    canonical_image: np.ndarray,
+    *,
+    dataset: str,
+    accounting: Any,
+    quality: int,
+    codec: JpegCodec,
+    encode_axis_px: int | None = None,
+) -> tuple[SourceCoding, Any]:
+    """Encode at exactly ``quality`` on the first feasible axis; shared by both paths."""
+
+    canonical_shorter_side = int(min(canonical_image.shape[:2]))
+    if encode_axis_px is None:
+        axes = configured_axes(dataset, canonical_shorter_side)
+    else:
+        requested = int(encode_axis_px)
+        permitted = configured_axes(dataset, canonical_shorter_side)
+        if requested not in permitted:
+            raise ClassicalPipelineError(
+                f"requested encode axis {requested}px is not configured for {dataset}"
+            )
+        axes = (requested,)
+
+    attempted: list[int] = []
+    reasons: list[tuple[int, str]] = []
+    result = None
+    downsampled = None
+    selected_axis = None
+    for axis in axes:
+        attempted.append(axis)
+        candidate = codec_downsample(canonical_image, axis)
+        try:
+            encoded = codec.encode_exact_quality(
+                candidate,
+                canonical_pixels_sha256=hashlib.sha256(canonical_image.tobytes()).hexdigest(),
+                budget_bytes=accounting.payload_bytes,
+                encode_axis_px=axis,
+                quality=int(quality),
+            )
+        except JpegCodecError as exc:
+            reasons.append((axis, f"codec_configuration_error: {exc}"))
+            continue
+        if not encoded.feasible or encoded.codestream is None:
+            reasons.append((axis, BUDGET_EXCEEDED))
+            continue
+        if encoded.emitted_byte_count is None or encoded.emitted_byte_count > accounting.payload_bytes:
+            raise ClassicalPipelineError("JPEG codestream exceeds the payload capacity")
+        result = encoded
+        downsampled = candidate
+        selected_axis = axis
+        break
+
+    if result is None:
+        return SourceCoding(
+            feasible=False,
+            encode_axis_px=None,
+            axes_attempted=tuple(attempted),
+            axis_reasons=tuple(reasons),
+            payload_capacity_bytes=accounting.payload_bytes,
+            emitted_bytes=None,
+            payload_filler_bytes=None,
+            payload_filler_bits=None,
+            codestream_sha256=None,
+            cache_key=None,
+            cache_hit=None,
+            search_iterations=None,
+        ), None
+
+    assert result.codestream is not None and result.emitted_byte_count is not None
+    filler = accounting.payload_bytes - result.emitted_byte_count
+    source_coding = SourceCoding(
+        feasible=True,
+        encode_axis_px=int(selected_axis) if selected_axis is not None else None,
+        axes_attempted=tuple(attempted),
+        axis_reasons=tuple(reasons),
+        payload_capacity_bytes=accounting.payload_bytes,
+        emitted_bytes=result.emitted_byte_count,
+        payload_filler_bytes=filler,
+        payload_filler_bits=filler * np.iinfo(np.uint8).bits,
+        codestream_sha256=hashlib.sha256(result.codestream).hexdigest(),
+        cache_key=result.cache_key,
+        cache_hit=None,
+        search_iterations=len(result.search_points),
+        emitted_codestream=None,
+    )
+    return source_coding, result
 
 
 def run_jpeg_pipeline(
@@ -76,47 +165,14 @@ def run_jpeg_pipeline(
     if accounting.k_symbols != k_symbols:
         raise ClassicalPipelineError("packet plan does not carry the requested k")
 
-    canonical_shorter_side = int(min(canonical_image.shape[:2]))
-    if encode_axis_px is None:
-        axes = configured_axes(dataset, canonical_shorter_side)
-    else:
-        requested = int(encode_axis_px)
-        permitted = configured_axes(dataset, canonical_shorter_side)
-        if requested not in permitted:
-            raise ClassicalPipelineError(
-                f"requested encode axis {requested}px is not configured for {dataset}"
-            )
-        axes = (requested,)
-
-    attempted: list[int] = []
-    reasons: list[tuple[int, str]] = []
-    result = None
-    downsampled = None
-    selected_axis = None
-    for axis in axes:
-        attempted.append(axis)
-        candidate = codec_downsample(canonical_image, axis)
-        try:
-            encoded = codec.encode_exact_quality(
-                candidate,
-                canonical_pixels_sha256=hashlib.sha256(canonical_image.tobytes()).hexdigest(),
-                budget_bytes=accounting.payload_bytes,
-                encode_axis_px=axis,
-                quality=int(quality),
-            )
-        except JpegCodecError as exc:
-            reasons.append((axis, f"codec_configuration_error: {exc}"))
-            continue
-        if not encoded.feasible or encoded.codestream is None:
-            reasons.append((axis, BUDGET_EXCEEDED))
-            continue
-        if encoded.emitted_byte_count is None or encoded.emitted_byte_count > accounting.payload_bytes:
-            raise ClassicalPipelineError("JPEG codestream exceeds the payload capacity")
-        result = encoded
-        downsampled = candidate
-        selected_axis = axis
-        break
-
+    source_coding, result = jpeg_source_coding(
+        canonical_image,
+        dataset=dataset,
+        accounting=accounting,
+        quality=int(quality),
+        codec=codec,
+        encode_axis_px=encode_axis_px,
+    )
     if result is None:
         return ClassicalResult(
             verdict=CODEC_INFEASIBILITY,
@@ -130,42 +186,12 @@ def run_jpeg_pipeline(
             packet_feasible=True,
             structural_reason=None,
             accounting=accounting,
-            source_coding=SourceCoding(
-                feasible=False,
-                encode_axis_px=None,
-                axes_attempted=tuple(attempted),
-                axis_reasons=tuple(reasons),
-                payload_capacity_bytes=accounting.payload_bytes,
-                emitted_bytes=None,
-                payload_filler_bytes=None,
-                payload_filler_bits=None,
-                codestream_sha256=None,
-                cache_key=None,
-                cache_hit=None,
-                search_iterations=None,
-            ),
+            source_coding=source_coding,
             transport=None,
             codestream_recovered_exactly=None,
             decoded_image=None,
         )
-
-    assert result.codestream is not None and result.emitted_byte_count is not None
-    filler = accounting.payload_bytes - result.emitted_byte_count
-    source_coding = SourceCoding(
-        feasible=True,
-        encode_axis_px=int(selected_axis) if selected_axis is not None else None,
-        axes_attempted=tuple(attempted),
-        axis_reasons=tuple(reasons),
-        payload_capacity_bytes=accounting.payload_bytes,
-        emitted_bytes=result.emitted_byte_count,
-        payload_filler_bytes=filler,
-        payload_filler_bits=filler * np.iinfo(np.uint8).bits,
-        codestream_sha256=hashlib.sha256(result.codestream).hexdigest(),
-        cache_key=result.cache_key,
-        cache_hit=None,
-        search_iterations=len(result.search_points),
-        emitted_codestream=None,
-    )
+    filler = int(source_coding.payload_filler_bytes)
     padded = result.codestream + b"\x00" * filler
     payload_bits = np.unpackbits(np.frombuffer(padded, dtype=np.uint8))
     if payload_bits.size != accounting.payload_bits:

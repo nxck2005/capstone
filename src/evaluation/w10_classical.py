@@ -238,21 +238,43 @@ def classical_unit(
     )
     k = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{unit['bw_ratio']}"))
     codec = (
-        J2KCodec(Path(root) / W10_J2K_CACHE_DIR)
+        J2KCodec(Path(root) / (context.j2k_cache_dir or W10_J2K_CACHE_DIR))
         if codec_kind == "jpeg2000"
         else JpegCodec()
     )
     streams: dict[str, list[dict[str, Any]]] = {variant: [] for variant in classifiers}
     papr_values: list[float] = []
+    channel_identity = ChannelIdentity(
+        dataset_version=str(get(f"datasets.{W10_DATASET}.{get('config.dataset_version_rule')}")),
+        split_manifest_hash=str(get(f"datasets.{W10_DATASET}.manifest_sha256")),
+        channel_seed=int(unit["channel_seed"]),
+    )
+    batched: dict[str, ClassicalResult] = {}
+    if context.batched_classical:
+        from baseline.classical.batched import run_classical_batch  # noqa: PLC0415
+
+        products = [view.product(stable_id) for stable_id in view.stable_ids]
+        batched_results = run_classical_batch(
+            products,
+            dataset=W10_DATASET,
+            k_symbols=k,
+            modulation=modulation,
+            ldpc_rate=ldpc_rate,
+            snr_db=float(unit["snr_db"]),
+            codec=codec,
+            channel_identity=channel_identity,
+            encode_axis_px=encode_axis,
+            device=str(context.device),
+            codec_kind=codec_kind,
+            quality=quality,
+        )
+        batched = {product.stable_sample_id: result for product, result in zip(products, batched_results, strict=True)}
     for stable_id in view.stable_ids:
         product = view.product(stable_id)
         label = view.label(stable_id)
-        channel_identity = ChannelIdentity(
-            dataset_version=str(get(f"datasets.{W10_DATASET}.{get('config.dataset_version_rule')}")),
-            split_manifest_hash=str(get(f"datasets.{W10_DATASET}.manifest_sha256")),
-            channel_seed=int(unit["channel_seed"]),
-        )
-        if codec_kind == "jpeg2000":
+        if stable_id in batched:
+            result = batched[stable_id]
+        elif codec_kind == "jpeg2000":
             result = run_classical_pipeline(
                 product,
                 dataset=W10_DATASET,
@@ -300,6 +322,7 @@ def classical_unit(
                 quantiser_bits=None,
                 transmit_dim=None,
                 reconstruction_weight=None,
+                **context.cell(),
             )
             from baseline.classical.records import per_image_row
 
@@ -314,6 +337,7 @@ def classical_unit(
                         stable_sample_id=stable_id,
                         bw_ratio=unit["bw_ratio"],
                         test_snr_db=unit["snr_db"],
+                        channel_seed=context.channel_seed,
                         k=k,
                     ),
                 )

@@ -128,6 +128,17 @@ class W10Execution:
     classifiers: dict[str, Any] = field(default_factory=dict)
     er9: dict[str, Any] = field(default_factory=dict)
     builders: dict[str, Callable[[str], Any]] = field(default_factory=dict)
+    # The evaluated split and zipped seed cell.  W10 is validation cell (0, 0);
+    # G-12 sets these and supplies its guarded test view through ``view``.
+    split: str = "val"
+    train_seed: int = 0
+    channel_seed: int = 0
+    # G-12 opts into the batched classical transport (identical outputs).
+    batched_classical: bool = False
+    j2k_cache_dir: str | None = None
+
+    def cell(self) -> dict[str, Any]:
+        return {"split": self.split, "train_seed": int(self.train_seed), "channel_seed": int(self.channel_seed)}
 
     def validation(self) -> ValidationView:
         if self.view is None:
@@ -182,6 +193,7 @@ def _learned_rows(
         quantiser_bits=None,
         transmit_dim=None,
         reconstruction_weight=3.0,  # literal-ok: AM-92 frozen lambda_core
+        **context.cell(),
     )
     k = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{unit['bw_ratio']}"))
     rows: list[dict[str, Any]] = []
@@ -196,6 +208,7 @@ def _learned_rows(
                 stable_sample_id=stable_id,
                 bw_ratio=unit["bw_ratio"],
                 test_snr_db=unit["snr_db"],
+                channel_seed=context.channel_seed,
                 k=k,
             )
             for stable_id in chunk
@@ -304,6 +317,7 @@ def er2_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.
         quantiser_bits=None,
         transmit_dim=None,
         reconstruction_weight=3.0,  # literal-ok: AM-92 frozen lambda_core
+        **context.cell(),
     )
     k = int(get(f"bandwidth.k_symbols.{W10_DATASET}.{unit['bw_ratio']}"))
     from channels.awgn import keyed_complex_noise
@@ -315,7 +329,7 @@ def er2_unit(context: W10Execution, unit: Mapping[str, Any], *, model: torch.nn.
         chunk = view.stable_ids[start : start + batch]
         inputs = torch.stack([view.canonical_tensor(stable_id) for stable_id in chunk]).to(context.device)
         noise_ids = [
-            scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], k=k)
+            scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], channel_seed=context.channel_seed, k=k)
             for stable_id in chunk
         ]
         noise = keyed_complex_noise(tuple(noise_ids), k, dtype=torch.complex64, device=context.device)
@@ -377,6 +391,7 @@ def er9_unit(context: W10Execution, unit: Mapping[str, Any], *, assets: Mapping[
         quantiser_bits=quantiser_bits,
         transmit_dim=dimension,
         reconstruction_weight=None,
+        **context.cell(),
     )
     policy = authenticated_er9_outage_policy(config)
     session = ER9TransportBatch(packet, device=str(context.device))
@@ -391,7 +406,7 @@ def er9_unit(context: W10Execution, unit: Mapping[str, Any], *, assets: Mapping[
             encode_message(row, model.quantiser, entropy, packet_payload_bits=int(layout.payload_bits)).message_bits
             for row in indices
         ]
-        noise_ids = [scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], k=k) for stable_id in chunk]
+        noise_ids = [scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], channel_seed=context.channel_seed, k=k) for stable_id in chunk]
         result = session.round_trip(payloads=payloads, snr_db=float(unit["snr_db"]), noise_ids=noise_ids)
         papr_values.extend(float(value) for value in result.papr_db)
         for stable_id, payload in zip(chunk, result.payloads, strict=True):
@@ -496,6 +511,7 @@ def label_bound_unit(context: W10Execution, unit: Mapping[str, Any], *, selectio
         quantiser_bits=None,
         transmit_dim=None,
         reconstruction_weight=None,
+        **context.cell(),
     )
     from evaluation.er9_campaign import authenticated_er9_outage_policy  # noqa: PLC0415
 
@@ -513,7 +529,7 @@ def label_bound_unit(context: W10Execution, unit: Mapping[str, Any], *, selectio
             frame = np.zeros(payload_bytes, dtype=np.uint8)
             frame[:1] = label_payload(label)[0]
             payloads.append(np.unpackbits(frame))
-        noise_ids = [scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], k=k) for stable_id in chunk]
+        noise_ids = [scheduled_noise_id(stable_sample_id=stable_id, bw_ratio=unit["bw_ratio"], test_snr_db=unit["snr_db"], channel_seed=context.channel_seed, k=k) for stable_id in chunk]
         session = ER9TransportBatch(packet, device=str(context.device))
         result = session.round_trip(payloads=payloads, snr_db=float(unit["snr_db"]), noise_ids=noise_ids)
         papr_values.extend(float(value) for value in result.papr_db)
