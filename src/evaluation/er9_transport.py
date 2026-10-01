@@ -16,6 +16,7 @@ import torch
 from baseline.classical.channel_transport import build_accounting, modulate
 from baseline.ldpc import crc
 from baseline.ldpc.adapter import SionnaLDPCAdapter
+from baseline.ldpc.unpruned_decoder import repair_zero_pruning
 from baseline.ldpc.modulation import max_log_llr, n0_from_esn0_db
 from baseline.ldpc.segmentation import segment
 from baseline.ldpc.transport import PacketPlan
@@ -47,13 +48,17 @@ class ER9TransportBatch:
         self.device = device
         self.accounting = accounting
         self.modulation = accounting.modulation
+        # repair_zero_pruning is a no-op except where Sionna would build an
+        # empty graph (base graph 2 at exactly rate 1/5, AM-100's variant).
         self._adapters = tuple(
-            SionnaLDPCAdapter(
-                packet.segmentation.k_prime,
-                e_r,
-                packet.q_m,
-                packet.segmentation.base_graph,
-                device,
+            repair_zero_pruning(
+                SionnaLDPCAdapter(
+                    packet.segmentation.k_prime,
+                    e_r,
+                    packet.q_m,
+                    packet.segmentation.base_graph,
+                    device,
+                )
             )
             for e_r in packet.e_r
         )
