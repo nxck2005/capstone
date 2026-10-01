@@ -123,13 +123,15 @@ The fairness claim is about accuracy at equal channel uses and equal average sym
 
 The short version is in [`RESULTS.md`](RESULTS.md), which you should read in full before writing or presenting anything. Five points to keep in your head:
 
-1. **The cliff is real.** At 1/6, both digital systems deliver nothing at −5 dB and below. DJSCC still gets 73–78% there.
+1. **The cliff is real.** At 1/6, both digital systems deliver nothing at −5 dB and below. DJSCC still gets 73–78% there. That cliff sits where it does partly because the lowest code rate allowed is 1/3; whether to disclose or test this is an open decision (see [`novelty-review.md`](novelty-review.md)).
 2. **Above the cliff the baseline wins.** From −4 dB up, adaptive JPEG 2000 beats DJSCC by 2.7–6.1 points (89.3% against 83.4% at 18 dB).
 3. **Less bandwidth, bigger DJSCC region.** At 1/24, DJSCC stays ahead up to +3 dB.
 4. **Most of the low-SNR gain is outage avoidance.** The task-aware digital control reaches 82.0% whenever it delivers, within about 2 points of DJSCC across three seeds, but falls off the same cliff.
-5. **The receiver's classifier matters.** Grading the digital images with a classifier that never saw compression artifacts costs up to 43 points near the cliff.
+5. **The receiver's classifier matters.** Grading the digital images with a classifier that never saw compression artifacts costs up to 43 points near the cliff, and moves the range where DJSCC leads by 3–6 dB.
 
 All of this is validation data from one seed pair (except the three-seed H4 diagnostic). It decides none of the hypotheses.
+
+**What is new.** No single system here is new. To our knowledge, what is new is measuring how much of DJSCC's advantage comes from the way it is compared rather than from the learning: points 4 and 5 are the two controls that show it. The one-sentence answer, the closest prior work (Huang et al. 2024, Lokumarambage et al. 2026, SwinJSCC, Ren et al. 2025) and the prepared viva answers are in [`novelty-review.md`](novelty-review.md).
 
 ## 8. The hypotheses
 
@@ -148,7 +150,7 @@ A curve crossing is reported if seen, but it is not a pass condition. Completion
 |---|---|---|
 | First Review deck | `deliverables/review-1/` | Delivered (18–22 Aug) |
 | Second Review deck and presenter guide | `deliverables/review-2/` | Ready for 29 Sep–3 Oct |
-| Research paper (IEEE) | `deliverables/research-paper/capstone_rp.tex` | Draft; Sections IV–X being revised by the authors |
+| Research paper (IEEE) | `deliverables/research-paper/capstone_rp.tex` | Draft, retitled 2026-10-01 ("How Much of Deep Joint Source–Channel Coding's Advantage Survives a Fair Comparison?"); Sections IV–X being revised by the authors |
 | Supplementary material (IEEE) | `deliverables/research-paper/supplement/` | Draft |
 | Results package (figures, CSVs, notes) | `presentation-results/` | Done (validation) |
 | Offline exhibition demo | `demo/` | Built; weights provisioned separately |
@@ -285,6 +287,7 @@ The answers are in this file and in [`RESULTS.md`](RESULTS.md).
 ## 17. Where to read more
 
 - [`RESULTS.md`](RESULTS.md): every measured number, with what it means and what not to claim.
+- [`novelty-review.md`](novelty-review.md): the novelty claim tested against published work, the one-sentence answer, and the open code-rate decision.
 - `presentation-results/report/findings.md`: the W10 findings and figure captions.
 - [`crossover-explained.md`](crossover-explained.md): why "the curves must cross" was dropped as a success criterion.
 - [`literature-review.md`](literature-review.md): the 30-source review and the gap this project fills.

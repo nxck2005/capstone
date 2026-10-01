@@ -14,7 +14,7 @@ The measured results of the project, in one place, with what each number means, 
 
 ## The result in one paragraph
 
-At a bandwidth ratio of 1/6 (12,800 channel uses per image), DJSCC is the only system that works at −5 dB and below, where it keeps 73–78% accuracy while both digital systems deliver nothing. Between −5 and −4 dB the digital systems start delivering, and from −4 dB upward the adaptive JPEG 2000 system is more accurate than DJSCC by 2.7 to 6.1 points. At 1/24 (3,200 channel uses) the digital system needs much more SNR: DJSCC stays ahead up to +3 dB. The task-aware digital control, which sends learned features over the same digital link, scores 82.0% whenever its packets arrive and nothing below −4 dB. So at this ratio most of DJSCC's low-SNR advantage comes from avoiding outage, not from a better representation.
+At a bandwidth ratio of 1/6 (12,800 channel uses per image), DJSCC is the only system that works at −5 dB and below (with the configured code rates, the lowest of which is 1/3; see the open decision in [`novelty-review.md`](novelty-review.md)), where it keeps 73–78% accuracy while both digital systems deliver nothing. Between −5 and −4 dB the digital systems start delivering, and from −4 dB upward the adaptive JPEG 2000 system is more accurate than DJSCC by 2.7 to 6.1 points. At 1/24 (3,200 channel uses) the digital system needs much more SNR: DJSCC stays ahead up to +3 dB. The task-aware digital control, which sends learned features over the same digital link, scores 82.0% whenever its packets arrive and nothing below −4 dB. So at this ratio most of DJSCC's low-SNR advantage comes from avoiding outage, not from a better representation.
 
 ## Headline numbers
 
@@ -72,6 +72,7 @@ The task-aware digital system sends 2,048 learned features, quantized to 2 bits 
 - **Across three seeds (G11/H4 diagnostic, finding 11):** at −4 dB the two are essentially tied (learned − digital = −0.4 points). From −2 to 7 dB DJSCC is ahead by 0.6–1.8 points.
 - **Supports:** at 1/6, most of DJSCC's low-SNR advantage comes from avoiding outage. When both deliver, a task-aware representation sent digitally is within about 2 points of DJSCC.
 - **Don't claim:** this isolates the channel code. The feature encoders, quantization and heads differ between the two systems.
+- **Don't claim:** learned features are no better than images. The features (82.0%) are read by one linear layer and the images (83.4–89.3%) by a fine-tuned ResNet-18, so that gap says nothing about the representation.
 
 ### 5. The label-transmission bound inherits the task-aware system's threshold
 
@@ -90,6 +91,7 @@ Above about 4 dB (at 1/6) the two classifiers agree within a point.
 
 - **Supports:** near the cliff the baseline sends small, heavily compressed images, and a classifier that has seen such images matters a great deal. A crossover SNR depends on the receiver's classifier, not just the transmission scheme.
 - **Use it as:** evidence that the baseline was made strong. Fine-tuning the classifier helped the digital side.
+- **Use it as:** the project's lead contribution (paper, Section I). That retraining on compressed images helps is known in computer vision (Janeiro et al. 2023); what is new, to our knowledge, is measuring how much it moves a learned-versus-digital comparison. Prior comparisons such as Huang et al. 2024 grade the digital images with a classifier trained on clean images.
 
 ### 7. Reconstructing the image first loses a lot
 
@@ -136,7 +138,7 @@ The G11/H4 precision diagnostic ran on validation with all three seed cells, DJS
 
 The 2-point reference was met at 9 of the 16 points examined, all between −2 and 7 dB except 2 dB. The diagnostic is pointwise only. It does not certify the power of the full H4 procedure. A negative H4 would therefore be conservative, and would not rule out a real advantage of a point or two.
 
-- **For the paper:** the Discussion currently quotes the spec's analytic estimate of 1.4–3.2 points. The measured figure is 1.8–1.9 points above the cliff and about 4 points below it. Use the measured one. Source: `results/learned/g11/h4_pointwise_precision_v4.json`.
+- **For the paper:** the Discussion now uses this measured figure (1.8–1.9 points above the cliff, about 4 points below) instead of the spec's analytic estimate of 1.4–3.2 points, and reports the single-seed 2.6-point lead beside the three-seed result. Source: `results/learned/g11/h4_pointwise_precision_v4.json`.
 
 ## Selection records
 
@@ -215,10 +217,13 @@ The files are in `deliverables/research-paper/figures/`. Regenerate them with `p
 | Say | Don't say |
 |---|---|
 | "On the validation split…" | "Our results show…" (with no split named) |
-| "DJSCC is the only system that works below −5 dB at r=1/6" | "DJSCC outperforms the digital baseline" |
+| "DJSCC is the only system that works below −5 dB at r=1/6, with code rates no lower than 1/3" | "DJSCC outperforms the digital baseline" |
 | "The measured transition lies between −5 and −4 dB" | "The cliff is at −4.5 dB" |
 | "Higher at 19 of 21 SNRs in one training run" | "SNR randomization improves accuracy by 3 points" |
 | "Whole-system comparison; the two sides use different classifiers" | "Joint coding beats separate coding by X points" |
 | "Symbol-domain PAPR within the 3 dB cap" | "Meets amplifier/RF peak-power limits" |
 | "Consistent with an outage-avoidance explanation" | "Proves the gain is from outage avoidance" |
+| "To our knowledge, the first to measure how much of DJSCC's advantage comes from the comparison rather than the learning" | "The first to compare DJSCC with digital transmission" |
+| "The features and images are read by different classifiers, so their gap says nothing about the representation" | "Learned features don't beat images" |
+| "Within about 2 points of DJSCC across three seeds" | "2.6 points ahead of DJSCC" (one seed only) |
 | "Accuracy at equal channel uses and equal average symbol energy" | "Saves energy" |
