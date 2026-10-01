@@ -39,6 +39,10 @@ from evaluation.am97_spec_compatibility import (
 )
 from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS, load as load_am98_spec_compatibility
 from evaluation.am99_spec_compatibility import load as load_am99_spec_compatibility
+from evaluation.am100_spec_compatibility import (
+    AM100_PARAMETER_PATHS,
+    load as load_am100_spec_compatibility,
+)
 from evaluation.am95_spec_compatibility import (
     ALLOWED_PARAMETER_PATHS as AM95_ALLOWED_PARAMETER_PATHS,
     load as load_am95_spec_compatibility,
@@ -151,6 +155,7 @@ _AM96_SPEC_SHA256 = "5be83f36265947999db5e73b3cf40b55d6ee92922da251918a09af483bc
 _AM97_SPEC_SHA256 = "0b13ec55d8bcd2e74350d8e9992c3c480a543328f55e9be4a6b65a895aeb53a8"
 _AM98_SPEC_SHA256 = "51f428740e76125c58ea381b7c09c492ece7badd4e54d15424e1ca11b7e7e7f5"
 _AM99_SPEC_SHA256 = "14e97bb11e8a596514dd06f11d7a0d56c2a431ba1945eca7b1548290213edb83"
+_AM100_SPEC_SHA256 = "74b2cc3e5f18603b02168504f49312f7585452b3830543752ed51a74fe7fabf7"
 _W8_ALLOWED_PARAMETER_PATHS = ("learned_system.checkpoint_selection_snr_db",)
 _AM91_ALLOWED_PARAMETER_PATHS = (
     "artifacts.rng_identity_fields.training_channel_noise",
@@ -577,6 +582,7 @@ def _verify_am87_generated_params(archived: bytes) -> None:
     allowed_current.update(AM96_ALLOWED_PARAMETER_PATHS)
     allowed_current.update(AM97_ALLOWED_PARAMETER_PATHS)
     allowed_current.update(AM98_PARAMETER_PATHS)
+    allowed_current.update(AM100_PARAMETER_PATHS)
     if (
         entry.get("archived_sha256") != sha256_bytes(am88_current)
         or not isinstance(allowed_am89, list)
@@ -621,13 +627,14 @@ def _verify_historical_profile_spec(archived: bytes) -> None:
         _AM97_SPEC_SHA256,
         _AM98_SPEC_SHA256,
         _AM99_SPEC_SHA256,
+        _AM100_SPEC_SHA256,
     }:
         raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91/W7-C/W8 bytes")
     compatibility = _load_am89_compatibility()
     entry = next(item for item in compatibility["entries"] if item["path"] == "spec/SPEC.md")
     if entry.get("archived_sha256") != _HISTORICAL_CURRENT_SPEC_SHA256 or entry.get("current_sha256") != sha256_bytes(current):
         raise G8ContractError("historical SPEC compatibility requires the exact AM-89/AM-91/W7-C/W8 bytes")
-    if sha256_bytes(current) in {_W8_SPEC_SHA256, _AM94_SPEC_SHA256, _AM95_SPEC_SHA256, _AM96_SPEC_SHA256, _AM97_SPEC_SHA256, _AM98_SPEC_SHA256, _AM99_SPEC_SHA256}:
+    if sha256_bytes(current) in {_W8_SPEC_SHA256, _AM94_SPEC_SHA256, _AM95_SPEC_SHA256, _AM96_SPEC_SHA256, _AM97_SPEC_SHA256, _AM98_SPEC_SHA256, _AM99_SPEC_SHA256, _AM100_SPEC_SHA256}:
         try:
             load_w8_spec_compatibility(REPO_ROOT)
         except Exception as exc:
@@ -662,6 +669,11 @@ def _verify_historical_profile_spec(archived: bytes) -> None:
             load_am99_spec_compatibility(REPO_ROOT)
         except Exception as exc:
             raise G8ContractError(f"AM-99 specification compatibility differs: {exc}") from None
+    if sha256_bytes(current) == _AM100_SPEC_SHA256:
+        try:
+            load_am100_spec_compatibility(REPO_ROOT)
+        except Exception as exc:
+            raise G8ContractError(f"AM-100 specification compatibility differs: {exc}") from None
     if not archived:
         raise G8ContractError("historical SPEC archive is empty")
 

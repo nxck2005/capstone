@@ -132,6 +132,19 @@ AM99_EXTRA_W8_CARRIER_SOURCES: dict[str, tuple[int, str]] = {
     "src/evaluation/w8_validation.py": (40983, 'be4ba40c4a960472fd7cbf11e0d1f468b14b8d47bef76c2d6e2e7aa6611f6c0a'),
 }
 
+# AM-100 adds the low-rate secondary variant before G-12.  Its carriers keep
+# the same historical manifest base and admit only the exact AM-100 images.
+AM100_W8_CARRIER_SOURCE_HASHES: dict[str, tuple[int, str]] = dict(AM99_W8_CARRIER_SOURCE_HASHES)
+AM100_W8_CARRIER_SOURCE_HASHES.update({
+    "spec/SPEC.md": (442279, "74b2cc3e5f18603b02168504f49312f7585452b3830543752ed51a74fe7fabf7"),
+    "spec/params.generated.yaml": (50795, "1471825821cb3f5b51f615ed318e80fd882356bf73e234adf9d4b8ab1d2475a6"),
+    "src/baseline/w8_spec_compatibility.py": (17663, "6106bcf98a2cb176ed5b4ea17624427ccf3cb9ef6ca9532180ed79ca343a5295"),
+    "src/baseline/w7c_source_compatibility.py": (19568, "acca050fb8ece90668cdea82ec297940c0af7d456a7a0797a6518b07ba7a1e64"),
+    "src/baseline/g8_campaign.py": (62792, "1da537aacea812bbb198f944d1f0ad645480aab167ea27ce97a16bf1361174f2"),
+    "src/baseline/w6_evidence.py": (33340, "9608c91a725c8a6b9b542c8729ad82d25224f1e80425fc0f9c0432eddb077090"),
+    "tools/verify_w6_complete.py": (55616, "d23a8859526ec181771839131ac1beeaf37bfeb01c07135aa15dba28f63d00f5"),
+})
+
 
 class G10SemanticsFreezeError(RuntimeError):
     """The exact AM-94 transition or its zero-science boundary differs."""
@@ -330,7 +343,9 @@ def verify_w8_carrier_source_transition(
         if len(raw) == current_bytes and sha256_bytes(raw) == current_sha:
             compatible.add(path)
             continue
-        successor = AM99_W8_CARRIER_SOURCE_HASHES.get(path)
+        successor = AM100_W8_CARRIER_SOURCE_HASHES.get(path)
+        if successor is None:
+            successor = AM99_W8_CARRIER_SOURCE_HASHES.get(path)
         if successor is None:
             successor = AM98_W8_CARRIER_SOURCE_HASHES.get(path)
         if successor is None:

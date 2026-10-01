@@ -17,6 +17,7 @@ from baseline.w8_spec_compatibility import load as load_w8_spec_compatibility
 from evaluation.am97_spec_compatibility import load as load_am97_spec_compatibility
 from evaluation.am98_spec_compatibility import load as load_am98_spec_compatibility
 from evaluation.am99_spec_compatibility import load as load_am99_spec_compatibility
+from evaluation.am100_spec_compatibility import load as load_am100_spec_compatibility
 from evaluation.g10_spec_compatibility import load as load_am94_spec_compatibility
 
 SCHEMA_VERSION = 1
@@ -67,6 +68,10 @@ _AM98_CURRENT_NORMATIVE_SHA256 = {
 _AM99_CURRENT_NORMATIVE_SHA256 = {
     "normative_spec": "14e97bb11e8a596514dd06f11d7a0d56c2a431ba1945eca7b1548290213edb83",
     "resolved_params": "45165a333775c6e089cb22cd70b1e08ef0bca920ac40ec8b59b3f5c374c09c69",
+}
+_AM100_CURRENT_NORMATIVE_SHA256 = {
+    "normative_spec": "74b2cc3e5f18603b02168504f49312f7585452b3830543752ed51a74fe7fabf7",
+    "resolved_params": "1471825821cb3f5b51f615ed318e80fd882356bf73e234adf9d4b8ab1d2475a6",
 }
 STATUSES = {
     "W6_REQUIRED_AND_SATISFIED",
@@ -201,6 +206,11 @@ def _binding(spec: tuple[Any, ...]) -> dict[str, Any]:
             # authenticates the current views and successor-v2.
             load_am99_spec_compatibility(REPO_ROOT)
             allowed.add(_AM99_CURRENT_NORMATIVE_SHA256[name])
+        if file_sha256 == _AM100_CURRENT_NORMATIVE_SHA256[name]:
+            # AM-100 adds the low-rate secondary variant before G-12; its
+            # loader authenticates the current views and delegates to AM-99.
+            load_am100_spec_compatibility(REPO_ROOT)
+            allowed.add(_AM100_CURRENT_NORMATIVE_SHA256[name])
         require(
             file_sha256 in allowed,
             f"{name} is neither the frozen W6 nor an authenticated successor normative byte image",

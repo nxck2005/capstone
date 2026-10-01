@@ -56,6 +56,8 @@ AM98_G8_CURRENT_BYTES = 61772
 AM98_G8_CURRENT_SHA256 = "de0b82ec010f51dc503b463d30f1e40aab528b7f0f324c2b70338fd43f19ac70"
 AM99_G8_CURRENT_BYTES = 62235
 AM99_G8_CURRENT_SHA256 = "75fdb1dbd9df632208f2c6cf717776fd7fd8672b2d74c3edf39cc6792d987d8f"
+AM100_G8_CURRENT_BYTES = 62792
+AM100_G8_CURRENT_SHA256 = "1da537aacea812bbb198f944d1f0ad645480aab167ea27ce97a16bf1361174f2"
 
 W7C_ALLOWED_PARAMETER_PATHS = (
     "learned_system.lambda_core",
@@ -236,8 +238,10 @@ def load_w8_g8_campaign_source_compatibility(root: Path = REPO_ROOT) -> dict[str
         current_bytes, current_sha256 = AM98_G8_CURRENT_BYTES, AM98_G8_CURRENT_SHA256
     elif len(current) == AM99_G8_CURRENT_BYTES and sha256_bytes(current) == AM99_G8_CURRENT_SHA256:
         current_bytes, current_sha256 = AM99_G8_CURRENT_BYTES, AM99_G8_CURRENT_SHA256
+    elif len(current) == AM100_G8_CURRENT_BYTES and sha256_bytes(current) == AM100_G8_CURRENT_SHA256:
+        current_bytes, current_sha256 = AM100_G8_CURRENT_BYTES, AM100_G8_CURRENT_SHA256
     else:
-        _require(False, "AM-94/AM-95/AM-96/AM-97/AM-98/AM-99 G8-campaign verifier source bytes differ")
+        _require(False, "AM-94/AM-95/AM-96/AM-97/AM-98/AM-99/AM-100 G8-campaign verifier source bytes differ")
     projection = json.loads(json.dumps(value))
     projection["entries"][0]["current_bytes"] = current_bytes
     projection["entries"][0]["current_sha256"] = current_sha256
@@ -389,6 +393,9 @@ def load(root: Path = REPO_ROOT) -> dict[str, Any]:
         from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS  # noqa: PLC0415
 
         allowed_parameter_paths.update(AM98_PARAMETER_PATHS)
+        from evaluation.am100_spec_compatibility import AM100_PARAMETER_PATHS  # noqa: PLC0415
+
+        allowed_parameter_paths.update(AM100_PARAMETER_PATHS)
     _require(
         _leaf_difference_paths(old_yaml, current_yaml) == allowed_parameter_paths,
         "W7-C generated-parameter drift exceeds the authenticated successor leaves",

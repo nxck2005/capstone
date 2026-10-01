@@ -150,7 +150,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `bandwidth.crossover_ratio_threshold_pp` | 2 | ER-3 |
 | `bandwidth.crossover_ratio_unsatisfiable_fallback` | efficiency_ratio | AM-41, ER-3 |
 | `bandwidth.ladder_bottom_saturation_rule` | extend_downward_and_resweep | ER-3, ER-9, G-8 |
-| `bandwidth.headline_ratio` | crossover_ratio | AM-26, AM-41, AM-90, BR-1, BR-16, ER-1, ER-2, ER-3, ER-11, ER-12, G-8, SR-16 |
+| `bandwidth.headline_ratio` | crossover_ratio | AM-26, AM-41, AM-90, AM-100, BR-1, BR-16, ER-1, ER-2, ER-3, ER-9, ER-11, ER-12, G-8, SR-16 |
 | `bandwidth.low_ratio_operating_point` | r_1_24 | AM-12, AM-24, AM-90, BR-10, DEC-11, ER-3, ER-11, G-8 |
 | `bandwidth.low_ratio_operating_point_status` | selected_at_G-8 | - |
 | `bandwidth.low_ratio_rule` | exactly_two_ordered_ladder_rungs_below_headline | AM-59, ER-3, G-8 |
@@ -380,7 +380,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.ldpc_bg2_kb_thresholds.kb9_above_bits` | 560 | AM-51 |
 | `baseline.ldpc_bg2_kb_thresholds.kb8_above_bits` | 192 | AM-51 |
 | `baseline.ldpc_bg1_min_coderate` | 0.3333333333333333 | AM-51, BR-10 |
-| `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | AM-24, AM-51, BR-4, BR-9, BR-15 |
+| `baseline.ldpc_rates` | 1/3, 1/2, 2/3, 5/6 | AM-24, AM-51, AM-100, BR-4, BR-9, BR-15, ER-9 |
 | `baseline.ldpc_decoder` | offset_min_sum | AM-51, BR-14, DEC-10, G-9 |
 | `baseline.ldpc_decoder_impl_spelling` | offset-minsum | AM-51, BR-14 |
 | `baseline.ldpc_decoder_offset` | 0.5 | AM-51, BR-14, G-2 |
@@ -448,7 +448,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `baseline.systematic_length_rule.bg2` | 10Z | AM-51, BR-10 |
 | `baseline.base_graph_selection_rule` | ts_38212_7_2_2_from_transport_block_A_and_R | AM-49, AM-51, BR-10 |
 | `baseline.base_graph_pinned_at_seam` | true | AM-51, BR-10, BR-14 |
-| `baseline.bg2_min_coderate` | 0.2 | AM-51, BR-10 |
+| `baseline.bg2_min_coderate` | 0.2 | AM-51, BR-10, ER-9 |
 | `baseline.min_coderate_predicate` | worst_block_K_prime_over_max_E_r_equality_accepted | AM-51, BR-10 |
 | `baseline.segmentation_requires_exact_division` | true | AM-51, BR-10 |
 | `baseline.payload_solver` | largest_byte_aligned_A_whose_full_packetisation_fits_G | AM-51, BR-10 |
@@ -653,6 +653,23 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `digital_semantic_control.final_seed_scope` | all_three_existing_zipped_seed_cells | - |
 | `digital_semantic_control.transport_tuning` | best_feasible_config_per_snr_on_validation_split | BR-9, ER-9 |
 | `digital_semantic_control.scored_by` | own_task_head | ER-9 |
+| `digital_semantic_control.low_rate_variant_system` | er9_digital_low_rate | AM-100, ER-9 |
+| `digital_semantic_control.low_rate_variant_role` | descriptive_secondary_outside_section_2_hypotheses | ER-9 |
+| `digital_semantic_control.low_rate_variant_width_rule` | largest_stage1_v4_width_whose_raw_bound_fits_the_fixed_low_rate_payload | AM-100, ER-9 |
+| `digital_semantic_control.low_rate_variant_transmit_dim` | 1024 | ER-9 |
+| `digital_semantic_control.low_rate_variant_quantiser_bits` | 2 | ER-9 |
+| `digital_semantic_control.low_rate_variant_checkpoint_run` | er9-stage1-v4-D1024_b2 | AM-100 |
+| `digital_semantic_control.low_rate_variant_checkpoint_epoch` | 79 | AM-100 |
+| `digital_semantic_control.low_rate_variant_checkpoint_sha256` | 25ef6b1e9addae046bee75bccb0d95a866276097eb094fcb19fa41523daddbda | AM-100, ER-9 |
+| `digital_semantic_control.low_rate_variant_modulation` | bpsk | ER-9 |
+| `digital_semantic_control.low_rate_variant_ldpc_rate` | 1/5 | ER-9 |
+| `digital_semantic_control.low_rate_variant_payload_bits` | 2544 | AM-100 |
+| `digital_semantic_control.low_rate_variant_transport_selection` | none_fixed_at_every_snr | - |
+| `digital_semantic_control.low_rate_variant_retraining` | none | - |
+| `digital_semantic_control.low_rate_variant_entropy_model` | refit_on_train_split_by_the_frozen_er9_rule | - |
+| `digital_semantic_control.low_rate_variant_seed_cell` | first_zipped_seed_pair | - |
+| `digital_semantic_control.low_rate_variant_validation_scope` | full_validation_split_every_test_grid_snr_once | ER-9 |
+| `digital_semantic_control.low_rate_variant_test_scope` | full_test_split_first_zipped_seed_pair_inside_the_g12_campaign | ER-9 |
 
 ## evaluation
 
@@ -723,7 +740,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `evaluation.h2_threshold_check_gate` | G-8 | - |
 | `evaluation.h2_thresholds_frozen` | true | - |
 | `evaluation.confirmatory_primary` | H1 | - |
-| `evaluation.secondary_inferential` | H2, H3, H4 | - |
+| `evaluation.secondary_inferential` | H2, H3, H4 | AM-100 |
 | `evaluation.ber_match_statistic` | waterfall_displacement_at_bler_1e-2 | AM-50, G-2 |
 | `evaluation.ber_match_tolerance_db` | 0.5 | G-2 |
 | `evaluation.ber_match_reference_status` | named_and_checksummed_before_G-2 | - |
@@ -847,7 +864,7 @@ Every committed parameter, flattened. Normative source: [`SPEC.md`](SPEC.md) §4
 | `artifacts.classifier_validation_summary_file` | results/reference_classifier/validation_summary.json | AM-78, SR-13 |
 | `artifacts.classifier_best_checkpoint_metadata_file` | results/reference_classifier/best_checkpoint.json | AM-78, SR-13 |
 | `artifacts.classifier_checkpoint_dir` | checkpoints/reference_classifier/ | AM-78, SR-13 |
-| `artifacts.system_values` | learned, learned_papr_constrained, learned_snr_randomised, classical_adaptive, classical_fixed_mcs, classical_fixed_mod, classical_jpeg_secondary, classical_finetune_scored, er9_digital, label_transmission_bound, semantic_recon_ablation | AM-38, AM-78, SR-13 |
+| `artifacts.system_values` | learned, learned_papr_constrained, learned_snr_randomised, classical_adaptive, classical_fixed_mcs, classical_fixed_mod, classical_jpeg_secondary, classical_finetune_scored, er9_digital, er9_digital_low_rate, label_transmission_bound, semantic_recon_ablation | AM-38, AM-78, AM-100, SR-13 |
 | `artifacts.csv_schema` | run_id, timestamp, git_commit, git_dirty, config_hash, checkpoint_id, system, dataset, split, n, k, bw_ratio, channel, train_snr_db, test_snr_db, train_seed, channel_seed, lambda, source_codec, jpeg_quality, j2k_target_bytes, ldpc_rate, modulation, top1_acc, n_correct, n_test, psnr_db, ssim, bytes_sent, header_bytes, payload_bytes, papr_db, decode_failure_rate, infeasible_rate, coverage_rate, acc_given_delivery, test_subset, wall_clock_s, peak_vram_gb, classifier_variant, quantiser_bits, transmit_dim, entropy_stream_bytes, entropy_table_bytes, side_information_bytes, tb_crc_type, base_graph, lifting_size, num_codeblocks, filler_bits, effective_code_rate, model_param_count | AM-38, AM-78, ER-5, FW-2, SR-13 |
 | `artifacts.per_image_schema` | run_id, pair_id, noise_id, analysis_cell_id, dataset, dataset_version, split, stable_sample_id, bw_ratio, test_snr_db, true_label, pred_label, correct, outage, outage_reason, source_bytes | AM-37, AM-58, AM-78, SR-13, SR-18 |
 | `artifacts.per_image_storage` | content_addressed_release_artifact_with_committed_manifest | AM-78, ER-10, SR-13 |

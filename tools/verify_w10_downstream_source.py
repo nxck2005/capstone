@@ -26,9 +26,9 @@ def main() -> int:
     )
     active = active_manifest_path(REPO)
     value = load_w10_manifest(REPO, live=True)
-    from evaluation.am99_spec_compatibility import load as load_am99_spec_compatibility
+    from evaluation.am100_spec_compatibility import load as load_am100_spec_compatibility
 
-    load_am99_spec_compatibility(REPO)
+    load_am100_spec_compatibility(REPO)
     print(
         f"W10 downstream source manifest PASS: {value['manifest_id']} "
         f"({value['manifest_kind']}); sha256={sha256_file(active)}"

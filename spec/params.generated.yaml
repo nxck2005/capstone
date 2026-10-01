@@ -945,6 +945,23 @@ digital_semantic_control:
   final_seed_scope: all_three_existing_zipped_seed_cells
   transport_tuning: best_feasible_config_per_snr_on_validation_split
   scored_by: own_task_head
+  low_rate_variant_system: er9_digital_low_rate
+  low_rate_variant_role: descriptive_secondary_outside_section_2_hypotheses
+  low_rate_variant_width_rule: largest_stage1_v4_width_whose_raw_bound_fits_the_fixed_low_rate_payload
+  low_rate_variant_transmit_dim: 1024
+  low_rate_variant_quantiser_bits: 2
+  low_rate_variant_checkpoint_run: er9-stage1-v4-D1024_b2
+  low_rate_variant_checkpoint_epoch: 79
+  low_rate_variant_checkpoint_sha256: 25ef6b1e9addae046bee75bccb0d95a866276097eb094fcb19fa41523daddbda
+  low_rate_variant_modulation: bpsk
+  low_rate_variant_ldpc_rate: 1/5
+  low_rate_variant_payload_bits: 2544
+  low_rate_variant_transport_selection: none_fixed_at_every_snr
+  low_rate_variant_retraining: none
+  low_rate_variant_entropy_model: refit_on_train_split_by_the_frozen_er9_rule
+  low_rate_variant_seed_cell: first_zipped_seed_pair
+  low_rate_variant_validation_scope: full_validation_split_every_test_grid_snr_once
+  low_rate_variant_test_scope: full_test_split_first_zipped_seed_pair_inside_the_g12_campaign
 evaluation:
   train_seeds:
   - 0
@@ -1277,6 +1294,7 @@ artifacts:
   - classical_jpeg_secondary
   - classical_finetune_scored
   - er9_digital
+  - er9_digital_low_rate
   - label_transmission_bound
   - semantic_recon_ablation
   csv_schema:

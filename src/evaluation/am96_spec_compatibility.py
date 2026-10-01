@@ -259,8 +259,9 @@ def _verify_am95_predecessor(root: Path) -> dict[str, Any]:
 
 def _am98_parameter_paths(root: Path) -> set[str]:
     from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS  # noqa: PLC0415
+    from evaluation.am100_spec_compatibility import AM100_PARAMETER_PATHS  # noqa: PLC0415
 
-    return set(AM98_PARAMETER_PATHS)
+    return set(AM98_PARAMETER_PATHS) | set(AM100_PARAMETER_PATHS)
 
 
 def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str, Any]:

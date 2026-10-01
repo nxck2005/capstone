@@ -25,6 +25,7 @@ from evaluation import am96_spec_compatibility as am96
 from evaluation import am97_spec_compatibility as am97
 from evaluation import am98_spec_compatibility as am98
 from evaluation import am99_spec_compatibility as am99
+from evaluation import am100_spec_compatibility as am100
 from evaluation import am95_spec_compatibility as am95
 from evaluation import g10_spec_compatibility as am94
 
@@ -175,6 +176,7 @@ AM97_VIEW_HASHES = {
 }
 AM98_VIEW_HASHES = dict(am98.VIEW_HASHES)
 AM99_VIEW_HASHES = dict(am99.VIEW_HASHES)
+AM100_VIEW_HASHES = dict(am100.VIEW_HASHES)
 
 
 class G10ProtocolHold(RuntimeError):
@@ -396,6 +398,7 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
     all_am97 = True
     all_am98 = True
     all_am99 = True
+    all_am100 = True
     for relative, base_bytes, base_sha, _, _ in am94.VIEW_HASHES:
         predecessor = _git_bytes(root, am94.PREDECESSOR_COMMIT, relative)
         current = _read_current(relative, root)
@@ -406,18 +409,25 @@ def verify_am94_boundary(root: Path = REPO_ROOT, *, outcomes_allowed: bool = Fal
         am97_bytes, am97_sha = AM97_VIEW_HASHES[relative]
         am98_bytes, am98_sha = AM98_VIEW_HASHES[relative]
         am99_bytes, am99_sha = AM99_VIEW_HASHES[relative]
+        am100_bytes, am100_sha = AM100_VIEW_HASHES[relative]
         require(
             (len(current) == am95_bytes and current_digest == am95_sha)
             or (len(current) == am96_bytes and current_digest == am96_sha)
             or (len(current) == am97_bytes and current_digest == am97_sha)
             or (len(current) == am98_bytes and current_digest == am98_sha)
-            or (len(current) == am99_bytes and current_digest == am99_sha),
-            f"AM-95/AM-96/AM-97/AM-98/AM-99 post-G-10 current bytes differ: {relative}",
+            or (len(current) == am99_bytes and current_digest == am99_sha)
+            or (len(current) == am100_bytes and current_digest == am100_sha),
+            f"AM-95/AM-96/AM-97/AM-98/AM-99/AM-100 post-G-10 current bytes differ: {relative}",
         )
         all_am96 = all_am96 and len(current) == am96_bytes and current_digest == am96_sha
         all_am97 = all_am97 and len(current) == am97_bytes and current_digest == am97_sha
         all_am98 = all_am98 and len(current) == am98_bytes and current_digest == am98_sha
         all_am99 = all_am99 and len(current) == am99_bytes and current_digest == am99_sha
+        all_am100 = all_am100 and len(current) == am100_bytes and current_digest == am100_sha
+    if all_am100:
+        # AM-100 adds the low-rate secondary variant before G-12 and delegates
+        # every historical check to AM-99 in downstream mode.
+        am100.load(root)
     if all_am99:
         # AM-99 is the corrected live pre-science epoch; it authenticates the
         # current views, the successor-v2 source epoch and the semantic contract

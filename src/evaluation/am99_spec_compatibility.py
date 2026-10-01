@@ -98,6 +98,11 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     from evaluation.am97_spec_compatibility import ALLOWED_PARAMETER_PATHS as AM97_PARAMETER_PATHS
 
     allowed = set(am98.AM98_PARAMETER_PATHS) | set(AM97_PARAMETER_PATHS)
+    if allow_downstream:
+        # AM-100 adds only its named leaves after this epoch.
+        from evaluation.am100_spec_compatibility import AM100_PARAMETER_PATHS  # noqa: PLC0415
+
+        allowed |= set(AM100_PARAMETER_PATHS)
     _require(differences <= allowed, "AM-99 parameter drift exceeds the AM-97/AM-98 named leaves")
     active_path = active_manifest_path(root)
     return {

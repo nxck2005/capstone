@@ -190,6 +190,11 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     old_params = yaml.safe_load(am97._git_bytes(root, am97.PREDECESSOR_COMMIT, "spec/params.generated.yaml"))
     new_params = yaml.safe_load((root / "spec/params.generated.yaml").read_bytes())
     differences = _leaf_differences(old_params, new_params)
+    if allow_downstream:
+        # AM-100 adds only its named leaves after this epoch.
+        from evaluation.am100_spec_compatibility import AM100_PARAMETER_PATHS  # noqa: PLC0415
+
+        differences -= AM100_PARAMETER_PATHS
     _require(
         differences <= set(am97.ALLOWED_PARAMETER_PATHS) | AM98_PARAMETER_PATHS,
         f"AM-98 parameter drift exceeds its named leaves: {sorted(differences - set(am97.ALLOWED_PARAMETER_PATHS) - AM98_PARAMETER_PATHS)}",

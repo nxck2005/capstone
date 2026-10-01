@@ -290,9 +290,10 @@ def load(root: Path = REPO_ROOT, *, allow_downstream: bool = False) -> dict[str,
     differences = _leaf_differences(old_params, new_params)
     if successor_present and allow_downstream:
         from evaluation.am98_spec_compatibility import AM98_PARAMETER_PATHS  # noqa: PLC0415
+        from evaluation.am100_spec_compatibility import AM100_PARAMETER_PATHS  # noqa: PLC0415
 
         _require(
-            differences <= set(ALLOWED_PARAMETER_PATHS) | AM98_PARAMETER_PATHS,
+            differences <= set(ALLOWED_PARAMETER_PATHS) | AM98_PARAMETER_PATHS | AM100_PARAMETER_PATHS,
             "AM-98 parameter drift exceeds its named leaves",
         )
     else:
