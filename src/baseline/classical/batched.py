@@ -254,8 +254,8 @@ def run_classical_batch(
 
     for start in range(0, len(pending), batch_size):
         chunk = pending[start : start + batch_size]
-        payloads = [item[3] for item in chunk]
-        noise_ids = [item[4] for item in chunk]
+        payloads = [payload_bits for _index, _coding, _j2k, payload_bits, _noise, _image in chunk]
+        noise_ids = [noise_id for _index, _coding, _j2k, _bits, noise_id, _image in chunk]
         outcomes = transport.round_trip(payloads, snr_db=float(snr_db), noise_ids=noise_ids)
         for (index, source_coding, j2k, _bits, noise_id, canonical_image), outcome in zip(chunk, outcomes, strict=True):
             product = products[index]

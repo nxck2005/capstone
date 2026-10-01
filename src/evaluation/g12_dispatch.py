@@ -30,10 +30,10 @@ from evaluation.w10_backends import (
     recon_ablation_unit,
 )
 from evaluation.w10_classical import classical_unit
-from evaluation.w10_dispatch import ER9_CONFIG, _load_checkpoint_state, _load_er2_model, _load_papr_model
+from evaluation.w10_dispatch import ER9_CONFIG, _load_checkpoint_state, _load_er2_model
 from models.djscc import build_djscc
 from models.er9_digital import build_er9_model
-from training.papr_constrained import papr_protocol_config_hash  # noqa: F401  (bound through the PAPR checkpoint)
+from training.papr_constrained import papr_protocol_config_hash
 from training.w8_protocol import load_w8_config
 
 
@@ -81,6 +81,55 @@ def _load_er9(root: Path, device: Any, cell: int, checkpoint: Mapping[str, Any],
     }
 
 
+def pre_am100_projection(config: Any) -> Any:
+    """``config`` with exactly the AM-100 parameter leaves removed.
+
+    Run-config fingerprints cover the whole parameter snapshot, so AM-100's
+    additive leaves change every fingerprint without changing any model.  A
+    closed checkpoint is authenticated by projecting those leaves back out and
+    reproducing its recorded fingerprint exactly; anything else still fails.
+    """
+
+    from dataclasses import replace  # noqa: PLC0415
+
+    from config.run_config import FrozenMap  # noqa: PLC0415
+    from evaluation.am100_spec_compatibility import AM100_PARAMETER_PATHS  # noqa: PLC0415
+
+    parameters = config.parameters.to_dict()
+    for path in AM100_PARAMETER_PATHS:
+        section, leaf = path.split(".", 1)
+        if section not in parameters or leaf not in parameters[section]:
+            continue
+        if path == "artifacts.system_values":
+            parameters[section][leaf] = [value for value in parameters[section][leaf] if value != "er9_digital_low_rate"]
+        else:
+            del parameters[section][leaf]
+    return replace(config, parameters=FrozenMap.from_mapping(parameters))
+
+
+def _load_papr(context: W10Execution, checkpoint: Mapping[str, Any]) -> tuple[torch.nn.Module, Any]:
+    """W10's PAPR loader, authenticated through the pre-AM-100 projection."""
+
+    from config.run_config import config_hash as run_config_hash  # noqa: PLC0415
+    from training.papr_constrained import build_papr_model, load_papr_config  # noqa: PLC0415
+
+    config = load_papr_config()
+    projected = pre_am100_projection(config)
+    if run_config_hash(projected) != checkpoint.get("config_hash"):
+        raise G12DispatchError("PAPR checkpoint config hash does not reproduce under the pre-AM-100 projection")
+    if papr_protocol_config_hash(projected) != checkpoint.get("protocol_config_hash"):
+        raise G12DispatchError("PAPR protocol config hash does not reproduce under the pre-AM-100 projection")
+    if checkpoint.get("papr_cap_db") != float(get("evaluation.w10_papr_cap_db")) or checkpoint.get("papr_cap_compliant") is not True:
+        raise G12DispatchError("PAPR checkpoint cap binding differs")
+    model = build_papr_model(config, context.device)
+    state = _load_checkpoint_state(_path(context.root, checkpoint["checkpoint_path"]), str(checkpoint["checkpoint_id"]))
+    incompatible = model.load_state_dict(state, strict=True)
+    if incompatible.missing_keys or incompatible.unexpected_keys:
+        raise G12DispatchError("PAPR checkpoint did not load strictly")
+    model.eval()
+    return model, config
+
+
 def dispatch(root: Path, *, device: torch.device | str, bindings: list[Mapping[str, Any]], view: Any, split: str = "test", j2k_cache_dir: str = "checkpoints/g12_campaign/j2k_cache") -> Callable[[Mapping[str, Any]], Mapping[str, Any]]:
     """Return ``backend(unit)`` for the frozen G-12 bindings over ``view``.
 
@@ -126,7 +175,7 @@ def dispatch(root: Path, *, device: torch.device | str, bindings: list[Mapping[s
         full_unit = dict(unit)
         if arm.backend == "learned":
             if arm.system == "learned_papr_constrained":
-                model, config = cached("papr", lambda: _load_papr_model(context, checkpoint))
+                model, config = cached("papr", lambda: _load_papr(context, checkpoint))
                 return learned_unit(context, full_unit, model=model, config=config, checkpoint_id=str(checkpoint["checkpoint_id"]), papr_cap_db=float(get("evaluation.w10_papr_cap_db")), protocol_config_hash=str(checkpoint["protocol_config_hash"]))
             model, config = cached(f"w8:{arm.bw_ratio}:{cell}", lambda: _load_w8(root, device, arm.bw_ratio, cell, checkpoint))
             return learned_unit(context, full_unit, model=model, config=config, checkpoint_id=str(checkpoint["checkpoint_id"]), papr_cap_db=None)
@@ -180,4 +229,4 @@ def dispatch(root: Path, *, device: torch.device | str, bindings: list[Mapping[s
     return backend
 
 
-__all__ = ["G12DispatchError", "dispatch"]
+__all__ = ["G12DispatchError", "dispatch", "pre_am100_projection"]
