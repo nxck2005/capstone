@@ -70,6 +70,10 @@ NR-realistic rates would deliver about 76–82% where DJSCC scores about 73–76
 remove DJSCC's only winning region and most of H1's footing. The paper already makes this argument
 for the label control ("a link built for a 4-bit payload could use a much lower code rate").
 
+**Status: owner deferred this decision to 2026-10-02. It must be made before the G-12 freeze
+manifest is committed, because Option 2 cannot be added afterwards without breaking the
+preregistration.**
+
 Options (owner's decision):
 1. **Disclose** it in Limitations and qualify every "DJSCC is the only system below −5 dB" claim with
    "within a rate set whose lowest rate is 1/3".
