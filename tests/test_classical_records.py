@@ -298,9 +298,31 @@ def test_unknown_system_values_are_rejected() -> None:
         _identity(system="classical_someday")
 
 
-def test_test_split_records_are_refused() -> None:
+def test_test_split_records_are_refused_before_the_freeze(monkeypatch: pytest.MonkeyPatch) -> None:
+    import data.split_release as split_release
+
+    monkeypatch.setattr(split_release, "released_splits", lambda: ())
     with pytest.raises(RecordError, match="sealed behind SR-22 and G-12"):
         _identity(split="test")
+
+
+def test_only_the_committed_freeze_releases_test_records(monkeypatch: pytest.MonkeyPatch) -> None:
+    import data.split_release as split_release
+    import data.test_access as test_access
+
+    def sealed() -> None:
+        raise test_access.TestAccessError("sealed")
+
+    monkeypatch.setattr(test_access, "_committed_freeze_manifest", sealed)
+    split_release.released_splits.cache_clear()
+    assert split_release.released_splits() == ()
+    monkeypatch.setattr(test_access, "_committed_freeze_manifest", lambda: {})
+    split_release.released_splits.cache_clear()
+    assert split_release.released_splits() == ("test",)
+    assert _identity(split="test").split == "test"
+    with pytest.raises(RecordError, match="sealed behind SR-22 and G-12"):
+        _identity(split="holdout")
+    split_release.released_splits.cache_clear()
 
 
 # ---------------------------------------------------------------------------

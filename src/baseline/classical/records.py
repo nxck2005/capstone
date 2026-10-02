@@ -95,6 +95,14 @@ _SOT_SEGMENT_LENGTH = 10  # literal-ok: Lsot(2)+Isot(2)+Psot(4)+TPsot(1)+TNsot(1
 _PERMITTED_SPLITS = ("train", "val")
 
 
+def _released_splits() -> tuple[str, ...]:
+    """Sealed splits released by the committed G-12 freeze (none before it)."""
+
+    from data.split_release import released_splits  # noqa: PLC0415
+
+    return released_splits()
+
+
 class RecordError(RuntimeError):
     """A record, schema or identity contract violation."""
 
@@ -457,7 +465,7 @@ class RunIdentity:
 
     def __post_init__(self) -> None:
         require_system(self.system)
-        if self.split not in _PERMITTED_SPLITS:
+        if self.split not in _PERMITTED_SPLITS and self.split not in _released_splits():
             raise RecordError(
                 f"records may only describe {list(_PERMITTED_SPLITS)}; "
                 f"{self.split!r} is refused, and the evaluation split stays "
