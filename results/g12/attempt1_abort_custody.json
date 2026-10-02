@@ -1,0 +1,25 @@
+{
+ "archived_file_sha256": {
+  "campaign.json": "a0a57811811df9c4145dd6f49da22326af479394517c666ddc877597d0fc6a10",
+  "logs/campaign_w0.log": "2297c2b6e517a42e8b7a628981f4db12a0970aabbab7095fcdc14b4faeedce3f",
+  "logs/campaign_w1.log": "036c2e5fe5d9bdefa67024d5c5efb6c1d13bc2179b233c05ce319bc008da85e2",
+  "logs/campaign_w2.log": "8bcac6b4562077941418a9dc22ebe820cc29849e5a01c0ef719460330f3be1c7",
+  "logs/campaign_w3.log": "96b559a9289f672ac8cd8a6ccfcfa4596fed2a8e588954273873625f0e5d86c9",
+  "test_access_log.jsonl": "17fcfaa509aa420b9c5f56292128a9190004c0dfea2750aeaf352f1f461b73b2"
+ },
+ "artifact_role": "g12_attempt1_abort_custody",
+ "code_commit": "cd338aca249687972ba9414b4d5a1eb4fd3da642",
+ "disposition": "no measurement exists from attempt 1, so nothing was selected, compared or discarded; the campaign is re-frozen at the fixed code and run once",
+ "failure": "RecordError in baseline.classical.records.RunIdentity: the record split whitelist admitted only train/val, so each worker's first unit (all learned, cell 0) failed in evaluation.w10_backends._learned_rows while building its run identity, before any model forward pass",
+ "fix": "data.split_release releases the sealed split to record identities only under the committed-freeze check the SR-22 loader applies",
+ "fix_commit": "88eae65",
+ "freeze_commit": "02e0c6a",
+ "freeze_id": "g12freeze-c2a3bc04e287c280b120acbe057c9e256b4720d57428c55fe5b2bf326b481649",
+ "model_outputs_on_test": 0,
+ "opened_at_utc": "2026-10-02T00:13:09Z",
+ "pre_relaunch_check": "the exact test-mode path (split='test' records) ran 21 units covering all 13 arms and every cell on VALIDATION images only; counts matched the validation rehearsal",
+ "runtime_archived_at": "worker:checkpoints/g12_campaign_attempt1_aborted",
+ "test_outcomes_observed": 0,
+ "test_split_opened_by_workers": 4,
+ "units_completed": 0
+}
