@@ -60,7 +60,32 @@ def corrected_freeze(mode: runner.Mode) -> dict[str, Any]:
     return value
 
 
-runner._freeze = corrected_freeze
+def mcnemar_exact(a_only: int, b_only: int) -> float:
+    """``g12_analysis.mcnemar_exact`` in exact integer arithmetic (correction 2).
+
+    The frozen version divides by ``2.0**total``, which overflows a float once
+    ``total`` exceeds 1023 discordant images — reachable on the 3925-image test
+    split but not on the 1000-image validation split it was rehearsed on.
+    """
+
+    from fractions import Fraction  # noqa: PLC0415
+    from math import comb  # noqa: PLC0415
+
+    total = a_only + b_only
+    if total == 0:
+        return 1.0
+    tail = Fraction(sum(comb(total, k) for k in range(0, min(a_only, b_only) + 1)), 2**total)
+    return float(min(Fraction(1), 2 * tail))
+
+
+def _install_corrections() -> None:
+    import evaluation.g12_analysis as analysis  # noqa: PLC0415
+
+    runner._freeze = corrected_freeze
+    analysis.mcnemar_exact = mcnemar_exact
+
+
+_install_corrections()
 
 if __name__ == "__main__":
     raise SystemExit(runner.main())
