@@ -207,6 +207,39 @@ def _classical_scoring(
     return outcomes
 
 
+def _mean(values: list[float]) -> float | None:
+    return sum(values) / len(values) if values else None
+
+
+def _classical_measurements(measured: list[tuple[ClassicalResult, Any]]) -> dict[str, Any]:
+    """BR-11 byte columns, reconstruction metrics and the packet layout for one unit.
+
+    Byte columns average over every row that emitted a codestream (delivered and
+    decode failures, AM-81); PSNR and SSIM over delivered rows only.
+    """
+
+    emitted = [(result, outcome) for result, outcome in measured if result.source_coding is not None and result.source_coding.emitted_bytes is not None]
+    split = [(outcome.header_bytes, outcome.payload_bytes) for _result, outcome in emitted if outcome.header_bytes is not None]
+    delivered = [outcome for result, outcome in measured if result.verdict == DELIVERED]
+    accounting = next((result.accounting for result, _outcome in measured if result.accounting is not None), None)
+    return {
+        "bytes_sent": None if accounting is None else int(accounting.payload_bytes),
+        "emitted_count": len(emitted),
+        "emitted_codestream_bytes": _mean([float(result.source_coding.emitted_bytes) for result, _outcome in emitted]),
+        "header_bytes": _mean([float(header) for header, _payload in split]) if len(split) == len(emitted) else None,
+        "payload_bytes": _mean([float(payload) for _header, payload in split]) if len(split) == len(emitted) else None,
+        "payload_filler_bytes": _mean([float(result.source_coding.payload_filler_bytes) for result, _outcome in emitted]),
+        "psnr_db": _mean([float(outcome.psnr_db) for outcome in delivered if outcome.psnr_db is not None]),
+        "ssim": _mean([float(outcome.ssim) for outcome in delivered if outcome.ssim is not None]),
+        "tb_crc_type": None if accounting is None else str(accounting.tb_crc_name),
+        "base_graph": None if accounting is None else int(accounting.base_graph),
+        "lifting_size": None if accounting is None else int(accounting.lifting_size),
+        "num_codeblocks": None if accounting is None else int(accounting.code_blocks),
+        "filler_bits": None if accounting is None else int(accounting.ldpc_filler_bits_total),
+        "effective_code_rate": None if accounting is None else accounting.payload_bits / accounting.channel_bits,
+    }
+
+
 def classical_unit(
     context: W10Execution,
     unit: Mapping[str, Any],
@@ -249,6 +282,8 @@ def classical_unit(
         split_manifest_hash=str(get(f"datasets.{W10_DATASET}.manifest_sha256")),
         channel_seed=int(unit["channel_seed"]),
     )
+    primary_variant = unit_primary_variant(unit)
+    measured: list[tuple[ClassicalResult, Any]] = []
     batched: dict[str, ClassicalResult] = {}
     if context.batched_classical:
         from baseline.classical.batched import run_classical_batch  # noqa: PLC0415
@@ -309,6 +344,7 @@ def classical_unit(
 
         canonical_image = codec_input(product)
         outcomes = _classical_scoring(result, canonical_image=canonical_image, label=label, policy=policy, classifiers=classifiers, device=context.device)
+        measured.append((result, outcomes[primary_variant]))
         for variant, outcome in outcomes.items():
             identity = run_identity(
                 system=unit["system"],
@@ -342,10 +378,10 @@ def classical_unit(
                     ),
                 )
             )
-    primary_variant = unit_primary_variant(unit)
     primary = streams[primary_variant]
     aggregate = _aggregate(primary, system=unit["system"])
     _apply_papr(aggregate, papr_values, denominator=len(view.stable_ids))
+    aggregate["measurements"] = _classical_measurements(measured)
     aggregate["binding"] = {
         "kind": "jpeg_secondary_validation_evaluation" if codec_kind != "jpeg2000" else "classical_per_image_validation_evaluation",
         "codec": codec_kind,

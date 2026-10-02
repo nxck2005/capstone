@@ -278,6 +278,7 @@ def run(mode: Mode, worker: int, workers: int, device: str) -> int:
             "freeze_id": freeze["freeze_id"],
             "code_commit": freeze["code_commit"],
             "device": device,
+            "finished_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
             "wall_clock_s": round(time.monotonic() - started, 3),
             "peak_vram_gb": round(torch.cuda.max_memory_allocated() / 2**30, 3) if torch.cuda.is_available() else None,  # literal-ok: bytes per GiB
             "summary": summary,
@@ -301,14 +302,15 @@ def status(mode: Mode) -> int:
 def _csv_row(mode: Mode, value: dict[str, Any], stream: dict[str, Any]) -> dict[str, Any]:
     unit, summary, rows = value["unit"], value["summary"], stream["rows"]
     binding = summary.get("binding", {}) or {}
+    measured = summary.get("measurements", {}) or {}
     n = len(rows)
     delivered = [row for row in rows if not row["outage"]]
     return {
         "run_id": rows[0]["run_id"] if rows else None,
-        "timestamp": None,
+        "timestamp": value.get("finished_utc"),
         "git_commit": value["code_commit"],
         "git_dirty": False,
-        "config_hash": None,
+        "config_hash": binding.get("config_hash"),
         "checkpoint_id": binding.get("checkpoint_id"),
         "system": unit["system"],
         "dataset": "imagenette160",
@@ -323,19 +325,19 @@ def _csv_row(mode: Mode, value: dict[str, Any], stream: dict[str, Any]) -> dict[
         "channel_seed": unit["channel_seed"],
         "lambda": None,
         "source_codec": binding.get("codec"),
-        "jpeg_quality": None,
+        "jpeg_quality": binding.get("quality") if binding.get("codec") == "jpeg" else None,
         "j2k_target_bytes": None,
         "ldpc_rate": binding.get("ldpc_rate"),
         "modulation": binding.get("modulation"),
         "top1_acc": stream["n_correct"] / n if n else None,
         "n_correct": stream["n_correct"],
         "n_test": n,
-        "psnr_db": None,
-        "ssim": None,
-        "bytes_sent": None,
-        "header_bytes": None,
-        "payload_bytes": None,
-        "papr_db": summary.get("papr_db_mean", summary.get("papr_db")),
+        "psnr_db": measured.get("psnr_db"),
+        "ssim": measured.get("ssim"),
+        "bytes_sent": measured.get("bytes_sent", rows[0]["source_bytes"] if rows else None),
+        "header_bytes": measured.get("header_bytes"),
+        "payload_bytes": measured.get("payload_bytes"),
+        "papr_db": summary["mean_papr_db"],
         "decode_failure_rate": sum(1 for row in rows if row["outage_reason"] == "decode_failure") / n if n else None,
         "infeasible_rate": sum(1 for row in rows if row["outage_reason"] in ("structural_infeasibility", "codec_infeasibility")) / n if n else None,
         "coverage_rate": len(delivered) / n if n else None,
@@ -349,12 +351,12 @@ def _csv_row(mode: Mode, value: dict[str, Any], stream: dict[str, Any]) -> dict[
         "entropy_stream_bytes": None,
         "entropy_table_bytes": None,
         "side_information_bytes": None,
-        "tb_crc_type": None,
-        "base_graph": None,
-        "lifting_size": None,
-        "num_codeblocks": None,
-        "filler_bits": None,
-        "effective_code_rate": None,
+        "tb_crc_type": measured.get("tb_crc_type"),
+        "base_graph": measured.get("base_graph"),
+        "lifting_size": measured.get("lifting_size"),
+        "num_codeblocks": measured.get("num_codeblocks"),
+        "filler_bits": measured.get("filler_bits"),
+        "effective_code_rate": measured.get("effective_code_rate"),
         "model_param_count": None,
     }
 
