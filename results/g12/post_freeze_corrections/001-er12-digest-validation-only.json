@@ -1,0 +1,26 @@
+{
+ "artifact_role": "g12_post_freeze_execution_correction",
+ "change": "the digest check applies when context.split == 'val' only; on validation it is unchanged. tools/run_g12_campaign_corrected.py runs the unchanged runner with a freeze check that admits exactly these changes",
+ "changes": [
+  {
+   "after_blob": "d05f806b3641e65cfa04026b9e06f276c6699418",
+   "before_blob": "7ac37af7041fd767132a4e61a06d24e26f2e8a03",
+   "path": "src/evaluation/w10_backends.py"
+  },
+  {
+   "after_blob": "c23744c56fbcc1703b72bd3e57fe40c5924250a8",
+   "before_blob": null,
+   "path": "tools/run_g12_campaign_corrected.py"
+  }
+ ],
+ "correction": 1,
+ "correction_commit": "9a59c30b9274e32048da08a77e0d01099f63bc42",
+ "crash_at_utc": "2026-10-02T06:57Z",
+ "failure": "every ER-12 (er12_label_upper_bound) test unit raised 'W10 ER-12 arm does not reproduce its frozen selection candidate digest' in evaluation.w10_backends.label_bound_unit: the frozen digest is of the validation images the point was selected on, so it cannot match a test run; the unit raised before returning, so no ER-12 test row was recorded or seen",
+ "freeze_id": "g12freeze-f96082101953546fdda096746c073bea342358a6f0e5f045c6435020d5fe511c",
+ "frozen_code_commit": "2421fd9957a6fb0f3a7ab8bd0d5980e5a7631097",
+ "measurement_effect": "none: no scorer, operating point, checkpoint, noise schedule, scope or analysis changed; the 378 completed units ran identical code (the check is reached only by ER-12)",
+ "owner_approval": "owner approved recording this correction and finishing the single campaign (2026-10-02)",
+ "units_completed_before_correction": 378,
+ "units_run_after_correction": "ordinals 378-440 (er12_label_upper_bound, er4_reconstruction_ablation, am100_low_rate_secondary)"
+}
