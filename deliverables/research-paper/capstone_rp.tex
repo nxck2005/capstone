@@ -1,9 +1,9 @@
-% Working manuscript, first drafted 2026-08-24, results added 2026-10-01.
+% Working manuscript, first drafted 2026-08-24; test results added 2026-10-02.
 % IEEE version uses the IEEEtran conference format.
-% Results are validation-split only, taken from the published W10 v11 closeout
-% (commit c31dd2bf9edac3a699515852997ab919e73e5d00) via presentation-results/data.
+% Results are from the single preregistered G-12 test campaign (freeze
+% g12freeze-f9608210..., results/g12/), exported by tools/export_g12_tables.py
+% to presentation-results/data/g12_test_*.csv.
 % Figures: python deliverables/research-paper/figures/make_figures.py
-% The test split is sealed; no test result is reported.
 \documentclass[conference]{IEEEtran}
 
 \usepackage{amsmath,amssymb}
@@ -33,7 +33,7 @@ This paper develops a controlled three-system framework for studying that questi
 
 The three systems are given the same transmission budget and are tested under the same channel conditions and dataset splits. This lets us compare them more fairly and see whether any improvement comes from learning better features for classification, from learning how to transmit those features over the channel, or from both.
 
-We report validation results on 1000 Imagenette-160 images at 21 SNRs from $-8$ to $18$~dB. At a bandwidth ratio of $1/6$, DJSCC classifies 72.8\% of images correctly at $-8$~dB, where neither digital system delivers any packets. Between $-5$ and $-4$~dB both digital systems start delivering, and from $-4$~dB upward the JPEG~2000 system is more accurate than DJSCC, reaching 89.3\% against 83.4\% at 18~dB. The task-aware digital system reaches 82.0\% once its packets arrive. At a ratio of $1/24$ the JPEG~2000 system first overtakes DJSCC at $+4$~dB, compared with $-4$~dB at $1/6$. The receiver's classifier matters as much as the link: scoring the same JPEG~2000 outputs with a classifier trained only on uncompressed images costs up to 43 points near the delivery threshold and widens the SNR range in which DJSCC leads by 3~dB at $1/6$ and by 6~dB at $1/24$. The held-out test split has not been used; those results will come from a single preregistered evaluation over three trained seeds.
+We evaluate all systems once, on the 3925 held-out Imagenette-160 test images at 21 SNRs from $-8$ to $18$~dB, after every model, operating point and analysis choice had been frozen on validation data. At a bandwidth ratio of $1/6$, averaged over three trained seeds, DJSCC classifies 76.1\% of images correctly at $-8$~dB, where neither digital system delivers any packets, and leads the adaptive JPEG~2000 system by 66 to 70 points from $-8$ to $-5$~dB. The two are statistically tied at $-4$ and $-3$~dB, and from $-2$~dB upward the JPEG~2000 system is more accurate, by about four points at high SNR (86.6\% against 82.4\% at 18~dB). The task-aware digital system reaches 81.1\% once its packets arrive; DJSCC exceeds it by 0.7 to 1.3 points from 1~dB upward, and the two are tied from $-4$ to 0~dB. All four preregistered hypotheses are supported. When the task-aware digital system uses a rate-1/5 code instead of rate~1/3, it delivers from $-7$~dB and scores 80.9\% from $-6$~dB, which leaves DJSCC a clear advantage only at $-7$~dB and below. The receiver's classifier matters as much as the link: scoring the same JPEG~2000 outputs with a classifier trained only on uncompressed images costs up to 43 points near the delivery threshold.
 
 
 \begin{IEEEkeywords}
@@ -56,13 +56,13 @@ This creates an attribution problem. If the learned system achieves higher task 
 
 There is also a second problem: the digital baseline must be given the same physical transmission budget as the learned system. Calling a baseline simply ``JPEG + LDPC'' is not enough, because finite-block overhead and the selected coding and modulation settings determine how much useful source data can actually be carried within a fixed number of complex channel uses. A digital baseline can also be unfairly weakened if it is forced to use a single operating point across every SNR.
 
-To address both issues, the study is structured around three systems for task-oriented image classification. The first is a reconstruction-oriented separated baseline using JPEG 2000, a TS~38.212-derived 5G NR LDPC coding/rate-matching core, and BPSK, QPSK, or 16-QAM~\cite{jpeg2000,3gpp38212}. The second is a task-oriented separated digital control in which learned image features are quantized and sent through the same digital physical layer. The third is a task-aware DJSCC system that maps images directly to a fixed number of complex channel symbols and produces both reconstruction and classification outputs at the receiver. All three systems are implemented and evaluated on the validation split in this manuscript. The held-out test evaluation has not yet been run.
+To address both issues, the study is structured around three systems for task-oriented image classification. The first is a reconstruction-oriented separated baseline using JPEG 2000, a TS~38.212-derived 5G NR LDPC coding/rate-matching core, and BPSK, QPSK, or 16-QAM~\cite{jpeg2000,3gpp38212}. The second is a task-oriented separated digital control in which learned image features are quantized and sent through the same digital physical layer. The third is a task-aware DJSCC system that maps images directly to a fixed number of complex channel symbols and produces both reconstruction and classification outputs at the receiver. All design choices are made on the validation split, and all three systems are then evaluated once on the held-out test split.
 
 The study therefore asks how much of DJSCC's advantage for classification survives when the digital baseline is given a fair chance. To our knowledge, it makes three contributions:
 \begin{itemize}
 \item a three-system comparison in which a reconstruction-oriented digital link and a task-aware digital link share one finite-block NR-LDPC chain, and the learned JSCC system uses the same complex-channel-use budget and $E_s/N_0$ convention;
-\item a measurement of how strongly the receiver's classifier sets the outcome: on validation data, scoring the same digital outputs with a classifier trained on uncompressed images instead of one fine-tuned on compressed images changes accuracy near the digital threshold by up to 43 points and widens the SNR range in which DJSCC leads by 3 to 6~dB;
-\item an attribution of DJSCC's low-SNR advantage: at the main bandwidth ratio, learned task features sent over the same digital link come within about two points of DJSCC across three seeds wherever their packets arrive, so most of the advantage there comes from avoiding outage rather than from a better task representation.
+\item a measurement of how strongly the receiver's classifier sets the outcome: scoring the same digital outputs with a classifier trained on uncompressed images instead of one fine-tuned on compressed images changes accuracy near the digital threshold by up to 43 points and widens the SNR range in which DJSCC leads by 3 to 9~dB;
+\item an attribution of DJSCC's low-SNR advantage: at the main bandwidth ratio, learned task features sent over the same digital link come within 1.3 points of DJSCC on the test split, averaged over three seeds, wherever their packets arrive, and a lower-rate code moves their delivery threshold to $-7$~dB, so most of the advantage comes from avoiding outage rather than from a better task representation.
 \end{itemize}
 None of the three systems is new on its own. The contribution lies in the controls and in what they show about the comparison.
 
@@ -180,6 +180,8 @@ The feature encoder $q_{\psi}$ reuses the residual trunk of the DJSCC encoder. I
 
 The dimension $D$ was selected on validation data from $\{64,128,\ldots,2048\}$. Each candidate was trained and then evaluated through the real digital chain at 7~dB. Accuracy rose with $D$ from 28.4\% at $D=64$ to 82.0\% at $D=2048$, which was selected. With $D=2048$ the raw payload is 4096 bits. It fits a BPSK, rate-1/3 transport block at $r=1/6$, and that physical-layer setting is used at every SNR.
 
+Rate~1/3 is the lowest LDPC rate in the search space of both digital systems, and it sets their delivery threshold. To see how far that threshold moves with a lower-rate code, a secondary variant sends a smaller task-aware model through a rate-1/5 code. It uses the $D=1024$ model from the same validation selection, unchanged, whose 2048-bit raw payload fits one BPSK transport block at rate~1/5 (base graph~2, 2544 payload bits) within the same $k$. This variant was added and validated before the test split was opened. It is reported descriptively and is not part of any hypothesis.
+
 This system keeps task-aware representation learning but puts back a discrete boundary between source and channel coding. The three-way design therefore separates reconstruction-oriented digital transmission, task-aware digital transmission, and task-aware joint transmission. Comparing the first two measures the effect of changing the transmitted representation toward the task. Comparing the task-aware digital system with DJSCC measures what joint source--channel optimization adds on top of that. The feature encoders, quantization, and task heads differ between the two learned systems, so this second comparison is not a pure channel-coding contrast.
 
 \subsection{Additional variants}
@@ -190,28 +192,32 @@ Table~\ref{tab:systems} lists every system variant evaluated. Besides the three 
 \item a \emph{reconstruction ablation}, in which the DJSCC reconstruction $\hat{\mathbf{x}}$ is classified by the clean-trained ResNet-18 instead of the DJSCC task head;
 \item two restricted JPEG~2000 baselines: one fixed to QPSK with the rate and resolution still adapted, and one fixed to a single operating point (16-QAM, LDPC rate 1/2, full resolution) at every SNR;
 \item a \emph{baseline JPEG} system, which replaces JPEG~2000 with baseline JPEG and is selected in the same way;
-\item a \emph{label transmission} system, in which the transmitter runs the task-aware digital model to completion and sends only its predicted label, a 4-bit field in a one-byte frame, as the first byte of the same packet used by the task-aware digital system.
+\item a \emph{label transmission} system, in which the transmitter runs the task-aware digital model to completion and sends only its predicted label, a 4-bit field in a one-byte frame, as the first byte of the same packet used by the task-aware digital system;
+\item the \emph{rate-1/5 task-aware digital} variant described above.
 \end{itemize}
 
 \begin{table}[t]
-\caption{System variants evaluated on the validation split. Every variant uses the same complex AWGN channel and the same $k$ for its bandwidth ratio.}
+\caption{System variants evaluated on the test split. Every variant uses the same complex AWGN channel and the same $k$ for its bandwidth ratio. Seeds: number of trained (or, for the untrained digital codecs, channel) seed pairs evaluated.}
 \label{tab:systems}
 \centering
 \footnotesize
-\begin{tabular}{@{}p{0.42\columnwidth}cp{0.30\columnwidth}@{}}
+\begin{tabular}{@{}p{0.40\columnwidth}ccp{0.27\columnwidth}@{}}
 \toprule
-Variant & $r$ & Classifier at receiver \\
+Variant & $r$ & Seeds & Classifier at receiver \\
 \midrule
-DJSCC (7~dB training) & $1/6$, $1/24$ & Own task head \\
-DJSCC, SNR-randomized & $1/6$ & Own task head \\
-DJSCC, PAPR-capped & $1/6$ & Own task head \\
-DJSCC reconstruction & $1/6$ & Clean ResNet-18 \\
-JPEG~2000 + LDPC, adaptive & $1/6$, $1/24$ & Fine-tuned ResNet-18 \\
-JPEG~2000 + LDPC, QPSK only & $1/6$ & Fine-tuned ResNet-18 \\
-JPEG~2000 + LDPC, fixed MCS & $1/6$ & Fine-tuned ResNet-18 \\
-Baseline JPEG + LDPC & $1/6$ & Fine-tuned ResNet-18 \\
-Task-aware digital & $1/6$ & Own task head \\
-Label transmission & $1/6$ & Transmitter's prediction \\
+DJSCC (7~dB training) & $1/6$ & 3 & Own task head \\
+ & $1/24$ & 1 & Own task head \\
+DJSCC, SNR-randomized & $1/6$ & 1 & Own task head \\
+DJSCC, PAPR-capped & $1/6$ & 1 & Own task head \\
+DJSCC reconstruction & $1/6$ & 1 & Clean ResNet-18 \\
+JPEG~2000 + LDPC, adaptive & $1/6$ & 3 & Fine-tuned ResNet-18 \\
+ & $1/24$ & 1 & Fine-tuned ResNet-18 \\
+JPEG~2000 + LDPC, QPSK only & $1/6$ & 1 & Fine-tuned ResNet-18 \\
+JPEG~2000 + LDPC, fixed MCS & $1/6$ & 3 & Fine-tuned ResNet-18 \\
+Baseline JPEG + LDPC & $1/6$ & 1 & Fine-tuned ResNet-18 \\
+Task-aware digital & $1/6$ & 3 & Own task head \\
+Task-aware digital, rate 1/5 & $1/6$ & 1 & Own task head \\
+Label transmission & $1/6$ & 1 & Transmitter's prediction \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -224,10 +230,10 @@ Two ResNet-18 classifiers~\cite{he2016resnet} read images at the receiver. The c
 \subsection{Datasets and split discipline}
 Imagenette-160 is used for the experiments, with 8469 training, 1000 validation, and 3925 test images across 10 classes. Dataset membership and sample identities are fixed through versioned manifests. The published training partition is deterministically divided into project training and validation subsets, while the published Imagenette validation partition is used as the project test split.
 
-Model and operating-point choices use only the training and validation data. The project test split is excluded from model selection and digital operating-point selection. It has not been read by any model or selection step at the time of writing.
+Every model, checkpoint, operating point, classifier, analysis rule and hypothesis window was chosen on the training and validation data and then recorded in a freeze manifest, which was committed to the project repository before the test loader would open. The test split was then evaluated once, in a single campaign that ran every variant in Table~\ref{tab:systems}. Section~\ref{sec:repro} records two execution faults in that campaign and how they were handled; neither changed a measurement.
 
 \subsection{Training}
-All learned models are trained from scratch with Adam~\cite{kingma2015adam} at a learning rate of $10^{-3}$, cosine decay to zero without warm-up, batch size 32, 100 epochs, and mixed-precision arithmetic. Augmentation is a random resized crop and a horizontal flip. Unless stated otherwise, the channel SNR during training is fixed at 7~dB, and the checkpoint with the highest validation accuracy at 7~dB is kept. Final DJSCC models were trained for three paired training and channel seeds at each bandwidth ratio, and the task-aware digital model for three seeds at $r=1/6$. The SNR-randomized and PAPR-capped variants were trained once each. All results in this paper come from the first seed pair, except the three-seed diagnostic in Section~\ref{sec:er9}.
+All learned models are trained from scratch with Adam~\cite{kingma2015adam} at a learning rate of $10^{-3}$, cosine decay to zero without warm-up, batch size 32, 100 epochs, and mixed-precision arithmetic. Augmentation is a random resized crop and a horizontal flip. Unless stated otherwise, the channel SNR during training is fixed at 7~dB, and the checkpoint with the highest validation accuracy at 7~dB is kept. Final DJSCC models were trained for three paired training and channel seeds at each bandwidth ratio, and the task-aware digital model for three seeds at $r=1/6$. The SNR-randomized and PAPR-capped variants were trained once each. On the test split, the three main systems and the fixed-MCS baseline at $r=1/6$ are evaluated in all three seed pairs; the digital codecs have no trained seed, so for them the three pairs differ only in the channel noise. Every other variant is evaluated in the first seed pair.
 
 \subsection{Digital operating-point selection}
 For each SNR and bandwidth ratio, the JPEG~2000 system selects an encoding resolution (a downsampled image size, upsampled bicubically at the receiver), an LDPC rate from $\{1/3,1/2,2/3,5/6\}$, and a modulation from BPSK, QPSK, and 16-QAM. The JPEG~2000 codestream is the largest one that fits in the transport-block payload. Selection maximizes the expected number of correct classifications on the validation split,
@@ -238,10 +244,17 @@ where $P_{\mathrm{s}}$ is the probability that every code block decodes, taken f
 
 The selection is analytic, but the reported accuracy is not: every selected operating point is re-run image by image through the full chain, and the realized outcome is what is reported. The learned models are trained once and are not adapted to the test SNR. This asymmetry favors the digital baseline, and it is intentional.
 
-\subsection{Paired evaluation and statistical target}
-Each system is evaluated on the same 1000 validation images at 21 SNRs: $-8$ to $7$~dB in 1~dB steps, then 9, 11, 13, 15, and 18~dB. The AWGN realization for each image depends only on the image identity, the SNR, and $k$, so systems at the same bandwidth ratio see the same noise wherever their representations allow it.
+\subsection{Paired evaluation and hypotheses}
+Each system is evaluated on the same 3925 test images at 21 SNRs: $-8$ to $7$~dB in 1~dB steps, then 9, 11, 13, 15, and 18~dB. The AWGN realization for each image depends only on the image identity, the SNR, the channel seed, and $k$, so systems at the same bandwidth ratio see the same noise wherever their representations allow it.
 
-The primary statistical target is the paired, image-level difference in top-1 accuracy between systems at a fixed SNR and bandwidth ratio. Stable sample IDs are used as the resampling unit so that system and SNR comparisons remain paired within each bootstrap draw. The analysis procedure is configured for 10,000 paired bootstrap resamples and averages over the three seed pairs before resampling. Four hypotheses were preregistered. The primary one (H1) requires the paired DJSCC-minus-digital difference at $r=1/6$ to be significantly positive at three or more consecutive SNRs at or below 7~dB. The others concern the size of the digital cliff, convergence of the two systems at high SNR, and whether DJSCC also exceeds the task-aware digital control. All four are decided on the test split. The validation results below do not decide any of them.
+The statistical target is the paired, image-level difference in top-1 accuracy between two systems at a fixed SNR and bandwidth ratio. Each image's outcome is first averaged over the three seed pairs, and the stable image identity is the resampling unit, so every interval is paired across systems and SNRs within each resample. All intervals use one shared set of 10,000 image bootstrap resamples and are two-sided 95\% percentile intervals unless stated otherwise. Four hypotheses, their decision rules, and their thresholds were fixed before the test split was opened:
+\begin{itemize}
+\item \emph{H1 (low-SNR separation).} DJSCC against the adaptive JPEG~2000 system at $r=1/6$. An SNR point qualifies when the studentized paired mean difference exceeds 1.96. H1 is supported if the longest run of consecutive qualified points at or below the 7~dB training SNR has at least three points and a calibrated p-value for that run is at most 0.05. The calibration resamples a Rademacher multiplier on each image's centred trajectory 10,000 times and recomputes the longest run. The mean paired difference over the whole region at or below 7~dB is reported as the effect size.
+\item \emph{H2 (graceful versus cliff).} DJSCC against the fixed-MCS JPEG~2000 system over the 4~dB window in which that system lost the most accuracy on validation data, which is 3 to 7~dB. H2 is supported if the one-sided 95\% lower bound on the digital system's drop across the window is at least 30 points and the one-sided 95\% upper bound on DJSCC's drop is at most 15 points.
+\item \emph{H3 (convergence).} DJSCC against the adaptive JPEG~2000 system at $r=1/6$. H3 is supported if, each as a one-sided 95\% bound, the weighted least-squares slope of the paired gap against SNR is negative, the gap at $-8$~dB is positive, and the gap at $18$~dB is smaller in magnitude than the gap at $-8$~dB.
+\item \emph{H4 (attribution).} The H1 rule, with the task-aware digital system in place of the JPEG~2000 system. Joint coding is credited only to the extent that DJSCC also exceeds this control.
+\end{itemize}
+The remaining variants are reported descriptively. A design study on validation data, run before the final models were trained, estimated that at 80\% power the smallest paired difference H4 could detect at a single point is 1.8 to 1.9 points above the digital cliff and about 4 points below it.
 
 Bandwidth-ratio selection for the classical system is based on validation data rather than on learned-versus-classical test results. This keeps the choice of operating point separate from the comparison it is later used to evaluate. The ratio $1/6$ was selected as the main comparison ratio and $1/24$ as the low-bandwidth ratio.
 
@@ -275,11 +288,11 @@ BLER campaign & 153 curves; 3213 points; 5000 trials/point; 16,065,000 trials to
 \end{tabular}
 \end{table}
 
-\section{Validation Results}
-All results in this section are counts out of the same 1000 validation images, from one training seed pair. Table~\ref{tab:results} gives the accuracy of every variant at selected SNRs. Differences of one or two percentage points between curves are within what a different seed or noise draw could change and should not be read as rankings.
+\section{Test Results}
+All results in this section are on the 3925 test images. Entries for the main systems are averaged over three seed pairs; the others come from the first seed pair. Table~\ref{tab:results} gives the accuracy of every variant at selected SNRs, Table~\ref{tab:hyp} the four preregistered tests, and Fig.~\ref{fig:differences} the paired differences behind them. A 95\% interval on a single accuracy here is about $\pm1.1$ points.
 
 \begin{table*}[t]
-\caption{Validation top-1 accuracy (\%) at selected SNRs, 1000 images per entry. Entries of 10.0 at low SNR are the outage rule applied to every image. The digital systems re-select their operating point at every SNR; the learned models are trained once.}
+\caption{Test top-1 accuracy (\%) at selected SNRs, 3925 images per entry. Rows marked ``3 seeds'' are averaged over three seed pairs; all others are the first seed pair, and ``seed 0'' gives DJSCC for that pair alone. Entries of 9.9 are the outage rule applied to every image (the share of the fixed fallback class in the test split). The digital systems use the operating point selected on validation data for each SNR; the learned models are trained once.}
 \label{tab:results}
 \centering
 \begin{tabular}{llrrrrrrrrr}
@@ -288,41 +301,70 @@ All results in this section are counts out of the same 1000 validation images, f
 \cmidrule(l){3-11}
 $r$ & System & $-8$ & $-6$ & $-4$ & $-2$ & $0$ & $4$ & $7$ & $9$ & $18$ \\
 \midrule
-$1/6$ & DJSCC & 72.8 & 75.7 & 79.4 & 80.7 & 81.2 & 82.8 & 83.6 & 83.8 & 83.4 \\
- & DJSCC, SNR-randomized & 77.0 & 80.2 & 82.4 & 82.5 & 83.0 & 82.9 & 83.8 & 84.1 & 83.9 \\
- & DJSCC, PAPR-capped & 75.9 & 78.8 & 80.5 & 80.7 & 82.3 & 82.9 & 82.8 & 83.0 & 83.2 \\
- & DJSCC reconstruction, clean classifier & 44.7 & 54.5 & 61.1 & 63.9 & 69.0 & 74.1 & 76.1 & 77.5 & 76.8 \\
- & JPEG~2000 + LDPC, adaptive & 10.0 & 10.0 & 83.4 & 83.9 & 87.3 & 87.8 & 89.0 & 86.5 & 89.3 \\
- & \quad same outputs, clean classifier & 10.0 & 10.0 & 60.9 & 78.8 & 84.8 & 87.0 & 88.6 & 86.3 & 89.2 \\
- & JPEG~2000 + LDPC, QPSK only & 10.0 & 10.0 & 10.0 & 10.0 & 87.3 & 87.8 & 88.7 & 88.7 & 88.7 \\
- & JPEG~2000 + LDPC, fixed MCS & 10.0 & 10.0 & 10.0 & 10.0 & 10.0 & 10.0 & 89.0 & 89.0 & 89.0 \\
- & Baseline JPEG + LDPC & 10.0 & 10.0 & 67.8 & 76.7 & 84.0 & 87.2 & 87.9 & 10.0 & 88.6 \\
- & Task-aware digital & 10.0 & 10.0 & 82.0 & 82.0 & 82.0 & 82.0 & 82.0 & 82.0 & 82.0 \\
- & Label transmission & 10.0 & 10.0 & 82.0 & 82.0 & 82.0 & 82.0 & 82.0 & 82.0 & 82.0 \\
+$1/6$ & DJSCC (3 seeds) & 76.1 & 79.1 & 80.8 & 81.4 & 81.6 & 82.1 & 82.3 & 82.3 & 82.4 \\
+ & \quad seed 0 & 71.5 & 76.3 & 79.3 & 80.5 & 81.1 & 81.5 & 82.0 & 82.0 & 82.1 \\
+ & DJSCC, SNR-randomized & 77.6 & 80.0 & 81.1 & 82.1 & 82.6 & 82.9 & 82.6 & 82.8 & 83.0 \\
+ & DJSCC, PAPR-capped & 76.7 & 79.3 & 81.0 & 81.4 & 81.8 & 82.4 & 82.3 & 82.0 & 82.3 \\
+ & DJSCC reconstruction, clean classifier & 44.1 & 52.5 & 60.3 & 65.3 & 70.9 & 75.8 & 77.3 & 77.4 & 78.0 \\
+ & JPEG~2000 + LDPC, adaptive (3 seeds) & 9.9 & 9.9 & 81.6 & 83.2 & 85.9 & 86.2 & 86.5 & 84.3 & 86.6 \\
+ & \quad same outputs, clean classifier & 9.9 & 9.9 & 59.2 & 78.2 & 84.4 & 86.4 & 87.5 & 85.2 & 87.6 \\
+ & JPEG~2000 + LDPC, QPSK only & 9.9 & 9.9 & 9.9 & 9.9 & 85.9 & 86.2 & 86.5 & 86.5 & 86.5 \\
+ & JPEG~2000 + LDPC, fixed MCS (3 seeds) & 9.9 & 9.9 & 9.9 & 9.9 & 9.9 & 9.9 & 86.5 & 86.5 & 86.5 \\
+ & Baseline JPEG + LDPC & 9.9 & 9.9 & 66.4 & 74.5 & 81.2 & 85.1 & 85.5 & 9.9 & 86.1 \\
+ & Task-aware digital (3 seeds) & 9.9 & 9.9 & 81.1 & 81.1 & 81.1 & 81.1 & 81.1 & 81.1 & 81.1 \\
+ & Task-aware digital, rate 1/5 & 9.9 & 80.9 & 80.9 & 80.9 & 80.9 & 80.9 & 80.9 & 80.9 & 80.9 \\
+ & Label transmission & 9.9 & 9.9 & 81.0 & 81.0 & 81.0 & 81.0 & 81.0 & 81.0 & 81.0 \\
 \midrule
-$1/24$ & DJSCC & 49.4 & 61.7 & 69.3 & 76.2 & 78.7 & 82.0 & 82.9 & 82.7 & 82.8 \\
- & JPEG~2000 + LDPC, adaptive & 10.0 & 10.0 & 10.0 & 31.0 & 69.4 & 83.4 & 85.8 & 82.4 & 87.7 \\
- & \quad same outputs, clean classifier & 10.0 & 10.0 & 10.0 & 14.2 & 26.2 & 60.9 & 80.6 & 80.7 & 87.0 \\
+$1/24$ & DJSCC & 47.3 & 59.1 & 68.3 & 73.9 & 76.3 & 78.8 & 79.8 & 80.0 & 80.0 \\
+ & JPEG~2000 + LDPC, adaptive & 9.9 & 9.9 & 9.9 & 28.9 & 68.0 & 81.6 & 84.9 & 81.5 & 86.3 \\
+ & \quad same outputs, clean classifier & 9.9 & 9.9 & 9.9 & 13.5 & 25.2 & 59.2 & 79.8 & 80.0 & 85.9 \\
 \bottomrule
 \end{tabular}
 \end{table*}
 
+\begin{table}[t]
+\caption{Preregistered hypotheses on the test split, $r=1/6$, three seed pairs. Differences are DJSCC minus the comparator, in points; intervals are 95\%.}
+\label{tab:hyp}
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}lp{0.55\columnwidth}c@{}}
+\toprule
+& Result & Decision \\
+\midrule
+H1 & Qualified run $-8$ to $-5$~dB (4 points), calibrated $p=0.030$; mean difference at or below 7~dB 14.6 [13.7, 15.4] & Supported \\
+H2 & Fixed-MCS drop 3$\to$7~dB 76.7 (lower bound 75.5); DJSCC drop 0.2 (upper bound 0.4); difference 76.5 [75.1, 77.9] & Supported \\
+H3 & Gap slope $-1.71$ points/dB [$-1.76$, $-1.67$]; gap $+66.3$ at $-8$~dB, $-4.2$ at 18~dB & Supported \\
+H4 & Longest qualified run 1 to 7~dB (7 points), also $-8$ to $-5$~dB; calibrated $p=0.0096$; mean difference at or below 7~dB 17.6 [17.0, 18.2] & Supported \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{DJSCC and the adaptive JPEG~2000 baseline}
-Fig.~\ref{fig:headline} shows the main comparison at $r=1/6$. DJSCC produces a usable prediction at every SNR, with no delivery failures by construction. Its accuracy falls from 83.8\% at 9~dB to 72.8\% at $-8$~dB, a loss of 11 points across the 17~dB range.
+Fig.~\ref{fig:headline} shows the main comparison at $r=1/6$. DJSCC produces a usable prediction at every SNR, with no delivery failures by construction. Averaged over three seeds, its accuracy falls from 82.4\% at 18~dB to 76.1\% [75.0, 77.2] at $-8$~dB, a loss of about six points across the 26~dB range.
 
-The JPEG~2000 system delivers nothing from $-8$ to $-5$~dB and scores the outage floor of 10.0\%. At $-4$~dB every packet decodes and accuracy jumps to 83.4\%, above DJSCC's 79.4\% at the same SNR. From $-4$~dB upward the digital system is ahead at every measured point, and the gap widens to about six points at high SNR (89.3\% against 83.4\% at 18~dB). The measured transition lies between $-5$ and $-4$~dB. No SNR between those two points was evaluated.
+The JPEG~2000 system delivers nothing from $-8$ to $-5$~dB and scores the outage floor of 9.9\%. At $-4$~dB every packet decodes and accuracy jumps to 81.6\%. The paired differences (Fig.~\ref{fig:differences}) separate three regions. From $-8$ to $-5$~dB DJSCC leads by 66.3 to 70.2 points, and these four points form the qualified run that supports H1. At $-4$ and $-3$~dB the two are tied: DJSCC is 0.9 and 0.7 points behind, with intervals that include zero. From $-2$~dB upward the JPEG~2000 system is ahead at every SNR, by 1.8 points at $-2$~dB and by 3.8 to 4.3 points from $-1$~dB upward, apart from 9~dB, where the gap is 2.0 points because 3.1\% of digital packets fail. The measured transition lies between $-5$ and $-4$~dB; no SNR between those two points was evaluated.
 
-Table~\ref{tab:oppoints} lists the operating points the baseline selected. Just above the transition it sends a $64\times64$ image with BPSK and a rate-1/3 code, the most robust setting available, and it moves to larger images and higher-order modulation as the channel improves. Two points deliver less than all packets. At $-2$~dB, 23 of 1000 packets fail, and at 9~dB, 38 fail. At 9~dB the selected setting (16-QAM, rate 2/3, full resolution) delivers every packet at 11~dB, so the 9~dB point sits on the steep part of that setting's BLER curve. There, the analytic prediction and the image-by-image run disagree by a few percent of packets.
+The paired gap shrinks steadily as SNR rises, by 1.71 points per dB [1.67, 1.76], from $+66.3$ points at $-8$~dB to $-4.2$ points at 18~dB, which supports H3. The convergence ends in a crossing rather than a tie: at high SNR the digital system is about four points more accurate.
+
+Table~\ref{tab:oppoints} lists the operating points the baseline uses, as selected on validation data. Just above the transition it sends a $64\times64$ image with BPSK and a rate-1/3 code, the most robust setting available, in a 531-byte payload of which 157 bytes are JPEG~2000 headers. It moves to larger images and higher-order modulation as the channel improves; at 11~dB and above, the 4262-byte payload spends 3.7\% on headers. Two operating points deliver less than every packet on the test split, as they did on validation: 2.3\% of packets fail at $-2$~dB and 3.1\% at 9~dB. At 9~dB the selected setting sits on the steep part of its BLER curve, where the analytic prediction used for selection and the image-by-image run differ by a few percent of packets.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_headline}
-\caption{Validation accuracy (top) and fraction of packets delivered (bottom) at $r=1/6$. DJSCC is scored by its own task head, and JPEG~2000 by the ResNet-18 fine-tuned on JPEG~2000 artifacts. The dotted line is the 10\% outage rule. The digital systems re-select their operating point at every SNR on validation data; DJSCC is trained once at 7~dB. Lines join measured points only.}
+\caption{Test accuracy (top) and fraction of packets delivered (bottom) at $r=1/6$. DJSCC, JPEG~2000 + LDPC and the task-aware digital system are averaged over three seed pairs, with shaded 95\% intervals; the rate-1/5 task-aware variant is one seed pair. DJSCC is scored by its own task head, JPEG~2000 by the ResNet-18 fine-tuned on JPEG~2000 artifacts. The dotted line is the outage rule. Lines join measured points only.}
 \label{fig:headline}
 \end{figure}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_differences}
+\caption{Paired difference in test accuracy, DJSCC minus each digital system, at $r=1/6$, averaged over three seed pairs, with 95\% image-bootstrap intervals. Below $-4$~dB both digital systems deliver nothing and DJSCC leads both by 66 to 70 points (not shown).}
+\label{fig:differences}
+\end{figure}
+
 \begin{table}[t]
-\caption{Operating points selected by the adaptive JPEG~2000 baseline at $r=1/6$, with the realized validation accuracy and delivered fraction.}
+\caption{Operating points of the adaptive JPEG~2000 baseline at $r=1/6$, selected on validation data, with test accuracy and delivered fraction (three seed pairs).}
 \label{tab:oppoints}
 \centering
 \footnotesize
@@ -331,97 +373,109 @@ Table~\ref{tab:oppoints} lists the operating points the baseline selected. Just 
 \toprule
 SNR (dB) & Image & LDPC & Mod. & Acc. (\%) & Deliv. (\%) \\
 \midrule
-$-8$ to $-5$ & 160 & 1/3 & BPSK & 10.0 & 0.0 \\
-$-4$, $-3$ & 64 & 1/3 & BPSK & 83.4 & 100.0 \\
-$-2$ & 96 & 1/2 & BPSK & 83.9 & 97.7 \\
-$-1$, $0$ & 128 & 1/3 & QPSK & 87.3 & 100.0 \\
-$1$ & 128 & 2/3 & BPSK & 87.3 & 100.0 \\
-$2$ to $5$ & 128 & 1/2 & QPSK & 87.8 & 100.0 \\
-$6$ & 160 & 5/6 & QPSK & 88.7 & 100.0 \\
-$7$ & 160 & 1/2 & 16-QAM & 89.0 & 100.0 \\
-$9$ & 160 & 2/3 & 16-QAM & 86.5 & 96.2 \\
-$11$ to $18$ & 160 & 2/3 & 16-QAM & 89.3 & 100.0 \\
+$-8$ to $-5$ & 160 & 1/3 & BPSK & 9.9 & 0.0 \\
+$-4$, $-3$ & 64 & 1/3 & BPSK & 81.6 & 100.0 \\
+$-2$ & 96 & 1/2 & BPSK & 83.2 & 97.7 \\
+$-1$, $0$ & 128 & 1/3 & QPSK & 85.9 & 100.0 \\
+$1$ & 128 & 2/3 & BPSK & 85.9 & 100.0 \\
+$2$ to $5$ & 128 & 1/2 & QPSK & 86.2 & 100.0 \\
+$6$ & 160 & 5/6 & QPSK & 86.5 & 100.0 \\
+$7$ & 160 & 1/2 & 16-QAM & 86.5 & 100.0 \\
+$9$ & 160 & 2/3 & 16-QAM & 84.3 & 96.9 \\
+$11$ to $18$ & 160 & 2/3 & 16-QAM & 86.6 & 100.0 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\subsection{Graceful degradation against a fixed digital link}
+H2 compares DJSCC with the JPEG~2000 system fixed to a single operating point (16-QAM, rate 1/2, full resolution) over the 3 to 7~dB window, which was chosen on validation data as the window in which that system loses the most accuracy. On the test split, the fixed system loses 76.7 points across the window (86.5\% at 7~dB, 9.9\% at 3~dB), with a one-sided lower bound of 75.5 against the 30-point threshold. DJSCC loses 0.2 points, with an upper bound of 0.4 against the 15-point threshold. H2 is supported. The comparison describes the cliff of a non-adaptive link; the adaptive baseline has no comparable cliff above $-4$~dB because it changes its operating point.
+
 \subsection{Bandwidth ratio}
-Fig.~\ref{fig:bandwidth} repeats the comparison at $r=1/24$, with 3200 channel uses per image. DJSCC loses most at low SNR: at $-8$~dB it falls from 72.8\% to 49.4\%, while at 18~dB it drops only from 83.4\% to 82.8\%. The JPEG~2000 system delivers nothing up to $-3$~dB. At $-2$~dB it delivers 82\% of packets, but the images that arrive are heavily compressed and only 34.8\% of them are classified correctly. DJSCC stays ahead up to $+3$~dB, the JPEG~2000 system is ahead from $+4$ to $+7$~dB, and DJSCC is marginally ahead again at 9~dB (82.7\% against 82.4\%), where 62 digital packets fail. Above 9~dB the digital system leads by 3.8 to 4.9 points. At this ratio the two curves cross more than once, and no single crossover SNR describes them.
+Fig.~\ref{fig:bandwidth} repeats the comparison at $r=1/24$, with 3200 channel uses per image (first seed pair). DJSCC loses most at low SNR: at $-8$~dB it falls from 71.5\% to 47.3\% against the same seed pair at $r=1/6$, while at 18~dB it drops only from 82.1\% to 80.0\%. The JPEG~2000 system delivers nothing up to $-3$~dB. At $-2$~dB it delivers 82.0\% of packets, but the images that arrive are heavily compressed and it classifies only 28.9\% of all test images correctly. DJSCC stays ahead up to $+1$~dB, by 4.9 to 8.4 points from $-1$ to $+1$~dB, and the JPEG~2000 system is ahead from $+2$~dB, by 0.6 to 6.3 points. Reducing the channel uses fourfold therefore moves the first SNR at which the digital system is ahead from $-2$~dB to $+2$~dB. These are single-seed differences; at $+2$ and $+3$~dB they are within the spread expected between seeds.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{fig_bandwidth}
-\caption{DJSCC against the adaptive JPEG~2000 baseline at two bandwidth ratios. Reducing the channel uses fourfold moves the point where the digital system overtakes DJSCC from $-4$~dB to $+4$~dB. Scorers and selection as in Fig.~\ref{fig:headline}.}
+\caption{DJSCC against the adaptive JPEG~2000 baseline on the test split at two bandwidth ratios. (a) Three seed pairs with 95\% intervals; (b) the first seed pair. Reducing the channel uses fourfold moves the first SNR at which the digital system is ahead from $-2$~dB to $+2$~dB. Scorers and selection as in Fig.~\ref{fig:headline}.}
 \label{fig:bandwidth}
 \end{figure*}
 
 \subsection{Task-aware digital control}
 \label{sec:er9}
-The task-aware digital system (Fig.~\ref{fig:headline}) behaves like the JPEG~2000 system on the delivery axis. It fails completely up to $-5$~dB and delivers every packet from $-4$~dB. Once its packets arrive, its accuracy is 82.0\% at every SNR, because error-free delivery reproduces the transmitter's quantized features exactly.
+The task-aware digital system (Fig.~\ref{fig:headline}) behaves like the JPEG~2000 system on the delivery axis. It fails completely up to $-5$~dB and delivers every packet from $-4$~dB. Once its packets arrive, its accuracy is constant at 81.1\% (81.0\%, 81.2\%, and 81.1\% in the three seed pairs), because error-free delivery reproduces the transmitter's quantized features exactly.
 
-Against the JPEG~2000 system, the delivered features score 82.0\% and the delivered images 83.4\% to 89.3\%. That difference cannot be attributed to the representation: the features are read by a single linear layer, the images by a fine-tuned ResNet-18 with about seven times as many parameters as the whole DJSCC model. Against DJSCC, in the seed pair used throughout this section the task-aware digital system is 2.6 points ahead at $-4$~dB, the two cross between 0 and 2~dB, and DJSCC is 0.8 to 1.8 points ahead from 4~dB upward. A precision diagnostic over all three seed pairs, with 10,000 paired bootstrap resamples, does not support the single-seed lead: averaged over the three seed pairs the two systems are tied at $-4$ and $-3$~dB (DJSCC minus digital between $-0.4$ and $+0.1$ points), and DJSCC is 0.6 to 1.8 points ahead from $-2$ to $7$~dB. Below $-4$~dB it has the same cliff as the JPEG~2000 system. At this ratio the main difference between the two task-aware systems is therefore whether a prediction reaches the receiver at all, more than the quality of the representation.
+Against DJSCC (Fig.~\ref{fig:differences}), the two are tied from $-4$ to 0~dB, with paired differences between $-0.3$ and $+0.6$ points whose intervals include zero. From 1~dB upward DJSCC is ahead at every SNR, by 0.7 to 1.3 points, and these seven consecutive points from 1 to 7~dB form the longest qualified run that supports H4. Below $-4$~dB DJSCC leads by the same 66 to 70 points as against the JPEG~2000 system, which is the second qualified run. Joint source--channel coding is therefore credited with two things at this ratio: avoiding the outage below $-4$~dB, and a residual of about one point once both systems deliver. The second is real on the test split but small, and smaller than the four-point lead of the JPEG~2000 system over DJSCC in the same range. The features and the task heads of the two learned systems differ, so the residual is not a pure channel-coding effect.
 
-The label transmission system scores 82.0\% wherever it delivers, identical to the task-aware digital system, because it sends that system's own prediction. It also fails below $-4$~dB. That is a property of the implementation: the one-byte label is carried in the task-aware system's 4096-bit packet, so it inherits that packet's decoding threshold. A link built for a 4-bit payload could use a much lower code rate and would be expected to survive at lower SNR. This variant therefore bounds the accuracy of transmitting a decision, not the SNR at which a decision can be transmitted.
+Against the JPEG~2000 system, the delivered features score 81.1\% and the delivered images 81.6\% to 86.6\%. That difference cannot be attributed to the representation: the features are read by a single linear layer, the images by a fine-tuned ResNet-18 with about seven times as many parameters as the whole DJSCC model.
+
+The label transmission system scores 81.0\% wherever it delivers, identical to the task-aware digital system in the same seed pair, because it sends that system's own prediction. It also fails below $-4$~dB. That is a property of the implementation: the one-byte label is carried in the task-aware system's 4096-bit packet, so it inherits that packet's decoding threshold. This variant therefore bounds the accuracy of transmitting a decision, not the SNR at which a decision can be transmitted.
+
+\subsection{Effect of the code-rate floor}
+Both digital systems are limited by the same design choice: no code rate below 1/3. The rate-1/5 task-aware variant (Fig.~\ref{fig:headline}) removes that limit for the feature link. It delivers 66.4\% of packets at $-7$~dB, scoring 56.9\%, and every packet from $-6$~dB, scoring 80.9\%. At $-6$ and $-5$~dB it is 1.8 and 0.9 points more accurate than the three-seed DJSCC average, at $-4$ and $-3$~dB the two are level, and above that it is within 1.5 points of DJSCC. Its accuracy once delivered is 0.2 points below the rate-1/3 system, because it sends 1024 instead of 2048 features. With a lower-rate code, the SNR range in which DJSCC is clearly the only working system shrinks from $-5$~dB and below to $-7$~dB and below. This variant is one seed pair and is not part of any hypothesis; it shows how much of the low-SNR comparison is set by the digital code-rate floor.
 
 \subsection{Effect of the receiver classifier}
 \label{sec:scorer}
-Fig.~\ref{fig:scorer}(a) scores the same JPEG~2000 outputs with both classifiers. Above 4~dB the two agree within one point. Just above the delivery transition they do not: at $-4$~dB the fine-tuned classifier scores 83.4\% and the clean one 60.9\%. With the clean classifier, DJSCC would lead the JPEG~2000 system up to $-2$~dB instead of $-5$~dB. At $r=1/24$ the difference is larger, 69.4\% against 26.2\% at 0~dB, and with the clean classifier DJSCC would lead up to 9~dB. Near the cliff the baseline sends small, heavily compressed images, and a classifier trained on such images is worth up to 43 points, consistent with the finding that retraining on compressed images recovers most of a recognition model's loss~\cite{janeiro2023}. The crossover SNR reported for this kind of comparison therefore depends on the classifier at the receiver as well as on the transmission scheme.
+Fig.~\ref{fig:scorer}(a) scores the same JPEG~2000 outputs with both classifiers. From 2~dB upward the two agree within about one point, and the clean classifier is the slightly better one at high SNR (87.6\% against 86.6\% at 18~dB). Just above the delivery transition they do not agree: at $-4$~dB the fine-tuned classifier scores 81.6\% and the clean one 59.2\%. With the clean classifier, DJSCC would lead the JPEG~2000 system up to $-2$~dB instead of being tied at $-4$~dB. At $r=1/24$ the difference is larger, 68.0\% against 25.2\% at 0~dB, and with the clean classifier DJSCC would lead or tie up to 9~dB instead of $+1$~dB. Near the cliff the baseline sends small, heavily compressed images, and a classifier trained on such images is worth up to 43 points, consistent with the finding that retraining on compressed images recovers most of a recognition model's loss~\cite{janeiro2023}. The crossover SNR reported for this kind of comparison therefore depends on the classifier at the receiver as well as on the transmission scheme.
 
-Fig.~\ref{fig:scorer}(b) holds the DJSCC transmission fixed and changes the receiver. Classifying the DJSCC reconstruction with the clean ResNet-18 scores 44.7\% at $-8$~dB and 76.8\% at 18~dB, well below the jointly trained task head at every SNR. The reconstruction is trained with $\lambda=3$ and is blurred at low SNR. The task head reads the decoder features directly and does not depend on image quality in the same way.
+Fig.~\ref{fig:scorer}(b) holds the DJSCC transmission fixed and changes the receiver. Classifying the DJSCC reconstruction with the clean ResNet-18 scores 44.1\% at $-8$~dB and 78.0\% at 18~dB, well below the jointly trained task head at every SNR. The reconstruction is trained with $\lambda=3$ and is blurred at low SNR. The task head reads the decoder features directly and does not depend on image quality in the same way.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\textwidth]{fig_scorer}
-\caption{(a) The same JPEG~2000 + LDPC outputs at $r=1/6$ scored by the fine-tuned and the clean ResNet-18, with DJSCC for reference. (b) The same DJSCC transmissions read by the DJSCC task head and by the clean ResNet-18 applied to the DJSCC reconstruction.}
+\caption{(a) The same JPEG~2000 + LDPC outputs at $r=1/6$ scored by the fine-tuned and the clean ResNet-18, with DJSCC for reference (three seed pairs). (b) The same DJSCC transmissions read by the DJSCC task head and by the clean ResNet-18 applied to the DJSCC reconstruction (first seed pair).}
 \label{fig:scorer}
 \end{figure*}
 
 \subsection{Training variants: SNR randomization and peak power}
-Fig.~\ref{fig:training} compares the three DJSCC models at $r=1/6$. Training at randomized SNRs raises low-SNR accuracy: 77.0\% against 72.8\% at $-8$~dB, and 82.4\% against 79.4\% at $-4$~dB. At high SNR the two are within one point. The randomized model scores higher at 19 of the 21 SNRs and equal at one, but the two are separate training runs, so a single seed cannot show how much of the difference comes from the training distribution.
+Fig.~\ref{fig:training} compares the three DJSCC models at $r=1/6$ in the first seed pair, the only pair in which the two variants were trained. Training at randomized SNRs gives 77.6\% against 71.5\% at $-8$~dB, and the PAPR-capped model 76.7\%. That difference is not evidence for either training change: the other two seed pairs of the fixed-SNR model score 78.4\% and 78.5\% at $-8$~dB, so the spread between seeds of one training recipe is as large as the difference between recipes. Above 0~dB all three models are within 1.5 points.
 
-The fixed-SNR DJSCC encoder has a mean symbol-domain PAPR of 13.2~dB and a maximum of 20.1~dB over the validation images. For comparison, the adaptive JPEG~2000 system at 18~dB, which uses 16-QAM, has a mean of 2.6~dB and a maximum of 3.3~dB. The PAPR-capped model has a maximum of 3.000002~dB, within the 3~dB cap and its $10^{-4}$~dB numerical tolerance. Its accuracy is close to that of the unconstrained model: 75.9\% against 72.8\% at $-8$~dB and 83.2\% against 83.4\% at 18~dB, higher at 13 SNRs and lower at 6. As with the randomized model, the two are separate training runs, so this does not isolate the cost of the cap. PAPR here is measured on the complex symbols, not on an oversampled, pulse-shaped waveform, so it does not establish the peak power of a transmitted RF signal.
+Over the test images the fixed-SNR DJSCC encoder has a mean symbol-domain PAPR of 13.3 to 14.8~dB across seed pairs and a maximum of 24.7~dB. For comparison, the adaptive JPEG~2000 system at 18~dB, which uses 16-QAM, has a mean of 2.6~dB and a maximum of 3.3~dB. The PAPR-capped model has a maximum of 3.000002~dB, within the 3~dB cap and its $10^{-4}$~dB numerical tolerance, at an accuracy within about one point of the fixed-SNR model above 0~dB. PAPR here is measured on the complex symbols, not on an oversampled, pulse-shaped waveform, so it does not establish the peak power of a transmitted RF signal.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_training}
-\caption{DJSCC at $r=1/6$ trained at a fixed 7~dB, trained with SNR drawn from $\{1,4,7,13,19\}$~dB, and trained with a 3~dB symbol PAPR cap. Each model is a separate training run. Note the vertical scale.}
+\caption{DJSCC at $r=1/6$ on the test split, first seed pair: trained at a fixed 7~dB, trained with SNR drawn from $\{1,4,7,13,19\}$~dB, and trained with a 3~dB symbol PAPR cap. The other two seed pairs of the fixed-SNR model score 78.4\% and 78.5\% at $-8$~dB. Note the vertical scale.}
 \label{fig:training}
 \end{figure}
 
 \subsection{Restricted digital baselines}
-Fig.~\ref{fig:controls} shows what the adaptivity of the baseline is worth. Restricting the modulation to QPSK delays the first delivery from $-4$ to $-1$~dB and lowers the high-SNR plateau to 88.7\%. A single fixed operating point (16-QAM, rate 1/2) delivers nothing below 7~dB and reaches 89.0\% above it. This fixed curve is the classical cliff in its sharpest form: a drop of 79 points between 7 and 6~dB. A baseline with a single operating point would have made DJSCC look far better than the adaptive baseline does.
+Fig.~\ref{fig:controls} shows what the adaptivity of the baseline is worth. Restricting the modulation to QPSK delays the first delivery from $-4$ to $-1$~dB, with the same plateau of 86.5\%. The single fixed operating point (16-QAM, rate 1/2) delivers nothing below 7~dB and reaches 86.5\% above it, a drop of 76.6 points between 7 and 6~dB. A baseline with a single operating point would have made DJSCC look far better than the adaptive baseline does.
 
-Replacing JPEG~2000 with baseline JPEG costs up to 15.6 points just above the transition (67.8\% against 83.4\% at $-4$~dB), with smaller differences at higher SNR. This is consistent with JPEG's larger header overhead, which takes a large share of a small payload. The fine-tuned classifier was trained on JPEG~2000 artifacts, not JPEG artifacts, which also counts against the JPEG curve. At 9~dB the selected JPEG operating point failed on every image. That setting delivers every packet at 11~dB, so the 9~dB point again lies on the steep part of its BLER curve. The measurement is reported as observed.
+Replacing JPEG~2000 with baseline JPEG costs up to 15.2 points just above the transition (66.4\% against 81.6\% at $-4$~dB), with smaller differences at higher SNR. This is consistent with JPEG's larger header overhead, which takes a large share of a small payload. The fine-tuned classifier was trained on JPEG~2000 artifacts, not JPEG artifacts, which also counts against the JPEG curve. At 9~dB the JPEG operating point selected on validation data failed on every test image, as it did on validation; that setting delivers every packet at 11~dB, so the 9~dB point lies on the steep part of its BLER curve. The measurement is reported as observed.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_controls}
-\caption{Adaptive JPEG~2000 + LDPC at $r=1/6$ against restricted versions: QPSK only (rate and resolution still adapted), one fixed operating point at all SNRs, and baseline JPEG in place of JPEG~2000. All scored by the fine-tuned ResNet-18.}
+\caption{Adaptive JPEG~2000 + LDPC at $r=1/6$ on the test split against restricted versions: QPSK only (rate and resolution still adapted), one fixed operating point at all SNRs, and baseline JPEG in place of JPEG~2000. All scored by the fine-tuned ResNet-18.}
 \label{fig:controls}
 \end{figure}
 
+\subsection{Reproducibility of the test campaign}
+\label{sec:repro}
+The freeze manifest, the per-image outcomes of every test unit (their digests are listed in a committed manifest), the result tables, and the analysis output are archived with the project code. Two execution faults occurred during the single test campaign, and both are recorded there. The first launch stopped before any model produced an output on a test image, because a record-keeping guard still refused test-split records; the guard was corrected, the freeze was re-issued for the corrected code, and the campaign was started again. Later, the label-transmission system stopped on a self-check that compared its output with a fingerprint of its validation run, which cannot match on different images; the check was restricted to validation data, and a descriptive McNemar p-value in the analysis was changed from floating-point to exact integer arithmetic after it overflowed at the test-set size. Each change is recorded with the exact files and contents it altered. None of them changed a model, an operating point, a noise draw, an analysis rule, or any reported accuracy, and no outcome was selected, repeated, or discarded.
+
 \section{Discussion}
-On the validation split, the results support the qualitative picture that motivated the study, but only over a narrow range. DJSCC degrades gradually and the separated system has a cliff. At $r=1/6$, however, the cliff lies between $-5$ and $-4$~dB, and above it the adaptive digital baseline is more accurate than DJSCC by 2.7 to 6.1 points. At this ratio DJSCC wins exactly where the digital system delivers nothing. At $r=1/24$ DJSCC also wins from $-1$ to $+3$~dB, where the digital packets arrive but carry too few bytes for the classifier to do well on the decoded image.
+The test results support the qualitative picture that motivated the study, but only over a narrow range. DJSCC degrades gradually and the separated systems have a cliff, and all four preregistered hypotheses hold. At $r=1/6$, however, the cliff lies between $-5$ and $-4$~dB. At $-4$ and $-3$~dB the adaptive digital baseline is level with DJSCC, and from $-2$~dB upward it is more accurate by about four points. At this ratio DJSCC wins where the digital system delivers nothing. At $r=1/24$ DJSCC also wins up to $+1$~dB, where the digital packets arrive but carry too few bytes for the classifier to do well on the decoded image.
 
-Much of the high-SNR gap reflects a difference in accuracy ceilings. DJSCC with its jointly trained head saturates near 84\%. The fine-tuned ResNet-18 on well-delivered JPEG~2000 images reaches 89\%, close to the 89.8\% of the clean classifier on uncompressed images. The DJSCC task head is a single linear layer on pooled decoder features. A deeper head, or a stronger backbone of the kind used in recent transformer-based JSCC work~\cite{yang2023witt}, might narrow this gap. We did not test that, and the parameter count of the learned model was deliberately kept well below that of the reference classifier.
+Much of the high-SNR gap reflects a difference in accuracy ceilings. DJSCC with its jointly trained head saturates near 82\%, and the task-aware digital system near 81\%. The fine-tuned ResNet-18 on well-delivered JPEG~2000 images reaches 86.6\%, and the clean one 87.6\%. The DJSCC task head is a single linear layer on pooled decoder features. A deeper head, or a stronger backbone of the kind used in recent transformer-based JSCC work~\cite{yang2023witt}, might narrow this gap. We did not test that, and the parameter count of the learned model was deliberately kept well below that of the reference classifier.
 
-The task-aware digital control changes the attribution question. It reaches 82.0\% whenever its packets decode, so a digital system that sends learned features performs close to DJSCC above the cliff. Below the cliff it fails in the same way as the JPEG~2000 system. At this operating point, most of what DJSCC gains at low SNR comes from avoiding outage, not from a better task representation. The H4 test on the sealed test split will decide whether any residual advantage of joint coding over the task-aware digital system is distinguishable from zero. The three-seed validation diagnostic puts the smallest difference detectable with 80\% power at 1.8 to 1.9 points from $-4$ to $7$~dB and about 4 points below the cliff. That figure is pointwise and does not certify the power of the full H4 procedure, so a null result there would not show that joint coding has no advantage of a point or two.
+The task-aware digital control changes the attribution question. It reaches 81.1\% whenever its packets decode, within 1.3 points of DJSCC, and below the cliff it fails in the same way as the JPEG~2000 system. H4 shows that joint coding adds something beyond outage avoidance at this operating point, about one point once both systems deliver, but most of what DJSCC gains at low SNR comes from avoiding outage, not from a better task representation. The rate-1/5 variant makes the same point from the other side: with a lower-rate code, the same kind of digital feature link works down to $-7$~dB and is ahead of DJSCC at $-6$ and $-5$~dB.
 
-The comparison also shows how sensitive such conclusions are to the baseline. Holding the transmission fixed, the choice of receiver classifier moves the crossover by 3~dB at $r=1/6$. Removing adaptivity moves it by 11~dB. Replacing the codec with JPEG lowers the digital curve by up to 15 points. Each of these choices would have made DJSCC look better. We made the baseline as strong as the preregistered search space allowed. At $r=1/6$ the learned system then wins only where the baseline cannot deliver; at $r=1/24$ it also wins where the baseline delivers too few bytes for the classifier to do well.
+The comparison also shows how sensitive such conclusions are to the baseline. Holding the transmission fixed, the choice of receiver classifier moves the crossover by about 3~dB at $r=1/6$ and about 9~dB at $r=1/24$. Removing adaptivity moves it by 9~dB, from $-2$ to 7~dB. Replacing the codec with JPEG lowers the digital curve by up to 15 points, and lowering the digital code-rate floor from 1/3 to 1/5 moves the digital threshold by 2 to 3~dB. Each of these choices, made the other way, would have made DJSCC look better. We made the baseline as strong as the preregistered search space allowed. At $r=1/6$ the learned system then wins only where the baseline cannot deliver; at $r=1/24$ it also wins where the baseline delivers too few bytes for the classifier to do well.
 
 \section{Limitations}
-All results in this paper are from the validation split. The same 1000 images were used to choose the digital operating points, the DJSCC checkpoint, the task-aware feature dimension, and $\lambda$, so every curve is somewhat optimistic, and the digital curves more so, because they are selected per SNR. The final numbers will come from the 3925-image test split, which has not yet been used.
+The three main systems at $r=1/6$ are evaluated over three seed pairs; every other variant is one seed pair. Between seed pairs DJSCC varies by up to seven points at $-8$~dB and by under one point above 0~dB, so single-seed differences of a few points at low SNR, including those between the training variants, are not interpreted. For the digital codecs the three seed pairs differ only in the channel noise and are nearly identical.
 
-Apart from the three-seed diagnostic in Section~\ref{sec:er9}, the results come from one training seed and one channel seed, and no confidence intervals are given here. The paired bootstrap described in Section~\ref{sec:protocol} needs per-image outcomes over three seed pairs and will be run on the test split. Point differences of one or two points should not be interpreted.
+The digital operating points, checkpoints, the task-aware feature dimension, and $\lambda$ were chosen on the 1000 validation images. The test split was not used for any choice, but the search space itself was fixed in advance, and the lowest code rate in it, 1/3, sets the delivery threshold of both digital systems. The rate-1/5 variant indicates how much that matters for the feature link; a rate-1/5 JPEG~2000 baseline was not evaluated.
 
 The learned and digital systems are scored by different classifiers. The headline comparison is therefore a whole-system comparison and not a comparison of channel codes. Section~\ref{sec:scorer} reports both scorers for the digital outputs so that the effect can be seen.
 
-The channel is simulated complex AWGN with perfect synchronization and known SNR at the receiver. Fading, carrier and timing offsets, and hardware nonlinearity are not modeled, and PAPR is measured in the symbol domain only. The systems are compared at equal channel uses and equal average symbol energy; this is a statement about accuracy at equal resources, not a measured energy saving. Computational cost at the transmitter and receiver is not compared.
+The channel is simulated complex AWGN with perfect synchronization and known SNR at the receiver. Fading, carrier and timing offsets, and hardware nonlinearity are not modeled, and PAPR is measured in the symbol domain only. The systems are compared at equal channel uses and equal average symbol energy; this is a statement about accuracy at equal resources, not a measured energy saving. Computational cost at the transmitter and receiver is not compared. The dataset is a 10-class subset of ImageNet at $160\times160$ pixels, and the results are not shown to transfer to larger label sets or other image sizes.
 
 \section{Conclusion}
-We built a controlled comparison of three ways to send an image to a remote classifier: JPEG~2000 over a 5G NR LDPC link with per-SNR adaptation, learned task features over the same link, and task-aware DJSCC, all with the same number of complex channel uses. On Imagenette-160 validation data at $r=1/6$, DJSCC is the only system that works at or below $-5$~dB, where it keeps 73\% to 78\% accuracy. From $-4$~dB upward the adaptive digital baseline is more accurate by 2.7 to 6.1 points. At $r=1/24$ the DJSCC advantage extends to $+3$~dB. At $r=1/6$ the task-aware digital control is within two points of DJSCC across three seeds wherever it delivers, which indicates that avoiding the outage cliff accounts for most of DJSCC's low-SNR gain.
+We built a controlled comparison of three ways to send an image to a remote classifier: JPEG~2000 over a 5G NR LDPC link with per-SNR adaptation, learned task features over the same link, and task-aware DJSCC, all with the same number of complex channel uses, and evaluated them once on a held-out test split under preregistered rules. On Imagenette-160 at $r=1/6$, DJSCC is the only system that works at or below $-5$~dB, where it keeps 76\% to 80\% accuracy averaged over three seeds. It is level with the adaptive digital baseline at $-4$ and $-3$~dB, and from $-2$~dB upward the baseline is more accurate by about four points. At $r=1/24$ the DJSCC advantage extends to $+1$~dB. The task-aware digital control is within 1.3 points of DJSCC wherever it delivers, and with a rate-1/5 code it delivers from $-7$~dB. Avoiding the outage cliff therefore accounts for most of DJSCC's low-SNR gain, and how far that gain extends depends on the digital system's lowest code rate and on the classifier at the receiver.
 
-Three items remain. The preregistered test evaluation will score all systems on the sealed 3925-image test split over three seed pairs, with paired bootstrap intervals, and will decide hypotheses H1 to H4. The label-transmission bound needs a link sized for its payload before it can say how far a transmitted decision reaches. Hardware experiments with a software-defined radio, which would measure real waveforms and impairments, are planned as optional extensions of this work.
+Two extensions follow directly. A label-transmission link sized for its 4-bit payload would show how far a transmitted decision, rather than a representation, can reach. Hardware experiments with a software-defined radio, which would measure real waveforms and impairments, would test whether the ordering found on a simulated AWGN channel survives a real one.
 
 \section*{Acknowledgment}
 The research idea and direction of this project are the authors' own, and Sections~I--III and the first two paragraphs of the abstract were written by the authors. Generative AI tools were used as follows. Anthropic's Claude Opus~5.5 produced initial drafts of Sections~IV--X and the results paragraph of the abstract, generated Figs.~1--5 from the project's published result tables, made minor edits and citation additions in Sections~I and~II, checked all references against publisher records, and produced the supplementary material (pseudo-code, code excerpts, and tables generated from the published result files). Claude Opus~5.5 and OpenAI's GPT-5.6 Sol assisted in writing the simulation, training, and analysis code whose methods and results are described in Sections~IV--VII. All code, results, figures, text, and references were reviewed and verified by the authors, who take full responsibility for the content of this paper and its supplementary material.
