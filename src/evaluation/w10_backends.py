@@ -546,7 +546,8 @@ def label_bound_unit(context: W10Execution, unit: Mapping[str, Any], *, selectio
             rows.append(sr18_row(identity=identity, stable_sample_id=stable_id, true_label=true_label, pred_label=pred_label, correct=correct, outage=outage_reason is not None, outage_reason=outage_reason, source_bytes=payload_bytes))
     from evaluation.w10_selections import score_vector_digest
 
-    if point.get("per_image_correct_digest") is not None and score_vector_digest(
+    # The frozen digest describes the validation images the point was selected on.
+    if context.split == "val" and point.get("per_image_correct_digest") is not None and score_vector_digest(
         [bool(row["correct"]) for row in rows]
     ) != str(point["per_image_correct_digest"]):
         raise RuntimeError("W10 ER-12 arm does not reproduce its frozen selection candidate digest")
