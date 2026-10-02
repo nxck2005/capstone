@@ -1,0 +1,24 @@
+{
+ "artifact_role": "g12_post_freeze_execution_correction",
+ "change": "tools/run_g12_campaign_corrected.py substitutes mcnemar_exact with the same two-sided exact binomial formula in exact integer arithmetic; it equals the frozen function wherever that does not overflow (checked on 3000 random cases to 1e-12)",
+ "changes": [
+  {
+   "after_blob": "d05f806b3641e65cfa04026b9e06f276c6699418",
+   "before_blob": "7ac37af7041fd767132a4e61a06d24e26f2e8a03",
+   "path": "src/evaluation/w10_backends.py"
+  },
+  {
+   "after_blob": "26b7af57aefac8b2aff0c91e856db5695ac6522d",
+   "before_blob": null,
+   "path": "tools/run_g12_campaign_corrected.py"
+  }
+ ],
+ "correction": 2,
+ "correction_commit": "c35224b43eacc07b8104b670f1519c7b5b33beb9",
+ "failure": "closeout raised OverflowError in evaluation.g12_analysis.mcnemar_exact (2.0**total overflows a float once more than 1023 images are discordant), after the H1-H4 analysis had been computed and before analysis.json was written; no analysis output was written or read",
+ "freeze_id": "g12freeze-f96082101953546fdda096746c073bea342358a6f0e5f045c6435020d5fe511c",
+ "frozen_code_commit": "2421fd9957a6fb0f3a7ab8bd0d5980e5a7631097",
+ "measurement_effect": "none on any unit, row or H1-H4 result; only the descriptive per-cell McNemar p-values (params.evaluation.paired_test_role) become computable",
+ "owner_approval": "owner approved recording this correction and finishing the closeout (2026-10-02)",
+ "supersedes_record_of": "001-er12-digest-validation-only.json (its change is carried forward; this record lists every protected change since the frozen code commit)"
+}
