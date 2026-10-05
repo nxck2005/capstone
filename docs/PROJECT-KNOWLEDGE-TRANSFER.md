@@ -153,7 +153,7 @@ A curve crossing is reported if seen, but it is not a pass condition. Completion
 | Research paper (IEEE) | `deliverables/research-paper/capstone_rp.tex` | Draft, retitled 2026-10-01 ("How Much of Deep Joint Source–Channel Coding's Advantage Survives a Fair Comparison?"); Sections IV–X being revised by the authors |
 | Supplementary material (IEEE) | `deliverables/research-paper/supplement/` | Draft |
 | Results package (figures, CSVs, notes) | `presentation-results/` | Done (validation) |
-| Offline exhibition demo | `demo/` | Built; weights provisioned separately |
+| Offline demos (three) | `demo/`, `demo_g12/`, `demo_streamlit/` | Built; weights provisioned separately. `demo/` shows W10 validation; the other two show the G-12 test results and send test images (AM-101) |
 | Literature review (30 sources) | `docs/literature-review.md` | Done |
 | Gantt chart | `docs/gantt-plan.md` | Keep current |
 | Standards register | `docs/standards-and-tools-register.md` | Done |
@@ -178,7 +178,7 @@ The paper and supplement acknowledge AI assistance section by section, as IEEE r
 | `results/` | Published evidence: JSON records with hashes, one directory per phase |
 | `presentation-results/` | W10 figures (PNG/PDF/SVG), CSVs, findings, slide notes |
 | `deliverables/` | Review decks, paper, supplement |
-| `demo/` | Offline React + FastAPI demo |
+| `demo/`, `demo_g12/`, `demo_streamlit/`, `demo_shared/` | Offline demos: React dashboard on validation data, the same dashboard on G-12 test data, an academic Streamlit page, and the code the G-12 two share |
 | `docs/` | Hand-written explanations (this file, results, literature review, crossover explainer, Gantt, standards) |
 | `tests/` | Test suite (`.venv/bin/python -m pytest`) |
 | `tools/` | Generators, verifiers, runners, deck and figure builders |
@@ -234,8 +234,10 @@ cd supplement && latexmk -pdf capstone_rp_supplement.tex
 # W10 presentation figures
 python presentation-results/plot_results.py
 
-# demo (see demo/README.md for provisioning weights first)
-./demo/scripts/start.sh
+# demos (see demo/README.md for provisioning weights first)
+./run-demo.sh              # original dashboard, W10 validation   → http://127.0.0.1:8000
+./run-g12-demo.sh          # dashboard on the G-12 test results    → http://127.0.0.1:8001
+./run-streamlit-demo.sh    # academic Streamlit page, G-12 test   → http://127.0.0.1:8501
 ```
 
 `AGENTS.md` lists every other command, including dataset fetching and each phase's verifier.

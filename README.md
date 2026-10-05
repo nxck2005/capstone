@@ -42,6 +42,18 @@ without assuming communications or machine-learning knowledge. The directory als
 technically why the success criterion changed, and how the comparison is set up so that a crossover
 is observable if one exists.
 
+## Demos
+
+Three offline demos, each started by one script from the repository root (weights: see "Frozen weights" in [`demo/README.md`](demo/README.md)):
+
+| Command | What it shows |
+| --- | --- |
+| `./run-demo.sh` | Exhibition dashboard over the W10 validation results, with four training images |
+| `./run-g12-demo.sh` | The same dashboard over the final G-12 test results; send any of the 3,925 test images and compare with what the test recorded |
+| `./run-streamlit-demo.sh` | Academic-style page with the paper's figures, the G-12 test results and the same test-image gallery |
+
+[`demo_g12/README.md`](demo_g12/README.md) compares them and has presenter notes.
+
 ## Working with the spec
 
 ```bash
