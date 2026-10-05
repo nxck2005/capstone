@@ -1,8 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Check, CircleAlert, ImageOff, LoaderCircle, RotateCcw, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, CircleAlert, Grid3x3, ImageOff, LoaderCircle, RotateCcw, X } from 'lucide-react'
 import { api, isValidChart, isValidImages, isValidInfer, isValidMetadata } from './api'
-import type { ChartResponse, ChartSeries, DemoImage, ImagesResponse, InferResponse, InferenceArm, Metadata } from './api'
+import type { ChartResponse, ChartSeries, DemoImage, ImagesResponse, InferResponse, InferenceArm, Metadata, TestSplitResponse } from './api'
 
 const Chart = lazy(() => import('./Chart'))
 
@@ -69,8 +69,71 @@ function Receiver({ kind, result, pending, truth }: { kind: 'classical' | 'learn
       </div>
       {outage && !pending && <p className="result-note">“{result.predicted_label}” is the fixed guess used whenever nothing arrives. It is not a prediction from this picture.</p>}
       {unavailable && !pending && <p className="result-note">{result.detail || 'This result is not available on this laptop. Nothing was substituted.'}</p>}
+      {!pending && result?.recorded && <Recorded record={result.recorded} />}
     </div>
   </article>
+}
+
+/** What the final test run recorded for this picture at this signal strength. */
+function Recorded({ record }: { record: NonNullable<InferenceArm['recorded']> }) {
+  const outcome = record.outage ? `no image (fallback “${record.predicted_label}”)` : `“${record.predicted_label}”`
+  return <p className={`recorded ${record.matches === false ? 'is-mismatch' : ''}`} data-testid="recorded">
+    <span>In the final test:</span> {outcome}, {record.correct ? 'correct' : 'wrong'}
+    {record.matches === true && <b> · same as live</b>}
+    {record.matches === false && <b> · differs from live</b>}
+  </p>
+}
+
+const CLASSES = ['tench', 'English springer', 'cassette player', 'chain saw', 'church', 'French horn', 'garbage truck', 'gas pump', 'golf ball', 'parachute']
+
+/** Every test image, paged and filterable by class; picking one closes the panel. */
+function Browser({ chosen, onPick, onClose }: { chosen: string; onPick: (image: DemoImage) => void; onClose: () => void }) {
+  const [label, setLabel] = useState<number | null>(null)
+  const [page, setPage] = useState(0)
+  const [data, setData] = useState<TestSplitResponse | null>(null)
+  const [error, setError] = useState('')
+  useEffect(() => {
+    const controller = new AbortController()
+    setData(null)
+    setError('')
+    api.testSplit(page, label, controller.signal).then((body) => { if (!controller.signal.aborted) setData(body) })
+      .catch((err) => { if (!controller.signal.aborted) setError(errorMessage(err)) })
+    return () => controller.abort()
+  }, [page, label])
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+  const filter = (value: number | null) => { setLabel(value); setPage(0) }
+
+  return <div className="browser-backdrop" onClick={onClose}>
+    <section className="browser" role="dialog" aria-modal="true" aria-label="All test images" onClick={(event) => event.stopPropagation()}>
+      <header className="browser-head">
+        <div><h2>All test images</h2><p>{data?.available ? `${data.total.toLocaleString('en-US')} pictures${label === null ? '' : ` of ${CLASSES[label]}`} the final test used. Pick any one.` : 'The pictures the final test used.'}</p></div>
+        <button type="button" className="browser-close" onClick={onClose} aria-label="Close"><X size={18} /></button>
+      </header>
+      <div className="chips" role="group" aria-label="Filter by class">
+        <button type="button" className={label === null ? 'is-on' : ''} onClick={() => filter(null)}>All</button>
+        {CLASSES.map((name, index) => <button type="button" key={name} className={label === index ? 'is-on' : ''} onClick={() => filter(index)}>{name}</button>)}
+      </div>
+      {error ? <p className="browser-note" role="alert">{error}</p>
+        : !data ? <p className="browser-note"><LoaderCircle className="spin" size={16} /> Loading the test split…</p>
+          : !data.available ? <p className="browser-note" role="alert">{data.reason}</p>
+            : <>
+              <div className="browser-grid">
+                {data.images.map((image) => <button type="button" key={image.id} aria-label={image.label} aria-pressed={chosen === image.id} className={chosen === image.id ? 'thumb is-chosen' : 'thumb'} onClick={() => onPick(image)}>
+                  <img src={image.thumbnail_url} alt="" loading="lazy" />
+                </button>)}
+              </div>
+              <footer className="pager">
+                <button type="button" onClick={() => setPage((n) => n - 1)} disabled={data.page === 0} aria-label="Previous page"><ChevronLeft size={16} /></button>
+                <span>Page {data.page + 1} of {data.pages}</span>
+                <button type="button" onClick={() => setPage((n) => n + 1)} disabled={data.page >= data.pages - 1} aria-label="Next page"><ChevronRight size={16} /></button>
+              </footer>
+            </>}
+    </section>
+  </div>
 }
 
 function Channel({ snr }: { snr: number | null }) {
@@ -92,6 +155,8 @@ export default function App() {
   const [ratio, setRatio] = useState('')
   const [snr, setSnr] = useState<number | null>(null)
   const [imageId, setImageId] = useState('')
+  const [browsed, setBrowsed] = useState<DemoImage | null>(null)
+  const [browsing, setBrowsing] = useState(false)
   const [chart, setChart] = useState<ChartResponse | null>(null)
   const [infer, setInfer] = useState<InferResponse | null>(null)
   const [bootstrapError, setBootstrapError] = useState('')
@@ -117,7 +182,7 @@ export default function App() {
     }).catch((error) => { if (!controller.signal.aborted) setBootstrapError(errorMessage(error)) })
     api.images(controller.signal).then((data: ImagesResponse) => {
       if (controller.signal.aborted) return
-      if (!isValidImages(data)) throw new Error('The API must provide four unique bundled training images with local URLs.')
+      if (!isValidImages(data)) throw new Error('The API must provide the ten bundled test images, one per class, with local URLs.')
       setImages(data.images)
       setImageId(data.images[0]?.id ?? '')
       setImageError('')
@@ -156,7 +221,7 @@ export default function App() {
   }, [metadata, ratio, imageId, snr, retry])
 
   const grid = metadata?.snr_grid_db ?? []
-  const selectedImage = images.find((image) => image.id === imageId)
+  const selectedImage = images.find((image) => image.id === imageId) ?? (browsed?.id === imageId ? browsed : undefined)
   const index = snr === null ? 0 : Math.max(0, grid.indexOf(snr))
   const maxIndex = Math.max(0, grid.length - 1)
   const problem = bootstrapError || imageError || chartError || inferError
@@ -185,11 +250,12 @@ export default function App() {
         <article className="sender">
           <header className="card-head"><h3>Picture</h3><span>{selectedImage?.truth_label ?? ''}</span></header>
           <div className="visual"><Visual src={selectedImage?.thumbnail_url} alt={selectedImage ? `Input: ${selectedImage.label}` : 'Input image'} /></div>
-          <div className="thumbs" role="group" aria-label="Choose a training image">
+          <div className="thumbs" role="group" aria-label="Choose a test image">
             {images.map((image) => <button type="button" key={image.id} aria-label={image.label} aria-pressed={imageId === image.id} className={imageId === image.id ? 'thumb is-chosen' : 'thumb'} onClick={() => setImageId(image.id)}>
               <Visual src={image.thumbnail_url} alt="" />
             </button>)}
           </div>
+          <button type="button" className="browse-toggle" onClick={() => setBrowsing(true)}><Grid3x3 size={15} />Browse all test images</button>
           <span className="sr-only">{selectedImage?.label}</span>
         </article>
         <Channel snr={snr} />
@@ -229,5 +295,6 @@ export default function App() {
         </div>
       </section>
     </main>
+    {browsing && <Browser chosen={imageId} onClose={() => setBrowsing(false)} onPick={(image) => { setBrowsed(image); setImageId(image.id); setBrowsing(false) }} />}
   </div>
 }

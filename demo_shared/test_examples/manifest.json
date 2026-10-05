@@ -1,0 +1,3530 @@
+{
+ "amendment": "AM-101",
+ "dataset": "imagenette160",
+ "freeze_id": "g12freeze-f96082101953546fdda096746c073bea342358a6f0e5f045c6435020d5fe511c",
+ "images": [
+  {
+   "class_index": 0,
+   "file": "tench.jpeg",
+   "id": "tench",
+   "label": "tench",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "83f6be29240a921d30dc06d94bbb8cf3d17c8f97c0f53863a9f080654b774c1b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "80f70691d437e93bfbe33fedfef160dc44058a981efe46714ffb24fbf57b0450",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "593180db380540ed9a9d1baddb3bebe6cc953cf6c760caffeac913bb2ea5f85a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "1a76dbbaef5ec03c966e532f6882b6780295d9ffb4927f42517245fd01eef964",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "61a94477fdccb779b5864bc27fcd11d6d929bca2f210ef0411fc52c05fa5b530",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "e71871f2eefa935113685c11476d9c875372d0a926f4eaf5b9e1710bf17a2daa",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "70bfac103eb2e54134731fb767e84d0b03a795cfb70dedf20f9b9c041963918b",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "15198808413e0011a857b05b563043827f4cfcd3133081648410bf3989f4d380",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "79103c5692f3c891e789e5d7ae4e6b6f07d81e2f8d11d0484972d7fdb454e81f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "922dc5b641bd249cfad6b49ffd8c87321e48fe6246cd7bb8ba1cffefde051dc4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "67a36fbd47b2d16359b89f37355f2bdf7d6ad5d6dcfd04b88596a231c884d0e6",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "a9b3d99b8c4176e841e4a47a29a6058c60f4e63166476d3212d3321f8e68a2d6",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "7f3e31c5f816bbea02c844c4ff5c60051d497e4ee202fbd67d15aef6b2d56786",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "bafd0473d2471b46e5139bd97b4d429de17cfb6e571666cd8f22f79fb2b70aee",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "86261b4ac5ffea9eea001681aca254386efa58b86649ff0f7066784d6de5919f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "566c73d6878dc4e840a4a1aa9037f87914c8d0fa2fc6af283f3ff1619bef7dae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "882d050fd60552fced8638af003fbbff1c576f61a0bd140b4c3e5ac0e11c1813",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "da0eeb2ad62add1c45ecbfe56883679ef3405f59fcd184e6a19bc128274022a7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "96f9fe6b800cbef2fcbf07090805462a6833e00ed94f4e9cd31b0dd935ba878b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "c46015a4423f77a21c602d3f231cc20e92238c26ba2fb175390ce97b10e3e0b8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "1c4691710ba2a5156069599a9cfcace45ceb9d7906c0b35947e7326489286ec0",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "83f6be29240a921d30dc06d94bbb8cf3d17c8f97c0f53863a9f080654b774c1b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "80f70691d437e93bfbe33fedfef160dc44058a981efe46714ffb24fbf57b0450",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "593180db380540ed9a9d1baddb3bebe6cc953cf6c760caffeac913bb2ea5f85a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "1a76dbbaef5ec03c966e532f6882b6780295d9ffb4927f42517245fd01eef964",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "61a94477fdccb779b5864bc27fcd11d6d929bca2f210ef0411fc52c05fa5b530",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "e71871f2eefa935113685c11476d9c875372d0a926f4eaf5b9e1710bf17a2daa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "70bfac103eb2e54134731fb767e84d0b03a795cfb70dedf20f9b9c041963918b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "15198808413e0011a857b05b563043827f4cfcd3133081648410bf3989f4d380",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "79103c5692f3c891e789e5d7ae4e6b6f07d81e2f8d11d0484972d7fdb454e81f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "922dc5b641bd249cfad6b49ffd8c87321e48fe6246cd7bb8ba1cffefde051dc4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "67a36fbd47b2d16359b89f37355f2bdf7d6ad5d6dcfd04b88596a231c884d0e6",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "a9b3d99b8c4176e841e4a47a29a6058c60f4e63166476d3212d3321f8e68a2d6",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "7f3e31c5f816bbea02c844c4ff5c60051d497e4ee202fbd67d15aef6b2d56786",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "bafd0473d2471b46e5139bd97b4d429de17cfb6e571666cd8f22f79fb2b70aee",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "86261b4ac5ffea9eea001681aca254386efa58b86649ff0f7066784d6de5919f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "566c73d6878dc4e840a4a1aa9037f87914c8d0fa2fc6af283f3ff1619bef7dae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "882d050fd60552fced8638af003fbbff1c576f61a0bd140b4c3e5ac0e11c1813",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "da0eeb2ad62add1c45ecbfe56883679ef3405f59fcd184e6a19bc128274022a7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "96f9fe6b800cbef2fcbf07090805462a6833e00ed94f4e9cd31b0dd935ba878b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "c46015a4423f77a21c602d3f231cc20e92238c26ba2fb175390ce97b10e3e0b8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "1c4691710ba2a5156069599a9cfcace45ceb9d7906c0b35947e7326489286ec0",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 0,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "0003a357ada71b39b9b6c7e6aa706d6e25c14607a0b25e528e0f97ae633bf0f9",
+   "split": "test",
+   "stable_sample_id": "0003a357ada71b39"
+  },
+  {
+   "class_index": 1,
+   "file": "english-springer.jpeg",
+   "id": "english-springer",
+   "label": "English springer",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "b2b133c508e5dde010d2d2544c1a1992aedfce73a4ad43821e220285856118aa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "36e8d68924e201a749d3fec4377b72b0987ee1a05bf0797ca00c3eb6fdb2d8df",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "97f5f8e2b08967485be4999af1d978db08502589f7f99fb348a9a5871f4aad5e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "f68e83d2ed8575d44e57f34f96428861b614d6711e61417187107ead3ea6a512",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "c560d0b4b253d8bc5b2b7e21d274fa965486d164f7b4239dc5a010ce15fd71bf",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "5d205f4243d4593f45a8a3c8d505a5308e796a4a78101b9e2ecb06f6501a67d7",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "262e676a0bbb337591246f87bfbc3ff3ef37d632aba57cd6a41127f493ba925e",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "76135fbddbf4ef726225257456cb289cf46657789fa689469a639bd9adef0463",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "cd6f83e68ee04d9909bc0c7753d0a8f675d843e1e5bc6fb99fafebdd839423c9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "3a4f671f4046b78d39ff32dde0219ae758f92b8b8b8576c8aa7d8ed6d0a7221f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "6727ac6ea73f6427ef81c2b1ab374c553a8d85c4dee15ccd9b99c5453ce7d4fa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "2d6c9dddebe730bfb0e30e0c9e7757baf5887d76ba99e8f14e4078b45f288010",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "0907bfec29d7fe10808f21c557c54f0acd6b99f9ebf48725771830c4044a55b9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "02267142b1fa1ea933bc748006649b596bda2295de3efa52180ddb225cb717c9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "312f334f96681f315737b5b22895fd2289a3e65fbd14143d0504d4e272e1a848",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "3d7900dae8f2002fc11314c2e250b9cc46225402bbea0ac858265cdc027e0546",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "8474e24d042c94255d1d77fdb846c460fa5da531cf1c37dd17788290aa0db434",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "481f5cc739bb8103d0cc980585004426d0ecbb9274792820cb288860172a64a5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "ee1f7927eddebe2fdd24c8d4d96c4c9d8d6ba7c2f9b6e7fdeb4e959d72157994",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "040b46b4960500631097b68597044121a49a08eeb08e0dcb338c89a7160887f9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "8767c9e0abb4bcee99bf43bbb875299427b4867c79fc1bcbfc22c36d89207fb9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "b2b133c508e5dde010d2d2544c1a1992aedfce73a4ad43821e220285856118aa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "36e8d68924e201a749d3fec4377b72b0987ee1a05bf0797ca00c3eb6fdb2d8df",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "97f5f8e2b08967485be4999af1d978db08502589f7f99fb348a9a5871f4aad5e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "f68e83d2ed8575d44e57f34f96428861b614d6711e61417187107ead3ea6a512",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "c560d0b4b253d8bc5b2b7e21d274fa965486d164f7b4239dc5a010ce15fd71bf",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "5d205f4243d4593f45a8a3c8d505a5308e796a4a78101b9e2ecb06f6501a67d7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "262e676a0bbb337591246f87bfbc3ff3ef37d632aba57cd6a41127f493ba925e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "76135fbddbf4ef726225257456cb289cf46657789fa689469a639bd9adef0463",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "cd6f83e68ee04d9909bc0c7753d0a8f675d843e1e5bc6fb99fafebdd839423c9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "3a4f671f4046b78d39ff32dde0219ae758f92b8b8b8576c8aa7d8ed6d0a7221f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "6727ac6ea73f6427ef81c2b1ab374c553a8d85c4dee15ccd9b99c5453ce7d4fa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "2d6c9dddebe730bfb0e30e0c9e7757baf5887d76ba99e8f14e4078b45f288010",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "0907bfec29d7fe10808f21c557c54f0acd6b99f9ebf48725771830c4044a55b9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "02267142b1fa1ea933bc748006649b596bda2295de3efa52180ddb225cb717c9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "312f334f96681f315737b5b22895fd2289a3e65fbd14143d0504d4e272e1a848",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "3d7900dae8f2002fc11314c2e250b9cc46225402bbea0ac858265cdc027e0546",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "8474e24d042c94255d1d77fdb846c460fa5da531cf1c37dd17788290aa0db434",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "481f5cc739bb8103d0cc980585004426d0ecbb9274792820cb288860172a64a5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "ee1f7927eddebe2fdd24c8d4d96c4c9d8d6ba7c2f9b6e7fdeb4e959d72157994",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "040b46b4960500631097b68597044121a49a08eeb08e0dcb338c89a7160887f9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "8767c9e0abb4bcee99bf43bbb875299427b4867c79fc1bcbfc22c36d89207fb9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 1,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "0038ea7745d3ca9292026b3ac4b04a011ce66d030ff7b151fe35a0f5eb34bf43",
+   "split": "test",
+   "stable_sample_id": "0038ea7745d3ca92"
+  },
+  {
+   "class_index": 2,
+   "file": "cassette-player.jpeg",
+   "id": "cassette-player",
+   "label": "cassette player",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "adc5ff7c4275b14bdea03b4ea6fcee60aa13fd08a55611bc1bce77a096dcf0cb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "336a4bbf27e18fd7539e1969dae82ec66df7f5f6c55ab14b1345a0444ec702be",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "1b12dbc26c324a58a11285c5e742bea6582cb9b1d8305dc04222ff5b7447a0d2",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "edd96367058bdea7f4b54ceb134f6dbda1851cf8e9a09549b01efcdedf5d258d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "b1686c2206bc1631f6c3d56955b051dbe8b8eec8f7fb567d7be3c20f27266613",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "67239bcf681ea5a39d886bc0f57bda25bbf8799a532ccce8a33a39232f098e1a",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "c278e66e0567efada728deef92fd16e1299974e44304fe849fdfeab073b7782c",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "171143c8b73f8b3c7c14893c410095dd6c3884e85c0c4521e8091897524444fb",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "0379603988430bfcee509201a5f082aee7d091697431230779b8c46df1859c5c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "d4831d1fb6c58e4b88cb4678c623b434abcfba489ad0a0168ede4ddc7a5bf4a7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "4296bdcf058e5ae8c35b0ec5de4eb82d88cadaf54d5bc5d17e5e2f910aac336b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "471cf4e76495a81ed7d8b08b86b304312bc8dd34be990eaed51599bcdef81d24",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "6eb1ec1d0f8286954ff550bc93ef948c3adc3710f44f4d821d78b562853a4a13",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "848cbb505e7d678b54a26a9c4a2abbdf590d4a737e557483436e53fdd021d014",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "fce0cd272f33fbad79237b9a7e5be398537c884f8f6199e316314a42ca5a4a67",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "9559a88d63e7a0180ab9ac3d2665cb912b98d9ef93df89aa2fc3ee213062f4fd",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "7c8b414081d7041279a75e2f93c67785279f6f6c8b1c4ac2605e960cbe920f3b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "c06e248aa4c8d250fa1896f8d8bf1a2768e4f82a1ee2c3ee189442a94eb582fa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "2d49186bf691838b1974dac5a2601719294f03b62d41c2fbc937c613b2a87591",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "ce0700942c44f3671e9645b0019ccc3b88cfc9fd6bd374c1de669c5bf023765d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "744929b768fe0ece35657dd9f48a0840012775c7f3872b3700427d4288a9b452",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "adc5ff7c4275b14bdea03b4ea6fcee60aa13fd08a55611bc1bce77a096dcf0cb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "336a4bbf27e18fd7539e1969dae82ec66df7f5f6c55ab14b1345a0444ec702be",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "1b12dbc26c324a58a11285c5e742bea6582cb9b1d8305dc04222ff5b7447a0d2",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "edd96367058bdea7f4b54ceb134f6dbda1851cf8e9a09549b01efcdedf5d258d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "b1686c2206bc1631f6c3d56955b051dbe8b8eec8f7fb567d7be3c20f27266613",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "67239bcf681ea5a39d886bc0f57bda25bbf8799a532ccce8a33a39232f098e1a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "c278e66e0567efada728deef92fd16e1299974e44304fe849fdfeab073b7782c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "171143c8b73f8b3c7c14893c410095dd6c3884e85c0c4521e8091897524444fb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "0379603988430bfcee509201a5f082aee7d091697431230779b8c46df1859c5c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "d4831d1fb6c58e4b88cb4678c623b434abcfba489ad0a0168ede4ddc7a5bf4a7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "4296bdcf058e5ae8c35b0ec5de4eb82d88cadaf54d5bc5d17e5e2f910aac336b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "471cf4e76495a81ed7d8b08b86b304312bc8dd34be990eaed51599bcdef81d24",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "6eb1ec1d0f8286954ff550bc93ef948c3adc3710f44f4d821d78b562853a4a13",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "848cbb505e7d678b54a26a9c4a2abbdf590d4a737e557483436e53fdd021d014",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "fce0cd272f33fbad79237b9a7e5be398537c884f8f6199e316314a42ca5a4a67",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "9559a88d63e7a0180ab9ac3d2665cb912b98d9ef93df89aa2fc3ee213062f4fd",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "7c8b414081d7041279a75e2f93c67785279f6f6c8b1c4ac2605e960cbe920f3b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "c06e248aa4c8d250fa1896f8d8bf1a2768e4f82a1ee2c3ee189442a94eb582fa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "2d49186bf691838b1974dac5a2601719294f03b62d41c2fbc937c613b2a87591",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "ce0700942c44f3671e9645b0019ccc3b88cfc9fd6bd374c1de669c5bf023765d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "744929b768fe0ece35657dd9f48a0840012775c7f3872b3700427d4288a9b452",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 2,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "0020e126190f240a73cdb18508d425e6bf6555e10c93098ac71800b2de6c59ff",
+   "split": "test",
+   "stable_sample_id": "0020e126190f240a"
+  },
+  {
+   "class_index": 3,
+   "file": "chain-saw.jpeg",
+   "id": "chain-saw",
+   "label": "chain saw",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "c7a99ef952c4f0ee3e36dd4215921fb9e71d3d4a13f32b05b7ab462aac30c221",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "a74b3a85a1a2473a4ef08bbf2ad989198301fff7495fe1d49058be3123321cbf",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "c0e9d2ed2bf863b392e49dc4b888cadb3dc6a501346091de175c683493da5cfe",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "c441753fd7d713d2eff6ce24f324cfa5337164042c55a006973e7e0afcf99824",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "11e7b5066765e1d0801b3721c14e68899e625c74a5195a7da3af1999a64b44f5",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "0133d8dbe2b717d1f1b176c3f21f722220801d46a57890db032b025d517fb662",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "50d88b27c06b4d7ffcd0178a97754749a2039526009ceee4d3f87e603fa72113",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "8ada5cd5c3ba1f66b2e84e645ec6c94e12ea8d4f036c64c83f1082949d8909d4",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "08388ac310b2d1abd4bace604807b02cfba252b50484ce796a5703fdd54feb92",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "62555b174cf85bbf40e9d1e38eb3a9ec8cda915d31575e0071a7da94466b6ba1",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "fa8ef7319ae3f8692768d4b90edc1880fa9d78eb415a53a5af516696167c7eb5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "3c955d39f47f2dcbd3ba45f11fb495e216bd7d8a21ba53997f61b0770325fcd9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "76673f7db119b816470aa1273551f428e495f5634e56d21ea89d78fdb1e222d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "ba1b47ed2be7a23cd00a82eb783920ee674a55fdcd61e9cdcf5dcdea5910bddc",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "f3d0ecd38a7831a28975af28e30a3d2398d75b3cdf633fd43fa43fbbe08fed79",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "f09d1e57eee4238d85ef7724694f64c480c82db1a74b90a23150780a7dcfdf4f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "7c232059045fd43299ca74abe5ed3de0f9eeb07ab9b4af3934e68b066ce3ddf7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "165f5441e87e9606674725978347e72c1c2c89e180f5ada2b9c53760d3077d7b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "cd085ece1889782d0e98684c4d1966f9382d8e6a417b40fd6ea69eec6cac4df8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "2c1f9b9ad88041a5e42bc6dd8d68db4079f11d8405e00a904069190af771bd9d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "f8f5e70bc3c6c8055777fe1d19a897814a97be54bb33ca2e41a39b811cbbc47c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "c7a99ef952c4f0ee3e36dd4215921fb9e71d3d4a13f32b05b7ab462aac30c221",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "a74b3a85a1a2473a4ef08bbf2ad989198301fff7495fe1d49058be3123321cbf",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "c0e9d2ed2bf863b392e49dc4b888cadb3dc6a501346091de175c683493da5cfe",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "c441753fd7d713d2eff6ce24f324cfa5337164042c55a006973e7e0afcf99824",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "11e7b5066765e1d0801b3721c14e68899e625c74a5195a7da3af1999a64b44f5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "0133d8dbe2b717d1f1b176c3f21f722220801d46a57890db032b025d517fb662",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "50d88b27c06b4d7ffcd0178a97754749a2039526009ceee4d3f87e603fa72113",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "8ada5cd5c3ba1f66b2e84e645ec6c94e12ea8d4f036c64c83f1082949d8909d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "08388ac310b2d1abd4bace604807b02cfba252b50484ce796a5703fdd54feb92",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "62555b174cf85bbf40e9d1e38eb3a9ec8cda915d31575e0071a7da94466b6ba1",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "fa8ef7319ae3f8692768d4b90edc1880fa9d78eb415a53a5af516696167c7eb5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "3c955d39f47f2dcbd3ba45f11fb495e216bd7d8a21ba53997f61b0770325fcd9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "76673f7db119b816470aa1273551f428e495f5634e56d21ea89d78fdb1e222d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "ba1b47ed2be7a23cd00a82eb783920ee674a55fdcd61e9cdcf5dcdea5910bddc",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "f3d0ecd38a7831a28975af28e30a3d2398d75b3cdf633fd43fa43fbbe08fed79",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "f09d1e57eee4238d85ef7724694f64c480c82db1a74b90a23150780a7dcfdf4f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "7c232059045fd43299ca74abe5ed3de0f9eeb07ab9b4af3934e68b066ce3ddf7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "165f5441e87e9606674725978347e72c1c2c89e180f5ada2b9c53760d3077d7b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "cd085ece1889782d0e98684c4d1966f9382d8e6a417b40fd6ea69eec6cac4df8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "2c1f9b9ad88041a5e42bc6dd8d68db4079f11d8405e00a904069190af771bd9d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "f8f5e70bc3c6c8055777fe1d19a897814a97be54bb33ca2e41a39b811cbbc47c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "001990e29fc0e3aca4ea79c66b943b68e561106c3b4065790c568120feb071f2",
+   "split": "test",
+   "stable_sample_id": "001990e29fc0e3ac"
+  },
+  {
+   "class_index": 4,
+   "file": "church.jpeg",
+   "id": "church",
+   "label": "church",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "3836f9246216d88a59fc656533a8ec5c8e614c0eecf38ef8991ee7cc0b0b3f85",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "ab70553c75880aa6b3e0ee6d51d4ef371e858abf127ccda65906992f6468880c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "283bcd43201736fb7e66e99b5333a18fceda289d50a65dee5053862d5c11175f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "71525fe876a1514fc066f1d20c0d1549a6be37e0905913c3c7e546c005a6c974",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "37e288f7d394a689e2972ddc17f6812c76cb9b78a6213a845f9572ca0b521791",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "27309b04b04ca85923c79b64eeb0c76d15737ada8b7dc00c1db010c83b1438d4",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "470a1db41401e0a495dfffa622fb6a0df4ce6b3648a8904be47e5b92cb065a71",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "3a4ac839dbe15b245e3ad471a12f60445d17e04db734eb567fee9602c8baaf8a",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "51508f5e93eca4993507cbb47d707ea32c6c6764fed46ae5852b0d9c5075cfe9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "63760241781d31d719c8027159aa6e84196e477c3edeb7c850985c7afc56aaf9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "14865e2227e5834de0716af824e4fa83ac4d280dc7ab338f96292854f963ed00",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "d50a56d6f790fa5636ad5c44253b64f42df035a835d6d555ea3b90921c80a919",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "04f6021b21ef5e62569b54c32a0284d6004c051c9ef1860c4078e6cbb4e8c283",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "356c6c9972340f3a213567099b3a30deba5780d63db26c748336a6bb8970b76e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "997e42439d931da9acd6e718ee8f150381eca2be5cc7843d31dfb3bf4b823c84",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "25c9fe441407e7dd1d0bbf7ac5b4d87e9b6028ff24c923c8228fd6e44a7c8d43",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "52870b5991ecd765e3a7b84f3532791464c7182d33c13594e825ad8606b71ccb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "a9e8ed7768b40254a0c79d3599bb86066d2f1cdc1a8cc6c62be0d0f520c3ea37",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "06e6b1aedc0f17d440b01e64a94d4a95b0ce63011605658046fc54c695cd3bb0",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "bcc03b3daa5f7757c408f76c0550ca5f63fddcb76b3d520fe6abb75f9e238543",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "ca9f1ac1baa1ef9eb42c93276e8dcde23a9d84ddc729f676d00a5fbd7f565402",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "3836f9246216d88a59fc656533a8ec5c8e614c0eecf38ef8991ee7cc0b0b3f85",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "ab70553c75880aa6b3e0ee6d51d4ef371e858abf127ccda65906992f6468880c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "283bcd43201736fb7e66e99b5333a18fceda289d50a65dee5053862d5c11175f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": false,
+      "noise_id": "71525fe876a1514fc066f1d20c0d1549a6be37e0905913c3c7e546c005a6c974",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "37e288f7d394a689e2972ddc17f6812c76cb9b78a6213a845f9572ca0b521791",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "27309b04b04ca85923c79b64eeb0c76d15737ada8b7dc00c1db010c83b1438d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "470a1db41401e0a495dfffa622fb6a0df4ce6b3648a8904be47e5b92cb065a71",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "3a4ac839dbe15b245e3ad471a12f60445d17e04db734eb567fee9602c8baaf8a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "51508f5e93eca4993507cbb47d707ea32c6c6764fed46ae5852b0d9c5075cfe9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "63760241781d31d719c8027159aa6e84196e477c3edeb7c850985c7afc56aaf9",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "14865e2227e5834de0716af824e4fa83ac4d280dc7ab338f96292854f963ed00",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "d50a56d6f790fa5636ad5c44253b64f42df035a835d6d555ea3b90921c80a919",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "04f6021b21ef5e62569b54c32a0284d6004c051c9ef1860c4078e6cbb4e8c283",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "356c6c9972340f3a213567099b3a30deba5780d63db26c748336a6bb8970b76e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "997e42439d931da9acd6e718ee8f150381eca2be5cc7843d31dfb3bf4b823c84",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "25c9fe441407e7dd1d0bbf7ac5b4d87e9b6028ff24c923c8228fd6e44a7c8d43",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "52870b5991ecd765e3a7b84f3532791464c7182d33c13594e825ad8606b71ccb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "a9e8ed7768b40254a0c79d3599bb86066d2f1cdc1a8cc6c62be0d0f520c3ea37",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "06e6b1aedc0f17d440b01e64a94d4a95b0ce63011605658046fc54c695cd3bb0",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "bcc03b3daa5f7757c408f76c0550ca5f63fddcb76b3d520fe6abb75f9e238543",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "ca9f1ac1baa1ef9eb42c93276e8dcde23a9d84ddc729f676d00a5fbd7f565402",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "00cedcbb25daa039f4b5bb906b6f02d22795369fd043053eb214a7f3b4851ad0",
+   "split": "test",
+   "stable_sample_id": "00cedcbb25daa039"
+  },
+  {
+   "class_index": 5,
+   "file": "french-horn.jpeg",
+   "id": "french-horn",
+   "label": "French horn",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "0fbcf90fc1c1f9f476989230190acb461fadc202c78bedf27f71838513c3c510",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "b4c47771a4b5a5b72d3233bc322a4b9a3af38de4e396aa29b901aaf05890f2ec",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "a5460eb23907fcf72176b81dc09fb8d71d18ab59e3f303a214a02ccb11878dc7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "bcf4bbf1b2bcc620e557cb1ac1153315c63e283a40443a443ea506015b35af4d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "a8c0eab3720412eb244f4d9213890889eecc5ba6ac50a3bff849919022aacd4f",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "d1ff855e1266935c978bfaf09e341dfff931e0ce3562d862fd8c737f15eedba1",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "6818f4bd84a6ced16702628362e943ef1956fed9db523197fc8d74d6a09dd2f8",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "1343554bb4d49977827414b128b7adb4e04c4375e163a54fc51a3c489e283f83",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "abc8887ef6633f612a7bbeef7e7d1c3a1c79210a40557ce6ea98790826832a56",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "51cbf311dd76b2a0d2ac8f2f4311d58a96dc96c9b53c4d7447754b950ef1f4ae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "b9c81e7c34bc289744b1c1d33a25d960df4953407ed484968bd059dc0b747cb6",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "8711f2914fb6bcfefa3a424c633a55b4127df1b6398842cc55b93f3d1ec328f4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "aa7d714740b7d124b7ff42a46851d7092e5dce85ea12528ab5cb0c195906852e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "e0dba5756d0bbd98b9674f11889512ef21b946c44e6d84fbe21460fb532f0baa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "ceb1275d7292b4ddf6adc1d81a910de9ab69055aa221a2480efd3b90cdb49e79",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "241ddb12de56fa565398dd5b9386ca79f70e2751a185adcd00927e7625cbb554",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "a4aef2b5b080c5cce3c66248debfe8da8eb56af4ef675256871dd978ac12f801",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "5a6e21d2779a704a08ea4cf22725498caae3884e7ef2b8c5a8b73e1a9d546f20",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "f307bb5968d82b243b35ba7244c5417b4b668a8409f1dc0eb7c82fed8bd5d8ea",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "eedcd7d438c2c95afbbcddede6988f085bdd82476e60a3040b990b54dc3316fe",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "13b9b7f51d0f85b30af309b74348edaab75ec003c306fabfe725da3cb8c36a6d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "0fbcf90fc1c1f9f476989230190acb461fadc202c78bedf27f71838513c3c510",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "b4c47771a4b5a5b72d3233bc322a4b9a3af38de4e396aa29b901aaf05890f2ec",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "a5460eb23907fcf72176b81dc09fb8d71d18ab59e3f303a214a02ccb11878dc7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "bcf4bbf1b2bcc620e557cb1ac1153315c63e283a40443a443ea506015b35af4d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "a8c0eab3720412eb244f4d9213890889eecc5ba6ac50a3bff849919022aacd4f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "d1ff855e1266935c978bfaf09e341dfff931e0ce3562d862fd8c737f15eedba1",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "6818f4bd84a6ced16702628362e943ef1956fed9db523197fc8d74d6a09dd2f8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "1343554bb4d49977827414b128b7adb4e04c4375e163a54fc51a3c489e283f83",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "abc8887ef6633f612a7bbeef7e7d1c3a1c79210a40557ce6ea98790826832a56",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "51cbf311dd76b2a0d2ac8f2f4311d58a96dc96c9b53c4d7447754b950ef1f4ae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "b9c81e7c34bc289744b1c1d33a25d960df4953407ed484968bd059dc0b747cb6",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "8711f2914fb6bcfefa3a424c633a55b4127df1b6398842cc55b93f3d1ec328f4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "aa7d714740b7d124b7ff42a46851d7092e5dce85ea12528ab5cb0c195906852e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "e0dba5756d0bbd98b9674f11889512ef21b946c44e6d84fbe21460fb532f0baa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "ceb1275d7292b4ddf6adc1d81a910de9ab69055aa221a2480efd3b90cdb49e79",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "241ddb12de56fa565398dd5b9386ca79f70e2751a185adcd00927e7625cbb554",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "a4aef2b5b080c5cce3c66248debfe8da8eb56af4ef675256871dd978ac12f801",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "5a6e21d2779a704a08ea4cf22725498caae3884e7ef2b8c5a8b73e1a9d546f20",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "f307bb5968d82b243b35ba7244c5417b4b668a8409f1dc0eb7c82fed8bd5d8ea",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "eedcd7d438c2c95afbbcddede6988f085bdd82476e60a3040b990b54dc3316fe",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "13b9b7f51d0f85b30af309b74348edaab75ec003c306fabfe725da3cb8c36a6d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "007366b660b42ea7622138725d8b2f0c208ab9517794c30f407ba4008325754e",
+   "split": "test",
+   "stable_sample_id": "007366b660b42ea7"
+  },
+  {
+   "class_index": 6,
+   "file": "garbage-truck.jpeg",
+   "id": "garbage-truck",
+   "label": "garbage truck",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "26335319a052331234244b7878652df44ddc9704229389794ca341b64bc3cefd",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "e72885d6c474ee7459c7b5f1789879b5684b7f2dac26156619f91c7641c2d640",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "e3b16fc2586f7660e94b14a25c99cba889fee236be8db786e22aabe81852209a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "608933b86e0f95568daa8f758ed38b93416172f0ca68e51015f6343d1ec84558",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "755d571e526a2107febfeb5b6fe039e650b52683a53966233fc3ab6e639240f3",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "d16b03c0c95a263a4bb43027daac5670274cc15198b2799107c95ad24116bcac",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "898cee3e6aacb3c01649099567d0dffb125af80b853aa50001c176304cc192fa",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "97d3acb4c66552c710472264ba87ad5c62c9cee27623bf0b51ea1108123d5e08",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "7448c553b70b04558721d213d9e9640f9e236de821c83e82852b640aed96a016",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "ae439f637c874621c02751a54c0cad87d673e090ee61d168ae61fdace957b436",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "867bade662e05516ad3662184dafcf071ab42b1dbc9034da8cc0d4ab023498ab",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "540e56d839414d29e38ffd17476c64cae2463d570864ca56b96d26909ff13e6a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "7ad4526878be2c6e4f594c3a2d50747a4677b4eb7100965cd44431352aaf2a0b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "408eb729f9b4fbd145f77520e0cd3f25dba0c9cc5f29cc6eacb44bcc10391ffa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "b5bdea734479a67b6c9790aa4b0b8042680d14af84204bdac090ba7d250a9e91",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "d93ef7334101c33c93360526e8ee70688e1f2d840532b8bbef483a29b6bc8a30",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "4b279e9f9d9e2204b9ac7a82a35ff26be65a4e4e45575c64cdd838ebdc853b66",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "03dca68ad2904d36bb828ce77d3712fc5b23cc8c9e9f9e82d240162034a7dbb7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "09e9fc4fc628030661ddcea76952ae6aa0b4d1d81dc2cb94eb76c69261566636",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "ce1484984a92160f06a3ae515b548979cae4a406324acd5fbb83922e78f6fb86",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "05dc759982aa756c3818faa0c70948630b7e25e3b01b9d64318e2ff3da671b40",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "26335319a052331234244b7878652df44ddc9704229389794ca341b64bc3cefd",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "e72885d6c474ee7459c7b5f1789879b5684b7f2dac26156619f91c7641c2d640",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "e3b16fc2586f7660e94b14a25c99cba889fee236be8db786e22aabe81852209a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "608933b86e0f95568daa8f758ed38b93416172f0ca68e51015f6343d1ec84558",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "755d571e526a2107febfeb5b6fe039e650b52683a53966233fc3ab6e639240f3",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "d16b03c0c95a263a4bb43027daac5670274cc15198b2799107c95ad24116bcac",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "898cee3e6aacb3c01649099567d0dffb125af80b853aa50001c176304cc192fa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "97d3acb4c66552c710472264ba87ad5c62c9cee27623bf0b51ea1108123d5e08",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "7448c553b70b04558721d213d9e9640f9e236de821c83e82852b640aed96a016",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "ae439f637c874621c02751a54c0cad87d673e090ee61d168ae61fdace957b436",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "867bade662e05516ad3662184dafcf071ab42b1dbc9034da8cc0d4ab023498ab",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "540e56d839414d29e38ffd17476c64cae2463d570864ca56b96d26909ff13e6a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "7ad4526878be2c6e4f594c3a2d50747a4677b4eb7100965cd44431352aaf2a0b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "408eb729f9b4fbd145f77520e0cd3f25dba0c9cc5f29cc6eacb44bcc10391ffa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "b5bdea734479a67b6c9790aa4b0b8042680d14af84204bdac090ba7d250a9e91",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "d93ef7334101c33c93360526e8ee70688e1f2d840532b8bbef483a29b6bc8a30",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "4b279e9f9d9e2204b9ac7a82a35ff26be65a4e4e45575c64cdd838ebdc853b66",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "03dca68ad2904d36bb828ce77d3712fc5b23cc8c9e9f9e82d240162034a7dbb7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "09e9fc4fc628030661ddcea76952ae6aa0b4d1d81dc2cb94eb76c69261566636",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "ce1484984a92160f06a3ae515b548979cae4a406324acd5fbb83922e78f6fb86",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "05dc759982aa756c3818faa0c70948630b7e25e3b01b9d64318e2ff3da671b40",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 6,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "0055b9c9bb601a4f2f84da3ab122b81f42d910a9e91aca08c30ea2a885c5d4a8",
+   "split": "test",
+   "stable_sample_id": "0055b9c9bb601a4f"
+  },
+  {
+   "class_index": 7,
+   "file": "gas-pump.jpeg",
+   "id": "gas-pump",
+   "label": "gas pump",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "99656a287e3347dca9c52aab08c9b13dee7d8eec642f8d1731d4beaea45f8980",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "65708150b1ec58c5e11d3477a4c826624cb9afdf83e25baccf5936ba9705df5d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "9d7e6d692127b78405d46076caf7856f6c4fea13139c09652a52ce390f2918d5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "af791364a1ecd0325ee3637c4e7b4520a279741a698c7e1662cb9854f78ff08f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "3d06a8b584b903ae93bebec04db66abc475eb4e70d82bd7cdc1563ad4f099974",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "1affc6990f56edf0e361211b26872b37186cb0e33fb34ba69c68b1c8e57cd354",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "74e2c4d99d436a365e4e763c3d06591ee256a192c5caa3cddb0925c68eafb412",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "fd7c89e6672dd0c5018e368a89c211403d1a6b455be6953f1b4ee458cdc6a5d4",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "eed7efa8c0538d304015b108b2b4466aa9c51022570bbc074f35bee3073cb928",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "522ac653ef028e006d64ba6a80675a781f39389b8642227f90d2630b06cab539",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "5a73996479718eeae8af41e3fdb871a17aa8bac99fd081829b0e7f35654ef0aa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "81580ae559e290bff6d971e39e200f87a058d55a0b80ec40a4427e28bc669123",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "0c86051f6eba3d29ebebf08d676593f78819497c20c97f04b34e14f234499e9b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "9d15276b4f5e9df706da35943a091cd5004303d5b7e26b296416959a33ab2c29",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "24ce673536a99c79c3e6307cea8db71084270cf3f90f6c43f6403932ce7c33ae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "ff30c8d14537a3ad702ca2f7d289753eff07a3a1e12a5fdacad6c99d606856ce",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "6fcf3ee89d1a1beee110fc99bbef468f77c7796043b796f406afd11270661511",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "8613e96b06f011ebcbe5458a7bb1d46c3150c96d687a7429001575413b70cf3b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "b521fd116381aaf958dffc43ed01653d02b5df34ab52c6916bcf2bac1d41f761",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "daa68dee836c22bfadc3fe2d2611e4c3458f53a6db4cb14b6459f310ce2be117",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "a5c4c52390a274b77d1afed67a4ae819d7cf9373a9608818f17a7af12575a7d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": false,
+      "noise_id": "99656a287e3347dca9c52aab08c9b13dee7d8eec642f8d1731d4beaea45f8980",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "65708150b1ec58c5e11d3477a4c826624cb9afdf83e25baccf5936ba9705df5d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 7,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": false,
+      "noise_id": "9d7e6d692127b78405d46076caf7856f6c4fea13139c09652a52ce390f2918d5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": false,
+      "noise_id": "af791364a1ecd0325ee3637c4e7b4520a279741a698c7e1662cb9854f78ff08f",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "3d06a8b584b903ae93bebec04db66abc475eb4e70d82bd7cdc1563ad4f099974",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "1affc6990f56edf0e361211b26872b37186cb0e33fb34ba69c68b1c8e57cd354",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "74e2c4d99d436a365e4e763c3d06591ee256a192c5caa3cddb0925c68eafb412",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "fd7c89e6672dd0c5018e368a89c211403d1a6b455be6953f1b4ee458cdc6a5d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": false,
+      "noise_id": "eed7efa8c0538d304015b108b2b4466aa9c51022570bbc074f35bee3073cb928",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": false,
+      "noise_id": "522ac653ef028e006d64ba6a80675a781f39389b8642227f90d2630b06cab539",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": false,
+      "noise_id": "5a73996479718eeae8af41e3fdb871a17aa8bac99fd081829b0e7f35654ef0aa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": false,
+      "noise_id": "81580ae559e290bff6d971e39e200f87a058d55a0b80ec40a4427e28bc669123",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": false,
+      "noise_id": "0c86051f6eba3d29ebebf08d676593f78819497c20c97f04b34e14f234499e9b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": false,
+      "noise_id": "9d15276b4f5e9df706da35943a091cd5004303d5b7e26b296416959a33ab2c29",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": false,
+      "noise_id": "24ce673536a99c79c3e6307cea8db71084270cf3f90f6c43f6403932ce7c33ae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 4,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": false,
+      "noise_id": "ff30c8d14537a3ad702ca2f7d289753eff07a3a1e12a5fdacad6c99d606856ce",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": false,
+      "noise_id": "6fcf3ee89d1a1beee110fc99bbef468f77c7796043b796f406afd11270661511",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": false,
+      "noise_id": "8613e96b06f011ebcbe5458a7bb1d46c3150c96d687a7429001575413b70cf3b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 5,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": false,
+      "noise_id": "b521fd116381aaf958dffc43ed01653d02b5df34ab52c6916bcf2bac1d41f761",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": false,
+      "noise_id": "daa68dee836c22bfadc3fe2d2611e4c3458f53a6db4cb14b6459f310ce2be117",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": false,
+      "noise_id": "a5c4c52390a274b77d1afed67a4ae819d7cf9373a9608818f17a7af12575a7d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 3,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "00b928234a97365b2f1a9773c4c506842b98aa6972444d550efebbc14d1d5cbb",
+   "split": "test",
+   "stable_sample_id": "00b928234a97365b"
+  },
+  {
+   "class_index": 8,
+   "file": "golf-ball.jpeg",
+   "id": "golf-ball",
+   "label": "golf ball",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "77b01ee670543c9cf074419182604133fd23d607fc6147de78da90bd6cedb3ca",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "3826dd7895cdfcb6c928ce320e5d666e62d59346e2f46a9551d1ebd71e8c7968",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "936f347f343a05d3ca10ce0773094625dd4d5db5c11d596278c9960e5e0afbcb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "26cd0443d8697158ae0dd68a41393cc7bb76ca767d855f5e52228de5d467b02c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "a0304878ee1339603b6e1bc32cc21df01025d807898f0e5df0b046cfca8c2beb",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "664d97ae9b483dad77e0aee85608d7e416584e5a52cb17949c265bb2e187c22e",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "ae2949c1b9dc3fb34f621ef8f33a53266ef3a22eddfd2503bcc58d9712479040",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "c9de37a676016bebbed10cd9a9d1318a7e84451553c4d1a8d3257d0f5edc2cfb",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "6caaa3c1060ca201d19142ef73a1fbd33188a57fcb74a32338126e4d24049105",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "b54e56a8349531bfed10450a6bb45d12f6523c51a08e7c3dbae21d3e26726c5d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "6d23ac2b9c2f0d83e78f3369b7df1352ffab2d0695f5e34d9d37625e36f50b02",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "b1d1692d795c0e62e78ee954a02169e0be5f168c8671aaa52fc42c47e5b48d5e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "24ecd9727d441b72f354caac82f56a8d6e3af561267f43bd3288708c8f7aa43c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "3f8dd6c0e1901092b171c1d8f0ab63379deada3b8cc991474214b94f513288c5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "ecb9ccd5767ba1287a0274de1f225a3959863b24e92c866b0de6561da56453ba",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "094099783d2eaa8787c2451931dbb1b77da5c31296ec63707f49c615479a1131",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "4554b75bde614bb4fc7d2cf8c90d0208e4773256bf70c2911e990a8dfebdba62",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "c4ac3c5c8ede8c19813197e6a726e756c0ace6562cdf039789927ab28a4031e7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "6b2bda13fc98c9463e7c8cf860198a0e97ebfeeb13df39ebd79b38569b3840fe",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "3e81fd0fef165e993f048123afd02bedc62517f7e7b3304898c01cf986df14d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "56476741e07a6a142cfd5b9ed32589fd4f87d50f720c4e072f5fd51fe660309b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "77b01ee670543c9cf074419182604133fd23d607fc6147de78da90bd6cedb3ca",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "3826dd7895cdfcb6c928ce320e5d666e62d59346e2f46a9551d1ebd71e8c7968",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "936f347f343a05d3ca10ce0773094625dd4d5db5c11d596278c9960e5e0afbcb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "26cd0443d8697158ae0dd68a41393cc7bb76ca767d855f5e52228de5d467b02c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "a0304878ee1339603b6e1bc32cc21df01025d807898f0e5df0b046cfca8c2beb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "664d97ae9b483dad77e0aee85608d7e416584e5a52cb17949c265bb2e187c22e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "ae2949c1b9dc3fb34f621ef8f33a53266ef3a22eddfd2503bcc58d9712479040",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "c9de37a676016bebbed10cd9a9d1318a7e84451553c4d1a8d3257d0f5edc2cfb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "6caaa3c1060ca201d19142ef73a1fbd33188a57fcb74a32338126e4d24049105",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "b54e56a8349531bfed10450a6bb45d12f6523c51a08e7c3dbae21d3e26726c5d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "6d23ac2b9c2f0d83e78f3369b7df1352ffab2d0695f5e34d9d37625e36f50b02",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "b1d1692d795c0e62e78ee954a02169e0be5f168c8671aaa52fc42c47e5b48d5e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "24ecd9727d441b72f354caac82f56a8d6e3af561267f43bd3288708c8f7aa43c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "3f8dd6c0e1901092b171c1d8f0ab63379deada3b8cc991474214b94f513288c5",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "ecb9ccd5767ba1287a0274de1f225a3959863b24e92c866b0de6561da56453ba",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "094099783d2eaa8787c2451931dbb1b77da5c31296ec63707f49c615479a1131",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "4554b75bde614bb4fc7d2cf8c90d0208e4773256bf70c2911e990a8dfebdba62",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "c4ac3c5c8ede8c19813197e6a726e756c0ace6562cdf039789927ab28a4031e7",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "6b2bda13fc98c9463e7c8cf860198a0e97ebfeeb13df39ebd79b38569b3840fe",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "3e81fd0fef165e993f048123afd02bedc62517f7e7b3304898c01cf986df14d4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "56476741e07a6a142cfd5b9ed32589fd4f87d50f720c4e072f5fd51fe660309b",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 8,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "00375c79dd5a7c532594febbba6787debc6417c6560cf53c01163499200bb174",
+   "split": "test",
+   "stable_sample_id": "00375c79dd5a7c53"
+  },
+  {
+   "class_index": 9,
+   "file": "parachute.jpeg",
+   "id": "parachute",
+   "label": "parachute",
+   "recorded": {
+    "classical_adaptive": {
+     "-1": {
+      "correct": true,
+      "noise_id": "446bfe99e3552e9a8048a8b8b59037482e214cb5593b0e123680085bf43231ae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "2cff5ca07ad597dcd1800a1d640659127578f039db1d25fd8da7cad6acc88338"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "63b0154f5b55c52a8446fab8cf3c2ba55d464d251e10557ac36cfd31f5166b1e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "c81c7422da2289df58c1dee5cca120b34c871081d53fcb2bb217a827d285dd99"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "4b338acdf3badd140db4d990034e79000a836b5909fb56ea60cfa42bf7c32a49",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "cd5323b90e4dfaf1d99aa9d1c77a74a08b13a1d0b28ea95b57e5c205e240ed89"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "86c7627808a81fe6faed5f8fbe0ffd2862759b8d379cb413d3ccf87bc8853e2d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "d38aecc7647e3dffa9ece0d35e306433d642aaa0a98a0f306c8b16adcd63b515"
+     },
+     "-5": {
+      "correct": false,
+      "noise_id": "a14a15ad47f6d4b039b9537c98afd7bfd6f2181dce5144e0c1a74391d65b45db",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "b89ae22a644669958630f375db7f495698c208cf083b11df8bf3fbdd7cc76a2a"
+     },
+     "-6": {
+      "correct": false,
+      "noise_id": "d840c8e815efa2488d24046c37e6ae26d434f151ec0c8a499a34b278264026e8",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "3ac31d87e449619a94e64d324a8f829f02e605fba1addb4074f97f155e9f67eb"
+     },
+     "-7": {
+      "correct": false,
+      "noise_id": "5671988af7abee2acc2848da896eb98f45c8a63d69e6a406ab27e8aeb1ee4f8c",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "1756ab4e8fb68f8b89dbf6fafa8dd9206aac987e93aeafb5d604aad33f2777e6"
+     },
+     "-8": {
+      "correct": false,
+      "noise_id": "9f49ed913e25d590eaf3803026c35c9dba168a8fe5de4c20eee7475f7efd3aaa",
+      "outage": true,
+      "outage_reason": "decode_failure",
+      "pred_label": 0,
+      "run_id": "33ecb50c874f9e81f044f67ea52f5feea5cc5c3b23cb901ec5b6710c078e981c"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "09b6f0789e851424d46452ba51bdf325779f31575236bf0e260ef22afc199ac8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "e3e208a1e29f4f79c81e358b20b67665a63cc0204751b46d0e974bdca4936567"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "5c278ab45bd3629308b9c6eee3dd5a43032040257a7a697ab2d1bd21495ef3ce",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "494271b7628e881d6a42ef468f8c2277e1082f7d6fb24cf28a4efd8932096368"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "d454be6b7c9f4e9a24173c4101d0fa400656aeb344368b4d0b980d37f2894d42",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "7e3e0eaa482f98a5415d3447dd85e3c13f5d73b9e78292d784e0b8b18d2ecd18"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "56152edce4fca429f6c9048a1d16a1e61ad1537ce859ed96e7778e1b97528ed4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "40989c33a426166c79ff5a1649afd34850b076b1bd8dc6ae22ca45f9be951a7b"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "5c958177591ead86f532b9439cbfb174525bbf1127c69b480a53a05bd3173e35",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "9a5f389b54029cbfb10d5143a4dc6de806d01277e320a1f5f3c57e14668a3cce"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "74a25237e9ce2969319959b6a9cef1bf11bd7193158022129768a18bfb72586a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "7fc93e6faa433794c27cddb5042c0bbd2e4d2b88cd6b77307f1317475b5ae78a"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "25db6b5446244e68873eb58cb1870b47a0e50f22852f4a0d00ef8fa0a5b4ac99",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "bf5bd462d01f70c3840e2a60e936d15cfa0e8ec4e0fa25435711cb65a8757f4e"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "53c2ff68a1d56d2dd4316b2daf8fc0564d3d4b03b6d83598c29f3ba658588102",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "860420bb53afda4ab4dbe6112ab19c14a643376f48c63783ee92a909282a6426"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "3f7fc6f11a15ee70ed1f29ab1ddacc1b2c0be6735651c5a8f4e7b03c67b946cb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "7306dd33403c7a5dd05f1a62323959b7c6e5e2ac59a448ef002a9f39d5c5f7ae"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "d27fe651d9854e84e0b892b656e59b3d0d5d9c67def4c5f29e640922f4a868ab",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "9c94ffc054edf89bf897986aa543f52dec89bd45248abd8cef4f78a39b97abb3"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "f19e3dc3a8b1ea0a06c7fb27a898bf1ba58c7220c08b6cd93edd56d68406b599",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "2f9b5dac99188c41c7e2724fe6b3f692c0a99937d37c0b7e9d0ba7a0d68ee3fa"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "1c8248ee07a42dc03fb88a54ec6394eb0667f0f0e92bb3d22e4ff5b9da798c4c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "d08405553936d029fe90cf95184b2cfd211c6992b5b410cdea23b9e17b5d8455"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "62698c6ffefb495cdc86d00a42a67eb779e791f80f3d6c4ae96ccd308e5a2714",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "c437ffd18c925d1ec616cd4cd0fccb7e2efe0d23c947cc36de8eba4fe2db4186"
+     }
+    },
+    "learned": {
+     "-1": {
+      "correct": true,
+      "noise_id": "446bfe99e3552e9a8048a8b8b59037482e214cb5593b0e123680085bf43231ae",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "f27959917b2284af58eb9a82f335ae8c4bbdff6710191d54f9f04afdcb8d5173"
+     },
+     "-2": {
+      "correct": true,
+      "noise_id": "63b0154f5b55c52a8446fab8cf3c2ba55d464d251e10557ac36cfd31f5166b1e",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "c876bd6c8eed485783cd7f4f722f8581d01a83467887c02d14713a73b32f79c0"
+     },
+     "-3": {
+      "correct": true,
+      "noise_id": "4b338acdf3badd140db4d990034e79000a836b5909fb56ea60cfa42bf7c32a49",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "333b57897e4838004a54016e6357dd8ef5b571201ca63d2638391cc0c7b03992"
+     },
+     "-4": {
+      "correct": true,
+      "noise_id": "86c7627808a81fe6faed5f8fbe0ffd2862759b8d379cb413d3ccf87bc8853e2d",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "073abc2252215028c4428e507372100b698c9b3b58908b4deaf86b0dbeb9bdf6"
+     },
+     "-5": {
+      "correct": true,
+      "noise_id": "a14a15ad47f6d4b039b9537c98afd7bfd6f2181dce5144e0c1a74391d65b45db",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "bef73ba0d01770cc60506d42e2ebe6f10c11bbf741426484f698fc1cdc59048e"
+     },
+     "-6": {
+      "correct": true,
+      "noise_id": "d840c8e815efa2488d24046c37e6ae26d434f151ec0c8a499a34b278264026e8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "d7b0fa06dcbe594c0bba6515cf2d1d6daebed51334d30f18daf81028d5c7eb68"
+     },
+     "-7": {
+      "correct": true,
+      "noise_id": "5671988af7abee2acc2848da896eb98f45c8a63d69e6a406ab27e8aeb1ee4f8c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "5969ed700cb72bb59eb614e87537986022491e4ae6ff72555ca763386438966a"
+     },
+     "-8": {
+      "correct": true,
+      "noise_id": "9f49ed913e25d590eaf3803026c35c9dba168a8fe5de4c20eee7475f7efd3aaa",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "0c9fd926c7c312b8a3567a1acc9d810efd9038eae775e0591338b6e150ea0529"
+     },
+     "0": {
+      "correct": true,
+      "noise_id": "09b6f0789e851424d46452ba51bdf325779f31575236bf0e260ef22afc199ac8",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "207d61625adf3b2479d81400855eae05c396b0ba0a400dd2a721cbcfc92c866d"
+     },
+     "1": {
+      "correct": true,
+      "noise_id": "5c278ab45bd3629308b9c6eee3dd5a43032040257a7a697ab2d1bd21495ef3ce",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "6576c2b41e30b10c459bf5794b4b6e590fefbc9e981fc740168b8e011ecb2744"
+     },
+     "11": {
+      "correct": true,
+      "noise_id": "d454be6b7c9f4e9a24173c4101d0fa400656aeb344368b4d0b980d37f2894d42",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "0611c03da270d77fcc6a467482335b6ba22785ab9a9650f0a08e1f8a16cc685c"
+     },
+     "13": {
+      "correct": true,
+      "noise_id": "56152edce4fca429f6c9048a1d16a1e61ad1537ce859ed96e7778e1b97528ed4",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "626397064e561c780b7b0c4b301bfcb69375ac92a49ce7a4757108f665493566"
+     },
+     "15": {
+      "correct": true,
+      "noise_id": "5c958177591ead86f532b9439cbfb174525bbf1127c69b480a53a05bd3173e35",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "16022a7bd8db6d6d3427127eaf214afb64af049c47e6b10b25b0d626a345e99b"
+     },
+     "18": {
+      "correct": true,
+      "noise_id": "74a25237e9ce2969319959b6a9cef1bf11bd7193158022129768a18bfb72586a",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "600391d8c563d2479d8ab90a9906362170b2f8d49f911b4b3bd88e7cdf0accab"
+     },
+     "2": {
+      "correct": true,
+      "noise_id": "25db6b5446244e68873eb58cb1870b47a0e50f22852f4a0d00ef8fa0a5b4ac99",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "fc335aef86107d886c61d0f73e5a27bc013c1825a917f120cdb26e509ec39cab"
+     },
+     "3": {
+      "correct": true,
+      "noise_id": "53c2ff68a1d56d2dd4316b2daf8fc0564d3d4b03b6d83598c29f3ba658588102",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "fe21743859827b688d3a847146a2e1375d2f3f8f5b80c677dc3881845d98fc85"
+     },
+     "4": {
+      "correct": true,
+      "noise_id": "3f7fc6f11a15ee70ed1f29ab1ddacc1b2c0be6735651c5a8f4e7b03c67b946cb",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "fcfa698671d38bb2b3770384a3b1e58add351b7623b7b913b64f3e8c8ed7e14c"
+     },
+     "5": {
+      "correct": true,
+      "noise_id": "d27fe651d9854e84e0b892b656e59b3d0d5d9c67def4c5f29e640922f4a868ab",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "9871094352724ed81807e8e9b231cfa400ca1692883cb8e238f5b6b3b7b64953"
+     },
+     "6": {
+      "correct": true,
+      "noise_id": "f19e3dc3a8b1ea0a06c7fb27a898bf1ba58c7220c08b6cd93edd56d68406b599",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "72fea158ee71c01f5fa7dfae9217a98c55aa8fcb7034e41bb67517506c8e97f8"
+     },
+     "7": {
+      "correct": true,
+      "noise_id": "1c8248ee07a42dc03fb88a54ec6394eb0667f0f0e92bb3d22e4ff5b9da798c4c",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "768e5d8bd1b2efff5a66398d8b760cc391e4c1c5bac56698094d973cce0bf50c"
+     },
+     "9": {
+      "correct": true,
+      "noise_id": "62698c6ffefb495cdc86d00a42a67eb779e791f80f3d6c4ae96ccd308e5a2714",
+      "outage": false,
+      "outage_reason": null,
+      "pred_label": 9,
+      "run_id": "75c5f276b6e14b4423a71d38c8d704b703db0927580a54a7bd225d95a41973ad"
+     }
+    }
+   },
+   "sha256": "00372fef07935acdb02a1d9ff23206e6cf86bd99f97339b2682a1aa40c2725b9",
+   "split": "test",
+   "stable_sample_id": "00372fef07935acd"
+  }
+ ],
+ "per_image_manifest_sha256": "dad80afc7a7a4694f0ccbafcc4eaf289063ed435f5d2cc21e0dc4ddb3bba4f94",
+ "recorded_cell": {
+  "bw_ratio": "r_1_6",
+  "channel_seed": 0,
+  "scorers": {
+   "classical_adaptive": "artifact_finetuned",
+   "learned": "own_task_head"
+  },
+  "train_seed": 0
+ },
+ "selection_rule": "per class, the test row with the lexicographically smallest stable_sample_id in data/manifests/imagenette160.csv",
+ "source_manifest_sha256": "224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889",
+ "split": "test"
+}

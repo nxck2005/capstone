@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from demo_streamlit.results import CLOSEOUT_CSV, CURVES_CSV, DIFFERENCES_CSV, ROOT, load
+from demo_shared.results import CLOSEOUT_CSV, CURVES_CSV, DIFFERENCES_CSV, ROOT, load
 
 
 def test_curves_match_the_g12_closeout() -> None:
@@ -69,6 +69,25 @@ def test_page_renders_headlessly() -> None:
     page.run()
     assert not page.exception
     assert [h.value for h in page.header][:2] == ["1. Single-image transmission", "2. Measured accuracy on the test split"]
+    records = [m.value for m in page.markdown if "Recorded in the G-12 test run" in m.value]
+    assert len(records) == 2 and all("same as live" in r for r in records)
     page.select_slider[0].set_value(18.0).run()
     assert not page.exception
     assert any("Measured values at +18 dB" in m.value for m in page.markdown)
+
+
+def test_page_browses_the_whole_test_split() -> None:
+    testing = pytest.importorskip("streamlit.testing.v1")
+    page = testing.AppTest.from_file(str(ROOT / "demo_streamlit/app.py"), default_timeout=300)
+    page.run()
+    page.toggle[0].set_value(True).run()
+    assert not page.exception
+    if any("Showing the ten featured images instead" in m.value for m in page.markdown):
+        pytest.skip("the extracted test split or per-image records are not on this machine")
+    page.selectbox[0].set_value("gas pump").run()
+    assert page.slider[0].max == 419
+    page.slider[0].set_value(200).run()
+    assert not page.exception
+    assert any("Ground truth: <b>gas pump</b>" in m.value for m in page.markdown)
+    records = [m.value for m in page.markdown if "Recorded in the G-12 test run" in m.value]
+    assert len(records) == 2 and all("same as live" in r for r in records)

@@ -7,12 +7,13 @@ from fastapi.testclient import TestClient
 
 from demo.backend.app import Evidence
 from demo_g12.backend.app import create_app, load_g12
-from demo_streamlit.results import TEST_IMAGES
+from demo_shared.test_gallery import TestGallery
+from demo_shared.results import TEST_IMAGES
 
 
 @pytest.fixture(scope="module")
 def client() -> TestClient:
-    return TestClient(create_app(evidence=Evidence(), g12=load_g12()))
+    return TestClient(create_app(evidence=Evidence(), g12=load_g12(), gallery=TestGallery()))
 
 
 def test_metadata_describes_the_test_split(client: TestClient) -> None:
@@ -39,11 +40,42 @@ def test_chart_serves_g12_curves_with_intervals_only_for_multi_seed_curves(clien
     assert client.get("/api/chart?ratio=unknown").status_code == 422
 
 
-def test_image_and_inference_routes_are_the_original_demos(client: TestClient) -> None:
+def test_gallery_routes_serve_the_ten_test_images(client: TestClient) -> None:
     paths = sorted(route.path for route in client.app.routes if route.path.startswith("/api/"))
-    assert paths == ["/api/chart", "/api/examples", "/api/examples/{name}", "/api/images",
-                     "/api/images/{image_id}", "/api/infer", "/api/metadata"]
+    assert paths == ["/api/chart", "/api/images", "/api/images/{image_id}", "/api/infer", "/api/metadata",
+                     "/api/test-examples/{name}", "/api/test-images/{image_id}", "/api/test-split"]
     gallery = client.get("/api/images").json()
-    assert gallery["split"] == "train" and len(gallery["images"]) == 4
+    assert gallery["split"] == "test" and len(gallery["images"]) == 10
+    assert len({image["label"] for image in gallery["images"]}) == 10
+    thumb = client.get(gallery["images"][0]["thumbnail_url"])
+    assert thumb.headers["content-type"] == "image/png" and thumb.content[:8] == b"\x89PNG\r\n\x1a\n"
     bad = {"image_id": "f" * 16, "snr_db": -8, "ratio": "r_1_6"}
     assert client.post("/api/infer", json=bad).status_code == 404
+    assert client.get("/api/test-images/zzzz").status_code == 404
+
+
+def test_live_outcomes_carry_and_reproduce_the_g12_record(client: TestClient) -> None:
+    image = client.get("/api/images").json()["images"][7]  # gas pump: DJSCC is wrong here in G-12
+    body = client.post("/api/infer", json={"image_id": image["id"], "snr_db": -8, "ratio": "r_1_6"}).json()
+    assert body["split"] == "test"
+    learned, classical = body["learned"], body["classical"]
+    assert learned["recorded"]["correct"] is False and classical["recorded"]["outage"] is True
+    if learned["status"] == "unavailable" or classical["status"] == "unavailable":
+        pytest.skip("frozen weights are not provisioned on this machine")
+    assert learned["recorded"]["matches"] is True and classical["recorded"]["matches"] is True
+    assert learned["predicted_label"] == learned["recorded"]["predicted_label"]
+
+
+def test_the_whole_test_split_can_be_browsed_and_chosen(client: TestClient) -> None:
+    listing = client.get("/api/test-split?label=7&page=2&size=40").json()
+    if not listing["available"]:
+        pytest.skip("the extracted test split or per-image records are not on this machine")
+    assert (listing["total"], listing["pages"], listing["page"], len(listing["images"])) == (419, 11, 2, 40)
+    assert {image["label"] for image in listing["images"]} == {"gas pump"}
+    everything = client.get("/api/test-split?size=100&page=1000").json()
+    assert everything["total"] == TEST_IMAGES and everything["page"] == everything["pages"] - 1
+    chosen = listing["images"][0]["id"]
+    assert client.get(f"/api/test-images/{chosen}").status_code == 200
+    body = client.post("/api/infer", json={"image_id": chosen, "snr_db": 18, "ratio": "r_1_6"}).json()
+    assert body["image_id"] == chosen and "recorded" in body["learned"]
+    assert client.get("/api/test-split?label=10").status_code == 422

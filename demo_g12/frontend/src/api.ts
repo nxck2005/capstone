@@ -39,7 +39,7 @@ export interface DemoImage {
   label: string
   thumbnail_url: string
   truth_label?: string | null
-  split?: 'train'
+  split?: 'train' | 'test'
   example_split?: 'train'
 }
 
@@ -53,6 +53,8 @@ export interface InferenceArm {
   image_url: string | null
   status: 'delivered' | 'decode_failure' | 'codec_infeasibility' | 'structural_infeasibility' | 'unavailable'
   detail?: string | null
+  /** What G-12 recorded for this image at this SNR (seed cell 0), and whether the live outcome reproduces it. */
+  recorded?: { predicted_label: string; correct: boolean; outage: boolean; matches: boolean | null }
 }
 
 export interface InferResponse {
@@ -63,6 +65,15 @@ export interface InferResponse {
   classical: InferenceArm
   learned: InferenceArm
   reason?: string | null
+}
+
+export interface TestSplitResponse {
+  available: boolean
+  reason: string | null
+  total: number
+  page: number
+  pages: number
+  images: DemoImage[]
 }
 
 async function json<T>(url: string, options?: RequestInit): Promise<T> {
@@ -88,6 +99,8 @@ export const api = {
   metadata: (signal?: AbortSignal) => json<Metadata>('/api/metadata', { signal }),
   chart: (ratio: Ratio, signal?: AbortSignal) => json<ChartResponse>(`/api/chart?ratio=${encodeURIComponent(ratio)}`, { signal }),
   images: (signal?: AbortSignal) => json<ImagesResponse>('/api/images', { signal }),
+  testSplit: (page: number, label: number | null, signal?: AbortSignal) =>
+    json<TestSplitResponse>(`/api/test-split?page=${page}&size=40${label === null ? '' : `&label=${label}`}`, { signal }),
   infer: (image_id: string, snr_db: number, ratio: Ratio, signal?: AbortSignal) => json<InferResponse>('/api/infer', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -103,13 +116,16 @@ export function isValidMetadata(value: Metadata): boolean {
     value.ratios.every((ratio) => typeof ratio.id === 'string' && ratio.id.length > 0 && typeof ratio.label === 'string')
 }
 
+/** The fixed AM-101 gallery: ten test images, one per class, served locally. */
+export const GALLERY_SIZE = 10
+
 export function isValidImages(value: ImagesResponse): boolean {
-  return Array.isArray(value.images) && value.images.length === 4 &&
+  return Array.isArray(value.images) && value.images.length === GALLERY_SIZE &&
     value.images.every((image) => typeof image.id === 'string' && image.id.length > 0 &&
-      typeof image.label === 'string' &&
-      (image.split === 'train' || image.example_split === 'train') &&
+      typeof image.label === 'string' && image.split === 'test' &&
       typeof image.thumbnail_url === 'string' && image.thumbnail_url.startsWith('/api/') && !image.thumbnail_url.startsWith('//')) &&
-    new Set(value.images.map((image) => image.id)).size === 4
+    new Set(value.images.map((image) => image.id)).size === GALLERY_SIZE &&
+    new Set(value.images.map((image) => image.label)).size === GALLERY_SIZE
 }
 
 export function isValidChart(value: ChartResponse, ratio: Ratio, grid: number[]): boolean {

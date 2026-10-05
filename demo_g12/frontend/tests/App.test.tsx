@@ -11,10 +11,9 @@ const metadata = {
   ratios: [{ id: 'r_1_6', label: '1/6', channel_uses: 12800 }, { id: 'r_1_24', label: '1/24', channel_uses: 3200 }],
 }
 const images = { images: [
-  { id: 'image-a', label: 'Train image A', thumbnail_url: '/api/assets/a.png', truth_label: 'tench', split: 'train' },
-  { id: 'image-b', label: 'Train image B', thumbnail_url: '/api/assets/b.png', split: 'train' },
-  { id: 'image-c', label: 'Train image C', thumbnail_url: '/api/assets/c.png', split: 'train' },
-  { id: 'image-d', label: 'Train image D', thumbnail_url: '/api/assets/d.png', split: 'train' },
+  { id: 'image-a', label: 'Test image A', thumbnail_url: '/api/test-examples/a', truth_label: 'tench', split: 'test' },
+  { id: 'image-b', label: 'Test image B', thumbnail_url: '/api/test-examples/b', split: 'test' },
+  ...'cdefghij'.split('').map((c) => ({ id: `image-${c}`, label: `Test image ${c.toUpperCase()}`, thumbnail_url: `/api/test-examples/${c}`, split: 'test' })),
 ] }
 const chart = (ratio = 'r_1_6') => ({ ratio, series: [
   { id: 'learned', label: 'Learned DJSCC', points: [{ snr_db: -8, accuracy: .728 }, { snr_db: -4, accuracy: .794 }, { snr_db: 18, accuracy: .834 }] },
@@ -22,9 +21,11 @@ const chart = (ratio = 'r_1_6') => ({ ratio, series: [
 ] })
 const infer = (image_id = 'image-a', snr_db = -8, ratio = 'r_1_6') => ({
   image_id, snr_db, ratio, input_image_url: '/api/assets/a.png',
-  learned: { status: 'delivered', predicted_label: 'tench', confidence: .82, image_url: '/api/assets/learned.png' },
+  learned: { status: 'delivered', predicted_label: 'tench', confidence: .82, image_url: '/api/assets/learned.png',
+    recorded: { predicted_label: 'tench', correct: true, outage: false, matches: true } },
   classical: snr_db === -8
-    ? { status: 'decode_failure', predicted_label: 'tench', confidence: null, image_url: null }
+    ? { status: 'decode_failure', predicted_label: 'tench', confidence: null, image_url: null,
+        recorded: { predicted_label: 'tench', correct: true, outage: true, matches: true } }
     : { status: 'delivered', predicted_label: 'English springer', confidence: .89, image_url: '/api/assets/decoded.png' },
 })
 const response = (body: unknown) => ({ ok: true, json: async () => body }) as Response
@@ -35,6 +36,13 @@ function mockApi() {
     if (url === '/api/metadata') return response(metadata)
     if (url === '/api/images') return response(images)
     if (url.startsWith('/api/chart')) return response(chart(new URL(url, 'http://localhost').searchParams.get('ratio')!))
+    if (url.startsWith('/api/test-split')) {
+      const query = new URL(url, 'http://localhost').searchParams
+      const page = Number(query.get('page'))
+      const label = query.get('label')
+      return response({ available: true, reason: null, total: label === null ? 3925 : 419, page, pages: label === null ? 99 : 11,
+        images: [{ id: `full-${label ?? 'all'}-${page}`, label: label === '7' ? 'gas pump' : 'church', truth_label: label === '7' ? 'gas pump' : 'church', thumbnail_url: `/api/test-images/x${page}`, split: 'test' }] })
+    }
     if (url === '/api/infer') {
       const body = JSON.parse(String(init?.body)) as { image_id: string; snr_db: number; ratio: string }
       return response(infer(body.image_id, body.snr_db, body.ratio))
@@ -54,7 +62,7 @@ describe('exhibit', () => {
     render(<App />)
     expect((await screen.findAllByText('72.8%')).length).toBeGreaterThan(0)
     expect(screen.getAllByText('10.0%').length).toBeGreaterThan(0)
-    expect(screen.getByText('Train image A')).toBeInTheDocument()
+    expect(screen.getByText('Test image A')).toBeInTheDocument()
     expect(screen.getByText('Final test · 3,925 pictures')).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Local service status' })).toHaveTextContent(/local api ready/i)
     expect(await screen.findByLabelText(/Accuracy versus measured SNR; selected -8 dB/)).toBeInTheDocument()
@@ -75,7 +83,7 @@ describe('exhibit', () => {
     await screen.findAllByText('72.8%')
     fireEvent.change(screen.getByLabelText(/channel snr/i), { target: { value: '2' } })
     await waitFor(() => expect(screen.getByLabelText(/Accuracy versus measured SNR; selected 18 dB/)).toBeInTheDocument())
-    fireEvent.click(within(screen.getByLabelText('Choose a training image')).getByRole('button', { name: 'Train image B' }))
+    fireEvent.click(within(screen.getByLabelText('Choose a test image')).getByRole('button', { name: 'Test image B' }))
     await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/infer' && JSON.parse(String(options?.body)).image_id === 'image-b' && JSON.parse(String(options?.body)).snr_db === 18 && JSON.parse(String(options?.body)).ratio === 'r_1_24')).toBe(true))
     expect(screen.getByText('83.4%')).toBeInTheDocument()
     window.history.pushState({}, '', '/')
@@ -145,16 +153,60 @@ describe('exhibit', () => {
     expect(screen.getAllByText('Not available')).toHaveLength(2)
   })
 
-  it('refuses a validation gallery rather than silently labelling it as train', async () => {
+  it('shows what the final test recorded beside each live result', async () => {
+    render(<App />)
+    await waitFor(() => expect(screen.getAllByTestId('recorded')).toHaveLength(2))
+    expect(screen.getByLabelText('Semantic DJSCC')).toHaveTextContent(/In the final test:\s*“tench”, correct · same as live/)
+    expect(screen.getByLabelText('Classical digital')).toHaveTextContent(/no image \(fallback “tench”\), correct · same as live/)
+  })
+
+  it('says so when the live result differs from the recorded one', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
       if (url === '/api/metadata') return response(metadata)
-      if (url === '/api/images') return response({ images: images.images.map((image) => ({ ...image, split: 'val' })) })
+      if (url === '/api/images') return response(images)
       if (url.startsWith('/api/chart')) return response(chart())
-      throw new Error('Inference should not run without a train image')
+      return response({ ...infer(), learned: { ...infer().learned, recorded: { predicted_label: 'parachute', correct: false, outage: false, matches: false } } })
     }))
     render(<App />)
-    expect(await screen.findByText('The API must provide four unique bundled training images with local URLs.')).toBeInTheDocument()
-    expect(within(screen.getByLabelText('Choose a training image')).queryAllByRole('button')).toHaveLength(0)
+    await waitFor(() => expect(screen.getByLabelText('Semantic DJSCC')).toHaveTextContent('differs from live'))
+  })
+
+  it('lets a visitor browse the whole test split, filter by class and pick any image', async () => {
+    const fetchMock = mockApi()
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Browse all test images/ }))
+    const dialog = await screen.findByRole('dialog', { name: 'All test images' })
+    expect(await within(dialog).findByText(/3,925 pictures the final test used/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'gas pump' }))
+    expect(await within(dialog).findByText(/419 pictures of gas pump/)).toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Next page' }))
+    await within(dialog).findByText('Page 2 of 11')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'gas pump', pressed: false }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    await waitFor(() => expect(fetchMock.mock.calls.some(([url, options]) => url === '/api/infer' && JSON.parse(String(options?.body)).image_id === 'full-7-1')).toBe(true))
+    expect(fetchMock.mock.calls.map(([url]) => String(url))).toContain('/api/test-split?page=1&size=40&label=7')
+  })
+
+  it('explains when the full test split is not on this laptop', async () => {
+    const base = mockApi()
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => String(input).startsWith('/api/test-split')
+      ? response({ available: false, reason: 'Browsing the full test split needs the extracted Imagenette-160 dataset.', total: 0, page: 0, pages: 0, images: [] })
+      : base(input, init)))
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /Browse all test images/ }))
+    expect(await screen.findByText('Browsing the full test split needs the extracted Imagenette-160 dataset.')).toBeInTheDocument()
+  })
+
+  it('refuses a gallery that is not the ten test images', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url === '/api/metadata') return response(metadata)
+      if (url === '/api/images') return response({ images: images.images.map((image) => ({ ...image, split: 'train' })) })
+      if (url.startsWith('/api/chart')) return response(chart())
+      throw new Error('Inference should not run without a test image')
+    }))
+    render(<App />)
+    expect(await screen.findByText('The API must provide the ten bundled test images, one per class, with local URLs.')).toBeInTheDocument()
+    expect(within(screen.getByLabelText('Choose a test image')).queryAllByRole('button')).toHaveLength(0)
   })
 
   it('never displays a late response for a superseded SNR', async () => {

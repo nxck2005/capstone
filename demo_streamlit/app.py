@@ -3,14 +3,15 @@
 Start it with ./run-streamlit-demo.sh from the repository root.
 
 Live outputs come from the frozen r = 1/6 checkpoints through the existing demo
-backend's verified inference classes (demo/backend/app.py); the figure and table
-are the published G-12 test results, checked against the closeout at start-up.
+backend's verified inference classes (demo/backend/app.py), on test-split images
+read through the guarded loader and shown beside what G-12 recorded for them
+(demo_shared/test_gallery.py, AM-101). The figure and table are the published
+G-12 test results, checked against the closeout at start-up.
 Nothing here trains a model or changes scientific evidence.
 """
 
 from __future__ import annotations
 
-import base64
 import html
 import re
 import sys
@@ -22,7 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from demo_streamlit.figure import headline  # noqa: E402
-from demo_streamlit.results import TEST_IMAGES, TestResults, load  # noqa: E402
+from demo_shared.results import TEST_IMAGES, TestResults, load  # noqa: E402
+from demo_shared.test_gallery import CLASS_NAMES, TestGallery, data_url_bytes, transmit  # noqa: E402
 
 OUTAGES = {
     "decode_failure": "decoding failed",
@@ -62,35 +64,9 @@ def test_results() -> TestResults:
     return load()
 
 
-def data_url_bytes(url: str | None) -> bytes | None:
-    return base64.b64decode(url.split(",", 1)[1]) if url else None
-
-
-def run_learned(image_id: str, snr: int) -> dict:
-    live = evidence().live
-    if not live.available:
-        return {"status": "unavailable", "detail": "The frozen DJSCC checkpoint is missing or fails its SHA-256 check."}
-    try:
-        result = live.infer(evidence().product(image_id), snr)
-    except Exception as exc:  # fail closed: show no prediction rather than a substitute
-        return {"status": "unavailable", "detail": f"Inference failed ({type(exc).__name__}); no prediction was produced."}
-    from demo.backend.app import CLASS_NAMES
-
-    return {"status": "delivered", "predicted_label": CLASS_NAMES[result["label_index"]],
-            "confidence": result["confidence"], "image": data_url_bytes(result["reconstruction_png_data_url"])}
-
-
-def run_classical(image_id: str, snr: int) -> dict:
-    classical = evidence().classical
-    if not classical.available:
-        return {"status": "unavailable",
-                "detail": "The frozen artifact classifier or the OpenJPEG 2.5.4 codec is unavailable on this machine."}
-    example = evidence().examples[image_id]
-    try:
-        result = classical.infer(evidence().product(image_id), label=example["label_index"], snr_db=snr)
-    except Exception as exc:
-        return {"status": "unavailable", "detail": f"Inference failed ({type(exc).__name__}); no prediction was produced."}
-    return {**result, "image": data_url_bytes(result["image_url"])}
+@st.cache_resource(show_spinner="Checking the test gallery…")
+def gallery() -> TestGallery:
+    return TestGallery()
 
 
 def setting(result: dict) -> str:
@@ -108,7 +84,7 @@ def receiver(title: str, result: dict, truth: str, note: str) -> None:
     st.markdown(f'<p class="panel-title">{title}</p>', unsafe_allow_html=True)
     status = result["status"]
     if status == "delivered":
-        st.image(result["image"], width="stretch")
+        st.image(data_url_bytes(result["image_url"]), width="stretch")
         correct = result["predicted_label"] == truth
         st.markdown(
             f'<p class="readout">Predicted: <b>{html.escape(result["predicted_label"])}</b> '
@@ -127,6 +103,43 @@ def receiver(title: str, result: dict, truth: str, note: str) -> None:
         st.markdown(f'<p class="note">{html.escape(result["detail"])}</p>', unsafe_allow_html=True)
     if note:
         st.markdown(f'<p class="note">{note}</p>', unsafe_allow_html=True)
+    record = result.get("recorded")
+    if record:
+        outcome = (f"no image (outage rule: {html.escape(record['predicted_label'])})" if record["outage"]
+                   else f"<b>{html.escape(record['predicted_label'])}</b>")
+        agreement = {True: '<span class="ok">same as live</span>', False: '<span class="bad">differs from live</span>',
+                     None: "live output unavailable"}[record["matches"]]
+        st.markdown(f'<p class="record">Recorded in the G-12 test run: {outcome}, '
+                    f'{"correct" if record["correct"] else "incorrect"} &middot; {agreement}</p>', unsafe_allow_html=True)
+
+
+def choose_image(featured: TestGallery) -> str:
+    """The featured one-per-class row, or any test image when browsing is switched on."""
+    browse = st.toggle(f"Browse all {TEST_IMAGES:,} test images", value=False)
+    if browse:
+        reason = featured.full_split()
+        if reason:
+            st.markdown(f'<p class="note">{html.escape(reason)} Showing the ten featured images instead.</p>',
+                        unsafe_allow_html=True)
+            browse = False
+    if not browse:
+        return st.radio("Test image (one per class, chosen by a fixed rule)", options=list(featured.images),
+                        format_func=lambda i: featured.images[i]["label"], horizontal=True)
+    left, right = st.columns([1, 3], gap="medium")
+    with left:
+        name = st.selectbox("Class", ["All classes", *CLASS_NAMES])
+    ids = [i for i in featured.test_ids if name == "All classes" or CLASS_NAMES[featured.label(i)] == name]
+    with right:
+        position = st.slider(f"Image (of {len(ids):,}, in split-manifest order)", 1, len(ids), 1)
+    image_id = ids[position - 1]
+    window = ids[max(0, position - 5):position + 4]
+    for column, neighbour in zip(st.columns(len(window), gap="small"), window):
+        with column:
+            st.image(featured.png(neighbour), width="stretch")
+            current = neighbour == image_id
+            st.markdown(f'<p class="strip{" current" if current else ""}">{ids.index(neighbour) + 1:,}</p>',
+                        unsafe_allow_html=True)
+    return image_id
 
 
 def table(results: TestResults, snr: float, controls: bool) -> str:
@@ -168,6 +181,9 @@ h2 {font-size: 1.15rem !important; font-weight: 600 !important; padding-top: 1.4
 .caption {text-align: justify; margin: 0.4rem 0 1rem;}
 .caption b {color: #0b0b0b;}
 .ok {color: #1b7a52;} .bad {color: #b3261e;}
+.record {font-size: 0.84rem; margin-top: 0.4rem; padding-top: 0.35rem; border-top: 1px solid #e4e2dc;}
+.strip {text-align: center; font-size: 0.72rem; color: #8a8984; margin: -0.4rem 0 0;}
+.strip.current {color: #0b0b0b; font-weight: 600;}
 .empty {aspect-ratio: 1 / 1; border: 1px dashed #b9b8b3; display: flex; flex-direction: column;
         align-items: center; justify-content: center; color: #52514e; text-align: center;
         background: repeating-linear-gradient(45deg, #faf9f7, #faf9f7 6px, #f2f1ee 6px, #f2f1ee 12px);}
@@ -191,7 +207,7 @@ def main() -> None:
     st.set_page_config(page_title="DJSCC versus adaptive digital transmission", layout="wide")
     st.markdown(STYLE, unsafe_allow_html=True)
     results = test_results()
-    examples = evidence().examples
+    featured = gallery()
 
     st.title("Deep Joint Source–Channel Coding versus Adaptive Digital Transmission for Image Classification")
     st.markdown('<p class="byline">Interactive companion to the capstone paper &middot; Imagenette-160 '
@@ -218,19 +234,18 @@ def main() -> None:
         snr = st.select_slider("Channel SNR, Eₛ/N₀ (dB)", options=grid, value=initial,
                                format_func=lambda v: signed(v))
     with right:
-        image_id = st.radio("Source image (training split)", options=list(examples),
-                            format_func=lambda i: examples[i]["label"], horizontal=True)
-    controls = st.checkbox("Include the task-aware digital control (ER-9) in Section 2", value=False)
+        controls = st.checkbox("Add the ER-9 control to Section 2", value=False)
+    image_id = choose_image(featured)
 
     st.header("1. Single-image transmission")
-    truth = examples[image_id]["label"]
+    truth = CLASS_NAMES[featured.label(image_id)]
     with st.spinner(f"Transmitting at {signed(snr)} dB…"):
-        learned = run_learned(image_id, int(snr))
-        classical = run_classical(image_id, int(snr))
+        arms = transmit(evidence(), featured, image_id, int(snr))
+    learned, classical = arms["learned"], arms["classical"]
     a, b, c = st.columns(3, gap="medium")
     with a:
         st.markdown('<p class="panel-title">(a) Transmitted image</p>', unsafe_allow_html=True)
-        st.image(evidence().image_png(image_id), width="stretch")
+        st.image(featured.png(image_id), width="stretch")
         st.markdown(f'<p class="readout">Ground truth: <b>{html.escape(truth)}</b></p>', unsafe_allow_html=True)
     with b:
         receiver("(b) DJSCC receiver", learned, truth,
@@ -240,9 +255,12 @@ def main() -> None:
     st.markdown(
         f'<p class="caption"><b>Fig. 1.</b> One transmission of the selected image at {signed(snr)} dB, computed '
         "on this machine with the frozen <i>r</i> = 1/6 checkpoints and deterministic keyed channel noise. "
-        "The inputs are training-split examples, so these outputs illustrate the mechanism and are not "
-        "evidence of held-out accuracy. Softmax values are uncalibrated. The digital link uses the "
-        "configuration selected on validation data for this SNR; DJSCC was trained once and is not adapted.</p>",
+        "The image is from the test split, read after the G-12 freeze; by default one image per class, the "
+        "first by stable sample ID, or any test image when browsing. Each receiver also shows what the G-12 "
+        "test run recorded for this image at this SNR in seed pair 1 of 3, which uses the same checkpoints and "
+        "noise. These are display outputs, not reported metrics. Softmax values are uncalibrated. The digital "
+        "link uses the configuration selected on validation data for this SNR; DJSCC was trained once and is "
+        "not adapted.</p>",
         unsafe_allow_html=True)
 
     st.header("2. Measured accuracy on the test split")
@@ -274,6 +292,9 @@ def main() -> None:
         "<code>g12_test_differences.csv</code>, the tables behind the paper's figures; every plotted point is "
         "checked against the committed G-12 closeout <code>results/g12/results.csv</code> when this page starts. "
         "Fig. 2 is drawn by the paper's figure module, <code>deliverables/research-paper/figures/make_figures.py</code>. "
+        "Test images: the featured ten are bundled in <code>demo_shared/test_examples/</code> with their G-12 "
+        "records; browsing reads the extracted dataset through <code>data.test_access</code> and the "
+        "per-image records in <code>results/per_image/</code>. "
         "Live outputs: DJSCC checkpoint SHA-256 "
         f"<code>{evidence().live.checkpoint_id[:16]}…</code>, artifact classifier SHA-256 "
         f"<code>{evidence().classical.checkpoint_id[:16]}…</code>, both verified before loading. "

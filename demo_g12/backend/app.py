@@ -1,11 +1,19 @@
 """Offline demo, G-12 edition: the exhibition dashboard over the published test-split curves.
 
-Images, live inference and every safety check are the original demo backend's
-(demo/backend/app.py), reused unchanged. Only two routes differ: /api/metadata
-and /api/chart describe and serve the G-12 test curves
-(presentation-results/data/g12_test_curves.csv) instead of the W10 validation
-units. Every served point is checked against results/g12/results.csv at
-start-up. Nothing here trains a model or recomputes a reported metric.
+Built on the original demo backend (demo/backend/app.py), whose verified live
+inference classes and input validation are reused unchanged. Four routes differ:
+
+- /api/metadata and /api/chart describe and serve the G-12 test curves
+  (presentation-results/data/g12_test_curves.csv), each point checked against
+  results/g12/results.csv at start-up;
+- /api/images and /api/infer serve the fixed ten-image test gallery
+  (demo_shared/test_gallery.py, AM-101) instead of the four training examples,
+  and every live outcome is returned beside what G-12 recorded for that image;
+- /api/test-split and /api/test-images/{id} let a visitor browse all 3,925
+  test images and pick any one, when the extracted dataset and per-image
+  records are present.
+
+Nothing here trains a model or recomputes a reported metric.
 """
 
 from __future__ import annotations
@@ -13,9 +21,11 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import Response
 
 from demo.backend import app as base  # first: it puts src/ on sys.path
-from demo_streamlit.results import TEST_IMAGES, Key, Point, load_curves
+from demo_shared.results import TEST_IMAGES, Key, Point, load_curves
+from demo_shared.test_gallery import TestGallery, transmit
 
 from config.params import get  # noqa: E402
 
@@ -25,7 +35,7 @@ SERIES = (
     ("learned", "own_task_head", "Semantic DJSCC", "#0072B2"),
     ("classical_adaptive", "artifact_finetuned", "Classical adaptive (artifact scorer)", "#D55E00"),
 )
-REPLACED = {"/api/metadata", "/api/chart"}
+REPLACED = {"/api/metadata", "/api/chart", "/api/images", "/api/infer", "/api/examples", "/api/examples/{name}"}
 
 
 def load_g12() -> tuple[list[float], dict[Key, list[Point]]]:
@@ -33,8 +43,10 @@ def load_g12() -> tuple[list[float], dict[Key, list[Point]]]:
 
 
 def create_app(*, evidence: base.Evidence | None = None,
-               g12: tuple[list[float], dict[Key, list[Point]]] | None = None) -> FastAPI:
+               g12: tuple[list[float], dict[Key, list[Point]]] | None = None,
+               gallery: TestGallery | None = None) -> FastAPI:
     evidence = evidence or base.Evidence()
+    gallery = gallery or TestGallery()
     grid, curves = g12 or load_g12()
     if [float(v) for v in get("channel.test_snr_grid_db")] != grid:
         raise RuntimeError("G-12 curves do not use the specification's SNR grid")
@@ -63,8 +75,9 @@ def create_app(*, evidence: base.Evidence | None = None,
                 if available
             ],
             "classical_inference_available": evidence.classical.available,
-            "portable_example_count": len(evidence.examples),
-            "portable_examples_split": "train",
+            "portable_example_count": len(gallery.images),
+            "portable_examples_split": "test",
+            "gallery_rule": "one test image per class: the smallest stable sample ID (AM-101)",
         }
 
     @app.get("/api/chart")
@@ -84,6 +97,61 @@ def create_app(*, evidence: base.Evidence | None = None,
             "ratio": ratio, "series": series, "split": "test", "n_images": TEST_IMAGES,
             "metric": "top-1 accuracy, mean over seed cells; 95% image-bootstrap interval",
             "source": "results/g12/results.csv",
+        }
+
+    @app.get("/api/images")
+    def images() -> dict[str, Any]:
+        return {"split": "test", "images": [
+            {"id": image_id, "label": row["label"], "truth_label": row["label"],
+             "thumbnail_url": f"/api/test-examples/{row['id']}", "split": "test"}
+            for image_id, row in gallery.images.items()
+        ]}
+
+    @app.get("/api/test-examples/{name}")
+    def test_example(name: str) -> Response:
+        image_id = gallery.by_slug(name)
+        if image_id is None:
+            raise HTTPException(status_code=404, detail="unknown test-gallery image")
+        return Response(content=gallery.png(image_id), media_type="image/png",
+                        headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
+
+    @app.get("/api/test-split")
+    def test_split(page: int = Query(default=0, ge=0), size: int = Query(default=40, ge=1, le=100),
+                   label: int | None = Query(default=None, ge=0, le=9)) -> dict[str, Any]:
+        reason = gallery.full_split()
+        if reason is not None:
+            return {"available": False, "reason": reason, "total": 0, "page": 0, "pages": 0, "images": []}
+        ids = [i for i in gallery.test_ids if label is None or gallery.label(i) == label]
+        pages = max(1, -(-len(ids) // size))
+        page = min(page, pages - 1)
+        return {"available": True, "reason": None, "total": len(ids), "page": page, "pages": pages, "size": size,
+                "images": [{"id": i, "label": base.CLASS_NAMES[gallery.label(i)], "truth_label": base.CLASS_NAMES[gallery.label(i)],
+                            "thumbnail_url": f"/api/test-images/{i}", "split": "test"}
+                           for i in ids[page * size:(page + 1) * size]]}
+
+    @app.get("/api/test-images/{image_id}")
+    def test_image(image_id: str) -> Response:
+        if len(image_id) != 16 or any(c not in "0123456789abcdef" for c in image_id) or not gallery.known(image_id):
+            raise HTTPException(status_code=404, detail="unknown test image")
+        return Response(content=gallery.png(image_id), media_type="image/png",
+                        headers={"Cache-Control": "private, max-age=3600", "X-Content-Type-Options": "nosniff"})
+
+    @app.post("/api/infer")
+    def infer(request: base.InferRequest) -> dict[str, Any]:
+        if not gallery.known(request.image_id):
+            raise HTTPException(status_code=404, detail="unknown test image")
+        if float(request.snr_db) not in grid or request.ratio not in RATIOS:
+            raise HTTPException(status_code=422, detail="SNR or bandwidth ratio outside the G-12 grid")
+        if request.ratio != "r_1_6":
+            unavailable = {"status": "unavailable", "predicted_label": None, "confidence": None, "image_url": None,
+                           "detail": "Live inference runs at 1/6 only; G-12 per-image records are shown for 1/6."}
+            arms = {"learned": unavailable, "classical": unavailable}
+        else:
+            arms = transmit(evidence, gallery, request.image_id, request.snr_db)
+        return {
+            "split": "test", "image_id": request.image_id, "snr_db": request.snr_db, "ratio": request.ratio,
+            "input_image_url": f"/api/test-images/{request.image_id}",
+            **arms, "inference_mode": "fresh_cpu_display_output_checked_against_g12_record",
         }
 
     return app
