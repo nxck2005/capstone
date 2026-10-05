@@ -68,42 +68,52 @@ def _rows(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(handle))
 
 
-def load(root: Path = ROOT) -> TestResults:
-    closeout: dict[tuple[str, str], dict[float, list[dict[str, str]]]] = defaultdict(lambda: defaultdict(list))
+Key = tuple[str, str, str]  # (system, scorer, bw_ratio)
+
+
+def load_curves(keys: tuple[Key, ...], root: Path = ROOT) -> tuple[list[float], dict[Key, list[Point]]]:
+    """The exported test curves for `keys`, each point checked against the G-12 closeout."""
+    closeout: dict[Key, dict[float, list[dict[str, str]]]] = defaultdict(lambda: defaultdict(list))
     for row in _rows(root / CLOSEOUT_CSV):
         if row["split"] != "test" or int(row["n_test"]) != TEST_IMAGES:
             raise RuntimeError(f"G-12 closeout row {row['run_id']} is not a full test-split row")
-        if row["bw_ratio"] == "r_1_6":
-            closeout[(row["system"], row["classifier_variant"])][float(row["test_snr_db"])].append(row)
+        closeout[(row["system"], row["classifier_variant"], row["bw_ratio"])][float(row["test_snr_db"])].append(row)
 
-    exported: dict[tuple[str, str], list[dict[str, str]]] = defaultdict(list)
+    exported: dict[Key, list[dict[str, str]]] = defaultdict(list)
     for row in _rows(root / CURVES_CSV):
-        if row["bw_ratio"] == "r_1_6":
-            exported[(row["system"], row["classifier_variant"])].append(row)
+        exported[(row["system"], row["classifier_variant"], row["bw_ratio"])].append(row)
 
-    curves: dict[str, list[Point]] = {}
+    curves: dict[Key, list[Point]] = {}
     grid: list[float] | None = None
-    for system, scorer in PLOTTED:
-        rows = sorted(exported[(system, scorer)], key=lambda r: float(r["snr_db"]))
+    for key in keys:
+        system, _scorer, ratio = key
+        rows = sorted(exported[key], key=lambda r: float(r["snr_db"]))
         snrs = [float(r["snr_db"]) for r in rows]
         if len(rows) != 21 or (grid is not None and snrs != grid):
-            raise RuntimeError(f"{system}: exported curve does not cover the 21-point SNR grid")
+            raise RuntimeError(f"{system} {ratio}: exported curve does not cover the 21-point SNR grid")
         grid = snrs
         points = []
         for row in rows:
             snr = float(row["snr_db"])
-            cells = closeout[(system, scorer)][snr]
+            cells = closeout[key][snr]
             if int(row["n_images"]) != TEST_IMAGES or len(cells) != int(row["cells"]):
-                raise RuntimeError(f"{system} at {snr:g} dB: cell count differs from the closeout")
+                raise RuntimeError(f"{system} {ratio} at {snr:g} dB: cell count differs from the closeout")
             accuracy = sum(int(c["n_correct"]) / int(c["n_test"]) for c in cells) / len(cells)
             coverage = sum(float(c["coverage_rate"]) for c in cells) / len(cells)
             if not (math.isclose(accuracy, float(row["accuracy"]), abs_tol=1e-12)
                     and math.isclose(coverage, float(row["coverage"]), abs_tol=1e-12)):
-                raise RuntimeError(f"{system} at {snr:g} dB: exported value differs from the closeout")
+                raise RuntimeError(f"{system} {ratio} at {snr:g} dB: exported value differs from the closeout")
             points.append(Point(snr, float(row["accuracy"]), float(row["ci_low"]), float(row["ci_high"]),
                                 float(row["coverage"]), int(row["cells"])))
-        curves[system] = points
-    assert grid is not None
+        curves[key] = points
+    if grid is None:
+        raise ValueError("no curves requested")
+    return grid, curves
+
+
+def load(root: Path = ROOT) -> TestResults:
+    grid, verified = load_curves(tuple((system, scorer, "r_1_6") for system, scorer in PLOTTED), root)
+    curves = {system: points for (system, _scorer, _ratio), points in verified.items()}
 
     differences: dict[str, list[Difference]] = defaultdict(list)
     for row in _rows(root / DIFFERENCES_CSV):
