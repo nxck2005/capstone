@@ -1,0 +1,5 @@
+# Installed on top of the hashed CPU lock (requirements-cpu.lock).
+streamlit==1.65.0
+# The live inference classes are imported from the existing demo backend,
+# which declares its routes with FastAPI and pydantic at import time.
+fastapi>=0.115,<1

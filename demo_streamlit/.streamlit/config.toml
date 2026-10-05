@@ -1,0 +1,26 @@
+# Read when Streamlit starts from demo_streamlit/ (run-streamlit-demo.sh does this).
+[server]
+headless = true
+address = "127.0.0.1"
+port = 8501
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+serverAddress = "127.0.0.1"
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = "none"
+showSidebarNavigation = false
+
+[runner]
+magicEnabled = false
+
+[theme]
+base = "light"
+font = "serif"
+primaryColor = "#2a78d6"
+textColor = "#0b0b0b"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f6f5f2"
