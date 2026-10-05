@@ -1,6 +1,6 @@
 # Engineering Standards and Tools Register
 
-**Register baseline:** 2026-08-14
+**Register baseline:** 2026-08-14 · **Revised:** 2026-10-05 (demo tooling, test release)
 **Normative source:** [`spec/SPEC.md`](../spec/SPEC.md)  
 **Environment pins:** [`spec/params.generated.yaml`](../spec/params.generated.yaml) and [`requirements.lock`](../requirements.lock)
 
@@ -55,7 +55,9 @@ It must always be accompanied by the exclusions: no TS 38.214 transport-block/MC
 | uv | >=0.11 for resolution | **I** | Generate hashed lockfiles with recorded index URLs | `unsafe-best-match` and `--emit-index-url` are required; runtime remains plain-pip installable |
 | Git | Repository history | **I** | Source identity, immutable checkpoint history, release ancestry | Evidence binds commits and/or source-byte SHA-256 according to artifact role |
 | GitHub / GitHub Actions | Workflow actions pinned by commit SHA | **I** | Remote durability, release assets, small hosted CI lanes | CI classifies changes; scientific evidence remains verified offline from committed artifacts |
-| Streamlit | Version not yet frozen | **P** | W13 local demonstration UI | Selection and lockfile entry occur only when DR-1–DR-6 implementation starts |
+| Streamlit | 1.65.0 | **I** | Academic-style offline demo (`demo_streamlit/`) | Pinned in `demo_streamlit/requirements.txt` on top of the hashed CPU lock; binds to 127.0.0.1, usage statistics off |
+| FastAPI / uvicorn | 0.115.12 / 0.34.2 | **I** | Local API and static server for the two dashboard demos (`demo/`, `demo_g12/`) | Ranges in `demo/backend/requirements.txt` (not in the hashed lock); binds to 127.0.0.1 only |
+| React / TypeScript / Vite / Tailwind CSS / Vitest | 18.3.1 / 5.9.3 / 6.4.3 / 3.4.19 / 5.0.2 | **I** | Dashboard demo frontends | `package-lock.json` per frontend; Node/npm needed only to build (Node 24.21.0 / npm 11.19.0 on the reference machine); fonts bundled, no CDN |
 | GNU Radio / SoapySDR or vendor API | Not selected | **P** | Optional Tier 2 SDR framing, synchronization, and replay | Selection is gated by G-5 and hardware availability; no current Tier 1 dependency |
 
 ## 4. Data, model, and evidence controls
@@ -65,26 +67,26 @@ These are project engineering controls rather than external standards, but they 
 | Control | Registered implementation | Evidence |
 |---|---|---|
 | Dataset provenance | Exact archive byte length and SHA-256; canonical tracked split manifests | `tools/fetch_datasets.py --check`, manifest materialization, provenance-only test scan |
-| Test isolation | Sole guarded boundary in `src/data/test_access.py`; release at G-12 | AST import-graph test and per-artifact zero-access counters |
+| Test isolation | Sole guarded boundary in `src/data/test_access.py`; released at G-12 on 2026-10-02 under the committed freeze; demo test-image reads are display-only (AM-101) | AST import-graph test inside `src/` (currently failing on `src/data/split_release.py`), freeze-manifest checks and per-artifact zero-access counters |
 | Randomness | Domain-separated keyed identities for initialization, data order, channel noise, and artifacts | Exact-key and control-flow-invariance tests |
 | Configuration | Runtime reads generated YAML; `config_hash` is a versioned complete fingerprint | Literal lint and schema validation |
 | Evidence identity | Canonical JSON, SHA-256, byte length, source manifest, contract IDs | Offline verifiers and mutation tests |
 | Crash recovery | Atomic publication, per-unit locks, predecessor digests, exact resumable prefixes | G8 B2C/B3 contracts and adversarial tests |
-| Statistical analysis | Paired image-level outcomes, preregistered confidence method, failure rows retained | Final ER-1/ER-10 analysis after G-12 |
+| Statistical analysis | Paired image-level outcomes, preregistered confidence method, failure rows retained | G-12 analysis `results/g12/analysis.json` and `results/inference_summary.csv` (2026-10-02) |
 
 ## 5. Hardware and laboratory register
 
 | Item | Current state | Role | Constraint |
 |---|---|---|---|
 | NVIDIA GeForce RTX 4060 Laptop GPU | Available and profiled | Training and full-strength simulation | CUDA 13.0 PyTorch build; driver 592.82 recorded in evidence |
-| Dedicated Pascal worker: GeForce GTX 1080 Ti (11 GB) + TITAN Xp (12 GB) | Both GP102 devices enumerated by user-supplied `lspci`; not yet project-qualified | Candidate future independent experiment workers | Both cards require a Pascal-capable software lane; they are not authorized for the live G8_C suffix |
-| Dedicated-worker Intel NVMe controller | Enumerated by user-supplied `lspci`; capacity/filesystem not yet measured | Candidate local datasets, caches and checkpoints | Confirm mounted capacity, free space and health before delegation; `lspci` cannot exclude additional SATA disks |
+| Dedicated Pascal worker (`confessor`): GeForce GTX 1080 Ti (11 GB) + TITAN Xp (12 GB) | Qualified as execution profile `confessor_pascal_cu126` (DEC-4); both UUID-bound GPUs authenticated | Ran the production work from the G8_C successor through G-12 | CUDA 12.6 Pascal lane (`requirements-pascal.lock`); one frozen profile per campaign |
+| Dedicated-worker Intel NVMe controller | Enumerated by `lspci`; which device backs the worker's storage was not separately recorded | The worker's local storage holds the production runtimes, logs and checkpoints | Bulky runtimes stay worker-local; compact evidence is committed |
 | WSL2 `/dev/dxg` CUDA path | Available | GPU access boundary | A visible adapter is insufficient; PyTorch CUDA initialization is the acceptance test |
 | HackRF One + RTL-SDR pair | Candidate only | Optional transmit/receive SDR replay | No purchase before G-5; at least 1 Msps required; candidate capability must be rechecked before procurement |
 | SMA attenuator/cable chain | Candidate only | Conducted loopback and safe receiver level | Must be specified before connecting transmitter to receiver; antenna-free bench replay preferred |
 | Raspberry Pi 4/5-class host | Candidate only | Optional Tier 3 edge demo | Attempt only if Tier 2 lands; otherwise prerecorded demonstration is the mandated fallback |
 
-### 5.1 Dedicated Pascal worker finding — 2026-08-14
+### 5.1 Dedicated Pascal worker finding — 2026-08-14 (historical; the worker was qualified afterwards, see the table above)
 
 The worker's user-supplied PCI enumeration confirms a GeForce GTX 1080 Ti at
 `3b:00.0`, a TITAN Xp at `d8:00.0`, and an Intel NVMe controller at `5e:00.0`.

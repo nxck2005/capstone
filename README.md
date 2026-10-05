@@ -68,7 +68,85 @@ drift guard to run after any spec change.
 
 ## Status
 
-**Current W9 status (2026-09-13):** G10 is CLOSED after 63 validation-only
+**Current status (2026-10-05): the experiment is complete.** Every model, operating point and
+analysis choice was frozen on validation data, then the G-12 campaign evaluated all systems once on
+the 3,925 held-out Imagenette-160 test images at 21 SNRs (freeze
+`g12freeze-f96082101953546fdda096746c073bea342358a6f0e5f045c6435020d5fe511c`, 441/441 units,
+closed 2026-10-02). **All four preregistered hypotheses are supported** (H1 calibrated p = 0.030,
+H2 difference-in-differences 76.5 points, H3 slope −1.71 points/dB, H4 calibrated p = 0.0096). At
+bandwidth ratio 1/6, averaged over three seeds:
+
+- DJSCC classifies **76.1%** correctly at −8 dB, where neither digital system delivers a packet, and
+  leads adaptive JPEG 2000 + LDPC by 66–70 points from −8 to −5 dB.
+- The two are tied at −4 and −3 dB. From −2 dB up, JPEG 2000 + LDPC is more accurate, by about four
+  points at high SNR (86.6% against 82.4% at 18 dB).
+- The task-aware digital control (ER-9) reaches 81.1% once its packets arrive. DJSCC beats it by
+  0.7–1.3 points from 1 dB up and ties it from −4 to 0 dB. A rate-1/5 variant (AM-100) delivers from
+  −7 dB, leaving DJSCC a clear lead only at −7 dB and below.
+
+The results are in [`results/g12/`](results/g12/) (`analysis.json`, `results.csv`); the per-image
+streams are published as the GitHub release `g12-test-per-image-2026-10-02`. The research paper
+(`deliverables/research-paper/`) and its supplement report these test numbers and are being
+rewritten by the authors. Three offline demos present them (see [Demos](#demos)). What remains is
+programme work: the paper rewrite, the A0 poster, the final report and the plagiarism report.
+[`docs/RESULTS.md`](docs/RESULTS.md) explains every result and its caveats; [`NEXT.md`](NEXT.md) is
+the live hand-off.
+
+### Checks and data
+
+Measured claims are backed by [`spec/evidence/`](spec/evidence/) rather than asserted: the W0 spike
+record, the golden-vector cross-check, and a TS 38.212 packetisation conformance check that runs in
+under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
+
+```bash
+.venv/bin/python tools/gen_spec_views.py --check       # 212 requirements, 10 generated files
+.venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
+.venv/bin/python tools/check_literals.py               # no parameter-valued source literals
+.venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
+.venv/bin/python tools/verify_cpu_lock.py --clean-install
+.venv/bin/python tools/fetch_datasets.py --check       # exact archive length + SHA-256
+.venv/bin/python tools/materialize_manifests.py --check
+.venv/bin/python tools/verify_datasets.py              # real train/val smoke; zero test decode/canonicalization
+.venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --smoke-steps 3 --smoke-val-batches 2  # bounded smoke; never G-1 evidence
+.venv/bin/python tools/verify_g1_adjudication.py        # offline: epochs, counts, hashes, floor, lineage and checkpoint identity
+.venv/bin/python tools/verify_g7_profile.py             # offline: clean commit, CUDA profile, caps, limits and training-only scope
+.venv/bin/python tools/verify_transparency_bitrate_probe.py
+.venv/bin/python tools/fetch_ldpc_golden_vectors.py     # materialize the ignored rung-2 fixture; required before pytest
+.venv/bin/python tools/gen_g2_source_manifest.py --check # G-2's execution sources still match the measurement commit
+.venv/bin/python tools/verify_g2_adjudication.py
+.venv/bin/python tools/gen_g8_e_e7_handoff.py --check
+.venv/bin/python tools/verify_g8_e_complete.py
+.venv/bin/python -m pytest
+```
+
+The rung-2 srsRAN golden-vector fixture `tests/fixtures/ldpc_ts38212_golden.npz` is deliberately
+git-ignored, because third-party vector bytes are never committed — only their checksums and a
+fetcher (AM-25). So on a fresh clone the fetch line above must run **before** `pytest`, or
+`tests/test_ldpc.py::test_srsran_encoder_and_rate_matched_fixture_exact` fails on the absent file.
+The fetch is a network-free no-op once the fixture exists, and the project-owned offline-floor
+test beside it never needs the network at all.
+
+The tracked manifests and their exact SHA-256 values are:
+
+| Dataset | Manifest | Train / val / test | SHA-256 |
+|---|---|---:|---|
+| Imagenette-160 | `data/manifests/imagenette160.csv` | 8469 / 1000 / 3925 | `224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889` |
+| STL-10 | `data/manifests/stl10.csv` | 4500 / 500 / 8000 | `67936da779dc0010160b37b3b40001490304a5873eb978d261e3a57947387b47` |
+| CIFAR-10 | `data/manifests/cifar10.csv` | 45000 / 5000 / 10000 | `09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537` |
+
+Downloaded archives and extracted datasets stay ignored. Their normative URL, filename, exact byte
+length and SHA-256 are pinned under `params.datasets` in the generated datasheet and verified before
+any sample or manifest scan is allowed.
+
+[`NEXT.md`](NEXT.md) is the short-lived working file for what happens next — read it first.
+See [`AGENTS.md`](AGENTS.md) for how the repo is organized.
+
+### ~~Build history (W1–W9)~~
+
+> Superseded record, kept for provenance. Each paragraph describes the repository when it was
+> written; statements such as "test is SEALED" were true then and are not current.
+
+**W9 status (2026-09-13, superseded):** G10 is CLOSED after 63 validation-only
 evaluations (`expected_crossover_observed`, crossover bracket −5 → −4 dB),
 AM-95 and AM-96 are CLOSED, and AM-97 is CLOSED as a pointwise H4 precision
 diagnostic only—it does not certify full H4 power. ER-9 v4 Stage 1 is CLOSED:
@@ -222,53 +300,6 @@ The 2026-07-28 rounds answered the pre-implementation gate audit in [`audit/`](a
 environment and config foundation, tightened all four preregistered hypotheses into uniquely
 executable form, rewrote packetisation evidence that had passed while breaking four rules, and
 resolved the academic calendar.
-
-Measured claims are backed by [`spec/evidence/`](spec/evidence/) rather than asserted: the W0 spike
-record, the golden-vector cross-check, and a TS 38.212 packetisation conformance check that runs in
-under a second with no GPU and no network. The repository's checks are meant to be run, not trusted:
-
-```bash
-.venv/bin/python tools/gen_spec_views.py --check       # 212 requirements, 10 generated files
-.venv/bin/python tools/check_doc_consistency.py        # current hand-written documentation agrees
-.venv/bin/python tools/check_literals.py               # no parameter-valued source literals
-.venv/bin/python spec/evidence/check_packetisation.py  # 215 feasible, 144 obligation, 0 failures
-.venv/bin/python tools/verify_cpu_lock.py --clean-install
-.venv/bin/python tools/fetch_datasets.py --check       # exact archive length + SHA-256
-.venv/bin/python tools/materialize_manifests.py --check
-.venv/bin/python tools/verify_datasets.py              # real train/val smoke; zero test decode/canonicalization
-.venv/bin/python tools/train_reference_classifier.py --config configs/reference-classifier-clean.yaml --dataset imagenette160 --device cuda --smoke-steps 3 --smoke-val-batches 2  # bounded smoke; never G-1 evidence
-.venv/bin/python tools/verify_g1_adjudication.py        # offline: epochs, counts, hashes, floor, lineage and checkpoint identity
-.venv/bin/python tools/verify_g7_profile.py             # offline: clean commit, CUDA profile, caps, limits and training-only scope
-.venv/bin/python tools/verify_transparency_bitrate_probe.py
-.venv/bin/python tools/fetch_ldpc_golden_vectors.py     # materialize the ignored rung-2 fixture; required before pytest
-.venv/bin/python tools/gen_g2_source_manifest.py --check # G-2's execution sources still match the measurement commit
-.venv/bin/python tools/verify_g2_adjudication.py
-.venv/bin/python tools/gen_g8_e_e7_handoff.py --check
-.venv/bin/python tools/verify_g8_e_complete.py
-.venv/bin/python -m pytest
-```
-
-The rung-2 srsRAN golden-vector fixture `tests/fixtures/ldpc_ts38212_golden.npz` is deliberately
-git-ignored, because third-party vector bytes are never committed — only their checksums and a
-fetcher (AM-25). So on a fresh clone the fetch line above must run **before** `pytest`, or
-`tests/test_ldpc.py::test_srsran_encoder_and_rate_matched_fixture_exact` fails on the absent file.
-The fetch is a network-free no-op once the fixture exists, and the project-owned offline-floor
-test beside it never needs the network at all.
-
-The tracked manifests and their exact SHA-256 values are:
-
-| Dataset | Manifest | Train / val / test | SHA-256 |
-|---|---|---:|---|
-| Imagenette-160 | `data/manifests/imagenette160.csv` | 8469 / 1000 / 3925 | `224309422f15bf89460559381aea4b00c4779c52d3652f7f679a213369f3f889` |
-| STL-10 | `data/manifests/stl10.csv` | 4500 / 500 / 8000 | `67936da779dc0010160b37b3b40001490304a5873eb978d261e3a57947387b47` |
-| CIFAR-10 | `data/manifests/cifar10.csv` | 45000 / 5000 / 10000 | `09e9debf4743831ca61f17154a997e60becdd7046a585bdbd94b5db4bf12a537` |
-
-Downloaded archives and extracted datasets stay ignored. Their normative URL, filename, exact byte
-length and SHA-256 are pinned under `params.datasets` in the generated datasheet and verified before
-any sample or manifest scan is allowed.
-
-[`NEXT.md`](NEXT.md) is the short-lived working file for what happens next — read it first.
-See [`AGENTS.md`](AGENTS.md) for how the repo is organized.
 
 ## License
 

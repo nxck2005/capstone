@@ -1,22 +1,19 @@
 # Resume ledger — PA / PB_1 / PB_2 / PRE_B3 / PB_3 / PB_3C / G8
 
-## Current W10 handoff
+## Current handoff (2026-10-05)
 
-The live project cursor is [`NEXT.md`](../NEXT.md). ER-9 production, randomized
-ER-2, G11/H4 and G10 are closed and immutable, and the single PAPR-constrained
-lifecycle is GREEN/CLOSED/PUBLISHED: exactly one run (100/100 epochs, selected
-zero-based epoch 79 at 833/1000, final 823/1000, max PAPR 3.000002384185791 dB
-against the 3.0 dB cap; completion `paprcompletion-2d23d342…`; checkpoint
-`145ec923…`). Do not retrain, rerun or re-authorize PAPR. The exact next action
-is owner-freezing the JPEG-secondary validation selection and the ER-12
-validation selection — neither has run — before the W10 rehearsal authority.
-The W10 authority is NOT frozen; W10 units = 0; G12 is unopened;
-**test is SEALED**; test_access = 0. The known hosted-W10-terminal verifier
-TODO is recorded at the top of `NEXT.md`.
+The live project cursor is [`NEXT.md`](../NEXT.md). The experiment is complete:
+both W10 validation selections were frozen and the 252-unit W10 v11 validation
+rehearsal closed (`c31dd2b`); the G-12 test campaign ran once under freeze
+`g12freeze-f96082101953546fdda096746c073bea342358a6f0e5f045c6435020d5fe511c`
+(441/441 units, closed 2026-10-02) and H1–H4 are all supported. No scientific
+work remains; do not retrain, rerun or re-authorize any closed campaign. The
+next work (W13–W15) is the programme deliverables: paper rewrite, poster, final
+report.
 
 The rest of this file preserves the completed G8 custody and recovery ledger.
 Its machine-checked Pascal cursor records the G8 execution state; it is not the
-live W10 next-step declaration.
+live next-step declaration.
 
 ## Current execution-profile handoff (AM-83–AM-86)
 

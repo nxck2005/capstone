@@ -2,7 +2,9 @@
 
 A stress test of the project's novelty claim against published work, written to answer one viva
 question: *why is this project novel?* Not normative — `spec/SPEC.md` governs, and DEC-13 is still
-the recorded novelty position until an AM entry changes it.
+the recorded novelty position until an AM entry changes it. Written before the G-12 test campaign;
+the test results (2026-10-02) support the short answer below, and the code-rate decision it raised
+was taken as AM-100.
 
 Scope: about 25 web searches and five full papers read. This is not a systematic review, so every
 "first" below must be said as "to our knowledge". Lokumarambage et al. 2026 was paywalled; only its
@@ -70,9 +72,11 @@ NR-realistic rates would deliver about 76–82% where DJSCC scores about 73–76
 remove DJSCC's only winning region and most of H1's footing. The paper already makes this argument
 for the label control ("a link built for a 4-bit payload could use a much lower code rate").
 
-**Status: owner deferred this decision to 2026-10-02. It must be made before the G-12 freeze
-manifest is committed, because Option 2 cannot be added afterwards without breaking the
-preregistration.**
+**Status: decided 2026-10-02, before the G-12 freeze.** The owner chose a variant of Option 2
+(AM-100): instead of re-running BR-4 with a wider rate set, a fixed rate-1/5 ER-9 variant was added
+as a descriptive secondary system. On test it delivers from −7 dB and scores 80.9% from −6 dB,
+leaving DJSCC a clear lead only at −7 dB and below (see [`RESULTS.md`](RESULTS.md)). The rest of
+this section is the decision as it was framed on 2026-10-01.
 
 Options (owner's decision):
 1. **Disclose** it in Limitations and qualify every "DJSCC is the only system below −5 dB" claim with

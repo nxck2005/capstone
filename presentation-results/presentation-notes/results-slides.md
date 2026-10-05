@@ -1,5 +1,7 @@
 # Six results slides to insert into the existing deck
 
+> **Update 2026-10-05:** this package predates the G-12 test campaign. G-12 has since run once on the 3,925 test images (2026-10-02) and all four hypotheses are supported. For test numbers use `data/g12_test_curves.csv` and `data/g12_test_differences.csv`, the paper's figures and [`docs/RESULTS.md`](../../docs/RESULTS.md). The validation numbers here are unchanged and still correct.
+
 **Opening bridge (20 seconds):** “We ask whether a system trained end to end for image classification can keep its decision useful when a short wireless link degrades. We compare at the same number of channel uses, then test what changes when training, bandwidth, digital controls and peak power change.” The result is a system-level validation comparison, not a claim that one channel code alone wins.
 
 ## 1. A usable decision below the digital delivery transition

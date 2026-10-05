@@ -1,6 +1,6 @@
 # Project Gantt Plan
 
-**Baseline date:** 2026-08-27
+**Baseline date:** 2026-08-27 · **Revised:** 2026-10-05
 **Owner:** project author  
 **Control source:** [`spec/SPEC.md` §13](../spec/SPEC.md#13-schedule--gates)  
 **Fixed review windows:** First 2026-08-18–22; Second 2026-09-29–10-03; Final 2026-11-17–21
@@ -21,6 +21,18 @@ frozen; no W7 scientific optimizer step, λ result, G-4 adjudication or λ
 selection exists. W7-B requires separate owner authorization. W8 and test
 remain unexecuted/sealed. Planned downstream windows preserve the normative
 order and fixed review dates.
+
+**Status correction (2026-10-05):** W7-B through W10 are GREEN/CLOSED; the W10
+v11 validation rehearsal closed with both selections frozen (`c31dd2b`). The
+G-12 freeze was committed and the single test campaign ran on **2026-10-02**,
+three days ahead of the W11 window, with 441/441 units; all four hypotheses are
+decided (supported) and the results are committed under `results/g12/`, which
+is what W12/G-5 requires. The W13 demo bar finished early: three offline demos
+(two React + FastAPI dashboards and one Streamlit page) give the SNR slider,
+paired live pipelines and frozen plots. Changed bars: W10–W13 complete. Cause:
+compute ran ahead of the teaching-week windows. Effect on the critical path: it
+now runs only through reporting (W14 poster, W15 internal freeze, W17 final
+delivery); no scientific work remains. Fallback: none needed.
 
 ## 1. Calendar view
 
@@ -50,16 +62,16 @@ gantt
     W5 training loop, dual head, resume             :done, w5, 2026-08-27, 1d
     W6 classical evidence closure                   :done, w6, 2026-08-27, 1d
     W7-A protocol, profile and source freeze        :done, w7a, 2026-08-27, 1d
-    W7-B one-seed pilot and lambda calibration G-4   :crit, w7, 2026-09-11, 7d
-    W8 final paired multi-seed training              :crit, w8, 2026-09-18, 7d
-    W9 G-10, ER-9 control, mismatch study, G-11     :crit, w9, 2026-09-25, 7d
-    W10 paired inference and validation rehearsal    :crit, w10, 2026-10-02, 7d
+    W7-B one-seed pilot and lambda calibration G-4   :done, w7, 2026-09-11, 7d
+    W8 final paired multi-seed training              :done, w8, 2026-09-18, 7d
+    W9 G-10, ER-9 control, mismatch study, G-11     :done, w9, 2026-09-25, 7d
+    W10 paired inference and validation rehearsal    :done, w10, 2026-10-02, 7d
     Second Review window                            :milestone, r2, 2026-09-29, 0d
 
     section Frozen evaluation
-    W11 freeze then single test campaign, G-12      :crit, w11, 2026-10-05, 7d
-    W12 freeze Tier 1 results, G-5                  :crit, w12, 2026-10-12, 7d
-    W13 Streamlit demo                              :w13, 2026-10-19, 7d
+    W11 freeze then single test campaign, G-12      :done, w11, 2026-10-02, 1d
+    W12 freeze Tier 1 results, G-5                  :done, w12, 2026-10-02, 1d
+    W13 demos (React dashboards + Streamlit)        :done, w13, 2026-09-27, 2026-10-05
 
     section Reporting and optional hardware
     W14 Tier 2 replay or prerecorded fallback       :w14, 2026-10-26, 7d
@@ -92,10 +104,10 @@ gantt
 | W7-B pilot and λ calibration | 11–17 Sep | W7-A + separate owner authorization | One-seed pilot and G-4 | **GREEN/CLOSED** — W7-C G-4 adjudication ran exactly once and the frozen adjudicator selected primary-tier λ `3.0`; W8-C and G-4 evidence are immutable |
 | W8 headline training | 18–24 Sep | G-4 | Frozen multi-seed checkpoints at every selected ratio | **GREEN/CLOSED** — W8-C's six runs, 600 epoch/checkpoint/sidecar/validation transactions and six frozen selections authenticate from immutable worker custody |
 | W9 attribution and robustness | 25 Sep–1 Oct | W8 | G-10 decision; ER-9; H4 precision; G-11 | **CLOSED** — G-10 closed `expected_crossover_observed` with crossover bracket −5 → −4 dB after 63 validation-only evaluations; ER-9 production selected D2048/b2 at 820/1000; randomized ER-2 and G11/H4 are CLOSED and immutable |
-| W10 validation rehearsal | 2–8 Oct | W9 | Paired full-grid validation rehearsal and Second Review figures | **Figures delivered; authority open** — 252 validation units across 12 arms and 21 SNRs are published and back the Second Review figures, but the AM-98 rehearsal authority is not frozen and the JPEG-secondary and ER-12 validation selections have not run. W10 units on the frozen authority remain 0 |
-| W11 single test campaign | 5–11 Oct | Freeze manifest and G-12 | One guarded test opening covering every registered test-reading experiment | Sealed; `test_access` = 0 |
-| W12 Tier 1 close | 12–18 Oct | W11 | Frozen ER-1–ER-4, ER-9, ER-10; every hypothesis decided; G-5 | Not started |
-| W13 demo | 19–25 Oct | Frozen checkpoints/results | SNR slider, paired pipelines, frozen plot, latency record | Not started |
+| W10 validation rehearsal | 2–8 Oct | W9 | Paired full-grid validation rehearsal and Second Review figures | **GREEN/CLOSED** — JPEG-secondary and ER-12 validation selections frozen; the 252-unit W10 v11 rehearsal (12 arms × 21 SNRs) closed and published (`c31dd2b`) |
+| W11 single test campaign | 5–11 Oct | Freeze manifest and G-12 | One guarded test opening covering every registered test-reading experiment | **GREEN/CLOSED** — ran 2026-10-02 under freeze `g12freeze-f9608210…`: 441/441 units on 3,925 test images, three seed pairs; corrections 1–2 recorded |
+| W12 Tier 1 close | 12–18 Oct | W11 | Frozen ER-1–ER-4, ER-9, ER-10; every hypothesis decided; G-5 | **Met** — H1–H4 decided (all supported) with paired intervals; results committed under `results/g12/`. Any hardware purchase stays optional (DEC-14) |
+| W13 demo | 19–25 Oct | Frozen checkpoints/results | SNR slider, paired pipelines, frozen plot, latency record | **Complete early** — `demo/`, `demo_g12/`, `demo_streamlit/`; per-request timings are noted in `demo/backend/API.md`, with no formal latency record |
 | W14 hardware/poster | 26 Oct–1 Nov | G-5 for purchase; Tier 2 readiness | SDR replay or prerecorded fallback; poster draft | Optional/not started |
 | W15 internal report freeze | 2–8 Nov | Frozen results | Prescribed-format thesis, audit, novelty statement, plagiarism workflow | Not started |
 | W16 contingency | 9–15 Nov | W15 | Report completion and audit only; no new scientific scope | Reserved |
@@ -111,7 +123,7 @@ The scientific critical path is:
 Control rules:
 
 1. **No downstream work crosses a gate.** G8_E full validation measurement and pass-one selection begin only after E0; G8_F waits for the immutable G8_E pass-one state; G8_G waits for the immutable G8_F pass-two state; learned-system training, calibration, final training and test access remain behind their later gates.
-2. **The test split stays sealed until G-12.** Review demonstrations use validation data and are labelled accordingly.
+2. **The test split stayed sealed until G-12** and was opened once, on 2026-10-02. Review demonstrations before then used validation data; the demos' later test-image reads are display-only (AM-101).
 3. **Hardware purchase is conditional on G-5.** Failure at G-5 abandons Tier 2/3 and moves effort to reporting.
 4. **W16 is allocated contingency, not feature capacity.** It absorbs report completion and results-audit variance.
 5. **Review dates do not move.** If scientific work slips, the review reports the actual state; it does not bypass a gate to manufacture a figure.

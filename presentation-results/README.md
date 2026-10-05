@@ -1,6 +1,8 @@
 # W10 validation results package
 
-**Source of truth:** published closeout commit `c31dd2bf9edac3a699515852997ab919e73e5d00`, `results/learned/w10/w10_continuation_closeout_v11.json`. The source is the completed W10 v11 closeout spanning v8, v9 and v11 execution epochs: 252 authenticated validation units, 357 scorer streams, 12 arms × 21 measured SNRs. Final test remains **SEALED**, `test_access=0`. These are validation findings, not final-test results.
+**Source of truth:** published closeout commit `c31dd2bf9edac3a699515852997ab919e73e5d00`, `results/learned/w10/w10_continuation_closeout_v11.json`. The source is the completed W10 v11 closeout spanning v8, v9 and v11 execution epochs: 252 authenticated validation units, 357 scorer streams, 12 arms × 21 measured SNRs. When this package was built the final test was **SEALED** (`test_access=0`). These are validation findings, not final-test results.
+
+> **Update 2026-10-05:** this package predates the G-12 test campaign. G-12 has since run once on the 3,925 test images (2026-10-02) and all four hypotheses are supported. For test numbers use `data/g12_test_curves.csv` and `data/g12_test_differences.csv`, the paper's figures and [`docs/RESULTS.md`](../docs/RESULTS.md). The validation numbers here are unchanged and still correct.
 
 ## Use in slides or a paper
 
@@ -13,6 +15,7 @@ The three most useful capstone figures are **01** (full comparison), **02** (low
 - `figures/{png,pdf,svg}/`: eight numbered figures in each format.
 - `data/w10_primary_252.csv`: one row per published unit, including primary scorer accuracy, delivery counts, PAPR, identity and epoch.
 - `data/w10_scorers_357.csv`: every published scorer stream, including the clean-scorer secondary classical streams.
+- `data/g12_test_curves.csv`, `data/g12_test_differences.csv`: the later G-12 **test** tables (seed-averaged curves with 95% intervals, and paired differences), written by `tools/export_g12_tables.py`; the paper's figures use them.
 - `report/findings.md`: scientific findings, metric definitions and limitations.
 - `report/figure-index.md`: captions and exact curves for all figures.
 - `presentation-notes/results-slides.md`: a six-slide results sequence and speaker notes.

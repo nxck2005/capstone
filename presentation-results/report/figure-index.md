@@ -1,5 +1,7 @@
 # Figure index and slide captions
 
+> **Update 2026-10-05:** this package predates the G-12 test campaign. G-12 has since run once on the 3,925 test images (2026-10-02) and all four hypotheses are supported. For test numbers use `data/g12_test_curves.csv` and `data/g12_test_differences.csv`, the paper's figures and [`docs/RESULTS.md`](../../docs/RESULTS.md). The validation numbers here are unchanged and still correct.
+
 All x positions are measured channel SNR in dB. Accuracy is end-to-end `n_correct/1000` on the frozen validation split. Solid connecting segments guide the eye; they are not interpolated evidence. The PDF/SVG/PNG files have the same numbered basename.
 
 | Figure | What is plotted | Suggested caption and qualification |

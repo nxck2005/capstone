@@ -1,6 +1,6 @@
 # Project Knowledge Transfer
 
-Written 2026-10-01, replacing the version from before final training. This is the document to read first if you are new to the project, coming back to it, or preparing for a review or viva. It explains the idea, the experiment, where things stand, what was found, and how the repository is organised, in that order.
+Written 2026-10-01 and updated 2026-10-05 for the final test results. This is the document to read first if you are new to the project, coming back to it, or preparing for a review or viva. It explains the idea, the experiment, where things stand, what was found, and how the repository is organised, in that order.
 
 It is not normative. `spec/SPEC.md` governs the science, `NEXT.md` holds the session-to-session working state, and [`RESULTS.md`](RESULTS.md) holds every measured number with its caveats. If this document disagrees with any of those, they win.
 
@@ -22,7 +22,7 @@ The project succeeds if this comparison is built, run, and reported properly und
 
 ## 2. Where the project stands
 
-As of 2026-10-01, during Second Review week (29 September – 3 October).
+As of 2026-10-05. The experiment is complete; what remains is writing.
 
 | Stage | State |
 |---|---|
@@ -39,17 +39,22 @@ As of 2026-10-01, during Second Review week (29 September – 3 October).
 | SNR-randomized DJSCC (ER-2), PAPR-capped DJSCC | Done: one run each |
 | H4 precision diagnostic (G-11) | Done: see [`RESULTS.md`](RESULTS.md), finding 11 |
 | Full validation rehearsal: 12 variants × 21 SNRs (W10) | Done: 252 measurements, published at `c31dd2b` |
-| Second Review deck, demo app, paper draft, supplement | Ready |
-| **Test split** | **Sealed. Never read by a model.** |
+| Rate-1/5 task-aware digital variant (AM-100) | Done: validation, then included in G-12 |
+| Freeze manifest and the single test campaign (G-12) | Done 2026-10-02: 441/441 units on the 3,925 test images, three seed pairs |
+| **H1–H4** | **All four supported on test** (see §8) |
+| Paper and supplement | Report the test results; the authors are rewriting the paper |
+| Second Review deck | Prepared for 29 Sep – 3 Oct |
+| Demos | Three offline demos (see §9) |
+| **Test split** | **Opened once, at G-12, under the committed freeze. Not evaluated again.** |
 
 **What comes next**, in order (the dates are the course's, from `params.deliverables`):
 
-1. **W11: G-12 test release.** Commit the freeze manifest (`results/freeze_manifest.json`, which does not exist yet), covering the code commit, configs, split manifest, checkpoints, classifier variants and operating points. Only then open the test split for **one** campaign. That campaign runs every system on the full 3,925-image test split with three seed pairs, then runs the paired bootstrap that decides H1–H4. The freeze-manifest generator, the test-campaign runner and the H1–H4 analysis still have to be built.
-2. **W12:** results frozen and reported whichever way they fall (G-5).
-3. **W13–W14:** figure polish; optional hardware stretch (Tier 2 SDR replay), otherwise a pre-recorded demo; poster draft.
-4. **W15:** report in the university format, results audit, novelty statement, plagiarism report. **Internal report freeze.**
-5. **W16:** contingency, allocated to finishing the report.
-6. **W17: Final Review, 17–21 November. Report due 20 November.**
+1. **W13–W14:** the authors' rewrite of the paper (keep the AI-use acknowledgment accurate), figure polish, poster draft; optional hardware stretch (Tier 2 SDR replay), otherwise a pre-recorded demo.
+2. **W15:** report in the university format, results audit, novelty statement, plagiarism report. **Internal report freeze.**
+3. **W16:** contingency, allocated to finishing the report.
+4. **W17: Final Review, 17–21 November. Report due 20 November.**
+
+The guide's hardware-alternative acknowledgement (`deliverables/review-1/guide-hardware-alternative-acknowledgement.md`) is still recorded as PENDING; only a person can fill it in.
 
 ## 3. The idea in more detail
 
@@ -121,15 +126,15 @@ The fairness claim is about accuracy at equal channel uses and equal average sym
 
 ## 7. What was found
 
-The short version is in [`RESULTS.md`](RESULTS.md), which you should read in full before writing or presenting anything. Five points to keep in your head:
+The full version is in [`RESULTS.md`](RESULTS.md), which you should read before writing or presenting anything. Five points to keep in your head, all from the 3,925-image test split at 1/6, averaged over three seed pairs unless stated:
 
-1. **The cliff is real.** At 1/6, both digital systems deliver nothing at −5 dB and below. DJSCC still gets 73–78% there. That cliff sits where it does partly because the lowest code rate allowed is 1/3; whether to disclose or test this is an open decision (see [`novelty-review.md`](novelty-review.md)).
-2. **Above the cliff the baseline wins.** From −4 dB up, adaptive JPEG 2000 beats DJSCC by 2.7–6.1 points (89.3% against 83.4% at 18 dB).
-3. **Less bandwidth, bigger DJSCC region.** At 1/24, DJSCC stays ahead up to +3 dB.
-4. **Most of the low-SNR gain is outage avoidance.** The task-aware digital control reaches 82.0% whenever it delivers, within about 2 points of DJSCC across three seeds, but falls off the same cliff.
-5. **The receiver's classifier matters.** Grading the digital images with a classifier that never saw compression artifacts costs up to 43 points near the cliff, and moves the range where DJSCC leads by 3–6 dB.
+1. **The cliff is real.** Neither digital system delivers anything from −8 to −5 dB. DJSCC gets 76–80% there and leads by 66–70 points.
+2. **Above the cliff the baseline wins.** The two are tied at −4 and −3 dB; from −2 dB up adaptive JPEG 2000 is more accurate, by about four points at high SNR (86.6% against 82.4% at 18 dB).
+3. **Most of the low-SNR gain is outage avoidance.** The task-aware digital control reaches 81.1% once it delivers, and DJSCC beats it by only 0.7–1.3 points from 1 dB up. With a rate-1/5 code (AM-100) it delivers from −7 dB, leaving DJSCC a clear lead only at −7 dB and below.
+4. **Less bandwidth, bigger DJSCC region.** At 1/24 (one seed pair) the digital system delivers nothing up to −3 dB and only passes DJSCC from 2 dB.
+5. **The receiver's classifier matters.** Grading the same JPEG 2000 images with a classifier that never saw compression artifacts costs up to 43 points near the threshold.
 
-All of this is validation data from one seed pair (except the three-seed H4 diagnostic). It decides none of the hypotheses.
+The validation results that came first (W10 v11, one seed pair) told the same story and are kept in `RESULTS.md` for the record.
 
 **What is new.** No single system here is new. To our knowledge, what is new is measuring how much of DJSCC's advantage comes from the way it is compared rather than from the learning: points 4 and 5 are the two controls that show it. The one-sentence answer, the closest prior work (Huang et al. 2024, Lokumarambage et al. 2026, SwinJSCC, Ren et al. 2025) and the prepared viva answers are in [`novelty-review.md`](novelty-review.md).
 
@@ -144,15 +149,17 @@ Preregistered in `spec/SPEC.md` §2, decided only on the test split, averaged ov
 
 A curve crossing is reported if seen, but it is not a pass condition. Completion doesn't depend on which way the results fall.
 
+**Outcome (G-12, 2026-10-02): all four are supported.** H1: calibrated p = 0.030, qualifying run −8 to −5 dB. H2: over the frozen 3→7 dB window the fixed 16-QAM baseline loses 76.7 points and DJSCC 0.2. H3: the gap shrinks by 1.71 points per dB. H4: calibrated p = 0.0096, qualifying run 1 to 7 dB, but the margin there is only about a point, so most of DJSCC's advantage is still outage avoidance (finding 3 above).
+
 ## 9. Deliverables
 
 | Deliverable | Where | State |
 |---|---|---|
 | First Review deck | `deliverables/review-1/` | Delivered (18–22 Aug) |
-| Second Review deck and presenter guide | `deliverables/review-2/` | Ready for 29 Sep–3 Oct |
-| Research paper (IEEE) | `deliverables/research-paper/capstone_rp.tex` | Draft, retitled 2026-10-01 ("How Much of Deep Joint Source–Channel Coding's Advantage Survives a Fair Comparison?"); Sections IV–X being revised by the authors |
-| Supplementary material (IEEE) | `deliverables/research-paper/supplement/` | Draft |
-| Results package (figures, CSVs, notes) | `presentation-results/` | Done (validation) |
+| Second Review deck and presenter guide | `deliverables/review-2/` | Prepared for 29 Sep–3 Oct |
+| Research paper (IEEE) | `deliverables/research-paper/capstone_rp.tex` | Reports the G-12 test results (`8e0769d`); retitled 2026-10-01 ("How Much of Deep Joint Source–Channel Coding's Advantage Survives a Fair Comparison?"); the authors are rewriting it |
+| Supplementary material (IEEE) | `deliverables/research-paper/supplement/` | Reports the complete G-12 test results (`412ffa0`) |
+| Results package (figures, CSVs, notes) | `presentation-results/` | W10 validation figures and notes; the G-12 test tables are `data/g12_test_*.csv` |
 | Offline demos (three) | `demo/`, `demo_g12/`, `demo_streamlit/` | Built; weights provisioned separately. `demo/` shows W10 validation; the other two show the G-12 test results and send test images (AM-101) |
 | Literature review (30 sources) | `docs/literature-review.md` | Done |
 | Gantt chart | `docs/gantt-plan.md` | Keep current |
@@ -205,12 +212,12 @@ This is why there are many files named like `..._v4.json`, `..._closeout.json` a
 
 ## 13. Things that sound reasonable but are wrong here
 
-- **"DJSCC beats the digital system."** Only where the digital system delivers nothing. Above the cliff it loses by up to 6 points.
+- **"DJSCC beats the digital system."** Only where the digital system delivers nothing. Above the cliff it loses by about 4 points on test.
 - **"The curves must cross for the project to pass."** No. Crossing is reported if seen and is not a criterion.
 - **"The project shows an energy saving."** No. It compares accuracy at equal channel uses and equal average symbol energy.
 - **"Failed packets can be dropped, since there is no prediction."** No. They are scored by the outage rule and stay in the denominator.
 - **"This is reinforcement learning."** No. It's supervised end-to-end training through a differentiable channel.
-- **"Validation and test are both held out, so either can be used for tuning."** No. Every choice is made on validation, and test opens once.
+- **"Validation and test are both held out, so either can be used for tuning."** No. Every choice was made on validation, and test was opened once, at G-12. The demos' test images are display-only (AM-101).
 - **"The PAPR-capped model meets RF power limits."** Only in the symbol domain, not on a transmitted waveform.
 - **"One seed shows SNR randomisation adds 3 points."** It shows a 3-point difference between two runs. The effect size needs more seeds.
 - **"Hardware is required."** No. Tiers 2 and 3 (SDR, Raspberry Pi) are stretch goals. The capstone stands on the simulation.
@@ -244,14 +251,14 @@ python presentation-results/plot_results.py
 
 ## 15. Questions you should be able to answer
 
-1. Why does the digital baseline score exactly 10.0% at low SNR?
-2. Why is the task-aware digital system's accuracy flat at 82.0%?
+1. Why does the digital baseline score exactly 10.0% on validation and 9.9% on test at low SNR?
+2. Why is the task-aware digital system's accuracy flat (82.0% on validation, 81.1% on test)?
 3. Why was the classifier fine-tuned on JPEG 2000 images, and what happens to the crossover without it?
 4. Why JPEG 2000 and not JPEG?
 5. What is the difference between the 1/6 and 1/24 results, and why?
 6. Why does the label-transmission bound fail at the same SNR as the task-aware system?
-7. Why are the validation results not a test of H1?
-8. What would H4 returning "unsupported" mean, given the G-11 diagnostic?
+7. Why were the validation results not a test of H1, even though test told the same story?
+8. H4 is supported. Why does that still leave most of DJSCC's low-SNR advantage to outage avoidance?
 9. What does the PAPR result say, and what doesn't it say?
 10. Why would re-running a closed campaign be a problem, even to fix a number?
 

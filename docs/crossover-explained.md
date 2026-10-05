@@ -3,6 +3,12 @@
 Background note for the thesis discussion chapter and viva preparation. Explains the change to
 `spec/SPEC.md` §2 in plain language first, then technically. Not normative — the spec governs.
 
+> **What happened (added 2026-10-05):** this note was written in July, before any results. On the
+> G-12 test split at r = 1/6 the curves do cross. DJSCC leads by 66–70 points from −8 to −5 dB, the
+> two are statistically tied at −4 and −3 dB, and the adaptive digital system leads from −2 dB up.
+> H1–H4 are all supported. The argument below still explains why a crossing was never required.
+> Numbers: [`RESULTS.md`](RESULTS.md).
+
 ---
 
 ## The short answer

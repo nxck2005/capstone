@@ -1,8 +1,90 @@
 # Results
 
-The measured results of the project, in one place, with what each number means, what it does not mean, and where it comes from. Written 2026-10-01 for rewriting the paper and preparing the reviews. Not normative: `spec/SPEC.md` governs, and the published evidence under `results/` is the source of truth.
+The measured results of the project, in one place, with what each number means, what it does not mean, and where it comes from. The final test results (G-12) come first; the validation results that preceded them, written 2026-10-01, follow. Not normative: `spec/SPEC.md` governs, and the published evidence under `results/` is the source of truth.
 
-## Read this first
+## Final test results (G-12)
+
+### Read this first
+
+- **These numbers are from the test split**: 3,925 held-out Imagenette-160 images, read once by the G-12 campaign after every model, operating point and analysis choice was frozen on validation data (freeze `g12freeze-f96082101953546fdda096746c073bea342358a6f0e5f045c6435020d5fe511c`, 441/441 units, closed 2026-10-02).
+- **DJSCC, adaptive JPEG 2000 + LDPC, the task-aware digital control and the fixed 16-QAM curve are averaged over three seed pairs**; every other variant is one seed pair. Intervals are 95% image-bootstrap intervals from the same shared bootstrap as the hypothesis tests.
+- **The two sides are still graded by different classifiers** (DJSCC by its own head, the image systems by the artifact-fine-tuned ResNet-18), so a learned-versus-digital gap remains a whole-system difference.
+- **9.9 means every packet failed** and the outage rule (always predict class 0) applied; class 0 is 387 of the 3,925 test images.
+
+**Sources.** `results/g12/analysis.json` (hypothesis decisions), `results/g12/results.csv` (one row per unit), `presentation-results/data/g12_test_curves.csv` and `g12_test_differences.csv` (seed-averaged curves and paired differences, written by `tools/export_g12_tables.py`), and the per-image streams in release `g12-test-per-image-2026-10-02`. Post-freeze corrections 1–2 and the aborted first attempt are recorded under `results/g12/`.
+
+### Preregistered hypotheses: all four supported
+
+| Hypothesis | Comparator | Test result |
+|---|---|---|
+| H1 low-SNR separation (primary) | DJSCC vs adaptive JPEG 2000 + LDPC | Supported: calibrated p = 0.030; four consecutive qualifying points, −8 to −5 dB |
+| H2 graceful versus cliff | DJSCC vs fixed 16-QAM over the frozen 3→7 dB window | Supported: classical drop 76.7 points (one-sided lower bound 75.5), DJSCC drop 0.2 points (upper bound 0.4); difference-in-differences 76.5 [75.1, 77.9] |
+| H3 convergence | DJSCC vs adaptive JPEG 2000 + LDPC | Supported: gap slope −1.71 points/dB [−1.76, −1.67]; low-SNR gap 66.3 points, high-SNR gap −4.2 points |
+| H4 attribution | DJSCC vs task-aware digital (ER-9) | Supported: calibrated p = 0.0096; longest qualifying run seven points, 1 to 7 dB |
+
+### Headline numbers
+
+Top-1 accuracy (%) on the 3,925 test images.
+
+| r | System | Seeds | −8 | −7 | −6 | −4 | −2 | 0 | +4 | +7 | +18 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1/6 | DJSCC | 3 | 76.1 | 77.5 | 79.1 | 80.8 | 81.4 | 81.6 | 82.1 | 82.3 | 82.4 |
+| 1/6 | DJSCC, SNR-randomized training | 1 | 77.6 | 78.8 | 80.0 | 81.1 | 82.1 | 82.6 | 82.9 | 82.6 | 83.0 |
+| 1/6 | DJSCC, 3 dB PAPR cap | 1 | 76.7 | 78.3 | 79.3 | 81.0 | 81.4 | 81.8 | 82.4 | 82.3 | 82.3 |
+| 1/6 | DJSCC reconstruction → clean ResNet-18 | 1 | 44.1 | 48.5 | 52.5 | 60.3 | 65.3 | 70.9 | 75.8 | 77.3 | 78.0 |
+| 1/6 | JPEG 2000 + LDPC, adaptive | 3 | 9.9 | 9.9 | 9.9 | 81.6 | 83.2 | 85.9 | 86.2 | 86.5 | 86.6 |
+| 1/6 | … same outputs, clean ResNet-18 | 3 | 9.9 | 9.9 | 9.9 | 59.2 | 78.2 | 84.4 | 86.4 | 87.5 | 87.6 |
+| 1/6 | JPEG 2000 + LDPC, QPSK only | 1 | 9.9 | 9.9 | 9.9 | 9.9 | 9.9 | 85.9 | 86.2 | 86.5 | 86.5 |
+| 1/6 | JPEG 2000 + LDPC, fixed 16-QAM r=1/2 | 3 | 9.9 | 9.9 | 9.9 | 9.9 | 9.9 | 9.9 | 9.9 | 86.5 | 86.5 |
+| 1/6 | Baseline JPEG + LDPC | 1 | 9.9 | 9.9 | 9.9 | 66.4 | 74.5 | 81.2 | 85.1 | 85.5 | 86.1 |
+| 1/6 | Task-aware digital | 3 | 9.9 | 9.9 | 9.9 | 81.1 | 81.1 | 81.1 | 81.1 | 81.1 | 81.1 |
+| 1/6 | Task-aware digital, rate 1/5 (AM-100) | 1 | 9.9 | 56.9 | 80.9 | 80.9 | 80.9 | 80.9 | 80.9 | 80.9 | 80.9 |
+| 1/6 | Label transmission | 1 | 9.9 | 9.9 | 9.9 | 81.0 | 81.0 | 81.0 | 81.0 | 81.0 | 81.0 |
+| 1/24 | DJSCC | 1 | 47.3 | 53.9 | 59.1 | 68.3 | 73.9 | 76.3 | 78.8 | 79.8 | 80.0 |
+| 1/24 | JPEG 2000 + LDPC, adaptive | 1 | 9.9 | 9.9 | 9.9 | 9.9 | 28.9 | 68.0 | 81.6 | 84.9 | 86.3 |
+| 1/24 | … same outputs, clean ResNet-18 | 1 | 9.9 | 9.9 | 9.9 | 9.9 | 13.5 | 25.2 | 59.2 | 79.8 | 85.9 |
+
+Paired per-image difference in percentage points (DJSCC minus the other system) at r = 1/6, three seed pairs, with 95% intervals:
+
+| SNR (dB) | DJSCC − JPEG 2000 + LDPC | DJSCC − task-aware digital |
+|---:|---:|---:|
+| −8 | +66.3 [+64.8, +67.8] | +66.3 [+64.8, +67.8] |
+| −5 | +70.2 [+68.8, +71.6] | +70.2 [+68.8, +71.6] |
+| −4 | −0.9 [−2.0, +0.3] | −0.3 [−1.0, +0.4] |
+| −3 | −0.7 [−1.9, +0.4] | −0.2 [−0.9, +0.5] |
+| −2 | −1.8 [−2.9, −0.7] | +0.3 [−0.4, +0.9] |
+| 0 | −4.3 [−5.4, −3.3] | +0.5 [−0.2, +1.1] |
+| +1 | −4.1 [−5.1, −3.1] | +0.7 [+0.1, +1.4] |
+| +4 | −4.0 [−5.0, −3.0] | +1.0 [+0.4, +1.7] |
+| +7 | −4.2 [−5.2, −3.2] | +1.2 [+0.6, +1.9] |
+| +18 | −4.2 [−5.2, −3.2] | +1.3 [+0.7, +2.0] |
+
+### Findings
+
+1. **The cliff holds on test.** At 1/6 neither digital system delivers anything from −8 to −5 dB, and DJSCC keeps 76–80% there. DJSCC leads by 66–70 points across that range.
+2. **The crossover sits at −4 to −3 dB, where the two are statistically tied.** From −2 dB up, adaptive JPEG 2000 + LDPC is more accurate, by about four points at high SNR (86.6% against 82.4% at 18 dB).
+3. **The task-aware digital control nearly matches DJSCC wherever it delivers.** It reaches 81.1%; DJSCC exceeds it by 0.7–1.3 points from 1 dB up, and the two are tied from −4 to 0 dB. That small, positive high-SNR margin is what H4 credits to joint coding.
+4. **A lower code rate takes most of DJSCC's remaining low-SNR advantage.** The rate-1/5 task-aware variant (AM-100) delivers from −7 dB and scores 80.9% from −6 dB, leaving DJSCC a clear lead only at −7 dB and below.
+5. **The receiver's classifier matters as much as the link.** Scoring the same JPEG 2000 outputs with the clean-trained ResNet-18 costs up to 43 points near the delivery threshold at 1/24, and 22 points at −4 dB at 1/6.
+6. **A tighter budget moves the digital threshold up by several dB.** At 1/24 the adaptive digital system delivers nothing up to −3 dB, is still behind DJSCC at 1 dB (72.6% against 77.5%), and passes it from 2 dB (79.1% against 78.0%). These are one seed pair.
+7. **The validation findings carry over, each on one seed pair.** SNR-randomized training scores 77.6% at −8 dB against 71.5% for fixed-SNR training in the same seed pair, and stays about 1.5 points ahead from −4 dB up. The 3 dB PAPR cap costs almost nothing. Reconstructing the image first and classifying it with a clean ResNet-18 loses 20–32 points from −8 to −4 dB.
+
+### Wording for test results
+
+| Say | Don't say |
+|---|---|
+| "On the 3,925-image test split, averaged over three seed pairs…" | "Our results show…" (no split or seeds named) |
+| "All four preregistered hypotheses are supported" | "We proved DJSCC is better" |
+| "Statistically tied at −4 and −3 dB" | "DJSCC wins at −4 dB" |
+| "From −2 dB up, the adaptive digital system is more accurate" | "DJSCC is competitive at all SNRs" |
+| "DJSCC exceeds the task-aware digital control by 0.7–1.3 points from 1 dB up" | "Joint coding adds over a point everywhere" |
+| "With rate-1/5 coding the digital control delivers from −7 dB" | "Digital systems cannot work below −5 dB" |
+
+## Validation results (W10 v11), written 2026-10-01 before the test campaign
+
+> Everything from here down describes the **validation** split as it stood before G-12. Statements that the test split is sealed, or that H1–H4 are undecided, were true when written and are superseded by the section above. The validation numbers themselves remain correct.
+
+### Read this first (validation)
 
 - **Every number below is from the validation split.** 1,000 Imagenette-160 images, 100 per class. The 3,925-image test split is sealed and has never been read by a model (`test_access = 0`). Test results come from the single campaign at G-12.
 - **The system curves come from one seed pair** (training seed 0, channel seed 0). The spec's hypotheses are decided on three seed pairs, on test, with paired bootstrap intervals. None of that has happened yet, so nothing here decides H1–H4.
@@ -14,7 +96,7 @@ The measured results of the project, in one place, with what each number means, 
 
 ## The result in one paragraph
 
-At a bandwidth ratio of 1/6 (12,800 channel uses per image), DJSCC is the only system that works at −5 dB and below (with the configured code rates, the lowest of which is 1/3; see the open decision in [`novelty-review.md`](novelty-review.md)), where it keeps 73–78% accuracy while both digital systems deliver nothing. Between −5 and −4 dB the digital systems start delivering, and from −4 dB upward the adaptive JPEG 2000 system is more accurate than DJSCC by 2.7 to 6.1 points. At 1/24 (3,200 channel uses) the digital system needs much more SNR: DJSCC stays ahead up to +3 dB. The task-aware digital control, which sends learned features over the same digital link, scores 82.0% whenever its packets arrive and nothing below −4 dB. So at this ratio most of DJSCC's low-SNR advantage comes from avoiding outage, not from a better representation.
+At a bandwidth ratio of 1/6 (12,800 channel uses per image), DJSCC is the only system that works at −5 dB and below (with the configured code rates, the lowest of which is 1/3; [`novelty-review.md`](novelty-review.md) led to AM-100's rate-1/5 variant, measured above), where it keeps 73–78% accuracy while both digital systems deliver nothing. Between −5 and −4 dB the digital systems start delivering, and from −4 dB upward the adaptive JPEG 2000 system is more accurate than DJSCC by 2.7 to 6.1 points. At 1/24 (3,200 channel uses) the digital system needs much more SNR: DJSCC stays ahead up to +3 dB. The task-aware digital control, which sends learned features over the same digital link, scores 82.0% whenever its packets arrive and nothing below −4 dB. So at this ratio most of DJSCC's low-SNR advantage comes from avoiding outage, not from a better representation.
 
 ## Headline numbers
 
@@ -202,17 +284,20 @@ These show the machinery works. They are not comparisons.
 
 ## Paper figures
 
+The paper's figures now plot the **G-12 test** results (`g12_test_curves.csv`, `g12_test_differences.csv`):
+
 | Paper figure | File | Shows |
 |---|---|---|
-| Fig. 1 | `fig_headline` | Accuracy and delivery at 1/6: DJSCC, adaptive JPEG 2000, task-aware digital |
-| Fig. 2 | `fig_bandwidth` | DJSCC against JPEG 2000 at 1/6 and 1/24 |
-| Fig. 3 | `fig_scorer` | (a) same JPEG 2000 outputs, two classifiers; (b) same DJSCC transmissions, two receivers |
-| Fig. 4 | `fig_training` | Fixed-SNR, SNR-randomized and PAPR-capped DJSCC |
-| Fig. 5 | `fig_controls` | Adaptive baseline against QPSK-only, fixed operating point and baseline JPEG |
+| Fig. 1 | `fig_headline` | Accuracy and delivery at 1/6: DJSCC, adaptive JPEG 2000, task-aware digital and its rate-1/5 variant |
+| Fig. 2 | `fig_differences` | Paired difference, DJSCC minus each digital system, at 1/6 |
+| Fig. 3 | `fig_bandwidth` | DJSCC against JPEG 2000 at 1/6 and 1/24 |
+| Fig. 4 | `fig_scorer` | (a) same JPEG 2000 outputs, two classifiers; (b) same DJSCC transmissions, two receivers |
+| Fig. 5 | `fig_training` | Fixed-SNR, SNR-randomized and PAPR-capped DJSCC |
+| Fig. 6 | `fig_controls` | Adaptive baseline against QPSK-only, fixed operating point and baseline JPEG |
 
 The files are in `deliverables/research-paper/figures/`. Regenerate them with `python3 deliverables/research-paper/figures/make_figures.py`.
 
-## Wording that is safe, and wording that is not
+## Wording that is safe, and wording that is not (validation)
 
 | Say | Don't say |
 |---|---|

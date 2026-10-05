@@ -6,7 +6,7 @@ Install the project's CPU runtime lock and the separate `demo/backend/requiremen
 .venv/bin/python -m uvicorn demo.backend.app:app --host 127.0.0.1 --port 8000
 ```
 
-The four portable gallery examples are **training-split illustration inputs** authenticated against the committed Imagenette manifest and their exact source JPEG SHA-256s. They are **not held-out evaluation examples**. The chart independently uses the 252 **published validation** units (1,000 validation images per point), with parity checked against `presentation-results/data/w10_primary_252.csv`; it is not recomputed from gallery requests. Final test is sealed. No network download, training, uploaded image, dynamic filesystem path, or test loader exists in the API.
+The four portable gallery examples are **training-split illustration inputs** authenticated against the committed Imagenette manifest and their exact source JPEG SHA-256s. They are **not held-out evaluation examples**. The chart independently uses the 252 **published validation** units (1,000 validation images per point), with parity checked against `presentation-results/data/w10_primary_252.csv`; it is not recomputed from gallery requests. This API predates the G-12 test campaign and still never reads test data (the `test: SEALED` metadata field describes the W10 evidence it serves). No network download, training, uploaded image, dynamic filesystem path, or test loader exists in the API.
 
 | Method | Path | Response |
 | --- | --- | --- |

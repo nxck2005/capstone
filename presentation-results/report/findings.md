@@ -1,5 +1,7 @@
 # W10 scientific findings (validation only)
 
+> **Update 2026-10-05:** this package predates the G-12 test campaign. G-12 has since run once on the 3,925 test images (2026-10-02) and all four hypotheses are supported. For test numbers use `data/g12_test_curves.csv` and `data/g12_test_differences.csv`, the paper's figures and [`docs/RESULTS.md`](../../docs/RESULTS.md). The validation numbers here are unchanged and still correct.
+
 ## Reading the measurements
 
 Each point has **1,000 Imagenette-160 validation images** from the single frozen train/channel seed cell. End-to-end accuracy is `n_correct / 1000` and includes outcomes on transmission outage. Delivery coverage is `(1000 − decode failures − infeasible transmissions) / 1000`. Accuracy conditional on delivery uses only delivered images and is undefined when coverage is zero. The `10.0%` end-to-end floor seen on several all-outage digital points is the measured outage-policy result on this exactly stratified validation set; it is **not** successful delivery. The per-image row correctness, including outage decisions, is the source of each aggregate `n_correct`.
@@ -26,7 +28,7 @@ The learned systems use their respective **own task heads**. The adaptive classi
 
 ## Limits that matter in a viva or paper
 
-- These are **validation-only** results from one frozen seed cell and 1,000 images per point. The final test is sealed. Do not call the 21 SNRs independent experimental replications or infer significance from smoothness of the curves.
+- These are **validation-only** results from one frozen seed cell and 1,000 images per point. The final test was sealed when this was written. Do not call the 21 SNRs independent experimental replications or infer significance from smoothness of the curves.
 - The published per-image stream manifest is authenticated, but the bulk rows are not in this checkout. No paired uncertainty intervals were computed here. Point differences of one or two percentage points should be described as observed differences.
 - The headline learned and classical systems use different classifier architectures and task representations. Their end-to-end curves answer a system-level question, not a controlled comparison of channel coding alone.
 - The classical chain has coding, codec and artifact-aware scoring choices frozen from validation work. The learned controls use separate training runs. This is a concrete, specified comparison, not equal optimization effort or equal computational complexity.
