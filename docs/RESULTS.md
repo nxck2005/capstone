@@ -251,7 +251,7 @@ Only λ=3 reached 20 dB.
 
 **Bandwidth ratios.** 1/6 was selected at G-8 as the main comparison ratio and 1/24 as the low-bandwidth ratio.
 
-**Operating points of the adaptive baseline at 1/6** (paper Table V):
+**Operating points of the adaptive baseline at 1/6** (supplement Table S14):
 
 | SNR (dB) | Image size | Coding |
 |---|---|---|

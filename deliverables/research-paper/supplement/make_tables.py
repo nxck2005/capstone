@@ -240,6 +240,9 @@ def main() -> None:
                    "clean ResNet-18.", "tab:s-scorer", scorer_rows),
         difference_table(),
         hypothesis_point_table(analysis),
+        operating_point_table(curves, results, units, "classical_adaptive", "r_1_6",
+                              "Operating points of the adaptive JPEG~2000 baseline at $r=1/6$, selected on validation "
+                              "data, with test accuracy and delivered fraction.", "tab:s-op6"),
         operating_point_table(curves, results, units, "classical_adaptive", "r_1_24",
                               "Operating points of the adaptive JPEG~2000 baseline at $r=1/24$, selected on validation "
                               "data, with test accuracy and delivered fraction.", "tab:s-op24"),

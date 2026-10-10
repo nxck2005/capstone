@@ -8,16 +8,19 @@
 
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{graphicx}
 \usepackage[ruled]{algorithm2e}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{placeins}
 \usepackage{microtype}
 \usepackage[hidelinks]{hyperref}
+\graphicspath{{../figures/}{figures/}}
 
 % S-prefixed numbering so nothing here can be confused with the main paper.
 \renewcommand{\thesection}{S\arabic{section}}
 \renewcommand{\thetable}{S\arabic{table}}
+\renewcommand{\thefigure}{S\arabic{figure}}
 \renewcommand{\thealgocf}{S\arabic{algocf}}
 \AtBeginDocument{\renewcommand{\thelstlisting}{S\arabic{lstlisting}}}
 
@@ -429,7 +432,33 @@ class UniformScalarQuantizer:
 \section{Architecture and Training Settings}
 \label{sec:settings}
 
-Table~\ref{tab:sizes} gives the model sizes and Table~\ref{tab:recipe} the training and link settings.
+Table~\ref{tab:s-systems} lists every system variant evaluated on the test split, Table~\ref{tab:sizes} gives the model sizes, and Table~\ref{tab:recipe} the training and link settings.
+
+\begin{table}[t]
+\caption{System variants evaluated on the test split. Every variant uses the same complex AWGN channel and the same $k$ for its bandwidth ratio. Seeds: number of trained (or, for the untrained digital codecs, channel) seed pairs evaluated.}
+\label{tab:s-systems}
+\centering
+\footnotesize
+\begin{tabular}{@{}p{0.40\columnwidth}ccp{0.27\columnwidth}@{}}
+\toprule
+Variant & $r$ & Seeds & Classifier at receiver \\
+\midrule
+DJSCC (7~dB training) & $1/6$ & 3 & Own task head \\
+ & $1/24$ & 1 & Own task head \\
+DJSCC, SNR-randomized & $1/6$ & 1 & Own task head \\
+DJSCC, PAPR-capped & $1/6$ & 1 & Own task head \\
+DJSCC reconstruction & $1/6$ & 1 & Clean ResNet-18 \\
+JPEG~2000 + LDPC, adaptive & $1/6$ & 3 & Fine-tuned ResNet-18 \\
+ & $1/24$ & 1 & Fine-tuned ResNet-18 \\
+JPEG~2000 + LDPC, QPSK only & $1/6$ & 1 & Fine-tuned ResNet-18 \\
+JPEG~2000 + LDPC, fixed & $1/6$ & 3 & Fine-tuned ResNet-18 \\
+Baseline JPEG + LDPC & $1/6$ & 1 & Fine-tuned ResNet-18 \\
+Task-aware digital & $1/6$ & 3 & Own task head \\
+Task-aware digital, rate 1/5 & $1/6$ & 1 & Own task head \\
+Label transmission & $1/6$ & 1 & Transmitter's prediction \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{table}[t]
 \centering
@@ -475,6 +504,30 @@ Modulation & BPSK, QPSK, 16-QAM; Gray mapping; TS~38.212 bit interleaver; max-lo
 Source codec & OpenJPEG 2.5.4: raw codestream, 9/7 wavelet, 6 levels, RPCL, $64\times64$ blocks \\
 Rate control & bisection on compression ratio (16-byte tolerance, at most 24 encodes) \\
 Resizing & bilinear down, bicubic up \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Implementation checks.} Table~\ref{tab:s-checks} summarizes the checks run before the test campaign. The clean ResNet-18 reaches 898/1000 on the validation split after 100 epochs, above its target of 0.88. A batch-32 profile of the DJSCC model at $r=1/2$ on an RTX 4060 Laptop GPU measured 1.004~GiB of peak reserved memory and 48.7~s per epoch, or about 1.35~h for 100 epochs.
+
+The TS~38.212-derived LDPC core was checked against an independent reference implementation with $K=128$, $N=256$, base graph 2, lifting size 22, rate $1/2$, offset min-sum decoding, and 5000 blocks per SNR point; across BPSK, QPSK, and 16-QAM the waterfall at BLER $10^{-2}$ is within 0.0037~dB of the reference. Packetization was checked across 216 configurations, of which 215 are feasible and one is structurally infeasible under the configured budget. The BLER curves used for selection cover 3213 operating points in 153 curves at 5000 trials each; operating points without a measured curve are excluded from selection rather than given a default BLER. The classical validation sweep evaluated 288 structural configurations over all 1000 validation images: 264,000 of the 288,000 evaluations were delivered and 24,000 were codec-infeasible, with no decode or structural failures, and selection produced a valid operating point for all 378 requested SNR cells.
+
+A design study on validation data, run before the final models were trained, estimated that at 80\% power the smallest paired difference H4 could detect at a single SNR is 1.8 to 1.9 points above the digital cliff and about 4 points below it.
+
+\begin{table}[t]
+\caption{Implementation checks.}
+\label{tab:s-checks}
+\centering
+\footnotesize
+\begin{tabular}{@{}p{0.27\columnwidth}p{0.67\columnwidth}@{}}
+\toprule
+Item & Result \\
+\midrule
+Clean classifier & 0.898 validation top-1 (898/1000), ResNet-18 trained from scratch \\
+DJSCC profile & 1,640,957 parameters at $r=1/2$; 1.004 GiB peak reserved VRAM at batch 32 \\
+LDPC conformance & Waterfall offset $\leq0.0037$ dB at BLER $10^{-2}$ against the reference decoder \\
+BLER campaign & 153 curves; 3213 points; 5000 trials/point; 16,065,000 trials total \\
+Classical sweep & 288 configurations $\times$ 1000 images; 264,000 delivered, 24,000 codec-infeasible \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -526,17 +579,51 @@ $D$ & Raw payload (bits) & Acc.\ (\%) \\
 \section{Complete Test Results}
 \label{sec:results}
 
-Tables~\ref{tab:s-acc}--\ref{tab:s-opqpsk} give every test measurement. Table~IV of the main paper is a subset of Table~\ref{tab:s-acc}, and its Table~VI is the $r=1/6$ counterpart of Table~\ref{tab:s-op24}. Table~\ref{tab:s-seeds} shows the spread between seed pairs, Table~\ref{tab:s-diff} the paired differences plotted in Fig.~2 of the paper, and Table~\ref{tab:s-points} the point statistics on which the H1 and H4 run rules operate. The operating points in Tables~\ref{tab:s-op24}--\ref{tab:s-opqpsk} were selected on validation data; each was checked against the configuration actually run on the test split.
+Tables~\ref{tab:s-acc}--\ref{tab:s-opqpsk} give every test measurement. Table~I of the main paper is a subset of Table~\ref{tab:s-acc}, and Table~\ref{tab:s-op6} gives the operating points of its adaptive JPEG~2000 baseline at $r=1/6$. Table~\ref{tab:s-seeds} shows the spread between seed pairs, Table~\ref{tab:s-diff} the paired differences plotted in Fig.~2 of the paper, and Table~\ref{tab:s-points} the point statistics on which the H1 and H4 run rules operate. The operating points in Tables~\ref{tab:s-op6}--\ref{tab:s-opqpsk} were selected on validation data; each was checked against the configuration actually run on the test split.
 
 The symbol-domain PAPR over the 3925 test images, in the first seed pair, is: DJSCC at $r=1/6$, mean 13.26~dB (13.26 to 14.79~dB across the three seed pairs) and maximum 24.65~dB over all three; DJSCC at $r=1/24$, mean 12.32~dB and maximum 22.37~dB; SNR-randomized DJSCC, mean 13.25~dB and maximum 23.47~dB; PAPR-capped DJSCC, mean 3.000~dB and maximum 3.000002~dB; adaptive JPEG~2000 at $r=1/6$, at most 2.61~dB mean and 3.34~dB maximum at any SNR.
 
 \input{tables}
 
 \FloatBarrier
+\section{Additional Test Figures}
+\label{sec:figures}
+
+Figs.~\ref{fig:s-bandwidth}--\ref{fig:s-controls} plot four comparisons that the paper reports in its text and in its Table~I: the two bandwidth ratios, the two receiver classifiers, the three DJSCC training recipes, and the restricted digital baselines. Scorers and operating-point selection are as in Fig.~1 of the paper.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_bandwidth}
+\caption{DJSCC against the adaptive JPEG~2000 baseline on the test split at two bandwidth ratios. (a) Three seed pairs with 95\% intervals; (b) the first seed pair. Reducing the channel uses fourfold moves the first SNR at which the digital system is ahead from $-2$~dB to $+2$~dB.}
+\label{fig:s-bandwidth}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_scorer}
+\caption{(a) The same JPEG~2000 + LDPC outputs at $r=1/6$ scored by the fine-tuned and the clean ResNet-18, with DJSCC for reference (three seed pairs). (b) The same DJSCC transmissions read by the DJSCC task head and by the clean ResNet-18 applied to the DJSCC reconstruction (first seed pair).}
+\label{fig:s-scorer}
+\end{figure*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_training}
+\caption{DJSCC at $r=1/6$ on the test split, first seed pair: trained at a fixed 7~dB, trained with SNR drawn from $\{1,4,7,13,19\}$~dB, and trained with a 3~dB symbol PAPR cap. The other two seed pairs of the fixed-SNR model score 78.4\% and 78.5\% at $-8$~dB. Note the vertical scale.}
+\label{fig:s-training}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_controls}
+\caption{Adaptive JPEG~2000 + LDPC at $r=1/6$ on the test split against restricted versions: QPSK only (rate and resolution still adapted), one fixed operating point at all SNRs, and baseline JPEG in place of JPEG~2000. All scored by the fine-tuned ResNet-18.}
+\label{fig:s-controls}
+\end{figure}
+
+\FloatBarrier
 \section{Reproducing the Figures and Tables}
 \label{sec:repro}
 
-The paper's figures and all tables in this document are regenerated from the committed result files, without model weights, datasets, or a GPU:
+The figures and tables in the paper and in this document are regenerated from the committed result files, without model weights, datasets, or a GPU:
 
 \begin{lstlisting}[language=bash,basicstyle=\ttfamily\scriptsize]
 git clone https://github.com/nxck2005/capstone
@@ -550,9 +637,9 @@ cd supplement && latexmk -pdf capstone_rp_supplement.tex
 
 Both scripts read only committed files: \path{presentation-results/data/g12_test_*.csv}, \path{results/g12/}, and \path{results/learned/w10/w10_continuation_units_v11.json}. The two CSV tables are written by \path{tools/export_g12_tables.py} from the per-image test outcomes, which are archived outside the repository and bound by the digests in \path{results/per_image_manifest.csv}. Re-running training or evaluation requires the Imagenette-160 archive, an NVIDIA GPU, and the environment pinned in \path{requirements.lock}.
 
-The test campaign itself ran once under the committed freeze manifest \path{results/freeze_manifest.json}. Its execution record is in \path{results/g12/}: \path{attempt1_abort_custody.json} documents a first launch that stopped before any model produced a test output, and \path{post_freeze_corrections/} records, with the exact files and contents changed, the two execution corrections described in Section~VII-I of the paper. Neither changed a model, an operating point, a noise draw, an analysis rule, or a reported accuracy.
+The test campaign itself ran once under the committed freeze manifest \path{results/freeze_manifest.json}. Its execution record is in \path{results/g12/}: \path{attempt1_abort_custody.json} documents a first launch that stopped before any model produced a test output, and \path{post_freeze_corrections/} records, with the exact files and contents changed, the two execution corrections described in Section~V-A of the paper. Neither changed a model, an operating point, a noise draw, an analysis rule, or a reported accuracy.
 
 \section*{Acknowledgment}
-This supplementary material was produced with Anthropic's Claude Opus~5.5. It wrote the pseudo-code in Section~S1 from the project's source code, selected and condensed the code excerpts in Section~S2, drafted the text throughout, and generated the tables in Sections~S3--S5 with scripts that read the published result files. The code excerpted in Section~S2 was written with the assistance of Claude Opus~5.5 and OpenAI's GPT-5.6 Sol. All content was reviewed and verified by the authors, who take full responsibility for it.
+This supplementary material was produced with Anthropic's Claude Opus~5.5. It wrote the pseudo-code in Section~S1 from the project's source code, selected and condensed the code excerpts in Section~S2, drafted the text throughout, and generated the tables in Sections~S3--S5 and the figures in Section~S6 with scripts that read the published result files. The code excerpted in Section~S2 was written with the assistance of Claude Opus~5.5 and OpenAI's GPT-5.6 Sol. All content was reviewed and verified by the authors, who take full responsibility for it.
 
 \end{document}
